@@ -58,7 +58,7 @@ impl DevTool {
     }
 
     /// Provide the suggested way to install the tool
-    pub fn install_hint(&self) -> Option<&'static str> {
+    pub fn install_hint(self) -> Option<&'static str> {
         match self {
             DevTool::Node | DevTool::Npm | DevTool::RustUp | DevTool::Cargo => None,
             DevTool::Yarn => Some("npm install --global yarn"),
@@ -68,7 +68,7 @@ impl DevTool {
     }
 
     /// Provide the command line argument to get the version of the installed tool
-    pub fn version_args(&self) -> &'static str {
+    pub fn version_args(self) -> &'static str {
         match self {
             DevTool::Node | DevTool::Npm | DevTool::Yarn => "-v",
             DevTool::RustUp | DevTool::Cargo | DevTool::WasmPack | DevTool::NjCli => "-V",
@@ -76,7 +76,7 @@ impl DevTool {
     }
 
     /// Resolve the path of the tool if exists. Returning an Error when not possible
-    pub fn resolve(&self) -> &'static Result<PathBuf> {
+    pub fn resolve(self) -> &'static Result<PathBuf> {
         match self {
             DevTool::Node => resolve_node(),
             DevTool::Npm => resolve_npm(),
@@ -89,7 +89,7 @@ impl DevTool {
     }
 
     /// Get the path of the resolved tool. Panics if the tool can't be resolved   
-    pub fn path(&self) -> &'static PathBuf {
+    pub fn path(self) -> &'static PathBuf {
         self.resolve()
             .as_ref()
             .expect("Developer Error: Cmd has already been resolved")

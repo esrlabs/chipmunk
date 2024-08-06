@@ -27,7 +27,7 @@ pub fn resolve(
     for target in involved_targets {
         for job in involved_jobs
             .iter()
-            .filter(|j| is_job_involved(&target, j, &main_job))
+            .filter(|&&j| is_job_involved(target, j, &main_job))
         {
             // Start with dependencies from other targets (Applies for Build & Install jobs only)
             let mut dep_jobs = match job {
@@ -123,7 +123,7 @@ fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
 /// * `target`: Job Target
 /// * `current_job`: Current job type to check if it has job for the given target
 /// * `main_job`: Main job type, which is used for the additional filter
-fn is_job_involved(target: &Target, current_job: &JobType, main_job: &JobType) -> bool {
+fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> bool {
     // This filter handle the special cases of adding build steps for TS and WASM lints and tests
     // and remove those jobs from the not involved targets
     let additional_filter = || {

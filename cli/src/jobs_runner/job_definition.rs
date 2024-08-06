@@ -16,14 +16,14 @@ impl JobDefinition {
     }
 
     /// Provide formatted job title with target and job type infos
-    pub fn job_title(&self) -> String {
+    pub fn job_title(self) -> String {
         format!("{} {}", self.target, self.job_type)
     }
 
     /// Run the job definition if it has a job, communicating its status with the UI bars
-    pub async fn run(&self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn run(self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         let tracker = get_tracker();
-        if let Err(err) = tracker.start(*self).await {
+        if let Err(err) = tracker.start(self).await {
             return Some(Err(err));
         }
 
@@ -33,15 +33,15 @@ impl JobDefinition {
             Some(Ok(res)) => {
                 if res.status.success() {
                     if res.skipped.is_some_and(|skipped| skipped) {
-                        tracker.success(*self, "skipped".into());
+                        tracker.success(self, "skipped".into());
                     } else {
-                        tracker.success(*self, String::default());
+                        tracker.success(self, String::default());
                     }
                 } else {
-                    tracker.fail(*self, "finished with errors".into());
+                    tracker.fail(self, "finished with errors".into());
                 }
             }
-            Some(Err(err)) => tracker.fail(*self, format!("finished with errors. {err}")),
+            Some(Err(err)) => tracker.fail(self, format!("finished with errors. {err}")),
             None => (),
         }
 
@@ -50,7 +50,7 @@ impl JobDefinition {
 
     #[inline]
     /// Runs the job definition if it has a job
-    async fn run_intern(&self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+    async fn run_intern(self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         let res = match self.job_type {
             JobType::Lint => self.target.check().await,
             JobType::Build { production } => self.target.build(production, skip).await,
@@ -85,7 +85,7 @@ mod tests {
     async fn target_has_job() {
         for target in Target::all() {
             for job_type in JobType::all() {
-                if !target.has_job(&job_type) {
+                if !target.has_job(*job_type) {
                     let job_def = JobDefinition::new(*target, job_type.clone());
                     assert!(
                         job_def.run_intern(false).await.is_none(),

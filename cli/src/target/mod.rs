@@ -176,7 +176,7 @@ impl Target {
     }
 
     /// Provides the absolute path to the target
-    pub fn cwd(&self) -> PathBuf {
+    pub fn cwd(self) -> PathBuf {
         let root = get_root();
         let relative_path = self.relative_cwd();
 
@@ -184,7 +184,7 @@ impl Target {
     }
 
     /// Provides the relative path to the target starting from chipmunk root directory
-    pub fn relative_cwd(&self) -> PathBuf {
+    pub fn relative_cwd(self) -> PathBuf {
         let sub_parts = match self {
             Target::Core => ["application", "apps", "indexer"].iter(),
             Target::Binding => ["application", "apps", "rustcore", "rs-bindings"].iter(),
@@ -201,7 +201,7 @@ impl Target {
     }
 
     /// Provide the kind of the target between Rust or Type-Script
-    pub fn kind(&self) -> TargetKind {
+    pub fn kind(self) -> TargetKind {
         match self {
             Target::Binding | Target::Core | Target::Cli | Target::Wasm | Target::Updater => {
                 TargetKind::Rs
@@ -211,7 +211,7 @@ impl Target {
     }
 
     /// Provides the target which this target depend on
-    pub fn deps(&self) -> Vec<Target> {
+    pub fn deps(self) -> Vec<Target> {
         match self {
             Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
                 Vec::new()
@@ -229,7 +229,7 @@ impl Target {
     }
 
     /// Returns if the current target has a job to the given job type
-    pub fn has_job(&self, job_type: &JobType) -> bool {
+    pub fn has_job(self, job_type: JobType) -> bool {
         match job_type {
             JobType::Lint | JobType::Clean | JobType::Build { production: _ } => true,
 
@@ -263,7 +263,7 @@ impl Target {
     }
 
     /// Provide the command that should be used in to build the target
-    pub fn build_cmd(&self, prod: bool) -> anyhow::Result<ProcessCommand> {
+    pub fn build_cmd(self, prod: bool) -> anyhow::Result<ProcessCommand> {
         let build_cmd = match self {
             Target::Binding => binding::get_build_cmd(prod)?,
             Target::Wasm => wasm::get_build_cmd(prod),
@@ -322,7 +322,7 @@ impl Target {
     }
 
     /// Provides the test commands for the given target if available
-    fn test_cmds(&self, production: bool) -> Option<Vec<TestSpawnCommand>> {
+    fn test_cmds(self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
             Target::Core => Some(core::get_test_cmds(production)),
             Target::Cli => Some(cli::get_test_cmds(production)),

@@ -199,7 +199,7 @@ impl ChecksumRecords {
             None => return Ok(ChecksumCompareResult::Changed),
         };
 
-        let current_hash = Self::calc_hash_for_target(&target)?;
+        let current_hash = Self::calc_hash_for_target(target)?;
 
         let comparison = if current_hash == *saved_hash {
             ChecksumCompareResult::Same
@@ -210,7 +210,7 @@ impl ChecksumRecords {
         Ok(comparison)
     }
 
-    fn calc_hash_for_target(target: &Target) -> anyhow::Result<HashDigest> {
+    fn calc_hash_for_target(target: Target) -> anyhow::Result<HashDigest> {
         let path = target.cwd();
         calc_combined_checksum(path).with_context(|| {
             format!("Error while calculating the current hash for target: {target}",)
@@ -238,7 +238,7 @@ impl ChecksumRecords {
             .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
 
         for target in items.involved_targets.clone() {
-            let hash = Self::calc_hash_for_target(&target)?;
+            let hash = Self::calc_hash_for_target(target)?;
             match items.map.entry(target) {
                 btree_map::Entry::Occupied(mut o) => *o.get_mut() = hash,
                 btree_map::Entry::Vacant(e) => _ = e.insert(hash),
