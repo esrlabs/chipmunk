@@ -33,19 +33,15 @@ impl JobDefinition {
             Some(Ok(res)) => {
                 if res.status.success() {
                     if res.skipped.is_some_and(|skipped| skipped) {
-                        tracker.success(*self, "skipped".into()).await;
+                        tracker.success(*self, "skipped".into());
                     } else {
-                        tracker.success(*self, String::default()).await;
+                        tracker.success(*self, String::default());
                     }
                 } else {
-                    tracker.fail(*self, "finished with errors".into()).await;
+                    tracker.fail(*self, "finished with errors".into());
                 }
             }
-            Some(Err(err)) => {
-                tracker
-                    .fail(*self, format!("finished with errors. {err}"))
-                    .await
-            }
+            Some(Err(err)) => tracker.fail(*self, format!("finished with errors. {err}")),
             None => (),
         }
 

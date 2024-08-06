@@ -132,9 +132,9 @@ pub async fn spawn(
                             break;
                         } else {
                             if !opts.suppress_msg {
-                                tracker.msg(job_def, stdout_line.clone()).await;
+                                tracker.msg(job_def, stdout_line.clone());
                             }
-                            tracker.progress(job_def, None).await;
+                            tracker.progress(job_def, None);
                             storage_report.push(stdout_line);
                         }
                     }
@@ -143,7 +143,7 @@ pub async fn spawn(
                         if stderr_read_bytes == 0 {
                             break;
                         } else {
-                            tracker.progress(job_def, None).await;
+                            tracker.progress(job_def, None);
                             if !stderr_line.trim().is_empty() {
                                 storage_report.push(stderr_line);
                             }

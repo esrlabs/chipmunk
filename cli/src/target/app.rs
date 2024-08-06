@@ -26,7 +26,7 @@ pub async fn copy_client_to_app(job_def: JobDefinition) -> Result<SpawnResult, a
         let msg = format!("removing directory: {}", prev.display());
         report_logs.push(msg);
 
-        fstools::rm_folder(job_def, &prev).await?;
+        fstools::rm_folder(job_def, &prev)?;
     }
 
     fstools::cp_folder(job_def, src.clone(), dest.clone(), &mut report_logs).await?;

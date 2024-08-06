@@ -55,8 +55,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
         &mut jobs_status,
         &mut checksum_compare_map,
         &failed_jobs,
-    )
-    .await?;
+    )?;
 
     let mut results = Vec::new();
 
@@ -104,15 +103,14 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             &mut jobs_status,
             &mut checksum_compare_map,
             &failed_jobs,
-        )
-        .await?;
+        )?;
     }
 
     Ok(results)
 }
 
 /// Iterate over jobs states maps and spawn the jobs that aren't waiting for any jobs to be done
-async fn spawn_jobs(
+fn spawn_jobs(
     sender: UnboundedSender<(JobDefinition, Result<SpawnResult>)>,
     jobs_status: &mut BTreeMap<JobDefinition, JobPhase>,
     checksum_compare_map: &mut BTreeMap<Target, ChecksumCompareResult>,
@@ -171,11 +169,9 @@ async fn spawn_jobs(
 
             if sender.send((job_def, result)).is_err() {
                 let tracker = get_tracker();
-                tracker
-                    .print(format!(
-                        "Error: Job results can't be sent to receiver. Job: {job_def:?}"
-                    ))
-                    .await;
+                tracker.print(format!(
+                    "Error: Job results can't be sent to receiver. Job: {job_def:?}"
+                ));
             };
         });
 

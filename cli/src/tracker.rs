@@ -299,21 +299,21 @@ impl Tracker {
     }
 
     /// Update the job providing an optional progress value.
-    pub async fn progress(&self, job_def: JobDefinition, pos: Option<u64>) {
+    pub fn progress(&self, job_def: JobDefinition, pos: Option<u64>) {
         if let Err(e) = self.tx.send(Tick::Progress(job_def, pos)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
     /// Send a message to the job
-    pub async fn msg(&self, job_def: JobDefinition, log: String) {
+    pub fn msg(&self, job_def: JobDefinition, log: String) {
         if let Err(e) = self.tx.send(Tick::Message(job_def, log)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
     }
 
     /// Sets the job as finished providing successful result and a message
-    pub async fn success(&self, job_def: JobDefinition, msg: String) {
+    pub fn success(&self, job_def: JobDefinition, msg: String) {
         if let Err(e) = self
             .tx
             .send(Tick::Finished(job_def, OperationResult::Success, msg))
@@ -323,7 +323,7 @@ impl Tracker {
     }
 
     /// Sets the job as finished providing failed result and a message
-    pub async fn fail(&self, job_def: JobDefinition, msg: String) {
+    pub fn fail(&self, job_def: JobDefinition, msg: String) {
         if let Err(e) = self
             .tx
             .send(Tick::Finished(job_def, OperationResult::Failed, msg))
@@ -342,7 +342,7 @@ impl Tracker {
     }
 
     /// Prints the given text outside the progress bar
-    pub async fn print(&self, msg: String) {
+    pub fn print(&self, msg: String) {
         if let Err(e) = self
             .tx
             .send(Tick::Print(msg))

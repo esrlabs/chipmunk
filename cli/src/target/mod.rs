@@ -464,7 +464,7 @@ impl Target {
             let remove_log = format!("removing directory {}", path.display());
             logs.push(remove_log);
 
-            fstools::rm_folder(job_def, &path).await?;
+            fstools::rm_folder(job_def, &path)?;
         }
 
         let job = format!("Clean {}", self);
@@ -516,7 +516,7 @@ impl Target {
             let node_path = self.cwd().join("node_modules");
             let remove_log = format!("removing directory {}", node_path.display());
 
-            if let Err(err) = fstools::rm_folder(job_def, &node_path).await {
+            if let Err(err) = fstools::rm_folder(job_def, &node_path) {
                 return Some(Err(err));
             }
 
@@ -533,7 +533,7 @@ impl Target {
         };
 
         let after_res = match self {
-            Target::Binding => binding::copy_index_node(job_def).await,
+            Target::Binding => binding::copy_index_node(job_def),
             Target::App => app::copy_client_to_app(job_def).await,
             Target::Core
             | Target::Shared
