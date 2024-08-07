@@ -177,9 +177,9 @@ end
 benchmark_data = collect_latest_benchmark_data("#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}")
 
 DATA_JSON_PATH = "#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/data.json"
-if !File.exist?(DATA_JSON_PATH) || benchmark_data.any? { |file| File.mtime(DATA_JSON_PATH) < File.mtime("#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/#{file[:file_name]}") && !file[:file_name].start_with?('Benchmark_PR') }
-  update_performance_data(benchmark_data, DATA_JSON_PATH)
-elsif parsed_arg[:type] == :pr
+if parsed_arg[:type] == :pr
   pr_data_filepath = "#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/Benchmark_PR_#{pr_number}.json"
   update_performance_data([read_benchmark_data(pr_data_filepath)], pr_data_filepath)
+elsif !File.exist?(DATA_JSON_PATH) || benchmark_data.any? { |file| File.mtime(DATA_JSON_PATH) < File.mtime("#{env_vars['SH_HOME_DIR']}/#{env_vars['PERFORMANCE_RESULTS_FOLDER']}/#{file[:file_name]}") && !file[:file_name].start_with?('Benchmark_PR') }
+  update_performance_data(benchmark_data, DATA_JSON_PATH)
 end

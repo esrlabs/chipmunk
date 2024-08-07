@@ -2,8 +2,11 @@ name: Benchmarks
 
 on:
   workflow_dispatch:
-  pull_request_target:
-    branches: [master]
+    inputs:
+      pr_id:
+        description: 'Pull Request number'
+        required: true
+        default: ''
   workflow_run:
     workflows: ["BuildAndReleaseMaster"]
     types:
@@ -24,7 +27,7 @@ jobs:
       - name: Install pre-requisite dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils wget ca-certificates
-          sudo apt-get install -y libudev-dev cargo npm imagemagick libmagickwand-dev cmake
+          sudo apt-get install -y libudev-dev cargo npm imagemagick libmagickwand-dev cmake jq
       - name: install node
         uses: actions/setup-node@v4
         with:
@@ -67,8 +70,28 @@ jobs:
           ruby --version
           pwd
           gem install dotenv json octokit tmpdir fileutils
+      - name: Get PR details
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const fs = require('fs');
+            const pr = await github.rest.pulls.get({
+              owner: 'esrlabs',
+              repo: 'chipmunk',
+              pull_number: ${{ github.event.inputs.pr_id }}
+            });
+            const PR_OWNER = pr.data.user.login;
+            const PR_REPO = pr.data.base.repo.name;
+            console.log(`owner is ${PR_OWNER}`);
+            console.log(`repo is ${PR_REPO}`);
+            // Setting environment variables
+            fs.appendFileSync(process.env.GITHUB_ENV, `PR_OWNER=${PR_OWNER}\n`);
+            fs.appendFileSync(process.env.GITHUB_ENV, `PR_REPO=${PR_REPO}\n`);
       - name: Run Jasmine performance tests for the latest release
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'workflow_dispatch'
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           export PATH="/root/.cargo/bin:$PATH"
@@ -79,22 +102,22 @@ jobs:
           REPO_OWNER: 'esrlabs'
           REPO_NAME: 'chipmunk'
       - name: Run Jasmine performance tests for the latest pull request
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           export PATH="/root/.cargo/bin:$PATH"
           . "/root/.cargo/env"
           source ~/.bashrc
-          echo "PR head repo: ${{ github.event.pull_request.head.repo.name }}"
-          echo "PR head branch: ${{ github.event.pull_request.head.ref }}"
-          echo "PR head owner: ${{ github.event.pull_request.head.repo.owner.login }}"
-          ruby scripts/tools/run_benchmarks.rb PR~${{ github.event.pull_request.number }}
+          echo "PR head repo: ${{ env.PR_OWNER }}"
+          echo "PR head owner: ${{ env.PR_REPO }}"
+          pwd
+          ls -la
+          ruby scripts/tools/run_benchmarks.rb PR~${{ github.event.inputs.pr_id }}
         env:
-          REPO_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
-          REPO_NAME: ${{ github.event.pull_request.head.repo.name }}
+          REPO_NAME: ${{ env.PR_REPO }}
+          REPO_OWNER: ${{ env.PR_OWNER }}
       - name: List files in the results folder
         run: |
-          echo "PR head owner: ${{ github.event.pull_request.head.repo.owner.login }}"
           echo "Event is:  ${{ github.event_name }}"
           ls -la /chipmunk/chipmunk_performance_results
   push_data_to_chipmunk_docs:
@@ -110,7 +133,7 @@ jobs:
           token: ${{secrets.DOCS_PUSH_TOKEN}}
       - name: Push tag for release
         working-directory: ./chipmunk-docs
-        if: github.event_name != 'pull_request_target'
+        if: github.event_name != 'workflow_dispatch'
         run: |
           ls -la
           cp /chipmunk/chipmunk_performance_results/data.json ./jekyll/benchmarks/data/data.json
@@ -122,13 +145,13 @@ jobs:
           git push origin master
       - name: Push PR data to chipmunk-docs
         working-directory: ./chipmunk-docs
-        if: ${{ github.event_name == 'pull_request_target' && contains(fromJson('["itsmesamster", "marcmo", "DmitryAstafyev", "kruss", "AmmarAbouZor"]'), github.event.pull_request.head.repo.owner.login) }}
+        if: github.event_name == 'workflow_dispatch'
         run: |
           ls -la
-          cp /chipmunk/chipmunk_performance_results/Benchmark_PR_${{ github.event.pull_request.number }}.json ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.pull_request.number }}.json
+          cp /chipmunk/chipmunk_performance_results/Benchmark_PR_${{ github.event.inputs.pr_id }}.json ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.inputs.pr_id }}.json
           git config user.name "esrlabs"
           git config user.email "esrlabs@gmail.com"
           git remote set-url origin "https://esrlabs:${{secrets.DOCS_PUSH_TOKEN}}@github.com/esrlabs/chipmunk-docs"
-          git add ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.pull_request.number }}.json
-          git commit -m "Adding PR benchmark results for chipmunk PR # ${{ github.event.pull_request.number }}"
+          git add ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.inputs.pr_id }}.json
+          git commit -m "Adding PR benchmark results for chipmunk PR # ${{ github.event.inputs.pr_id }}"
           git push origin master
