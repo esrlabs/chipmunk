@@ -62,6 +62,27 @@ mat-form-field.material-mofication-normal {
     }
 }
 
+button[mat-stroked-button][disabled] {
+    background: @scheme-color-3-15;
+    border-color: @scheme-color-3-15;
+    cursor: default;
+    & * {
+        color: @scheme-color-3;
+    }
+    & .mat-mdc-button-persistent-ripple,
+    & .mat-mdc-focus-indicator,
+    & .mat-mdc-button-touch-target,
+    & .mat-mdc-button-ripple {
+        display: none;
+    }
+    &:hover {
+        background: @scheme-color-3-15;
+        border-color: @scheme-color-3-15;
+        & * {
+            color: @scheme-color-3;
+        }
+    }
+}
 
 & mat-error {
     color: @scheme-color-warning!important;
