@@ -18,6 +18,7 @@ pub async fn run_app() -> io::Result<ExitStatus> {
     Command::new(yarn_path)
         .current_dir(electron_path)
         .args(["run", electron_arg])
+        .kill_on_drop(true)
         .status()
         .await
 }

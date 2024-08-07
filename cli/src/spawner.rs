@@ -100,6 +100,7 @@ pub async fn spawn(
         .envs(combined_env_vars)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .kill_on_drop(true)
         .spawn()
         .with_context(|| {
             format!(
