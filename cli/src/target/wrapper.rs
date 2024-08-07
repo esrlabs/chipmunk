@@ -16,13 +16,13 @@ const TEST_SPECS: [&str; 14] = [
     // out-of-memory error in electron app, even if only this job was running (by
     // commenting out the other specs).
     //
-    // The error happens while executing  line 137 from  the file `session.jobs.spec.ts` when
-    // we spawn the command using Stdio::piped() in the spawn command (line 74 in file
-    // `spawner.rs`). Either Commenting out the line from `session.jobs.spec.ts` file or
-    // using Stdio::inherit() in `spawner.rs` prevent this error from happening.
+    // This error happens while executing function `jobs.getShellProfiles()` in file `session.jobs.spec.ts`
+    // which will call rust function `get_valid_profiles()` in `indexer/session/src/unbound/commands/shells.rs`
+    // using the crate `envvars` which panics with piped shells.
     //
-    // The current work-around to blocking run the all the test commands sequentially using inherit
-    // Stdio::inherit suspending the progress bars until all tests are done.
+    // The current work-around is blocking the progress bars temporally and running the tests
+    // sequentially using `Stdio::inherit` to keep using the main shell, printing the results
+    // of the test directly to standard out, then the progress bars will be shown again.
     "jobs",
     "search",
     "values",

@@ -391,11 +391,7 @@ impl Target {
         let path = self.cwd();
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
-        let yarn_cmd = DevTool::Yarn.path();
-        let command = ProcessCommand::new(
-            yarn_cmd.to_string_lossy().to_string(),
-            vec![String::from("run"), String::from("lint")],
-        );
+        let command = yarn_command(vec![String::from("run"), String::from("lint")]);
         spawn(job_def, command, Some(path), iter::empty(), None).await
     }
 
@@ -584,4 +580,11 @@ async fn install_general(
     } else {
         None
     }
+}
+
+/// Proivdes a process command with yarn as [`ProcessCommand::cmd`] and the given arguments
+/// as [`ProcessCommand::args`]
+fn yarn_command(args: Vec<String>) -> ProcessCommand {
+    let yarn_path = DevTool::Yarn.path();
+    ProcessCommand::new(yarn_path.to_string_lossy().to_string(), args)
 }
