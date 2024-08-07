@@ -15,6 +15,11 @@ const FILE_NAME_DEV: &str = ".build_chksum_dev";
 const FILE_NAME_PROD: &str = ".build_chksum_prod";
 
 #[derive(Debug)]
+/// Manages and compares the file states for the targets between current and previous builds.
+/// It calculates the checksums of the files for each targets and saves them to a file after
+/// each build, and for the next build it'll calculate the checksum again and compare it with
+/// the saved one.
+/// It also manages loading and clearing the saved checksum records as well.
 pub struct ChecksumRecords {
     items: Mutex<ChecksumItems>,
 }
