@@ -8,7 +8,7 @@ use crate::dev_tools::DevTool;
 pub fn resolve_dev_tools() -> anyhow::Result<()> {
     let mut errors = None;
     for tool in DevTool::all() {
-        let Err(err) = tool.resolve() else {
+        let Err(err) = tool.resolve_path() else {
             continue;
         };
 
@@ -47,7 +47,7 @@ pub fn resolve_dev_tools() -> anyhow::Result<()> {
 pub fn print_env_info() {
     for tool in DevTool::all() {
         println!("{tool} Info:");
-        match tool.resolve() {
+        match tool.resolve_path() {
             Ok(cmd) => {
                 if let Err(err) = Command::new(cmd).arg(tool.version_args()).status() {
                     eprintln!("Error while retrieving dependency's information: {err}");

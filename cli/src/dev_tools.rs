@@ -76,27 +76,27 @@ impl DevTool {
     }
 
     /// Resolve the path of the tool if exists. Returning an Error when not possible
-    pub fn resolve(self) -> &'static Result<PathBuf> {
+    pub fn resolve_path(self) -> &'static Result<PathBuf> {
         match self {
-            DevTool::Node => resolve_node(),
-            DevTool::Npm => resolve_npm(),
-            DevTool::Yarn => resolve_yarn(),
-            DevTool::RustUp => resolve_rustup(),
-            DevTool::Cargo => resolve_cargo(),
-            DevTool::WasmPack => resolve_wasm_pack(),
-            DevTool::NjCli => resolve_nj_cli(),
+            DevTool::Node => resolve_node_path(),
+            DevTool::Npm => resolve_npm_path(),
+            DevTool::Yarn => resolve_yarn_path(),
+            DevTool::RustUp => resolve_rustup_path(),
+            DevTool::Cargo => resolve_cargo_path(),
+            DevTool::WasmPack => resolve_wasm_pack_path(),
+            DevTool::NjCli => resolve_nj_cli_path(),
         }
     }
 
     /// Get the path of the resolved tool. Panics if the tool can't be resolved   
     pub fn path(self) -> &'static PathBuf {
-        self.resolve()
+        self.resolve_path()
             .as_ref()
             .expect("Developer Error: Cmd has already been resolved")
     }
 }
 
-fn resolve_node() -> &'static Result<PathBuf> {
+fn resolve_node_path() -> &'static Result<PathBuf> {
     static NODE: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     NODE.get_or_init(|| find_cmd("node"))
@@ -106,25 +106,25 @@ fn find_cmd(cmd: &str) -> Result<PathBuf> {
     which_global(cmd).map_err(|err| anyhow!("Command `{cmd}` couldn't be resolved. Err: {err}"))
 }
 
-fn resolve_npm() -> &'static Result<PathBuf> {
+fn resolve_npm_path() -> &'static Result<PathBuf> {
     static NPM: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     NPM.get_or_init(|| find_cmd("npm"))
 }
 
-fn resolve_yarn() -> &'static Result<PathBuf> {
+fn resolve_yarn_path() -> &'static Result<PathBuf> {
     static YARN: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     YARN.get_or_init(|| find_cmd("yarn"))
 }
 
-fn resolve_rustup() -> &'static Result<PathBuf> {
+fn resolve_rustup_path() -> &'static Result<PathBuf> {
     static RUSTUP: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     RUSTUP.get_or_init(|| find_cmd("rustup"))
 }
 
-fn resolve_cargo() -> &'static Result<PathBuf> {
+fn resolve_cargo_path() -> &'static Result<PathBuf> {
     static CARGO: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     if cfg!(windows) {
@@ -141,13 +141,13 @@ fn resolve_cargo() -> &'static Result<PathBuf> {
     }
 }
 
-fn resolve_wasm_pack() -> &'static Result<PathBuf> {
+fn resolve_wasm_pack_path() -> &'static Result<PathBuf> {
     static WASM_PACK: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     WASM_PACK.get_or_init(|| find_cmd("wasm-pack"))
 }
 
-fn resolve_nj_cli() -> &'static Result<PathBuf> {
+fn resolve_nj_cli_path() -> &'static Result<PathBuf> {
     static NJ_CLI: OnceLock<Result<PathBuf>> = OnceLock::new();
 
     NJ_CLI.get_or_init(|| find_cmd("nj-cli"))
