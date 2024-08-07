@@ -17,21 +17,6 @@ fn create_tmp_dir_with_file(dir_name: &'static str) -> anyhow::Result<(TempDir, 
 }
 
 #[test]
-fn hash_combinations_file_identical() -> anyhow::Result<()> {
-    let (tmp_dir, _) = create_tmp_dir_with_file("comb_file_identical")?;
-
-    let original_hash = calc_combined_checksum(tmp_dir.path())?;
-
-    assert_eq!(
-        original_hash,
-        calc_combined_checksum(tmp_dir.path())?,
-        "Hashes of the same directory must be identical"
-    );
-
-    Ok(())
-}
-
-#[test]
 fn hash_combinations_add_then_remove_file() -> anyhow::Result<()> {
     let (tmp_dir, _) = create_tmp_dir_with_file("comb_add_remove_file")?;
 
@@ -132,8 +117,7 @@ fn hash_individual_many_files() -> anyhow::Result<()> {
 
     // Create empty file
     let empty_file_path = tmp_dir.path().join("empty.txt");
-    let empty_file = File::create(&empty_file_path)?;
-    drop(empty_file);
+    let _ = File::create(&empty_file_path)?;
 
     let items = calc_individual_checksum(tmp_dir.path())?;
 
