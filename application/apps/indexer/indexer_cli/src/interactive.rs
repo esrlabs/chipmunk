@@ -6,6 +6,7 @@ use rustyline::{error::ReadlineError, DefaultEditor};
 use session::session::Session;
 use sources::{
     factory::{DltParserSettings, FileFormat, ObserveOptions, ParserType},
+    plugins::PluginParserSettings,
     producer::MessageProducer,
     socket::udp::UdpSource,
 };
@@ -54,18 +55,28 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                         println!("received shutdown through future channel");
                                         break;
                                     }
-                                    item = msg_stream.next() => {
-                                        match item {
-                                            Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
-                                                println!("msg: {msg}");
+                                    items = msg_stream.next() => {
+                                        let items = match items {
+                                            Some(item) => item,
+                                            None => {
+                                                println!("no msg");
+                                                continue;
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))))) => {
-                                                println!("msg: {msg}, attachment: {attachment:?}");
+                                        };
+                                        for item in items {
+
+                                            match item {
+                                                (_, MessageStreamItem::Item(ParseYield::Message(msg))) => {
+                                                    println!("msg: {msg}");
+                                                }
+                                                (_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment)))) => {
+                                                    println!("msg: {msg}, attachment: {attachment:?}");
+                                                }
+                                                (_, MessageStreamItem::Item(ParseYield::Attachment(attachment))) => {
+                                                    println!("attachment: {attachment:?}");
+                                                }
+                                                _ => println!("no msg"),
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::Attachment(attachment)))) => {
-                                                println!("attachment: {attachment:?}");
-                                            }
-                                            _ => println!("no msg"),
                                         }
                                     }
                                 }
@@ -88,6 +99,22 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, tz: None, fibex_metadata: None };
                         session.observe(uuid, ObserveOptions::file(file_path.clone(), FileFormat::Binary, ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
                         println!("dlt session was destroyed");
+                    }
+                    Some(Command::Plugin) => {
+                        println!("plugin command received");
+                        const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
+
+                        //TODO AAZ: Find a better way to deliver plugin path than environment variables
+                        let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
+                            Ok(path) => path,
+                            Err(err) => panic!("Retrieving plugin path environment variable failed. Err {err}") ,
+                        };
+                        start = Instant::now();
+                        let uuid = Uuid::new_v4();
+                        let file_path = input.clone().expect("input must be present");
+                        let proto_plugin_path = PathBuf::from(plugin_path);
+                        let plugin_parser_settings = PluginParserSettings::prototyping(proto_plugin_path);
+                        session.observe(uuid, ObserveOptions::file(file_path, FileFormat::Binary, ParserType::Plugin(plugin_parser_settings))).expect("observe failed");
                     }
                     Some(Command::Grab) => {
                         println!("grab command received");
@@ -136,6 +163,7 @@ enum Command {
     Dlt,
     Grab,
     Udp,
+    Plugin,
     Stop,
     Help,
 }
@@ -159,6 +187,9 @@ async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()
                     }
                     "udp" => {
                         tx.send(Command::Udp).expect("send failed");
+                    }
+                    "plugin" => {
+                        tx.send(Command::Plugin).expect("send failed");
                     }
                     "grab" => {
                         tx.send(Command::Grab).expect("send failed");

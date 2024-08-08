@@ -30,6 +30,7 @@ tokio-stream = "0.1"
 tokio-util = "0.7"
 uuid = { version = "1.3", features = ["serde", "v4"] }
 walkdir = "2.3"
+plugins_host = {path = "../plugins_host/"}
 
 [dev-dependencies]
 lazy_static = "1.4"

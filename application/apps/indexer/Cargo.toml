@@ -9,6 +9,7 @@ members = [
     "indexer_cli",
     "merging",
     "parsers",
+    "plugins_host",
     "processor",
     "session",
     "sources",

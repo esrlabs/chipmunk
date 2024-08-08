@@ -12,6 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield, Parser,
 };
+use plugins_host::PluginParser;
 use sources::{
     factory::ParserType,
     producer::{MessageProducer, SdeReceiver},
@@ -25,7 +26,7 @@ use tokio::{
 use tokio_stream::StreamExt;
 
 enum Next<T: LogMessage> {
-    Item(MessageStreamItem<T>),
+    Items(Vec<(usize, MessageStreamItem<T>)>),
     Timeout,
     Waiting,
 }
@@ -78,6 +79,19 @@ async fn run_source_intern<S: ByteSource>(
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
     match parser {
+        ParserType::Plugin(settings) => {
+            println!("------------------------------------------------------");
+            println!("-------------    WASM parser used    -----------------");
+            println!("------------------------------------------------------");
+            let parser = PluginParser::create(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.custom_config_path.as_ref(),
+            )
+            .await?;
+            let producer = MessageProducer::new(parser, source, rx_sde);
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
+        }
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
                 Some(paths) => {
@@ -90,6 +104,30 @@ async fn run_source_intern<S: ByteSource>(
         }
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
+        }
+        //TODO AAZ: Remove the whole block here a
+        ParserType::Dlt(_) if std::env::var("FORCE_PLUGIN").is_ok() => {
+            println!("------------------------------------------------------");
+            println!("-------------   WASM parser forced   -----------------");
+            println!("------------------------------------------------------");
+
+            const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
+            //TODO AAZ: Find a better way to deliver plugin path than environment variables
+            let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
+                Ok(path) => path,
+                Err(err) => panic!("Retrieving plugin path environment variable failed. Err {err}"),
+            };
+            let proto_plugin_path = PathBuf::from(plugin_path);
+            let settings = sources::plugins::PluginParserSettings::prototyping(proto_plugin_path);
+
+            let parser = PluginParser::create(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.custom_config_path.as_ref(),
+            )
+            .await?;
+            let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {
@@ -123,9 +161,9 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {
-                Ok(item) => {
-                    if let Some((_, item)) = item {
-                        Some(Next::Item(item))
+                Ok(items) => {
+                    if let Some(items) = items {
+                        Some(Next::Items(items))
                     } else {
                         Some(Next::Waiting)
                     }
@@ -136,41 +174,43 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
         _ = cancel.cancelled() => None,
     } {
         match next {
-            Next::Item(item) => {
-                match item {
-                    MessageStreamItem::Item(ParseYield::Message(item)) => {
-                        state
-                            .write_session_file(source_id, format!("{item}\n"))
-                            .await?;
-                    }
-                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                        item,
-                        attachment,
-                    ))) => {
-                        state
-                            .write_session_file(source_id, format!("{item}\n"))
-                            .await?;
-                        state.add_attachment(attachment)?;
-                    }
-                    MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
-                        state.add_attachment(attachment)?;
-                    }
-                    MessageStreamItem::Done => {
-                        trace!("observe, message stream is done");
-                        state.flush_session_file().await?;
-                        state.file_read().await?;
-                    }
-                    // MessageStreamItem::FileRead => {
-                    //     state.file_read().await?;
-                    // }
-                    MessageStreamItem::Skipped => {
-                        trace!("observe: skipped a message");
-                    }
-                    MessageStreamItem::Incomplete => {
-                        trace!("observe: incomplete message");
-                    }
-                    MessageStreamItem::Empty => {
-                        trace!("observe: empty message");
+            Next::Items(items) => {
+                for (_, item) in items {
+                    match item {
+                        MessageStreamItem::Item(ParseYield::Message(item)) => {
+                            state
+                                .write_session_file(source_id, format!("{item}\n"))
+                                .await?;
+                        }
+                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                            item,
+                            attachment,
+                        ))) => {
+                            state
+                                .write_session_file(source_id, format!("{item}\n"))
+                                .await?;
+                            state.add_attachment(attachment)?;
+                        }
+                        MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
+                            state.add_attachment(attachment)?;
+                        }
+                        MessageStreamItem::Done => {
+                            trace!("observe, message stream is done");
+                            state.flush_session_file().await?;
+                            state.file_read().await?;
+                        }
+                        // MessageStreamItem::FileRead => {
+                        //     state.file_read().await?;
+                        // }
+                        MessageStreamItem::Skipped => {
+                            trace!("observe: skipped a message");
+                        }
+                        MessageStreamItem::Incomplete => {
+                            trace!("observe: incomplete message");
+                        }
+                        MessageStreamItem::Empty => {
+                            trace!("observe: empty message");
+                        }
                     }
                 }
             }
