@@ -68,7 +68,7 @@ impl JobDefinition {
             }
             JobType::Clean => self.target.reset().await,
             JobType::Test { production } => return self.target.test(production).await,
-            JobType::Run { production: _ } => return None,
+            JobType::Run { .. } => return None,
         };
 
         Some(res)

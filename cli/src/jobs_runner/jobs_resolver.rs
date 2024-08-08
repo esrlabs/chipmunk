@@ -14,7 +14,7 @@ pub fn resolve(
 
     let has_build_deps = involved_jobs
         .iter()
-        .any(|job| matches!(job, JobType::Build { production: _ }));
+        .any(|job| matches!(job, JobType::Build { .. }));
 
     let involved_targets = if has_build_deps {
         flatten_targets_for_build(targets)
@@ -33,7 +33,7 @@ pub fn resolve(
             let mut dep_jobs = match job {
                 // Install jobs are involved here too because copying the files in the after build
                 // process could delete the current files.
-                JobType::Build { production: _ } | JobType::Install { production: _ } => {
+                JobType::Build { .. } | JobType::Install { .. } => {
                     let deps = flatten_targets_for_build(target.deps().as_slice());
 
                     // Jobs of the dependencies are already included in the jobs tree because we
@@ -48,10 +48,10 @@ pub fn resolve(
 
                 // Other job types doesn't have dependencies
                 JobType::Clean
-                | JobType::AfterBuild { production: _ }
+                | JobType::AfterBuild { .. }
                 | JobType::Lint
-                | JobType::Test { production: _ }
-                | JobType::Run { production: _ } => Vec::new(),
+                | JobType::Test { .. }
+                | JobType::Run { .. } => Vec::new(),
             };
 
             // Add dependencies jobs from the same target
@@ -145,10 +145,10 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
             },
 
             // Tests for TS and WASM targets inquire that those targets are built
-            JobType::Test { production: _ } => match target {
+            JobType::Test { .. } => match target {
                 // Running tests for rust jobs doesn't inquire running build on them.
                 Target::Core | Target::Cli | Target::Updater => {
-                    matches!(current_job, JobType::Test { production: _ })
+                    matches!(current_job, JobType::Test { .. })
                 }
 
                 // Only TS and WASM Bindings have tests that inquire running build on them and their dependencies
@@ -159,7 +159,7 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 // tests
                 Target::Shared | Target::Binding => {
                     assert!(
-                        !matches!(current_job, JobType::Test { production: _ }),
+                        !matches!(current_job, JobType::Test { .. }),
                         "Shared and Bindings targets don't have test jobs currently"
                     );
                     true
@@ -169,17 +169,17 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 // targets.
                 Target::Client | Target::App => {
                     assert!(
-                        !matches!(current_job, JobType::Test { production: _ }),
+                        !matches!(current_job, JobType::Test { .. }),
                         "Client and App targets don't have test jobs currently"
                     );
                     false
                 }
             },
             JobType::Clean
-            | JobType::Install { production: _ }
-            | JobType::Build { production: _ }
-            | JobType::AfterBuild { production: _ }
-            | JobType::Run { production: _ } => true,
+            | JobType::Install { .. }
+            | JobType::Build { .. }
+            | JobType::AfterBuild { .. }
+            | JobType::Run { .. } => true,
         }
     };
 

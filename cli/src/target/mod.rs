@@ -234,16 +234,16 @@ impl Target {
     /// Returns if the current target has a job to the given job type
     pub fn has_job(self, job_type: JobType) -> bool {
         match job_type {
-            JobType::Lint | JobType::Clean | JobType::Build { production: _ } => true,
+            JobType::Lint | JobType::Clean | JobType::Build { .. } => true,
 
-            JobType::Install { production: _ } => match self {
+            JobType::Install { .. } => match self {
                 Target::Binding | Target::Client | Target::Shared | Target::App | Target::Wasm => {
                     true
                 }
                 Target::Core | Target::Wrapper | Target::Updater | Target::Cli => false,
             },
 
-            JobType::AfterBuild { production: _ } => match self {
+            JobType::AfterBuild { .. } => match self {
                 Target::Binding | Target::App => true,
                 Target::Core
                 | Target::Shared
@@ -253,7 +253,7 @@ impl Target {
                 | Target::Updater
                 | Target::Cli => false,
             },
-            JobType::Test { production: _ } => match self {
+            JobType::Test { .. } => match self {
                 Target::Wrapper | Target::Core | Target::Cli | Target::Wasm => true,
                 Target::Shared
                 | Target::Binding
@@ -261,7 +261,7 @@ impl Target {
                 | Target::Updater
                 | Target::App => false,
             },
-            JobType::Run { production: _ } => false,
+            JobType::Run { .. } => false,
         }
     }
 

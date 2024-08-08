@@ -21,11 +21,11 @@ impl Display for JobType {
         match self {
             JobType::Lint => write!(f, "Lint"),
             JobType::Clean => write!(f, "Clean"),
-            JobType::Build { production: _ } => write!(f, "Build"),
-            JobType::Install { production: _ } => write!(f, "Install"),
-            JobType::AfterBuild { production: _ } => write!(f, "After Build"),
-            JobType::Test { production: _ } => write!(f, "Test"),
-            JobType::Run { production: _ } => write!(f, "Run"),
+            JobType::Build { .. } => write!(f, "Build"),
+            JobType::Install { .. } => write!(f, "Install"),
+            JobType::AfterBuild { .. } => write!(f, "After Build"),
+            JobType::Test { .. } => write!(f, "Test"),
+            JobType::Run { .. } => write!(f, "Run"),
         }
     }
 }
@@ -59,22 +59,15 @@ impl JobType {
             JobType::Run { production } | JobType::Test { production } => vec![JobType::Build {
                 production: *production,
             }],
-            JobType::Clean
-            | JobType::Install { production: _ }
-            | JobType::AfterBuild { production: _ } => Vec::new(),
+            JobType::Clean | JobType::Install { .. } | JobType::AfterBuild { .. } => Vec::new(),
         }
     }
 
     /// Returns if the job type is part of the build process (install, build, or after build)
     pub fn is_part_of_build(&self) -> bool {
         match self {
-            JobType::Install { production: _ }
-            | JobType::Build { production: _ }
-            | JobType::AfterBuild { production: _ } => true,
-            JobType::Clean
-            | JobType::Lint
-            | JobType::Test { production: _ }
-            | JobType::Run { production: _ } => false,
+            JobType::Install { .. } | JobType::Build { .. } | JobType::AfterBuild { .. } => true,
+            JobType::Clean | JobType::Lint | JobType::Test { .. } | JobType::Run { .. } => false,
         }
     }
 }
@@ -89,11 +82,11 @@ impl JobType {
             match JobType::Lint {
                 JobType::Lint => (),
                 JobType::Clean => (),
-                JobType::Build { production: _ } => (),
-                JobType::Install { production: _ } => (),
-                JobType::AfterBuild { production: _ } => (),
-                JobType::Test { production: _ } => (),
-                JobType::Run { production: _ } => (),
+                JobType::Build { .. } => (),
+                JobType::Install { .. } => (),
+                JobType::AfterBuild { .. } => (),
+                JobType::Test { .. } => (),
+                JobType::Run { .. } => (),
             };
         }
 

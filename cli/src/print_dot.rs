@@ -34,13 +34,10 @@ pub fn print_dependencies_jobs() {
 
 fn job_to_dot_string(job_def: &JobDefinition) -> String {
     let job_type = match job_def.job_type {
-        JobType::Install { production: _ } => "Install",
-        JobType::Build { production: _ } => "Build",
-        JobType::AfterBuild { production: _ } => "After Build (Copy & Reinstall)",
-        JobType::Clean
-        | JobType::Lint
-        | JobType::Test { production: _ }
-        | JobType::Run { production: _ } => {
+        JobType::Install { .. } => "Install",
+        JobType::Build { .. } => "Build",
+        JobType::AfterBuild { .. } => "After Build (Copy & Reinstall)",
+        JobType::Clean | JobType::Lint | JobType::Test { .. } | JobType::Run { .. } => {
             unreachable!("Only build-related jobs are included in dot print")
         }
     };

@@ -176,7 +176,7 @@ async fn main() -> Result<(), Error> {
 
     ChecksumRecords::update_and_save(job_type)?;
 
-    if matches!(job_type, JobType::Run { production: _ }) {
+    if matches!(job_type, JobType::Run { .. }) {
         println!("Starting chipmunk...");
         let status = app_runner::run_app().await?;
         if !status.success() {
