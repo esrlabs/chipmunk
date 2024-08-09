@@ -33,12 +33,17 @@ pub struct MockReloadSeed {
 }
 
 impl MockReloadSeed {
-    pub fn new(loaded: usize, skipped: usize, last_known_ts: Option<u64>) -> Self {
+    pub fn new(loaded: usize, skipped: usize) -> Self {
         Self {
             loaded,
             skipped,
-            last_known_ts,
+            last_known_ts: None,
         }
+    }
+
+    pub fn last_known_ts(mut self, val: u64) -> Self {
+        self.last_known_ts = Some(val);
+        self
     }
 }
 
@@ -96,8 +101,8 @@ impl ByteSource for MockByteSource {
 #[tokio::test]
 async fn test_mock_byte_source() {
     let seeds = [
-        Ok(Some(MockReloadSeed::new(5, 0, None))),
-        Ok(Some(MockReloadSeed::new(1, 2, Some(4)))),
+        Ok(Some(MockReloadSeed::new(5, 0))),
+        Ok(Some(MockReloadSeed::new(1, 2).last_known_ts(4))),
         Ok(None),
         Err(Error::NotSupported),
     ];

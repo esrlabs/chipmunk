@@ -60,8 +60,8 @@ async fn parse_item_then_skip() {
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 0, None))),
-            Ok(Some(MockReloadSeed::new(0, 0, None))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
+            Ok(Some(MockReloadSeed::new(0, 0))),
             Ok(None),
         ],
     );
@@ -107,9 +107,9 @@ async fn parse_incomplete() {
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 0, None))),
-            Ok(Some(MockReloadSeed::new(10, 0, None))),
-            Ok(Some(MockReloadSeed::new(0, 0, None))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
+            Ok(Some(MockReloadSeed::new(0, 0))),
             Ok(None),
         ],
     );
@@ -144,7 +144,7 @@ async fn parse_incomplete_with_err_reload() {
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 0, None))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
             Err(Error::NotSupported),
         ],
     );
@@ -162,7 +162,7 @@ async fn parse_incomplete_with_err_reload() {
 #[tokio::test]
 async fn parse_err_eof() {
     let parser = MockParser::new([Err(ParseError::Eof)]);
-    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0, None)))]);
+    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0)))]);
 
     let mut producer = MessageProducer::new(parser, source, None);
 
@@ -187,8 +187,8 @@ async fn parsing_error_success_reload() {
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 0, None))),
-            Ok(Some(MockReloadSeed::new(10, 0, None))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
             Ok(None),
         ],
     );
@@ -227,7 +227,7 @@ async fn parsing_error_then_fail_reload() {
         )),
     ]);
 
-    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0, None))), Ok(None)]);
+    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0))), Ok(None)]);
 
     let mut producer = MessageProducer::new(parser, source, None);
 
@@ -256,8 +256,8 @@ async fn parse_with_skipped_bytes() {
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 4, None))),
-            Ok(Some(MockReloadSeed::new(10, 4, None))),
+            Ok(Some(MockReloadSeed::new(10, 4))),
+            Ok(Some(MockReloadSeed::new(10, 4))),
             Ok(None),
         ],
     );
@@ -306,7 +306,7 @@ async fn parsing_error_then_fail_reload_with_skipped_bytes() {
         )),
     ]);
 
-    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 3, None))), Ok(None)]);
+    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 3))), Ok(None)]);
 
     let mut producer = MessageProducer::new(parser, source, None);
 
@@ -335,8 +335,8 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 4, None))),
-            Ok(Some(MockReloadSeed::new(10, 4, None))),
+            Ok(Some(MockReloadSeed::new(10, 4))),
+            Ok(Some(MockReloadSeed::new(10, 4))),
             Ok(None),
         ],
     );
