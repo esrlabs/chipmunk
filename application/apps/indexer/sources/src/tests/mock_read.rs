@@ -23,7 +23,7 @@ impl Seek for MockRead {
 }
 
 #[derive(Debug, Clone)]
-/// Mock Class that proide the given data an each read call.
+/// Mock Class that provide the given data an each read call.
 pub struct MockRepeatRead {
     data: Vec<u8>,
 }
