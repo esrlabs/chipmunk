@@ -22,7 +22,7 @@ module Bindings
 end
 
 namespace :bindings do
-  task :install do
+  task install:  ['protocol:build'] do
     Shell.chdir(Paths::TS_BINDINGS) do
       Reporter.log 'Installing ts-binding libraries'
       duration = Shell.timed_sh("yarn install", 'yarn install bindings')
@@ -60,6 +60,7 @@ namespace :bindings do
       errors
       stream
       promises
+      protocol
     ]
     test_specs.each do |spec|
       desc "run jasmine #{spec}-spec"

@@ -41,6 +41,9 @@ export interface IConfiguration {
                 tests: { [key: string]: IPerformanceTest };
             };
         };
+        protocol: {
+            regular: IRegularTests;
+        };
         stream: {
             regular: IRegularTests;
         };
