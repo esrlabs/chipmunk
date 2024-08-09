@@ -1,11 +1,13 @@
 <div class="message">
-    <p>{{data.notification.message()}}</p>
+    <p>{{ data.notification.message() }}</p>
 </div>
 <div class="controlls">
-    <button mat-stroked-button 
-    [attr.title]="action.description" 
-    (click)="ngOnAction(action)" 
-    *ngFor="let action of data.notification.actions()">{{action.name}}</button>
+    <button mat-stroked-button
+        style="pointer-events: all;"
+        [attr.title]="action.description"
+        (click)="ngOnAction(action)"
+        [disabled]="action.disabled"
+        *ngFor="let action of data.notification.actions()">{{ action.name }}</button>
 </div>
 <button class="material-mofication-mini" data-controll="close" mat-icon-button (click)="ngDismiss()">
     <mat-icon>close</mat-icon>

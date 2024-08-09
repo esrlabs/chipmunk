@@ -307,14 +307,19 @@ export class Service extends Implementation {
                 filename,
             };
         }
-        notifications.send(`New version (${this.candidate.release.name}) is available`, [
+        // Check folder access
+        const hasAccess = this.checkFolderAccess();
+        this.log().debug(`Chipmunk location sufficiently accessible for update : ${hasAccess}.`);
+        notifications.send(`New version (${this.candidate.release.name}) is available${!hasAccess ? '; insufficient access to update' : ''}`, [
             {
                 action: {
                     uuid: unique(),
                     name: 'Restart & Update',
-                    description: `Update to ${this.candidate.release.name}`,
+                    description: !hasAccess ? `Unable to update` : `Update to ${this.candidate.release.name}`,
+                    disabled: !hasAccess, // Disable the button if access is not available
                 },
                 handler: () => {
+                    if (!hasAccess) return Promise.reject(new Error('No access to the current folder'));
                     return this._delivery().then((updater: string) => {
                         global.application
                             .shutdown('Updating')
@@ -329,11 +334,22 @@ export class Service extends Implementation {
                 action: {
                     uuid: unique(),
                     name: 'Cancel',
-                    description: `Update to ${(candidate.release as IReleaseData).name}`,
+                    description: '',
+                    disabled: false,
                 },
                 handler: () => Promise.resolve(),
             },
         ]);
+    }
+
+    // Function to check access to the current folder
+    private checkFolderAccess(): boolean {
+        try {
+            fs.accessSync(paths.getExec(true), fs.constants.R_OK | fs.constants.W_OK | fs.constants.X_OK);
+            return true;
+        } catch (err) {
+            return false;
+        }
     }
 
     private async _delivery(): Promise<string> {

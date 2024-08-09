@@ -1,4 +1,7 @@
 import * as os from 'os';
+import { execSync } from 'child_process';
+import { scope } from 'platform/env/scope';
+import { error } from 'platform/log/utils';
 
 export enum Platform {
     aix = 'aix',
@@ -15,6 +18,24 @@ export enum Platform {
     undefined = 'undefined',
 }
 
+let cachedCpuBrandString: string | null = null;
+
+function safeExecSync(command: string, timeout: number): string {
+    try {
+        return execSync(command, { timeout }).toString().trim().toLowerCase();
+    } catch (err) {
+        scope.getLogger('PlatformChecker').warn(`Fail to detect arch for darwin. Command '${command}' gives error: ${error(err)}`);
+        return '';
+    }
+}
+
+function getCpuBrandString(): string {
+    if (cachedCpuBrandString === null) {
+        cachedCpuBrandString = safeExecSync('sysctl -n machdep.cpu.brand_string', 200);
+    }
+    return cachedCpuBrandString;
+}
+
 export function getPlatform(win32Only = false): Platform {
     switch (os.platform()) {
         case Platform.aix:
@@ -25,16 +46,16 @@ export function getPlatform(win32Only = false): Platform {
             } else {
                 return Platform.linux;
             }
-            break;
         case Platform.openbsd:
             return Platform.linux;
-        case Platform.darwin:
-            if (os.arch() === 'arm64') {
+        case Platform.darwin: {
+            const result = getCpuBrandString();
+            if (os.arch() === 'arm64' || (!result.includes('intel') && result !== '')) {
                 return Platform.darwinaarch64;
             } else {
                 return Platform.darwin;
             }
-            break;
+        }
         case Platform.win32:
             if (win32Only) {
                 return Platform.win32;
@@ -44,7 +65,6 @@ export function getPlatform(win32Only = false): Platform {
             } else if (os.arch() === 'x64') {
                 return Platform.win64;
             }
-            break;
     }
     return Platform.undefined;
 }

@@ -94,7 +94,7 @@ pub fn extract_dlt_ft(
         }
 
         let mut out = BufWriter::new(
-            File::create(&output.join(name)).map_err(|e| format!("Error opening file: {e}"))?,
+            File::create(output.join(name)).map_err(|e| format!("Error opening file: {e}"))?,
         );
 
         let data = &file.data;

@@ -77,6 +77,7 @@ export class Service extends Implementation {
                                                                                 uuid: unique(),
                                                                                 name: 'Ok',
                                                                                 description: ``,
+                                                                                disabled: false,
                                                                             },
                                                                             handler: () =>
                                                                                 Promise.resolve(),
@@ -98,6 +99,7 @@ export class Service extends Implementation {
                                                                                 uuid: unique(),
                                                                                 name: 'Ok',
                                                                                 description: ``,
+                                                                                disabled: false,
                                                                             },
                                                                             handler: () =>
                                                                                 Promise.resolve(),
@@ -214,6 +216,7 @@ export class Service extends Implementation {
                                                                                 uuid: unique(),
                                                                                 name: 'Ok',
                                                                                 description: ``,
+                                                                                disabled: false,
                                                                             },
                                                                             handler: () =>
                                                                                 Promise.resolve(),
@@ -235,6 +238,7 @@ export class Service extends Implementation {
                                                                                 uuid: unique(),
                                                                                 name: 'Ok',
                                                                                 description: ``,
+                                                                                disabled: false,
                                                                             },
                                                                             handler: () =>
                                                                                 Promise.resolve(),
