@@ -15,7 +15,6 @@ pub type MockSeedRes = Result<Option<MockReloadSeed>, Error>;
 pub struct MockByteSource {
     buffer: Vec<u8>,
     reload_seeds: VecDeque<MockSeedRes>,
-    income_calls: usize,
 }
 
 impl MockByteSource {
@@ -24,12 +23,7 @@ impl MockByteSource {
         Self {
             buffer,
             reload_seeds: reload_seeds.into(),
-            income_calls: 0,
         }
-    }
-
-    pub fn income_calls_count(&self) -> usize {
-        self.income_calls
     }
 }
 
@@ -117,7 +111,6 @@ impl ByteSource for MockByteSource {
     }
 
     async fn income(&mut self, msg: sde::SdeRequest) -> Result<sde::SdeResponse, Error> {
-        self.income_calls += 1;
         // Read the input for now and return it's length
         let bytes = match &msg {
             sde::SdeRequest::WriteText(text) => text.as_bytes(),

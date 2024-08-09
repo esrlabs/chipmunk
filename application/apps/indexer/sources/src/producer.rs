@@ -76,10 +76,10 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 'inner: loop {
                     // SDE mode: listening next chunk and possible incoming message for source
                     match select! {
-                        // NOTE: adding bias here if we want to prioritize the channel over reload
-                        // call
                         msg = rx_sde.recv() => Next::Sde(msg),
                         // BUG: Potential loss of data inside `do_reload` if it is not cancel-safe.
+                        // The test method `sde_communication()` proves the lost in data with non
+                        // cancel-safe `reload()` implementation.
                         read = self.do_reload() => Next::Read(read.unwrap_or((0, 0, 0))),
                     } {
                         Next::Read(next) => {
