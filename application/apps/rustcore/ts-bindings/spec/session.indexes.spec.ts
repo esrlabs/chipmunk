@@ -6,9 +6,12 @@
 import { initLogger } from './logger';
 initLogger();
 import { Session, Factory } from '../src/api/session';
-import { createSampleFile, finish, runner } from './common';
+import { createSampleFile, finish, performanceReport, setMeasurement, runner } from './common';
 import { readConfigurationFile } from './config';
 import { Nature, IndexingMode, NatureTypes } from 'platform/types/content';
+
+import * as os from 'os';
+import * as path from 'path';
 
 const config = readConfigurationFile().get().tests.indexes;
 
@@ -285,4 +288,118 @@ describe('Indexes', function () {
             });
         });
     });
+
+
+
+    config.performance.run &&
+        Object.keys(config.regular.execute_only).length >= 0 &&
+        Object.keys(config.performance.tests).forEach((alias: string, index: number) => {
+            const test = (config.performance.tests as any)[alias];
+            const testName = `${test.alias}`;
+            if (test.ignore) {
+                console.log(`Test "${testName}" has been ignored`);
+                return;
+            }
+            it(testName, function () {
+                return runner(
+                    {
+                        list: { 1: testName },
+                        execute_only: [],
+                        files: {},
+                    },
+                    1,
+                    async (logger, done, collector) => {
+                        const measurement = setMeasurement();
+                        Session.create()
+                            .then((session: Session) => {
+                                // Set provider into debug mode
+                                session.debug(true, testName);
+                                const stream = session.getStream();
+                                if (stream instanceof Error) {
+                                    finish(session, done, stream);
+                                    return;
+                                }
+                                const search = session.getSearch();
+                                if (search instanceof Error) {
+                                    finish(session, done, search);
+                                    return;
+                                }
+                                const events = session.getEvents();
+                                if (events instanceof Error) {
+                                    finish(session, done, events);
+                                    return;
+                                }
+                                let controlSum = 0;
+                                let countMatches = 0;
+                                let read: boolean = false;
+                                let home_dir = (process.env as any)['SH_HOME_DIR'];
+                                stream
+                                    .observe(
+                                        new Factory.File()
+                                            .asText()
+                                            .type(Factory.FileType.Text)
+                                            .file(`${home_dir}/${test.file}`)
+                                            .get().sterilized(),
+                                    )
+                                    .catch(finish.bind(null, session, done));
+                                const updates: number[] = [];
+                                events.IndexedMapUpdated.subscribe((event) => {
+                                    event.len > 0 && updates.push(event.len);
+                                });
+                                events.StreamUpdated.subscribe(async () => {
+                                    read = true;
+                                    try {
+                                        await search.search([
+                                            {
+                                                filter: 'HTTP',
+                                                flags: { reg: true, word: true, cases: false },
+                                            },
+                                        ]);
+                                        let items = await stream.grabIndexed(0, countMatches);
+                                        await stream.setIndexingMode(IndexingMode.Breadcrumbs);
+                                        finish(session, done);
+                                    } catch (err) {
+                                        finish(
+                                            undefined,
+                                            done,
+                                            new Error(
+                                                `Fail to finish test due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    }
+                                });
+                                events.FileRead.subscribe(() => {
+                                    const results = measurement();
+                                    finish(
+                                        session,
+                                        done,
+                                        performanceReport(
+                                            testName,
+                                            results.ms,
+                                            test.expectation_ms,
+                                            `${home_dir}/${test.file}`,
+                                        )
+                                            ? undefined
+                                            : new Error(`${testName} is fail`),
+                                    );
+                                });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    undefined,
+                                    done,
+                                    new Error(
+                                        `Fail to create session due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    },
+                );
+            });
+        });
+
 });

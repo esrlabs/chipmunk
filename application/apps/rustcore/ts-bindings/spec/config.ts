@@ -43,9 +43,17 @@ export interface IConfiguration {
         };
         stream: {
             regular: IRegularTests;
+            performance: {
+                run: boolean;
+                tests: { [key: string]: IPerformanceTest };
+            };
         };
         indexes: {
             regular: IRegularTests;
+            performance: {
+                run: boolean;
+                tests: { [key: string]: IPerformanceTest };
+            };
         };
         jobs: {
             regular: IRegularTests;
@@ -55,6 +63,10 @@ export interface IConfiguration {
         };
         search: {
             regular: IRegularTests;
+            performance: {
+                run: boolean;
+                tests: { [key: string]: IPerformanceTest };
+            };
         };
         values: {
             regular: IRegularTests;
