@@ -1,0 +1,17 @@
+[package]
+name = "dir_checksum"
+version = "0.1.0"
+authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
+edition = "2021"
+description = "A Library which provides methods to calculate the checksum of the files in a given path recursively considering `gitignore` rules"
+
+[dependencies]
+blake3 = { version = "1", features = ["rayon"] }
+ignore = "0.4"
+memmap2 = "0.9"
+rayon = "1"
+thiserror = "1"
+
+[dev-dependencies]
+tempdir.workspace = true
+anyhow.workspace = true
