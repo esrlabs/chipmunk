@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use crate::{sde::SdeMsg, ByteSource, ReloadInfo, SourceFilter};
 use async_stream::stream;
 use log::warn;
@@ -74,6 +77,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     // SDE mode: listening next chunk and possible incoming message for source
                     match select! {
                         msg = rx_sde.recv() => Next::Sde(msg),
+                        // BUG: Potential loss of data inside `do_reload` if it is not cancel-safe.
+                        // The test method `sde_communication()` proves the lost in data with non
+                        // cancel-safe `reload()` implementation.
                         read = self.do_reload() => Next::Read(read.unwrap_or((0, 0, 0))),
                     } {
                         Next::Read(next) => {
@@ -110,10 +116,19 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         };
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
-        // 3a. if message, pop it of the buffer and deliever
+        // 3a. if message, pop it of the buffer and deliver
         // 3b. else reload into buffer and goto 2
         loop {
             let current_slice = self.byte_source.current_slice();
+            // NOTE: Adding this assert here caches bugs when `available` and `current_slice.len()`
+            // go out of sync. It would be better to remove available here and use the length of
+            // the current slice instead.
+            debug_assert_eq!(
+                available,
+                current_slice.len(),
+                "available bytes must always match current slice length"
+            );
+
             debug!(
                 "current slice: (len: {}) (total {})",
                 current_slice.len(),
@@ -147,6 +162,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
+                    // NOTE: Some branches return Done before closing the stream and others
+                    //close it directly. Should this behavior be unified?
                     let (reloaded, _available_bytes, skipped) = self.do_reload().await?;
                     available += reloaded;
                     skipped_bytes += skipped;
@@ -157,6 +174,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         "EOF reached...no more messages (skipped_bytes={})",
                         skipped_bytes
                     );
+                    // NOTE: Same as above
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
@@ -181,6 +199,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
+    // NOTE: Renaming this to just load() or load_next() would be more descriptive because we aren't
+    // repeating any load function, but we are loading a new chunk of data appending them to the
+    // current buffer.
     async fn do_reload(&mut self) -> Option<(usize, usize, usize)> {
         match self.byte_source.reload(self.filter.as_ref()).await {
             Ok(Some(ReloadInfo {
@@ -201,10 +222,12 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 Some((newly_loaded_bytes, available_bytes, skipped_bytes))
             }
             Ok(None) => {
+                // BUG: Any remaining data in byte_source buffer is ignored here.
                 trace!("byte_source.reload result was None");
                 None
             }
             Err(e) => {
+                // BUG: Any remaining data in byte_source buffer is ignored here.
                 warn!("Error reloading content: {}", e);
                 None
             }
