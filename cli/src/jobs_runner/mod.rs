@@ -1,13 +1,14 @@
 mod job_definition;
 pub mod jobs_resolver;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Not};
 
 pub use job_definition::JobDefinition;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::{
     checksum_records::{ChecksumCompareResult, ChecksumRecords},
+    fail_fast::fail_fast,
     job_type::JobType,
     spawner::SpawnResult,
     target::Target,
@@ -65,11 +66,19 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             .entry(job_def)
             .and_modify(|phase| *phase = JobPhase::Done);
 
-        if result.is_err() {
-            failed_jobs.push(job_def.target);
-        }
+        let failed = match &result {
+            Ok(res) => res.status.success().not(),
+            Err(_) => true,
+        };
 
         results.push(result);
+
+        if failed {
+            failed_jobs.push(job_def.target);
+            if fail_fast() {
+                return Ok(results);
+            }
+        }
 
         let mut all_done = true;
 

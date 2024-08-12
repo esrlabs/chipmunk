@@ -3,6 +3,7 @@ mod checksum_records;
 mod cli_args;
 mod dev_environment;
 mod dev_tools;
+mod fail_fast;
 mod fstools;
 mod job_type;
 mod jobs_runner;
@@ -18,6 +19,7 @@ use checksum_records::ChecksumRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command};
 use dev_environment::{print_env_info, resolve_dev_tools};
+use fail_fast::set_fail_fast;
 use job_type::JobType;
 use location::init_location;
 use spawner::SpawnResult;
@@ -67,7 +69,12 @@ async fn main() -> Result<(), Error> {
             }
             return Ok(());
         }
-        Command::Lint { target, report } => {
+        Command::Lint {
+            target,
+            report,
+            fail_fast,
+        } => {
+            set_fail_fast(fail_fast);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
@@ -77,8 +84,10 @@ async fn main() -> Result<(), Error> {
         Command::Build {
             target,
             production,
+            fail_fast,
             report,
         } => {
+            set_fail_fast(fail_fast);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
@@ -95,15 +104,21 @@ async fn main() -> Result<(), Error> {
         Command::Test {
             target,
             production,
+            fail_fast,
             report,
         } => {
+            set_fail_fast(fail_fast);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
             let results = jobs_runner::run(&targets, JobType::Test { production }).await?;
             (JobType::Test { production }, results)
         }
-        Command::Run { production } => {
+        Command::Run {
+            production,
+            fail_fast,
+        } => {
+            set_fail_fast(fail_fast);
             resolve_dev_tools()?;
             report_opt = ReportOptions::None;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
