@@ -4,9 +4,10 @@ use clap::{Parser, Subcommand};
 
 use crate::target::Target;
 
-static REPORT_HELP_TEXT: &str =
-    "Write report from command logs to the given file or to stdout if no file is defined";
-static REPORT_VALUE_NAME: &str = "FILE-PATH";
+const REPORT_HELP_TEXT: &str =
+    "Write report from command logs to the given file or to stdout if no file is defined.";
+const REPORT_VALUE_NAME: &str = "FILE-PATH";
+const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
 
 #[derive(Parser)]
 #[command(name = "cargo", bin_name = "cargo")]
@@ -40,6 +41,9 @@ pub enum Command {
         #[arg(index = 1)]
         target: Option<Vec<Target>>,
 
+        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
+        fail_fast: bool,
+
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
@@ -52,6 +56,9 @@ pub enum Command {
         /// Build release version
         #[arg(short, long, default_value_t = false)]
         production: bool,
+
+        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
+        fail_fast: bool,
 
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
@@ -75,6 +82,9 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         production: bool,
 
+        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
+        fail_fast: bool,
+
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
@@ -83,6 +93,9 @@ pub enum Command {
         /// Run release version
         #[arg(short, long, default_value_t = false)]
         production: bool,
+
+        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
+        fail_fast: bool,
     },
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.
