@@ -144,10 +144,15 @@ pub async fn spawn(
                         if stderr_read_bytes == 0 {
                             break;
                         } else {
-                            tracker.progress(job_def, None);
                             if !stderr_line.trim().is_empty() {
+                                if !opts.suppress_msg {
+                                    tracker.msg(job_def, stderr_line.clone());
+                                }
+
                                 storage_report.push(stderr_line);
                             }
+
+                            tracker.progress(job_def, None);
                         }
 
                     }
