@@ -16,6 +16,8 @@ use crate::jobs_runner::JobDefinition;
 
 const TIME_BAR_WIDTH: usize = 5;
 
+static TRACKER: OnceLock<Tracker> = OnceLock::new();
+
 #[derive(Clone, Debug)]
 pub enum OperationResult {
     Success,
@@ -60,6 +62,7 @@ pub enum Tick {
 #[derive(Clone, Debug)]
 pub struct Tracker {
     tx: UnboundedSender<Tick>,
+    no_ui: bool,
 }
 
 enum JobBarPhase {
@@ -94,17 +97,35 @@ impl JobBarState {
     }
 }
 
-pub fn get_tracker() -> &'static Tracker {
-    static TRACKER: OnceLock<Tracker> = OnceLock::new();
+/// Initialize progress tracker with the given configurations.
+///
+/// # Panics
+///
+/// This functions panics if it is initialized more than once.
+pub fn init_tracker(no_ui: bool) {
+    TRACKER
+        .set(Tracker::new(no_ui))
+        .expect("Progress Tracker can't be initialized more than once");
+}
 
-    TRACKER.get_or_init(Tracker::new)
+/// Gets a reference to the initialized progress tracker
+///
+/// # Panics
+///
+/// This function panics if the tracker isn't initialized yet.
+pub fn get_tracker() -> &'static Tracker {
+    TRACKER
+        .get()
+        .expect("Tracker must be initialized before it's called")
 }
 
 impl Tracker {
-    fn new() -> Self {
+    fn new(no_ui: bool) -> Self {
         let (tx, rx): (UnboundedSender<Tick>, UnboundedReceiver<Tick>) = unbounded_channel();
-        tokio::spawn(Tracker::run(rx));
-        Self { tx }
+        if !no_ui {
+            tokio::spawn(Tracker::run(rx));
+        }
+        Self { tx, no_ui }
     }
 
     async fn run(mut rx: UnboundedReceiver<Tick>) -> Result<(), Error> {
@@ -280,6 +301,9 @@ impl Tracker {
     /// Registers all the given jobs setting their status to awaiting.
     /// This function should be called once on the start of running the tasks
     pub async fn register_all(&self, jobs: Vec<JobDefinition>) -> Result<(), Error> {
+        if self.no_ui {
+            return Ok(());
+        }
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::StartAll(jobs, tx_response))
@@ -289,6 +313,9 @@ impl Tracker {
 
     /// Change job status from awaiting to started.
     pub async fn start(&self, job_def: JobDefinition) -> Result<(), Error> {
+        if self.no_ui {
+            return Ok(());
+        }
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::Started(job_def, tx_response))
@@ -300,6 +327,9 @@ impl Tracker {
 
     /// Update the job providing an optional progress value.
     pub fn progress(&self, job_def: JobDefinition, pos: Option<u64>) {
+        if self.no_ui {
+            return;
+        }
         if let Err(e) = self.tx.send(Tick::Progress(job_def, pos)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
@@ -307,6 +337,10 @@ impl Tracker {
 
     /// Send a message to the job
     pub fn msg(&self, job_def: JobDefinition, log: String) {
+        if self.no_ui {
+            return;
+        }
+
         if let Err(e) = self.tx.send(Tick::Message(job_def, log)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
@@ -314,6 +348,10 @@ impl Tracker {
 
     /// Sets the job as finished providing successful result and a message
     pub fn success(&self, job_def: JobDefinition, msg: String) {
+        if self.no_ui {
+            return;
+        }
+
         if let Err(e) = self
             .tx
             .send(Tick::Finished(job_def, OperationResult::Success, msg))
@@ -324,6 +362,10 @@ impl Tracker {
 
     /// Sets the job as finished providing failed result and a message
     pub fn fail(&self, job_def: JobDefinition, msg: String) {
+        if self.no_ui {
+            return;
+        }
+
         if let Err(e) = self
             .tx
             .send(Tick::Finished(job_def, OperationResult::Failed, msg))
@@ -334,6 +376,10 @@ impl Tracker {
 
     /// Close all the jobs and shutdown the progress bars
     pub async fn shutdown(&self) -> Result<(), Error> {
+        if self.no_ui {
+            return Ok(());
+        }
+
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::Shutdown(tx_response))
@@ -343,6 +389,10 @@ impl Tracker {
 
     /// Prints the given text outside the progress bar
     pub fn print(&self, msg: String) {
+        if self.no_ui {
+            return;
+        }
+
         if let Err(e) = self
             .tx
             .send(Tick::Print(msg))
@@ -355,8 +405,16 @@ impl Tracker {
     /// Suspend the progress bars and run the giving blocking command returning its exit status
     pub async fn suspend_and_run(
         &self,
-        cmd: std::process::Command,
+        mut cmd: std::process::Command,
     ) -> Result<ExitStatus, anyhow::Error> {
+        if self.no_ui {
+            let status = cmd
+                .status()
+                .context("Error while execution command synchronously. command: {cmd}")?;
+
+            return Ok(status);
+        }
+
         let (tx_response, rx_response) = oneshot::channel();
         self.tx
             .send(Tick::SuspendAndRun(cmd, tx_response))
