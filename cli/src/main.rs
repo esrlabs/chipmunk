@@ -99,6 +99,8 @@ async fn main() -> Result<(), Error> {
             (JobType::Build { production }, results)
         }
         Command::Clean { target, report } => {
+            set_fail_fast(false);
+            init_tracker(false);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
