@@ -8,6 +8,7 @@ const REPORT_HELP_TEXT: &str =
     "Write report from command logs to the given file or to stdout if no file is defined.";
 const REPORT_VALUE_NAME: &str = "FILE-PATH";
 const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
+const NO_UI_HELP_TEXT: &str = "Disable UI progress bars and output each job's logs directly to stdout as soon as it's completed";
 
 #[derive(Parser)]
 #[command(name = "cargo", bin_name = "cargo")]
@@ -44,6 +45,9 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
+        #[arg(short, long, help = NO_UI_HELP_TEXT )]
+        no_ui: bool,
+
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
@@ -59,6 +63,9 @@ pub enum Command {
 
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
+
+        #[arg(short, long, help = NO_UI_HELP_TEXT )]
+        no_ui: bool,
 
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
@@ -85,6 +92,9 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
+        #[arg(short, long, help = NO_UI_HELP_TEXT )]
+        no_ui: bool,
+
         #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
         report: Option<Option<PathBuf>>,
     },
@@ -96,6 +106,9 @@ pub enum Command {
 
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
+
+        #[arg(short, long, help = NO_UI_HELP_TEXT )]
+        no_ui: bool,
     },
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.

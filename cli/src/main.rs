@@ -29,7 +29,7 @@ use std::{
     path::PathBuf,
 };
 use target::Target;
-use tracker::get_tracker;
+use tracker::{get_tracker, init_tracker};
 
 use crate::cli_args::EnvironmentCommand;
 
@@ -73,8 +73,10 @@ async fn main() -> Result<(), Error> {
             target,
             report,
             fail_fast,
+            no_ui,
         } => {
             set_fail_fast(fail_fast);
+            init_tracker(no_ui);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
@@ -85,9 +87,11 @@ async fn main() -> Result<(), Error> {
             target,
             production,
             fail_fast,
+            no_ui,
             report,
         } => {
             set_fail_fast(fail_fast);
+            init_tracker(no_ui);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
@@ -105,9 +109,11 @@ async fn main() -> Result<(), Error> {
             target,
             production,
             fail_fast,
+            no_ui,
             report,
         } => {
             set_fail_fast(fail_fast);
+            init_tracker(no_ui);
             resolve_dev_tools()?;
             report_opt = get_report_option(report)?;
             let targets = get_targets_or_default(target);
@@ -117,8 +123,10 @@ async fn main() -> Result<(), Error> {
         Command::Run {
             production,
             fail_fast,
+            no_ui,
         } => {
             set_fail_fast(fail_fast);
+            init_tracker(no_ui);
             resolve_dev_tools()?;
             report_opt = ReportOptions::None;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
