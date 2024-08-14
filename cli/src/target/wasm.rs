@@ -48,7 +48,8 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
             ),
             cwd.join("spec"),
             Some(SpawnOptions {
-                suppress_msg: true,
+                // The output of this command causes a weird behavior on the progress bars.
+                suppress_ui: true,
                 ..Default::default()
             }),
         ),

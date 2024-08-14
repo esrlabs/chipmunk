@@ -75,7 +75,9 @@ impl SpawnResult {
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct SpawnOptions {
-    pub suppress_msg: bool,
+    /// Indicates that log messages should be not shown on UI.
+    pub suppress_ui: bool,
+    /// Indicates if the job is a part of build process and can be skipped.
     pub has_skip_info: bool,
 }
 
@@ -111,7 +113,6 @@ pub async fn spawn(
 
     let mut child = command_result?;
 
-    let mut report_lines: Vec<String> = vec![];
     let drain_stdout_stderr = {
         let stdout = child.stdout.take().expect(
                 "Developer Error: Stdout is implicity set in command definition from which the child is spawn",
@@ -119,7 +120,6 @@ pub async fn spawn(
         let stderr = child.stderr.take().expect(
                 "Developer Error: Stderr is implicity set in command definition from which the child is spawn",
             );
-        let storage_report = &mut report_lines;
         async move {
             let mut stdout_buf = BufReader::new(stdout);
             let mut stderr_buf = BufReader::new(stderr);
@@ -131,29 +131,31 @@ pub async fn spawn(
                         let stdout_read_bytes = stdout_read_result?;
                         if stdout_read_bytes == 0 {
                             break;
-                        } else {
-                            if !opts.suppress_msg {
-                                tracker.msg(job_def, stdout_line.clone());
-                            }
-                            tracker.progress(job_def, None);
-                            storage_report.push(stdout_line);
                         }
+
+                        if opts.suppress_ui {
+                            tracker.log(job_def, stdout_line);
+                        } else{
+                            tracker.msg(job_def, stdout_line);
+                        }
+
+                        tracker.progress(job_def, None);
                     }
                     stderr_read_result = stderr_buf.read_line(&mut stderr_line) => {
                         let stderr_read_bytes = stderr_read_result?;
                         if stderr_read_bytes == 0 {
                             break;
-                        } else {
-                            if !stderr_line.trim().is_empty() {
-                                if !opts.suppress_msg {
-                                    tracker.msg(job_def, stderr_line.clone());
-                                }
-
-                                storage_report.push(stderr_line);
-                            }
-
-                            tracker.progress(job_def, None);
                         }
+
+                        if !stderr_line.trim().is_empty() {
+                            if opts.suppress_ui {
+                                tracker.log(job_def, stderr_line);
+                            } else {
+                                tracker.msg(job_def, stderr_line);
+                            }
+                        }
+
+                        tracker.progress(job_def, None);
 
                     }
                 }
@@ -175,6 +177,8 @@ pub async fn spawn(
             None
         };
 
+        let report_lines = tracker.get_logs(job_def).await?;
+
         Ok(SpawnResult {
             report: report_lines,
             status,
@@ -187,8 +191,8 @@ pub async fn spawn(
     }
 }
 
-/// Suspend the progress bars and run the giving blocking command using `Stdio::inherit()`
-/// This is used with commands that doesn't work with `Stdio::piped()`
+/// Suspend the progress bars if enabled and run the giving blocking command using
+/// `Stdio::inherit()` This is used with commands that doesn't work with `Stdio::piped()`
 pub async fn spawn_blocking(
     job_def: JobDefinition,
     command: ProcessCommand,
@@ -207,7 +211,7 @@ pub async fn spawn_blocking(
 
     let tracker = get_tracker();
 
-    let status = tracker.suspend_and_run(child).await?;
+    let status = tracker.run_synchronously(job_def, child).await?;
 
     Ok(SpawnResult {
         report: Vec::new(),
