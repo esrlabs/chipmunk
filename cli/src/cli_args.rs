@@ -1,14 +1,10 @@
-use std::path::PathBuf;
-
 use clap::{Parser, Subcommand};
 
 use crate::target::Target;
 
-const REPORT_HELP_TEXT: &str =
-    "Write report from command logs to the given file or to stdout if no file is defined.";
-const REPORT_VALUE_NAME: &str = "FILE-PATH";
 const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
-const NO_UI_HELP_TEXT: &str = "Disable UI progress bars and output each job's logs directly to stdout as soon as it's completed";
+const UI_LOG_OPTION_HELP_TEXT: &str =
+    "Specifies the UI options for displaying command logs and progress in the terminal";
 
 #[derive(Parser)]
 #[command(name = "cargo", bin_name = "cargo")]
@@ -21,6 +17,25 @@ pub enum CargoCli {
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
+}
+
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+/// Specifies the UI mode for displaying command logs and progress in the terminal.
+pub enum UiMode {
+    /// Displays progress bars, showing the current line of the output of each command. (alias: 'b')
+    #[default]
+    #[value(name = "bars", alias("b"))]
+    ProgressBars,
+    /// Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. (alias: 'r')
+    #[value(name = "report", alias("r"))]
+    BarsWithReport,
+    /// Outputs each job's result to stdout once the job finishes. No progress bars are displayed. (alias: 'p')
+    #[value(name = "print", alias("p"))]
+    PrintOnJobFinish,
+    /// Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs.
+    /// No progress bars are displayed. (alias: 'i')
+    #[value(name = "immediate", alias("i"))]
+    PrintImmediately,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -45,11 +60,8 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
-        #[arg(short, long, help = NO_UI_HELP_TEXT )]
-        no_ui: bool,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
+        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: UiMode,
     },
     /// Build all or the specified targets
     Build {
@@ -64,11 +76,8 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
-        #[arg(short, long, help = NO_UI_HELP_TEXT )]
-        no_ui: bool,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
+        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: UiMode,
     },
     /// Clean all or the specified targets
     Clean {
@@ -76,8 +85,8 @@ pub enum Command {
         #[arg(index = 1)]
         target: Option<Vec<Target>>,
 
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
+        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: UiMode,
     },
     /// Run tests for all or the specified targets
     Test {
@@ -92,11 +101,8 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
-        #[arg(short, long, help = NO_UI_HELP_TEXT )]
-        no_ui: bool,
-
-        #[arg(short, long, value_name = REPORT_VALUE_NAME, help = REPORT_HELP_TEXT)]
-        report: Option<Option<PathBuf>>,
+        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: UiMode,
     },
     /// Build and Run the application
     Run {
@@ -106,9 +112,6 @@ pub enum Command {
 
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
-
-        #[arg(short, long, help = NO_UI_HELP_TEXT )]
-        no_ui: bool,
     },
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.

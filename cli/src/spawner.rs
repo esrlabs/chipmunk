@@ -177,7 +177,7 @@ pub async fn spawn(
             None
         };
 
-        let report_lines = tracker.get_logs(job_def).await?;
+        let report_lines = tracker.get_logs(job_def).await?.unwrap_or_default();
 
         Ok(SpawnResult {
             report: report_lines,

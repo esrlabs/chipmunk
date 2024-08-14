@@ -78,7 +78,7 @@ pub async fn copy_index_node(job_def: JobDefinition) -> Result<SpawnResult, anyh
 
     fstools::cp_file(job_def, src_file, mod_file)?;
 
-    let report_logs = tracker.get_logs(job_def).await?;
+    let report_logs = tracker.get_logs(job_def).await?.unwrap_or_default();
 
     Ok(SpawnResult::create_for_fs(
         "Copying `index.node` from rs to ts bindings".into(),

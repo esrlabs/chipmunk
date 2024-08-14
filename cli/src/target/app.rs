@@ -47,7 +47,7 @@ pub async fn copy_client_to_app(job_def: JobDefinition) -> Result<SpawnResult, a
     std::fs::rename(&rename_from, &rename_to)
         .with_context(|| format!("Error while renaming {}", rename_from.display()))?;
 
-    let report_logs = tracker.get_logs(job_def).await?;
+    let report_logs = tracker.get_logs(job_def).await?.unwrap_or_default();
 
     Ok(SpawnResult::create_for_fs(
         "Copy App Build Artifacts".into(),

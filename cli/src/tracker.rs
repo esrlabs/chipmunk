@@ -13,7 +13,7 @@ use tokio::sync::{
     oneshot,
 };
 
-use crate::jobs_runner::JobDefinition;
+use crate::{cli_args::UiMode, jobs_runner::JobDefinition};
 
 const TIME_BAR_WIDTH: usize = 5;
 
@@ -73,7 +73,7 @@ enum LogTick {
 pub struct Tracker {
     ui_tx: UnboundedSender<UiTick>,
     log_tx: UnboundedSender<LogTick>,
-    no_ui: bool,
+    ui_mode: UiMode,
 }
 
 enum JobBarPhase {
@@ -113,9 +113,9 @@ impl JobBarState {
 /// # Panics
 ///
 /// This functions panics if it is initialized more than once.
-pub fn init_tracker(no_ui: bool) {
+pub fn init_tracker(ui_mode: UiMode) {
     TRACKER
-        .set(Tracker::new(no_ui))
+        .set(Tracker::new(ui_mode))
         .expect("Progress Tracker can't be initialized more than once");
 }
 
@@ -131,21 +131,58 @@ pub fn get_tracker() -> &'static Tracker {
 }
 
 impl Tracker {
-    fn new(no_ui: bool) -> Self {
+    fn new(ui_mode: UiMode) -> Self {
         // Logs
         let (log_tx, log_rx) = unbounded_channel();
-        tokio::spawn(Tracker::run_logs_cache(log_rx));
 
         // UI
         let (ui_tx, ui_rx) = unbounded_channel();
-        if !no_ui {
-            tokio::spawn(Tracker::run_ui(ui_rx));
-        }
-        Self {
+
+        let tracker = Self {
             ui_tx,
             log_tx,
-            no_ui,
+            ui_mode,
+        };
+
+        if tracker.cache_logs() {
+            tokio::spawn(Tracker::run_logs_cache(log_rx));
         }
+
+        if tracker.show_bars() {
+            tokio::spawn(Tracker::run_ui(ui_rx));
+        }
+
+        tracker
+    }
+
+    /// Return the current mode for UI and logs.
+    #[inline]
+    pub fn ui_mode(&self) -> UiMode {
+        self.ui_mode
+    }
+
+    /// Indicates if progress bars should be shown according the given UI option.  
+    #[inline]
+    fn show_bars(&self) -> bool {
+        match self.ui_mode {
+            UiMode::ProgressBars | UiMode::BarsWithReport => true,
+            UiMode::PrintOnJobFinish | UiMode::PrintImmediately => false,
+        }
+    }
+
+    /// Indicates if the logs should be printed immediately
+    #[inline]
+    fn print_immediately(&self) -> bool {
+        match self.ui_mode() {
+            UiMode::ProgressBars | UiMode::BarsWithReport | UiMode::PrintOnJobFinish => false,
+            UiMode::PrintImmediately => true,
+        }
+    }
+
+    /// Indicates if logs should be cached according the given UI option.  
+    #[inline]
+    fn cache_logs(&self) -> bool {
+        !self.print_immediately()
     }
 
     async fn run_logs_cache(mut rx: UnboundedReceiver<LogTick>) {
@@ -354,36 +391,40 @@ impl Tracker {
         count
     }
 
-    /// Registers all the given jobs for Logs and UI, setting their status to awaiting.
-    /// This function must be called once on the start of running the tasks
+    /// Registers all the given jobs for Logs and UI if available, setting their status
+    /// to awaiting. This function must be called once on the start of running the tasks
     pub async fn register_all(&self, jobs: Vec<JobDefinition>) -> Result<(), Error> {
-        let (log_tx, log_rx) = oneshot::channel();
-        self.log_tx
-            .send(LogTick::RegisterAll(jobs.clone(), log_tx))
-            .context("Fail to send log Tick")?;
-
-        if self.no_ui {
-            return log_rx
+        if self.cache_logs() {
+            let (log_tx, log_rx) = oneshot::channel();
+            self.log_tx
+                .send(LogTick::RegisterAll(jobs.clone(), log_tx))
+                .context("Fail to send log Tick")?;
+            log_rx
                 .await
-                .context("Fail to receive log tick for register all jobs");
+                .context("Fail to receive log tick for register all jobs")?;
         }
 
-        let (ui_tx, ui_rx) = oneshot::channel();
-        self.ui_tx
-            .send(UiTick::StartAll(jobs, ui_tx))
-            .context("Fail to send tick")?;
-        let (log_res, ui_res) = tokio::join!(log_rx, ui_rx);
+        if self.show_bars() {
+            let (ui_tx, ui_rx) = oneshot::channel();
+            self.ui_tx
+                .send(UiTick::StartAll(jobs, ui_tx))
+                .context("Fail to send tick")?;
 
-        log_res.context("Fail to receive log tick for register all jobs")?;
+            ui_rx
+                .await
+                .context("Fail to receive ui tick for register all jobs")?;
+        }
 
-        ui_res.context("Fail to receive ui tick for register all jobs")
+        Ok(())
     }
 
     /// Change job status on UI from awaiting to started.
     pub async fn start(&self, job_def: JobDefinition) -> Result<(), Error> {
-        if self.no_ui {
+        if !self.show_bars() {
+            println!("Job '{}' started...", job_def.job_title());
             return Ok(());
         }
+
         let (tx_response, rx_response) = oneshot::channel();
         self.ui_tx
             .send(UiTick::Started(job_def, tx_response))
@@ -395,9 +436,10 @@ impl Tracker {
 
     /// Update the job on UI providing an optional progress value.
     pub fn progress(&self, job_def: JobDefinition, pos: Option<u64>) {
-        if self.no_ui {
+        if !self.show_bars() {
             return;
         }
+
         if let Err(e) = self.ui_tx.send(UiTick::Progress(job_def, pos)) {
             eprintln!("Fail to communicate with tracker: {e}");
         }
@@ -405,89 +447,100 @@ impl Tracker {
 
     /// Send a message of the job to be shown on UI and saved in logs cache.
     pub fn msg(&self, job_def: JobDefinition, log: String) {
-        if let Err(err) = self
-            .log_tx
-            .send(LogTick::SendSingleLog(job_def, log.clone()))
-        {
-            eprintln!("Fail to communicate with tracker: {err}");
-        }
-
-        if self.no_ui {
+        if self.print_immediately() {
+            println!("Job '{}': {}", job_def.job_title(), log.trim());
             return;
         }
 
-        if let Err(e) = self.ui_tx.send(UiTick::Message(job_def, log)) {
-            eprintln!("Fail to communicate with tracker: {e}");
+        if self.cache_logs() {
+            if let Err(err) = self
+                .log_tx
+                .send(LogTick::SendSingleLog(job_def, log.clone()))
+            {
+                eprintln!("Fail to communicate with tracker: {err}");
+            }
+        }
+
+        if self.show_bars() {
+            if let Err(e) = self.ui_tx.send(UiTick::Message(job_def, log)) {
+                eprintln!("Fail to communicate with tracker: {e}");
+            }
         }
     }
 
     /// Send a message of the job to be be saved within logs cache without showing it in UI.
     pub fn log(&self, job_def: JobDefinition, log: String) {
-        if let Err(err) = self
-            .log_tx
-            .send(LogTick::SendSingleLog(job_def, log.clone()))
-        {
-            eprintln!("Fail to communicate with tracker: {err}");
+        if self.print_immediately() {
+            println!("Job '{}': {}", job_def.job_title(), log.trim());
+            return;
         }
 
-        //TODO AAZ: This should be considered in case we want to print everything to console as
-        //well.
+        if self.cache_logs() {
+            if let Err(err) = self
+                .log_tx
+                .send(LogTick::SendSingleLog(job_def, log.clone()))
+            {
+                eprintln!("Fail to communicate with tracker: {err}");
+            }
+        }
     }
 
     /// Sets the job on UI as finished providing successful result and a message.
     pub fn success(&self, job_def: JobDefinition, msg: String) {
-        if self.no_ui {
-            return;
-        }
-
-        if let Err(e) = self
-            .ui_tx
-            .send(UiTick::Finished(job_def, OperationResult::Success, msg))
-        {
-            eprintln!("Fail to communicate with tracker: {e}");
+        if self.show_bars() {
+            if let Err(e) =
+                self.ui_tx
+                    .send(UiTick::Finished(job_def, OperationResult::Success, msg))
+            {
+                eprintln!("Fail to communicate with tracker: {e}");
+            }
+        } else {
+            let success_txt = format!("Job '{}' succeeded", job_def.job_title());
+            println!("{}", style(success_txt).green());
         }
     }
 
     /// Sets the job on UI as finished providing failed result and a message
     pub fn fail(&self, job_def: JobDefinition, msg: String) {
-        if self.no_ui {
-            return;
-        }
-
-        if let Err(e) = self
-            .ui_tx
-            .send(UiTick::Finished(job_def, OperationResult::Failed, msg))
-        {
-            eprintln!("Fail to communicate with tracker: {e}");
+        if self.show_bars() {
+            if let Err(e) = self
+                .ui_tx
+                .send(UiTick::Finished(job_def, OperationResult::Failed, msg))
+            {
+                eprintln!("Fail to communicate with tracker: {e}");
+            }
+        } else {
+            let fail_txt = format!("Job '{}' failed", job_def.job_title());
+            println!("{}", style(fail_txt).red());
         }
     }
 
     /// Close all the jobs and shutdown the progress bars
     pub async fn shutdown(&self) -> Result<(), Error> {
-        if self.no_ui {
-            return Ok(());
+        if self.show_bars() {
+            let (tx_response, rx_response) = oneshot::channel();
+            self.ui_tx
+                .send(UiTick::Shutdown(tx_response))
+                .context("Fail to send tick")?;
+            return rx_response.await.context("Fail to receive tick");
         }
 
-        let (tx_response, rx_response) = oneshot::channel();
-        self.ui_tx
-            .send(UiTick::Shutdown(tx_response))
-            .context("Fail to send tick")?;
-        rx_response.await.context("Fail to receive tick")
+        Ok(())
     }
 
     /// Prints the given text on UI outside the progress bar.
     /// This message won't be included in any logs cache.
     pub fn print(&self, msg: String) {
-        if self.no_ui {
-            return;
-        }
-
-        if let Err(e) = self
-            .ui_tx
-            .send(UiTick::Print(msg))
-            .map_err(|e| anyhow!("Fail to send tick: {e}"))
-        {
-            eprintln!("Fail to communicate with tracker: {e}");
+        if self.show_bars() {
+            if let Err(e) = self
+                .ui_tx
+                .send(UiTick::Print(msg))
+                .map_err(|e| anyhow!("Fail to send tick: {e}"))
+            {
+                eprintln!("Fail to communicate with tracker: {e}");
+            }
+        } else {
+            println!("{msg}");
         }
     }
 
@@ -499,17 +552,7 @@ impl Tracker {
         job_def: JobDefinition,
         mut cmd: std::process::Command,
     ) -> Result<ExitStatus, anyhow::Error> {
-        if self.no_ui {
-            // Print jobs and command
-            let cmd_parts: Vec<_> = iter::once(cmd.get_program().to_string_lossy())
-                .chain(cmd.get_args().map(|args| args.to_string_lossy()))
-                .collect();
-            let cmd_txt: String = cmd_parts.join(" ");
-            println!("Job {}: Running command {cmd_txt}...", job_def.job_title());
-
-            cmd.status()
-                .context("Error while execution command synchronously")
-        } else {
+        if self.show_bars() {
             let (tx_response, rx_response) = oneshot::channel();
             self.ui_tx
                 .send(UiTick::SuspendAndRun(cmd, tx_response))
@@ -518,15 +561,33 @@ impl Tracker {
             let output_res = rx_response.await.context("Fail to receive tick")?;
 
             output_res.context("Error while execution command synchronously")
+        } else {
+            // Print jobs and command
+            let cmd_parts: Vec<_> = iter::once(cmd.get_program().to_string_lossy())
+                .chain(cmd.get_args().map(|args| args.to_string_lossy()))
+                .collect();
+            let cmd_txt: String = cmd_parts.join(" ");
+            println!(
+                "Job {}: Running command {cmd_txt} synchronously...",
+                job_def.job_title()
+            );
+
+            cmd.status()
+                .context("Error while execution command synchronously")
         }
     }
 
     /// Retrieves all the logs for the giving job, clearing them from the cache.
+    /// This will return None if the UI mode doesn't support saving the logs for caches.
     ///
     /// # Panics
     ///
     /// This function panics if the jobs wasn't registered
-    pub async fn get_logs(&self, job_def: JobDefinition) -> anyhow::Result<Vec<String>> {
+    pub async fn get_logs(&self, job_def: JobDefinition) -> anyhow::Result<Option<Vec<String>>> {
+        if self.print_immediately() {
+            return Ok(None);
+        }
+
         let (tx, rx) = oneshot::channel();
 
         self.log_tx
@@ -545,6 +606,6 @@ impl Tracker {
             )
         })?;
 
-        Ok(logs)
+        Ok(Some(logs))
     }
 }
