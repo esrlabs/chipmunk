@@ -8,8 +8,10 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::{
     checksum_records::{ChecksumCompareResult, ChecksumRecords},
+    cli_args::UiMode,
     fail_fast::fail_fast,
     job_type::JobType,
+    log_print::{print_log_separator, print_report},
     spawner::SpawnResult,
     target::Target,
     tracker::get_tracker,
@@ -70,6 +72,19 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             Ok(res) => res.status.success().not(),
             Err(_) => true,
         };
+
+        if matches!(tracker.ui_mode(), UiMode::PrintOnJobFinish) {
+            print_log_separator();
+            match result.as_ref() {
+                Ok(res) => {
+                    print_report(res);
+                }
+                Err(err) => {
+                    eprintln!("Job '{}' failed with error: {err}", job_def.job_title())
+                }
+            }
+            print_log_separator();
+        }
 
         results.push(result);
 

@@ -473,7 +473,7 @@ impl Target {
 
         let job = format!("Clean {}", self);
 
-        let logs = tracker.get_logs(job_def).await?;
+        let logs = tracker.get_logs(job_def).await?.unwrap_or_default();
 
         Ok(SpawnResult::create_for_fs(job, logs))
     }
