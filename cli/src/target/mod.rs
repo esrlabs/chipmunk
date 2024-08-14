@@ -12,6 +12,7 @@ use crate::{
     jobs_runner::JobDefinition,
     location::get_root,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
+    tracker::get_tracker,
 };
 
 use target_kind::TargetKind;
@@ -428,13 +429,14 @@ impl Target {
         let checksum = ChecksumRecords::get(false)?;
         checksum.remove_hash_if_exist(*self)?;
 
-        let mut logs = Vec::new();
         let mut paths_to_remove = vec![self.cwd().join("dist")];
         let path = match self.kind() {
             TargetKind::Ts => self.cwd().join("node_modules"),
             TargetKind::Rs => self.cwd().join("target"),
         };
         paths_to_remove.push(path);
+
+        let tracker = get_tracker();
 
         match self {
             Target::Wasm => {
@@ -446,7 +448,10 @@ impl Target {
                 paths_to_remove.push(self.cwd().join("spec").join("build"));
                 let index_node_path = self.cwd().join("src").join("native").join("index.node");
                 if index_node_path.exists() {
-                    logs.push(format!("removing file: {}", index_node_path.display()));
+                    tracker.msg(
+                        job_def,
+                        format!("removing file: {}", index_node_path.display()),
+                    );
                     fs::remove_file(index_node_path).await?;
                 }
             }
@@ -461,12 +466,14 @@ impl Target {
 
         for path in paths_to_remove.into_iter().filter(|p| p.exists()) {
             let remove_log = format!("removing directory {}", path.display());
-            logs.push(remove_log);
+            tracker.msg(job_def, remove_log);
 
             fstools::rm_folder(job_def, &path)?;
         }
 
         let job = format!("Clean {}", self);
+
+        let logs = tracker.get_logs(job_def).await?;
 
         Ok(SpawnResult::create_for_fs(job, logs))
     }
@@ -532,7 +539,7 @@ impl Target {
         };
 
         let after_res = match self {
-            Target::Binding => binding::copy_index_node(job_def),
+            Target::Binding => binding::copy_index_node(job_def).await,
             Target::App => app::copy_client_to_app(job_def).await,
             Target::Core
             | Target::Shared

@@ -2,7 +2,7 @@ use std::fs;
 
 use anyhow::{bail, Context};
 
-use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult};
+use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult, tracker::get_tracker};
 
 use super::{ProcessCommand, Target};
 
@@ -31,11 +31,14 @@ pub fn get_build_cmd(prod: bool) -> anyhow::Result<ProcessCommand> {
     ))
 }
 
-pub fn copy_index_node(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Error> {
-    let mut report_logs = Vec::new();
+pub async fn copy_index_node(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Error> {
+    let tracker = get_tracker();
 
     // *** Copy `index.node` from rs to ts bindings dist ***
-    report_logs.push(String::from("Copying `index.node` to ts-bindings dist..."));
+    tracker.msg(
+        job_def,
+        String::from("Copying `index.node` to ts-bindings dist..."),
+    );
 
     let src_file = Target::Binding.cwd().join("dist").join("index.node");
     if !src_file.exists() {
@@ -48,7 +51,7 @@ pub fn copy_index_node(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Er
     let ts_dist_native_dir = Target::Wrapper.cwd().join("dist").join("native");
     if !ts_dist_native_dir.exists() {
         let msg = format!("creating directory: {}", ts_dist_native_dir.display());
-        report_logs.push(msg);
+        tracker.msg(job_def, msg);
 
         fs::create_dir_all(&ts_dist_native_dir).with_context(|| {
             format!(
@@ -62,18 +65,20 @@ pub fn copy_index_node(job_def: JobDefinition) -> Result<SpawnResult, anyhow::Er
         job_def,
         src_file.clone(),
         ts_dist_native_dir.join("index.node"),
-        &mut report_logs,
     )?;
 
     // *** Copy `index.node` from rs to ts bindings src native (dir-tests) ***
-    report_logs.push(String::from(
-        "Copying `index.node` to ts-bindings src native...",
-    ));
+    tracker.msg(
+        job_def,
+        String::from("Copying `index.node` to ts-bindings src native..."),
+    );
 
     let dir_tests = Target::Wrapper.cwd().join("src").join("native");
     let mod_file = dir_tests.join("index.node");
 
-    fstools::cp_file(job_def, src_file, mod_file, &mut report_logs)?;
+    fstools::cp_file(job_def, src_file, mod_file)?;
+
+    let report_logs = tracker.get_logs(job_def).await?;
 
     Ok(SpawnResult::create_for_fs(
         "Copying `index.node` from rs to ts bindings".into(),
