@@ -3,7 +3,6 @@ use clap::ValueEnum;
 use futures::future::join_all;
 use std::{fmt::Display, iter, path::PathBuf, str::FromStr};
 use tokio::fs;
-use tokio_util::sync::CancellationToken;
 
 use crate::{
     checksum_records::ChecksumRecords,
@@ -290,7 +289,6 @@ impl Target {
         prod: bool,
         skip: bool,
         overridden_job_type: Option<JobType>,
-        cancel: CancellationToken,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
         if skip {
             return Some(
@@ -310,31 +308,20 @@ impl Target {
             // Since rs bindings is a dependency for ts bindings, we don't need to call to install
             // on ts bindings again.
             Target::Binding => {
-                install_general(
-                    Target::Wrapper,
-                    prod,
-                    job_type,
-                    Some(Target::Binding),
-                    cancel,
-                )
-                .await
+                install_general(Target::Wrapper, prod, job_type, Some(Target::Binding)).await
             }
             Target::Wrapper => None,
             // For app we don't need --production
-            Target::App => install_general(Target::App, false, job_type, None, cancel).await,
-            rest_targets => install_general(*rest_targets, prod, job_type, None, cancel).await,
+            Target::App => install_general(Target::App, false, job_type, None).await,
+            rest_targets => install_general(*rest_targets, prod, job_type, None).await,
         }
     }
 
     /// Run tests for the giving the target
-    pub async fn test(
-        &self,
-        production: bool,
-        cancel: CancellationToken,
-    ) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn test(&self, production: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         match self {
-            Target::Wrapper => Some(wrapper::run_test(production, cancel).await),
-            rest_targets => rest_targets.run_test_general(production, cancel).await,
+            Target::Wrapper => Some(wrapper::run_test(production).await),
+            rest_targets => rest_targets.run_test_general(production).await,
         }
     }
 
@@ -357,7 +344,6 @@ impl Target {
     async fn run_test_general(
         &self,
         production: bool,
-        cancel: CancellationToken,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
         let test_cmds = self.test_cmds(production)?;
 
@@ -371,7 +357,6 @@ impl Target {
                 Some(cmd.cwd),
                 iter::empty(),
                 cmd.spawn_opts,
-                cancel.clone(),
             )
         }))
         .await;
@@ -394,25 +379,25 @@ impl Target {
     }
 
     /// Perform Linting Checks on the giving target
-    pub async fn check(&self, cancel: CancellationToken) -> Result<SpawnResult, anyhow::Error> {
+    pub async fn check(&self) -> Result<SpawnResult, anyhow::Error> {
         match self.kind() {
-            TargetKind::Ts => self.ts_lint(cancel).await,
-            TargetKind::Rs => self.clippy(cancel).await,
+            TargetKind::Ts => self.ts_lint().await,
+            TargetKind::Rs => self.clippy().await,
         }
     }
 
     /// Perform Linting the Building the giving target since linting Type-Script doesn't check for
     /// compiling errors
-    async fn ts_lint(&self, cancel: CancellationToken) -> Result<SpawnResult, anyhow::Error> {
+    async fn ts_lint(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = self.cwd();
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
         let command = yarn_command(vec![String::from("run"), String::from("lint")]);
-        spawn(job_def, command, Some(path), iter::empty(), None, cancel).await
+        spawn(job_def, command, Some(path), iter::empty(), None).await
     }
 
     /// Runs Clippy for the given rust target
-    async fn clippy(&self, cancel: CancellationToken) -> Result<SpawnResult, anyhow::Error> {
+    async fn clippy(&self) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
 
         let job_def = JobDefinition::new(*self, JobType::Lint);
@@ -432,7 +417,7 @@ impl Target {
             ],
         );
 
-        spawn(job_def, command, Some(path), iter::empty(), None, cancel).await
+        spawn(job_def, command, Some(path), iter::empty(), None).await
     }
 
     /// Clean the given target, removing it from the checksum tracker as well.
@@ -494,12 +479,7 @@ impl Target {
     }
 
     /// Runs build considering the currently running builds and already finished ones as well.
-    pub async fn build(
-        &self,
-        prod: bool,
-        skip: bool,
-        cancel: CancellationToken,
-    ) -> Result<SpawnResult, anyhow::Error> {
+    pub async fn build(&self, prod: bool, skip: bool) -> Result<SpawnResult, anyhow::Error> {
         let path = get_root().join(self.cwd());
         let cmd = self.build_cmd(prod)?;
 
@@ -513,15 +493,7 @@ impl Target {
         if skip {
             spawn_skip(job_def, cmd.to_string()).await
         } else {
-            spawn(
-                job_def,
-                cmd,
-                Some(path),
-                iter::empty(),
-                Some(spawn_opt),
-                cancel,
-            )
-            .await
+            spawn(job_def, cmd, Some(path), iter::empty(), Some(spawn_opt)).await
         }
     }
 
@@ -532,7 +504,6 @@ impl Target {
         &self,
         prod: bool,
         skip: bool,
-        cancel: CancellationToken,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
         let job_type = JobType::AfterBuild { production: prod };
         let job_def = JobDefinition::new(*self, job_type);
@@ -555,7 +526,7 @@ impl Target {
                 return Some(Err(err));
             }
 
-            match self.install(true, false, Some(job_type), cancel).await {
+            match self.install(true, false, Some(job_type)).await {
                 Some(Ok(mut spawn_res)) => {
                     spawn_res.report.insert(0, remove_log);
                     Some(spawn_res)
@@ -601,7 +572,6 @@ async fn install_general(
     prod: bool,
     job_type: JobType,
     overridden_target: Option<Target>,
-    cancel: CancellationToken,
 ) -> Option<Result<SpawnResult, anyhow::Error>> {
     let cmd = match target {
         // Wasm needs `yarn install` command despite having the kind `TargetKind::Rs`
@@ -612,15 +582,7 @@ async fn install_general(
     let job_def = JobDefinition::new(overridden_target.unwrap_or(target), job_type);
 
     if let Some(cmd) = cmd {
-        let res = spawn(
-            job_def,
-            cmd,
-            Some(target.cwd()),
-            iter::empty(),
-            None,
-            cancel,
-        )
-        .await;
+        let res = spawn(job_def, cmd, Some(target.cwd()), iter::empty(), None).await;
         Some(res)
     } else {
         None
