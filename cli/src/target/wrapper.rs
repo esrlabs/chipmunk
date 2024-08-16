@@ -1,6 +1,7 @@
 use std::{iter, path::PathBuf};
 
 use anyhow::Context;
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     fstools,
@@ -40,7 +41,10 @@ const TEST_SPECS: [&str; 14] = [
     "promises",
 ];
 
-pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
+pub async fn run_test(
+    production: bool,
+    cancel: CancellationToken,
+) -> Result<SpawnResult, anyhow::Error> {
     let job_def = JobDefinition::new(Target::Wrapper, JobType::Test { production });
 
     let cwd = Target::Wrapper.cwd();
@@ -73,6 +77,7 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
         Some(build_spec_path),
         iter::empty(),
         None,
+        cancel,
     )
     .await?;
 

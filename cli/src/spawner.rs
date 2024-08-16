@@ -11,6 +11,7 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
 };
+use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Debug)]
 pub struct SpawnResult {
@@ -87,6 +88,7 @@ pub async fn spawn(
     cwd: Option<PathBuf>,
     environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
+    cancel: CancellationToken,
 ) -> Result<SpawnResult, anyhow::Error> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
@@ -113,9 +115,9 @@ pub async fn spawn(
     let mut child = command_result?;
 
     let stdout = child.stdout.take()
-        .expect("Developer Error: Stdout is implicity set in command definition from which the child is spawn");
+        .expect("Developer Error: Stdout is implicitly set in command definition from which the child is spawn");
     let stderr = child.stderr.take()
-        .expect("Developer Error: Stderr is implicity set in command definition from which the child is spawn");
+        .expect("Developer Error: Stderr is implicitly set in command definition from which the child is spawn");
     let mut stdout_buf = BufReader::new(stdout);
     let mut stderr_buf = BufReader::new(stderr);
     loop {
@@ -153,6 +155,9 @@ pub async fn spawn(
                 tracker.progress(job_def, None);
 
             }
+            _ = cancel.cancelled() => {
+                child.start_kill().context("Error while trying to kill the process as cancellation token has been invoked")?;
+            },
         }
     }
 

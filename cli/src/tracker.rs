@@ -530,7 +530,8 @@ impl Tracker {
 
     /// Prints the given text on UI outside the progress bar.
     /// This message won't be included in any logs cache.
-    pub fn print(&self, msg: String) {
+    pub fn print(&self, msg: impl Into<String>) {
+        let msg = msg.into();
         if self.show_bars() {
             if let Err(e) = self
                 .ui_tx
@@ -540,7 +541,7 @@ impl Tracker {
                 eprintln!("Fail to communicate with tracker: {e}");
             }
         } else {
-            println!("{msg}");
+            println!("{msg}",);
         }
     }
 

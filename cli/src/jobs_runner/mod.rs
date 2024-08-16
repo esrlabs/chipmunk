@@ -1,10 +1,14 @@
 mod job_definition;
 pub mod jobs_resolver;
 
-use std::{collections::BTreeMap, ops::Not};
+use std::{collections::BTreeMap, ops::Not, time::Duration};
 
 pub use job_definition::JobDefinition;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::{
+    sync::mpsc::{unbounded_channel, UnboundedSender},
+    time::timeout,
+};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use crate::{
     checksum_records::{ChecksumCompareResult, ChecksumRecords},
@@ -20,6 +24,9 @@ use crate::{
 use anyhow::Result;
 
 type SpawnResultsCollection = Vec<Result<SpawnResult>>;
+
+/// Duration to wait for jobs when cancellation is invoked.
+pub const TIMEOUT_DURATION: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone)]
 /// Represents the current state of the task.
@@ -52,12 +59,17 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
     let mut checksum_compare_map = BTreeMap::new();
     let mut failed_jobs = Vec::new();
 
+    let cancel = CancellationToken::default();
+    let task_tracker = TaskTracker::new();
+
     // Spawn free job at first
     spawn_jobs(
         tx.clone(),
         &mut jobs_status,
         &mut checksum_compare_map,
         &failed_jobs,
+        cancel.clone(),
+        &task_tracker,
     )?;
 
     let mut results = Vec::new();
@@ -90,7 +102,12 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
 
         if failed {
             failed_jobs.push(job_def.target);
+
             if fail_fast() {
+                cancel.cancel();
+
+                graceful_shutdown(task_tracker).await;
+
                 return Ok(results);
             }
         }
@@ -118,6 +135,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
         }
 
         if all_done {
+            graceful_shutdown(task_tracker).await;
             return Ok(results);
         }
 
@@ -127,8 +145,12 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             &mut jobs_status,
             &mut checksum_compare_map,
             &failed_jobs,
+            cancel.clone(),
+            &task_tracker,
         )?;
     }
+
+    graceful_shutdown(task_tracker).await;
 
     Ok(results)
 }
@@ -139,6 +161,8 @@ fn spawn_jobs(
     jobs_status: &mut BTreeMap<JobDefinition, JobPhase>,
     checksum_compare_map: &mut BTreeMap<Target, ChecksumCompareResult>,
     failed_jobs: &[Target],
+    cancel: CancellationToken,
+    task_tracker: &TaskTracker,
 ) -> Result<()> {
     for (job_def, phase) in jobs_status.iter_mut() {
         let JobPhase::Awaiting(deps) = phase else {
@@ -183,8 +207,9 @@ fn spawn_jobs(
         // Spawn the job
         let sender = sender.clone();
         let job_def = *job_def;
-        tokio::spawn(async move {
-            let result = job_def.run(skip).await;
+        let cancel = cancel.clone();
+        task_tracker.spawn(async move {
+            let result = job_def.run(skip, cancel).await;
 
             let result = match result {
                 Some(res) => res,
@@ -202,4 +227,17 @@ fn spawn_jobs(
         *phase = JobPhase::Running;
     }
     Ok(())
+}
+
+/// Closes the tasks trackers and waits for spawned jobs to exit gracefully within the [`TIMEOUT_DURATION`]
+async fn graceful_shutdown(task_tracker: TaskTracker) {
+    task_tracker.close();
+
+    if timeout(TIMEOUT_DURATION, task_tracker.wait())
+        .await
+        .is_err()
+    {
+        let tracker = get_tracker();
+        tracker.print("Graceful shutdown timed out");
+    }
 }

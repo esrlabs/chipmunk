@@ -23,6 +23,7 @@ futures = "0.3.28"
 git2 = "0.18.2"
 indicatif = "0.17.8"
 tokio = { version = "1.36.0", features = ["full"] }
+tokio-util = { version = "0.7.11", features = ["rt"] }
 dir_checksum = { path = "./dir_checksum" }
 which = "6.0"
 clap_complete = "4.5"
