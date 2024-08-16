@@ -1,9 +1,8 @@
 use crate::{
     jobs_runner::JobDefinition, location::get_root, target::ProcessCommand, tracker::get_tracker,
 };
-use anyhow::{bail, Context};
+use anyhow::Context;
 use core::panic;
-use futures_lite::{future, FutureExt};
 use std::{
     path::PathBuf,
     process::{ExitStatus, Stdio},
@@ -113,82 +112,67 @@ pub async fn spawn(
 
     let mut child = command_result?;
 
-    let drain_stdout_stderr = {
-        let stdout = child.stdout.take().expect(
-                "Developer Error: Stdout is implicity set in command definition from which the child is spawn",
-            );
-        let stderr = child.stderr.take().expect(
-                "Developer Error: Stderr is implicity set in command definition from which the child is spawn",
-            );
-        async move {
-            let mut stdout_buf = BufReader::new(stdout);
-            let mut stderr_buf = BufReader::new(stderr);
-            loop {
-                let mut stdout_line = String::new();
-                let mut stderr_line = String::new();
-                tokio::select! {
-                    stdout_read_result = stdout_buf.read_line(&mut stdout_line) => {
-                        let stdout_read_bytes = stdout_read_result?;
-                        if stdout_read_bytes == 0 {
-                            break;
-                        }
+    let stdout = child.stdout.take()
+        .expect("Developer Error: Stdout is implicity set in command definition from which the child is spawn");
+    let stderr = child.stderr.take()
+        .expect("Developer Error: Stderr is implicity set in command definition from which the child is spawn");
+    let mut stdout_buf = BufReader::new(stdout);
+    let mut stderr_buf = BufReader::new(stderr);
+    loop {
+        let mut stdout_line = String::new();
+        let mut stderr_line = String::new();
+        tokio::select! {
+            stdout_read_result = stdout_buf.read_line(&mut stdout_line) => {
+                let stdout_read_bytes = stdout_read_result?;
+                if stdout_read_bytes == 0 {
+                    break;
+                }
 
-                        if opts.suppress_ui {
-                            tracker.log(job_def, stdout_line);
-                        } else{
-                            tracker.msg(job_def, stdout_line);
-                        }
+                if opts.suppress_ui {
+                    tracker.log(job_def, stdout_line);
+                } else{
+                    tracker.msg(job_def, stdout_line);
+                }
 
-                        tracker.progress(job_def, None);
-                    }
-                    stderr_read_result = stderr_buf.read_line(&mut stderr_line) => {
-                        let stderr_read_bytes = stderr_read_result?;
-                        if stderr_read_bytes == 0 {
-                            break;
-                        }
+                tracker.progress(job_def, None);
+            }
+            stderr_read_result = stderr_buf.read_line(&mut stderr_line) => {
+                let stderr_read_bytes = stderr_read_result?;
+                if stderr_read_bytes == 0 {
+                    break;
+                }
 
-                        if !stderr_line.trim().is_empty() {
-                            if opts.suppress_ui {
-                                tracker.log(job_def, stderr_line);
-                            } else {
-                                tracker.msg(job_def, stderr_line);
-                            }
-                        }
-
-                        tracker.progress(job_def, None);
-
+                if !stderr_line.trim().is_empty() {
+                    if opts.suppress_ui {
+                        tracker.log(job_def, stderr_line);
+                    } else {
+                        tracker.msg(job_def, stderr_line);
                     }
                 }
-            }
 
-            future::pending::<()>().await;
-            Ok::<Option<ExitStatus>, anyhow::Error>(None)
+                tracker.progress(job_def, None);
+
+            }
         }
+    }
+
+    let status = child.wait().await?;
+
+    let skipped = if opts.has_skip_info {
+        Some(false)
+    } else {
+        None
     };
 
-    let status = drain_stdout_stderr
-        .or(async move { Ok(Some(child.wait().await?)) })
-        .await?;
+    let report_lines = tracker.get_logs(job_def).await?.unwrap_or_default();
 
-    if let Some(status) = status {
-        let skipped = if opts.has_skip_info {
-            Some(false)
-        } else {
-            None
-        };
-
-        let report_lines = tracker.get_logs(job_def).await?.unwrap_or_default();
-
-        Ok(SpawnResult {
-            report: report_lines,
-            status,
-            job: job_def.job_title(),
-            cmd: command.to_string(),
-            skipped,
-        })
-    } else {
-        bail!("Fail to get exist status of spawned command")
-    }
+    Ok(SpawnResult {
+        report: report_lines,
+        status,
+        job: job_def.job_title(),
+        cmd: command.to_string(),
+        skipped,
+    })
 }
 
 /// Suspend the progress bars if enabled and run the giving blocking command using
