@@ -5,7 +5,7 @@ use anyhow::Context;
 use crate::{
     fstools,
     job_type::JobType,
-    jobs_runner::JobDefinition,
+    jobs_runner::{cancellation::cancellation_token, JobDefinition},
     spawner::{spawn, spawn_blocking, SpawnResult},
 };
 
@@ -85,7 +85,7 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     } else {
         electron_path.push("electron");
     }
-    // "electron"].iter().collect();
+
     let electron_path = electron_path.to_string_lossy();
 
     let jasmine_path: PathBuf = [".", "node_modules", "jasmine", "bin", "jasmine.js"]
@@ -94,6 +94,8 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     let jasmine_path = jasmine_path.to_string_lossy();
 
     let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
+
+    let cancel = cancellation_token();
 
     for spec in TEST_SPECS {
         let spec_file_name = format!("session.{spec}.spec.js");
@@ -105,15 +107,22 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
                 spec_file_path.to_string_lossy().to_string(),
             ],
         );
-        let res = spawn_blocking(
-            job_def,
-            command,
-            Some(cwd.clone()),
-            vec![(String::from("ELECTRON_RUN_AS_NODE"), String::from("1"))],
-        )
-        .await?;
 
-        final_result.append(res);
+        // Break the loop if cancel is invoked.
+        tokio::select! {
+            res = spawn_blocking(
+                job_def,
+                command,
+                Some(cwd.clone()),
+                vec![(String::from("ELECTRON_RUN_AS_NODE"), String::from("1"))],
+            ) => {
+                let res = res?;
+                final_result.append(res);
+            }
+            _ = cancel.cancelled() => {
+                break;
+            }
+        }
     }
 
     Ok(final_result)

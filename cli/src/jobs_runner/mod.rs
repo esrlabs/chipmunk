@@ -1,13 +1,14 @@
+pub mod cancellation;
 mod job_definition;
 pub mod jobs_resolver;
 
+use cancellation::{cancellation_token, graceful_shutdown, task_tracker};
 use std::{collections::BTreeMap, ops::Not};
-
-pub use job_definition::JobDefinition;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
+pub use job_definition::JobDefinition;
+
 use crate::{
-    cancellation::{cancellation_token, graceful_shutdown, task_tracker},
     checksum_records::{ChecksumCompareResult, ChecksumRecords},
     cli_args::UiMode,
     fail_fast::fail_fast,
@@ -124,8 +125,11 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
         }
 
         if all_done {
-            graceful_shutdown().await;
+            return Ok(results);
+        }
 
+        // Skip spawning new jobs if cancel is already invoked.
+        if cancellation_token().is_cancelled() {
             return Ok(results);
         }
 
@@ -137,8 +141,6 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             &failed_jobs,
         )?;
     }
-
-    graceful_shutdown().await;
 
     Ok(results)
 }
@@ -202,7 +204,7 @@ fn spawn_jobs(
                 None => panic!("Spawned jobs already resolved and must have return value."),
             };
 
-            if sender.send((job_def, result)).is_err() {
+            if sender.send((job_def, result)).is_err() && !cancellation_token().is_cancelled() {
                 let tracker = get_tracker();
                 tracker.print(format!(
                     "Error: Job results can't be sent to receiver. Job: {job_def:?}"
