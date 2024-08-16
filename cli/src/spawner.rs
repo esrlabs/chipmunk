@@ -1,6 +1,8 @@
 use crate::{
-    cancellation::cancellation_token, jobs_runner::JobDefinition, location::get_root,
-    target::ProcessCommand, tracker::get_tracker,
+    jobs_runner::{cancellation::cancellation_token, JobDefinition},
+    location::get_root,
+    target::ProcessCommand,
+    tracker::get_tracker,
 };
 use anyhow::Context;
 use core::panic;

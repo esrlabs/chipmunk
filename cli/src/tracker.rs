@@ -53,8 +53,12 @@ enum UiTick {
     Finished(JobDefinition, OperationResult, String),
     /// Prints the given text outside the progress bar
     Print(String),
-    /// Close all the jobs and shutdown the progress bars
-    Shutdown(oneshot::Sender<()>),
+    /// Close all the jobs and shutdown the progress bars, with the option to display
+    /// the total processing time.
+    Shutdown {
+        total_time: bool,
+        tx_response: oneshot::Sender<()>,
+    },
     /// Suspends the progress bars and execute the giving blocking command
     SuspendAndRun(Command, oneshot::Sender<anyhow::Result<ExitStatus>>),
 }
@@ -67,6 +71,8 @@ enum LogTick {
     SendSingleLog(JobDefinition, String),
     /// Retrieves all the logs for the giving job, clearing them from the cache.
     GetLogs(JobDefinition, oneshot::Sender<Vec<String>>),
+    /// Shutdowns the logs cache channel.
+    Shutdown,
 }
 
 #[derive(Clone, Debug)]
@@ -218,6 +224,9 @@ impl Tracker {
                         eprintln!("Fail to send response with the cached logs");
                     }
                 }
+                LogTick::Shutdown => {
+                    return;
+                }
             }
         }
     }
@@ -302,7 +311,10 @@ impl Tracker {
                 UiTick::Print(msg) => {
                     let _ = mp.println(msg);
                 }
-                UiTick::Shutdown(tx_response) => {
+                UiTick::Shutdown {
+                    total_time,
+                    tx_response,
+                } => {
                     // Finish jobs that are still running
                     for (_job_def, job_bar) in bars.iter_mut() {
                         let time = match job_bar.phase {
@@ -319,22 +331,25 @@ impl Tracker {
                         job_bar.bar.finish();
                     }
 
-                    // Insert graphic bar for the running duration of each bars
-                    let total_time = start_time.elapsed().as_secs().max(1) as usize;
-                    Self::refresh_all_bars(&mut bars, max_time_len, Some(total_time));
+                    if total_time {
+                        // Insert graphic bar for the running duration of each bars
+                        let total_time = start_time.elapsed().as_secs().max(1) as usize;
+                        Self::refresh_all_bars(&mut bars, max_time_len, Some(total_time));
 
-                    // Insert total time bar
-                    let total_bar = mp.add(ProgressBar::new((bars.len() + 1) as u64));
-                    total_bar.set_style(spinner_style.clone());
-                    total_bar.set_prefix(format!("[total] done all in {total_time}s."));
-                    total_bar.finish();
+                        // Insert total time bar
+                        let total_bar = mp.add(ProgressBar::new((bars.len() + 1) as u64));
+                        total_bar.set_style(spinner_style.clone());
+                        total_bar.set_prefix(format!("[total] done all in {total_time}s."));
+                        total_bar.finish();
+                    }
 
                     bars.clear();
-                    // let _ = mp.clear();
+
                     if tx_response.send(()).is_err() {
                         let _ = mp.println("Fail to send response");
                     }
-                    break;
+
+                    return;
                 }
                 UiTick::SuspendAndRun(mut command, tx_response) => {
                     let status = mp
@@ -515,14 +530,25 @@ impl Tracker {
         }
     }
 
-    /// Close all the jobs and shutdown the progress bars
-    pub async fn shutdown(&self) -> Result<(), Error> {
+    /// Close all the jobs and shutdown the progress bars, with the option to display
+    /// the total processing time.
+    pub async fn shutdown(&self, total_time: bool) -> Result<(), Error> {
+        if self.cache_logs() {
+            self.log_tx
+                .send(LogTick::Shutdown)
+                .context("Failed to send tick to logs")?;
+        }
+
         if self.show_bars() {
             let (tx_response, rx_response) = oneshot::channel();
             self.ui_tx
-                .send(UiTick::Shutdown(tx_response))
+                .send(UiTick::Shutdown {
+                    total_time,
+                    tx_response,
+                })
                 .context("Fail to send tick")?;
-            return rx_response.await.context("Fail to receive tick");
+
+            rx_response.await.context("Fail to receive tick from UI")?;
         }
 
         Ok(())
