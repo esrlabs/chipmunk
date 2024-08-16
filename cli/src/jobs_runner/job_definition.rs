@@ -1,5 +1,3 @@
-use tokio_util::sync::CancellationToken;
-
 use crate::{job_type::JobType, spawner::SpawnResult, target::Target, tracker::get_tracker};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -23,17 +21,13 @@ impl JobDefinition {
     }
 
     /// Run the job definition if it has a job, communicating its status with the UI bars
-    pub async fn run(
-        self,
-        skip: bool,
-        cancel: CancellationToken,
-    ) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn run(self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         let tracker = get_tracker();
         if let Err(err) = tracker.start(self).await {
             return Some(Err(err));
         }
 
-        let res = self.run_intern(skip, cancel).await;
+        let res = self.run_intern(skip).await;
 
         match res.as_ref() {
             Some(Ok(res)) => {
@@ -56,28 +50,24 @@ impl JobDefinition {
 
     #[inline]
     /// Runs the job definition if it has a job
-    async fn run_intern(
-        self,
-        skip: bool,
-        cancel: CancellationToken,
-    ) -> Option<Result<SpawnResult, anyhow::Error>> {
+    async fn run_intern(self, skip: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
         let res = match self.job_type {
-            JobType::Lint => self.target.check(cancel).await,
-            JobType::Build { production } => self.target.build(production, skip, cancel).await,
+            JobType::Lint => self.target.check().await,
+            JobType::Build { production } => self.target.build(production, skip).await,
             // Install run always in development at first then it should get reinstalled with
             // production after build command is ran.
             // We must deliver the correct jobtype though for the communication with tracker.
             JobType::Install { production } => {
                 return self
                     .target
-                    .install(false, skip, Some(JobType::Install { production }), cancel)
+                    .install(false, skip, Some(JobType::Install { production }))
                     .await;
             }
             JobType::AfterBuild { production } => {
-                return self.target.after_build(production, skip, cancel).await
+                return self.target.after_build(production, skip).await
             }
             JobType::Clean => self.target.reset().await,
-            JobType::Test { production } => return self.target.test(production, cancel).await,
+            JobType::Test { production } => return self.target.test(production).await,
             JobType::Run { .. } => return None,
         };
 
@@ -87,7 +77,6 @@ impl JobDefinition {
 
 #[cfg(test)]
 mod tests {
-    use tokio_util::sync::CancellationToken;
 
     use crate::{job_type::JobType, jobs_runner::JobDefinition};
 
@@ -100,10 +89,7 @@ mod tests {
                 if !target.has_job(*job_type) {
                     let job_def = JobDefinition::new(*target, job_type.clone());
                     assert!(
-                        job_def
-                            .run_intern(false, CancellationToken::default())
-                            .await
-                            .is_none(),
+                        job_def.run_intern(false).await.is_none(),
                         "'{}' has no job for '{}' but it returns Some when calling run",
                         target,
                         job_type

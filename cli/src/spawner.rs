@@ -1,5 +1,6 @@
 use crate::{
-    jobs_runner::JobDefinition, location::get_root, target::ProcessCommand, tracker::get_tracker,
+    cancellation::cancellation_token, jobs_runner::JobDefinition, location::get_root,
+    target::ProcessCommand, tracker::get_tracker,
 };
 use anyhow::Context;
 use core::panic;
@@ -11,7 +12,6 @@ use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::Command,
 };
-use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Debug)]
 pub struct SpawnResult {
@@ -88,7 +88,6 @@ pub async fn spawn(
     cwd: Option<PathBuf>,
     environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
-    cancel: CancellationToken,
 ) -> Result<SpawnResult, anyhow::Error> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
@@ -120,6 +119,8 @@ pub async fn spawn(
         .expect("Developer Error: Stderr is implicitly set in command definition from which the child is spawn");
     let mut stdout_buf = BufReader::new(stdout);
     let mut stderr_buf = BufReader::new(stderr);
+
+    let cancel = cancellation_token();
     loop {
         let mut stdout_line = String::new();
         let mut stderr_line = String::new();

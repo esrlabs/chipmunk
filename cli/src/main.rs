@@ -1,4 +1,5 @@
 mod app_runner;
+mod cancellation;
 mod checksum_records;
 mod cli_args;
 mod dev_environment;
