@@ -1,5 +1,5 @@
-mod app_runner;
 mod checksum_records;
+mod chipmunk_runner;
 mod cli_args;
 mod dev_environment;
 mod dev_tools;
@@ -224,7 +224,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
 
     if matches!(job_type, JobType::Run { .. }) {
         println!("Starting chipmunk...");
-        let status = app_runner::run_app().await?;
+        let status = chipmunk_runner::run_chipmunk().await?;
         if !status.success() {
             bail!("Error: Chipmunk Exited with the Code {status}");
         }
