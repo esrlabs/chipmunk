@@ -4,7 +4,7 @@ use tokio::process::Command;
 
 use crate::{dev_tools::DevTool, target::Target};
 
-pub async fn run_app() -> io::Result<ExitStatus> {
+pub async fn run_chipmunk() -> io::Result<ExitStatus> {
     let electron_path = Target::App.cwd();
 
     let yarn_path = DevTool::Yarn.path();
