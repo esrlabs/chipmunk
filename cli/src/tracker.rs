@@ -169,7 +169,7 @@ impl Tracker {
 
     /// Indicates if progress bars should be shown according the given UI option.  
     #[inline]
-    fn show_bars(&self) -> bool {
+    pub fn show_bars(&self) -> bool {
         match self.ui_mode {
             UiMode::ProgressBars | UiMode::BarsWithReport => true,
             UiMode::PrintOnJobFinish | UiMode::PrintImmediately => false,
@@ -178,7 +178,7 @@ impl Tracker {
 
     /// Indicates if the logs should be printed immediately
     #[inline]
-    fn print_immediately(&self) -> bool {
+    pub fn print_immediately(&self) -> bool {
         match self.ui_mode() {
             UiMode::ProgressBars | UiMode::BarsWithReport | UiMode::PrintOnJobFinish => false,
             UiMode::PrintImmediately => true,
