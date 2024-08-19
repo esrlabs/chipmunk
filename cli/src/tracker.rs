@@ -375,7 +375,7 @@ impl Tracker {
             let seq_width = jobs_count_txt.len();
             let job = job_bar.name.as_str();
             let line_prefix = match &job_bar.phase {
-                JobBarPhase::Pending => format!("[{job_number:seq_width$}/{jobs_count_txt}][{}][{job}]", style("wait").bold().blue()),
+                JobBarPhase::Pending => format!("[{job_number:seq_width$}/{jobs_count_txt}][{}][{job}]", style("wait").bold().cyan()),
                 JobBarPhase::Running(_) => format!("[{job_number:seq_width$}/{jobs_count_txt}][....][{job}]"),
                 JobBarPhase::Finished((res, time)) => {
                     if let Some(total_time) = total_time {
@@ -436,7 +436,8 @@ impl Tracker {
     /// Change job status on UI from awaiting to started.
     pub async fn start(&self, job_def: JobDefinition) -> Result<(), Error> {
         if !self.show_bars() {
-            println!("Job '{}' started...", job_def.job_title());
+            let msg = format!("Job '{}' started...", job_def.job_title());
+            println!("{}", style(msg).blue().bright());
             return Ok(());
         }
 
@@ -509,9 +510,9 @@ impl Tracker {
             {
                 eprintln!("Fail to communicate with tracker: {e}");
             }
-        } else {
+        } else if self.print_immediately() {
             let success_txt = format!("Job '{}' succeeded", job_def.job_title());
-            println!("{}", style(success_txt).green());
+            println!("{}", style(success_txt).green().bold());
         }
     }
 
@@ -524,9 +525,9 @@ impl Tracker {
             {
                 eprintln!("Fail to communicate with tracker: {e}");
             }
-        } else {
+        } else if self.print_immediately() {
             let fail_txt = format!("Job '{}' failed", job_def.job_title());
-            println!("{}", style(fail_txt).red());
+            println!("{}", style(fail_txt).red().bold());
         }
     }
 
