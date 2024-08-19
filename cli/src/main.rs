@@ -10,6 +10,7 @@ mod jobs_runner;
 mod location;
 mod log_print;
 mod print_dot;
+mod release;
 mod shell_completion;
 mod spawner;
 mod target;
@@ -26,6 +27,7 @@ use job_type::JobType;
 use jobs_runner::cancellation::{cancellation_token, graceful_shutdown};
 use location::init_location;
 use log_print::{print_log_separator, print_report};
+use release::do_release;
 use std::{fs::File, io::Stdout, path::PathBuf};
 use target::Target;
 use tokio::signal;
@@ -170,6 +172,18 @@ async fn main_process(command: Command) -> Result<(), Error> {
             shell_completion::generate_completion(shell)?;
 
             return Ok(());
+        }
+        Command::Release { verbose, fail_fast } => {
+            set_fail_fast(fail_fast);
+            let ui_mode = if verbose {
+                UiMode::PrintOnJobFinish
+            } else {
+                UiMode::PrintImmediately
+            };
+            init_tracker(ui_mode);
+            resolve_dev_tools()?;
+            //TODO AAZ: Figure out how the program should react after creating a release.
+            return do_release().await;
         }
     };
 

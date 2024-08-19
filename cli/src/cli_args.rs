@@ -113,6 +113,13 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
     },
+    //TODO AAZ: Docs for the command and the arguments.
+    Release {
+        #[arg(short, long, default_value_t = false)]
+        verbose: bool,
+        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
+        fail_fast: bool,
+    },
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.
     #[clap(visible_alias = "reset")]
