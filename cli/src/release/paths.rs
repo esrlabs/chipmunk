@@ -37,6 +37,10 @@ fn release_bin_dir() -> &'static str {
     }
 }
 
+pub fn release_build_path() -> PathBuf {
+    release_path().join(release_build_dir())
+}
+
 pub fn release_build_dir() -> &'static str {
     let is_arm = is_arm_archit();
     if cfg!(target_os = "linux") {
@@ -53,31 +57,6 @@ pub fn release_build_dir() -> &'static str {
         }
     } else if cfg!(target_os = "windows") {
         "win-unpacked"
-    } else {
-        panic!(
-            "Unknown target os: {}, Arch: {}",
-            std::env::consts::OS,
-            std::env::consts::ARCH
-        );
-    }
-}
-
-pub fn release_resources_dir() -> &'static str {
-    let is_arm = is_arm_archit();
-    if cfg!(target_os = "linux") {
-        if is_arm {
-            "linux-arm64-unpacked/Resources"
-        } else {
-            "linux-unpacked/Resources"
-        }
-    } else if cfg!(target_os = "macos") {
-        if is_arm {
-            "mac-arm64/chipmunk.app/Contents/Resources"
-        } else {
-            "mac/chipmunk.app/Contents/Resources"
-        }
-    } else if cfg!(target_os = "windows") {
-        "win-unpacked/Resources"
     } else {
         panic!(
             "Unknown target os: {}, Arch: {}",

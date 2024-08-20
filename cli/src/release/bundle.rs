@@ -4,7 +4,9 @@ use std::{
 };
 
 use console::style;
-use env_utls::{is_arm_archit, APPLEIDPASS_ENV, APPLEID_ENV, SKIP_NOTARIZE_ENV};
+use env_utls::{
+    is_arm_archit, APPLEIDPASS_ENV, APPLEID_ENV, CSC_IDENTITY_AUTO_DISCOVERY_ENV, SKIP_NOTARIZE_ENV,
+};
 use fs::File;
 use paths::release_bin_path;
 
@@ -16,6 +18,13 @@ pub async fn bundle_release() -> anyhow::Result<()> {
         !get_tracker().show_bars(),
         "Release shouldn't run with UI bars"
     );
+
+    // Sets the needed environment variables before running bundling command.
+    // SAFETY: bundle_release() is used in a non concurrence scenario and setting environment
+    // variables wouldn't produce an undefined behavior.
+    unsafe {
+        set_env_vars();
+    }
 
     // Run build bundle command
     println!("{}", style("Start Build Bundle command...").blue().bright());
@@ -56,6 +65,28 @@ pub async fn bundle_release() -> anyhow::Result<()> {
     println!();
 
     Ok(())
+}
+
+/// Sets needed environment variables before calling bundling command.
+///
+/// # SAFETY:
+///
+/// The functions sets environment variables and it would produced undefined behavior if used in
+/// concurrence scenario.
+unsafe fn set_env_vars() {
+    if env::var(SKIP_NOTARIZE_ENV).is_ok() {
+        env::set_var(CSC_IDENTITY_AUTO_DISCOVERY_ENV, "false");
+
+        return;
+    }
+
+    if cfg!(target_os = "macos") {
+        if env::var(APPLEID_ENV).is_ok() && env::var(APPLEIDPASS_ENV).is_ok() {
+            env::set_var(CSC_IDENTITY_AUTO_DISCOVERY_ENV, "true");
+        }
+    } else {
+        env::set_var(CSC_IDENTITY_AUTO_DISCOVERY_ENV, "false");
+    }
 }
 
 fn build_cmd() -> ProcessCommand {

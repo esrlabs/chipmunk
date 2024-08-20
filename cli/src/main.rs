@@ -180,15 +180,19 @@ async fn main_process(command: Command) -> Result<(), Error> {
         } => {
             set_fail_fast(fail_fast);
             let ui_mode = if verbose {
-                UiMode::PrintOnJobFinish
-            } else {
                 UiMode::PrintImmediately
+            } else {
+                UiMode::PrintOnJobFinish
             };
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             do_release(development).await?;
             let tracker = get_tracker();
             tracker.shutdown(false).await?;
+
+            ChecksumRecords::update_and_save(JobType::Build {
+                production: !development,
+            })?;
 
             return Ok(());
         }
