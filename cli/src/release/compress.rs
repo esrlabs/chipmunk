@@ -23,7 +23,6 @@ pub async fn compress() -> anyhow::Result<()> {
 
     // We must call the shell and pass it all the arguments at once because we are using the shell
     // wild card `*` which can't be running without a shell.
-    // TODO AAZ: Use the crates `flate2` and `tar` to decompress directly.
     let mut command = if cfg!(target_os = "windows") {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/C");
