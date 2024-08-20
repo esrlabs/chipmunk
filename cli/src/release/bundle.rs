@@ -28,7 +28,7 @@ pub async fn bundle_release() -> anyhow::Result<()> {
 
     // Run build bundle command
     println!("{}", style("Start Build Bundle command...").blue().bright());
-    let build_cmd = build_cmd();
+    let build_cmd = build_cmd().context("Error while retrieving command to bundle release")?;
     let pwd = Target::App.cwd();
     let status = tokio::process::Command::new(build_cmd.cmd)
         .args(build_cmd.args)
@@ -89,13 +89,13 @@ unsafe fn set_env_vars() {
     }
 }
 
-fn build_cmd() -> ProcessCommand {
+fn build_cmd() -> anyhow::Result<ProcessCommand> {
     // `cfg!` macro is used instead of `cfg` attribute to keep linting and build checks
     // activated on all method independent from development environment.
     if cfg!(target_os = "linux") {
-        build_cmd_linux()
+        Ok(build_cmd_linux())
     } else if cfg!(target_os = "macos") {
-        build_cmd_mac()
+        Ok(build_cmd_mac())
     } else if cfg!(target_os = "windows") {
         build_cmd_windows()
     } else {
@@ -175,15 +175,22 @@ fn build_cmd_mac() -> ProcessCommand {
     }
 }
 
-fn build_cmd_windows() -> ProcessCommand {
-    let cmd = electron_builder_cmd();
+fn build_cmd_windows() -> anyhow::Result<ProcessCommand> {
+    let mut path = Target::App.cwd().join("node_modules").join(".bin");
+
+    // The script files can get the extension '*.cmd' on Windows
+    let electron_build_env_path = which::which_in("electron-builder", Some(&path), &path)
+        .context("Error while resolving electron bin path on Windows")?;
+    path = electron_build_env_path;
+
+    let cmd = path.to_string_lossy().into();
     let args = vec![
         String::from("--win"),
         String::from("--dir"),
         String::from("--config=./electron.config.win.json"),
     ];
 
-    ProcessCommand::new(cmd, args)
+    Ok(ProcessCommand::new(cmd, args))
 }
 
 async fn create_snapshot() -> anyhow::Result<()> {
