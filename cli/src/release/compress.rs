@@ -3,42 +3,41 @@ use std::{fs::File, io::BufReader};
 use anyhow::{ensure, Context};
 use serde_json::Value;
 
-use crate::{
-    release::paths::release_bin_path,
-    target::{ProcessCommand, Target},
-};
+use crate::{release::paths::release_build_path, target::Target};
 
 use super::env_utls::is_arm_archit;
 
 pub async fn compress() -> anyhow::Result<()> {
     let release_file_name = release_file_name()?;
     let archname = format!("{}.tgz", release_file_name);
-    let target = if cfg!(target_os = "macos") {
-        "./chipmunk.app"
+
+    let mut tar_cmd = format!("tar -czf ../{archname} ");
+
+    if cfg!(target_os = "macos") {
+        tar_cmd.push_str("./chipmunk.app");
     } else {
-        "* .release"
+        tar_cmd.push_str("* .release");
     };
 
-    // duration = Shell.timed_sh "tar -czf ../#{@archname} #{target}", "compress #{target}"
-    let compress_cmd = ProcessCommand::new(
-        String::from("tar"),
-        vec![
-            String::from("-czf"),
-            format!("../{archname}"),
-            String::from(target),
-        ],
-    );
+    println!("Running command: '{tar_cmd}'");
 
-    println!(
-        "Running command: '{} {}'",
-        &compress_cmd.cmd,
-        compress_cmd.args.join(" ")
-    );
+    // We must call the shell and pass it all the arguments at once because we are using the shell
+    // wild card `*` which can't be running without a shell.
+    // TODO AAZ: Use the crates `flate2` and `tar` to decompress directly.
+    let mut command = if cfg!(target_os = "windows") {
+        let mut cmd = tokio::process::Command::new("cmd");
+        cmd.arg("/C");
+        cmd
+    } else {
+        let mut cmd = tokio::process::Command::new("sh");
+        cmd.arg("-c");
+        cmd
+    };
 
-    let release_bin = release_bin_path();
-    let cmd_status = tokio::process::Command::new(compress_cmd.cmd)
-        .args(compress_cmd.args)
-        .current_dir(release_bin)
+    let release_build_path = release_build_path();
+    let cmd_status = command
+        .arg(tar_cmd)
+        .current_dir(release_build_path)
         .kill_on_drop(true)
         .status()
         .await
@@ -46,8 +45,7 @@ pub async fn compress() -> anyhow::Result<()> {
 
     ensure!(cmd_status.success(), "Release: Compress Command failed");
 
-    // TODO: Get release build path and apply compressing on it using tar.
-    todo!()
+    Ok(())
 }
 
 fn release_file_name() -> anyhow::Result<String> {
@@ -99,6 +97,12 @@ fn chipmunk_version() -> anyhow::Result<String> {
 
     json_content
         .get("version")
-        .map(|v| v.to_string())
+        .and_then(|v| {
+            if let Value::String(version) = v {
+                Some(version.to_owned())
+            } else {
+                None
+            }
+        })
         .context("Chipmunk version doesn't exist in json value from Electron `package.json` file.")
 }
