@@ -56,6 +56,8 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
             .bold()
     );
 
+    let build_start = Instant::now();
+
     // Build app in production mode.
     jobs_runner::run(
         &[Target::App, Target::Updater],
@@ -66,12 +68,11 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
     .await
     .context("Build Chipmunk failed")?;
 
-    println!(
-        "{}",
-        style("Building Chipmunk Application succeeded...")
-            .green()
-            .bold()
+    let msg = format!(
+        "Building Chipmunk Application succeeded in {} seconds.",
+        build_start.elapsed().as_secs().max(1)
     );
+    println!("{}", style(msg).green().bold());
 
     print_log_separator();
 
@@ -135,6 +136,10 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
 fn clean_release() -> anyhow::Result<()> {
     let release_path = release_path();
 
+    if !release_path.exists() {
+        return Ok(());
+    }
+
     println!(
         "Removing release directory, path: {}",
         release_path.display()
@@ -147,5 +152,5 @@ fn clean_release() -> anyhow::Result<()> {
         release_path.display()
     );
 
-    todo!()
+    Ok(())
 }
