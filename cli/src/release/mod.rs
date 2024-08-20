@@ -17,7 +17,7 @@ use crate::{
     tracker::get_tracker,
 };
 
-pub async fn do_release() -> anyhow::Result<()> {
+pub async fn do_release(development: bool) -> anyhow::Result<()> {
     debug_assert!(
         !get_tracker().show_bars(),
         "Release shouldn't run with UI bars"
@@ -27,7 +27,7 @@ pub async fn do_release() -> anyhow::Result<()> {
 
     load_from_env_file();
 
-    // *** Clean Release ***
+    // *** Clean previous releases ***
 
     println!(
         "{}",
@@ -59,7 +59,9 @@ pub async fn do_release() -> anyhow::Result<()> {
     // Build app in production mode.
     jobs_runner::run(
         &[Target::App, Target::Updater],
-        JobType::Build { production: true },
+        JobType::Build {
+            production: !development,
+        },
     )
     .await
     .context("Build Chipmunk failed")?;

@@ -8,7 +8,11 @@ pub fn release_path() -> PathBuf {
     Target::App.cwd().join("release")
 }
 
-pub fn release_bin_dir() -> &'static str {
+pub fn release_bin_path() -> PathBuf {
+    release_path().join(release_bin_dir())
+}
+
+fn release_bin_dir() -> &'static str {
     let is_arm = is_arm_archit();
     if cfg!(target_os = "linux") {
         if is_arm {
