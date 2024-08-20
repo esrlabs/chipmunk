@@ -173,7 +173,11 @@ async fn main_process(command: Command) -> Result<(), Error> {
 
             return Ok(());
         }
-        Command::Release { verbose, fail_fast } => {
+        Command::Release {
+            verbose,
+            fail_fast,
+            development,
+        } => {
             set_fail_fast(fail_fast);
             let ui_mode = if verbose {
                 UiMode::PrintOnJobFinish
@@ -182,8 +186,11 @@ async fn main_process(command: Command) -> Result<(), Error> {
             };
             init_tracker(ui_mode);
             resolve_dev_tools()?;
-            //TODO AAZ: Figure out how the program should react after creating a release.
-            return do_release().await;
+            do_release(development).await?;
+            let tracker = get_tracker();
+            tracker.shutdown(false).await?;
+
+            return Ok(());
         }
     };
 

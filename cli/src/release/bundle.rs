@@ -6,7 +6,7 @@ use std::{
 use console::style;
 use env_utls::{is_arm_archit, APPLEIDPASS_ENV, APPLEID_ENV, SKIP_NOTARIZE_ENV};
 use fs::File;
-use paths::release_bin_dir;
+use paths::release_bin_path;
 
 use super::*;
 use crate::target::{ProcessCommand, Target};
@@ -24,6 +24,7 @@ pub async fn bundle_release() -> anyhow::Result<()> {
     let status = tokio::process::Command::new(build_cmd.cmd)
         .args(build_cmd.args)
         .current_dir(pwd)
+        .kill_on_drop(true)
         .status()
         .await
         .context("Error while running bundle release command")?;
@@ -32,7 +33,9 @@ pub async fn bundle_release() -> anyhow::Result<()> {
 
     println!("{}", style("Build Bundle Command succeeded...").green());
 
+    println!();
     println!("-----------------------------------------------");
+    println!();
 
     // Creating File Snapshot
 
@@ -48,7 +51,9 @@ pub async fn bundle_release() -> anyhow::Result<()> {
         style("files snapshot has been successfully created...").green()
     );
 
+    println!();
     println!("-----------------------------------------------");
+    println!();
 
     Ok(())
 }
@@ -157,7 +162,7 @@ async fn create_snapshot() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let release_bin = release_path().join(release_bin_dir());
+    let release_bin = release_bin_path();
     const SNAPSHOT_FILE_NAME: &str = ".release";
 
     let snapshot_file = release_bin.join(SNAPSHOT_FILE_NAME);

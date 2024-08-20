@@ -1,17 +1,51 @@
-//
-//
-
 use std::{fs::File, io::BufReader};
 
 use anyhow::{ensure, Context};
 use serde_json::Value;
 
-use crate::target::Target;
+use crate::{
+    release::paths::release_bin_path,
+    target::{ProcessCommand, Target},
+};
 
 use super::env_utls::is_arm_archit;
 
 pub async fn compress() -> anyhow::Result<()> {
     let release_file_name = release_file_name()?;
+    let archname = format!("{}.tgz", release_file_name);
+    let target = if cfg!(target_os = "macos") {
+        "./chipmunk.app"
+    } else {
+        "* .release"
+    };
+
+    // duration = Shell.timed_sh "tar -czf ../#{@archname} #{target}", "compress #{target}"
+    let compress_cmd = ProcessCommand::new(
+        String::from("tar"),
+        vec![
+            String::from("-czf"),
+            format!("../{archname}"),
+            String::from(target),
+        ],
+    );
+
+    println!(
+        "Running command: '{} {}'",
+        &compress_cmd.cmd,
+        compress_cmd.args.join(" ")
+    );
+
+    let release_bin = release_bin_path();
+    let cmd_status = tokio::process::Command::new(compress_cmd.cmd)
+        .args(compress_cmd.args)
+        .current_dir(release_bin)
+        .kill_on_drop(true)
+        .status()
+        .await
+        .context("Error while running compress command")?;
+
+    ensure!(cmd_status.success(), "Release: Compress Command failed");
+
     // TODO: Get release build path and apply compressing on it using tar.
     todo!()
 }

@@ -113,12 +113,16 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
     },
-    //TODO AAZ: Docs for the command and the arguments.
+    /// Builds Chipmunk and generates a release (defaults to Release mode).
     Release {
+        /// Verbose logging
         #[arg(short, long, default_value_t = false)]
         verbose: bool,
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
+        /// Build chipmunk in development mode
+        #[arg(short, long, default_value_t = false)]
+        development: bool,
     },
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.
