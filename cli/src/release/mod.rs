@@ -17,6 +17,9 @@ use crate::{
     tracker::get_tracker,
 };
 
+/// Builds, bundles and compress Chipmunk with configurations for each platform.
+///
+/// * `development`: Sets if Chipmunk should be built in development mode.
 pub async fn do_release(development: bool) -> anyhow::Result<()> {
     debug_assert!(
         !get_tracker().show_bars(),
@@ -56,9 +59,18 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
             .bold()
     );
 
+    // *** Build Chipmunk ***
+
     let build_start = Instant::now();
 
-    // Build app in production mode.
+    println!(
+        "{}",
+        style("Start Building Chipmunk Process...")
+            .blue()
+            .bright()
+            .bold()
+    );
+
     jobs_runner::run(
         &[Target::App, Target::Updater],
         JobType::Build {
@@ -133,6 +145,7 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Clean existing release if needed.
 fn clean_release() -> anyhow::Result<()> {
     let release_path = release_path();
 

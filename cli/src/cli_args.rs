@@ -19,21 +19,25 @@ pub struct Cli {
     pub command: Command,
 }
 
+// TODO: Keep tracking on GitHub issue Nr. 4416 on clap crate to remove the hard-coded
+// alaises in options description.
+// Link for the issue: https://github.com/clap-rs/clap/issues/4416.
+
 #[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
 /// Specifies the UI mode for displaying command logs and progress in the terminal.
 pub enum UiMode {
-    /// Displays progress bars, showing the current line of the output of each command. (alias: 'b')
+    /// Displays progress bars, showing the current line of the output of each command. [aliases: 'b']
     #[default]
     #[value(name = "bars", alias("b"))]
     ProgressBars,
-    /// Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. (alias: 'r')
+    /// Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. [aliases: 'r']
     #[value(name = "report", alias("r"))]
     BarsWithReport,
-    /// Outputs each job's result to stdout once the job finishes. No progress bars are displayed. (alias: 'p')
+    /// Outputs each job's result to stdout once the job finishes. No progress bars are displayed. [aliases: 'p']
     #[value(name = "print", alias("p"))]
     PrintOnJobFinish,
     /// Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs.
-    /// No progress bars are displayed. (alias: 'i')
+    /// No progress bars are displayed. [aliases: 'i']
     #[value(name = "immediate", alias("i"))]
     PrintImmediately,
 }

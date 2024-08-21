@@ -13,6 +13,7 @@ use paths::release_bin_path;
 use super::*;
 use crate::target::{ProcessCommand, Target};
 
+/// Runs bundle command on the already built Chipmunk, providing a snapshot file if needed.
 pub async fn bundle_release() -> anyhow::Result<()> {
     debug_assert!(
         !get_tracker().show_bars(),
@@ -26,9 +27,10 @@ pub async fn bundle_release() -> anyhow::Result<()> {
         set_env_vars();
     }
 
-    // Run build bundle command
+    // *** Run build bundle command ***
+
     println!("{}", style("Start Build Bundle command...").blue().bright());
-    let build_cmd = build_cmd().context("Error while retrieving command to bundle release")?;
+    let build_cmd = bundle_cmd().context("Error while retrieving command to bundle release")?;
     let pwd = Target::App.cwd();
     let status = tokio::process::Command::new(build_cmd.cmd)
         .args(build_cmd.args)
@@ -46,7 +48,7 @@ pub async fn bundle_release() -> anyhow::Result<()> {
     println!("-----------------------------------------------");
     println!();
 
-    // Creating File Snapshot
+    // *** Create File Snapshot ***
 
     println!(
         "{}",
@@ -89,11 +91,12 @@ unsafe fn set_env_vars() {
     }
 }
 
-fn build_cmd() -> anyhow::Result<ProcessCommand> {
+/// Provide the command to bundle Chipmunk on the current platform
+fn bundle_cmd() -> anyhow::Result<ProcessCommand> {
     // `cfg!` macro is used instead of `cfg` attribute to keep linting and build checks
     // activated on all method independent from development environment.
     if cfg!(target_os = "linux") {
-        Ok(build_cmd_linux())
+        Ok(bundle_cmd_linux())
     } else if cfg!(target_os = "macos") {
         Ok(build_cmd_mac())
     } else if cfg!(target_os = "windows") {
@@ -107,7 +110,8 @@ fn build_cmd() -> anyhow::Result<ProcessCommand> {
     }
 }
 
-fn build_cmd_linux() -> ProcessCommand {
+/// Provide bundle command on Linux
+fn bundle_cmd_linux() -> ProcessCommand {
     let cmd = electron_builder_cmd();
     let args = vec![
         String::from("--linux"),
@@ -128,6 +132,7 @@ fn electron_builder_cmd() -> String {
         .into()
 }
 
+/// Provide bundle command on Mac
 fn build_cmd_mac() -> ProcessCommand {
     let is_arm = is_arm_archit();
 
@@ -175,6 +180,7 @@ fn build_cmd_mac() -> ProcessCommand {
     }
 }
 
+/// Provide bundle command on Windows
 fn build_cmd_windows() -> anyhow::Result<ProcessCommand> {
     let mut path = Target::App.cwd().join("node_modules").join(".bin");
 
@@ -193,6 +199,7 @@ fn build_cmd_windows() -> anyhow::Result<ProcessCommand> {
     Ok(ProcessCommand::new(cmd, args))
 }
 
+/// Creates snapshot file if needed.
 async fn create_snapshot() -> anyhow::Result<()> {
     if cfg!(target_os = "macos") {
         println!("build for darwin doesn't require snapshot");
