@@ -1,3 +1,8 @@
+//! Manages the information and checks for the needed tools for Chipmunk development.
+//!
+//! Chipmunk is built using different technologies and need a variety of development tools to be
+//! installed to build it and run it in development environment.
+
 use std::{fmt::Write, process::Command};
 
 use anyhow::bail;

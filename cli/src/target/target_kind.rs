@@ -1,3 +1,5 @@
+//! Provides the types and methods to define the target kind (Rust or Type Script).
+
 use crate::dev_tools::DevTool;
 
 use super::{yarn_command, ProcessCommand};

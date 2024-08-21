@@ -1,3 +1,5 @@
+//! Provides the type definitions and methods for a job defined with job type and the given target.
+
 use crate::{job_type::JobType, spawner::SpawnResult, target::Target, tracker::get_tracker};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

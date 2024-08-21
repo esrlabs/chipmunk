@@ -1,3 +1,10 @@
+//! Manages creating releases of Chipmunk on the current platform, including building, bundling the
+//! app with snapshot file if needed, then compressing to provide one file for each platform with
+//! current version of Chipmunk.
+//!
+//! This method is meant to be used in CD pipeline when a release is created to provide the release
+//! assets for each supported platform.
+
 mod bundle;
 mod compress;
 mod env_utls;

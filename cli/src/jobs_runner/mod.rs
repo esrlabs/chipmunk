@@ -1,3 +1,6 @@
+//! Manages running the provided main job for the given targets after resolving the job
+//! dependencies, then it manages running them concurrently when possible.
+
 pub mod cancellation;
 mod job_definition;
 pub mod jobs_resolver;

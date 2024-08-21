@@ -1,3 +1,5 @@
+//! Provides methods to resolve all the dependencies for the given job definition.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{job_type::JobType, target::Target};

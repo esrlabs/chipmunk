@@ -1,3 +1,8 @@
+//! Module to manage the track file changes between each run by calculating the checksum of the
+//! file on each target and compare it with persisted checksum from the last run.
+//!
+//! This module manages saving the loading the checksum records as well.
+
 use std::{
     collections::{btree_map, BTreeMap, BTreeSet},
     fs::{self, File},

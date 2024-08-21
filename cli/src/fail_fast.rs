@@ -1,3 +1,5 @@
+//! Manages the state of fail fast option when development commands are running.
+
 use std::sync::OnceLock;
 
 static FAIL_FAST_STATE: OnceLock<bool> = OnceLock::new();

@@ -4,6 +4,8 @@ version = "0.2.0"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2021"
 description = "CLI Tool for chipmunk application development"
+documentation = "README.md"
+readme = "README.md"
 
 [workspace]
 members = ["dir_checksum"]

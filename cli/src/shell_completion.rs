@@ -1,3 +1,6 @@
+//! Provides the methods to generate completion of the CLI sub-commands and arguments for the given
+//! shell.
+
 use std::io;
 
 use anyhow::Context;
@@ -6,7 +9,7 @@ use clap_complete::{generate, Shell};
 
 use crate::cli_args::CargoCli;
 
-/// Generates shell complition for the given shell printing them to stdout
+/// Generates shell completion for the given shell printing them to stdout
 pub fn generate_completion(shell: Shell) -> anyhow::Result<()> {
     let mut cmd = CargoCli::command();
     let bin_name = cmd

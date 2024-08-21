@@ -1,9 +1,12 @@
+//! Module to manage running Chipmunk after being built.
+
 use std::{io, process::ExitStatus};
 
 use tokio::process::Command;
 
 use crate::{dev_tools::DevTool, target::Target};
 
+/// Runs Chipmunk application from its electron path.
 pub async fn run_chipmunk() -> io::Result<ExitStatus> {
     let electron_path = Target::App.cwd();
 

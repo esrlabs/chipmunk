@@ -1,3 +1,5 @@
+//! Manages bundling chipmunk after being built, providing a snapshot file when needed.
+
 use std::{
     env,
     io::{BufWriter, Write},

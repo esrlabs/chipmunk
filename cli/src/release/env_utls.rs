@@ -1,3 +1,5 @@
+//! Manages the environment variables for the release job, including loading them from `.env` files.
+
 use console::style;
 
 pub const APPLEID_ENV: &str = "APPLEID";

@@ -1,3 +1,5 @@
+//! Provides the definitions of job types (build, lint ...) and their relations.
+
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
