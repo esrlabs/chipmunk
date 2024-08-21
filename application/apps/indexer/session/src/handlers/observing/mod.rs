@@ -10,7 +10,7 @@ use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, MessageStreamItem, ParseYield, Parser,
+    LogMessage, MessageStreamItem, ParseYield, Parser, ParserKind,
 };
 use sources::{
     factory::ParserType,
@@ -85,11 +85,11 @@ async fn run_source_intern<S: ByteSource>(
                 }
                 None => SomeipParser::new(),
             };
-            let producer = MessageProducer::new(someip_parser, source, rx_sde);
+            let producer = MessageProducer::new(someip_parser, source, Vec::new(), rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Text => {
-            let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
+            let producer = MessageProducer::new(StringTokenizer {}, source, Vec::new(), rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {
@@ -100,7 +100,14 @@ async fn run_source_intern<S: ByteSource>(
                 fmt_options.as_ref(),
                 settings.with_storage_header,
             );
-            let producer = MessageProducer::new(dlt_parser, source, rx_sde);
+            let nested: Vec<ParserKind> =
+                vec![ParserKind::SomeIp(match &settings.fibex_file_paths {
+                    Some(paths) => {
+                        SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
+                    }
+                    None => SomeipParser::new(),
+                })];
+            let producer = MessageProducer::new(dlt_parser, source, nested, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
     }

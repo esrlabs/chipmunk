@@ -1,7 +1,10 @@
 use crate::{sde::SdeMsg, ByteSource, ReloadInfo, SourceFilter};
 use async_stream::stream;
 use log::warn;
-use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
+use parsers::{
+    Error as ParserError, LogMessage, MessageStreamItem, ParseYield, Parser, ParserAlias,
+    ParserKind,
+};
 use std::marker::PhantomData;
 use tokio::{
     select,
@@ -27,6 +30,7 @@ where
     byte_source: D,
     index: usize,
     parser: P,
+    nested: Vec<ParserKind>,
     filter: Option<SourceFilter>,
     last_seen_ts: Option<u64>,
     _phantom_data: Option<PhantomData<T>>,
@@ -38,11 +42,12 @@ where
 
 impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// create a new producer by plugging into a byte source
-    pub fn new(parser: P, source: D, rx_sde: Option<SdeReceiver>) -> Self {
+    pub fn new(parser: P, source: D, nested: Vec<ParserKind>, rx_sde: Option<SdeReceiver>) -> Self {
         MessageProducer {
             byte_source: source,
             index: 0,
             parser,
+            nested,
             filter: None,
             last_seen_ts: None,
             _phantom_data: None,
@@ -124,9 +129,30 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 self.done = true;
                 return Some((0, MessageStreamItem::Done));
             }
+            let parsers = &mut self.nested;
+            let nested = |data: &[u8], target: ParserAlias| -> Option<String> {
+                match target {
+                    ParserAlias::SomeIp => {
+                        let parser = parsers.iter_mut().find_map(|parser| match parser {
+                            ParserKind::SomeIp(parser) => Some(parser),
+                            #[allow(unreachable_patterns)]
+                            _ => None,
+                        })?;
+                        let (_, Some(ParseYield::Message(item))) = parser
+                            .parse(data, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                                None
+                            })
+                            .ok()?
+                        else {
+                            return None;
+                        };
+                        Some(item.to_string())
+                    }
+                }
+            };
             match self
                 .parser
-                .parse(self.byte_source.current_slice(), self.last_seen_ts)
+                .parse(self.byte_source.current_slice(), self.last_seen_ts, nested)
             {
                 Ok((rest, Some(m))) => {
                     let consumed = available - rest.len();

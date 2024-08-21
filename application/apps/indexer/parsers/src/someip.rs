@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseYield, Parser};
+use crate::{Error, LogMessage, ParseYield, Parser, ParserAlias};
 use std::{borrow::Cow, fmt, fmt::Display, io::Write, path::PathBuf};
 
 use someip_messages::*;
@@ -12,6 +12,7 @@ use log::{debug, error};
 use serde::Serialize;
 
 /// A parser for SOME/IP log messages.
+#[derive(Debug)]
 pub struct SomeipParser {
     model: Option<FibexModel>,
 }
@@ -53,6 +54,7 @@ impl Parser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
+        _nested: impl FnMut(&'a [u8], ParserAlias) -> Option<String>,
     ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
@@ -407,7 +409,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -428,7 +434,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -449,7 +459,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -474,7 +488,11 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -498,7 +516,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -524,7 +546,11 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -550,7 +576,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 
@@ -592,7 +622,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (output, message) = parser
+            .parse(input, None, |_: &[u8], _: ParserAlias| -> Option<String> {
+                None
+            })
+            .unwrap();
 
         assert!(output.is_empty());
 

@@ -1,7 +1,7 @@
 pub mod attachment;
 pub mod fmt;
 
-use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
+use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser, ParserAlias};
 use byteorder::{BigEndian, WriteBytesExt};
 pub use dlt_core::{
     dlt::LogLevel,
@@ -64,7 +64,7 @@ impl LogMessage for RawMessage {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DltParser<'m> {
     pub filter_config: Option<ProcessedDltFilterConfig>,
     pub fibex_metadata: Option<&'m FibexMetadata>,
@@ -120,6 +120,7 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
         &mut self,
         input: &'b [u8],
         timestamp: Option<u64>,
+        mut nested: impl FnMut(&'b [u8], ParserAlias) -> Option<String>,
     ) -> Result<(&'b [u8], Option<ParseYield<FormattableMessage<'m>>>), Error> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
             .map_err(|e| Error::Parse(format!("{e}")))?
@@ -145,6 +146,12 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                     options: self.fmt_options,
                 };
                 self.offset += input.len() - rest.len();
+
+                debug_assert!({
+                    let _ = nested(&[0, 0, 0, 0, 0], ParserAlias::SomeIp);
+                    true
+                });
+
                 Ok((
                     rest,
                     if let Some(attachment) = attachment {
@@ -163,6 +170,7 @@ impl Parser<RangeMessage> for DltRangeParser {
         &mut self,
         input: &'b [u8],
         _timestamp: Option<u64>,
+        _nested: impl FnMut(&'b [u8], ParserAlias) -> Option<String>,
     ) -> Result<(&'b [u8], Option<ParseYield<RangeMessage>>), Error> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| {
@@ -183,6 +191,7 @@ impl Parser<RawMessage> for DltRawParser {
         &mut self,
         input: &'b [u8],
         _timestamp: Option<u64>,
+        _nested: impl FnMut(&'b [u8], ParserAlias) -> Option<String>,
     ) -> Result<(&'b [u8], Option<ParseYield<RawMessage>>), Error> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(|e| Error::Parse(format!("{e}")))?;
         let msg = consumed.map(|c| RawMessage {

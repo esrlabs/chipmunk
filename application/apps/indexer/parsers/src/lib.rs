@@ -8,6 +8,15 @@ use thiserror::Error;
 
 extern crate log;
 
+#[derive(Debug)]
+pub enum ParserKind {
+    SomeIp(someip::SomeipParser),
+}
+
+pub enum ParserAlias {
+    SomeIp,
+}
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Parse error: {0}")]
@@ -44,6 +53,7 @@ pub trait Parser<T> {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
+        nested: impl FnMut(&'a [u8], ParserAlias) -> Option<String>,
     ) -> Result<(&'a [u8], Option<ParseYield<T>>), Error>;
 }
 

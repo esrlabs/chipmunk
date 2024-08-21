@@ -258,7 +258,7 @@ impl TextFileSource {
         file_part: &FilePart,
     ) -> Result<Vec<String>, GrabError> {
         Ok(String::from_utf8_lossy(read_buf)
-            .split(|c| c == '\n')
+            .split('\n')
             .take(file_part.total_lines - file_part.lines_to_drop)
             .skip(file_part.lines_to_skip)
             .map(|s| s.to_string())
