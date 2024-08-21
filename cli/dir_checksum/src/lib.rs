@@ -93,6 +93,8 @@ fn calc_files_hashes<P: AsRef<Path>>(
 
 /// Calculates the hash for the given file path
 fn calc_hash(file_path: &Path, base_hasher: &Hasher) -> Result<blake3::Hash, HashError> {
+    log::trace!("Calculating hash for file: {}", file_path.display());
+
     let mut input = Input::open(file_path)
         .map_err(|e| HashError::Entry(format!("Could not open file: {file_path:?} ({e})")))?;
     input
