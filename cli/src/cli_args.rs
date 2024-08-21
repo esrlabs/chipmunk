@@ -1,3 +1,5 @@
+//! Module for Command line commands and arguments and their descriptions.
+
 use clap::{Parser, Subcommand};
 
 use crate::target::Target;
@@ -7,6 +9,9 @@ const NO_FAIL_FAST_HELP_TEXT: &str = "Don't stops execution immediately if any j
 const UI_LOG_OPTION_HELP_TEXT: &str =
     "Specifies the UI options for displaying command logs and progress in the terminal";
 
+// To enable calling the app as cargo subcommand the following changes were made:
+// * Cli commands are nested are subcommand within Chipmunk command
+// * Command name set to "cargo"
 #[derive(Parser)]
 #[command(name = "cargo", bin_name = "cargo")]
 pub enum CargoCli {

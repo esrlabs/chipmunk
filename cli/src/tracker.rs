@@ -1,3 +1,7 @@
+//! Keeps track on the running jobs and their states and outputs. It support showing the results on
+//! console using TUI progress bars and caching commands output to be used later when commands'
+//! logs are needed.
+
 use anyhow::{anyhow, Context, Error};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};

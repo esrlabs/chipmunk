@@ -1,3 +1,5 @@
+//! Manage resolving and providing the needed paths for the release job.
+
 use std::path::PathBuf;
 
 use crate::target::Target;

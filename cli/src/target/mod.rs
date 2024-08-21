@@ -1,3 +1,6 @@
+//! Manages the definitions of the targets of the jobs providing all the needed methods for
+//! each target to run the needed job on it.
+
 use anyhow::bail;
 use clap::ValueEnum;
 use futures::future::join_all;

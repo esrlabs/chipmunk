@@ -1,3 +1,6 @@
+// Use the readme as the main documentation page.
+#![doc = include_str!("../README.md")]
+
 mod checksum_records;
 mod chipmunk_runner;
 mod cli_args;
@@ -28,19 +31,11 @@ use jobs_runner::cancellation::{cancellation_token, graceful_shutdown};
 use location::init_location;
 use log_print::{print_log_separator, print_report};
 use release::do_release;
-use std::{fs::File, io::Stdout, path::PathBuf};
 use target::Target;
 use tokio::signal;
 use tracker::{get_tracker, init_tracker};
 
 use crate::cli_args::EnvironmentCommand;
-
-#[derive(Debug)]
-pub enum ReportOptions {
-    None,
-    Stdout(Stdout),
-    File(PathBuf, File),
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -75,8 +70,8 @@ async fn main() -> Result<(), Error> {
     }
 }
 
-// The main process of the app is encapsulated in this method so we can use it inside select loop
-// to handle manual cancellation and have a graceful shutdown for the application in that case too.
+/// The main process of the app is encapsulated in this method, to be used inside `select!()`
+/// macro to handle manual cancellation scenarios.
 async fn main_process(command: Command) -> Result<(), Error> {
     // Run the given command
     let (job_type, results) = match command {
@@ -107,7 +102,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             set_fail_fast(fail_fast);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
-            let targets = get_targets_or_default(target);
+            let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Lint).await?;
             (JobType::Lint, results)
         }
@@ -120,7 +115,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             set_fail_fast(fail_fast);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
-            let targets = get_targets_or_default(target);
+            let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Build { production }).await?;
             (JobType::Build { production }, results)
         }
@@ -128,7 +123,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             set_fail_fast(false);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
-            let targets = get_targets_or_default(target);
+            let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Clean).await?;
             (JobType::Clean, results)
         }
@@ -141,7 +136,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             set_fail_fast(fail_fast);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
-            let targets = get_targets_or_default(target);
+            let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Test { production }).await?;
             (JobType::Test { production }, results)
         }
@@ -257,7 +252,8 @@ async fn main_process(command: Command) -> Result<(), Error> {
     Ok(())
 }
 
-fn get_targets_or_default(targets: Option<Vec<Target>>) -> Vec<Target> {
+/// filters out duplications in the provided targets if any, otherwise it provides all targets.
+fn get_targets_or_all(targets: Option<Vec<Target>>) -> Vec<Target> {
     if let Some(mut list) = targets {
         list.dedup();
         list

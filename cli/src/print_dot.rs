@@ -1,3 +1,6 @@
+//! Provides the methods to print the dependencies between the targets in the `pritn-dot`
+//! format to be used with `Graphviz`.
+
 use crate::{
     job_type::JobType,
     jobs_runner::{jobs_resolver, JobDefinition},

@@ -1,3 +1,6 @@
+//! Manage cancellation of the running jobs, providing method for gracefully shutdown in case of
+//! cancelling or fail-fast.
+
 use std::{sync::OnceLock, time::Duration};
 
 use tokio::time::timeout;

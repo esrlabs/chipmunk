@@ -1,3 +1,6 @@
+//! Manages spawning the provided commands in both concurrent and sequential ways, while sending
+//! their output and status to the `Tracker`.
+
 use crate::{
     jobs_runner::{cancellation::cancellation_token, JobDefinition},
     location::get_root,

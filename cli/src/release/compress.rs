@@ -1,3 +1,6 @@
+//! Manages compressing the bundled Chipmunk app, providing one compressed file per platform and
+//! including the current version of Chipmunk in the file name.
+
 use std::{fs::File, io::BufReader};
 
 use anyhow::{ensure, Context};

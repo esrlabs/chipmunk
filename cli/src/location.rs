@@ -1,3 +1,6 @@
+//! Manages finding the root of Chipmunk repository to make it possible to call the app from
+//! anywhere within the repo and exit early if the CLI tool is invoked form outside of the repo.
+
 use anyhow::{bail, Context, Error};
 use git2::Repository;
 

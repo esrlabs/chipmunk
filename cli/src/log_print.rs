@@ -1,3 +1,5 @@
+//! Provides methods to print the logs of the results of spawned jobs to the console.
+
 use console::style;
 
 use crate::spawner::SpawnResult;

@@ -1,3 +1,6 @@
+//! Provides function to do file system operation while communicating the progress with the
+//! `Tracker`.
+
 extern crate fs_extra;
 use anyhow::{Context, Error};
 use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};

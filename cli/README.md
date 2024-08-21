@@ -91,7 +91,7 @@ The Chipmunk CLI tool supports shell completion for various shells. You can gene
 ```bash
 cargo chipmunk shell-completion <SHELL>
 ```
-Replace <SHELL> with the name of your shell (e.g., bash, zsh, fish, powershell).
+Replace `<SHELL>` with the name of your shell (e.g., bash, zsh, fish, powershell).
 
 To use shell completion, you can redirect the output of the completion command to a file and save the file to the appropriate shell completion directory.
 

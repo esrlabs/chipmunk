@@ -1,3 +1,6 @@
+//! Manages finding and resolving the paths of the installed development tools on different
+//! platforms.
+
 use anyhow::{anyhow, Result};
 use std::{fmt::Display, path::PathBuf, sync::OnceLock};
 
