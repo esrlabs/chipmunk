@@ -312,6 +312,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "ignore",
+ "log",
  "memmap2",
  "rayon",
  "tempdir",

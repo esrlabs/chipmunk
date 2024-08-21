@@ -15,8 +15,11 @@ impl Input {
     pub(crate) fn open(path: &Path) -> Result<Self, HashError> {
         let file = File::open(path)?;
         if let Some(mmap) = maybe_memmap_file(&file)? {
+            log::trace!("File: '{}' will be handled as Mmap file", path.display());
+
             return Ok(Self::Mmap(io::Cursor::new(mmap)));
         }
+
         Ok(Self::File(file))
     }
 
