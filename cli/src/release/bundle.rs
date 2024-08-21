@@ -157,26 +157,24 @@ fn build_cmd_mac() -> ProcessCommand {
             ];
             ProcessCommand::new(cmd, args)
         }
+    } else if is_arm {
+        let cmd = electron_builder_cmd();
+        let args = vec![
+            String::from("--mac"),
+            String::from("--dir"),
+            String::from("--config=./electron.config.darwin.arm64.json"),
+            String::from(" -c.mac.identity=null"),
+        ];
+        ProcessCommand::new(cmd, args)
     } else {
-        if is_arm {
-            let cmd = electron_builder_cmd();
-            let args = vec![
-                String::from("--mac"),
-                String::from("--dir"),
-                String::from("--config=./electron.config.darwin.arm64.json"),
-                String::from(" -c.mac.identity=null"),
-            ];
-            ProcessCommand::new(cmd, args)
-        } else {
-            let cmd = electron_builder_cmd();
-            let args = vec![
-                String::from("--mac"),
-                String::from("--dir"),
-                String::from("--config=./electron.config.darwin.x86.json"),
-                String::from(" -c.mac.identity=null"),
-            ];
-            ProcessCommand::new(cmd, args)
-        }
+        let cmd = electron_builder_cmd();
+        let args = vec![
+            String::from("--mac"),
+            String::from("--dir"),
+            String::from("--config=./electron.config.darwin.x86.json"),
+            String::from(" -c.mac.identity=null"),
+        ];
+        ProcessCommand::new(cmd, args)
     }
 }
 
