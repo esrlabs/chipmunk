@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use crate::target::Target;
 
 const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
+const NO_FAIL_FAST_HELP_TEXT: &str = "Don't stops execution immediately if any job fails.";
 const UI_LOG_OPTION_HELP_TEXT: &str =
     "Specifies the UI options for displaying command logs and progress in the terminal";
 
@@ -114,8 +115,8 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         production: bool,
 
-        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
-        fail_fast: bool,
+        #[arg(short, long, help = NO_FAIL_FAST_HELP_TEXT)]
+        no_fail_fast: bool,
     },
     /// Builds Chipmunk and generates a release (defaults to Release mode).
     Release {
