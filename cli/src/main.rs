@@ -147,9 +147,9 @@ async fn main_process(command: Command) -> Result<(), Error> {
         }
         Command::Run {
             production,
-            fail_fast,
+            no_fail_fast,
         } => {
-            set_fail_fast(fail_fast);
+            set_fail_fast(!no_fail_fast);
             init_tracker(Default::default());
             resolve_dev_tools()?;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
