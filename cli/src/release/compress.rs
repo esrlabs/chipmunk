@@ -3,10 +3,15 @@ use std::{fs::File, io::BufReader};
 use anyhow::{ensure, Context};
 use serde_json::Value;
 
-use crate::{release::paths::release_build_path, target::Target};
+use crate::{
+    release::paths::{release_build_path, release_path},
+    target::Target,
+};
 
 use super::env_utls::is_arm_archit;
 
+/// Compresses the bundled Chipmunk on the current platform, Creating one compressed file to be
+/// used on releases.
 pub async fn compress() -> anyhow::Result<()> {
     let release_file_name = release_file_name()?;
     let archname = format!("{}.tgz", release_file_name);
@@ -44,9 +49,24 @@ pub async fn compress() -> anyhow::Result<()> {
 
     ensure!(cmd_status.success(), "Release: Compress Command failed");
 
+    let created_file_path = release_path().join(archname);
+
+    ensure!(
+        created_file_path.exists(),
+        "Compressed file doesn't exist. Path {}",
+        created_file_path.display()
+    );
+
+    println!(
+        "Compressed file for release successfully created: {}",
+        created_file_path.display()
+    );
+
     Ok(())
 }
 
+/// Provides the release file on the current platform, reading and adding
+/// Chipmunk version to the filename.
 fn release_file_name() -> anyhow::Result<String> {
     let mut prefix = if cfg!(target_os = "linux") {
         String::from("linux")
@@ -73,6 +93,7 @@ fn release_file_name() -> anyhow::Result<String> {
     Ok(file_name)
 }
 
+/// Reads current Chipmunk version from `package.json` file.
 fn chipmunk_version() -> anyhow::Result<String> {
     let package_path = Target::App.cwd().join("package.json");
 
