@@ -97,7 +97,10 @@ def get_build_paths(root_dir: Path) -> list[Path]:
 
 
 def _build_general_check():
-    """Runs Build command for app targets and checks if all build directories + checksum file are created"""
+    """
+    Runs Build command for app targets and checks if all build directories + checksum file are created.
+    Build command will run with the default arguments regarding the ui and fail-fast
+    """
     print("Running build command...")
     root_dir = get_root()
     # The path for the file where build checksums are saved.
@@ -207,7 +210,8 @@ def get_last_modification_date(path: Path) -> datetime:
 def _build_checksum_check():
     """!!!This function must run directly after a full build!!!
     It creates a dummy file in platform directory and checks that all dependencies (Binding, Wrapper, Client, App)
-    has been newly built
+    has been newly built.
+    This runs the build command with the UI option set to "print"
     """
     root_dir = get_root()
     application_dir = root_dir.joinpath("application")
@@ -250,8 +254,13 @@ def _build_checksum_check():
         with open(temp_file_path, "w") as f:
             f.write(TEMP_FILE_CONTENT)
 
-        # Run build command
-        run_command(BUILD_COMMAND)
+        # Run build command with the UI option to suppress the bars and show the logs once each command finishes.
+
+        print("Running build command with ui option set to 'print'")
+
+        build_cmd = BUILD_COMMAND.copy()
+        build_cmd.extend(["-u", "print"])
+        run_command(build_cmd)
 
         # Compare modification date for involved targets on different platforms
         if platform.system() != "Windows":
