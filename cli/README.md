@@ -37,16 +37,17 @@ CLI Tool for chipmunk application development
 Usage: cargo chipmunk <COMMAND>
 
 Commands:
-  environment     Provides commands for the needed tools for the development [aliases: env]
-  print-dot       Prints an overview of targets dependencies in print-dot format for `Graphviz` [aliases: dot]
-  lint            Runs linting & clippy for all or the specified targets
-  build           Build all or the specified targets
-  clean           Clean all or the specified targets
-  test            Run tests for all or the specified targets
-  run             Build and Run the application
-  reset-checksum  Resets the checksums records what is used to check if there were any code changes for each target [aliases: reset]
+  environment       Provides commands for the needed tools for the development [aliases: env]
+  print-dot         Prints an overview of targets dependencies in print-dot format for `Graphviz` [aliases: dot]
+  lint              Runs linting & clippy for all or the specified targets
+  build             Build all or the specified targets
+  clean             Clean all or the specified targets
+  test              Run tests for all or the specified targets
+  run               Build and Run the application
+  release           Builds Chipmunk and generates a release (defaults to Release mode)
+  reset-checksum    Resets the checksums records what is used to check if there were any code changes for each target [aliases: reset]
   shell-completion  Generate shell completion for the commands of this tool in the given shell, printing them to stdout [aliases: compl]
-  help            Print this message or the help of the given subcommand(s)
+  help              Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
@@ -64,21 +65,32 @@ Arguments:
 
           Possible values:
           - core:    Represents the path `application/apps/indexer`
+          - shared:  Represents the path `application/platform`
           - binding: Represents the path `application/apps/rustcore/rs-bindings`
           - wrapper: Represents the path `application/apps/rustcore/ts-bindings`
+          - wasm:    Represents the path `application/apps/rustcore/wasm-bindings`
           - client:  Represents the path `application/client`
-          - shared:  Represents the path `application/platform`
+          - updater: Represents the path `application/apps/precompiled/updater
           - app:     Represents the path `application/holder`
           - cli:     Represents the path `cli`
-          - wasm:    Represents the path `application/apps/rustcore/wasm-bindings`
-          - updater: Represents the path `application/apps/precompiled/updater
 
 Options:
   -p, --production
           Build release version
 
-  -r, --report [<FILE-PATH>]
-          Write report from command logs to the given file or to stdout if no file is defined
+  -f, --fail-fast
+          Stops execution immediately if any job fails.
+
+  -u, --ui-mode <UI_MODE>
+          Specifies the UI options for displaying command logs and progress in the terminal
+
+          [default: bars]
+
+          Possible values:
+          - bars:      Displays progress bars, showing the current line of the output of each command. [aliases: 'b']
+          - report:    Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. [aliases: 'r']
+          - print:     Outputs each job's result to stdout once the job finishes. No progress bars are displayed. [aliases: 'p']
+          - immediate: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed. [aliases: 'i']
 
   -h, --help
           Print help (see a summary with '-h')
