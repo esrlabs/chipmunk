@@ -30,7 +30,7 @@ jobs:
       - name: enable corepack for yarnpkg upgrade
         run: corepack enable
       - name: Run Lints
-        run: cargo chipmunk lint -r
+        run: cargo chipmunk lint -u print
   all_test:
     name: Run all tests using CLI tool
     runs-on: ubuntu-latest
@@ -56,4 +56,4 @@ jobs:
           npm install tslib
           corepack enable
       - name: Run Tests
-        run: cargo chipmunk test -r
+        run: cargo chipmunk test -u print
