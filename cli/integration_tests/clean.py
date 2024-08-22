@@ -2,6 +2,7 @@
 Provides methods to test the Clean command in Chipmunk Build CLI Tool
 Clean command will be invoked here for all targets but the CLI tool itself,
 then it checks that all the paths that must be removed don't exist anymore.
+Clean command will run in the UI mode "immediate"
 """
 
 from pathlib import Path
@@ -24,6 +25,9 @@ CLEAN_COMMAND = [
     "client",
     "updater",
     "app",
+    # Set UI mode to immediate.
+    "-u",
+    "immediate",
 ]
 
 # These paths must not exist after clean build is done.
@@ -58,7 +62,9 @@ PATHS_TO_CHECK = [
 
 
 def run_clean_command():
-    """Runs Clean Commands on all targets and insure that all build directories are deleted."""
+    """Runs Clean Commands on all targets and insure that all build directories are deleted.
+    Clean command will run in the UI mode "immediate"
+    """
     print_blue_bold("Running clean command...")
     run_command(CLEAN_COMMAND)
     for path in get_removed_paths():
