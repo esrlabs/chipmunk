@@ -248,12 +248,11 @@ impl Target {
             },
 
             JobType::AfterBuild { .. } => match self {
-                Target::Binding | Target::App => true,
+                Target::Binding | Target::Client | Target::App => true,
                 Target::Core
                 | Target::Shared
                 | Target::Wrapper
                 | Target::Wasm
-                | Target::Client
                 | Target::Updater
                 | Target::Cli => false,
             },
@@ -543,12 +542,12 @@ impl Target {
 
         let after_res = match self {
             Target::Binding => binding::copy_index_node(job_def).await,
-            Target::App => app::copy_client_to_app(job_def).await,
+            Target::Client => client::copy_client_to_app(job_def).await,
+            Target::App => app::copy_package_file_to_dist(job_def).await,
             Target::Core
             | Target::Shared
             | Target::Wrapper
             | Target::Wasm
-            | Target::Client
             | Target::Updater
             | Target::Cli => return None,
         };
@@ -592,7 +591,7 @@ async fn install_general(
     }
 }
 
-/// Proivdes a process command with yarn as [`ProcessCommand::cmd`] and the given arguments
+/// Provides a process command with yarn as [`ProcessCommand::cmd`] and the given arguments
 /// as [`ProcessCommand::args`]
 fn yarn_command(args: Vec<String>) -> ProcessCommand {
     let yarn_path = DevTool::Yarn.path();
