@@ -45,10 +45,15 @@ impl TargetKind {
     pub fn install_cmd(&self, prod: bool) -> Option<ProcessCommand> {
         match self {
             TargetKind::Ts => {
-                let mut args = vec![String::from("install")];
-                if prod {
-                    args.push("--production".into());
-                }
+                let args = if prod {
+                    vec![
+                        String::from("workspaces"),
+                        String::from("focus"),
+                        String::from("--production"),
+                    ]
+                } else {
+                    vec![String::from("install")]
+                };
 
                 let command = yarn_command(args);
 
