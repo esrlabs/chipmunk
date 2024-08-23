@@ -44,6 +44,11 @@ pub async fn copy_client_to_app(job_def: JobDefinition) -> Result<SpawnResult, a
     );
     let rename_to = dest.join("client");
 
+    // Remove the rename to directory if already exists.
+    if rename_to.exists() {
+        fstools::rm_folder(job_def, &rename_to)?;
+    }
+
     let msg = format!(
         "renaming '{}' to '{}'",
         rename_from.display(),
