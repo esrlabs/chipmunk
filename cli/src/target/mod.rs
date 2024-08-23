@@ -531,6 +531,12 @@ impl Target {
             match self.install(true, false, Some(job_type)).await {
                 Some(Ok(mut spawn_res)) => {
                     spawn_res.report.insert(0, remove_log);
+
+                    // Return early if the reinstall command fails
+                    if !spawn_res.status.success() {
+                        return Some(Ok(spawn_res));
+                    }
+
                     Some(spawn_res)
                 }
                 Some(Err(err)) => return Some(Err(err)),
