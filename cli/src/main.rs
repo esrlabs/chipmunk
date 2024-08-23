@@ -221,7 +221,12 @@ async fn main_process(command: Command) -> Result<(), Error> {
                 if !status.status.success() {
                     if print_err {
                         eprintln!("Failed with errors");
-                        eprintln!("{}:\n{}", status.job, status.report.join(""));
+                        eprintln!("{}:", status.job);
+                        status
+                            .report
+                            .iter()
+                            .for_each(|line| eprintln!("{}", line.trim()));
+
                         eprintln!(
                             "---------------------------------------------------------------------"
                         );
