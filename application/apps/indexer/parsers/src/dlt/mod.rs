@@ -1,19 +1,22 @@
 pub mod attachment;
 pub mod fmt;
 
-use crate::{dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser};
+use crate::{
+    dlt::fmt::FormattableMessage, Error, LogMessage, ParseYield, Parser, ParserInstanceAlias,
+};
 use byteorder::{BigEndian, WriteBytesExt};
+use dlt_core::{
+    dlt,
+    parse::{dlt_consume_msg, dlt_message},
+};
 pub use dlt_core::{
     dlt::LogLevel,
     fibex::{gather_fibex_data, FibexConfig, FibexMetadata},
     filtering::{DltFilterConfig, ProcessedDltFilterConfig},
 };
-use dlt_core::{
-    dlt::{self},
-    parse::{dlt_consume_msg, dlt_message},
-};
+use fmt::{UnresolvedData, UnresolvedDataType};
 use serde::Serialize;
-use std::{io::Write, ops::Range};
+use std::{collections::HashMap, io::Write, ops::Range};
 
 use self::{attachment::FtScanner, fmt::FormatOptions};
 
@@ -23,6 +26,26 @@ impl LogMessage for FormattableMessage<'_> {
         let len = bytes.len();
         writer.write_all(&bytes)?;
         Ok(len)
+    }
+    fn next_unresolved(&mut self) -> Option<(ParserInstanceAlias, &[u8])> {
+        if let Some(next) = self.unresolved.next_unresolved() {
+            match next {
+                UnresolvedDataType::SomeIpPayload => {
+                    if let Some(payload) = self.get_someip_payload() {
+                        return Some((ParserInstanceAlias::SomeIp, payload));
+                    }
+                }
+            }
+            None
+        } else {
+            None
+        }
+    }
+    fn resolve(&mut self, result: Option<Result<String, String>>) {
+        let (Some(reqested), Some(parsed)) = (self.unresolved.requested(), result) else {
+            return;
+        };
+        self.resolved.insert(reqested, parsed);
     }
 }
 
@@ -143,6 +166,8 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                     message: msg_with_storage_header,
                     fibex_metadata: self.fibex_metadata,
                     options: self.fmt_options,
+                    unresolved: UnresolvedData::default(),
+                    resolved: HashMap::new(),
                 };
                 self.offset += input.len() - rest.len();
                 Ok((

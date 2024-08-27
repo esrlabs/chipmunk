@@ -28,6 +28,7 @@ use log::trace;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 use std::{
+    collections::HashMap,
     fmt::{self, Formatter},
     str,
 };
@@ -193,11 +194,47 @@ impl From<Option<&String>> for FormatOptions {
     }
 }
 
+#[derive(Hash, Clone, Copy, PartialEq, Eq)]
+pub enum UnresolvedDataType {
+    SomeIpPayload,
+}
+
+pub struct UnresolvedData {
+    data: Vec<UnresolvedDataType>,
+    requested: Option<UnresolvedDataType>,
+}
+
+impl UnresolvedData {
+    pub fn next_unresolved(&mut self) -> Option<UnresolvedDataType> {
+        if self.data.is_empty() {
+            self.requested = None;
+            None
+        } else {
+            let requested = self.data.remove(0);
+            self.requested = Some(requested);
+            Some(requested)
+        }
+    }
+    pub fn requested(&self) -> Option<UnresolvedDataType> {
+        self.requested
+    }
+}
+
+impl Default for UnresolvedData {
+    fn default() -> Self {
+        Self {
+            data: vec![UnresolvedDataType::SomeIpPayload],
+            requested: None,
+        }
+    }
+}
 /// A dlt message that can be formatted with optional FIBEX data support
 pub struct FormattableMessage<'a> {
     pub message: Message,
     pub fibex_metadata: Option<&'a FibexMetadata>,
     pub options: Option<&'a FormatOptions>,
+    pub unresolved: UnresolvedData,
+    pub resolved: HashMap<UnresolvedDataType, Result<String, String>>,
 }
 
 impl<'a> Serialize for FormattableMessage<'a> {
@@ -281,6 +318,17 @@ impl<'a> Serialize for FormattableMessage<'a> {
                     None => state.serialize_field("payload", "[Unknown CtrlCommand]")?,
                 }
             }
+            PayloadContent::NetworkTrace(slices) => {
+                state.serialize_field("app-id", &ext_header_app_id)?;
+                state.serialize_field("context-id", &ext_header_context_id)?;
+                state.serialize_field("message-type", &ext_header_msg_type)?;
+                let arg_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                state.serialize_field("payload", &arg_string)?;
+            }
         }
         state.end()
     }
@@ -292,6 +340,8 @@ impl<'a> From<Message> for FormattableMessage<'a> {
             message,
             fibex_metadata: None,
             options: None,
+            unresolved: UnresolvedData::default(),
+            resolved: HashMap::new(),
         }
     }
 }
@@ -320,6 +370,27 @@ impl<'a> PrintableMessage<'a> {
 }
 
 impl<'a> FormattableMessage<'a> {
+    pub fn get_someip_payload(&self) -> Option<&[u8]> {
+        if let PayloadContent::NetworkTrace(slices) = &self.message.payload {
+            if self
+                .message
+                .extended_header
+                .as_ref()
+                .is_some_and(|ext_header| {
+                    matches!(
+                        ext_header.message_type,
+                        MessageType::NetworkTrace(NetworkTraceType::Ipc)
+                            | MessageType::NetworkTrace(NetworkTraceType::Someip)
+                    )
+                })
+            {
+                if let Some(slice) = slices.get(1) {
+                    return Some(slice);
+                }
+            }
+        }
+        None
+    }
     pub fn printable_parts<'b>(
         &'b self,
         ext_h_app_id: &'b str,
@@ -379,6 +450,19 @@ impl<'a> FormattableMessage<'a> {
                     Some((name, _desc)) => String::from(name),
                     None => "[Unknown CtrlCommand]".to_owned(),
                 };
+                Ok(PrintableMessage::new(
+                    ext_h_app_id,
+                    eh_ctx_id,
+                    ext_h_msg_type,
+                    payload_string,
+                ))
+            }
+            PayloadContent::NetworkTrace(slices) => {
+                let payload_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
                 Ok(PrintableMessage::new(
                     ext_h_app_id,
                     eh_ctx_id,
@@ -557,6 +641,24 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
                 match service_id_lookup(ctrl_id.value()) {
                     Some((name, _desc)) => write!(f, "[{name}]"),
                     None => write!(f, "[Unknown CtrlCommand]"),
+                }
+            }
+            PayloadContent::NetworkTrace(slices) => {
+                self.write_app_id_context_id_and_message_type(f)?;
+                if let Some(resolved) = self.resolved.get(&UnresolvedDataType::SomeIpPayload) {
+                    match resolved {
+                        Ok(msg) => write!(f, "SOME/IP: {}", msg.replace("", " | ")),
+                        Err(err) => {
+                            write!(f, "SOME/IP PARSING ERROR: {err}; ORIGIN: ")?;
+                            slices.iter().try_for_each(|slice| {
+                                write!(f, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice)
+                            })
+                        }
+                    }
+                } else {
+                    slices
+                        .iter()
+                        .try_for_each(|slice| write!(f, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice))
                 }
             }
         }
