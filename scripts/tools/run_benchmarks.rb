@@ -9,12 +9,7 @@ ENV['REPO_NAME'] ||= 'chipmunk'
 
 RAKE_COMMANDS = [
   'rake clobber',
-  'rake bindings:build',
-  'rake bindings:build_spec',
-  'rake bindings:test:stream',
-  'rake bindings:test:indexes',
-  'rake bindings:test:search',
-  'rake bindings:test:observe'
+  'rake bindings:test:benchmark'
 ]
 
 SHELL_SCRIPT_PATH = 'application/apps/rustcore/ts-bindings/spec'

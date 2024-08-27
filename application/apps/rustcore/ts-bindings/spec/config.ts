@@ -1,13 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { readConfigFile } from './common';
 
-export interface IPerformanceTest {
-    open_as: 'text' | 'dlt' | 'pcapng';
-    ignore: boolean;
-    alias: string;
-    expectation_ms: number;
-    file: string;
-}
 export interface ICancelTestSpec {
     terms: string[];
     interval_ms: number;
@@ -36,24 +30,12 @@ export interface IConfiguration {
     tests: {
         observe: {
             regular: IRegularTests;
-            performance: {
-                run: boolean;
-                tests: { [key: string]: IPerformanceTest };
-            };
         };
         stream: {
             regular: IRegularTests;
-            performance: {
-                run: boolean;
-                tests: { [key: string]: IPerformanceTest };
-            };
         };
         indexes: {
             regular: IRegularTests;
-            performance: {
-                run: boolean;
-                tests: { [key: string]: IPerformanceTest };
-            };
         };
         jobs: {
             regular: IRegularTests;
@@ -63,10 +45,6 @@ export interface IConfiguration {
         };
         search: {
             regular: IRegularTests;
-            performance: {
-                run: boolean;
-                tests: { [key: string]: IPerformanceTest };
-            };
         };
         values: {
             regular: IRegularTests;
@@ -99,40 +77,11 @@ export interface IConfiguration {
 }
 
 export function readConfigurationFile(): Config {
-    const config = (() => {
-        const defaults = (() => {
-            for (const target of [
-                path.resolve(path.dirname(module.filename), 'defaults.json'),
-                path.resolve(path.dirname(module.filename), '../../defaults.json'),
-            ]) {
-                if (fs.existsSync(target)) {
-                    return target;
-                }
-            }
-            return undefined;
-        })();
-        let filename = (process.env as any)['JASMIN_TEST_CONFIGURATION'];
-        if ((typeof filename !== 'string' || filename.trim() === '') && defaults === undefined) {
-            return new Error(
-                `To run test you should define a path to configuration file with JASMIN_TEST_CONFIGURATION=path_to_config_json_file`,
-            );
-        } else if (typeof filename !== 'string' || filename.trim() === '') {
-            filename = defaults;
-        }
-        if (!fs.existsSync(filename)) {
-            return new Error(`Configuration file ${filename} doesn't exist`);
-        }
-        const buffer = fs.readFileSync(filename);
-        try {
-            return new Config(JSON.parse(buffer.toString().replace(/\/\*.*\*\//gi, '')));
-        } catch (err) {
-            return new Error(
-                `Fail to parse configuration file ${filename}; error: ${
-                    err instanceof Error ? err.message : err
-                }`,
-            );
-        }
-    })();
+    const config = readConfigFile<IConfiguration>('JASMIN_TEST_CONFIGURATION', [
+        path.resolve(path.dirname(module.filename), 'defaults.json'),
+        path.resolve(path.dirname(module.filename), '../../defaults.json'),
+    ]);
+
     if (config instanceof Error) {
         console.warn(`\n`);
         console.warn(`=`.repeat(81));
@@ -146,9 +95,10 @@ export function readConfigurationFile(): Config {
         console.warn(`\n`);
         process.exit(1);
     } else {
-        return config;
+        return new Config(config);
     }
 }
+
 export class Config {
     private readonly _config: IConfiguration;
 
