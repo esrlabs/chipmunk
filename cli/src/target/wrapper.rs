@@ -1,8 +1,9 @@
 use std::{iter, path::PathBuf};
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 
 use crate::{
+    fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
     spawner::{spawn, spawn_blocking, SpawnResult},
@@ -40,41 +41,42 @@ const TEST_SPECS: [&str; 14] = [
 ];
 
 pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
-    let job_def = JobDefinition::new(Target::Binding, JobType::Test { production });
-    let mut final_result: Option<SpawnResult> = None;
+    let job_def = JobDefinition::new(Target::Wrapper, JobType::Test { production });
 
     let cwd = Target::Wrapper.cwd();
 
     let build_spec_path = cwd.join("spec");
-    //TODO: This check exists in rake implementation but it need to be improved.
-    // The check should cover if the test themselves or the code under the tests has been changed.
-    if !build_spec_path.join("build").exists() {
-        // Finding tsc path on differnet platforms
-        let mut test_runner_path = cwd.join("node_modules").join(".bin");
-        if cfg!(windows) {
-            let tsc_path = which::which_in("tsc", Some(&test_runner_path), &test_runner_path)
-                .context("Error while resolving tsc bin path on Windows")?;
-            test_runner_path = tsc_path;
-        } else {
-            test_runner_path.push("tsc");
-        }
 
-        let build_spec_cmd = ProcessCommand::new(
-            test_runner_path.to_string_lossy().to_string(),
-            vec![String::from("-p"), String::from("tsconfig.json")],
-        );
-
-        let spec_res = spawn(
-            job_def,
-            build_spec_cmd,
-            Some(build_spec_path),
-            iter::empty(),
-            None,
-        )
-        .await?;
-
-        final_result = Some(spec_res);
+    let tests_build_dir = build_spec_path.join("build");
+    if tests_build_dir.exists() {
+        fstools::rm_folder(job_def, &tests_build_dir)?;
     }
+
+    // Finding tsc path on differnet platforms
+    let mut test_runner_path = cwd.join("node_modules").join(".bin");
+    if cfg!(windows) {
+        let tsc_path = which::which_in("tsc", Some(&test_runner_path), &test_runner_path)
+            .context("Error while resolving tsc bin path on Windows")?;
+        test_runner_path = tsc_path;
+    } else {
+        test_runner_path.push("tsc");
+    }
+
+    let build_spec_cmd = ProcessCommand::new(
+        test_runner_path.to_string_lossy().to_string(),
+        vec![String::from("-p"), String::from("tsconfig.json")],
+    );
+
+    let spec_res = spawn(
+        job_def,
+        build_spec_cmd,
+        Some(build_spec_path),
+        iter::empty(),
+        None,
+    )
+    .await?;
+
+    let mut final_result = spec_res;
 
     let mut electron_path: PathBuf = cwd.join("node_modules").join(".bin");
     if cfg!(windows) {
@@ -111,11 +113,8 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
         )
         .await?;
 
-        match final_result.as_mut() {
-            Some(acc) => acc.append(res),
-            None => final_result = Some(res),
-        };
+        final_result.append(res);
     }
 
-    final_result.ok_or_else(|| anyhow!("Wrapper doesn't have test specs"))
+    Ok(final_result)
 }
