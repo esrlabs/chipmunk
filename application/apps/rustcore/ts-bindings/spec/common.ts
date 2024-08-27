@@ -9,6 +9,7 @@ import { Logger, getLogger } from './logger';
 import { error, numToLogLevel } from 'platform/log/utils';
 import { state } from 'platform/log';
 import { IRegularTests } from './config';
+import { IPerformanceTest } from './config_benchmarks';
 
 import * as tmp from 'tmp';
 import * as fs from 'fs';
@@ -25,7 +26,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
 export type ScopeInjector<T> = (s: T) => T;
 
 export function runner(
-    config: IRegularTests,
+    config: IRegularTests | IPerformanceTest,
     id: string | number,
     test: (
         logger: Logger,
@@ -38,17 +39,33 @@ export function runner(
         scope.push(obj);
         return obj;
     };
-    const name = config.list[id];
+
+    let name: string;
+    let shouldExecute = true;
+
+    if ('list' in config) {
+        // Handling IRegularTests
+        name = config.list[id];
+        shouldExecute = config.execute_only.length === 0 || config.execute_only.includes(typeof id === 'number' ? id : parseInt(id, 10));
+    } else if ('alias' in config) {
+        // Handling IPerformanceTest
+        name = config.alias;
+        shouldExecute = !config.ignore;
+    } else {
+        // Log the type of config received
+        console.error('Invalid configuration passed to runner. Config:', config);
+        return Promise.reject(new Error('Invalid configuration passed to runner'));
+    }
+
     const logger = getLogger(name);
-    if (
-        config.execute_only.length > 0 &&
-        config.execute_only.indexOf(typeof id === 'number' ? id : parseInt(id, 10)) === -1
-    ) {
+
+    if (!shouldExecute) {
         console.log(`\nIgnored: ${name}`);
         return Promise.resolve();
     } else {
         console.log(`\nStarted: ${name}`);
     }
+
     return new Promise((done) => {
         try {
             test(logger, done, injector).catch((err: Error) => {
@@ -58,6 +75,41 @@ export function runner(
             finish(scope, done, new Error(error(err)));
         }
     });
+}
+
+export function readConfigFile<T>(filenameEnvVar: string, defaultPaths: string[]): T | Error {
+    const defaults = (() => {
+        for (const target of defaultPaths) {
+            if (fs.existsSync(target)) {
+                return target;
+            }
+        }
+        return undefined;
+    })();
+
+    let filename = (process.env as any)[filenameEnvVar];
+    if ((typeof filename !== 'string' || filename.trim() === '') && defaults === undefined) {
+        return new Error(
+            `To run test you should define a path to configuration file with ${filenameEnvVar}=path_to_config_json_file`,
+        );
+    } else if (typeof filename !== 'string' || filename.trim() === '') {
+        filename = defaults;
+    }
+
+    if (!fs.existsSync(filename)) {
+        return new Error(`Configuration file ${filename} doesn't exist`);
+    }
+
+    const buffer = fs.readFileSync(filename);
+    try {
+        return JSON.parse(buffer.toString().replace(/\/\*.*\*\//gi, '')) as T;
+    } catch (err) {
+        return new Error(
+            `Fail to parse configuration file ${filename}; error: ${
+                err instanceof Error ? err.message : err
+            }`,
+        );
+    }
 }
 
 export function finish(
@@ -270,8 +322,4 @@ export function setMeasurement(): () => ITimeMeasurement {
             sec_str: (ms / MS_PER_SEC).toFixed(2),
         };
     };
-}
-
-export function helloWorld() {
-  return 'Hello, World!';
 }

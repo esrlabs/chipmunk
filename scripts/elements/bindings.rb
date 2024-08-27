@@ -14,11 +14,16 @@ module Bindings
   TARGETS = [DIST, TS_NODE_MODULES, TARGET, DIST_RS, SPEC, TS_BINDINGS_LIB].freeze
 
   def self.run_jasmine_spec(spec)
-    run_benchmarks = ENV['JASMIN_TEST_CONFIGURATION'] && ENV['JASMIN_TEST_CONFIGURATION'].include?('benchmarks.json') ? true : false
+    run_benchmarks = spec == 'benchmark' ? true : false
     ENV['ELECTRON_RUN_AS_NODE'] = '1'
     Shell.chdir(Paths::TS_BINDINGS) do
       if run_benchmarks
-        for i in 1..6 do
+        iterations = 6
+        if !ENV['JASMIN_TEST_CONFIGURATION']
+          Bindings.set_environment_vars
+          iterations = 1
+        end
+        for i in 1..iterations do
           begin
             Shell.sh "#{Paths::JASMINE} spec/build/spec/session.#{spec}.spec.js"
           rescue
@@ -29,6 +34,21 @@ module Bindings
         Shell.sh "#{Paths::JASMINE} spec/build/spec/session.#{spec}.spec.js"
       end
     end
+  end
+
+  def self.environment_vars
+    {
+      'JASMIN_TEST_CONFIGURATION' => './spec/benchmarks.json',
+      'PERFORMANCE_RESULTS_FOLDER' => 'chipmunk_performance_results',
+      'PERFORMANCE_RESULTS' => 'Benchmark_PR_00',
+      'SH_HOME_DIR' => "/chipmunk"
+      # 'SH_HOME_DIR' => "/Users/sameer.g.srivastava"
+    }
+  end
+
+  def self.set_environment_vars
+    env_vars = environment_vars
+    env_vars.each { |key, value| ENV[key] = value }
   end
 end
 
@@ -75,13 +95,13 @@ namespace :bindings do
     ]
     test_specs.each do |spec|
       desc "run jasmine #{spec}-spec"
-      task spec.to_sym => ['bindings:build_spec', 'bindings:build'] do
+      task spec.to_sym => ['bindings:build', 'bindings:build_spec'] do
         Bindings.run_jasmine_spec(spec)
       end
     end
 
     desc 'run binding tests'
-    task all: test_specs.map { |spec| "bindings:test:#{spec}" }
+    task all: test_specs.select { |spec| "bindings:test:#{spec}" if spec!='benchmark'}
   end
 
   desc 'clean bindings'
