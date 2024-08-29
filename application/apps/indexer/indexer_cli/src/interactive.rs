@@ -1,6 +1,6 @@
 use crate::{duration_report, Instant};
 use futures::{pin_mut, stream::StreamExt};
-use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
+use parsers::{dlt::DltParser, LogMessage, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use session::session::Session;
@@ -56,10 +56,12 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                     }
                                     item = msg_stream.next() => {
                                         match item {
-                                            Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
+                                                let msg = get_msg_todo(item);
                                                 println!("msg: {msg}");
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((item, attachment))))) => {
+                                                let msg = get_msg_todo(item);
                                                 println!("msg: {msg}, attachment: {attachment:?}");
                                             }
                                             Some((_, MessageStreamItem::Item(ParseYield::Attachment(attachment)))) => {
@@ -193,4 +195,23 @@ async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()
         }
         println!("done with readline loop");
     })
+}
+
+//TODO AAZ: This should handle the cases when we have nested parsers + Saving the messages into
+///the faulty messages stack if the nested parsers couldn't resolve it.
+pub fn get_msg_todo(item: impl LogMessage) -> String {
+    let text_res = item.to_text();
+    if item.can_error() {
+        //TODO AAZ: Manage someip parser case for now
+        let mut msg = text_res.msg;
+        if let Some(err_info) = text_res.error {
+            msg = format!(
+                "{msg}: TODO: These bytes should be parsed with someip {:?}",
+                err_info.remain_bytes
+            );
+        }
+        msg
+    } else {
+        text_res.msg
+    }
 }

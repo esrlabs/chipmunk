@@ -139,16 +139,18 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
             Next::Item(item) => {
                 match item {
                     MessageStreamItem::Item(ParseYield::Message(item)) => {
+                        let msg = get_msg_todo(item);
                         state
-                            .write_session_file(source_id, format!("{item}\n"))
+                            .write_session_file(source_id, format!("{msg}\n"))
                             .await?;
                     }
                     MessageStreamItem::Item(ParseYield::MessageAndAttachment((
                         item,
                         attachment,
                     ))) => {
+                        let msg = get_msg_todo(item);
                         state
-                            .write_session_file(source_id, format!("{item}\n"))
+                            .write_session_file(source_id, format!("{msg}\n"))
                             .await?;
                         state.add_attachment(attachment)?;
                     }
@@ -201,4 +203,23 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     }
     debug!("listen done");
     Ok(None)
+}
+
+///TODO AAZ: This should handle the cases when we have nested parsers + Saving the messages into
+///the faulty messages stack if the nested parsers couldn't resolve it.
+pub fn get_msg_todo(item: impl LogMessage) -> String {
+    let text_res = item.to_text();
+    if item.can_error() {
+        //TODO AAZ: Manage someip parser case for now
+        let mut msg = text_res.msg;
+        if let Some(err_info) = text_res.error {
+            msg = format!(
+                "{msg}: TODO: These bytes should be parsed with someip {:?}",
+                err_info.remain_bytes
+            );
+        }
+        msg
+    } else {
+        text_res.msg
+    }
 }

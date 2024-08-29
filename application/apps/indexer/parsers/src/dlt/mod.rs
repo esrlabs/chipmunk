@@ -17,15 +17,6 @@ use std::{io::Write, ops::Range};
 
 use self::{attachment::FtScanner, fmt::FormatOptions};
 
-impl LogMessage for FormattableMessage<'_> {
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
-        let bytes = self.message.as_bytes();
-        let len = bytes.len();
-        writer.write_all(&bytes)?;
-        Ok(len)
-    }
-}
-
 #[derive(Debug, Serialize)]
 pub struct RawMessage {
     pub content: Vec<u8>,
@@ -48,19 +39,31 @@ impl std::fmt::Display for RawMessage {
 }
 
 impl LogMessage for RangeMessage {
+    const CAN_ERROR: bool = false;
+
     /// A RangeMessage only has range information and cannot serialize to bytes
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         writer.write_u64::<BigEndian>(self.range.start as u64)?;
         writer.write_u64::<BigEndian>(self.range.end as u64)?;
         Ok(8 + 8)
     }
+
+    fn to_text(&self) -> crate::ToTextResult {
+        self.into()
+    }
 }
 
 impl LogMessage for RawMessage {
+    const CAN_ERROR: bool = false;
+
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         let len = self.content.len();
         writer.write_all(&self.content)?;
         Ok(len)
+    }
+
+    fn to_text(&self) -> crate::ToTextResult {
+        self.into()
     }
 }
 

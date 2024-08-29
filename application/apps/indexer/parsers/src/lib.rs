@@ -78,10 +78,82 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Display + Serialize {
+#[derive(Debug, Clone)]
+pub enum ParseErrorType {
+    Fmt(String),
+    Other(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct ParseLogError {
+    pub remain_bytes: Vec<u8>,
+    pub error_type: ParseErrorType,
+}
+
+impl ParseLogError {
+    pub fn new(remain_bytes: Vec<u8>, error_type: ParseErrorType) -> Self {
+        Self {
+            remain_bytes,
+            error_type,
+        }
+    }
+}
+
+impl Display for ParseLogError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.error_type {
+            ParseErrorType::Other(msg) | ParseErrorType::Fmt(msg) => write!(f, "{msg}"),
+        }
+    }
+}
+
+impl From<std::fmt::Error> for ParseLogError {
+    fn from(value: std::fmt::Error) -> Self {
+        Self {
+            remain_bytes: Vec::new(),
+            error_type: ParseErrorType::Fmt(value.to_string()),
+        }
+    }
+}
+
+impl std::error::Error for ParseLogError {}
+
+#[derive(Debug, Clone)]
+pub struct ToTextResult {
+    pub msg: String,
+    pub error: Option<ParseLogError>,
+}
+
+impl ToTextResult {
+    pub fn new(msg: String, error: Option<ParseLogError>) -> Self {
+        Self { msg, error }
+    }
+}
+
+impl<T> From<T> for ToTextResult
+where
+    T: Display,
+{
+    fn from(value: T) -> Self {
+        Self::new(value.to_string(), None)
+    }
+}
+
+pub trait LogMessage: Serialize {
+    /// Indicates that parsing this struct to text can error.
+    const CAN_ERROR: bool;
+
+    //TODO AAZ: Measure this an remove if rust already optimize the code without it.
+    fn can_error(&self) -> bool {
+        <Self as LogMessage>::CAN_ERROR
+    }
+
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+
+    /// Get the text representation of this message.
+    fn to_text(&self) -> ToTextResult;
 }
 
 #[derive(Debug)]

@@ -32,6 +32,8 @@ use std::{
     str,
 };
 
+use crate::{LogMessage, ParseLogError, ToTextResult};
+
 const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
 const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
@@ -415,7 +417,7 @@ impl<'a> FormattableMessage<'a> {
 
     fn write_app_id_context_id_and_message_type(
         &self,
-        f: &mut fmt::Formatter,
+        f: &mut impl std::fmt::Write,
     ) -> Result<(), fmt::Error> {
         match self.message.extended_header.as_ref() {
             Some(ext) => {
@@ -443,7 +445,7 @@ impl<'a> FormattableMessage<'a> {
         &self,
         id: u32,
         data: &[u8],
-        f: &mut fmt::Formatter,
+        f: &mut impl std::fmt::Write,
     ) -> fmt::Result {
         trace!("format_nonverbose_data");
         let mut fibex_info_added = false;
@@ -535,7 +537,16 @@ impl<'a> FormattableMessage<'a> {
     }
 }
 
-impl<'a> fmt::Display for FormattableMessage<'a> {
+impl LogMessage for FormattableMessage<'_> {
+    const CAN_ERROR: bool = true;
+
+    fn to_writer<W: std::io::Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
+        let bytes = self.message.as_bytes();
+        let len = bytes.len();
+        writer.write_all(&bytes)?;
+        Ok(len)
+    }
+
     /// will format dlt Message with those fields:
     /// ********* storage-header ********
     /// date-time
@@ -552,48 +563,87 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
     /// context-id
     ///
     /// payload
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn to_text(&self) -> ToTextResult {
+        use std::fmt::Write;
+
+        let mut msg = String::new();
+        let f = &mut msg;
+        // unwrap is safe here because writing to a string never fails
+        // TODO AAZ: Change this if we want to continue with this implementation.
         if let Some(h) = &self.message.storage_header {
             let tz = self.options.map(|o| o.tz);
             match tz {
                 Some(Some(tz)) => {
-                    write_tz_string(f, &h.timestamp, &tz)?;
-                    write!(f, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id)?;
+                    write_tz_string(f, &h.timestamp, &tz).unwrap();
+                    write!(f, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id).unwrap();
                 }
-                _ => write!(f, "{}", DltStorageHeader(h))?,
+                _ => write!(f, "{}", DltStorageHeader(h)).unwrap(),
             };
         }
         let header = DltStandardHeader(&self.message.header);
-        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
-        write!(f, "{header}")?;
-        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
+        write!(f, "{DLT_COLUMN_SENTINAL}",).unwrap();
+        write!(f, "{header}").unwrap();
+        write!(f, "{DLT_COLUMN_SENTINAL}",).unwrap();
 
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
-                self.write_app_id_context_id_and_message_type(f)?;
+                self.write_app_id_context_id_and_message_type(f).unwrap();
                 arguments
                     .iter()
                     .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, DltArgument(arg)))
+                    .unwrap();
             }
-            PayloadContent::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
+            PayloadContent::NonVerbose(id, data) => {
+                self.format_nonverbose_data(*id, data, f).unwrap();
+            }
             PayloadContent::ControlMsg(ctrl_id, _data) => {
-                self.write_app_id_context_id_and_message_type(f)?;
+                self.write_app_id_context_id_and_message_type(f).unwrap();
                 match service_id_lookup(ctrl_id.value()) {
-                    Some((name, _desc)) => write!(f, "[{name}]"),
-                    None => write!(f, "[Unknown CtrlCommand]"),
+                    Some((name, _desc)) => {
+                        write!(f, "[{name}]").unwrap();
+                    }
+                    None => {
+                        write!(f, "[Unknown CtrlCommand]").unwrap();
+                    }
                 }
             }
             PayloadContent::NetworkTrace(slices) => {
-                self.write_app_id_context_id_and_message_type(f)?;
-                //TODO AAZ: Return error here with the needed bytes
-                todo!();
+                self.write_app_id_context_id_and_message_type(f).unwrap();
+                let is_someip = self
+                    .message
+                    .extended_header
+                    .as_ref()
+                    .is_some_and(|ext_header| {
+                        matches!(
+                            ext_header.message_type,
+                            MessageType::NetworkTrace(NetworkTraceType::Ipc)
+                                | MessageType::NetworkTrace(NetworkTraceType::Someip)
+                        )
+                    });
+
+                if is_someip {
+                    if let Some(slice) = slices.get(1) {
+                        //TODO AAZ: Introduce solve error hint enum that have someip in it.
+                        let err = ParseLogError::new(
+                            slice.to_owned(),
+                            crate::ParseErrorType::Other("Need Some IP".into()),
+                        );
+                        return ToTextResult::new(msg, Some(err));
+                    }
+                }
+
+                slices.iter().for_each(|slice| {
+                    write!(f, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice).unwrap()
+                });
             }
         }
+
+        return msg.into();
     }
 }
 
 fn write_tz_string(
-    f: &mut Formatter,
+    f: &mut impl std::fmt::Write,
     time_stamp: &DltTimeStamp,
     tz: &Tz,
 ) -> Result<(), fmt::Error> {
