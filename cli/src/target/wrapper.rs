@@ -5,8 +5,9 @@ use anyhow::Context;
 use crate::{
     fstools,
     job_type::JobType,
-    jobs_runner::{cancellation::cancellation_token, JobDefinition},
+    jobs_runner::JobDefinition,
     spawner::{spawn, spawn_blocking, SpawnResult},
+    JobsState,
 };
 
 use super::{ProcessCommand, Target};
@@ -95,7 +96,7 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
 
     let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
 
-    let cancel = cancellation_token();
+    let cancel = JobsState::get().cancellation_token();
 
     for spec in TEST_SPECS {
         let spec_file_name = format!("session.{spec}.spec.js");

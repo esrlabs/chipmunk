@@ -2,10 +2,8 @@
 //! their output and status to the `Tracker`.
 
 use crate::{
-    jobs_runner::{cancellation::cancellation_token, JobDefinition},
-    location::get_root,
-    target::ProcessCommand,
-    tracker::get_tracker,
+    jobs_runner::JobDefinition, location::get_root, target::ProcessCommand, tracker::get_tracker,
+    JobsState,
 };
 use anyhow::Context;
 use core::panic;
@@ -125,7 +123,7 @@ pub async fn spawn(
     let mut stdout_buf = BufReader::new(stdout);
     let mut stderr_buf = BufReader::new(stderr);
 
-    let cancel = cancellation_token();
+    let cancel = JobsState::get().cancellation_token();
     loop {
         let mut stdout_line = String::new();
         let mut stderr_line = String::new();
