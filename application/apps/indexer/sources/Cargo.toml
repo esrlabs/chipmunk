@@ -28,3 +28,7 @@ shellexpand = "3.0.0"
 [dev-dependencies]
 env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
+
+[[bench]]
+name = "producer_benchmarks"
+harness = false
