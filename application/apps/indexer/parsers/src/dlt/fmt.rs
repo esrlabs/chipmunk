@@ -281,6 +281,17 @@ impl<'a> Serialize for FormattableMessage<'a> {
                     None => state.serialize_field("payload", "[Unknown CtrlCommand]")?,
                 }
             }
+            PayloadContent::NetworkTrace(slices) => {
+                state.serialize_field("app-id", &ext_header_app_id)?;
+                state.serialize_field("context-id", &ext_header_context_id)?;
+                state.serialize_field("message-type", &ext_header_msg_type)?;
+                let arg_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                state.serialize_field("payload", &arg_string)?;
+            }
         }
         state.end()
     }
@@ -379,6 +390,19 @@ impl<'a> FormattableMessage<'a> {
                     Some((name, _desc)) => String::from(name),
                     None => "[Unknown CtrlCommand]".to_owned(),
                 };
+                Ok(PrintableMessage::new(
+                    ext_h_app_id,
+                    eh_ctx_id,
+                    ext_h_msg_type,
+                    payload_string,
+                ))
+            }
+            PayloadContent::NetworkTrace(slices) => {
+                let payload_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
                 Ok(PrintableMessage::new(
                     ext_h_app_id,
                     eh_ctx_id,
@@ -558,6 +582,11 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
                     Some((name, _desc)) => write!(f, "[{name}]"),
                     None => write!(f, "[Unknown CtrlCommand]"),
                 }
+            }
+            PayloadContent::NetworkTrace(slices) => {
+                self.write_app_id_context_id_and_message_type(f)?;
+                //TODO AAZ: Return error here with the needed bytes
+                todo!();
             }
         }
     }
