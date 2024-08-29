@@ -6,7 +6,6 @@ mod chipmunk_runner;
 mod cli_args;
 mod dev_environment;
 mod dev_tools;
-mod fail_fast;
 mod fstools;
 mod job_type;
 mod jobs_runner;
@@ -25,15 +24,15 @@ use clap::Parser;
 use cli_args::{CargoCli, Command, UiMode};
 use console::style;
 use dev_environment::{print_env_info, resolve_dev_tools};
-use fail_fast::set_fail_fast;
 use job_type::JobType;
-use jobs_runner::cancellation::{cancellation_token, graceful_shutdown};
 use location::init_location;
 use log_print::{print_log_separator, print_report};
 use release::do_release;
 use target::Target;
 use tokio::signal;
 use tracker::{get_tracker, init_tracker};
+
+pub use jobs_runner::jobs_state::JobsState;
 
 use crate::cli_args::EnvironmentCommand;
 
@@ -54,9 +53,10 @@ async fn main() -> Result<(), Error> {
             return main_res
         }
         _ = signal::ctrl_c() => {
+            let jobs_state = JobsState::get();
             // Cancel all the running tasks and wait for them to return.
-            cancellation_token().cancel();
-            graceful_shutdown().await;
+            jobs_state.cancellation_token().cancel();
+            jobs_state.graceful_shutdown().await;
 
             // Shutdown the tracker channels.
             let tracker = get_tracker();
@@ -99,7 +99,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            set_fail_fast(fail_fast);
+            JobsState::init(fail_fast);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -112,7 +112,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            set_fail_fast(fail_fast);
+            JobsState::init(fail_fast);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -120,7 +120,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             (JobType::Build { production }, results)
         }
         Command::Clean { target, ui_mode } => {
-            set_fail_fast(false);
+            JobsState::init(false);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -133,7 +133,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            set_fail_fast(fail_fast);
+            JobsState::init(fail_fast);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -144,7 +144,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             no_fail_fast,
         } => {
-            set_fail_fast(!no_fail_fast);
+            JobsState::init(!no_fail_fast);
             init_tracker(Default::default());
             resolve_dev_tools()?;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
@@ -173,7 +173,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             development,
         } => {
-            set_fail_fast(fail_fast);
+            JobsState::init(fail_fast);
             let ui_mode = if verbose {
                 UiMode::PrintImmediately
             } else {

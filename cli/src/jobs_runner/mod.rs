@@ -1,11 +1,10 @@
 //! Manages running the provided main job for the given targets after resolving the job
 //! dependencies, then it manages running them concurrently when possible.
 
-pub mod cancellation;
 mod job_definition;
 pub mod jobs_resolver;
+pub mod jobs_state;
 
-use cancellation::{cancellation_token, graceful_shutdown, task_tracker};
 use std::{collections::BTreeMap, ops::Not};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
@@ -14,12 +13,12 @@ pub use job_definition::JobDefinition;
 use crate::{
     checksum_records::{ChecksumCompareResult, ChecksumRecords},
     cli_args::UiMode,
-    fail_fast::fail_fast,
     job_type::JobType,
     log_print::{print_log_separator, print_report},
     spawner::SpawnResult,
     target::Target,
     tracker::get_tracker,
+    JobsState,
 };
 
 use anyhow::Result;
@@ -93,13 +92,15 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
 
         results.push(result);
 
+        let jobs_state = JobsState::get();
+
         if failed {
             failed_jobs.push(job_def.target);
 
-            if fail_fast() {
-                cancellation_token().cancel();
+            if jobs_state.fail_fast() {
+                jobs_state.cancellation_token().cancel();
 
-                graceful_shutdown().await;
+                jobs_state.graceful_shutdown().await;
 
                 return Ok(results);
             }
@@ -132,7 +133,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
         }
 
         // Skip spawning new jobs if cancel is already invoked.
-        if cancellation_token().is_cancelled() {
+        if jobs_state.cancellation_token().is_cancelled() {
             return Ok(results);
         }
 
@@ -155,7 +156,8 @@ fn spawn_jobs(
     checksum_compare_map: &mut BTreeMap<Target, ChecksumCompareResult>,
     failed_jobs: &[Target],
 ) -> Result<()> {
-    let task_tracker = task_tracker();
+    let jobs_state = JobsState::get();
+    let task_tracker = jobs_state.task_tracker();
     for (job_def, phase) in jobs_status.iter_mut() {
         let JobPhase::Awaiting(deps) = phase else {
             continue;
@@ -207,7 +209,9 @@ fn spawn_jobs(
                 None => panic!("Spawned jobs already resolved and must have return value."),
             };
 
-            if sender.send((job_def, result)).is_err() && !cancellation_token().is_cancelled() {
+            if sender.send((job_def, result)).is_err()
+                && !jobs_state.cancellation_token().is_cancelled()
+            {
                 let tracker = get_tracker();
                 tracker.print(format!(
                     "Error: Job results can't be sent to receiver. Job: {job_def:?}"
