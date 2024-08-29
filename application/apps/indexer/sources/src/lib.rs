@@ -1,4 +1,7 @@
-#![deny(unused_crate_dependencies)]
+// TODO AAZ: Write better comment.
+// This can't be used with benchmarks for now until issue "https://github.com/rust-lang/rust/issues/129637" is resolved.
+// #![deny(unused_crate_dependencies)]
+
 use thiserror::Error;
 
 #[macro_use]
