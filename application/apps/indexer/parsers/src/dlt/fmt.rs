@@ -28,8 +28,13 @@ use log::trace;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 use std::{
-    fmt::{self, Formatter},
+    fmt::{self, Display, Formatter, Write},
     str,
+};
+
+use crate::{
+    nested_parser::ParseRestResolver, GeneralParseLogError, LogMessage, ParseLogSeverity,
+    ResolveParseHint,
 };
 
 const DLT_COLUMN_SENTINAL: char = '\u{0004}';
@@ -281,6 +286,17 @@ impl<'a> Serialize for FormattableMessage<'a> {
                     None => state.serialize_field("payload", "[Unknown CtrlCommand]")?,
                 }
             }
+            PayloadContent::NetworkTrace(slices) => {
+                state.serialize_field("app-id", &ext_header_app_id)?;
+                state.serialize_field("context-id", &ext_header_context_id)?;
+                state.serialize_field("message-type", &ext_header_msg_type)?;
+                let arg_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                state.serialize_field("payload", &arg_string)?;
+            }
         }
         state.end()
     }
@@ -386,12 +402,25 @@ impl<'a> FormattableMessage<'a> {
                     payload_string,
                 ))
             }
+            PayloadContent::NetworkTrace(slices) => {
+                let payload_string = slices
+                    .iter()
+                    .map(|slice| format!("{:02X?}", slice))
+                    .collect::<Vec<String>>()
+                    .join("|");
+                Ok(PrintableMessage::new(
+                    ext_h_app_id,
+                    eh_ctx_id,
+                    ext_h_msg_type,
+                    payload_string,
+                ))
+            }
         }
     }
 
     fn write_app_id_context_id_and_message_type(
         &self,
-        f: &mut fmt::Formatter,
+        f: &mut impl std::fmt::Write,
     ) -> Result<(), fmt::Error> {
         match self.message.extended_header.as_ref() {
             Some(ext) => {
@@ -419,7 +448,7 @@ impl<'a> FormattableMessage<'a> {
         &self,
         id: u32,
         data: &[u8],
-        f: &mut fmt::Formatter,
+        f: &mut impl std::fmt::Write,
     ) -> fmt::Result {
         trace!("format_nonverbose_data");
         let mut fibex_info_added = false;
@@ -511,7 +540,16 @@ impl<'a> FormattableMessage<'a> {
     }
 }
 
-impl<'a> fmt::Display for FormattableMessage<'a> {
+impl LogMessage for FormattableMessage<'_> {
+    type ParseError = GeneralParseLogError;
+
+    fn to_writer<W: std::io::Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
+        let bytes = self.message.as_bytes();
+        let len = bytes.len();
+        writer.write_all(&bytes)?;
+        Ok(len)
+    }
+
     /// will format dlt Message with those fields:
     /// ********* storage-header ********
     /// date-time
@@ -528,43 +566,101 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
     /// context-id
     ///
     /// payload
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+    fn try_resolve(
+        &self,
+        resolver: Option<&mut ParseRestResolver>,
+    ) -> Result<impl Display, Self::ParseError> {
+        let mut msg = String::new();
+        // Taken from Documentation: string formatting is considered an infallible operation.
+        // Thus we can ignore `fmt::Error` errors.
+        // Link from Clippy: 'https://rust-lang.github.io/rust-clippy/master/index.html#/format_push_string'
+        // TODO: Consider another way of concatenating the string after prototyping.
         if let Some(h) = &self.message.storage_header {
             let tz = self.options.map(|o| o.tz);
             match tz {
                 Some(Some(tz)) => {
-                    write_tz_string(f, &h.timestamp, &tz)?;
-                    write!(f, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id)?;
+                    let _ = write_tz_string(&mut msg, &h.timestamp, &tz);
+                    let _ = write!(msg, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id);
                 }
-                _ => write!(f, "{}", DltStorageHeader(h))?,
+                _ => {
+                    let _ = write!(msg, "{}", DltStorageHeader(h));
+                }
             };
         }
         let header = DltStandardHeader(&self.message.header);
-        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
-        write!(f, "{header}")?;
-        write!(f, "{DLT_COLUMN_SENTINAL}",)?;
+        write!(msg, "{DLT_COLUMN_SENTINAL}",).unwrap();
+        write!(msg, "{header}").unwrap();
+        write!(msg, "{DLT_COLUMN_SENTINAL}",).unwrap();
 
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
-                self.write_app_id_context_id_and_message_type(f)?;
-                arguments
-                    .iter()
-                    .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, DltArgument(arg)))
+                let _ = self.write_app_id_context_id_and_message_type(&mut msg);
+                arguments.iter().for_each(|arg| {
+                    let _ = write!(msg, "{}{}", DLT_ARGUMENT_SENTINAL, DltArgument(arg));
+                });
             }
-            PayloadContent::NonVerbose(id, data) => self.format_nonverbose_data(*id, data, f),
+            PayloadContent::NonVerbose(id, data) => {
+                let _ = self.format_nonverbose_data(*id, data, &mut msg);
+            }
             PayloadContent::ControlMsg(ctrl_id, _data) => {
-                self.write_app_id_context_id_and_message_type(f)?;
+                let _ = self.write_app_id_context_id_and_message_type(&mut msg);
                 match service_id_lookup(ctrl_id.value()) {
-                    Some((name, _desc)) => write!(f, "[{name}]"),
-                    None => write!(f, "[Unknown CtrlCommand]"),
+                    Some((name, _desc)) => {
+                        let _ = write!(msg, "[{name}]");
+                    }
+                    None => {
+                        let _ = write!(msg, "[Unknown CtrlCommand]");
+                    }
                 }
             }
+            PayloadContent::NetworkTrace(slices) => {
+                let _ = self.write_app_id_context_id_and_message_type(&mut msg);
+                let is_someip = self
+                    .message
+                    .extended_header
+                    .as_ref()
+                    .is_some_and(|ext_header| {
+                        matches!(
+                            ext_header.message_type,
+                            MessageType::NetworkTrace(NetworkTraceType::Ipc)
+                                | MessageType::NetworkTrace(NetworkTraceType::Someip)
+                        )
+                    });
+
+                if is_someip {
+                    if let Some(resolver) = resolver {
+                        if let Some(slice) = slices.get(1) {
+                            match resolver.try_resolve(slice, ResolveParseHint::SomeIP) {
+                                Some(Ok(resolved)) => {
+                                    let _ = write!(msg, "{resolved}");
+                                    return Ok(msg);
+                                }
+                                Some(Err(_)) | None => {
+                                    //TODO: Ignore nested Error while prototyping
+                                }
+                            }
+                        }
+                    }
+                }
+
+                slices.iter().for_each(|slice| {
+                    let _ = write!(msg, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice);
+                });
+
+                return Err(GeneralParseLogError::new(
+                    msg,
+                    "Error while resolving Network trace payload".into(),
+                    ParseLogSeverity::Error,
+                ));
+            }
         }
+
+        Ok(msg)
     }
 }
 
 fn write_tz_string(
-    f: &mut Formatter,
+    f: &mut impl std::fmt::Write,
     time_stamp: &DltTimeStamp,
     tz: &Tz,
 ) -> Result<(), fmt::Error> {

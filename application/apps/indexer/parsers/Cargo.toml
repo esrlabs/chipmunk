@@ -18,7 +18,9 @@ rand.workspace = true
 # someip-messages = { path = "../../../../../someip"}
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 # someip-payload = { path = "../../../../../someip-payload" }
-someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+# someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+# TODO
+someip-payload = { git = "https://github.com/kruss/someip-payload.git", branch = "robustness" }
 
 [dev-dependencies]
 stringreader = "0.1.1"
