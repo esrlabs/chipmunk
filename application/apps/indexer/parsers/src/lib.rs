@@ -158,6 +158,7 @@ pub trait LogMessage: Serialize {
     const CAN_ERROR: bool;
 
     //TODO AAZ: Measure this an remove if rust already optimize the code without it.
+    #[inline(always)]
     fn can_error(&self) -> bool {
         <Self as LogMessage>::CAN_ERROR
     }

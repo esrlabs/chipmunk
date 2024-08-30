@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{
     operations::{OperationAPI, OperationResult},
@@ -23,6 +23,8 @@ use tokio::{
     time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
+
+use super::parse_err::ParseErrorReslover;
 
 enum Next<T: LogMessage> {
     Item(MessageStreamItem<T>),
@@ -77,6 +79,7 @@ async fn run_source_intern<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
+    let mut parse_err_resolver = ParseErrorReslover::new();
     match parser {
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
@@ -86,11 +89,27 @@ async fn run_source_intern<S: ByteSource>(
                 None => SomeipParser::new(),
             };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(
+                operation_api,
+                state,
+                source_id,
+                producer,
+                rx_tail,
+                &mut parse_err_resolver,
+            )
+            .await
         }
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(
+                operation_api,
+                state,
+                source_id,
+                producer,
+                rx_tail,
+                &mut parse_err_resolver,
+            )
+            .await
         }
         ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
@@ -101,7 +120,22 @@ async fn run_source_intern<S: ByteSource>(
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            let someip_parse = match &settings.fibex_file_paths {
+                Some(paths) => {
+                    SomeipParser::from_fibex_files(paths.into_iter().map(PathBuf::from).collect())
+                }
+                None => SomeipParser::new(),
+            };
+            parse_err_resolver.with_someip_parser(someip_parse);
+            run_producer(
+                operation_api,
+                state,
+                source_id,
+                producer,
+                rx_tail,
+                &mut parse_err_resolver,
+            )
+            .await
         }
     }
 }
@@ -112,6 +146,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     source_id: u16,
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
+    parse_err_resolver: &mut ParseErrorReslover,
 ) -> OperationResult<()> {
     use log::debug;
     state.set_session_file(None).await?;
@@ -139,7 +174,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
             Next::Item(item) => {
                 match item {
                     MessageStreamItem::Item(ParseYield::Message(item)) => {
-                        let msg = get_msg_todo(item);
+                        let msg = get_log_text(item, parse_err_resolver);
                         state
                             .write_session_file(source_id, format!("{msg}\n"))
                             .await?;
@@ -148,7 +183,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         item,
                         attachment,
                     ))) => {
-                        let msg = get_msg_todo(item);
+                        let msg = get_log_text(item, parse_err_resolver);
                         state
                             .write_session_file(source_id, format!("{msg}\n"))
                             .await?;
@@ -205,18 +240,23 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     Ok(None)
 }
 
-///TODO AAZ: This should handle the cases when we have nested parsers + Saving the messages into
-///the faulty messages stack if the nested parsers couldn't resolve it.
-pub fn get_msg_todo(item: impl LogMessage) -> String {
+/// Get the text message of [`LogMessage`], resolving parse text errors if possible,
+/// TODO: Otherwise it should save the error to the faulty messages store, which need to be
+/// implemented as well :)
+pub fn get_log_text(item: impl LogMessage, err_resolver: &mut ParseErrorReslover) -> String {
     let text_res = item.to_text();
     if item.can_error() {
-        //TODO AAZ: Manage someip parser case for now
         let mut msg = text_res.msg;
         if let Some(err_info) = text_res.error {
-            msg = format!(
-                "{msg}: TODO: These bytes should be parsed with someip {:?}",
-                err_info.remain_bytes
-            );
+            match err_resolver.resolve_err(&err_info) {
+                Some(resloved_msg) => {
+                    msg.push_str(&resloved_msg);
+                }
+                None => {
+                    //TODO: Item with error details should be reported faulty messages store.
+                    msg = format!("{msg}: Unknow Error bytes: {:?}", err_info.remain_bytes);
+                }
+            }
         }
         msg
     } else {
