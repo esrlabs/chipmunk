@@ -2,6 +2,7 @@
 pub mod events;
 mod handlers;
 pub mod operations;
+pub mod parse_err;
 pub mod paths;
 pub mod progress;
 pub mod session;

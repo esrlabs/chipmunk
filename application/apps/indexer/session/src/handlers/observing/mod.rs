@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     operations::{OperationAPI, OperationResult},
+    parse_err::{get_log_text, ParseErrorReslover},
     state::SessionStateAPI,
     tail,
 };
@@ -23,8 +24,6 @@ use tokio::{
     time::{timeout, Duration},
 };
 use tokio_stream::StreamExt;
-
-use super::parse_err::ParseErrorReslover;
 
 enum Next<T: LogMessage> {
     Item(MessageStreamItem<T>),
@@ -238,28 +237,4 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     }
     debug!("listen done");
     Ok(None)
-}
-
-/// Get the text message of [`LogMessage`], resolving parse text errors if possible,
-/// TODO: Otherwise it should save the error to the faulty messages store, which need to be
-/// implemented as well :)
-pub fn get_log_text(item: impl LogMessage, err_resolver: &mut ParseErrorReslover) -> String {
-    let text_res = item.to_text();
-    if item.can_error() {
-        let mut msg = text_res.msg;
-        if let Some(err_info) = text_res.error {
-            match err_resolver.resolve_err(&err_info) {
-                Some(resloved_msg) => {
-                    msg.push_str(&resloved_msg);
-                }
-                None => {
-                    //TODO: Item with error details should be reported faulty messages store.
-                    msg = format!("{msg}: Unknow Error bytes: {:?}", err_info.remain_bytes);
-                }
-            }
-        }
-        msg
-    } else {
-        text_res.msg
-    }
 }
