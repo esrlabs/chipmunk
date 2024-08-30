@@ -84,17 +84,30 @@ pub enum ParseErrorType {
     Other(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Gives Hint about how this error can be resolved by processor
+pub enum ResolveErrorHint {
+    /// The message needs to be parsed with SomeIP Parser.
+    SomeIP,
+}
+
 #[derive(Debug, Clone)]
 pub struct ParseLogError {
     pub remain_bytes: Vec<u8>,
     pub error_type: ParseErrorType,
+    pub resolve_hint: Option<ResolveErrorHint>,
 }
 
 impl ParseLogError {
-    pub fn new(remain_bytes: Vec<u8>, error_type: ParseErrorType) -> Self {
+    pub fn new(
+        remain_bytes: Vec<u8>,
+        error_type: ParseErrorType,
+        resolve_hint: Option<ResolveErrorHint>,
+    ) -> Self {
         Self {
             remain_bytes,
             error_type,
+            resolve_hint,
         }
     }
 }
@@ -112,6 +125,7 @@ impl From<std::fmt::Error> for ParseLogError {
         Self {
             remain_bytes: Vec::new(),
             error_type: ParseErrorType::Fmt(value.to_string()),
+            resolve_hint: None,
         }
     }
 }

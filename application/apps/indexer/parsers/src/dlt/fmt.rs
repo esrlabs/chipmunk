@@ -32,7 +32,7 @@ use std::{
     str,
 };
 
-use crate::{LogMessage, ParseLogError, ToTextResult};
+use crate::{LogMessage, ParseLogError, ResolveErrorHint, ToTextResult};
 
 const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
@@ -623,10 +623,10 @@ impl LogMessage for FormattableMessage<'_> {
 
                 if is_someip {
                     if let Some(slice) = slices.get(1) {
-                        //TODO AAZ: Introduce solve error hint enum that have someip in it.
                         let err = ParseLogError::new(
                             slice.to_owned(),
                             crate::ParseErrorType::Other("Need Some IP".into()),
+                            Some(ResolveErrorHint::SomeIP),
                         );
                         return ToTextResult::new(msg, Some(err));
                     }
