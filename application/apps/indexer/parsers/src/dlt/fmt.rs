@@ -28,7 +28,7 @@ use log::trace;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 use std::{
-    fmt::{self, Formatter},
+    fmt::{self, Formatter, Write},
     str,
 };
 
@@ -564,51 +564,51 @@ impl LogMessage for FormattableMessage<'_> {
     ///
     /// payload
     fn to_text(&self) -> ToTextResult {
-        use std::fmt::Write;
-
         let mut msg = String::new();
-        let f = &mut msg;
-        // unwrap is safe here because writing to a string never fails
-        // TODO AAZ: Change this if we want to continue with this implementation.
+        // Taken from Documentation: string formatting is considered an infallible operation.
+        // Thus we can ignore `fmt::Error` errors.
+        // Link from Clippy: 'https://rust-lang.github.io/rust-clippy/master/index.html#/format_push_string'
+        // TODO: Consider another way of concatenating the string after prototyping.
         if let Some(h) = &self.message.storage_header {
             let tz = self.options.map(|o| o.tz);
             match tz {
                 Some(Some(tz)) => {
-                    write_tz_string(f, &h.timestamp, &tz).unwrap();
-                    write!(f, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id).unwrap();
+                    let _ = write_tz_string(&mut msg, &h.timestamp, &tz);
+                    let _ = write!(msg, "{DLT_COLUMN_SENTINAL}{}", h.ecu_id);
                 }
-                _ => write!(f, "{}", DltStorageHeader(h)).unwrap(),
+                _ => {
+                    let _ = write!(msg, "{}", DltStorageHeader(h));
+                }
             };
         }
         let header = DltStandardHeader(&self.message.header);
-        write!(f, "{DLT_COLUMN_SENTINAL}",).unwrap();
-        write!(f, "{header}").unwrap();
-        write!(f, "{DLT_COLUMN_SENTINAL}",).unwrap();
+        write!(msg, "{DLT_COLUMN_SENTINAL}",).unwrap();
+        write!(msg, "{header}").unwrap();
+        write!(msg, "{DLT_COLUMN_SENTINAL}",).unwrap();
 
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
-                self.write_app_id_context_id_and_message_type(f).unwrap();
-                arguments
-                    .iter()
-                    .try_for_each(|arg| write!(f, "{}{}", DLT_ARGUMENT_SENTINAL, DltArgument(arg)))
-                    .unwrap();
+                let _ = self.write_app_id_context_id_and_message_type(&mut msg);
+                arguments.iter().for_each(|arg| {
+                    let _ = write!(msg, "{}{}", DLT_ARGUMENT_SENTINAL, DltArgument(arg));
+                });
             }
             PayloadContent::NonVerbose(id, data) => {
-                self.format_nonverbose_data(*id, data, f).unwrap();
+                let _ = self.format_nonverbose_data(*id, data, &mut msg);
             }
             PayloadContent::ControlMsg(ctrl_id, _data) => {
-                self.write_app_id_context_id_and_message_type(f).unwrap();
+                let _ = self.write_app_id_context_id_and_message_type(&mut msg);
                 match service_id_lookup(ctrl_id.value()) {
                     Some((name, _desc)) => {
-                        write!(f, "[{name}]").unwrap();
+                        let _ = write!(msg, "[{name}]");
                     }
                     None => {
-                        write!(f, "[Unknown CtrlCommand]").unwrap();
+                        let _ = write!(msg, "[Unknown CtrlCommand]");
                     }
                 }
             }
             PayloadContent::NetworkTrace(slices) => {
-                self.write_app_id_context_id_and_message_type(f).unwrap();
+                let _ = self.write_app_id_context_id_and_message_type(&mut msg);
                 let is_someip = self
                     .message
                     .extended_header
@@ -633,12 +633,12 @@ impl LogMessage for FormattableMessage<'_> {
                 }
 
                 slices.iter().for_each(|slice| {
-                    write!(f, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice).unwrap()
+                    let _ = write!(msg, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice);
                 });
             }
         }
 
-        return msg.into();
+        msg.into()
     }
 }
 

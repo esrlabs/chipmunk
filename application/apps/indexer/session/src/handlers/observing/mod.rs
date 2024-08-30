@@ -122,7 +122,7 @@ async fn run_source_intern<S: ByteSource>(
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);
             let someip_parse = match &settings.fibex_file_paths {
                 Some(paths) => {
-                    SomeipParser::from_fibex_files(paths.into_iter().map(PathBuf::from).collect())
+                    SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
                 }
                 None => SomeipParser::new(),
             };
