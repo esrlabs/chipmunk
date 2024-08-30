@@ -42,15 +42,6 @@ jobs:
       - name: libudev-dev
         if: runner.os == 'Linux'
         run: sudo apt-get install -y libudev-dev
-      - name: install ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.0"
-          bundler-cache: true
-      - name: install ruby:gem::dotenv
-        run: gem install dotenv
-      - name: install ruby:gem::json
-        run: gem install json
       - name: install node
         uses: actions/setup-node@master
         with:
@@ -59,10 +50,14 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.7.3
       - name: cargo install nj-cli
         run: cargo install nj-cli
       - name: install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install Build CLI tool
+        run: cargo install --path=cli
       - name: enable corepack for yarnpkg upgrade
         run: |
           corepack enable
@@ -91,9 +86,8 @@ jobs:
             -k "$KEYCHAIN_PWD" \
             "$KEYCHAIN_NAME"
       - name: build release
-        working-directory: ./application/holder
         run: |
-          rake release:prod --trace
+          cargo chipmunk release
         env:
           KEYCHAIN_NAME: "build.keychain"
           CSC_LINK: ${{ secrets.CSC_LINK }}
