@@ -154,14 +154,9 @@ where
 }
 
 pub trait LogMessage: Serialize {
+    //TODO AAZ: Measure this an remove if rust already optimize the code without it.
     /// Indicates that parsing this struct to text can error.
     const CAN_ERROR: bool;
-
-    //TODO AAZ: Measure this an remove if rust already optimize the code without it.
-    #[inline(always)]
-    fn can_error(&self) -> bool {
-        <Self as LogMessage>::CAN_ERROR
-    }
 
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message

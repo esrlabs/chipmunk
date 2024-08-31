@@ -44,9 +44,9 @@ impl ParseErrorReslover {
 /// Get the text message of [`LogMessage`], resolving parse text errors if possible,
 /// TODO: Otherwise it should save the error to the faulty messages store, which need to be
 /// implemented as well :)
-pub fn get_log_text(item: impl LogMessage, err_resolver: &mut ParseErrorReslover) -> String {
+pub fn get_log_text<T: LogMessage>(item: T, err_resolver: &mut ParseErrorReslover) -> String {
     let text_res = item.to_text();
-    if item.can_error() {
+    if T::CAN_ERROR {
         let mut msg = text_res.msg;
         if let Some(err_info) = text_res.error {
             match err_resolver.resolve_err(&err_info) {
