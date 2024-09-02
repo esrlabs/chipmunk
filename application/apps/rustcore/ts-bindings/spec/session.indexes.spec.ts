@@ -1,43 +1,23 @@
 // tslint:disable
-
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
+
 import { initLogger } from './logger';
 initLogger();
-import { Session, Factory } from '../src/api/session';
-import { createSampleFile, finish, performanceReport, setMeasurement, runner } from './common';
+import { Factory } from '../src/api/session';
+import { createSampleFile, finish } from './common';
 import { readConfigurationFile } from './config';
 import { Nature, IndexingMode, NatureTypes } from 'platform/types/content';
 
-import * as os from 'os';
-import * as path from 'path';
+import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.indexes;
 
 describe('Indexes', function () {
     it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
+        return runners.withSession(config.regular, 1, async (logger, done, comps) => {
             (async () => {
-                try {
-                    const session = await Session.create();
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const search = session.getSearch();
-                    if (search instanceof Error) {
-                        finish(session, done, search);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
                     let controlSum = 0;
                     let countMatches = 0;
                     const tmpobj = createSampleFile(50, logger, (i: number) => {
@@ -46,32 +26,33 @@ describe('Indexes', function () {
                         return `${i}: some line data: ${i % 10 == 0 ? `match A` : ''}\n`;
                     });
                     let read: boolean = false;
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
                                 .type(Factory.FileType.Text)
                                 .file(tmpobj.name)
-                                .get().sterilized(),
+                                .get()
+                                .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     const updates: number[] = [];
-                    events.IndexedMapUpdated.subscribe((event) => {
+                    comps.events.IndexedMapUpdated.subscribe((event) => {
                         event.len > 0 && updates.push(event.len);
                     });
-                    events.StreamUpdated.subscribe(async (rows: number) => {
+                    comps.events.StreamUpdated.subscribe(async (rows: number) => {
                         if (rows < 50 || read) {
                             return;
                         }
                         read = true;
                         try {
-                            await search.search([
+                            await comps.search.search([
                                 {
                                     filter: 'match A',
                                     flags: { reg: true, word: true, cases: false },
                                 },
                             ]);
-                            let items = await stream.grabIndexed(0, countMatches);
+                            let items = await comps.stream.grabIndexed(0, countMatches);
                             expect(items.length).toEqual(countMatches);
                             expect(
                                 items
@@ -92,10 +73,10 @@ describe('Indexes', function () {
                                 [30, [NatureTypes.Search]],
                                 [40, [NatureTypes.Search]],
                             ]);
-                            await stream.setIndexingMode(IndexingMode.Breadcrumbs);
-                            let len = await stream.getIndexedLen();
+                            await comps.stream.setIndexingMode(IndexingMode.Breadcrumbs);
+                            let len = await comps.stream.getIndexedLen();
                             expect(len).toEqual(30);
-                            items = await stream.grabIndexed(0, len);
+                            items = await comps.stream.grabIndexed(0, len);
                             expect(items.length).toEqual(len);
                             expect(
                                 items.map((i) => [i.position, new Nature(i.nature).getTypes()]),
@@ -131,10 +112,10 @@ describe('Indexes', function () {
                                 [48, [NatureTypes.Breadcrumb]],
                                 [49, [NatureTypes.Breadcrumb]],
                             ]);
-                            await stream.expandBreadcrumbs(45, 2, false);
-                            len = await stream.getIndexedLen();
+                            await comps.stream.expandBreadcrumbs(45, 2, false);
+                            len = await comps.stream.getIndexedLen();
                             expect(len).toEqual(32);
-                            items = await stream.grabIndexed(0, len);
+                            items = await comps.stream.grabIndexed(0, len);
                             expect(items.length).toEqual(len);
                             expect(
                                 items.map((i) => [i.position, new Nature(i.nature).getTypes()]),
@@ -172,10 +153,10 @@ describe('Indexes', function () {
                                 [48, [NatureTypes.Breadcrumb]],
                                 [49, [NatureTypes.Breadcrumb]],
                             ]);
-                            await stream.expandBreadcrumbs(44, 2, true);
-                            len = await stream.getIndexedLen();
+                            await comps.stream.expandBreadcrumbs(44, 2, true);
+                            len = await comps.stream.getIndexedLen();
                             expect(len).toEqual(34);
-                            items = await stream.grabIndexed(0, len);
+                            items = await comps.stream.grabIndexed(0, len);
                             expect(items.length).toEqual(len);
                             expect(
                                 items.map((i) => [i.position, new Nature(i.nature).getTypes()]),
@@ -215,10 +196,10 @@ describe('Indexes', function () {
                                 [48, [NatureTypes.Breadcrumb]],
                                 [49, [NatureTypes.Breadcrumb]],
                             ]);
-                            await stream.expandBreadcrumbs(45, 1, true);
-                            len = await stream.getIndexedLen();
+                            await comps.stream.expandBreadcrumbs(45, 1, true);
+                            len = await comps.stream.getIndexedLen();
                             expect(len).toEqual(34);
-                            items = await stream.grabIndexed(0, len);
+                            items = await comps.stream.grabIndexed(0, len);
                             expect(items.length).toEqual(len);
                             expect(
                                 items.map((i) => [i.position, new Nature(i.nature).getTypes()]),
@@ -258,7 +239,7 @@ describe('Indexes', function () {
                                 [48, [NatureTypes.Breadcrumb]],
                                 [49, [NatureTypes.Breadcrumb]],
                             ]);
-                            finish(session, done);
+                            finish(comps.session, done);
                         } catch (err) {
                             finish(
                                 undefined,
@@ -272,9 +253,6 @@ describe('Indexes', function () {
                         }
                     });
                     return Promise.resolve();
-                } catch (err) {
-                    return Promise.reject(err instanceof Error ? err : new Error(`${err}`));
-                }
             })().catch((err: Error) => {
                 finish(
                     undefined,

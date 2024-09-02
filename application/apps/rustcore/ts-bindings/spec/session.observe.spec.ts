@@ -1,45 +1,31 @@
 // tslint:disable
-
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
+
 import { initLogger } from './logger';
 initLogger();
-import { Session, Factory } from '../src/api/session';
+import { Factory } from '../src/api/session';
 import { IGrabbedElement } from 'platform/types/content';
 import { IAttachmentsUpdatedUpdated } from '../src/api/session.provider';
 import { IAttachment } from 'platform/types/content';
-import { createSampleFile, finish, performanceReport, setMeasurement, runner } from './common';
+import { createSampleFile, finish } from './common';
 import { readConfigurationFile } from './config';
+
 import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.observe;
 
 describe('Observe', function () {
     it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
+        return runners.withSession(config.regular, 1, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
                         (i: number) => `some line data: ${i}\n`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -48,14 +34,14 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         if (rows === 0 || grabbing) {
                             return;
                         }
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(500, 7)
                             .then((result: IGrabbedElement[]) => {
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
@@ -68,11 +54,11 @@ describe('Observe', function () {
                                     'some line data: 505',
                                     'some line data: 506',
                                 ]);
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -82,39 +68,12 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[2], function () {
-        return runner(config.regular, 2, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-
-                    stream
+        return runners.withSession(config.regular, 2, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.PcapNG)
@@ -128,35 +87,35 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
                     let received: number = 0;
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 100 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
                         if (rows < 100 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(1, 10)
                             .then((result: IGrabbedElement[]) => {
                                 expect(result.length).toEqual(10);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -166,39 +125,12 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[3], function () {
-        return runner(config.regular, 3, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-
-                    stream
+        return runners.withSession(config.regular, 3, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.Binary)
@@ -212,35 +144,35 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
                     let received: number = 0;
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 100 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
                         if (rows < 100 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(1, 10)
                             .then((result: IGrabbedElement[]) => {
                                 expect(result.length).toEqual(10);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -250,38 +182,12 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[4], function () {
-        return runner(config.regular, 4, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
+        return runners.withSession(config.regular, 4, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.Binary)
@@ -295,18 +201,18 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let updates: IAttachmentsUpdatedUpdated[] = [];
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 3 attachments. Has been gotten: ${updates.length}`,
                             ),
                         );
                     }, 20000);
-                    events.AttachmentsUpdated.subscribe((update: IAttachmentsUpdatedUpdated) => {
+                    comps.events.AttachmentsUpdated.subscribe((update: IAttachmentsUpdatedUpdated) => {
                         updates.push(update);
                         if (updates.length >= 3) {
                             clearTimeout(timeout);
@@ -346,41 +252,15 @@ describe('Observe', function () {
                                     'test333',
                                 );
                             }
-                            finish(session, done);
+                            finish(comps.session, done);
                         }
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[5], function () {
-        return runner(config.regular, 5, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
+        return runners.withSession(config.regular, 5, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.PcapNG)
@@ -391,26 +271,26 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
                     let received: number = 0;
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
                         if (rows < 55 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(0, 4)
                             .then((result: IGrabbedElement[]) => {
                                 expect(result.length).toEqual(4);
@@ -443,11 +323,11 @@ describe('Observe', function () {
                                     'Bytes: [00, 00, 01, 88, 01, C3, C4, 1D]',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -457,38 +337,12 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[6], function () {
-        return runner(config.regular, 6, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
+        return runners.withSession(config.regular, 6, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.PcapNG)
@@ -499,26 +353,26 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
                     let received: number = 0;
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
                         if (rows < 55 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(0, 4)
                             .then((result: IGrabbedElement[]) => {
                                 expect(result.length).toEqual(4);
@@ -551,11 +405,11 @@ describe('Observe', function () {
                                     'TestService::timeEvent {timestamp(INT64):1683656786973,}',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -565,38 +419,12 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[7], function () {
-        return runner(config.regular, 7, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
+        return runners.withSession(config.regular, 7, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.PcapLegacy)
@@ -607,26 +435,26 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
                     let received: number = 0;
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
                         if (rows < 55 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(0, 4)
                             .then((result: IGrabbedElement[]) => {
                                 expect(result.length).toEqual(4);
@@ -659,11 +487,11 @@ describe('Observe', function () {
                                     'Bytes: [00, 00, 01, 88, 01, C3, C4, 1D]',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -673,38 +501,12 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[8], function () {
-        return runner(config.regular, 8, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true);
-                    const stream = session.getStream();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    stream
+        return runners.withSession(config.regular, 8, async (logger, done, comps) => {
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .type(Factory.FileType.PcapLegacy)
@@ -715,26 +517,26 @@ describe('Observe', function () {
                                 .get()
                                 .sterilized(),
                         )
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let grabbing: boolean = false;
                     let received: number = 0;
                     const timeout = setTimeout(() => {
                         finish(
-                            session,
+                            comps.session,
                             done,
                             new Error(
                                 `Failed because timeout. Waited for at least 55 rows. Has been gotten: ${received}`,
                             ),
                         );
                     }, 20000);
-                    events.StreamUpdated.subscribe((rows: number) => {
+                    comps.events.StreamUpdated.subscribe((rows: number) => {
                         received = rows;
                         if (rows < 55 || grabbing) {
                             return;
                         }
                         clearTimeout(timeout);
                         grabbing = true;
-                        stream
+                        comps.stream
                             .grab(0, 4)
                             .then((result: IGrabbedElement[]) => {
                                 expect(result.length).toEqual(4);
@@ -767,11 +569,11 @@ describe('Observe', function () {
                                     'TestService::timeEvent {timestamp(INT64):1683656786973,}',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
-                                finish(session, done);
+                                finish(comps.session, done);
                             })
                             .catch((err: Error) => {
                                 finish(
-                                    session,
+                                    comps.session,
                                     done,
                                     new Error(
                                         `Fail to grab data due error: ${
@@ -781,18 +583,6 @@ describe('Observe', function () {
                                 );
                             });
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 });

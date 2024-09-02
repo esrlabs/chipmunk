@@ -1,19 +1,21 @@
 // tslint:disable
-
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
+
 import { initLogger } from './logger';
 initLogger();
-import { finish, runner } from './common';
+import { finish } from './common';
 import { readConfigurationFile } from './config';
 import { CancelablePromise } from 'platform/env/promise';
+
+import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.promises;
 
 describe('Promises', function () {
     it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 1, async (logger, done) => {
             let resolved = 0;
             let rejected = 0;
             Promise.allSettled([
@@ -46,7 +48,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[2], function () {
-        return runner(config.regular, 2, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 2, async (logger, done) => {
             new CancelablePromise((_resolve, reject) => {
                 setTimeout(() => {
                     reject(new Error(`Dummy error`));
@@ -70,7 +72,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[3], function () {
-        return runner(config.regular, 3, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 3, async (logger, done) => {
             let delegated = false;
             new CancelablePromise((_resolve, reject, cancel, setCancelDelegation) => {
                 setCancelDelegation(() => {
@@ -101,7 +103,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[4], function () {
-        return runner(config.regular, 4, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 4, async (logger, done) => {
             let resolved = 0;
             let rejected = 0;
             const a = new CancelablePromise((resolve, _reject) => {
@@ -134,7 +136,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[5], function () {
-        return runner(config.regular, 5, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 5, async (logger, done) => {
             let resolved = 0;
             let rejected = 0;
             const a = new CancelablePromise((_resolve, reject) => {
@@ -169,7 +171,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[6], function () {
-        return runner(config.regular, 6, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 6, async (logger, done) => {
             let resolved = 0;
             let rejected = 0;
             let canceled = 0;
@@ -210,7 +212,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[7], function () {
-        return runner(config.regular, 7, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 7, async (logger, done) => {
             let resolved = 0;
             let rejected = 0;
             let canceled = 0;
@@ -261,7 +263,7 @@ describe('Promises', function () {
     });
 
     it(config.regular.list[8], function () {
-        return runner(config.regular, 8, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 8, async (logger, done) => {
             let resolved = 0;
             let rejected = 0;
             let canceled = 0;

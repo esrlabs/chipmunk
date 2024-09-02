@@ -11,65 +11,63 @@ on:
     workflows: ["BuildAndReleaseMaster"]
     types:
       - completed
+
 jobs:
   invoke_jasmine_tests:
     name: Invoke Jasmine performance tests
     runs-on: self-hosted-runner-ubuntu
     steps:
-      - name: 'Cleanup build folder'
+      - name: Cleanup build folder
         run: |
           ls -la ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
+          rm -rf ./* ./.??* || true
           ls -la ./
+
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Install pre-requisite dependencies
+
+      - name: Install dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils wget ca-certificates
-          sudo apt-get install -y libudev-dev cargo npm imagemagick libmagickwand-dev cmake jq
-      - name: install node
+          sudo apt-get update
+          sudo apt-get install -y gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 \
+          libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 \
+          libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 \
+          libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 \
+          libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils wget \
+          libudev-dev cargo npm imagemagick libmagickwand-dev cmake jq
+
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.4.0
-      - name: Install ruby and other related tools
+
+      - name: Install Ruby and related tools
         run: |
           whoami
           npm install -g corepack
           corepack enable
           curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
           echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-          apt-get update
-          sudo apt-get install -y yarn
-          yarn --version
-          apt update
-          apt-get install -y software-properties-common
+          sudo apt-get update && sudo apt-get install -y yarn software-properties-common
           apt-add-repository -y ppa:rael-gc/rvm
-          apt-get update
-          apt-get install -y rvm
+          sudo apt-get update && sudo apt-get install -y rvm
           echo 'source "/etc/profile.d/rvm.sh"' >> ~/.bashrc
           source /etc/profile.d/rvm.sh
-          which rvm
           rvm install ruby-3.1.2
           ruby --version
           sudo chown -R $(whoami) /usr/local
           rvm use 3.1.2 --default
-          rvm --version
-          rvm info
-          which rvm
-          ruby --version
-      - name: cargo install nj-cli
+
+      - name: Install cargo tools
         run: |
-          cargo install nj-cli --locked
-          cargo install wasm-pack --locked
+          cargo install nj-cli wasm-pack --locked
+
       - name: Prepare environment
         run: |
-          npm i -g tslib
+          npm install -g tslib
           export PATH="/usr/share/rvm:$PATH"
-          which ruby
-          ruby --version
-          pwd
           gem install dotenv json octokit tmpdir fileutils
+
       - name: Get PR details
         if: github.event_name == 'workflow_dispatch'
         uses: actions/github-script@v7
@@ -83,43 +81,26 @@ jobs:
               repo: 'chipmunk',
               pull_number: ${{ github.event.inputs.pr_id }}
             });
-            const PR_OWNER = pr.data.user.login;
-            const PR_REPO = pr.data.base.repo.name;
-            console.log(`owner is ${PR_OWNER}`);
-            console.log(`repo is ${PR_REPO}`);
-            // Setting environment variables
-            fs.appendFileSync(process.env.GITHUB_ENV, `PR_OWNER=${PR_OWNER}\n`);
-            fs.appendFileSync(process.env.GITHUB_ENV, `PR_REPO=${PR_REPO}\n`);
-      - name: Run Jasmine performance tests for the latest release
-        if: github.event_name != 'workflow_dispatch'
+            fs.appendFileSync(process.env.GITHUB_ENV, `REPO_OWNER=${pr.data.user.login}\n`);
+            fs.appendFileSync(process.env.GITHUB_ENV, `REPO_NAME=${pr.data.base.repo.name}\n`);
+
+      - name: Run Jasmine performance tests
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           export PATH="/root/.cargo/bin:$PATH"
-          . "/root/.cargo/env"
           source ~/.bashrc
-          ruby scripts/tools/run_benchmarks.rb 1
-        env:
-          REPO_OWNER: 'esrlabs'
-          REPO_NAME: 'chipmunk'
-      - name: Run Jasmine performance tests for the latest pull request
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          export PATH="/root/.cargo/bin:$PATH"
-          . "/root/.cargo/env"
-          source ~/.bashrc
-          echo "PR head repo: ${{ env.PR_OWNER }}"
-          echo "PR head owner: ${{ env.PR_REPO }}"
-          pwd
-          ls -la
-          ruby scripts/tools/run_benchmarks.rb PR~${{ github.event.inputs.pr_id }}
-        env:
-          REPO_NAME: ${{ env.PR_REPO }}
-          REPO_OWNER: ${{ env.PR_OWNER }}
+          if [[ "${{ github.event_name }}" == 'workflow_dispatch' ]]; then
+            ruby scripts/tools/run_benchmarks.rb PR~${{ github.event.inputs.pr_id }}
+          else
+            export REPO_OWNER='esrlabs'
+            export REPO_NAME='chipmunk'
+            ruby scripts/tools/run_benchmarks.rb 1
+          fi
+
       - name: List files in the results folder
         run: |
-          echo "Event is:  ${{ github.event_name }}"
           ls -la /chipmunk/chipmunk_performance_results
+
   push_data_to_chipmunk_docs:
     name: Move benchmark data to chipmunk-docs repository
     needs: invoke_jasmine_tests
@@ -130,28 +111,21 @@ jobs:
         with:
           repository: esrlabs/chipmunk-docs
           path: './chipmunk-docs'
-          token: ${{secrets.DOCS_PUSH_TOKEN}}
-      - name: Push tag for release
+          token: ${{ secrets.DOCS_PUSH_TOKEN }}
+
+      - name: Push benchmark data
         working-directory: ./chipmunk-docs
-        if: github.event_name != 'workflow_dispatch'
         run: |
-          ls -la
-          cp /chipmunk/chipmunk_performance_results/data.json ./jekyll/benchmarks/data/data.json
           git config user.name "esrlabs"
           git config user.email "esrlabs@gmail.com"
           git remote set-url origin "https://esrlabs:${{secrets.DOCS_PUSH_TOKEN}}@github.com/esrlabs/chipmunk-docs"
-          git add ./jekyll/benchmarks/data/data.json
-          git commit -m "Updating data.json for latest tag"
-          git push origin master
-      - name: Push PR data to chipmunk-docs
-        working-directory: ./chipmunk-docs
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          ls -la
-          cp /chipmunk/chipmunk_performance_results/Benchmark_PR_${{ github.event.inputs.pr_id }}.json ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.inputs.pr_id }}.json
-          git config user.name "esrlabs"
-          git config user.email "esrlabs@gmail.com"
-          git remote set-url origin "https://esrlabs:${{secrets.DOCS_PUSH_TOKEN}}@github.com/esrlabs/chipmunk-docs"
-          git add ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.inputs.pr_id }}.json
-          git commit -m "Adding PR benchmark results for chipmunk PR # ${{ github.event.inputs.pr_id }}"
+          if [[ "${{ github.event_name }}" == 'workflow_dispatch' ]]; then
+            cp /chipmunk/chipmunk_performance_results/Benchmark_PR_${{ github.event.inputs.pr_id }}.json ./jekyll/benchmarks/data/pull_request/
+            git add ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.inputs.pr_id }}.json
+            git commit -m "Adding PR benchmark results for chipmunk PR #${{ github.event.inputs.pr_id }}"
+          else
+            cp /chipmunk/chipmunk_performance_results/data.json ./jekyll/benchmarks/data/data.json
+            git add ./jekyll/benchmarks/data/data.json
+            git commit -m "Updating data.json for latest tag"
+          fi
           git push origin master

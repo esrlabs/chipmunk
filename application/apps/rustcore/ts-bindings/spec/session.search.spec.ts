@@ -1,40 +1,22 @@
 // tslint:disable
-
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
+
 import { initLogger } from './logger';
 initLogger();
-import { Session, Factory } from '../src/api/session';
+import { Factory } from '../src/api/session';
 import { IGrabbedElement } from 'platform/types/content';
-import { finish, createSampleFile, performanceReport, setMeasurement, runner } from './common';
+import { finish, createSampleFile } from './common';
 import { readConfigurationFile } from './config';
 
-import * as os from 'os';
-import * as path from 'path';
+import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.search;
 
 describe('Search', function () {
     it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[1]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    if (stream instanceof Error) {
-                        return finish(session, done, stream);
-                    }
-                    if (search instanceof Error) {
-                        return finish(session, done, search);
-                    }
+        return runners.withSession(config.regular, 1, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
@@ -45,7 +27,7 @@ describe('Search', function () {
                                     : `some line data\n`
                             }`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -55,7 +37,7 @@ describe('Search', function () {
                                 .sterilized(),
                         )
                         .on('processing', () => {
-                            search
+                            comps.search
                                 .search([
                                     {
                                         filter: 'match',
@@ -63,11 +45,11 @@ describe('Search', function () {
                                     },
                                 ])
                                 .then((_) => {
-                                    search
+                                    comps.search
                                         .getMap(54)
                                         .then((map) => {
                                             logger.verbose(map);
-                                            search
+                                            comps.search
                                                 .grab(0, 11)
                                                 .then((result: IGrabbedElement[]) => {
                                                     expect(result.map((i) => i.content)).toEqual([
@@ -103,7 +85,7 @@ describe('Search', function () {
                                                             [390, 9, 400],
                                                             [600, 11, 600],
                                                         ].map((data) => {
-                                                            return search
+                                                            return comps.search
                                                                 .getNearest(data[0])
                                                                 .then((nearest) => {
                                                                     expect(typeof nearest).toEqual(
@@ -122,14 +104,14 @@ describe('Search', function () {
                                                         }),
                                                     )
                                                         .then(() => {
-                                                            search
+                                                            comps.search
                                                                 .len()
                                                                 .then((len: number) => {
                                                                     expect(len).toEqual(55);
                                                                     expect(
                                                                         searchStreamUpdated,
                                                                     ).toEqual(true);
-                                                                    stream
+                                                                    comps.stream
                                                                         .getIndexedRanges()
                                                                         .then((ranges) => {
                                                                             expect(
@@ -153,27 +135,27 @@ describe('Search', function () {
                                                                                     ranges[i].to,
                                                                                 ).toEqual(i * 100);
                                                                             }
-                                                                            finish(session, done);
+                                                                            finish(comps.session, done);
                                                                         })
                                                                         .catch((err: Error) => {
                                                                             finish(
-                                                                                session,
+                                                                                comps.session,
                                                                                 done,
                                                                                 err,
                                                                             );
                                                                         });
                                                                 })
                                                                 .catch((err: Error) => {
-                                                                    finish(session, done, err);
+                                                                    finish(comps.session, done, err);
                                                                 });
                                                         })
                                                         .catch((err: Error) => {
-                                                            finish(session, done, err);
+                                                            finish(comps.session, done, err);
                                                         });
                                                 })
                                                 .catch((err: Error) => {
                                                     finish(
-                                                        session,
+                                                        comps.session,
                                                         done,
                                                         new Error(
                                                             `Fail to grab data due error: ${
@@ -185,46 +167,20 @@ describe('Search', function () {
                                                     );
                                                 });
                                         })
-                                        .catch(finish.bind(null, session, done));
+                                        .catch(finish.bind(null, comps.session, done));
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch(finish.bind(null, comps.session, done));
                         })
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let searchStreamUpdated = false;
-                    events.SearchUpdated.subscribe((event) => {
+                    comps.events.SearchUpdated.subscribe((event) => {
                         searchStreamUpdated = true;
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[2], function () {
-        return runner(config.regular, 2, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[2]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    if (search instanceof Error) {
-                        finish(session, done, search);
-                        return;
-                    }
+        return runners.withSession(config.regular, 2, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
@@ -239,7 +195,7 @@ describe('Search', function () {
                                     : `some line data\n`
                             }`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -249,7 +205,7 @@ describe('Search', function () {
                                 .sterilized(),
                         )
                         .on('processing', () => {
-                            search
+                            comps.search
                                 .search([
                                     {
                                         filter: 'match A',
@@ -265,7 +221,7 @@ describe('Search', function () {
                                     },
                                 ])
                                 .then((result) => {
-                                    search
+                                    comps.search
                                         .grab(0, 11)
                                         .then((result: IGrabbedElement[]) => {
                                             expect(result.map((i) => i.content)).toEqual([
@@ -301,7 +257,7 @@ describe('Search', function () {
                                                     [55, 7, 50],
                                                     [190, 10, 200],
                                                 ].map((data) => {
-                                                    return search
+                                                    return comps.search
                                                         .getNearest(data[0])
                                                         .then((nearest) => {
                                                             expect(typeof nearest).toEqual(
@@ -320,23 +276,23 @@ describe('Search', function () {
                                                 }),
                                             )
                                                 .then(() => {
-                                                    search
+                                                    comps.search
                                                         .len()
                                                         .then((len: number) => {
                                                             expect(len).toEqual(111);
-                                                            finish(session, done);
+                                                            finish(comps.session, done);
                                                         })
                                                         .catch((err: Error) => {
-                                                            finish(session, done, err);
+                                                            finish(comps.session, done, err);
                                                         });
                                                 })
                                                 .catch((err: Error) => {
-                                                    finish(session, done, err);
+                                                    finish(comps.session, done, err);
                                                 });
                                         })
                                         .catch((err: Error) => {
                                             finish(
-                                                session,
+                                                comps.session,
                                                 done,
                                                 new Error(
                                                     `Fail to grab data due error: ${
@@ -346,47 +302,20 @@ describe('Search', function () {
                                             );
                                         });
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch(finish.bind(null, comps.session, done));
                         })
-                        .catch(finish.bind(null, session, done));
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
+                        .catch(finish.bind(null, comps.session, done));
         });
     });
 
     it(config.regular.list[3], function () {
-        return runner(config.regular, 3, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[3]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    if (search instanceof Error) {
-                        finish(session, done, search);
-                        return;
-                    }
-
+        return runners.withSession(config.regular, 3, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
                         (i: number) => `[${i}]:: some line data\n`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -396,7 +325,7 @@ describe('Search', function () {
                                 .sterilized(),
                         )
                         .on('processing', () => {
-                            search
+                            comps.search
                                 .search([
                                     {
                                         filter: 'not relevant search',
@@ -405,43 +334,16 @@ describe('Search', function () {
                                 ])
                                 .then((found) => {
                                     expect(found).toEqual(0);
-                                    finish(session, done);
+                                    finish(comps.session, done);
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch(finish.bind(null, comps.session, done));
                         })
-                        .catch(finish.bind(null, session, done));
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
+                        .catch(finish.bind(null, comps.session, done));
         });
     });
 
     it(config.regular.list[4], function () {
-        return runner(config.regular, 4, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[4]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    if (search instanceof Error) {
-                        finish(session, done, search);
-                        return;
-                    }
-
+        return runners.withSession(config.regular, 4, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
@@ -452,7 +354,7 @@ describe('Search', function () {
                                     : `some line data\n`
                             }`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -462,7 +364,7 @@ describe('Search', function () {
                                 .sterilized(),
                         )
                         .on('processing', () => {
-                            search
+                            comps.search
                                 .search([
                                     {
                                         filter: 'match',
@@ -471,10 +373,10 @@ describe('Search', function () {
                                 ])
                                 .then((_) => {
                                     // search results available on rust side
-                                    search
+                                    comps.search
                                         .getMap(54)
                                         .then((map) => {
-                                            search
+                                            comps.search
                                                 .grab(0, 11)
                                                 .then((result: IGrabbedElement[]) => {
                                                     expect(result.map((i) => i.content)).toEqual([
@@ -510,7 +412,7 @@ describe('Search', function () {
                                                             [390, 9, 400],
                                                             [600, 11, 600],
                                                         ].map((data) => {
-                                                            return search
+                                                            return comps.search
                                                                 .getNearest(data[0])
                                                                 .then((nearest) => {
                                                                     expect(typeof nearest).toEqual(
@@ -529,23 +431,23 @@ describe('Search', function () {
                                                         }),
                                                     )
                                                         .then(() => {
-                                                            search
+                                                            comps.search
                                                                 .len()
                                                                 .then((len: number) => {
                                                                     expect(len).toEqual(55);
-                                                                    finish(session, done);
+                                                                    finish(comps.session, done);
                                                                 })
                                                                 .catch((err: Error) => {
-                                                                    finish(session, done, err);
+                                                                    finish(comps.session, done, err);
                                                                 });
                                                         })
                                                         .catch((err: Error) => {
-                                                            finish(session, done, err);
+                                                            finish(comps.session, done, err);
                                                         });
                                                 })
                                                 .catch((err: Error) => {
                                                     finish(
-                                                        session,
+                                                        comps.session,
                                                         done,
                                                         new Error(
                                                             `Fail to grab data due error: ${
@@ -557,42 +459,16 @@ describe('Search', function () {
                                                     );
                                                 });
                                         })
-                                        .catch(finish.bind(null, session, done));
+                                        .catch(finish.bind(null, comps.session, done));
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch(finish.bind(null, comps.session, done));
                         })
-                        .catch(finish.bind(null, session, done));
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
+                        .catch(finish.bind(null, comps.session, done));
         });
     });
 
     it(config.regular.list[5], function () {
-        return runner(config.regular, 5, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[5]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    if (stream instanceof Error) {
-                        finish(session, done, stream);
-                        return;
-                    }
-                    if (search instanceof Error) {
-                        finish(session, done, search);
-                        return;
-                    }
+        return runners.withSession(config.regular, 5, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
@@ -603,7 +479,7 @@ describe('Search', function () {
                                     : `some line matchmatchmatch data\n`
                             }`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -613,7 +489,7 @@ describe('Search', function () {
                                 .sterilized(),
                         )
                         .on('processing', () => {
-                            search
+                            comps.search
                                 .search([
                                     {
                                         filter: 'match',
@@ -622,10 +498,10 @@ describe('Search', function () {
                                 ])
                                 .then((_) => {
                                     // search results available on rust side
-                                    search
+                                    comps.search
                                         .getMap(54)
                                         .then((map) => {
-                                            search
+                                            comps.search
                                                 .grab(0, 11)
                                                 .then((result: IGrabbedElement[]) => {
                                                     expect(result.map((i) => i.content)).toEqual([
@@ -661,7 +537,7 @@ describe('Search', function () {
                                                             [390, 9, 400],
                                                             [600, 11, 600],
                                                         ].map((data) => {
-                                                            return search
+                                                            return comps.search
                                                                 .getNearest(data[0])
                                                                 .then((nearest) => {
                                                                     expect(typeof nearest).toEqual(
@@ -680,23 +556,23 @@ describe('Search', function () {
                                                         }),
                                                     )
                                                         .then(() => {
-                                                            search
+                                                            comps.search
                                                                 .len()
                                                                 .then((len: number) => {
                                                                     expect(len).toEqual(55);
-                                                                    finish(session, done);
+                                                                    finish(comps.session, done);
                                                                 })
                                                                 .catch((err: Error) => {
-                                                                    finish(session, done, err);
+                                                                    finish(comps.session, done, err);
                                                                 });
                                                         })
                                                         .catch((err: Error) => {
-                                                            finish(session, done, err);
+                                                            finish(comps.session, done, err);
                                                         });
                                                 })
                                                 .catch((err: Error) => {
                                                     finish(
-                                                        session,
+                                                        comps.session,
                                                         done,
                                                         new Error(
                                                             `Fail to grab data due error: ${
@@ -708,45 +584,16 @@ describe('Search', function () {
                                                     );
                                                 });
                                         })
-                                        .catch(finish.bind(null, session, done));
+                                        .catch(finish.bind(null, comps.session, done));
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch(finish.bind(null, comps.session, done));
                         })
-                        .catch(finish.bind(null, session, done));
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
+                        .catch(finish.bind(null, comps.session, done));
         });
     });
 
     it(config.regular.list[6], function () {
-        return runner(config.regular, 6, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[6]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    if (stream instanceof Error) {
-                        return finish(session, done, stream);
-                    }
-                    if (search instanceof Error) {
-                        return finish(session, done, search);
-                    }
+        return runners.withSession(config.regular, 6, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         501,
                         logger,
@@ -757,7 +604,7 @@ describe('Search', function () {
                                     : `some line data\n`
                             }`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -767,7 +614,7 @@ describe('Search', function () {
                                 .sterilized(),
                         )
                         .on('processing', () => {
-                            search
+                            comps.search
                                 .search([
                                     {
                                         filter: 'match A',
@@ -779,7 +626,7 @@ describe('Search', function () {
                                     },
                                 ])
                                 .then((_) => {
-                                    search
+                                    comps.search
                                         .getMap(501)
                                         .then((map) => {
                                             expect(map[0].length).toEqual(2);
@@ -788,7 +635,7 @@ describe('Search', function () {
                                             expect(map[500][0][0]).toEqual(0);
                                             expect(map[500][1][0]).toEqual(1);
                                             logger.verbose(map);
-                                            search
+                                            comps.search
                                                 .grab(0, 11)
                                                 .then((result: IGrabbedElement[]) => {
                                                     expect(result.map((i) => i.content)).toEqual([
@@ -817,22 +664,22 @@ describe('Search', function () {
                                                         400, // 9
                                                         500, // 10
                                                     ]);
-                                                    search
+                                                    comps.search
                                                         .len()
                                                         .then((len: number) => {
                                                             expect(len).toEqual(11);
                                                             expect(searchStreamUpdated).toEqual(
                                                                 true,
                                                             );
-                                                            finish(session, done);
+                                                            finish(comps.session, done);
                                                         })
                                                         .catch((err: Error) => {
-                                                            finish(session, done, err);
+                                                            finish(comps.session, done, err);
                                                         });
                                                 })
                                                 .catch((err: Error) => {
                                                     finish(
-                                                        session,
+                                                        comps.session,
                                                         done,
                                                         new Error(
                                                             `Fail to grab data due error: ${
@@ -844,49 +691,20 @@ describe('Search', function () {
                                                     );
                                                 });
                                         })
-                                        .catch(finish.bind(null, session, done));
+                                        .catch(finish.bind(null, comps.session, done));
                                 })
-                                .catch(finish.bind(null, session, done));
+                                .catch(finish.bind(null, comps.session, done));
                         })
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let searchStreamUpdated = false;
-                    events.SearchUpdated.subscribe((event) => {
+                    comps.events.SearchUpdated.subscribe((event) => {
                         searchStreamUpdated = true;
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 
     it(config.regular.list[7], function () {
-        return runner(config.regular, 7, async (logger, done, collector) => {
-            Session.create()
-                .then((session: Session) => {
-                    // Set provider into debug mode
-                    session.debug(true, config.regular.list[7]);
-                    const stream = session.getStream();
-                    const search = session.getSearch();
-                    const events = session.getEvents();
-                    if (events instanceof Error) {
-                        finish(session, done, events);
-                        return;
-                    }
-                    if (stream instanceof Error) {
-                        return finish(session, done, stream);
-                    }
-                    if (search instanceof Error) {
-                        return finish(session, done, search);
-                    }
+        return runners.withSession(config.regular, 7, async (logger, done, comps) => {
                     const tmpobj = createSampleFile(
                         5000,
                         logger,
@@ -905,7 +723,7 @@ describe('Search', function () {
                                     : `some line data\n`
                             }`,
                     );
-                    stream
+                    comps.stream
                         .observe(
                             new Factory.File()
                                 .asText()
@@ -918,7 +736,7 @@ describe('Search', function () {
                             const calls = ['match A', 'match D', 'match C', 'match B'];
                             let canceled = 0;
                             calls.forEach((filter) => {
-                                search
+                                comps.search
                                     .search([
                                         {
                                             filter,
@@ -927,7 +745,7 @@ describe('Search', function () {
                                     ])
                                     .then((_) => {
                                         expect(canceled).toEqual(3);
-                                        search
+                                        comps.search
                                             .grab(0, 16)
                                             .then((result: IGrabbedElement[]) => {
                                                 expect(result.map((i) => i.content)).toEqual([
@@ -952,20 +770,20 @@ describe('Search', function () {
                                                     0, 300, 600, 900, 1200, 1500, 1800, 2100, 2400,
                                                     2700, 3000, 3300, 3600, 3900, 4200, 4500,
                                                 ]);
-                                                search
+                                                comps.search
                                                     .len()
                                                     .then((len: number) => {
                                                         expect(len).toEqual(17);
                                                         expect(searchStreamUpdated).toEqual(true);
-                                                        finish(session, done);
+                                                        finish(comps.session, done);
                                                     })
                                                     .catch((err: Error) => {
-                                                        finish(session, done, err);
+                                                        finish(comps.session, done, err);
                                                     });
                                             })
                                             .catch((err: Error) => {
                                                 finish(
-                                                    session,
+                                                    comps.session,
                                                     done,
                                                     new Error(
                                                         `Fail to grab data due error: ${
@@ -979,27 +797,15 @@ describe('Search', function () {
                                         canceled += 1;
                                     })
                                     .catch((err: Error) => {
-                                        finish(session, done);
+                                        finish(comps.session, done);
                                     });
                             });
                         })
-                        .catch(finish.bind(null, session, done));
+                        .catch(finish.bind(null, comps.session, done));
                     let searchStreamUpdated = false;
-                    events.SearchUpdated.subscribe((event) => {
+                    comps.events.SearchUpdated.subscribe((event) => {
                         searchStreamUpdated = true;
                     });
-                })
-                .catch((err: Error) => {
-                    finish(
-                        undefined,
-                        done,
-                        new Error(
-                            `Fail to create session due error: ${
-                                err instanceof Error ? err.message : err
-                            }`,
-                        ),
-                    );
-                });
         });
     });
 });

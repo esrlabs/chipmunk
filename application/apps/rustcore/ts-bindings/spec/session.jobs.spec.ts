@@ -1,5 +1,4 @@
 // tslint:disable
-
 // We need to provide path to TypeScript types definitions
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 /// <reference path="../node_modules/@types/node/index.d.ts" />
@@ -8,15 +7,16 @@ import { initLogger } from './logger';
 initLogger();
 import { Jobs, Tracker } from '../src/index';
 import { readConfigurationFile } from './config';
-import { finish, runner } from './common';
+import { finish } from './common';
 
+import * as runners from './runners';
 import * as os from 'os';
 
 const config = readConfigurationFile().get().tests.jobs;
 
 describe('Jobs', function () {
     it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 1, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const tracker = collector(await Tracker.create()) as Tracker;
             const operations: Map<string, boolean> = new Map();
@@ -61,7 +61,7 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[2], function () {
-        return runner(config.regular, 2, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 2, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             // Run 2 jobs with same sequence. One of jobs should be failed, because of sequence
             Promise.allSettled([
@@ -91,7 +91,7 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[3], function () {
-        return runner(config.regular, 3, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 3, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = os.homedir();
             jobs.listContent({
@@ -131,7 +131,7 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[4], function () {
-        return runner(config.regular, 4, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 4, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const profiles = await jobs.getShellProfiles();
             expect(profiles.length > 0).toBe(true);
@@ -140,7 +140,7 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[5], function () {
-        return runner(config.regular, 5, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 5, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const envvars = await jobs.getContextEnvvars();
             expect(envvars.size > 0).toBe(true);
@@ -150,7 +150,7 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[6], function () {
-        return runner(config.regular, 6, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 6, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = config.regular.files['someip-pcapng'];
             // test single source
@@ -241,7 +241,7 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[7], function () {
-        return runner(config.regular, 7, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 7, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = config.regular.files['sample-txt'];
             jobs.isFileBinary({
@@ -254,12 +254,12 @@ describe('Jobs', function () {
                 })
                 .catch((err: Error) => {
                     finish(jobs, done, err);
-                })
-        })
+                });
+        });
     });
 
     it(config.regular.list[8], function () {
-        return runner(config.regular, 8, async (logger, done, collector) => {
+        return runners.unbound(config.regular, 8, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             // Run sleeping, but do not wait for it
             jobs.sleep(6000).then(() => {

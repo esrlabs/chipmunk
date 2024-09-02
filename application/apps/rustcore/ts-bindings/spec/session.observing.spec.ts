@@ -1,11 +1,16 @@
+// We need to provide path to TypeScript types definitions
+/// <reference path="../node_modules/@types/jasmine/index.d.ts" />
+/// <reference path="../node_modules/@types/node/index.d.ts" />
+
 import { initLogger } from './logger';
 initLogger();
-import { finish, runner } from './common';
+import { finish } from './common';
 import { readConfigurationFile } from './config';
 import { Observer } from 'platform/env/observer';
 
 import * as $ from 'platform/types/observe';
 import * as Factory from 'platform/types/observe/factory';
+import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.observing;
 
@@ -70,7 +75,7 @@ function checkParser(observe: $.Observe, flags: { text: boolean; dlt: boolean; s
 
 describe('Platform: observing', function () {
     it(config.regular.list[1], function () {
-        return runner(config.regular, 1, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 1, async (logger, done) => {
             const entity = new Observer({
                 a: 1,
                 b: 2,
@@ -131,7 +136,7 @@ describe('Platform: observing', function () {
     });
 
     it(config.regular.list[2], function () {
-        return runner(config.regular, 2, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 2, async (logger, done) => {
             const observe = new Factory.Stream().asDlt().tcp().get();
             checkStream(observe, { udp: false, tcp: true, serial: false, process: false });
             const stream = observe.origin.as<$.Origin.Stream.Configuration>(
@@ -239,7 +244,7 @@ describe('Platform: observing', function () {
     });
 
     it(config.regular.list[3], function () {
-        return runner(config.regular, 3, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 3, async (logger, done) => {
             const observe = new Factory.File().type($.Types.File.FileType.Text).asText().get();
             checkContext(observe, { file: true, concat: false, stream: false });
             let file = observe.origin.as<$.Origin.File.Configuration>(
@@ -265,7 +270,7 @@ describe('Platform: observing', function () {
     });
 
     it(config.regular.list[4], function () {
-        return runner(config.regular, 4, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 4, async (logger, done) => {
             const observe = new Factory.File().type($.Types.File.FileType.Text).asText().get();
             checkParser(observe, { text: true, dlt: false, someip: false });
             let file = observe.origin.as<$.Origin.File.Configuration>(
@@ -294,7 +299,7 @@ describe('Platform: observing', function () {
     });
 
     it(config.regular.list[5], function () {
-        return runner(config.regular, 5, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 5, async (logger, done) => {
             const observe = new Factory.Stream().asDlt().tcp().get();
             checkStream(observe, { udp: false, tcp: true, serial: false, process: false });
             observe.subscribe(() => {
@@ -419,7 +424,7 @@ describe('Platform: observing', function () {
     });
 
     it(config.regular.list[6], function () {
-        return runner(config.regular, 6, async (logger, done, collector) => {
+        return runners.noSession(config.regular, 6, async (logger, done) => {
             const observe = new Factory.Stream().asText().serial().get();
             checkContext(observe, { file: false, concat: false, stream: true });
             const serial = observe.origin.as<$.Origin.Stream.Stream.Serial.Configuration>(
