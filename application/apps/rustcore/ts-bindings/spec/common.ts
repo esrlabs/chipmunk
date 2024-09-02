@@ -1,15 +1,9 @@
 // tslint:disable
 
-// We need to provide path to TypeScript types definitions
-/// <reference path="../node_modules/@types/jasmine/index.d.ts" />
-/// <reference path="../node_modules/@types/node/index.d.ts" />
-
 import { Jobs, Tracker, Session } from '../src/index';
 import { Logger, getLogger } from './logger';
 import { error, numToLogLevel } from 'platform/log/utils';
 import { state } from 'platform/log';
-import { IRegularTests } from './config';
-import { IPerformanceTest } from './config_benchmarks';
 
 import * as tmp from 'tmp';
 import * as fs from 'fs';
@@ -22,60 +16,6 @@ const MS_PER_SEC = 1000;
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
-
-export type ScopeInjector<T> = (s: T) => T;
-
-export function runner(
-    config: IRegularTests | IPerformanceTest,
-    id: string | number,
-    test: (
-        logger: Logger,
-        done: () => void,
-        add: ScopeInjector<Session | Tracker | Jobs>,
-    ) => Promise<void>,
-): Promise<void> {
-    const scope: Array<Session | Tracker | Jobs> = [];
-    const injector: ScopeInjector<Session | Tracker | Jobs> = (obj: Session | Tracker | Jobs) => {
-        scope.push(obj);
-        return obj;
-    };
-
-    let name: string;
-    let shouldExecute = true;
-
-    if ('list' in config) {
-        // Handling IRegularTests
-        name = config.list[id];
-        shouldExecute = config.execute_only.length === 0 || config.execute_only.includes(typeof id === 'number' ? id : parseInt(id, 10));
-    } else if ('alias' in config) {
-        // Handling IPerformanceTest
-        name = config.alias;
-        shouldExecute = !config.ignore;
-    } else {
-        // Log the type of config received
-        console.error('Invalid configuration passed to runner. Config:', config);
-        return Promise.reject(new Error('Invalid configuration passed to runner'));
-    }
-
-    const logger = getLogger(name);
-
-    if (!shouldExecute) {
-        console.log(`\nIgnored: ${name}`);
-        return Promise.resolve();
-    } else {
-        console.log(`\nStarted: ${name}`);
-    }
-
-    return new Promise((done) => {
-        try {
-            test(logger, done, injector).catch((err: Error) => {
-                finish(scope, done, err);
-            });
-        } catch (err) {
-            finish(scope, done, new Error(error(err)));
-        }
-    });
-}
 
 export function readConfigFile<T>(filenameEnvVar: string, defaultPaths: string[]): T | Error {
     const defaults = (() => {
@@ -298,7 +238,6 @@ export function performanceReport(
     } else {
         output(`Missing necessary environment variables for file path.`);
     }
-
 
     return actual <= expectation;
 }

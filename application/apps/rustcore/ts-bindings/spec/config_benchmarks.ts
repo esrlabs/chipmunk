@@ -13,11 +13,7 @@ export interface IPerformanceTest {
 export interface IConfiguration {
     log_level: number;
     tests: {
-        benchmark: {
-            performance: {
-                tests: { [key: string]: IPerformanceTest };
-            };
-        };
+        benchmark: { [key: string]: IPerformanceTest };
     };
 }
 
