@@ -39,8 +39,6 @@ impl std::fmt::Display for RawMessage {
 }
 
 impl LogMessage for RangeMessage {
-    const CAN_ERROR: bool = false;
-
     /// A RangeMessage only has range information and cannot serialize to bytes
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         writer.write_u64::<BigEndian>(self.range.start as u64)?;
@@ -48,21 +46,19 @@ impl LogMessage for RangeMessage {
         Ok(8 + 8)
     }
 
-    fn to_text(&self) -> crate::ToTextResult {
+    fn try_resolve(&self) -> crate::LogMessageContent {
         self.into()
     }
 }
 
 impl LogMessage for RawMessage {
-    const CAN_ERROR: bool = false;
-
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         let len = self.content.len();
         writer.write_all(&self.content)?;
         Ok(len)
     }
 
-    fn to_text(&self) -> crate::ToTextResult {
+    fn try_resolve(&self) -> crate::LogMessageContent {
         self.into()
     }
 }

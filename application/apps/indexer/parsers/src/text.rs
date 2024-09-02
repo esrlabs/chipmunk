@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseYield, Parser, ToTextResult};
+use crate::{Error, LogMessage, LogMessageContent, ParseYield, Parser};
 use serde::Serialize;
 use std::{fmt, io::Write};
 
@@ -16,15 +16,13 @@ impl fmt::Display for StringMessage {
 }
 
 impl LogMessage for StringMessage {
-    const CAN_ERROR: bool = false;
-
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         let len = self.content.len();
         writer.write_all(self.content.as_bytes())?;
         Ok(len)
     }
 
-    fn to_text(&self) -> ToTextResult {
+    fn try_resolve(&self) -> LogMessageContent {
         self.into()
     }
 }

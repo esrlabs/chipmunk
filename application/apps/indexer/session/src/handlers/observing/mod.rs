@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     operations::{OperationAPI, OperationResult},
-    parse_err::{get_log_text, ParseErrorReslover},
+    parse_rest_resolver::{resolve_log_msg, ParseRestReslover},
     state::SessionStateAPI,
     tail,
 };
@@ -78,7 +78,7 @@ async fn run_source_intern<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
-    let mut parse_err_resolver = ParseErrorReslover::new();
+    let mut parse_err_resolver = ParseRestReslover::new();
     match parser {
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
@@ -119,6 +119,7 @@ async fn run_source_intern<S: ByteSource>(
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);
+
             let someip_parse = match &settings.fibex_file_paths {
                 Some(paths) => {
                     SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
@@ -126,6 +127,7 @@ async fn run_source_intern<S: ByteSource>(
                 None => SomeipParser::new(),
             };
             parse_err_resolver.with_someip_parser(someip_parse);
+
             run_producer(
                 operation_api,
                 state,
@@ -145,7 +147,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     source_id: u16,
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
-    parse_err_resolver: &mut ParseErrorReslover,
+    parse_err_resolver: &mut ParseRestReslover,
 ) -> OperationResult<()> {
     use log::debug;
     state.set_session_file(None).await?;
@@ -173,7 +175,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
             Next::Item(item) => {
                 match item {
                     MessageStreamItem::Item(ParseYield::Message(item)) => {
-                        let msg = get_log_text(item, parse_err_resolver);
+                        let msg = resolve_log_msg(item, parse_err_resolver);
                         state
                             .write_session_file(source_id, format!("{msg}\n"))
                             .await?;
@@ -182,7 +184,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         item,
                         attachment,
                     ))) => {
-                        let msg = get_log_text(item, parse_err_resolver);
+                        let msg = resolve_log_msg(item, parse_err_resolver);
                         state
                             .write_session_file(source_id, format!("{msg}\n"))
                             .await?;

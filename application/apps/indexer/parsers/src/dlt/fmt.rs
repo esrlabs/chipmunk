@@ -32,7 +32,7 @@ use std::{
     str,
 };
 
-use crate::{LogMessage, ParseLogError, ResolveErrorHint, ToTextResult};
+use crate::{LogMessage, LogMessageContent, ResolveParseHint, TemplateLogMsg, TemplateLogMsgChunk};
 
 const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
@@ -538,8 +538,6 @@ impl<'a> FormattableMessage<'a> {
 }
 
 impl LogMessage for FormattableMessage<'_> {
-    const CAN_ERROR: bool = true;
-
     fn to_writer<W: std::io::Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         let bytes = self.message.as_bytes();
         let len = bytes.len();
@@ -563,7 +561,7 @@ impl LogMessage for FormattableMessage<'_> {
     /// context-id
     ///
     /// payload
-    fn to_text(&self) -> ToTextResult {
+    fn try_resolve(&self) -> LogMessageContent {
         let mut msg = String::new();
         // Taken from Documentation: string formatting is considered an infallible operation.
         // Thus we can ignore `fmt::Error` errors.
@@ -623,12 +621,14 @@ impl LogMessage for FormattableMessage<'_> {
 
                 if is_someip {
                     if let Some(slice) = slices.get(1) {
-                        let err = ParseLogError::new(
-                            slice.to_owned(),
-                            crate::ParseErrorType::Other("Need Some IP".into()),
-                            Some(ResolveErrorHint::SomeIP),
+                        let template = TemplateLogMsg::new(
+                            vec![
+                                TemplateLogMsgChunk::Text(msg),
+                                TemplateLogMsgChunk::Bytes(slice.to_owned()),
+                            ],
+                            vec![ResolveParseHint::SomeIP],
                         );
-                        return ToTextResult::new(msg, Some(err));
+                        return LogMessageContent::Template(template);
                     }
                 }
 
