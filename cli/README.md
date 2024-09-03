@@ -70,7 +70,7 @@ Arguments:
           - wrapper: Represents the path `application/apps/rustcore/ts-bindings`
           - wasm:    Represents the path `application/apps/rustcore/wasm-bindings`
           - client:  Represents the path `application/client`
-          - updater: Represents the path `application/apps/precompiled/updater
+          - updater: Represents the path `application/apps/precompiled/updater`
           - app:     Represents the path `application/holder`
           - cli:     Represents the path `cli`
 

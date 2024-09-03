@@ -3,10 +3,11 @@ name: LintMaster
 on:
   push:
     branches:
-      - master # Push events on master branch
+      - master
+      - issue_2083
 
 jobs:
-  ts_lint:
+  rust_and_ts_lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,26 +16,46 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libudev-dev
-      - name: install ruby
-        uses: ruby/setup-ruby@v1
+      - name: install node
+        uses: actions/setup-node@master
         with:
-          ruby-version: "3.0"
-          bundler-cache: true
-      - name: install ruby:gem::dotenv
-        run: gem install dotenv
-      - name: install ruby:gem::json
-        run: gem install json
-      - uses: actions-rs/toolchain@v1
+          node-version: "current"
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+      - name: Cache Rust dependencies and CLI tool
+        id: cache-cargo
+        uses: Swatinem/rust-cache@v2.7.3
+        with:
+          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.toml', 'cli/Cargo.lock') }}
+          cache-targets: true
+          cache-all-crates: "true"
+      - name: Install nj-cli
+        run: cargo install nj-cli
       - name: enable corepack for yarnpkg upgrade
         run: corepack enable
+      - name: Install Build CLI tool
+        if: steps.cache-cargo.outputs.cache-hit != 'true'
+        run: |
+          echo ${{steps.cache-cargo.outputs}}
+          cargo install --path=cli
+      - name: install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: JS/TS linting
-        run: rake lint:js
-      - name: typescript checking
-        run: rake tsc
-  rust_lint:
+        run: cargo chipmunk lint -u print
+      - name: TypeScript Check - Client Application
+        working-directory: application/client
+        run: yarn run check
+      - name: TypeScript Check - Holder Application
+        working-directory: application/holder
+        run: yarn run check
+      - name: TypeScript Check - Platform Application
+        working-directory: application/platform
+        run: yarn run check
+
+  integration_and_unit_tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,62 +64,32 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libudev-dev
-      - name: install ruby
-        uses: ruby/setup-ruby@v1
+      - name: install node
+        uses: actions/setup-node@master
         with:
-          ruby-version: "3.0"
-          bundler-cache: true
-      - name: install ruby:gem::dotenv
-        run: gem install dotenv
-      - name: install ruby:gem::json
-        run: gem install json
-      - uses: actions-rs/toolchain@v1
+          node-version: "current"
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
-      - name: Rust linting
-        run: rake lint:rust
-  integration_tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: libudev-dev
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libudev-dev
-      - name: install ruby
-        uses: ruby/setup-ruby@v1
+      - name: Cache Rust dependencies and CLI tool
+        id: cache-cargo
+        uses: Swatinem/rust-cache@v2.7.3
         with:
-          ruby-version: "3.0"
-          bundler-cache: true
-      - name: install ruby:gem::dotenv
-        run: gem install dotenv
-      - name: install ruby:gem::json
-        run: gem install json
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.toml', 'cli/Cargo.lock') }}
+          cache-targets: true
+          cache-all-crates: "true"
+      - name: Install nj-cli
+        run: cargo install nj-cli
       - name: enable corepack for yarnpkg upgrade
         run: |
           npm install tslib
           corepack enable
-      - name: Run integration tests
-        run: rake test:js
-  unit_tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: libudev-dev
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libudev-dev
-      - name: install ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.0"
-          bundler-cache: true
-      - name: Run unit tests on indexer
-        run: rake test:rust
+      - name: Install Build CLI tool
+        if: steps.cache-cargo.outputs.cache-hit != 'true'
+        run: cargo install --path=cli
+      - name: install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Execute tests
+        run: cargo chipmunk test core wrapper wasm -u print
