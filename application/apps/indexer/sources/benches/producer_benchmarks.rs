@@ -5,6 +5,8 @@ async fn produce(val: usize, val_2: usize) {
     assert_eq!(val, val_2);
 }
 
+mod mocks;
+
 fn producer_benchmark(c: &mut Criterion) {
     let val = 1024;
 
