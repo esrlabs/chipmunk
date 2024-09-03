@@ -1,12 +1,11 @@
 use std::fmt::Display;
 
-use parsers::{LogMessage, Parser};
+use criterion::black_box;
+use parsers::{Attachment, LogMessage, Parser};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy)]
 pub struct MockParser {
-    /// Sets how much bytes each call of [`Parser::parse()`] should consume.
-    consume: usize,
     /// Sets how many times the method [`Parser::parse()`] will be called before it'll return None.
     max_count: usize,
     /// Internal counter to keep track how many times [`Parser::parse()`] has been called.
@@ -15,12 +14,9 @@ pub struct MockParser {
 
 impl MockParser {
     /// Creates new instance of the mock parser with the given settings.
-    ///
-    /// * `consume`: Sets how much bytes each call of [`Parser::parse()`] should consume.
     /// * `max_count`: Sets how many times the method [`Parser::parse()`] will be called before it'll return None.
-    pub fn new(consume: usize, max_count: usize) -> Self {
+    pub const fn new(max_count: usize) -> Self {
         Self {
-            consume,
             max_count,
             counter: 0,
         }
@@ -50,34 +46,84 @@ impl LogMessage for MockMessage {
     }
 }
 
-impl MockMessage {
-    pub fn new(msg: String) -> Self {
-        Self { content: msg }
-    }
-}
-
-impl From<String> for MockMessage {
-    fn from(value: String) -> Self {
-        Self::new(value)
-    }
-}
-
+// NOTE: Methods within trait implementation have inner non-async function that should never be
+// inline and the trait method should be always inline. This reduces the noise in the benchmarks.
 impl Parser<MockMessage> for MockParser {
+    /// This will keep returning a valid item result until the counter reaches max count then it
+    /// will be return [`parsers::Error::Eof`]
     fn parse<'a>(
         &mut self,
         input: &'a [u8],
-        _timestamp: Option<u64>,
+        timestamp: Option<u64>,
     ) -> Result<(&'a [u8], Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
-        if self.counter >= self.max_count {
-            return Err(parsers::Error::Eof);
+        #[inline(never)]
+        fn inner(
+            counter: usize,
+            max_count: usize,
+            input: &[u8],
+            _timestamp: Option<u64>,
+        ) -> Result<(&'static [u8], Option<parsers::ParseYield<MockMessage>>), parsers::Error>
+        {
+            // Return `Eof` Once the counter reaches max_count.
+            if counter >= max_count {
+                const ERR: parsers::Error = parsers::Error::Eof;
+
+                return Err(criterion::black_box(ERR));
+            }
+
+            // Unnecessary check to convince the compiler that we are using the input.
+            if input.is_empty() {
+                return Err(black_box(parsers::Error::Eof));
+            }
+
+            const MSG: &str = "msg";
+
+            // Unnecessary checks to convince the compiler that all return options are possible.
+            if black_box(50) > black_box(60) {
+                Err(parsers::Error::Incomplete)
+            } else if black_box(50) > black_box(0) {
+                // Only this value will be always returned if the calls counter still smaller than
+                // the max value.
+                Ok((
+                    black_box(&[]),
+                    Some(parsers::ParseYield::Message(MockMessage {
+                        content: black_box(MSG).into(),
+                    })),
+                ))
+            } else if black_box(20) > black_box(30) {
+                Ok((
+                    black_box(&[]),
+                    Some(parsers::ParseYield::Attachment(Attachment {
+                        size: black_box(10),
+                        name: String::from(black_box(MSG)),
+                        data: Vec::new(),
+                        messages: Vec::new(),
+                        created_date: None,
+                        modified_date: None,
+                    })),
+                ))
+            } else {
+                Ok((
+                    black_box(&[]),
+                    Some(parsers::ParseYield::MessageAndAttachment((
+                        MockMessage {
+                            content: black_box(MSG).into(),
+                        },
+                        Attachment {
+                            size: black_box(10),
+                            name: String::from(black_box(MSG)),
+                            data: Vec::new(),
+                            messages: Vec::new(),
+                            created_date: None,
+                            modified_date: None,
+                        },
+                    ))),
+                ))
+            }
         }
+
         self.counter += 1;
 
-        let msg = String::from_utf8_lossy(&input[..self.consume]).to_string();
-
-        Ok((
-            &input[..self.consume],
-            Some(parsers::ParseYield::Message(msg.into())),
-        ))
+        inner(self.counter, self.max_count, input, timestamp)
     }
 }

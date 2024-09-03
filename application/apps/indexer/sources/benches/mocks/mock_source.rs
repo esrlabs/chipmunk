@@ -1,58 +1,79 @@
-use std::iter;
-
-use async_trait::async_trait;
-use sources::{ByteSource, ReloadInfo};
+use criterion::black_box;
+use sources::ByteSource;
 
 #[derive(Debug, Clone)]
-pub struct MockByteSource {
-    /// Represent the bytes that will be repeated to fill the internal buffer
-    data_sample: u8,
-    /// Sets how many bytes will be loaded into the internal buffer on each
-    /// [`ByteSource::reload()`] call.
-    load_amount: usize,
-    /// The internal buffer
-    buffer: Vec<u8>,
-}
+pub struct MockByteSource {}
 
 impl MockByteSource {
-    /// Creates a new instant of [`MockByteSource`]
-    ///
-    /// * `data_sample`: Represent the bytes that will be repeated to fill the internal buffer
-    /// * `load_amount`: Sets how many bytes will be loaded into the internal buffer on
-    /// each [`ByteSource::reload()`] call.
-    pub fn new(data_sample: u8, load_amount: usize) -> Self {
-        Self {
-            data_sample,
-            load_amount,
-            buffer: Vec::new(),
-        }
+    pub fn new() -> Self {
+        Self {}
     }
 }
 
-#[async_trait]
+// NOTE: Methods within trait implementation have inner non-async function that should never be
+// inline and the trait method should be always inline. This remove unnecessary `Future::poll()`
+// calls from the runtime to reduce its noise.
+
 impl ByteSource for MockByteSource {
+    #[inline(always)]
     fn consume(&mut self, offset: usize) {
-        self.buffer
-            .truncate(self.buffer.len().checked_sub(offset).unwrap())
+        #[inline(never)]
+        fn inner(offset: usize) {
+            const ZERO: usize = 0;
+
+            if offset == black_box(ZERO) {
+                println!("Random message to make sure the compiler won't optimize this");
+            }
+        }
+
+        inner(offset);
     }
 
+    #[inline(always)]
     fn current_slice(&self) -> &[u8] {
-        &self.buffer
+        #[inline(never)]
+        fn inner(_phantom: &MockByteSource) -> &[u8] {
+            black_box({
+                const BYTES: [u8; 3] = [b'a', b's', b'a'];
+                const REF: &[u8] = &BYTES;
+
+                REF
+            })
+        }
+
+        inner(self)
     }
 
+    #[inline(always)]
     fn len(&self) -> usize {
-        self.buffer.len()
+        #[inline(never)]
+        fn inner() -> usize {
+            const LEN: usize = 3;
+
+            black_box(LEN)
+        }
+
+        inner()
     }
 
+    #[inline(always)]
     async fn reload(
         &mut self,
         _filter: Option<&sources::SourceFilter>,
     ) -> Result<Option<sources::ReloadInfo>, sources::Error> {
-        self.buffer
-            .extend(iter::repeat(self.data_sample).take(self.load_amount));
+        #[inline(never)]
+        fn inner() -> Result<Option<sources::ReloadInfo>, sources::Error> {
+            const AA: Result<Option<sources::ReloadInfo>, sources::Error> =
+                Ok(Some(sources::ReloadInfo {
+                    available_bytes: 5,
+                    newly_loaded_bytes: 5,
+                    skipped_bytes: 0,
+                    last_known_ts: None,
+                }));
 
-        let info = ReloadInfo::new(self.load_amount, self.len(), 0, None);
+            black_box(AA)
+        }
 
-        Ok(Some(info))
+        inner()
     }
 }

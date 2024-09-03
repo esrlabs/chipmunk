@@ -1,6 +1,5 @@
-// TODO AAZ: Write better comment.
-// This can't be used with benchmarks for now until issue "https://github.com/rust-lang/rust/issues/129637" is resolved.
-// #![deny(unused_crate_dependencies)]
+// Rust can't currently distinguish between dev and none-dev dependencies at the moment. There is
+// an open issue for this case: "https://github.com/rust-lang/rust/issues/129637"
 
 use thiserror::Error;
 
