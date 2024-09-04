@@ -11,6 +11,7 @@ extern crate log;
 pub mod binary;
 pub mod command;
 pub mod factory;
+pub mod plugins;
 pub mod producer;
 pub mod sde;
 pub mod serial;
@@ -85,7 +86,7 @@ pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 /// data into an internal buffer.
 /// This data can then be accessed via the `current_slice` method.
 #[async_trait]
-pub trait ByteSource: Send + Sync {
+pub trait ByteSource: Send {
     /// Indicate that we have consumed a certain amount of data from our internal
     /// buffer and that this part can be discarded
     fn consume(&mut self, offset: usize);

@@ -1,5 +1,11 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
-use std::{borrow::Cow, fmt, fmt::Display, io::Write, path::PathBuf};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display},
+    io::Write,
+    iter,
+    path::PathBuf,
+};
 
 use someip_messages::*;
 use someip_payload::{
@@ -49,81 +55,82 @@ unsafe impl Send for SomeipParser {}
 unsafe impl Sync for SomeipParser {}
 
 impl Parser<SomeipLogMessage> for SomeipParser {
-    fn parse<'a>(
+    fn parse(
         &mut self,
-        input: &'a [u8],
+        input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> impl IntoIterator<Item = Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error>> + Send
+    {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
                 let len = header.message_len();
                 debug!("at {} : SD Message ({} bytes)", time, len);
-                Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         sd_message_string(&header, &payload),
                         input[..len].to_vec(),
                     ))),
-                ))
+                )))
             }
 
             Ok(Message::Rpc(header, payload)) => {
                 let len = header.message_len();
                 debug!("at {} : RPC Message ({:?} bytes)", time, len);
-                Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         rpc_message_string(&header, &payload, &self.model),
                         input[..len].to_vec(),
                     ))),
-                ))
+                )))
             }
 
             Ok(Message::CookieClient) => {
                 let len = Header::LENGTH;
                 debug!("at {} : MCC Message", time);
-                Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         String::from("MCC"), // Magic-Cookie-Client
                         input[..len].to_vec(),
                     ))),
-                ))
+                )))
             }
 
             Ok(Message::CookieServer) => {
                 let len = Header::LENGTH;
                 debug!("at {} : MCS Message", time);
-                Ok((
+                iter::once(Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     Some(ParseYield::from(SomeipLogMessage::from(
                         String::from("MCS"), // Magic-Cookie-Server
                         input[..len].to_vec(),
                     ))),
-                ))
+                )))
             }
 
             Err(e) => {
                 let msg = e.to_string();
                 error!("at {} : {}", time, msg);
-                Err(Error::Parse(msg))
+                iter::once(Err(Error::Parse(msg)))
             }
         }
     }
@@ -407,9 +414,14 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str("MCC", &format!("{}", item));
@@ -428,9 +440,14 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_str("MCS", &format!("{}", item));
@@ -449,9 +466,14 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32772|8|1|2|1|2|0|Bytes: []"#;
 
@@ -474,9 +496,14 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32772|8|1|2|1|2|0|TestService::emptyEvent "#;
 
@@ -498,9 +525,14 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32773|10|1|2|1|2|0|Bytes: [01, 02]"#;
 
@@ -524,9 +556,14 @@ mod test {
         let model = test_model();
 
         let mut parser = SomeipParser { model: Some(model) };
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"RPC|259|32773|10|1|2|1|2|0|TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}"#;
 
@@ -550,9 +587,14 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"SD|65535|33024|20|0|0|1|2|0|Flags: [C0]"#;
 
@@ -592,9 +634,14 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
+        let (consumed, message) = parser
+            .parse(input, None)
+            .into_iter()
+            .next()
+            .unwrap()
+            .unwrap();
 
-        assert!(output.is_empty());
+        assert_eq!(consumed, input.len());
 
         let expected = r#"SD|65535|33024|64|0|0|1|2|0|Flags: [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000"#;
 

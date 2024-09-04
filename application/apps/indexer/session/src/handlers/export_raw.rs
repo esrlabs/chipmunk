@@ -12,6 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem,
 };
+use plugins_host::PluginParser;
 use processor::export::{export_raw, ExportError};
 use sources::{
     binary::{
@@ -138,6 +139,27 @@ async fn export<S: ByteSource>(
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, NativeError> {
     match parser {
+        ParserType::Plugin(settings) => {
+            println!("------------------------------------------------------");
+            println!("-------------    WASM parser used    -----------------");
+            println!("------------------------------------------------------");
+            let parser = PluginParser::create(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.custom_config_path.as_ref(),
+            )
+            .await?;
+            let mut producer = MessageProducer::new(parser, source, None);
+            export_runner(
+                Box::pin(producer.as_stream()),
+                dest,
+                sections,
+                read_to_end,
+                false,
+                cancel,
+            )
+            .await
+        }
         ParserType::SomeIp(settings) => {
             let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
                 SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
@@ -199,7 +221,7 @@ pub async fn export_runner<S, T>(
 ) -> Result<Option<usize>, NativeError>
 where
     T: LogMessage + Sized,
-    S: futures::Stream<Item = (usize, MessageStreamItem<T>)> + Unpin,
+    S: futures::Stream<Item = Vec<(usize, MessageStreamItem<T>)>> + Unpin,
 {
     export_raw(s, dest, sections, read_to_end, text_file, cancel)
         .await
