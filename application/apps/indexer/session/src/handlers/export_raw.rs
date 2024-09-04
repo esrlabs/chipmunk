@@ -144,7 +144,7 @@ async fn export<S: ByteSource>(
             } else {
                 SomeipParser::new()
             };
-            let mut producer = MessageProducer::new(parser, source, None);
+            let mut producer = MessageProducer::new(parser, source, Vec::new(), None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,
@@ -163,7 +163,7 @@ async fn export<S: ByteSource>(
                 fmt_options.as_ref(),
                 settings.with_storage_header,
             );
-            let mut producer = MessageProducer::new(parser, source, None);
+            let mut producer = MessageProducer::new(parser, source, Vec::new(), None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,
@@ -175,7 +175,7 @@ async fn export<S: ByteSource>(
             .await
         }
         ParserType::Text => {
-            let mut producer = MessageProducer::new(StringTokenizer {}, source, None);
+            let mut producer = MessageProducer::new(StringTokenizer {}, source, Vec::new(), None);
             export_runner(
                 Box::pin(producer.as_stream()),
                 dest,
