@@ -11,6 +11,10 @@ use crate::tracker::get_tracker;
 /// Duration to wait for jobs when cancellation is invoked.
 pub const TIMEOUT_DURATION: Duration = Duration::from_secs(2);
 
+/// Duration to wait after starting the shutdown process, to force the program to exit if it's
+/// still active after the given has passed.
+pub const FORCE_EXIT_DURATION: Duration = Duration::from_secs(2);
+
 /// [`JobsState`] singleton
 static JOBS_STATE: OnceLock<JobsState> = OnceLock::new();
 
@@ -63,7 +67,14 @@ impl JobsState {
         &self.task_tracker
     }
 
-    /// Closes the tasks trackers and waits for spawned jobs to exit gracefully within the [`TIMEOUT_DURATION`]
+    /// Closes the tasks trackers and waits for spawned jobs to exit gracefully within
+    /// the [`TIMEOUT_DURATION`].
+    ///
+    /// # Note:
+    ///
+    /// This function will spawn another thread to close the program immediately if graceful
+    /// shutdown has failed, which will wait for [`FORCE_EXIT_DURATION`] then forces the program
+    /// to exit.
     pub async fn graceful_shutdown(&self) {
         self.task_tracker.close();
 
@@ -71,8 +82,25 @@ impl JobsState {
             .await
             .is_err()
         {
+            // If task_tracker fails to close here, then it could a dead-lock or another undefined
+            // behavior while closing the running commands.
+            // In this case we wait on other OS thread for couple seconds then force everything
+            // to shutdown.
+            std::thread::spawn(|| {
+                eprintln!();
+                eprintln!("Graceful shutdown failed, trying to close the app...");
+                std::thread::sleep(FORCE_EXIT_DURATION);
+                // Exit the app with error signal
+                eprintln!("Forcing the program to exit...");
+                std::process::exit(1)
+            });
+
             let tracker = get_tracker();
             tracker.print("Graceful shutdown timed out");
+            tracker.print(format!(
+                "Forcing close in {} seconds...",
+                FORCE_EXIT_DURATION.as_secs()
+            ));
         }
     }
 
