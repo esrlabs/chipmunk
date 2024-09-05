@@ -118,6 +118,9 @@ cargo chipmunk shell-completion bash > chipmunk-completion.bash
 ```
 Next, copy the chipmunk-completion.bash file to your bash completion directory (typically  ~/.bash_completion.d/ or /etc/bash_completion.d/).
 
+## Changelogs:
+
+Changelogs can be found [here](CHANGELOG.md)
 
 ## Contributing
 
