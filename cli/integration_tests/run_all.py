@@ -12,6 +12,7 @@ from lint import run_lint_command
 from print_dot import run_print_dot_commands
 from shell_compl import run_shell_completion_commands
 from test_cmd import run_test_command
+from release import run_release_command
 
 
 def run_all():
@@ -55,6 +56,14 @@ def run_all():
         run_test_command()
     except Exception:
         print_err("Test")
+        raise
+    print_separator()
+
+    ### Release ###
+    try:
+        run_release_command()
+    except Exception:
+        print_err("Release")
         raise
     print_separator()
 
