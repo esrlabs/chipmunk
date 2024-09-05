@@ -150,16 +150,10 @@ async fn main_process(command: Command) -> Result<(), Error> {
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
             (JobType::Run { production }, results)
         }
-        Command::ResetChecksum { production } => {
-            ChecksumRecords::remove_records_file(production)?;
-            println!(
-                "Checksum-Records for {} has been reset",
-                if production {
-                    "production"
-                } else {
-                    "development"
-                }
-            );
+        Command::ResetChecksum => {
+            ChecksumRecords::remove_records_file(false)?;
+            ChecksumRecords::remove_records_file(true)?;
+            println!("Checksum-Records for development and production has been reset",);
 
             return Ok(());
         }
