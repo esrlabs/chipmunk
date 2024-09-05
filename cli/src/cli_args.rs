@@ -137,11 +137,7 @@ pub enum Command {
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.
     #[clap(visible_alias = "reset")]
-    ResetChecksum {
-        /// Reset release records
-        #[arg(short, long, default_value_t = false)]
-        production: bool,
-    },
+    ResetChecksum,
     /// Generate shell completion for the commands of this tool in the given shell,
     /// printing them to stdout.
     #[clap(visible_alias = "compl")]
