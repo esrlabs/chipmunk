@@ -99,7 +99,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            JobsState::init(fail_fast);
+            JobsState::init(fail_fast, false);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -112,7 +112,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            JobsState::init(fail_fast);
+            JobsState::init(fail_fast, false);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -120,7 +120,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             (JobType::Build { production }, results)
         }
         Command::Clean { target, ui_mode } => {
-            JobsState::init(false);
+            JobsState::init(false, false);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -133,7 +133,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            JobsState::init(fail_fast);
+            JobsState::init(fail_fast, false);
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -144,7 +144,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             no_fail_fast,
         } => {
-            JobsState::init(!no_fail_fast);
+            JobsState::init(!no_fail_fast, false);
             init_tracker(Default::default());
             resolve_dev_tools()?;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
@@ -173,7 +173,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             development,
         } => {
-            JobsState::init(fail_fast);
+            JobsState::init(fail_fast, true);
             let ui_mode = if verbose {
                 UiMode::PrintImmediately
             } else {

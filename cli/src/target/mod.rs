@@ -16,6 +16,7 @@ use crate::{
     location::get_root,
     spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
     tracker::get_tracker,
+    JobsState,
 };
 
 use target_kind::TargetKind;
@@ -520,31 +521,32 @@ impl Target {
         // But to prepare a package for production, you have to remove dev-dependencies.
         // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
         // and before copy it, we have to reinstall it to get rid of dev-dependencies.
-        let reinstall_res = if prod && matches!(self.kind(), TargetKind::Ts) {
-            let node_path = self.cwd().join("node_modules");
-            let remove_log = format!("removing directory {}", node_path.display());
+        let reinstall_res =
+            if JobsState::get().is_app_release() && prod && matches!(self.kind(), TargetKind::Ts) {
+                let node_path = self.cwd().join("node_modules");
+                let remove_log = format!("removing directory {}", node_path.display());
 
-            if let Err(err) = fstools::rm_folder(job_def, &node_path) {
-                return Some(Err(err));
-            }
-
-            match self.install(true, false, Some(job_type)).await {
-                Some(Ok(mut spawn_res)) => {
-                    spawn_res.report.insert(0, remove_log);
-
-                    // Return early if the reinstall command fails
-                    if !spawn_res.status.success() {
-                        return Some(Ok(spawn_res));
-                    }
-
-                    Some(spawn_res)
+                if let Err(err) = fstools::rm_folder(job_def, &node_path) {
+                    return Some(Err(err));
                 }
-                Some(Err(err)) => return Some(Err(err)),
-                None => None,
-            }
-        } else {
-            None
-        };
+
+                match self.install(true, false, Some(job_type)).await {
+                    Some(Ok(mut spawn_res)) => {
+                        spawn_res.report.insert(0, remove_log);
+
+                        // Return early if the reinstall command fails
+                        if !spawn_res.status.success() {
+                            return Some(Ok(spawn_res));
+                        }
+
+                        Some(spawn_res)
+                    }
+                    Some(Err(err)) => return Some(Err(err)),
+                    None => None,
+                }
+            } else {
+                None
+            };
 
         let after_res = match self {
             Target::Binding => binding::copy_index_node(job_def).await,
