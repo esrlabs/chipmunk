@@ -22,21 +22,23 @@ pub struct JobsState {
     cancellation_token: CancellationToken,
     task_tracker: TaskTracker,
     fail_fast: bool,
+    is_app_release: bool,
 }
 
 impl JobsState {
-    fn new(fail_fast: bool) -> Self {
+    fn new(fail_fast: bool, is_app_release: bool) -> Self {
         Self {
             cancellation_token: CancellationToken::new(),
             task_tracker: TaskTracker::new(),
             fail_fast,
+            is_app_release,
         }
     }
 
     /// Provides a reference for [`JobsState`] struct, initializing it with default values
     /// if not initializing before.
     pub fn get() -> &'static JobsState {
-        JOBS_STATE.get_or_init(|| JobsState::new(false))
+        JOBS_STATE.get_or_init(|| JobsState::new(false, false))
     }
 
     /// Initialize jobs state struct setting the fail fast option
@@ -44,9 +46,9 @@ impl JobsState {
     /// # Panics
     /// This function panics if [`JobsState`] already have been initialized or retrieved
     /// before the function call
-    pub fn init(fail_fast: bool) {
+    pub fn init(fail_fast: bool, is_app_release: bool) {
         JOBS_STATE
-            .set(JobsState::new(fail_fast))
+            .set(JobsState::new(fail_fast, is_app_release))
             .expect("Jobs state can't be initialized twice");
     }
 
@@ -79,5 +81,10 @@ impl JobsState {
     /// contain a value before.
     pub fn fail_fast(&self) -> bool {
         self.fail_fast
+    }
+
+    /// Gets if the jobs are running to build and bundles a release of Chipmunk.
+    pub fn is_app_release(&self) -> bool {
+        self.is_app_release
     }
 }
