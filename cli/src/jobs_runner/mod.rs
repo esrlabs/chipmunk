@@ -167,7 +167,7 @@ fn spawn_jobs(
             continue;
         }
 
-        let skip = if job_def.job_type.is_part_of_build() && !jobs_state.is_app_release() {
+        let skip = if job_def.job_type.can_be_skipped() && !jobs_state.is_release_build() {
             // Skip if any prequel job of this target has failed
             if failed_jobs.contains(&job_def.target) {
                 true

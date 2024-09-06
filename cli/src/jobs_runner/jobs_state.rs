@@ -13,7 +13,7 @@ pub const TIMEOUT_DURATION: Duration = Duration::from_secs(2);
 
 /// Duration to wait after starting the shutdown process, to force the program to exit if it's
 /// still active after the given has passed.
-pub const FORCE_EXIT_DURATION: Duration = Duration::from_secs(2);
+pub const FORCE_EXIT_DURATION: Duration = Duration::from_secs(3);
 
 /// [`JobsState`] singleton
 static JOBS_STATE: OnceLock<JobsState> = OnceLock::new();
@@ -26,7 +26,7 @@ pub struct JobsState {
     cancellation_token: CancellationToken,
     task_tracker: TaskTracker,
     fail_fast: bool,
-    is_app_release: bool,
+    is_release_build: bool,
 }
 
 impl JobsState {
@@ -35,7 +35,7 @@ impl JobsState {
             cancellation_token: CancellationToken::new(),
             task_tracker: TaskTracker::new(),
             fail_fast,
-            is_app_release,
+            is_release_build: is_app_release,
         }
     }
 
@@ -82,8 +82,8 @@ impl JobsState {
             .await
             .is_err()
         {
-            // If task_tracker fails to close here, then it could a dead-lock or another undefined
-            // behavior while closing the running commands.
+            // If task_tracker fails to close here, then it could be a dead-lock or another
+            // undefined behavior while closing the running commands.
             // In this case we wait on other OS thread for couple seconds then force everything
             // to shutdown.
             std::thread::spawn(|| {
@@ -111,8 +111,8 @@ impl JobsState {
         self.fail_fast
     }
 
-    /// Gets if the jobs are running to build and bundles a release of Chipmunk.
-    pub fn is_app_release(&self) -> bool {
-        self.is_app_release
+    /// Determines whether jobs are currently running to build and bundle a release of Chipmunk.
+    pub fn is_release_build(&self) -> bool {
+        self.is_release_build
     }
 }

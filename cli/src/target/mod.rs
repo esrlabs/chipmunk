@@ -522,7 +522,8 @@ impl Target {
         // That's not an issue, if npm-package is published in npmjs; but we are coping packages manually in a right destination
         // and before copy it, we have to reinstall it to get rid of dev-dependencies.
         let reinstall_res =
-            if JobsState::get().is_app_release() && prod && matches!(self.kind(), TargetKind::Ts) {
+            if JobsState::get().is_release_build() && prod && matches!(self.kind(), TargetKind::Ts)
+            {
                 let node_path = self.cwd().join("node_modules");
                 let remove_log = format!("removing directory {}", node_path.display());
 
