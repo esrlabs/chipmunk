@@ -1,8 +1,6 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
-use async_trait::async_trait;
-
 use crate::sde;
 use crate::ByteSource;
 use crate::Error;
@@ -56,7 +54,6 @@ impl MockReloadSeed {
     }
 }
 
-#[async_trait]
 impl ByteSource for MockByteSource {
     fn consume(&mut self, offset: usize) {
         assert!(

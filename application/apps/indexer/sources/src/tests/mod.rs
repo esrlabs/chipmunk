@@ -1,6 +1,6 @@
 pub mod mock_read;
 
-pub use mock_read::{MockRead, MockRepeatRead};
+pub use mock_read::MockRead;
 
 use crate::ByteSource;
 
