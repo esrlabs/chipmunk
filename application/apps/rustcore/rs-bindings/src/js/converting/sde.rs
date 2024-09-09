@@ -5,7 +5,7 @@ use sources::sde::{SdeRequest, SdeResponse};
 use std::{convert::TryInto, ops::Deref};
 pub struct SdeResponseWrapped(pub SdeResponse);
 use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
+    core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
 
@@ -40,7 +40,6 @@ impl TryInto<SdeRequest> for JsIncomeBuffer {
 
 impl TryIntoJs for SdeResponseWrapped {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }

@@ -4,7 +4,7 @@ use error::{
     grab_error, search_error,
 };
 use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
+    core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
 use processor::{grabber::GrabError, search::error::SearchError};
@@ -29,8 +29,7 @@ impl From<E> for ComputationErrorWrapper {
 
 impl TryIntoJs for ComputationErrorWrapper {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 

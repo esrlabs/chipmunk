@@ -10,7 +10,10 @@ use crate::{
     logging::targets,
 };
 use log::{debug, error, info, warn};
-use node_bindgen::{core::buffer::JSArrayBuffer, derive::node_bindgen};
+use node_bindgen::{
+    core::{buffer::JSArrayBuffer, safebuffer::SafeArrayBuffer},
+    derive::node_bindgen,
+};
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind},
@@ -704,7 +707,7 @@ impl RustSession {
     }
 
     #[node_bindgen]
-    fn test_grab_els_as_proto(&self) -> Result<Vec<u8>, ComputationErrorWrapper> {
+    fn test_grab_els_as_proto(&self) -> Result<SafeArrayBuffer, ComputationErrorWrapper> {
         let var_name = Vec::new();
         let mut elements = var_name;
         for i in 0..50 {
@@ -718,6 +721,6 @@ impl RustSession {
             })
         }
         let msg = proto::GrabbedElementList { elements };
-        Ok(prost::Message::encode_to_vec(&msg))
+        Ok(SafeArrayBuffer::new(prost::Message::encode_to_vec(&msg)))
     }
 }
