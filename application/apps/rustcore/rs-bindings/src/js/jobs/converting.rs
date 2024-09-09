@@ -1,6 +1,6 @@
 use command_outcome::Cancelled;
 use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
+    core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
 use output::{Empty, StringVec};
@@ -138,42 +138,36 @@ impl From<CommandOutcomeWrapper<i64>> for Vec<u8> {
 
 impl TryIntoJs for CommandOutcomeWrapper<String> {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 
 impl TryIntoJs for CommandOutcomeWrapper<i64> {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 
 impl TryIntoJs for CommandOutcomeWrapper<()> {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 
 impl TryIntoJs for CommandOutcomeWrapper<bool> {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 
 impl TryIntoJs for CommandOutcomeWrapper<Vec<String>> {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 
 impl TryIntoJs for CommandOutcomeWrapper<Option<String>> {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }

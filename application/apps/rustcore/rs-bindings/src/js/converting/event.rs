@@ -2,7 +2,7 @@ use super::errors::get_native_err;
 use event::callback_event::search_values_updated;
 use event::callback_event::{self, Event};
 use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
+    core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
 use proto::*;
@@ -21,8 +21,7 @@ impl CallbackEventWrapped {
 
 impl TryIntoJs for CallbackEventWrapped {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        let bytes: Vec<u8> = self.into();
-        bytes.try_to_js(js_env)
+        SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
 }
 
