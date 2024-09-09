@@ -8,10 +8,10 @@ use crate::{
 use log::trace;
 use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
-    nested_parser::{resolve_log_msg, ParseRestResolver},
+    nested_parser::ParseRestResolver,
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, MessageStreamItem, ParseYield, Parser,
+    LogMessage, MessageStreamItem, ParseLogMsgError, ParseYield, Parser,
 };
 use sources::{
     factory::ParserType,
@@ -239,4 +239,17 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     }
     debug!("listen done");
     Ok(None)
+}
+
+/// Get the text message of [`LogMessage`], resolving its rest payloads if existed when possible,
+/// TODO: Otherwise it should save the error to the faulty messages store, which need to be
+/// implemented as well :)
+pub fn resolve_log_msg<T: LogMessage>(item: T, err_resolver: &mut ParseRestResolver) -> String {
+    match item.try_resolve(Some(err_resolver)) {
+        Ok(item) => item.to_string(),
+        Err(err) => {
+            //TODO: Add error to errors cache.
+            err.parse_lossy()
+        }
+    }
 }
