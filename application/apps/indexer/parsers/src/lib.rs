@@ -8,6 +8,16 @@ use thiserror::Error;
 
 extern crate log;
 
+#[derive(Debug, Clone, Copy)]
+pub enum ParserInstanceAlias {
+    SomeIp,
+}
+
+#[allow(clippy::large_enum_variant)]
+pub enum ParserInstance {
+    SomeIp(someip::SomeipParser),
+}
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Parse error: {0}")]
@@ -82,6 +92,10 @@ pub trait LogMessage: Display + Serialize {
     /// Serializes a message directly into a Writer
     /// returns the size of the serialized message
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+    fn next_unresolved(&mut self) -> Option<(ParserInstanceAlias, &[u8])> {
+        None
+    }
+    fn resolve(&mut self, _result: Option<Result<String, String>>) {}
 }
 
 #[derive(Debug)]

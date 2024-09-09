@@ -10,7 +10,7 @@ use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, MessageStreamItem, ParseYield, Parser,
+    LogMessage, MessageStreamItem, ParseYield, Parser, ParserInstance, ParserInstanceAlias,
 };
 use sources::{
     factory::ParserType,
@@ -77,6 +77,7 @@ async fn run_source_intern<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
+    let mut nested: Vec<ParserInstance> = Vec::new();
     match parser {
         ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
@@ -86,13 +87,19 @@ async fn run_source_intern<S: ByteSource>(
                 None => SomeipParser::new(),
             };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(operation_api, state, source_id, nested, producer, rx_tail).await
         }
         ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(operation_api, state, source_id, nested, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {
+            nested.push(ParserInstance::SomeIp(match &settings.fibex_file_paths {
+                Some(paths) => {
+                    SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
+                }
+                None => SomeipParser::new(),
+            }));
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let dlt_parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
@@ -101,7 +108,7 @@ async fn run_source_intern<S: ByteSource>(
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            run_producer(operation_api, state, source_id, nested, producer, rx_tail).await
         }
     }
 }
@@ -110,6 +117,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u16,
+    mut nested: Vec<ParserInstance>,
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -138,7 +146,34 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
         match next {
             Next::Item(item) => {
                 match item {
-                    MessageStreamItem::Item(ParseYield::Message(item)) => {
+                    MessageStreamItem::Item(ParseYield::Message(mut item)) => {
+                        while let Some((required, data)) = item.next_unresolved() {
+                            match required {
+                                ParserInstanceAlias::SomeIp => {
+                                    if let Some(ParserInstance::SomeIp(parser)) = nested
+                                        .iter_mut()
+                                        .find(|p| matches!(p, ParserInstance::SomeIp(..)))
+                                    {
+                                        match parser.parse(data, None) {
+                                            Ok((_, Some(ParseYield::Message(resolved)))) => {
+                                                item.resolve(Some(Ok(resolved.to_string())));
+                                                continue;
+                                            }
+                                            Err(e) => {
+                                                item.resolve(Some(Err(e.to_string())));
+                                                continue;
+                                            }
+                                            _ => {
+                                                item.resolve(Some(Err(String::from(
+                                                    "Fail to extract printable message",
+                                                ))));
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+                            item.resolve(None);
+                        }
                         state
                             .write_session_file(source_id, format!("{item}\n"))
                             .await?;

@@ -22,7 +22,9 @@ thiserror = "1.0"
 lazy_static = "1.4"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
-dlt-core = "0.14"
+# dlt-core = "0.14"
+# TODO https://github.com/esrlabs/dlt-core/pull/24
+dlt-core = { git = "https://github.com/kruss/dlt-core.git", branch = "dlt_network_traces" }
 crossbeam-channel = "0.5"
 futures = "0.3"
 tokio-util = "0.7"
