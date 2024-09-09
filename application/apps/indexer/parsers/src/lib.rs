@@ -78,12 +78,6 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Display + Serialize {
-    /// Serializes a message directly into a Writer
-    /// returns the size of the serialized message
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
-}
-
 #[derive(Debug)]
 pub enum MessageStreamItem<T: LogMessage> {
     Item(ParseYield<T>),
@@ -91,4 +85,118 @@ pub enum MessageStreamItem<T: LogMessage> {
     Incomplete,
     Empty,
     Done,
+}
+
+pub trait LogMessage: Serialize {
+    /// Serializes a message directly into a Writer
+    /// returns the size of the serialized message
+    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+
+    /// Tries to resolve the message to get its text representation.
+    ///
+    /// TODO: This function should return another optional field, containing information
+    /// about errors, warning ...
+    fn try_resolve(&self) -> LogMessageContent;
+}
+
+#[derive(Debug, Clone)]
+/// Represents The content of a log message after trying to resolve it.
+pub enum LogMessageContent {
+    Text(String),
+    Template(TemplateLogMsg),
+}
+
+#[derive(Debug, Clone)]
+/// Represents an unresolved log messages that contains chunks that needs to be resolved.
+pub struct TemplateLogMsg {
+    chunks: Vec<TemplateLogMsgChunk>,
+    resolve_hints: Vec<ResolveParseHint>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Gives Hint about how the payload rest can be resolved
+pub enum ResolveParseHint {
+    /// The message needs to be parsed with SomeIP Parser.
+    SomeIP,
+}
+
+#[derive(Debug, Clone)]
+/// Represents a chunk in [`TemplateLogMsg`]
+pub enum TemplateLogMsgChunk {
+    /// Resolved Chunk
+    Text(String),
+    /// Unresolved Chunk
+    Bytes(Vec<u8>),
+}
+
+impl<T> From<T> for LogMessageContent
+where
+    T: Display,
+{
+    fn from(value: T) -> Self {
+        Self::Text(value.to_string())
+    }
+}
+
+impl TemplateLogMsg {
+    pub fn new(chunks: Vec<TemplateLogMsgChunk>, resolve_hints: Vec<ResolveParseHint>) -> Self {
+        Self {
+            chunks,
+            resolve_hints,
+        }
+    }
+
+    pub fn get_resolve_hints(&self) -> Vec<ResolveParseHint> {
+        self.resolve_hints.to_vec()
+    }
+
+    /// Applies the given [`FnMut`] on the unresolved chunks, replacing them with texts if succeed.
+    /// This function will return a String once chunks get resolved.
+    ///
+    /// * `parse_fn`: Function to apply on the unresolved chunks.
+    pub fn try_resolve<F>(&mut self, mut parse_fn: F) -> Option<String>
+    where
+        F: FnMut(&[u8]) -> Option<String>,
+    {
+        let mut all_resolved = true;
+        for ch in self.chunks.iter_mut() {
+            match ch {
+                TemplateLogMsgChunk::Text(_) => continue,
+                TemplateLogMsgChunk::Bytes(bytes) => match parse_fn(&bytes) {
+                    Some(resolved) => *ch = TemplateLogMsgChunk::Text(resolved),
+                    None => all_resolved = false,
+                },
+            }
+        }
+
+        if all_resolved {
+            self.chunks
+                .iter()
+                .map(|ch| match ch {
+                    TemplateLogMsgChunk::Text(msg) => msg,
+                    TemplateLogMsgChunk::Bytes(_) => panic!("All must be resolved"),
+                })
+                .cloned()
+                .reduce(|mut acc, msg| {
+                    acc.push_str(&msg);
+                    acc
+                })
+        } else {
+            None
+        }
+    }
+
+    /// Concatenates the chunks to a string, replacing the unresolved chunks with their bytes
+    /// representation.
+    pub fn resolve_lossy(self) -> String {
+        self.chunks
+            .into_iter()
+            .fold(String::new(), |mut acc, ch| match ch {
+                TemplateLogMsgChunk::Text(msg) => {
+                    acc.push_str(&msg);
+                    acc
+                }
+                TemplateLogMsgChunk::Bytes(bytes) => format!("{acc} {bytes:?}"),
+            })
+    }
 }

@@ -3,7 +3,10 @@ use futures::{pin_mut, stream::StreamExt};
 use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, DefaultEditor};
-use session::session::Session;
+use session::{
+    parse_rest_resolver::{resolve_log_msg, ParseRestReslover},
+    session::Session,
+};
 use sources::{
     factory::{DltParserSettings, FileFormat, ObserveOptions, ParserType},
     producer::MessageProducer,
@@ -46,6 +49,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                             let udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
                             let dlt_parser = DltParser::new(None, None, None, false);
                             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, udp_source, None);
+                            let mut parse_reslover = ParseRestReslover::new();
                             let msg_stream = dlt_msg_producer.as_stream();
                             pin_mut!(msg_stream);
                             loop {
@@ -56,10 +60,12 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                     }
                                     item = msg_stream.next() => {
                                         match item {
-                                            Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
+                                                let msg = resolve_log_msg(item, &mut parse_reslover);
                                                 println!("msg: {msg}");
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((item, attachment))))) => {
+                                                let msg = resolve_log_msg(item, &mut parse_reslover);
                                                 println!("msg: {msg}, attachment: {attachment:?}");
                                             }
                                             Some((_, MessageStreamItem::Item(ParseYield::Attachment(attachment)))) => {

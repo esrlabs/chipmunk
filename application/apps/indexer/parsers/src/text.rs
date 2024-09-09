@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseYield, Parser};
+use crate::{Error, LogMessage, LogMessageContent, ParseYield, Parser};
 use serde::Serialize;
 use std::{fmt, io::Write};
 
@@ -20,6 +20,10 @@ impl LogMessage for StringMessage {
         let len = self.content.len();
         writer.write_all(self.content.as_bytes())?;
         Ok(len)
+    }
+
+    fn try_resolve(&self) -> LogMessageContent {
+        self.into()
     }
 }
 

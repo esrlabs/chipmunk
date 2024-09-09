@@ -17,15 +17,6 @@ use std::{io::Write, ops::Range};
 
 use self::{attachment::FtScanner, fmt::FormatOptions};
 
-impl LogMessage for FormattableMessage<'_> {
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
-        let bytes = self.message.as_bytes();
-        let len = bytes.len();
-        writer.write_all(&bytes)?;
-        Ok(len)
-    }
-}
-
 #[derive(Debug, Serialize)]
 pub struct RawMessage {
     pub content: Vec<u8>,
@@ -54,6 +45,10 @@ impl LogMessage for RangeMessage {
         writer.write_u64::<BigEndian>(self.range.end as u64)?;
         Ok(8 + 8)
     }
+
+    fn try_resolve(&self) -> crate::LogMessageContent {
+        self.into()
+    }
 }
 
 impl LogMessage for RawMessage {
@@ -61,6 +56,10 @@ impl LogMessage for RawMessage {
         let len = self.content.len();
         writer.write_all(&self.content)?;
         Ok(len)
+    }
+
+    fn try_resolve(&self) -> crate::LogMessageContent {
+        self.into()
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseYield, Parser};
+use crate::{Error, LogMessage, LogMessageContent, ParseYield, Parser};
 use std::{borrow::Cow, fmt, fmt::Display, io::Write, path::PathBuf};
 
 use someip_messages::*;
@@ -328,6 +328,10 @@ impl LogMessage for SomeipLogMessage {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         writer.write_all(&self.bytes)?;
         Ok(self.bytes.len())
+    }
+
+    fn try_resolve(&self) -> LogMessageContent {
+        self.into()
     }
 }
 
