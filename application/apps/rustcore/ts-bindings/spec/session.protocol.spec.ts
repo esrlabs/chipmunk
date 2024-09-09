@@ -59,7 +59,7 @@ describe('Protocol', function () {
                 .then((session: Session) => {
                     // Set provider into debug mode
                     session.debug(true);
-                    const MESSAGES_COUNT = 100;
+                    const MESSAGES_COUNT = 1000;
                     {
                         const meausere: { json: number; proto: number } = { json: 0, proto: 0 };
                         meausere.json = Date.now();
@@ -75,7 +75,7 @@ describe('Protocol', function () {
                         }
                         meausere.proto = Date.now() - meausere.proto;
                         console.log(
-                            `Receiving messages count: ${MESSAGES_COUNT}\nJSON: ${
+                            `Receiving messages (no decoding) count: ${MESSAGES_COUNT}\nJSON: ${
                                 meausere.json
                             }ms (per msg ${(meausere.json / MESSAGES_COUNT).toFixed(2)});\nPROTO: ${
                                 meausere.proto
@@ -97,7 +97,7 @@ describe('Protocol', function () {
                         }
                         meausere.proto = Date.now() - meausere.proto;
                         console.log(
-                            `Grabbing messages count: ${MESSAGES_COUNT}\nJSON: ${
+                            `Grabbing messages (with decoding) count: ${MESSAGES_COUNT}\nJSON: ${
                                 meausere.json
                             }ms (per msg ${(meausere.json / MESSAGES_COUNT).toFixed(2)});\nPROTO: ${
                                 meausere.proto
