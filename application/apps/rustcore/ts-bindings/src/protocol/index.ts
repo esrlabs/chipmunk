@@ -287,7 +287,7 @@ export function toObserveOptions(source: IObserve): ObserveOptions {
     return { origin: { origin }, parser };
 }
 
-export function decodeLifecycleTransition(buf: number[]): any {
+export function decodeLifecycleTransition(buf: number[] | Buffer): any {
     const event: LifecycleTransition = proto.LifecycleTransition.decode(Uint8Array.from(buf));
     if (!event.transition) {
         return {};
@@ -316,7 +316,7 @@ export function decodeLifecycleTransition(buf: number[]): any {
         throw new Error(`Fail to parse event: ${JSON.stringify(event)}`);
     }
 }
-export function decodeCallbackEvent(buf: number[]): any {
+export function decodeCallbackEvent(buf: number[] | Buffer): any {
     const event: CallbackEvent = proto.CallbackEvent.decode(Uint8Array.from(buf));
     if (!event.event) {
         return {};

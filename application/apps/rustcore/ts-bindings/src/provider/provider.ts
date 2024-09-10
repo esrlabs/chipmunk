@@ -17,7 +17,7 @@ export interface IOrderStat {
     duration: number;
 }
 
-export type Decoder = (buf: number[]) => any;
+export type Decoder = (buf: number[] | Buffer) => any;
 
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
@@ -233,7 +233,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     private _emitter(data: TEventData) {
         function dataAsStr(data: TEventData): { debug: string; verb?: string } {
             let message = '';
-            if (data instanceof Array) {
+            if (data instanceof Array || data instanceof Buffer) {
                 message = `(as bytes): ${data.join(',')}`;
             } else if (typeof data === 'string') {
                 message = `(as string): ${data}`;
@@ -254,7 +254,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
         let event: Required<IEventData>;
         try {
-            if (data instanceof Array) {
+            if (data instanceof Array || data instanceof Buffer) {
                 event = this._decoder(data);
             } else if (typeof data === 'string') {
                 try {
@@ -280,7 +280,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 event === null ||
                 Object.keys(event).length !== 1
             ) {
-                const msg: string = `Has been gotten incorrect event data: ${data}. No any props field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
+                const msg: string = `Has been gotten incorrect event data: ${data} (type: ${typeof data}). No any props field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
                 this.debug().emit.error(msg);
                 this.logger.error(msg);
             } else {
