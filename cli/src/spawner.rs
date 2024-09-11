@@ -197,14 +197,14 @@ pub async fn spawn_blocking(
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
     combined_env_vars.extend(environment_vars);
 
-    let mut child = std::process::Command::new(&command.cmd);
-    child.current_dir(&cwd);
-    child.args(&command.args);
-    child.envs(combined_env_vars);
+    let mut cmd = std::process::Command::new(&command.cmd);
+    cmd.current_dir(&cwd);
+    cmd.args(&command.args);
+    cmd.envs(combined_env_vars);
 
     let tracker = get_tracker();
 
-    let status = tracker.run_synchronously(job_def, child).await?;
+    let status = tracker.run_synchronously(job_def, cmd).await?;
 
     Ok(SpawnResult {
         report: Vec::new(),

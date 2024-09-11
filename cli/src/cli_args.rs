@@ -113,6 +113,11 @@ pub enum Command {
 
         #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: UiMode,
+
+        /// Sets which test specifications should be run.
+        /// Currently implemented for wrapper target (ts-bindings) only
+        #[arg(short, long = "specs")]
+        specifications: Vec<String>,
     },
     /// Build and Run the application
     Run {
