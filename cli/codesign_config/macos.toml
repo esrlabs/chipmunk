@@ -1,0 +1,49 @@
+##############################################################
+### Configuration for code signing and notarizing on MacOS ###
+##############################################################
+
+
+# Provided Options to be given as arguments for the standard code signing command
+# for files and directories to be
+sign_cmd_options = "--force --timestamp --options runtime --verbose --deep --strict --entitlements ./resources/mac/entitlements.mac.plist"
+
+# Represents the needed environment variables while code signing
+[env_vars]
+# Environment variable which must be activated to start code signing and notarizing
+check_enabled = [ "APPLEID", "APPLEIDPASS"]
+# Environment variable which can't exist to start code signing and notarizing
+check_disabled = ["SKIP_NOTARIZE"]
+# Environment variable to set before starting code signing
+set_on_start = [[ "CSC_IDENTITY_AUTO_DISCOVERY", "true" ]]
+# Environment variable for code signing ID
+signing_id = "SIGNING_ID"
+
+# Represents relative paths and glob patterns which must be code signed.
+# All paths starts form `release build path`
+[sign_paths]
+# Paths to single files and directories
+single_paths = [
+    "chipmunk.app/Contents/Resources/bin/updater",
+    "chipmunk.app/Contents/MacOS/chipmunk",
+    "chipmunk.app",
+]
+# Patterns to be used with glob to retrieve all matching files under that patterns.
+glob_patterns = ["chipmunk.app/Contents/Frameworks/*.framework/Versions/A/**/**"]
+
+# Represents the components for the final sign command (Command for deep and strict code signing)
+[final_sign_command]
+# The command with its arguments.
+command = "codesign -vvv --deep --strict"
+# Relative path to be code signed starting from `release build path`
+sign_path = "chipmunk.app"
+
+# Represents the code notarizing command with its arguments and environment variables.
+[notarize_command]
+# Notarize command with each arguments before providing the path.
+command = "xcrun notarytool submit --force --wait --verbose"
+# Environment variable for Apple ID to be provided as CLI argument.
+env_apple_id = "APPLEID"
+# Environment variable for Team ID to be provided as CLI argument.
+env_team_id = "TEAMID"
+# Environment variable for Password to be provided as CLI argument.
+env_password = "APPLEIDPASS"

@@ -1,5 +1,7 @@
 //! Module for Command line commands and arguments and their descriptions.
 
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 
 use crate::target::Target;
@@ -138,6 +140,9 @@ pub enum Command {
         /// Build chipmunk in development mode
         #[arg(short, long, default_value_t = false)]
         development: bool,
+        /// Path to the configuration file for code signing
+        #[arg(short, long)]
+        code_sign: Option<PathBuf>,
     },
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.

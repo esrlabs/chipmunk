@@ -1,14 +1,9 @@
 //! Manages bundling chipmunk after being built, providing a snapshot file when needed.
 
-use std::{
-    env,
-    io::{BufWriter, Write},
-};
+use std::io::{BufWriter, Write};
 
 use console::style;
-use env_utls::{
-    is_arm_archit, APPLEIDPASS_ENV, APPLEID_ENV, CSC_IDENTITY_AUTO_DISCOVERY_ENV, SKIP_NOTARIZE_ENV,
-};
+use env_utls::is_arm_archit;
 use fs::File;
 use paths::release_bin_path;
 
@@ -21,13 +16,6 @@ pub async fn bundle_release() -> anyhow::Result<()> {
         !get_tracker().show_bars(),
         "Release shouldn't run with UI bars"
     );
-
-    // Sets the needed environment variables before running bundling command.
-    // SAFETY: bundle_release() is used in a non concurrence scenario and setting environment
-    // variables wouldn't produce an undefined behavior.
-    unsafe {
-        set_env_vars();
-    }
 
     // *** Run build bundle command ***
 
@@ -69,28 +57,6 @@ pub async fn bundle_release() -> anyhow::Result<()> {
     println!();
 
     Ok(())
-}
-
-/// Sets needed environment variables before calling bundling command.
-///
-/// # SAFETY:
-///
-/// The functions sets environment variables and it would produced undefined behavior if used in
-/// concurrence scenario.
-unsafe fn set_env_vars() {
-    if env::var(SKIP_NOTARIZE_ENV).is_ok() {
-        env::set_var(CSC_IDENTITY_AUTO_DISCOVERY_ENV, "false");
-
-        return;
-    }
-
-    if cfg!(target_os = "macos") {
-        if env::var(APPLEID_ENV).is_ok() && env::var(APPLEIDPASS_ENV).is_ok() {
-            env::set_var(CSC_IDENTITY_AUTO_DISCOVERY_ENV, "true");
-        }
-    } else {
-        env::set_var(CSC_IDENTITY_AUTO_DISCOVERY_ENV, "false");
-    }
 }
 
 /// Provide the command to bundle Chipmunk on the current platform
@@ -136,36 +102,13 @@ fn electron_builder_cmd() -> String {
 
 /// Provide bundle command on Mac
 fn build_cmd_mac() -> ProcessCommand {
-    let is_arm = is_arm_archit();
-
-    if env::var(APPLEID_ENV).is_ok()
-        && env::var(APPLEIDPASS_ENV).is_ok()
-        && env::var(SKIP_NOTARIZE_ENV).is_err()
-    {
-        if is_arm {
-            let cmd = electron_builder_cmd();
-            let args = vec![
-                String::from("--mac"),
-                String::from("--dir"),
-                String::from("--config=./electron.config.darwin.arm64.json"),
-            ];
-            ProcessCommand::new(cmd, args)
-        } else {
-            let cmd = electron_builder_cmd();
-            let args = vec![
-                String::from("--mac"),
-                String::from("--dir"),
-                String::from("--config=./electron.config.darwin.x86.json"),
-            ];
-            ProcessCommand::new(cmd, args)
-        }
-    } else if is_arm {
+    if is_arm_archit() {
         let cmd = electron_builder_cmd();
         let args = vec![
             String::from("--mac"),
             String::from("--dir"),
             String::from("--config=./electron.config.darwin.arm64.json"),
-            String::from(" -c.mac.identity=null"),
+            String::from("-c.mac.identity=null"),
         ];
         ProcessCommand::new(cmd, args)
     } else {
@@ -174,7 +117,7 @@ fn build_cmd_mac() -> ProcessCommand {
             String::from("--mac"),
             String::from("--dir"),
             String::from("--config=./electron.config.darwin.x86.json"),
-            String::from(" -c.mac.identity=null"),
+            String::from("-c.mac.identity=null"),
         ];
         ProcessCommand::new(cmd, args)
     }
