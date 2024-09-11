@@ -25,6 +25,7 @@ use cli_args::{CargoCli, Command, UiMode};
 use console::style;
 use dev_environment::{print_env_info, resolve_dev_tools};
 use job_type::JobType;
+use jobs_runner::jobs_state::JobsConfig;
 use location::init_location;
 use log_print::{print_log_separator, print_report};
 use release::do_release;
@@ -99,7 +100,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            JobsState::init(fail_fast, false);
+            JobsState::init(JobsConfig::new(fail_fast));
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -112,7 +113,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             ui_mode,
         } => {
-            JobsState::init(fail_fast, false);
+            JobsState::init(JobsConfig::new(fail_fast));
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -120,7 +121,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             (JobType::Build { production }, results)
         }
         Command::Clean { target, ui_mode } => {
-            JobsState::init(false, false);
+            JobsState::init(JobsConfig::new(false));
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -132,8 +133,9 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             fail_fast,
             ui_mode,
+            specifications,
         } => {
-            JobsState::init(fail_fast, false);
+            JobsState::init(JobsConfig::new(fail_fast).custom_specs(specifications));
             init_tracker(ui_mode);
             resolve_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -144,7 +146,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             no_fail_fast,
         } => {
-            JobsState::init(!no_fail_fast, false);
+            JobsState::init(JobsConfig::new(!no_fail_fast));
             init_tracker(Default::default());
             resolve_dev_tools()?;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
@@ -167,7 +169,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             fail_fast,
             development,
         } => {
-            JobsState::init(fail_fast, true);
+            JobsState::init(JobsConfig::new(fail_fast).release_build(true));
             let ui_mode = if verbose {
                 UiMode::PrintImmediately
             } else {

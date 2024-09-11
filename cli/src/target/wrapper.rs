@@ -53,7 +53,7 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
         fstools::rm_folder(job_def, &tests_build_dir)?;
     }
 
-    // Finding tsc path on differnet platforms
+    // Finding tsc path on different platforms
     let mut test_runner_path = cwd.join("node_modules").join(".bin");
     if cfg!(windows) {
         let tsc_path = which::which_in("tsc", Some(&test_runner_path), &test_runner_path)
@@ -94,19 +94,35 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
         .collect();
     let jasmine_path = jasmine_path.to_string_lossy();
 
-    let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
+    let jobs_state = JobsState::get();
 
-    let cancel = JobsState::get().cancellation_token();
+    let custom_specs = jobs_state.custom_specs();
 
-    for spec in TEST_SPECS {
-        let spec_file_name = format!("session.{spec}.spec.js");
-        let spec_file_path = specs_dir_path.join(spec_file_name);
+    // The users have option here to provide the path of their specifications to run tests on.
+    // Otherwise the standard tests specs will be used.
+    let involved_specs = if custom_specs.is_empty() {
+        let specs_dir_path: PathBuf = ["spec", "build", "spec"].iter().collect();
+
+        let standard_specs = TEST_SPECS
+            .iter()
+            .map(|spec| {
+                let spec_file_name = format!("session.{spec}.spec.js");
+                let spec_file_path = specs_dir_path.join(spec_file_name);
+                spec_file_path.to_string_lossy().to_string()
+            })
+            .collect();
+
+        standard_specs
+    } else {
+        custom_specs.to_vec()
+    };
+
+    let cancel = jobs_state.cancellation_token();
+
+    for spec_file_path in involved_specs {
         let command = ProcessCommand::new(
             electron_path.to_string(),
-            vec![
-                jasmine_path.to_string(),
-                spec_file_path.to_string_lossy().to_string(),
-            ],
+            vec![jasmine_path.to_string(), spec_file_path],
         );
 
         // Break the loop if cancel is invoked.

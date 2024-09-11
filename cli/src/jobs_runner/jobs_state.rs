@@ -25,24 +25,58 @@ static JOBS_STATE: OnceLock<JobsState> = OnceLock::new();
 pub struct JobsState {
     cancellation_token: CancellationToken,
     task_tracker: TaskTracker,
-    fail_fast: bool,
-    is_release_build: bool,
+    configuration: JobsConfig,
 }
 
-impl JobsState {
-    fn new(fail_fast: bool, is_app_release: bool) -> Self {
+#[derive(Debug, Clone, Default)]
+/// Represents the configuration and specification for the jobs.
+pub struct JobsConfig {
+    fail_fast: bool,
+    is_release_build: bool,
+    // Custom specifications for the given jobs.
+    custom_specs: Vec<String>,
+}
+
+impl JobsConfig {
+    pub fn new(fail_fast: bool) -> Self {
+        Self {
+            fail_fast,
+            ..Default::default()
+        }
+    }
+
+    #[must_use]
+    pub fn release_build(mut self, is_release_build: bool) -> Self {
+        self.is_release_build = is_release_build;
+        self
+    }
+
+    #[must_use]
+    pub fn custom_specs(mut self, custom_specs: Vec<String>) -> Self {
+        self.custom_specs = custom_specs;
+        self
+    }
+}
+
+impl From<JobsConfig> for JobsState {
+    fn from(config: JobsConfig) -> Self {
         Self {
             cancellation_token: CancellationToken::new(),
             task_tracker: TaskTracker::new(),
-            fail_fast,
-            is_release_build: is_app_release,
+            configuration: config,
         }
+    }
+}
+
+impl JobsState {
+    fn new(config: JobsConfig) -> Self {
+        Self::from(config)
     }
 
     /// Provides a reference for [`JobsState`] struct, initializing it with default values
     /// if not initializing before.
     pub fn get() -> &'static JobsState {
-        JOBS_STATE.get_or_init(|| JobsState::new(false, false))
+        JOBS_STATE.get_or_init(|| JobsState::new(JobsConfig::default()))
     }
 
     /// Initialize jobs state struct setting the fail fast option
@@ -50,9 +84,9 @@ impl JobsState {
     /// # Panics
     /// This function panics if [`JobsState`] already have been initialized or retrieved
     /// before the function call
-    pub fn init(fail_fast: bool, is_app_release: bool) {
+    pub fn init(config: JobsConfig) {
         JOBS_STATE
-            .set(JobsState::new(fail_fast, is_app_release))
+            .set(JobsState::new(config))
             .expect("Jobs state can't be initialized twice");
     }
 
@@ -108,11 +142,16 @@ impl JobsState {
     /// This function will set the value of fail fast to false if it doesn't
     /// contain a value before.
     pub fn fail_fast(&self) -> bool {
-        self.fail_fast
+        self.configuration.fail_fast
     }
 
     /// Determines whether jobs are currently running to build and bundle a release of Chipmunk.
     pub fn is_release_build(&self) -> bool {
-        self.is_release_build
+        self.configuration.is_release_build
+    }
+
+    /// Gets the job custom specifications if specified.
+    pub fn custom_specs(&self) -> &[String] {
+        self.configuration.custom_specs.as_slice()
     }
 }

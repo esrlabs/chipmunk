@@ -1,3 +1,11 @@
+# 0.2.2
+
+## Features:
+
+* Add custom specifications CLI argument for tests and implement it for wrapper test to enable users form running tests for a specific file. Example:
+  - `cargo chipmunk test wrapper -s spec/build/spec/session.jobs.spec.js`: Runs single specification.
+  - `cargo chipmunk test wrapper -s spec/build/spec/session.jobs.spec.js -s spec/build/spec/session.search.spec.js`: Runs multiple specifications.
+
 # 0.2.1
 
 ## Fixes:
