@@ -27,14 +27,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gconf-service libgbm-dev libasound2 libatk1.0-0 libc6 libcairo2 libcups2 \
-          libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 \
-          libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 \
-          libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 \
-          libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils wget \
-          libudev-dev cargo npm imagemagick libmagickwand-dev cmake jq
+        run: ./scripts/benchmarks/setup_dependencies.sh
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -42,64 +35,29 @@ jobs:
           node-version: 22.4.0
 
       - name: Install Ruby and related tools
-        run: |
-          whoami
-          npm install -g corepack
-          corepack enable
-          curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-          echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-          sudo apt-get update && sudo apt-get install -y yarn software-properties-common
-          apt-add-repository -y ppa:rael-gc/rvm
-          sudo apt-get update && sudo apt-get install -y rvm
-          echo 'source "/etc/profile.d/rvm.sh"' >> ~/.bashrc
-          source /etc/profile.d/rvm.sh
-          rvm install ruby-3.1.2
-          ruby --version
-          sudo chown -R $(whoami) /usr/local
-          rvm use 3.1.2 --default
+        run: ./scripts/benchmarks/setup_dependencies.sh
 
       - name: Install cargo tools
         run: |
           cargo install nj-cli wasm-pack --locked
-
-      - name: Prepare environment
-        run: |
           npm install -g tslib
-          export PATH="/usr/share/rvm:$PATH"
-          gem install dotenv json octokit tmpdir fileutils
-
-      - name: Get PR details
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/github-script@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          script: |
-            const fs = require('fs');
-            const pr = await github.rest.pulls.get({
-              owner: 'esrlabs',
-              repo: 'chipmunk',
-              pull_number: ${{ github.event.inputs.pr_id }}
-            });
-            fs.appendFileSync(process.env.GITHUB_ENV, `REPO_OWNER=${pr.data.user.login}\n`);
-            fs.appendFileSync(process.env.GITHUB_ENV, `REPO_NAME=${pr.data.base.repo.name}\n`);
 
       - name: Run Jasmine performance tests
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           export PATH="/root/.cargo/bin:$PATH"
           source ~/.bashrc
-          if [[ "${{ github.event_name }}" == 'workflow_dispatch' ]]; then
-            ruby scripts/tools/run_benchmarks.rb PR~${{ github.event.inputs.pr_id }}
-          else
-            export REPO_OWNER='esrlabs'
-            export REPO_NAME='chipmunk'
-            ruby scripts/tools/run_benchmarks.rb 1
+          if [[ "${{ github.event_name }}" == 'workflow_dispatch' && "${{ github.event.inputs.pr_id }}" -eq 0 ]]; then
+            echo "Running manually"
+            ruby scripts/benchmarks/process.rb 1
+          elif [[ "${{ github.event_name }}" == 'workflow_dispatch' && "${{ github.event.inputs.pr_id }}" =~ ^[0-9]+$ ]]; then
+            ruby scripts/benchmarks/process.rb PR~${{ github.event.inputs.pr_id }}
+          elif [[ "${{ github.event_name }}" != 'workflow_dispatch' ]]; then
+            ruby scripts/benchmarks/process.rb 1
           fi
 
       - name: List files in the results folder
-        run: |
-          ls -la /chipmunk/chipmunk_performance_results
+        run: ls -la /chipmunk/chipmunk_performance_results
 
   push_data_to_chipmunk_docs:
     name: Move benchmark data to chipmunk-docs repository
@@ -119,7 +77,7 @@ jobs:
           git config user.name "esrlabs"
           git config user.email "esrlabs@gmail.com"
           git remote set-url origin "https://esrlabs:${{secrets.DOCS_PUSH_TOKEN}}@github.com/esrlabs/chipmunk-docs"
-          if [[ "${{ github.event_name }}" == 'workflow_dispatch' ]]; then
+          if [[ "${{ github.event_name }}" == 'workflow_dispatch' && "${{ github.event.inputs.pr_id }}" -ne 0 ]]; then
             cp /chipmunk/chipmunk_performance_results/Benchmark_PR_${{ github.event.inputs.pr_id }}.json ./jekyll/benchmarks/data/pull_request/
             git add ./jekyll/benchmarks/data/pull_request/Benchmark_PR_${{ github.event.inputs.pr_id }}.json
             git commit -m "Adding PR benchmark results for chipmunk PR #${{ github.event.inputs.pr_id }}"
