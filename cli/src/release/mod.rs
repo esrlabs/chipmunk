@@ -6,14 +6,16 @@
 //! assets for each supported platform.
 
 mod bundle;
+mod codesign;
 mod compress;
 mod env_utls;
 mod paths;
 
-use std::{fs, time::Instant};
+use std::{fs, path::PathBuf, time::Instant};
 
 use anyhow::{ensure, Context};
 use bundle::bundle_release;
+use codesign::CodeSign;
 use compress::compress;
 use console::style;
 use env_utls::load_from_env_file;
@@ -27,11 +29,17 @@ use crate::{
 /// Builds, bundles and compress Chipmunk with configurations for each platform.
 ///
 /// * `development`: Sets if Chipmunk should be built in development mode.
-pub async fn do_release(development: bool) -> anyhow::Result<()> {
+/// * `code_sign_path`: Path to the configuration file to do code signing.
+pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> anyhow::Result<()> {
     debug_assert!(
         !get_tracker().show_bars(),
         "Release shouldn't run with UI bars"
     );
+
+    let code_sign = match code_sign_path {
+        Some(config_path) => Some(CodeSign::load(config_path)?),
+        None => None,
+    };
 
     let release_start = Instant::now();
 
@@ -117,6 +125,32 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
 
     print_log_separator();
 
+    // *** Code Sign ***
+
+    if let Some(code_sign) = code_sign.as_ref() {
+        if code_sign.allowed() {
+            println!("{}", style("Start Code Signing...").blue().bright().bold());
+            let codesign_start = Instant::now();
+            code_sign.apply_codesign()?;
+
+            let finish_msg = format!(
+                "Code signing succeeded in {} seconds.",
+                codesign_start.elapsed().as_secs().max(1)
+            );
+            println!("{}", style(finish_msg).green().bold());
+        } else {
+            println!();
+            println!(
+                "{}",
+                style("Code Signing isn't allowed due to the environment variables")
+                    .yellow()
+                    .bold()
+            );
+        }
+
+        print_log_separator();
+    }
+
     // *** Compressing ***
 
     println!(
@@ -138,6 +172,35 @@ pub async fn do_release(development: bool) -> anyhow::Result<()> {
     println!("{}", style(finish_msg).green().bold());
 
     print_log_separator();
+
+    // *** Notarize ***
+
+    if let Some(code_sign) = code_sign {
+        if code_sign.allowed() {
+            println!(
+                "{}",
+                style("Start Code Notarizing...").blue().bright().bold()
+            );
+            let notarizing_start = Instant::now();
+            code_sign.notarize()?;
+
+            let finish_msg = format!(
+                "Code notarizing succeeded in {} seconds.",
+                notarizing_start.elapsed().as_secs().max(1)
+            );
+            println!("{}", style(finish_msg).green().bold());
+        } else {
+            println!();
+            println!(
+                "{}",
+                style("Code Notarizing isn't allowed due to the environment variables")
+                    .yellow()
+                    .bold()
+            );
+        }
+
+        print_log_separator();
+    }
 
     // *** Final results ***
 

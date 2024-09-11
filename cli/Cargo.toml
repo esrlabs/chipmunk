@@ -30,8 +30,10 @@ dir_checksum = { path = "./dir_checksum" }
 which = "6.0"
 clap_complete = "4.5"
 dotenvy = "0.15"
-serde = "1.0"
+serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
+glob = "0.3"
+toml = "0.8"
 
 [dev-dependencies]
 tempdir.workspace = true

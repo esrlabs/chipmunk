@@ -70,7 +70,7 @@ pub async fn compress() -> anyhow::Result<()> {
 
 /// Provides the release file on the current platform, reading and adding
 /// Chipmunk version to the filename.
-fn release_file_name() -> anyhow::Result<String> {
+pub fn release_file_name() -> anyhow::Result<String> {
     let mut prefix = if cfg!(target_os = "linux") {
         String::from("linux")
     } else if cfg!(target_os = "macos") {

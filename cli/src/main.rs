@@ -168,6 +168,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             verbose,
             fail_fast,
             development,
+            code_sign,
         } => {
             JobsState::init(JobsConfig::new(fail_fast).release_build(true));
             let ui_mode = if verbose {
@@ -177,7 +178,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             };
             init_tracker(ui_mode);
             resolve_dev_tools()?;
-            do_release(development).await?;
+            do_release(development, code_sign).await?;
             let tracker = get_tracker();
             tracker.shutdown(false).await?;
 
