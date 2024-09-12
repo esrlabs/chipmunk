@@ -6,6 +6,10 @@
   - `cargo chipmunk test wrapper -s spec/build/spec/session.jobs.spec.js`: Runs single specification.
   - `cargo chipmunk test wrapper -s spec/build/spec/session.jobs.spec.js -s spec/build/spec/session.search.spec.js`: Runs multiple specifications.
 
+## Fixes:
+
+* Fix dependencies to build rust core on linting and testing of binding, wrapper and app targets.
+
 # 0.2.1
 
 ## Fixes:
