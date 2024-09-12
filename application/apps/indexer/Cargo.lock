@@ -136,17 +136,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-trait"
-version = "0.1.74"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a66537f1bb974b254c98ed142ff995236e81b9d0fe4db0575f46612cb15eb0f9"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.59",
-]
-
-[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2102,7 +2091,6 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
- "async-trait",
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
  "env_logger",
