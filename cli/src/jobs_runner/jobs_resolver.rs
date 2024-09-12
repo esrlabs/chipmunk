@@ -138,14 +138,20 @@ fn is_job_involved(
         match main_job {
             // Linting for TS and WASM targets inquire that those targets are built
             JobType::Lint => match target {
-                // * Linting for Rust targets doesn't need any build and must be excluded in the
+                // * Linting for Rust core doesn't need any build and must be excluded in the
                 //   additional filter.
-                // * They should excluded in the filter if it's not included in the original targets
-                //   before being flatted. This is to avoid running linting core if we want to lint
-                //   Binding or Wrapper.
-                Target::Core | Target::Cli | Target::Updater => {
-                    matches!(current_job, JobType::Lint) && original_targets.contains(&target)
-                }
+                Target::Core => match current_job {
+                    // When the current job matches the main job we need to check if the target is
+                    // included in the original targets
+                    JobType::Lint => original_targets.contains(&target),
+                    // Otherwise we need to check if the targets have core in their dependencies to
+                    // build the core since it's needed for their linting jobs.
+                    _ => original_targets
+                        .iter()
+                        .any(|t| t.deps().contains(&Target::Core)),
+                },
+                // These targets aren't involved in the dependencies tree.
+                Target::Cli | Target::Updater => matches!(current_job, JobType::Lint),
                 // TS and Bindings targets need to be built with all their dependencies to perform the
                 // needed type checks on TypeScript
                 Target::Shared
@@ -158,15 +164,22 @@ fn is_job_involved(
 
             // Tests for TS and WASM targets inquire that those targets are built
             JobType::Test { .. } => match target {
-                // * Running tests for rust jobs doesn't inquire running build on them.
-                // * They should excluded in the filter if it's not included in the original targets
-                //   before being flatted. This is to avoid running test on core if we want to run
-                //   test on Binding or Wrapper.
-                Target::Core | Target::Cli | Target::Updater => {
-                    matches!(current_job, JobType::Test { .. })
-                        && original_targets.contains(&target)
-                }
-
+                // * Running tests for rust core doesn't inquire running build on it.
+                // * It should excluded in the filter if it's not included in the original targets
+                //   dependencies before being flatted. This is to avoid running test on core if we
+                //   want to run test on Binding or Wrapper.
+                Target::Core => match current_job {
+                    // When the current job matches the main job we need to check if the target is
+                    // included in the original targets
+                    JobType::Test { .. } => original_targets.contains(&target),
+                    // Otherwise we need to check if the targets have core in their dependencies to
+                    // build the core since it's needed for their testing jobs.
+                    _ => original_targets
+                        .iter()
+                        .any(|t| t.deps().contains(&Target::Core)),
+                },
+                // These targets aren't involved in the dependencies tree.
+                Target::Cli | Target::Updater => matches!(current_job, JobType::Test { .. }),
                 // Only TS and WASM Bindings have tests that inquire running build on them and their dependencies
                 // before running the actual tests.
                 Target::Wrapper | Target::Wasm => true,
