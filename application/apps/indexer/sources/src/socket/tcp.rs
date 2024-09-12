@@ -1,5 +1,4 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
-use async_trait::async_trait;
 use buf_redux::Buffer;
 use tokio::net::{TcpStream, ToSocketAddrs};
 
@@ -21,7 +20,6 @@ impl TcpSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for TcpSource {
     async fn reload(
         &mut self,

@@ -1,5 +1,4 @@
 use crate::{sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
-use async_trait::async_trait;
 use buf_redux::Buffer;
 use futures;
 use regex::{Captures, Regex};
@@ -154,7 +153,6 @@ impl ProcessSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for ProcessSource {
     async fn reload(
         &mut self,

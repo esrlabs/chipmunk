@@ -2,7 +2,6 @@ use crate::{
     ByteSource, Error as SourceError, ReloadInfo, SourceFilter, DEFAULT_MIN_BUFFER_SPACE,
     DEFAULT_READER_CAPACITY,
 };
-use async_trait::async_trait;
 use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
 use std::io::{BufRead, Read, Seek};
 
@@ -34,7 +33,6 @@ where
     }
 }
 
-#[async_trait]
 impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
     async fn reload(
         &mut self,
