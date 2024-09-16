@@ -65,17 +65,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@electron/notarize@npm:^2.3.2":
-  version: 2.4.0
-  resolution: "@electron/notarize@npm:2.4.0"
-  dependencies:
-    debug: "npm:^4.1.1"
-    fs-extra: "npm:^9.0.1"
-    promise-retry: "npm:^2.0.1"
-  checksum: 10c0/87703b8abe27f07622f18d056eb2999ac403c6e34140445d6475eebfaa86f0c348269c7411a5b2e1acf6ac16e872917f7ec2a5fde6d1386c2f017fc2b57e3343
-  languageName: node
-  linkType: hard
-
 "@electron/osx-sign@npm:1.0.5":
   version: 1.0.5
   resolution: "@electron/osx-sign@npm:1.0.5"
@@ -1086,7 +1075,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chipmunk@workspace:."
   dependencies:
-    "@electron/notarize": "npm:^2.3.2"
     "@types/module-alias": "npm:^2.0.2"
     "@types/node": "npm:^20.7.0"
     "@types/request": "npm:^2.48.8"
