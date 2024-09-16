@@ -134,7 +134,7 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
         .context("Error while retrieving signing ID environment variable")?;
     for path in sign_paths {
         let cmd = format!(
-            "codesign --sign {sign_id} {} {}",
+            "codesign --sign \"{sign_id}\" {} {}",
             config.sign_cmd_options,
             path.to_string_lossy()
         );
@@ -198,7 +198,7 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
     let release_file_path = release_path().join(archname);
 
     let cmd = format!(
-        "{} {}.tgz  --apple-id {apple_id} --team-id {team_id} --password {team_id} --password {password}",
+        "{} {}  --apple-id {apple_id} --team-id {team_id} --password {team_id} --password {password}",
         config.notarize_command.command,
         release_file_path.to_string_lossy()
     );

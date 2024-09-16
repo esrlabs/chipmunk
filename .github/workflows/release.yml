@@ -86,9 +86,10 @@ jobs:
             -k "$KEYCHAIN_PWD" \
             "$KEYCHAIN_NAME"
           security set-keychain-settings -lut 1200
-      - name: build release
+      - name: build release macOS
+        if: runner.os == 'macOS'
         run: |
-          cargo chipmunk release
+          cargo chipmunk release -c cli/codesign_config/macos.toml
         env:
           KEYCHAIN_NAME: "build.keychain"
           CSC_LINK: ${{ secrets.CSC_LINK }}
@@ -99,6 +100,10 @@ jobs:
           SIGNING_ID: ${{ secrets.SIGNING_ID }}
           KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: build release
+        if: runner.os != 'macOS'
+        run: |
+          cargo chipmunk release
       - name: list release files
         working-directory: ./application/holder/release
         run: ls

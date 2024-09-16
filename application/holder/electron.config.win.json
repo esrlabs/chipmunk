@@ -25,7 +25,6 @@
         "resources"
     ],
     "npmRebuild": true,
-    "afterSign": "hooks/afterSign.js",
     "win": {
         "icon": "resources/win/chipmunk.ico",
         "target": [],

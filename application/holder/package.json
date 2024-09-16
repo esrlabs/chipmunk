@@ -38,7 +38,6 @@
         "uuid": "^9.0.1"
     },
     "devDependencies": {
-        "@electron/notarize": "^2.3.2",
         "@types/module-alias": "^2.0.2",
         "@types/node": "^20.7.0",
         "@types/request": "^2.48.8",
