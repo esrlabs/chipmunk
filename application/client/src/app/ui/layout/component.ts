@@ -39,7 +39,10 @@ export class Layout extends ChangesDetector implements AfterViewInit {
     public readonly Direction = Direction;
 
     @HostBinding('class') get cssClass() {
-        return this.ilc().services.ui.popup.getCount() > 0 ? 'blur' : '';
+        if (this.ilc().services.ui.popup.getCount() === 0) {
+            return '';
+        }
+        return this.ilc().services.ui.popup.isBlured() ? 'blur' : 'transporent';
     }
 
     public toolbar: LimittedValue = initialToolbarHeight();

@@ -129,6 +129,27 @@ export class Service extends Implementation {
             }),
         );
         this.register(
+            this.listen('Ctrl + G', () => {
+                if (this._services.system.session.active().session() === undefined) {
+                    return;
+                }
+                this._services.ui.popup.open({
+                    component: {
+                        factory: components.get('app-dialogs-jumpto'),
+                        inputs: {},
+                    },
+                    position: {
+                        vertical: Vertical.top,
+                        horizontal: Horizontal.center,
+                    },
+                    closeOnKey: 'Escape',
+                    width: 350,
+                    uuid: 'Ctrl + G',
+                    blur: false,
+                });
+            }),
+        );
+        this.register(
             this.listen('Ctrl + P', () => {
                 this._services.ui.popup.open({
                     component: {

@@ -19,10 +19,12 @@ import { Popup } from '@ui/service/popup';
 @Ilc()
 export class LayoutPopups extends ChangesDetector implements AfterContentInit {
     public popups: Map<string, { popup: Popup; close: () => void }> = new Map();
+
     protected visible: boolean = false;
+    protected shadowed: boolean = true;
 
     @HostBinding('class') get visability() {
-        return this.visible ? 'visible' : 'hidden';
+        return this.visible ? `visible ${this.shadowed ? '' : 'transporent'}` : 'hidden';
     }
 
     constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, cdRef: ChangeDetectorRef) {
@@ -38,6 +40,7 @@ export class LayoutPopups extends ChangesDetector implements AfterContentInit {
             popup.options.component.inputs.close = this._close.bind(this, popup.uuid);
             this.popups.set(popup.uuid, { popup, close: this._close.bind(this, popup.uuid) });
             this.visible = true;
+            this.shadowed = popup.isBlured();
             this.ilc().services.ui.popup.setCount(this.popups.size);
             this.ilc().emitter.ui.popup.updated(this.popups.size);
             this.markChangesForCheck();

@@ -1,0 +1,42 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 350px;
+    & div.input {
+        position: relative;
+        display: block;
+        width: 100%;
+        z-index: 1;
+        & input::-webkit-outer-spin-button,
+        & input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        & input[type=number] {
+            -moz-appearance: textfield;
+        }
+    }
+    & div.info {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 6px 0;
+        & p {
+            color: @scheme-color-1;
+        }
+        & span.shortkey {
+            padding: 1px 6px;
+            margin-right: 6px;
+            border-radius: 6px;
+            color: @scheme-color-0;
+            font-weight: 600;
+            border: 1px dotted @scheme-color-3;
+            background: @scheme-color-5;
+            box-shadow: 1px 1px 6px rgba(0, 0, 0, 0.4);
+        }
+    }
+}
