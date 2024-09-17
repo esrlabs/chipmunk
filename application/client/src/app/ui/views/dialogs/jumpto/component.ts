@@ -33,6 +33,10 @@ export class JumpTo extends ChangesDetector implements AfterViewInit {
         this.ref.nativeElement.focus();
     }
 
+    public focus() {
+        this.ref.nativeElement.focus();
+    }
+
     public change(value: string) {
         const line = parseInt(value, 10);
         if (!isFinite(line) || isNaN(line)) {
