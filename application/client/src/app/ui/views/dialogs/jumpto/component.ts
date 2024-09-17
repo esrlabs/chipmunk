@@ -55,7 +55,10 @@ export class JumpTo extends ChangesDetector implements AfterViewInit {
             return;
         }
         if (event.key === 'Enter') {
-            if (event.ctrlKey) {
+            if (
+                event.ctrlKey ||
+                (this.ilc().services.system.env.platform().darwin() && event.metaKey)
+            ) {
                 session.switch().toolbar.details();
             }
             this.close();
