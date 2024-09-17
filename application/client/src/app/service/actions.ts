@@ -185,6 +185,28 @@ export class Service extends Implementation {
                 .transport()
                 .respondent(
                     this.getName(),
+                    Requests.Actions.JumpTo.Request,
+                    (
+                        _request: Requests.Actions.JumpTo.Request,
+                    ): CancelablePromise<Requests.Actions.JumpTo.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.JumpTo.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(`Fail to call JumpTo action: ${err.message}`);
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.About.Response());
+                                });
+                        });
+                    },
+                ),
+        );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
                     Requests.Actions.Updates.Request,
                     (
                         _request: Requests.Actions.Updates.Request,

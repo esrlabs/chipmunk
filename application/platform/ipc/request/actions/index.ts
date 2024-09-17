@@ -6,3 +6,4 @@ export * as Settings from './settings';
 export * as Help from './help';
 export * as Updates from './updates';
 export * as UrlInBrowser from './open.browserurl';
+export * as JumpTo from './jumpto';
