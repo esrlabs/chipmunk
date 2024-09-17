@@ -501,6 +501,19 @@ export class Service extends Implementation {
                 ],
             },
             {
+                label: 'Go',
+                submenu: [
+                    {
+                        label: 'Jump To Row',
+                        click: async () => {
+                            Actions.jumpto().catch((err: Error) => {
+                                this.log().error(`Fail call action JumpTo: ${err.message}`);
+                            });
+                        },
+                    },
+                ],
+            },
+            {
                 label: 'View',
                 submenu: [
                     { role: 'resetZoom' },

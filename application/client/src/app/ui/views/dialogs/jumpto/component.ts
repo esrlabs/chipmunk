@@ -3,6 +3,7 @@ import {
     ChangeDetectorRef,
     ViewChild,
     ElementRef,
+    AfterContentInit,
     AfterViewInit,
     Input,
 } from '@angular/core';
@@ -20,13 +21,18 @@ export type CloseHandler = () => void;
 })
 @Initial()
 @Ilc()
-export class JumpTo extends ChangesDetector implements AfterViewInit {
+export class JumpTo extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @ViewChild('rowinput') ref!: ElementRef<HTMLInputElement>;
     @Input() close!: CloseHandler;
     public value: string = '';
+    public key: string = 'ctrl';
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngAfterContentInit(): void {
+        this.key = this.ilc().services.system.env.platform().darwin() ? 'Cmd' : 'Ctrl';
     }
 
     public ngAfterViewInit(): void {
