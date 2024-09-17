@@ -30,5 +30,21 @@ env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
 
 [[bench]]
-name = "producer_benchmarks"
+name = "mocks_benchmarks"
+harness = false
+
+[[bench]]
+name = "dlt_producer"
+harness = false
+
+[[bench]]
+name = "someip_producer"
+harness = false
+
+[[bench]]
+name = "someip_legacy_producer"
+harness = false
+
+[[bench]]
+name = "text_producer"
 harness = false
