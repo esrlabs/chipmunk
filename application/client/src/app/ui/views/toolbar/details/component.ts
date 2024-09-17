@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, AfterViewInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -14,7 +14,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 })
 @Initial()
 @Ilc()
-export class Details extends ChangesDetector implements AfterViewInit {
+export class Details extends ChangesDetector implements AfterViewInit, OnDestroy {
     protected session: Session | undefined;
     protected subscriber: Subscriber = new Subscriber();
     protected sanitizer: DomSanitizer;
@@ -26,6 +26,10 @@ export class Details extends ChangesDetector implements AfterViewInit {
     constructor(cdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
         super(cdRef);
         this.sanitizer = sanitizer;
+    }
+
+    public ngOnDestroy(): void {
+        this.subscriber.unsubscribe();
     }
 
     public ngAfterViewInit(): void {
@@ -68,6 +72,7 @@ export class Details extends ChangesDetector implements AfterViewInit {
         this.session !== undefined &&
             this.subscriber.register(
                 this.session.cursor.subjects.get().selected.subscribe(this.update.bind(this)),
+                this.session.cursor.subjects.get().loaded.subscribe(this.update.bind(this)),
             );
         return this;
     }

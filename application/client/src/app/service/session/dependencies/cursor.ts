@@ -14,10 +14,12 @@ export class Cursor extends Subscriber {
     public readonly subjects: Subjects<{
         selected: Subject<SelectEvent>;
         updated: Subject<void>;
+        loaded: Subject<void>;
         frame: Subject<IRange>;
     }> = new Subjects({
         selected: new Subject<SelectEvent>(),
         updated: new Subject<void>(),
+        loaded: new Subject<void>(),
         frame: new Subject<IRange>(),
     });
     private _selected: number[] = [];
@@ -25,9 +27,11 @@ export class Cursor extends Subscriber {
     private _last: {
         position: number | undefined;
         row: Row | undefined;
+        recent: Row[];
     } = {
         position: undefined,
         row: undefined,
+        recent: [],
     };
     private _frame: IRange | undefined;
 
@@ -39,6 +43,11 @@ export class Cursor extends Subscriber {
     public destroy() {
         this.unsubscribe();
         this.subjects.destroy();
+    }
+
+    public recent(rows: Row[]) {
+        this._last.recent = rows;
+        this.subjects.get().loaded.emit();
     }
 
     public frame(): {
@@ -133,7 +142,12 @@ export class Cursor extends Subscriber {
                 return this._selected.length === 1 ? this._last.position : undefined;
             },
             row: (): Row | undefined => {
-                return this._selected.length === 1 ? this._last.row : undefined;
+                if (this._selected.length !== 1) {
+                    return undefined;
+                }
+                return this._last.row !== undefined
+                    ? this._last.row
+                    : this._last.recent.find((r) => r.position === this._last.position);
             },
         };
     }

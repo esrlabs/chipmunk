@@ -175,6 +175,16 @@ export const KeysMap: KeyDescription[] = [
         client: { postponed: true, key: 'G' },
     },
     {
+        alias: 'Ctrl + G',
+        shortkeys: { darwin: ['Cmd + G'], others: ['Ctrl + G'] },
+        display: { darwin: ['⌘ + G'], others: ['Ctrl + G'] },
+        description: 'Jump to Row',
+        category: Category.Movement,
+        required: [Requirement.Session],
+        uuid: 'Ctrl + G',
+        client: undefined,
+    },
+    {
         alias: 'Ctrl + F',
         shortkeys: { darwin: ['Cmd + F'], others: ['Ctrl + F'] },
         display: { darwin: ['⌘ + F'], others: ['Ctrl + F'] },

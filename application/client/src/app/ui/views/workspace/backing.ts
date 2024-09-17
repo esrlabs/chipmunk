@@ -10,20 +10,22 @@ function getRows(session: Session, range: Range): Promise<IRowsPacket> {
         session.stream
             .chunk(range)
             .then((rows) => {
+                const converted = rows.map((row) => {
+                    return new Row({
+                        position: row.position,
+                        content: row.content,
+                        session,
+                        owner: Owner.Output,
+                        source:
+                            typeof row.source_id === 'string'
+                                ? parseInt(row.source_id, 10)
+                                : row.source_id,
+                        nature: row.nature,
+                    });
+                });
+                session.cursor.recent(converted);
                 resolve({
-                    rows: rows.map((row) => {
-                        return new Row({
-                            position: row.position,
-                            content: row.content,
-                            session,
-                            owner: Owner.Output,
-                            source:
-                                typeof row.source_id === 'string'
-                                    ? parseInt(row.source_id, 10)
-                                    : row.source_id,
-                            nature: row.nature,
-                        });
-                    }),
+                    rows: converted,
                     range,
                 });
             })

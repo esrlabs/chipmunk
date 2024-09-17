@@ -1,0 +1,21 @@
+<div class="input">
+    <mat-form-field class="material-mofication-outline" appearance="outline">
+        <input
+            #rowinput
+            tabindex="1000"
+            type="number"
+            placeholder="row/line number"
+            aria-label="Filter"
+            matInput
+            [(ngModel)]="value"
+            (ngModelChange)="change($event)"
+            (keydown)="keydown($event)"
+        />
+    </mat-form-field>
+</div>
+<div class="info">
+    <p class="t-small">
+        <span class="shortkey">Enter</span> to close; <span class="shortkey">Ctrl + Enter</span> to
+        open Details;
+    </p>
+</div>

@@ -10,6 +10,7 @@ export { IComponentDesc, Popup, Vertical, Horizontal, PopupOptions, Options };
 export class Service extends Implementation {
     private _emitter!: Emitter;
     private _count: number = 0;
+    private _blured: boolean = true;
 
     public override ready(): Promise<void> {
         this._emitter = ilc.emitter(this.getName(), this.log());
@@ -18,6 +19,7 @@ export class Service extends Implementation {
 
     public open(options: Options): Popup {
         const popup = new Popup(options, this.close.bind(this));
+        this._blured = popup.isBlured();
         this._emitter.ui.popup.open(popup);
         return popup;
     }
@@ -32,6 +34,10 @@ export class Service extends Implementation {
 
     public getCount(): number {
         return this._count;
+    }
+
+    public isBlured(): boolean {
+        return this._blured;
     }
 }
 export interface Service extends Interface {}

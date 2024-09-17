@@ -26,6 +26,7 @@ export interface PopupOptions {
     closeOnKey?: string;
     closeOnBGClick?: boolean;
     uuid?: string;
+    blur?: boolean;
 }
 
 export interface Options extends PopupOptions {
@@ -59,5 +60,9 @@ export class Popup {
 
     public close(): void {
         this.closer(this.uuid);
+    }
+
+    public isBlured(): boolean {
+        return this.options.blur === undefined ? true : this.options.blur;
     }
 }
