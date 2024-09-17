@@ -10,6 +10,7 @@
             [(ngModel)]="value"
             (ngModelChange)="change($event)"
             (keydown)="keydown($event)"
+            (blur)="focus()"
         />
     </mat-form-field>
 </div>
