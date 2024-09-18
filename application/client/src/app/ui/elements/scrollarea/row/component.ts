@@ -135,12 +135,13 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         const delimiter = this.row.session.render.delimiter();
         const selection = this.selecting.selection();
         const selectionInfo = this.selecting.getAsSelection();
+        const ctrl = this.ilc().services.system.env.platform().darwin() ? 'Cmd' : 'Ctrl';
         items.push(
             ...[
                 {
                     caption: 'Copy',
                     disabled: !selection.exist,
-                    shortcut: 'Ctrl + C',
+                    shortcut: `${ctrl} + C`,
                     handler: () => {
                         this.selecting.copyToClipboard(true).catch((err: Error) => {
                             this.log().error(`Fail to copy selection: ${err.message}`);
@@ -152,22 +153,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                           {
                               caption: 'Copy as Formated Table',
                               disabled: false,
+                              shortcut: `Shift + ${ctrl} + C`,
                               handler: () => {
-                                  if (selection.lines <= 1) {
-                                      this.selecting
-                                          .copyRowToClipboard(this.row.position, false)
-                                          .catch((err: Error) => {
-                                              this.log().error(
-                                                  `Fail to copy selection: ${err.message}`,
-                                              );
-                                          });
-                                  } else {
-                                      this.selecting.copyToClipboard(false).catch((err: Error) => {
-                                          this.log().error(
-                                              `Fail to copy selection: ${err.message}`,
-                                          );
-                                      });
-                                  }
+                                  this.selecting.copyToClipboard(false).catch((err: Error) => {
+                                      this.log().error(`Fail to copy selection: ${err.message}`);
+                                  });
                               },
                           },
                       ]

@@ -173,6 +173,14 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
                     this.log().error(`Fail to copy content into clipboard: ${err.message}`);
                 });
             }),
+            this.ilc().services.system.hotkeys.listen('Shift + Ctrl + C', () => {
+                if (!this.service.focus().get()) {
+                    return;
+                }
+                this.selecting.copyToClipboard(false).catch((err: Error) => {
+                    this.log().error(`Fail to copy selection: ${err.message}`);
+                });
+            }),
         );
         this.frame.init();
     }
