@@ -30,6 +30,9 @@ export const executor: TExecutor<INearest | undefined, IExecuteNearestOptions> =
             resolve: (res: INearest | undefined) => void,
             reject: (err: Error) => void,
         ) {
+            if (typeof data === 'string' && data.trim().length === 0) {
+                return resolve(undefined);
+            }
             try {
                 const result: INearest | undefined | null = JSON.parse(data);
                 resolve(result === null ? undefined : result);
