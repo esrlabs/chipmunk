@@ -272,15 +272,21 @@ export class Selecting {
         if (this._selection.start === undefined || this._selection.end === undefined) {
             return undefined;
         }
+        const rows = {
+            start: Math.min(this._selection.focus.row, this._selection.anchor.row),
+            end: Math.max(this._selection.focus.row, this._selection.anchor.row),
+        };
+        const fragments = {
+            start: this._selection.start,
+            end: this._selection.end,
+        };
+        if (fragments.start !== fragments.end) {
+            fragments.start === '' && (rows.start += 1);
+            fragments.end === '' && (rows.end -= 1);
+        }
         return {
-            rows: {
-                start: Math.min(this._selection.focus.row, this._selection.anchor.row),
-                end: Math.max(this._selection.focus.row, this._selection.anchor.row),
-            },
-            fragments: {
-                start: this._selection.start,
-                end: this._selection.end,
-            },
+            rows,
+            fragments,
         };
     }
 
@@ -299,15 +305,21 @@ export class Selecting {
         if (this._selection.start === undefined || this._selection.end === undefined) {
             return undefined;
         }
+        const rows = {
+            start: Math.min(this._selection.focus.row, this._selection.anchor.row),
+            end: Math.max(this._selection.focus.row, this._selection.anchor.row),
+        };
+        const fragments = {
+            start: this._selection.start,
+            end: this._selection.end,
+        };
+        if (fragments.start !== fragments.end) {
+            fragments.start === '' && (rows.start += 1);
+            fragments.end === '' && (rows.end -= 1);
+        }
         return {
-            rows: {
-                start: Math.min(this._selection.focus.row, this._selection.anchor.row),
-                end: Math.max(this._selection.focus.row, this._selection.anchor.row),
-            },
-            fragments: {
-                start: this._selection.start,
-                end: this._selection.end,
-            },
+            rows,
+            fragments,
         };
     }
 
@@ -326,21 +338,6 @@ export class Selecting {
                 lines: len < 0 ? 0 : len,
             };
         }
-    }
-
-    public async copyRowToClipboard(position: number, original: boolean): Promise<void> {
-        const delimiter = this._delimiter;
-        const rows = (await this._service.getRows({ from: position, to: position })).rows.map(
-            (r) => {
-                if (!original && delimiter === undefined) {
-                    const escaped = escapeAnsi(r.content);
-                    return escaped instanceof Error ? r.content : escaped;
-                } else {
-                    return r.content;
-                }
-            },
-        );
-        this.copyRows(rows, original);
     }
 
     public async copyToClipboard(original: boolean): Promise<void> {
@@ -366,13 +363,11 @@ export class Selecting {
         if (rows.length === 0) {
             return Promise.resolve();
         }
-        if (delimiter === undefined || rows.length === 1) {
-            rows[0] = selection.fragments.start;
-            rows[rows.length - 1] = selection.fragments.end;
-            this.copyRows(rows, original);
-        } else {
-            this.copyRows(rows, original);
+        if (rows.length > 1 && original) {
+            selection.fragments.start !== '' && (rows[0] = selection.fragments.start);
+            selection.fragments.end !== '' && (rows[rows.length - 1] = selection.fragments.end);
         }
+        this.copyRows(rows, original);
     }
 
     public setDelimiter(delimiter: string | undefined): void {
