@@ -286,17 +286,6 @@ export const KeysMap: KeyDescription[] = [
         client: undefined,
         hidden: true,
     },
-    {
-        alias: 'Shift + Ctrl + C',
-        shortkeys: { darwin: ['Shift + Cmd + C'], others: ['Ctrl + Shift + C'] },
-        display: { darwin: ['Shift + ⌘ + C'], others: ['Shift + Ctrl + C'] },
-        description: 'Copy formated to clipboard',
-        category: Category.Other,
-        required: [Requirement.NoInput],
-        uuid: 'Shift + Ctrl + C',
-        client: undefined,
-        hidden: true,
-    },
 ];
 
 export function getKeyByUuid(uuid: string): KeyDescription | undefined {
