@@ -132,7 +132,6 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
         };
         const items: {}[] = [];
         const selectedRowsCount = this.row.session.selection().indexes().length;
-        const delimiter = this.row.session.render.delimiter();
         const selection = this.selecting.selection();
         const selectionInfo = this.selecting.getAsSelection();
         const ctrl = this.ilc().services.system.env.platform().darwin() ? 'Cmd' : 'Ctrl';
@@ -143,25 +142,11 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                     disabled: !selection.exist,
                     shortcut: `${ctrl} + C`,
                     handler: () => {
-                        this.selecting.copyToClipboard(true).catch((err: Error) => {
+                        this.selecting.copyToClipboard().catch((err: Error) => {
                             this.log().error(`Fail to copy selection: ${err.message}`);
                         });
                     },
                 },
-                ...(delimiter !== undefined
-                    ? [
-                          {
-                              caption: 'Copy as Formated Table',
-                              disabled: false,
-                              shortcut: `Shift + ${ctrl} + C`,
-                              handler: () => {
-                                  this.selecting.copyToClipboard(false).catch((err: Error) => {
-                                      this.log().error(`Fail to copy selection: ${err.message}`);
-                                  });
-                              },
-                          },
-                      ]
-                    : []),
                 {},
                 {
                     caption:

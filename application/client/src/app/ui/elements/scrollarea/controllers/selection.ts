@@ -64,7 +64,7 @@ export class Selecting {
     };
     private _delimiter: string | undefined;
 
-    protected copyRows(rows: string[], original: boolean): void {
+    protected copyRows(rows: string[]): void {
         const delimiter = this._delimiter;
         if (rows.length === 0) {
             return;
@@ -83,16 +83,12 @@ export class Selecting {
                 });
             });
             const formated = columns.map((rows: string[]) => {
-                if (original) {
-                    return rows.join(';');
-                } else {
-                    return rows
-                        .map((r, i) => {
-                            const repeat = nums.diffUInts([widths[i], r.length], 0);
-                            return `${r}${' '.repeat(repeat < 0 ? 0 : repeat)}`;
-                        })
-                        .join(' | ');
-                }
+                return rows
+                    .map((r, i) => {
+                        const repeat = nums.diffUInts([widths[i], r.length], 0);
+                        return `${r}${' '.repeat(repeat < 0 ? 0 : repeat)}`;
+                    })
+                    .join(' | ');
             });
             navigator.clipboard.writeText(formated.join('\n'));
         }
@@ -340,7 +336,7 @@ export class Selecting {
         }
     }
 
-    public async copyToClipboard(original: boolean): Promise<void> {
+    public async copyToClipboard(): Promise<void> {
         const selection = this.get();
         if (selection === undefined) {
             return Promise.resolve();
@@ -349,11 +345,10 @@ export class Selecting {
             navigator.clipboard.writeText(selection);
             return Promise.resolve();
         }
-        const delimiter = this._delimiter;
         const rows = (
             await this._service.getRows({ from: selection.rows.start, to: selection.rows.end })
         ).rows.map((r) => {
-            if (!original && delimiter === undefined) {
+            if (this._delimiter === undefined) {
                 const escaped = escapeAnsi(r.content);
                 return escaped instanceof Error ? r.content : escaped;
             } else {
@@ -363,11 +358,11 @@ export class Selecting {
         if (rows.length === 0) {
             return Promise.resolve();
         }
-        if (rows.length > 1 && original) {
+        if (rows.length > 1 && this._delimiter === undefined) {
             selection.fragments.start !== '' && (rows[0] = selection.fragments.start);
             selection.fragments.end !== '' && (rows[rows.length - 1] = selection.fragments.end);
         }
-        this.copyRows(rows, original);
+        this.copyRows(rows);
     }
 
     public setDelimiter(delimiter: string | undefined): void {
