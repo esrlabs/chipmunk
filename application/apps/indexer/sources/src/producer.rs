@@ -80,6 +80,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         // BUG: Potential loss of data inside `do_reload` if it is not cancel-safe.
                         // The test method `sde_communication()` proves the lost in data with non
                         // cancel-safe `reload()` implementation.
+                        // TODO AAZ: Document on bytesoruce where income is implemented that reload
+                        // must be cancel safe
                         read = self.do_reload() => Next::Read(read.unwrap_or((0, 0, 0))),
                     } {
                         Next::Read(next) => {
@@ -120,13 +122,14 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         // 3b. else reload into buffer and goto 2
         loop {
             let current_slice = self.byte_source.current_slice();
-            // NOTE: Adding this assert here caches bugs when `available` and `current_slice.len()`
-            // go out of sync. It would be better to remove available here and use the length of
-            // the current slice instead.
+            // `available` and `current_slice.len()` represent the same value but can go out of sync.
+            // The general unit tests for byte-sources catches this behavior but this assertion is
+            // for new sources to ensure that they are included in the general tests for sources.
             debug_assert_eq!(
                 available,
                 current_slice.len(),
-                "available bytes must always match current slice length"
+                "available bytes must always match current slice length. 
+                Note: Ensure the current byte source is covered with the general unit tests"
             );
 
             debug!(
@@ -162,10 +165,19 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    // NOTE: Some branches return Done before closing the stream and others
-                    //close it directly. Should this behavior be unified?
-                    let (reloaded, _available_bytes, skipped) = self.do_reload().await?;
-                    available += reloaded;
+                    let (newly_loaded, _available_bytes, skipped) = self.do_reload().await?;
+
+                    // Stop if there is no new available bytes.
+                    if newly_loaded == 0 {
+                        trace!("No new bytes has been added. Returning Done");
+                        let unused = skipped_bytes + available;
+                        self.done = true;
+
+                        return Some((unused, MessageStreamItem::Done));
+                    }
+
+                    trace!("New bytes has been loaded, trying parsing again.");
+                    available += newly_loaded;
                     skipped_bytes += skipped;
                     continue;
                 }
@@ -174,7 +186,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         "EOF reached...no more messages (skipped_bytes={})",
                         skipped_bytes
                     );
-                    // NOTE: Same as above
+                    self.done = true;
+
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
@@ -186,10 +199,19 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     self.byte_source.consume(available);
                     skipped_bytes += available;
                     available = self.byte_source.len();
-                    if let Some((reloaded, _available_bytes, skipped)) = self.do_reload().await {
-                        available += reloaded;
-                        skipped_bytes += skipped;
-                    } else {
+
+                    let loaded_new_data = match self.do_reload().await {
+                        Some((newly_loaded, _available_bytes, skipped)) => {
+                            available += newly_loaded;
+                            skipped_bytes += skipped;
+
+                            newly_loaded > 0
+                        }
+                        None => false,
+                    };
+
+                    // Finish if no new data are available.
+                    if !loaded_new_data {
                         let unused = skipped_bytes + available;
                         self.done = true;
                         return Some((unused, MessageStreamItem::Done));
@@ -202,6 +224,14 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     // NOTE: Renaming this to just load() or load_next() would be more descriptive because we aren't
     // repeating any load function, but we are loading a new chunk of data appending them to the
     // current buffer.
+
+    /// Calls load on the underline byte source filling it with more bytes.
+    /// Returning information about the state of the byte counts, Or None if
+    /// the reload call fails.
+    ///
+    /// # Return:
+    ///
+    /// Option<(newly_loaded_bytes, available_bytes, skipped_bytes)>
     async fn do_reload(&mut self) -> Option<(usize, usize, usize)> {
         match self.byte_source.reload(self.filter.as_ref()).await {
             Ok(Some(ReloadInfo {
@@ -222,12 +252,19 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 Some((newly_loaded_bytes, available_bytes, skipped_bytes))
             }
             Ok(None) => {
-                // BUG: Any remaining data in byte_source buffer is ignored here.
                 trace!("byte_source.reload result was None");
-                None
+                if self.byte_source.current_slice().is_empty() {
+                    trace!("byte_source.current_slice() is empty. Returning None");
+
+                    None
+                } else {
+                    trace!("byte_source still have some bytes. Returning them");
+
+                    Some((0, self.byte_source.len(), 0))
+                }
             }
             Err(e) => {
-                // BUG: Any remaining data in byte_source buffer is ignored here.
+                // In error case we don't need to consider the available bytes.
                 warn!("Error reloading content: {}", e);
                 None
             }

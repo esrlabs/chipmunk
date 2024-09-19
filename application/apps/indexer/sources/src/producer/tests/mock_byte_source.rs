@@ -84,9 +84,6 @@ impl ByteSource for MockByteSource {
         let seed_opt = seed_res?;
 
         let Some(seed) = seed_opt else {
-            //TODO AAZ: This should be removed if the current implementation of producer is
-            // modified
-            self.buffer.clear();
             return Ok(None);
         };
 
