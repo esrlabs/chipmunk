@@ -27,7 +27,7 @@ impl<R: Read> PcapLegacyByteSource<R> {
 }
 
 impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
-    async fn reload(
+    async fn load(
         &mut self,
         filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
@@ -187,7 +187,7 @@ mod tests {
         let pcap_file = std::io::Cursor::new(SAMPLE_PCAP_DATA);
 
         let mut source = PcapLegacyByteSource::new(pcap_file).expect("cannot create source");
-        let reload_info = source.reload(None).await.expect("reload should work");
+        let reload_info = source.load(None).await.expect("reload should work");
         println!("reload_info: {:?}", reload_info);
         let slice = source.current_slice();
         println!("slice: {:x?}", slice);

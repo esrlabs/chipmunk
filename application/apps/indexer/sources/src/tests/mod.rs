@@ -13,20 +13,19 @@ pub async fn general_source_reload_test<S: ByteSource>(byte_source: &mut S) {
         byte_source.current_slice().len()
     );
 
-    let reload_1 = byte_source.reload(None).await.unwrap().unwrap();
+    let load_1 = byte_source.load(None).await.unwrap().unwrap();
     // At the start the newly loaded and the available bytes should match
-    assert_eq!(reload_1.newly_loaded_bytes, reload_1.available_bytes);
+    assert_eq!(load_1.newly_loaded_bytes, load_1.available_bytes);
 
     // Consume half of the available bytes
-    let half_read = reload_1.available_bytes / 2;
+    let half_read = load_1.available_bytes / 2;
     byte_source.consume(half_read);
 
-    let reload_2 = byte_source.reload(None).await.unwrap().unwrap();
+    let load_2 = byte_source.load(None).await.unwrap().unwrap();
 
-    let available_bytes_target =
-        reload_2.newly_loaded_bytes + (reload_1.available_bytes - half_read);
+    let available_bytes_target = load_2.newly_loaded_bytes + (load_1.available_bytes - half_read);
 
-    assert_eq!(available_bytes_target, reload_2.available_bytes);
+    assert_eq!(available_bytes_target, load_2.available_bytes);
 
     // Length of loaded bytes and current slice must match when no filter is applied.
     assert_eq!(byte_source.len(), byte_source.current_slice().len());

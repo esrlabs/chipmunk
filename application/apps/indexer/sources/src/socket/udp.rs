@@ -75,7 +75,7 @@ impl UdpSource {
 }
 
 impl ByteSource for UdpSource {
-    async fn reload(
+    async fn load(
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
@@ -135,7 +135,7 @@ mod tests {
         let mut udp_source = UdpSource::new(RECEIVER, vec![]).await?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
-                udp_source.reload(None).await.unwrap();
+                udp_source.load(None).await.unwrap();
                 assert_eq!(udp_source.current_slice(), msg.as_bytes());
                 udp_source.consume(msg.len());
             }

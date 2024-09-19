@@ -118,12 +118,12 @@ pub trait ByteSource: Send + Sync {
     ///
     /// If the source has access to some timestamp (e.g. timestamp of network package),
     /// this timestamp is passed on additionally (`last_known_ts`)
-
-    // NOTE: Renaming this to just load() or load_next() would be more descriptive because we aren't
-    // repeating any load function, but we are loading a new chunk of data appending them to the
-    // current buffer.
-    // TODO AAZ: This can be renamed to load.
-    async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
+    ///
+    /// # Note:
+    ///
+    /// This function must be **Cancel-Safe** if for structs which support [`sde::SdeRequest`] by
+    /// implementing the method [`ByteSource::income()`].
+    async fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
     /// In case the ByteSource is some kind of connection that does not end,
     /// cancel can be implemented that will give the ByteSource the chance to perform some
@@ -132,6 +132,12 @@ pub trait ByteSource: Send + Sync {
         Ok(())
     }
 
+    /// Append incoming (SDE) Source-Data-Exchange to the data.
+    ///
+    /// # Note:
+    ///
+    /// The method [`ByteSource::reload()`] must be **Cancel-Safe** for structs that support this
+    /// method
     async fn income(&mut self, _msg: sde::SdeRequest) -> Result<sde::SdeResponse, Error> {
         Err(Error::NotSupported)
     }

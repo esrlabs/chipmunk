@@ -77,12 +77,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     // SDE mode: listening next chunk and possible incoming message for source
                     match select! {
                         msg = rx_sde.recv() => Next::Sde(msg),
-                        // BUG: Potential loss of data inside `do_reload` if it is not cancel-safe.
-                        // The test method `sde_communication()` proves the lost in data with non
-                        // cancel-safe `reload()` implementation.
-                        // TODO AAZ: Document on bytesoruce where income is implemented that reload
-                        // must be cancel safe
-                        read = self.do_reload() => Next::Read(read.unwrap_or((0, 0, 0))),
+                        read = self.load() => Next::Read(read.unwrap_or((0, 0, 0))),
                     } {
                         Next::Read(next) => {
                             self.rx_sde = Some(rx_sde);
@@ -113,7 +108,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
             } else {
                 // NoSDE mode: listening only next chunk
-                break 'outer self.do_reload().await.unwrap_or((0, 0, 0));
+                break 'outer self.load().await.unwrap_or((0, 0, 0));
             };
         };
         // 1. buffer loaded? if not, fill buffer with frame data
@@ -165,7 +160,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
-                    let (newly_loaded, _available_bytes, skipped) = self.do_reload().await?;
+                    let (newly_loaded, _available_bytes, skipped) = self.load().await?;
 
                     // Stop if there is no new available bytes.
                     if newly_loaded == 0 {
@@ -200,7 +195,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     skipped_bytes += available;
                     available = self.byte_source.len();
 
-                    let loaded_new_data = match self.do_reload().await {
+                    let loaded_new_data = match self.load().await {
                         Some((newly_loaded, _available_bytes, skipped)) => {
                             available += newly_loaded;
                             skipped_bytes += skipped;
@@ -221,10 +216,6 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
-    // NOTE: Renaming this to just load() or load_next() would be more descriptive because we aren't
-    // repeating any load function, but we are loading a new chunk of data appending them to the
-    // current buffer.
-
     /// Calls load on the underline byte source filling it with more bytes.
     /// Returning information about the state of the byte counts, Or None if
     /// the reload call fails.
@@ -232,8 +223,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// # Return:
     ///
     /// Option<(newly_loaded_bytes, available_bytes, skipped_bytes)>
-    async fn do_reload(&mut self) -> Option<(usize, usize, usize)> {
-        match self.byte_source.reload(self.filter.as_ref()).await {
+    async fn load(&mut self) -> Option<(usize, usize, usize)> {
+        match self.byte_source.load(self.filter.as_ref()).await {
             Ok(Some(ReloadInfo {
                 newly_loaded_bytes,
                 available_bytes,

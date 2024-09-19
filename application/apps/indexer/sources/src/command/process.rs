@@ -154,12 +154,15 @@ impl ProcessSource {
 }
 
 impl ByteSource for ProcessSource {
-    async fn reload(
+    async fn load(
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
         let mut closing = false;
         let mut output;
+        // Implementation is cancel-safe here because there is no data gathered between to await
+        // calls. The only multiple await calls here, are actually while closing where there is
+        // no data to lose anyway.
         loop {
             if !closing {
                 output = select! {
@@ -236,7 +239,7 @@ mod tests {
         match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
             Ok(mut process_source) => {
                 while process_source
-                    .reload(None)
+                    .load(None)
                     .await
                     .expect("Reload data from process source failed")
                     .is_some()

@@ -8,7 +8,7 @@ use crate::{
 use byteorder::{BigEndian, WriteBytesExt};
 use dlt_core::{
     dlt,
-    parse::{dlt_consume_msg, dlt_message},
+    parse::{dlt_consume_msg, dlt_message, DltParseError},
 };
 pub use dlt_core::{
     dlt::LogLevel,
@@ -121,20 +121,24 @@ impl<'m> DltParser<'m> {
     }
 }
 
+impl From<DltParseError> for Error {
+    fn from(value: DltParseError) -> Self {
+        match value {
+            DltParseError::Unrecoverable(e) | DltParseError::ParsingHickup(e) => {
+                Error::Parse(e.to_string())
+            }
+            DltParseError::IncompleteParse { needed: _ } => Error::Incomplete,
+        }
+    }
+}
+
 impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
     fn parse<'b>(
         &mut self,
         input: &'b [u8],
         timestamp: Option<u64>,
     ) -> Result<(&'b [u8], Option<ParseYield<FormattableMessage<'m>>>), Error> {
-        match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header).map_err(
-            |e| match e {
-                //TODO AAZ: Make it cleaner with From<>
-                dlt_core::parse::DltParseError::Unrecoverable(e) => Error::Parse(format!("{e}")),
-                dlt_core::parse::DltParseError::ParsingHickup(e) => Error::Parse(format!("{e}")),
-                dlt_core::parse::DltParseError::IncompleteParse { needed: _ } => Error::Incomplete,
-            },
-        )? {
+        match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)? {
             (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
                 self.offset += input.len() - rest.len();
                 Ok((rest, None))

@@ -57,7 +57,7 @@ impl ByteSource for MockByteSource {
     }
 
     #[inline(always)]
-    async fn reload(
+    async fn load(
         &mut self,
         _filter: Option<&sources::SourceFilter>,
     ) -> Result<Option<sources::ReloadInfo>, sources::Error> {

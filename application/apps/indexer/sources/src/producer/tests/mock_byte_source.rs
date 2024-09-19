@@ -73,10 +73,7 @@ impl ByteSource for MockByteSource {
         self.buffer.len()
     }
 
-    async fn reload(
-        &mut self,
-        _filter: Option<&SourceFilter>,
-    ) -> Result<Option<ReloadInfo>, Error> {
+    async fn load(&mut self, _filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error> {
         let seed_res = self
             .reload_seeds
             .pop_front()
@@ -134,7 +131,7 @@ async fn general_test_mock_byte_source() {
     assert_eq!(source.current_slice(), &[b'a'; 6]);
 
     // Reload Calls
-    let first_reload = source.reload(None).await;
+    let first_reload = source.load(None).await;
     assert!(matches!(
         first_reload,
         Ok(Some(ReloadInfo {
@@ -147,7 +144,7 @@ async fn general_test_mock_byte_source() {
     assert_eq!(source.len(), 11);
     assert_eq!(source.current_slice(), &[b'a'; 11]);
 
-    let second_reload = source.reload(None).await;
+    let second_reload = source.load(None).await;
     assert!(matches!(
         second_reload,
         Ok(Some(ReloadInfo {
@@ -158,10 +155,10 @@ async fn general_test_mock_byte_source() {
         }))
     ));
 
-    let third_reload = source.reload(None).await;
+    let third_reload = source.load(None).await;
     assert!(matches!(third_reload, Ok(None)));
 
-    let fourth_reload = source.reload(None).await;
+    let fourth_reload = source.load(None).await;
     assert!(matches!(fourth_reload, Err(Error::NotSupported)));
 }
 
@@ -173,7 +170,7 @@ async fn test_mock_byte_source_delay() {
 
     let instance = std::time::Instant::now();
 
-    let res = source.reload(None).await;
+    let res = source.load(None).await;
 
     let passed = instance.elapsed();
 
