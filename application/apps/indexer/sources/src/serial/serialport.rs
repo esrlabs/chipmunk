@@ -131,10 +131,11 @@ impl SerialSource {
 }
 
 impl ByteSource for SerialSource {
-    async fn reload(
+    async fn load(
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
+        // Implementation is cancel-safe here because there is one await call on a stream only.
         match self.read_stream.next().await {
             Some(result) => match result {
                 Ok(received) => {

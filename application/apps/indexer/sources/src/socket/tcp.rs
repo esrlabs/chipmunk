@@ -21,7 +21,7 @@ impl TcpSource {
 }
 
 impl ByteSource for TcpSource {
-    async fn reload(
+    async fn load(
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
@@ -100,7 +100,7 @@ mod tests {
         let mut udp_source = TcpSource::new(SERVER).await?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
-                udp_source.reload(None).await.expect("reload failed");
+                udp_source.load(None).await.expect("reload failed");
                 println!(
                     "receive: {:02X?}",
                     std::str::from_utf8(udp_source.current_slice())

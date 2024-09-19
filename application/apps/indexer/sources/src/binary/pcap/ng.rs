@@ -27,7 +27,7 @@ impl<R: Read> PcapngByteSource<R> {
 }
 
 impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
-    async fn reload(
+    async fn load(
         &mut self,
         filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
@@ -205,7 +205,7 @@ mod tests {
         let pcapng_file = std::io::Cursor::new(SAMPLE_PCAPNG_DATA);
 
         let mut source = PcapngByteSource::new(pcapng_file).expect("cannot create source");
-        let reload_info = source.reload(None).await.expect("reload should work");
+        let reload_info = source.load(None).await.expect("reload should work");
         println!("reload_info: {:?}", reload_info);
         let slice = source.current_slice();
         println!("slice: {:x?}", slice);

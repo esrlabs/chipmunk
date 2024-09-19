@@ -34,10 +34,7 @@ where
 }
 
 impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
-    async fn reload(
-        &mut self,
-        _: Option<&SourceFilter>,
-    ) -> Result<Option<ReloadInfo>, SourceError> {
+    async fn load(&mut self, _: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
         let initial_buf_len = self.reader.buf_len();
         trace!(
             "before: capacity: {} (buf_len: {})",
@@ -139,7 +136,7 @@ mod tests {
         let mut binary_source = BinaryByteSource::custom(buff, total_capacity, min_space);
         let mut consumed_bytes = 0usize;
         let mut consumed_msg = 0usize;
-        while let Some(reload_info) = binary_source.reload(None).await.unwrap() {
+        while let Some(reload_info) = binary_source.load(None).await.unwrap() {
             assert!(reload_info.available_bytes >= 4);
             consumed_bytes += 4;
             consumed_msg += 1;
