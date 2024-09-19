@@ -1,3 +1,19 @@
+# 3.13.0 (19.09.2024)
+
+## Fixes
+- prevent requests to the nearest position (search results) on empty results
+
+## Changes
+- remove "Copy As Formatted Table"
+- apply formatted coping as soon as the render is columns
+
+## Features
+- add support Some/IP messages from DLT payload
+
+## Developing
+- switching build workflow from ruby scripts (rake) to own build CLI module
+- add benchmark tests to keep control of performance
+
 # 3.12.9 (06.06.2024)
 
 ## Fixes
