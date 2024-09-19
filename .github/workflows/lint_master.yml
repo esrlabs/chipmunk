@@ -12,7 +12,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: libudev-dev
-        run: sudo apt-get install -y libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev
       - name: install ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -38,7 +40,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: libudev-dev
-        run: sudo apt-get install -y libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev
       - name: install ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -60,7 +64,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: libudev-dev
-        run: sudo apt-get install -y libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev
       - name: install ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -86,7 +92,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: libudev-dev
-        run: sudo apt-get install -y libudev-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev
       - name: install ruby
         uses: ruby/setup-ruby@v1
         with:
