@@ -1,5 +1,11 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
-use std::{borrow::Cow, fmt, fmt::Display, io::Write, path::PathBuf};
+use std::{
+    borrow::Cow,
+    convert::Infallible,
+    fmt::{self, Display},
+    io::Write,
+    path::PathBuf,
+};
 
 use someip_messages::*;
 use someip_payload::{
@@ -325,9 +331,18 @@ impl SomeipLogMessage {
 }
 
 impl LogMessage for SomeipLogMessage {
+    type ParseError = Infallible;
+
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         writer.write_all(&self.bytes)?;
         Ok(self.bytes.len())
+    }
+
+    fn try_resolve(
+        &self,
+        _resolver: Option<&mut crate::nested_parser::ParseRestResolver>,
+    ) -> Result<impl Display, Self::ParseError> {
+        Ok(self)
     }
 }
 

@@ -1,6 +1,9 @@
 use crate::{duration_report, Instant};
 use futures::{pin_mut, stream::StreamExt};
-use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
+use parsers::{
+    dlt::DltParser, nested_parser::ParseRestResolver, LogMessage, MessageStreamItem,
+    ParseLogMsgError, ParseYield,
+};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use session::session::Session;
@@ -46,6 +49,8 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                             let udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
                             let dlt_parser = DltParser::new(None, None, None, false);
                             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, udp_source, None);
+                            //TODO AAZ: Make sure we need to provide the resolver in indexer CLI.
+                            let mut parse_reslover = ParseRestResolver::new();
                             let msg_stream = dlt_msg_producer.as_stream();
                             pin_mut!(msg_stream);
                             loop {
@@ -56,10 +61,12 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                                     }
                                     item = msg_stream.next() => {
                                         match item {
-                                            Some((_, MessageStreamItem::Item(ParseYield::Message(msg)))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
+                                                let msg = parse_log_msg_lossy(item, &mut parse_reslover);
                                                 println!("msg: {msg}");
                                             }
-                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, attachment))))) => {
+                                            Some((_, MessageStreamItem::Item(ParseYield::MessageAndAttachment((item, attachment))))) => {
+                                                let msg = parse_log_msg_lossy(item, &mut parse_reslover);
                                                 println!("msg: {msg}, attachment: {attachment:?}");
                                             }
                                             Some((_, MessageStreamItem::Item(ParseYield::Attachment(attachment)))) => {
@@ -193,4 +200,12 @@ async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()
         }
         println!("done with readline loop");
     })
+}
+
+/// Parse log messages without registering errors and calling [`ParseLogMsgError::parse_lossy()`] on errors
+pub fn parse_log_msg_lossy<T: LogMessage>(item: T, err_resolver: &mut ParseRestResolver) -> String {
+    match item.try_resolve(Some(err_resolver)) {
+        Ok(item) => item.to_string(),
+        Err(err) => err.parse_lossy(),
+    }
 }

@@ -1,6 +1,6 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
-use std::{fmt, io::Write};
+use std::{convert::Infallible, fmt, io::Write};
 
 pub struct StringTokenizer {}
 
@@ -16,10 +16,19 @@ impl fmt::Display for StringMessage {
 }
 
 impl LogMessage for StringMessage {
+    type ParseError = Infallible;
+
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
         let len = self.content.len();
         writer.write_all(self.content.as_bytes())?;
         Ok(len)
+    }
+
+    fn try_resolve(
+        &self,
+        _resolver: Option<&mut crate::nested_parser::ParseRestResolver>,
+    ) -> Result<impl fmt::Display, Self::ParseError> {
+        Ok(self)
     }
 }
 

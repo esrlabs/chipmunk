@@ -1,9 +1,11 @@
 #![deny(unused_crate_dependencies)]
 pub mod dlt;
+pub mod nested_parser;
 pub mod someip;
 pub mod text;
+use nested_parser::ParseRestResolver;
 use serde::Serialize;
-use std::{fmt::Display, io::Write};
+use std::{convert::Infallible, fmt::Display, io::Write};
 use thiserror::Error;
 
 extern crate log;
@@ -78,12 +80,6 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Display + Serialize {
-    /// Serializes a message directly into a Writer
-    /// returns the size of the serialized message
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
-}
-
 #[derive(Debug)]
 pub enum MessageStreamItem<T: LogMessage> {
     Item(ParseYield<T>),
@@ -91,4 +87,102 @@ pub enum MessageStreamItem<T: LogMessage> {
     Incomplete,
     Empty,
     Done,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParseLogSeverity {
+    Error,
+    Warn,
+    Info,
+}
+
+pub trait ParseLogMsgError {
+    fn parse_lossy(self) -> String;
+    fn severity(&self) -> ParseLogSeverity;
+    fn error_msg(&self) -> String;
+}
+
+impl ParseLogMsgError for Infallible {
+    fn parse_lossy(self) -> String {
+        panic!("Infallible can't be instantiated")
+    }
+
+    fn severity(&self) -> ParseLogSeverity {
+        panic!("Infallible can't be instantiated")
+    }
+
+    fn error_msg(&self) -> String {
+        panic!("Infallible can't be instantiated")
+    }
+}
+
+#[derive(Debug, Clone)]
+//TODO AAZ: Move all those structs to a new module. It's getting crowded here.
+pub struct GeneralParseLogError {
+    content: String,
+    err_msg: String,
+    severity: ParseLogSeverity,
+}
+
+impl GeneralParseLogError {
+    pub fn new(content: String, err_msg: String, severity: ParseLogSeverity) -> Self {
+        Self {
+            content,
+            err_msg,
+            severity,
+        }
+    }
+
+    //TODO: Make sure this converting is enough.
+    pub fn from_parser_err(bytes: &[u8], severity: ParseLogSeverity, err: Error) -> Self {
+        let content = format!("{bytes:?}");
+        let err_msg = match err {
+            Error::Parse(parse_err) => format!("Nested Parser Error: Parse Error: {parse_err}"),
+            Error::Incomplete => "Nested Parser Error: Incomplete".into(),
+            Error::Eof => "Nested Parser Error: Eof".into(),
+        };
+
+        Self {
+            content,
+            severity,
+            err_msg,
+        }
+    }
+}
+
+impl ParseLogMsgError for GeneralParseLogError {
+    fn parse_lossy(self) -> String {
+        self.content
+    }
+
+    fn severity(&self) -> ParseLogSeverity {
+        self.severity
+    }
+
+    fn error_msg(&self) -> String {
+        self.err_msg.to_owned()
+    }
+}
+
+pub trait LogMessage: Serialize {
+    type ParseError: ParseLogMsgError;
+    /// Serializes a message directly into a Writer
+    /// returns the size of the serialized message
+    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+
+    /// Tries to resolve the message to get its text representation, with in optional help from
+    /// [`ParseRestResolver`] for the parts which can't be parsed.
+    fn try_resolve(
+        &self,
+        // TODO: Remember the point of making the resolver optional, is to avoid infinite
+        // recursions in case of parsers calling each others
+        resolver: Option<&mut ParseRestResolver>,
+    ) -> Result<impl Display, Self::ParseError>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Gives Hint about how the payload rest can be resolved
+pub enum ResolveParseHint {
+    /// The message needs to be parsed with SomeIP Parser.
+    SomeIP,
 }
