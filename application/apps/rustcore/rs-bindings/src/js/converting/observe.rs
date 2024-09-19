@@ -1,5 +1,6 @@
 use std::{
     convert::{TryFrom, TryInto},
+    ops::Not,
     path::PathBuf,
 };
 
@@ -88,11 +89,7 @@ fn get_stream_transport(opt: &observe::observe_origin::Stream) -> Result<factory
                     .into_iter()
                     .map(|mc| factory::MulticastInfo {
                         multiaddr: mc.multiaddr,
-                        interface: if mc.interface.is_empty() {
-                            None
-                        } else {
-                            Some(mc.interface)
-                        },
+                        interface: mc.interface.is_empty().not().then_some(mc.interface),
                     })
                     .collect(),
             })
@@ -125,54 +122,30 @@ impl TryInto<factory::ObserveOptions> for JsIncomeBuffer {
             observe::parser_type::Type::Dlt(opt) => {
                 factory::ParserType::Dlt(factory::DltParserSettings {
                     filter_config: opt.filter_config.map(|opt| factory::DltFilterConfig {
-                        min_log_level: Some(
-                            if opt.min_log_level <= u8::MAX as u32
-                                && opt.min_log_level >= u8::MIN as u32
-                            {
-                                opt.min_log_level as u8
-                            } else {
-                                0
-                            },
-                        ),
+                        min_log_level: Some(u8::try_from(opt.min_log_level).unwrap_or(0)),
                         app_id_count: opt.app_id_count,
-                        app_ids: if opt.app_ids.is_empty() {
-                            None
-                        } else {
-                            Some(opt.app_ids)
-                        },
+                        app_ids: opt.app_ids.is_empty().not().then_some(opt.app_ids),
                         context_id_count: opt.context_id_count,
-                        context_ids: if opt.context_ids.is_empty() {
-                            None
-                        } else {
-                            Some(opt.context_ids)
-                        },
-                        ecu_ids: if opt.ecu_ids.is_empty() {
-                            None
-                        } else {
-                            Some(opt.ecu_ids)
-                        },
+                        context_ids: opt.context_ids.is_empty().not().then_some(opt.context_ids),
+                        ecu_ids: opt.ecu_ids.is_empty().not().then_some(opt.ecu_ids),
                     }),
-                    fibex_file_paths: if opt.fibex_file_paths.is_empty() {
-                        None
-                    } else {
-                        Some(opt.fibex_file_paths)
-                    },
+                    fibex_file_paths: opt
+                        .fibex_file_paths
+                        .is_empty()
+                        .not()
+                        .then_some(opt.fibex_file_paths),
                     with_storage_header: opt.with_storage_header,
-                    tz: if opt.tz.is_empty() {
-                        None
-                    } else {
-                        Some(opt.tz)
-                    },
+                    tz: opt.tz.is_empty().not().then_some(opt.tz),
                     fibex_metadata: None,
                 })
             }
             observe::parser_type::Type::SomeIp(opt) => {
                 factory::ParserType::SomeIp(factory::SomeIpParserSettings {
-                    fibex_file_paths: if opt.fibex_file_paths.is_empty() {
-                        None
-                    } else {
-                        Some(opt.fibex_file_paths)
-                    },
+                    fibex_file_paths: opt
+                        .fibex_file_paths
+                        .is_empty()
+                        .not()
+                        .then_some(opt.fibex_file_paths),
                 })
             }
             observe::parser_type::Type::Text(_) => factory::ParserType::Text,
