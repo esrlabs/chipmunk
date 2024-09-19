@@ -34,7 +34,7 @@ impl From<CommandOutcomeWrapper<String>> for Vec<u8> {
                     },
                 )),
             })
-            .unwrap_or(proto::CommandOutcome {
+            .unwrap_or_else(|| proto::CommandOutcome {
                 outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
@@ -53,7 +53,7 @@ impl From<CommandOutcomeWrapper<Option<String>>> for Vec<u8> {
                     },
                 )),
             })
-            .unwrap_or(proto::CommandOutcome {
+            .unwrap_or_else(|| proto::CommandOutcome {
                 outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
@@ -72,7 +72,7 @@ impl From<CommandOutcomeWrapper<Vec<String>>> for Vec<u8> {
                     },
                 )),
             })
-            .unwrap_or(proto::CommandOutcome {
+            .unwrap_or_else(|| proto::CommandOutcome {
                 outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
@@ -91,7 +91,7 @@ impl From<CommandOutcomeWrapper<bool>> for Vec<u8> {
                     },
                 )),
             })
-            .unwrap_or(proto::CommandOutcome {
+            .unwrap_or_else(|| proto::CommandOutcome {
                 outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
@@ -110,7 +110,7 @@ impl From<CommandOutcomeWrapper<()>> for Vec<u8> {
                     },
                 )),
             })
-            .unwrap_or(proto::CommandOutcome {
+            .unwrap_or_else(|| proto::CommandOutcome {
                 outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
@@ -129,7 +129,7 @@ impl From<CommandOutcomeWrapper<i64>> for Vec<u8> {
                     },
                 )),
             })
-            .unwrap_or(proto::CommandOutcome {
+            .unwrap_or_else(|| proto::CommandOutcome {
                 outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
