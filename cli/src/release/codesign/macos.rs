@@ -104,40 +104,48 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
     let app_root = Target::App.cwd();
     let release_build_path = release_build_path();
 
-    // Retrieve sign paths
-    // First: single paths.
-    let mut sign_paths: Vec<_> = config
-        .sign_paths
-        .single_paths
-        .iter()
-        .map(|p| release_build_path.join(p))
-        .collect();
+    let release_build_path_str = release_build_path.to_string_lossy();
 
-    // Second: glob paths.
+    // Retrieve sign paths
+    let mut sign_paths: Vec<_> = Vec::new();
+
+    // First: glob paths.
     for glob_path in config
         .sign_paths
         .glob_patterns
         .iter()
-        .map(|p| release_build_path.join(p))
+        .map(|p| format!("{release_build_path_str}/{p}"))
     {
-        sign_paths.extend(
-            glob::glob(&glob_path.to_string_lossy())
-                .context("Error while retrieving file paths via glob")?
-                .flat_map(|p| p.ok())
-                .filter(|p| p.is_file())
-                .filter(|p| !p.is_symlink()),
-        );
+        let paths: Vec<_> = glob::glob(&glob_path)
+            .context("Error while retrieving file paths via glob")?
+            .flat_map(|p| p.ok())
+            .filter(|p| p.is_file())
+            .filter(|p| !p.is_symlink())
+            .collect();
+
+        sign_paths.extend(paths);
     }
+
+    // Second: single paths.
+    sign_paths.extend(
+        config
+            .sign_paths
+            .single_paths
+            .iter()
+            .map(|p| release_build_path.join(p))
+    );
+
 
     // Start signing files
     let sign_id = env::var(&config.env_vars.signing_id)
         .context("Error while retrieving signing ID environment variable")?;
     for path in sign_paths {
         let cmd = format!(
-            "codesign --sign \"{sign_id}\" {} {}",
+            "codesign --sign \"{sign_id}\" {} \"{}\"",
             config.sign_cmd_options,
             path.to_string_lossy()
         );
+        println!("DEBUG: CodeSign CMD: '{cmd}'");
         let cmd_status = std::process::Command::new("sh")
             .arg("-c")
             .arg(&cmd)
@@ -198,7 +206,7 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
     let release_file_path = release_path().join(archname);
 
     let cmd = format!(
-        "{} {}  --apple-id {apple_id} --team-id {team_id} --password {team_id} --password {password}",
+        "{} \"{}\"  --apple-id \"{apple_id}\" --team-id \"{team_id}\" --password \"{password}\"",
         config.notarize_command.command,
         release_file_path.to_string_lossy()
     );

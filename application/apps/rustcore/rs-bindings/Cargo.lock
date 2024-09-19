@@ -699,7 +699,7 @@ dependencies = [
 [[package]]
 name = "dlt-core"
 version = "0.16.0"
-source = "git+https://github.com/kruss/dlt-core.git?branch=dlt_network_traces#525f591862437ca15c56639143f205a956d01b6a"
+source = "git+https://github.com/esrlabs/dlt-core#4299e9fa352b49cf21c5c867c835e18f4cc4a6cd"
 dependencies = [
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder",
@@ -1841,6 +1841,7 @@ dependencies = [
  "log",
  "memchr",
  "rand",
+ "regex",
  "serde",
  "someip-messages",
  "someip-payload",
@@ -2475,8 +2476,8 @@ dependencies = [
 
 [[package]]
 name = "someip-payload"
-version = "0.1.2"
-source = "git+https://github.com/kruss/someip-payload.git?branch=fix_someip_array_parsing#8d0a5a5d61604d559970ef4d6a717ad536ece1fc"
+version = "0.1.3"
+source = "git+https://github.com/esrlabs/someip-payload#7e0e5150081aea7acb96cc2964af7b597685f816"
 dependencies = [
  "byteorder",
  "log",
