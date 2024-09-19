@@ -1,13 +1,19 @@
 use crate::{Error, LogMessage, ParseYield, Parser};
 use std::{
-    borrow::Cow, cmp::Ordering, collections::HashMap, fmt, fmt::Display, io::Write, path::PathBuf,
+    borrow::Cow,
+    cmp::Ordering,
+    collections::HashMap,
+    fmt::{self, Display},
+    io::Write,
+    path::PathBuf,
+    sync::Mutex,
 };
 
 use someip_messages::*;
 use someip_payload::{
-    fibex::{FibexModel, FibexParser, FibexReader, FibexServiceInterface},
+    fibex::{FibexModel, FibexParser, FibexReader, FibexServiceInterface, FibexTypeDeclaration},
     fibex2som::FibexTypes,
-    som::SOMParser,
+    som::{SOMParser, SOMType},
 };
 
 use lazy_static::lazy_static;
@@ -18,7 +24,8 @@ use serde::Serialize;
 /// Wrapper for a fibex-model (new-type pattern).
 pub struct FibexMetadata {
     model: FibexModel,
-    map: HashMap<usize, Vec<(usize, usize, usize)>>,
+    services: Mutex<FibexServiceCache>,
+    types: Mutex<FibexTypeCache>,
 }
 
 impl FibexMetadata {
@@ -37,53 +44,116 @@ impl FibexMetadata {
     }
 
     /// Returns a new meta-data from the given fibex-model.
-    pub fn new(model: FibexModel) -> Self {
-        let mut map: HashMap<usize, Vec<(usize, usize, usize)>> = HashMap::new();
-
-        for (index, service) in model.services.iter().enumerate() {
-            let entry = (service.major_version, service.minor_version, index);
-            match map.remove(&service.service_id) {
-                Some(mut list) => {
-                    list.push(entry);
-                    map.insert(service.service_id, list);
-                }
-                None => {
-                    map.insert(service.service_id, vec![entry]);
-                }
-            }
-        }
-
-        for list in map.values_mut() {
-            list.sort_by(|a, b| {
-                let r = b.0.cmp(&a.0);
+    pub fn new(mut model: FibexModel) -> Self {
+        model.services.sort_by(|a, b| {
+            let r = a.service_id.cmp(&b.service_id);
+            if Ordering::Equal == r {
+                let r = b.major_version.cmp(&b.major_version);
                 if Ordering::Equal == r {
-                    return b.1.cmp(&a.1);
+                    return b.minor_version.cmp(&a.minor_version);
                 }
-                r
-            });
-        }
+                return r;
+            }
+            r
+        });
 
-        Self { model, map }
+        Self {
+            model,
+            services: Mutex::new(FibexServiceCache::default()),
+            types: Mutex::new(FibexTypeCache::default()),
+        }
     }
 
-    /// Finds a service for the given id and the matching or latest available version, if any.
-    pub fn find_service(&self, id: usize, version: usize) -> Option<&FibexServiceInterface> {
-        if let Some(list) = self.map.get(&id) {
-            if let Some(entry) = list.iter().find(|entry| entry.0 == version) {
-                self.model.services.get(entry.2)
-            } else if let Some(entry) = list.first() {
-                self.model.services.get(entry.2)
-            } else {
-                None
+    /// Returns a SOME/IP service for the given id and matching or latest version, if any.
+    pub fn get_service(&self, id: usize, version: usize) -> Option<&FibexServiceInterface> {
+        if let Ok(mut lock) = self.services.lock() {
+            if let Some(index) = lock.get_service_index(&self.model, id, version) {
+                return self.model.services.get(index);
             }
-        } else {
-            None
         }
+
+        None
+    }
+
+    /// Parses a SOME/IP payload for the given FIBEX type.
+    pub fn parse_payload(
+        &self,
+        fibex_type: &FibexTypeDeclaration,
+        payload: &RpcPayload,
+    ) -> Option<String> {
+        if let Ok(mut lock) = self.types.lock() {
+            if let Some(som_type) = lock.get_som_type(fibex_type) {
+                match som_type.parse(&mut SOMParser::new(payload)) {
+                    Ok(_) => {
+                        return Some(som_type.to_string().replace([' ', '\n'], ""));
+                    }
+                    Err(error) => {
+                        return Some(format!("'{}' {:02X?}", error, *payload));
+                    }
+                };
+            }
+        }
+
+        None
     }
 }
 
 unsafe impl Send for FibexMetadata {}
 unsafe impl Sync for FibexMetadata {}
+
+/// A cache for service indexes within a model.
+#[derive(Default)]
+struct FibexServiceCache {
+    map: HashMap<(usize, usize), usize>,
+}
+
+impl FibexServiceCache {
+    fn get_service_index(
+        &mut self,
+        model: &FibexModel,
+        id: usize,
+        version: usize,
+    ) -> Option<usize> {
+        if !self.map.contains_key(&(id, version)) {
+            let mut scan = true;
+            let mut result: Option<usize> = None;
+            for (index, service) in model.services.iter().enumerate() {
+                if service.service_id == id {
+                    scan = false;
+                    if service.major_version == version {
+                        result = Some(index);
+                        break;
+                    } else if result.is_none() {
+                        result = Some(index);
+                    }
+                } else if !scan {
+                    break;
+                }
+            }
+            result.and_then(|index| self.map.insert((id, version), index));
+        }
+
+        self.map.get(&(id, version)).copied()
+    }
+}
+
+/// A cache for payload types within a model.
+#[derive(Default)]
+struct FibexTypeCache {
+    map: HashMap<String, Box<dyn SOMType>>,
+}
+
+impl FibexTypeCache {
+    fn get_som_type(&mut self, fibex_type: &FibexTypeDeclaration) -> Option<&mut Box<dyn SOMType>> {
+        if !self.map.contains_key(&fibex_type.id) {
+            if let Ok(som_type) = FibexTypes::build(fibex_type) {
+                self.map.insert(fibex_type.id.clone(), som_type);
+            }
+        }
+
+        self.map.get_mut(&fibex_type.id)
+    }
+}
 
 /// A parser for SOME/IP log messages.
 pub struct SomeipParser {
@@ -344,18 +414,16 @@ fn rpc_message_string(
                 let method_id = header.message_id.method_id as usize;
                 let message_type = header.message_type;
 
-                let lookup = meta_data
-                    .find_service(service_id, service_version)
+                match meta_data
+                    .get_service(service_id, service_version)
                     .map(|service| {
                         let service_name = if service.major_version == service_version {
-                            service.name.to_string()
+                            Cow::Borrowed(&service.name)
                         } else {
-                            format!("{}<{}?>", service.name, service.major_version)
+                            Cow::Owned(format!("{}<{}?>", service.name, service.major_version))
                         };
                         (service, service_name)
-                    });
-
-                match lookup {
+                    }) {
                     Some((service, service_name)) => match service.get_method(method_id) {
                         Some(method) => {
                             let payload_string = if payload.is_empty() {
@@ -369,19 +437,9 @@ fn rpc_message_string(
                                     _ => None,
                                 };
 
-                                let som_type =
-                                    fibex_type.and_then(|value| FibexTypes::build(value).ok());
-
-                                let mut som_parser = SOMParser::new(payload);
-
-                                som_type
-                                    .map(|mut value| match value.parse(&mut som_parser) {
-                                        Ok(_) => {
-                                            Cow::Owned(value.to_string().replace([' ', '\n'], ""))
-                                        }
-                                        Err(error) => {
-                                            format!("'{}' {:02X?}", error, *payload).into()
-                                        }
+                                fibex_type
+                                    .and_then(|f| {
+                                        meta_data.parse_payload(f, payload).map(Cow::Owned)
                                     })
                                     .unwrap_or_else(|| format!("{:02X?}", *payload).into())
                             };
@@ -904,7 +962,7 @@ mod test {
             .expect("parse failed"),
         );
 
-        let service = meta_data.find_service(123, 3).unwrap();
+        let service = meta_data.get_service(123, 3).unwrap();
         assert_eq!(
             (123, 2, 3),
             (
@@ -914,7 +972,7 @@ mod test {
             )
         );
 
-        let service = meta_data.find_service(123, 2).unwrap();
+        let service = meta_data.get_service(123, 2).unwrap();
         assert_eq!(
             (123, 2, 3),
             (
@@ -924,7 +982,7 @@ mod test {
             )
         );
 
-        let service = meta_data.find_service(123, 1).unwrap();
+        let service = meta_data.get_service(123, 1).unwrap();
         assert_eq!(
             (123, 1, 1),
             (
@@ -934,7 +992,7 @@ mod test {
             )
         );
 
-        assert!(meta_data.find_service(213, 1).is_none());
-        assert!(meta_data.find_service(321, 1).is_some());
+        assert!(meta_data.get_service(213, 1).is_none());
+        assert!(meta_data.get_service(321, 1).is_some());
     }
 }
