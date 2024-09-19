@@ -122,6 +122,7 @@ pub trait ByteSource: Send + Sync {
     // NOTE: Renaming this to just load() or load_next() would be more descriptive because we aren't
     // repeating any load function, but we are loading a new chunk of data appending them to the
     // current buffer.
+    // TODO AAZ: This can be renamed to load.
     async fn reload(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
     /// In case the ByteSource is some kind of connection that does not end,

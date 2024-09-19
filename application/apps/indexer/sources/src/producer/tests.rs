@@ -107,13 +107,18 @@ async fn parse_incomplete() {
             5,
             Some(ParseYield::Message(MockMessage::from(1))),
         )),
+        Ok(MockParseSeed::new(
+            25,
+            Some(ParseYield::Message(MockMessage::from(1))),
+        )),
     ]);
     let source = MockByteSource::new(
         0,
         [
             Ok(Some(MockReloadSeed::new(10, 0))),
             Ok(Some(MockReloadSeed::new(10, 0))),
-            Ok(Some(MockReloadSeed::new(0, 0))),
+            Ok(Some(MockReloadSeed::new(10, 0))),
+            Ok(None),
             Ok(None),
         ],
     );
@@ -129,6 +134,16 @@ async fn parse_incomplete() {
         next,
         Some((
             5,
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
+        ))
+    ));
+
+    // Second message consumes all the remaining bytes.
+    let next = stream.next().await;
+    assert!(matches!(
+        next,
+        Some((
+            25,
             MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
         ))
     ));
@@ -183,7 +198,7 @@ async fn parsing_error_success_reload() {
     let parser = MockParser::new([
         Err(ParseError::Parse(Default::default())),
         Ok(MockParseSeed::new(
-            5,
+            10,
             Some(ParseYield::Message(MockMessage::from(1))),
         )),
     ]);
@@ -202,12 +217,12 @@ async fn parsing_error_success_reload() {
     let stream = producer.as_stream();
     pin_mut!(stream);
 
-    // Message with content should be yielded
+    // Message with content should be yielded consuming all the bytes.
     let next = stream.next().await;
     assert!(matches!(
         next,
         Some((
-            15,
+            20,
             MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
         ))
     ));
@@ -255,6 +270,7 @@ async fn parse_with_skipped_bytes() {
             Some(ParseYield::Message(MockMessage::from(1))),
         )),
         Ok(MockParseSeed::new(2, None)),
+        Ok(MockParseSeed::new(15, None)),
     ]);
 
     let source = MockByteSource::new(
@@ -262,6 +278,7 @@ async fn parse_with_skipped_bytes() {
         [
             Ok(Some(MockReloadSeed::new(10, 4))),
             Ok(Some(MockReloadSeed::new(10, 4))),
+            Ok(None),
             Ok(None),
         ],
     );
@@ -287,6 +304,16 @@ async fn parse_with_skipped_bytes() {
         next,
         Some((
             6, // 6: 2 consumed + 4 skipped
+            MessageStreamItem::Skipped
+        ))
+    ));
+
+    // Consume the remaining bytes with successful parse.
+    let next = stream.next().await;
+    assert!(matches!(
+        next,
+        Some((
+            15, // 15 consumed + 0 skipped
             MessageStreamItem::Skipped
         ))
     ));
@@ -334,6 +361,10 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
             5,
             Some(ParseYield::Message(MockMessage::from(1))),
         )),
+        Ok(MockParseSeed::new(
+            5,
+            Some(ParseYield::Message(MockMessage::from(1))),
+        )),
     ]);
 
     let source = MockByteSource::new(
@@ -341,6 +372,7 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
         [
             Ok(Some(MockReloadSeed::new(10, 4))),
             Ok(Some(MockReloadSeed::new(10, 4))),
+            Ok(None),
             Ok(None),
         ],
     );
@@ -356,6 +388,16 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
         next,
         Some((
             23, // 23: 5 consumed + 10 skipped from Error::Parse match branch + (4 + 4) skipped
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
+        ))
+    ));
+
+    // Message uses all available bytes.
+    let next = stream.next().await;
+    assert!(matches!(
+        next,
+        Some((
+            5,
             MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
         ))
     ));
