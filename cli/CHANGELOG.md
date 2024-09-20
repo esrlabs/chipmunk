@@ -1,3 +1,9 @@
+# 0.2.3
+
+## Changes:
+
+* Pick TypeScript tests based on naming conventions in specs directory instead of using hard-coded list.
+
 # 0.2.2
 
 ## Features:
@@ -5,6 +11,7 @@
 * Add custom specifications CLI argument for tests and implement it for wrapper test to enable users form running tests for a specific file. Example:
   - `cargo chipmunk test wrapper -s spec/build/spec/session.jobs.spec.js`: Runs single specification.
   - `cargo chipmunk test wrapper -s spec/build/spec/session.jobs.spec.js -s spec/build/spec/session.search.spec.js`: Runs multiple specifications.
+* Support Code sign process on MacOS.
 
 ## Fixes:
 
