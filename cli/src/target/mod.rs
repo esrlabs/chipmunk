@@ -61,6 +61,7 @@ pub enum Target {
 #[derive(Debug, Clone)]
 /// Represents a command to run with `process::Command` and its arguments
 pub struct ProcessCommand {
+    //TODO AAZ: Use Cow
     pub cmd: String,
     pub args: Vec<String>,
 }
@@ -410,9 +411,8 @@ impl Target {
 
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
-        let cargo_path = DevTool::Cargo.path();
         let command = ProcessCommand::new(
-            cargo_path.to_string_lossy().to_string(),
+            DevTool::Cargo.cmd().to_string(),
             vec![
                 String::from("clippy"),
                 String::from("--color"),
@@ -608,6 +608,5 @@ async fn install_general(
 /// Provides a process command with yarn as [`ProcessCommand::cmd`] and the given arguments
 /// as [`ProcessCommand::args`]
 fn yarn_command(args: Vec<String>) -> ProcessCommand {
-    let yarn_path = DevTool::Yarn.path();
-    ProcessCommand::new(yarn_path.to_string_lossy().to_string(), args)
+    ProcessCommand::new(DevTool::Yarn.cmd().to_string(), args)
 }

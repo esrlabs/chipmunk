@@ -128,14 +128,7 @@ fn build_cmd_mac() -> ProcessCommand {
 
 /// Provide bundle command on Windows
 fn build_cmd_windows() -> anyhow::Result<ProcessCommand> {
-    let mut path = Target::App.cwd().join("node_modules").join(".bin");
-
-    // The script files can get the extension '*.cmd' on Windows
-    let electron_build_env_path = which::which_in("electron-builder", Some(&path), &path)
-        .context("Error while resolving electron bin path on Windows")?;
-    path = electron_build_env_path;
-
-    let cmd = path.to_string_lossy().into();
+    let cmd = electron_builder_cmd();
     let args = vec![
         String::from("--win"),
         String::from("--dir"),

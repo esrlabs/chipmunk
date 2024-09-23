@@ -23,7 +23,7 @@ use checksum_records::ChecksumRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command, UiMode};
 use console::style;
-use dev_environment::{print_env_info, resolve_dev_tools};
+use dev_environment::{print_env_info, validate_dev_tools};
 use job_type::JobType;
 use jobs_runner::jobs_state::JobsConfig;
 use location::init_location;
@@ -78,7 +78,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
     let (job_type, results) = match command {
         Command::Environment(sub_command) => match sub_command {
             EnvironmentCommand::Check => {
-                resolve_dev_tools()?;
+                validate_dev_tools()?;
                 println!("All needed tools for development are installed");
                 return Ok(());
             }
@@ -102,7 +102,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
         } => {
             JobsState::init(JobsConfig::new(fail_fast));
             init_tracker(ui_mode);
-            resolve_dev_tools()?;
+            validate_dev_tools()?;
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Lint).await?;
             (JobType::Lint, results)
@@ -115,7 +115,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
         } => {
             JobsState::init(JobsConfig::new(fail_fast));
             init_tracker(ui_mode);
-            resolve_dev_tools()?;
+            validate_dev_tools()?;
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Build { production }).await?;
             (JobType::Build { production }, results)
@@ -123,7 +123,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
         Command::Clean { target, ui_mode } => {
             JobsState::init(JobsConfig::new(false));
             init_tracker(ui_mode);
-            resolve_dev_tools()?;
+            validate_dev_tools()?;
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Clean).await?;
             (JobType::Clean, results)
@@ -137,7 +137,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
         } => {
             JobsState::init(JobsConfig::new(fail_fast).custom_specs(specifications));
             init_tracker(ui_mode);
-            resolve_dev_tools()?;
+            validate_dev_tools()?;
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Test { production }).await?;
             (JobType::Test { production }, results)
@@ -148,7 +148,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
         } => {
             JobsState::init(JobsConfig::new(!no_fail_fast));
             init_tracker(Default::default());
-            resolve_dev_tools()?;
+            validate_dev_tools()?;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
             (JobType::Run { production }, results)
         }
@@ -177,7 +177,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
                 UiMode::PrintOnJobFinish
             };
             init_tracker(ui_mode);
-            resolve_dev_tools()?;
+            validate_dev_tools()?;
             do_release(development, code_sign).await?;
             let tracker = get_tracker();
             tracker.shutdown(false).await?;

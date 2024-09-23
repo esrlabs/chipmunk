@@ -3,11 +3,10 @@ use crate::{dev_tools::DevTool, spawner::SpawnOptions, target::Target};
 use super::{ProcessCommand, TestSpawnCommand};
 
 pub fn get_build_cmd(prod: bool) -> ProcessCommand {
-    let wasm_pack_path = DevTool::WasmPack.path();
     let env = if prod { "--release" } else { "--dev" };
 
     ProcessCommand::new(
-        wasm_pack_path.to_string_lossy().to_string(),
+        DevTool::WasmPack.cmd().to_string(),
         vec![
             String::from("build"),
             String::from(env),
@@ -22,15 +21,12 @@ pub fn get_build_cmd(prod: bool) -> ProcessCommand {
 pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
     let cwd = Target::Wasm.cwd();
 
-    let npm_path = DevTool::Npm.path();
-    let wasm_pack_path = DevTool::WasmPack.path();
-
     let npm_test_command = if cfg!(windows) { "test_win" } else { "test" };
 
     vec![
         TestSpawnCommand::new(
             ProcessCommand::new(
-                wasm_pack_path.to_string_lossy().to_string(),
+                DevTool::WasmPack.cmd().to_string(),
                 vec![
                     String::from("test"),
                     String::from("--node"),
@@ -43,7 +39,7 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
         ),
         TestSpawnCommand::new(
             ProcessCommand::new(
-                npm_path.to_string_lossy().to_string(),
+                DevTool::Npm.cmd().to_string(),
                 vec![String::from("run"), String::from(npm_test_command)],
             ),
             cwd.join("spec"),
