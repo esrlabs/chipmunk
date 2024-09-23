@@ -9,12 +9,25 @@ use anyhow::bail;
 
 use crate::{dev_tools::DevTool, shell::shell_std_command};
 
+const VERSION_ARG: &str = "--version";
+
 /// Resolve the paths for all development tool returning an Error if any of them can't be resolved
-pub fn resolve_dev_tools() -> anyhow::Result<()> {
+pub fn validate_dev_tools() -> anyhow::Result<()> {
     let mut errors = None;
     for tool in DevTool::all() {
-        let Err(err) = tool.resolve_path() else {
-            continue;
+        let cmd_status = shell_std_command()
+            .arg(format! {"{} {VERSION_ARG}", tool.cmd()})
+            .output();
+
+        let err_opt = match cmd_status {
+            Ok(out) => {
+                if out.status.success() {
+                    continue;
+                } else {
+                    None
+                }
+            }
+            Err(err) => Some(err),
         };
 
         let error_lines =
@@ -26,7 +39,9 @@ pub fn resolve_dev_tools() -> anyhow::Result<()> {
             "Required dependency '{tool}' is not installed.",
         )?;
 
-        writeln!(error_lines, "Resolve Error Info:{err}",)?;
+        if let Some(err) = err_opt {
+            writeln!(error_lines, "Resolve Error Info:{err}",)?;
+        }
 
         if let Some(install_hint) = tool.install_hint() {
             writeln!(
@@ -52,16 +67,17 @@ pub fn resolve_dev_tools() -> anyhow::Result<()> {
 pub fn print_env_info() {
     for tool in DevTool::all() {
         println!("{tool} Info:");
-        match tool.resolve_path() {
-            Ok(cmd) => {
-                if let Err(err) = shell_std_command()
-                    .arg(format!("{} {}", cmd.to_string_lossy(), tool.version_args()))
-                    .status()
-                {
-                    eprintln!("Error while retrieving dependency's information: {err}");
+        let cmd = tool.cmd();
+        match shell_std_command()
+            .arg(format!("{cmd} {VERSION_ARG}"))
+            .status()
+        {
+            Ok(s) => {
+                if !s.success() {
+                    eprintln!("Error while retrieving dependency's information");
                 }
             }
-            Err(err) => eprintln!("Error while resolving tool '{tool}': {err}"),
+            Err(err) => eprintln!("Error while retrieving dependency's information: {err}"),
         }
         println!("------------------------------------------------------------------");
     }

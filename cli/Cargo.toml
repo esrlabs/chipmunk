@@ -27,7 +27,6 @@ indicatif = "0.17.8"
 tokio = { version = "1.36.0", features = ["full"] }
 tokio-util = { version = "0.7.11", features = ["rt"] }
 dir_checksum = { path = "./dir_checksum" }
-which = "6.0"
 clap_complete = "4.5"
 dotenvy = "0.15"
 serde = {version = "1.0", features = ["derive"]}

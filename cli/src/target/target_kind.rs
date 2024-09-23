@@ -27,7 +27,6 @@ impl TargetKind {
                 yarn_command(args)
             }
             TargetKind::Rs => {
-                let cargo_path = DevTool::Cargo.path();
                 let mut args = vec![
                     String::from("build"),
                     String::from("--color"),
@@ -37,7 +36,7 @@ impl TargetKind {
                     args.push("--release".into());
                 }
 
-                ProcessCommand::new(cargo_path.to_string_lossy().to_string(), args)
+                ProcessCommand::new(DevTool::Cargo.cmd().to_string(), args)
             }
         }
     }

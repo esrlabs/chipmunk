@@ -42,14 +42,7 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
     }
 
     // Finding tsc path on different platforms
-    let mut test_runner_path = cwd.join("node_modules").join(".bin");
-    if cfg!(windows) {
-        let tsc_path = which::which_in("tsc", Some(&test_runner_path), &test_runner_path)
-            .context("Error while resolving tsc bin path on Windows")?;
-        test_runner_path = tsc_path;
-    } else {
-        test_runner_path.push("tsc");
-    }
+    let test_runner_path = cwd.join("node_modules").join(".bin").join("tsc");
 
     let build_spec_cmd = ProcessCommand::new(
         test_runner_path.to_string_lossy().to_string(),
@@ -67,13 +60,7 @@ pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
 
     let mut final_result = spec_res;
 
-    let mut electron_path: PathBuf = cwd.join("node_modules").join(".bin");
-    if cfg!(windows) {
-        electron_path = which::which_in("electron", Some(&electron_path), &electron_path)
-            .context("Error while resolving electron bin path on Windows")?;
-    } else {
-        electron_path.push("electron");
-    }
+    let electron_path: PathBuf = cwd.join("node_modules").join(".bin").join("electron");
 
     let electron_path = electron_path.to_string_lossy();
 

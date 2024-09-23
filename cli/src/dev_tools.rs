@@ -1,10 +1,7 @@
 //! Manages finding and resolving the paths of the installed development tools on different
 //! platforms.
 
-use anyhow::{anyhow, Result};
-use std::{fmt::Display, path::PathBuf, sync::OnceLock};
-
-use which::{which_all_global, which_global};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy)]
 /// Represents the development tools which used to build & test the app
@@ -70,88 +67,17 @@ impl DevTool {
         }
     }
 
-    /// Provide the command line argument to get the version of the installed tool
-    pub fn version_args(self) -> &'static str {
+    /// Provides the command line command for the development tool.
+    pub fn cmd(self) -> &'static str {
         match self {
-            DevTool::Node | DevTool::Npm | DevTool::Yarn => "-v",
-            DevTool::RustUp | DevTool::Cargo | DevTool::WasmPack | DevTool::NjCli => "-V",
+            DevTool::Node => "node",
+            DevTool::Npm => "npm",
+            DevTool::Yarn => "yarn",
+            DevTool::RustUp => "rustup",
+            //TODO AAZ: Check cargo on windows taking two paths
+            DevTool::Cargo => "cargo",
+            DevTool::WasmPack => "wasm-pack",
+            DevTool::NjCli => "nj-cli",
         }
     }
-
-    /// Resolve the path of the tool if exists. Returning an Error when not possible
-    pub fn resolve_path(self) -> &'static Result<PathBuf> {
-        match self {
-            DevTool::Node => resolve_node_path(),
-            DevTool::Npm => resolve_npm_path(),
-            DevTool::Yarn => resolve_yarn_path(),
-            DevTool::RustUp => resolve_rustup_path(),
-            DevTool::Cargo => resolve_cargo_path(),
-            DevTool::WasmPack => resolve_wasm_pack_path(),
-            DevTool::NjCli => resolve_nj_cli_path(),
-        }
-    }
-
-    /// Get the path of the resolved tool. Panics if the tool can't be resolved   
-    pub fn path(self) -> &'static PathBuf {
-        self.resolve_path()
-            .as_ref()
-            .expect("Developer Error: Cmd has already been resolved")
-    }
-}
-
-fn resolve_node_path() -> &'static Result<PathBuf> {
-    static NODE: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    NODE.get_or_init(|| find_cmd("node"))
-}
-
-fn find_cmd(cmd: &str) -> Result<PathBuf> {
-    which_global(cmd).map_err(|err| anyhow!("Command `{cmd}` couldn't be resolved. Err: {err}"))
-}
-
-fn resolve_npm_path() -> &'static Result<PathBuf> {
-    static NPM: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    NPM.get_or_init(|| find_cmd("npm"))
-}
-
-fn resolve_yarn_path() -> &'static Result<PathBuf> {
-    static YARN: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    YARN.get_or_init(|| find_cmd("yarn"))
-}
-
-fn resolve_rustup_path() -> &'static Result<PathBuf> {
-    static RUSTUP: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    RUSTUP.get_or_init(|| find_cmd("rustup"))
-}
-
-fn resolve_cargo_path() -> &'static Result<PathBuf> {
-    static CARGO: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    if cfg!(windows) {
-        // Rust adds its toolchain to PATH in windows which must be filtered out
-        CARGO.get_or_init(|| {
-            let mut paths = which_all_global("cargo")?;
-
-            paths
-                .find(|p| p.components().any(|c| c.as_os_str() == ".cargo"))
-                .ok_or_else(|| anyhow!("The command 'cargo' can't be found"))
-        })
-    } else {
-        CARGO.get_or_init(|| find_cmd("cargo"))
-    }
-}
-
-fn resolve_wasm_pack_path() -> &'static Result<PathBuf> {
-    static WASM_PACK: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    WASM_PACK.get_or_init(|| find_cmd("wasm-pack"))
-}
-
-fn resolve_nj_cli_path() -> &'static Result<PathBuf> {
-    static NJ_CLI: OnceLock<Result<PathBuf>> = OnceLock::new();
-
-    NJ_CLI.get_or_init(|| find_cmd("nj-cli"))
 }

@@ -7,18 +7,11 @@ use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult, tracker::
 use super::{ProcessCommand, Target};
 
 pub fn get_build_cmd(prod: bool) -> anyhow::Result<ProcessCommand> {
-    let mut path = Target::Wrapper.cwd();
-    path.push("node_modules");
-    path.push(".bin");
-
-    if cfg!(windows) {
-        // The script files can get the extension '*.cmd' on Windows
-        let electron_build_env_path = which::which_in("electron-build-env", Some(&path), &path)
-            .context("Error while resolving electron bin path on Windows")?;
-        path = electron_build_env_path;
-    } else {
-        path.push("electron-build-env");
-    }
+    let path = Target::Wrapper
+        .cwd()
+        .join("node_modules")
+        .join(".bin")
+        .join("electron-build-env");
 
     let mut args = vec![String::from("nj-cli"), String::from("build")];
 
