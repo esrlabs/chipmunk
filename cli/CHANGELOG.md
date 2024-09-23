@@ -1,3 +1,10 @@
+# 0.2.4
+
+## Changes:
+
+* Run all commands from within the standard shell on each platform avoiding resolving the path manually and resolving some issue due to missing shell configurations.
+
+
 # 0.2.3
 
 ## Changes:

@@ -13,7 +13,7 @@ pub fn get_test_cmds(production: bool) -> Vec<TestSpawnCommand> {
     args.push("--color".into());
     args.push("always".into());
 
-    let cmd = ProcessCommand::new(DevTool::Cargo.cmd().to_string(), args);
+    let cmd = ProcessCommand::new(DevTool::Cargo.cmd(), args);
 
     vec![TestSpawnCommand::new(cmd, Target::Core.cwd(), None)]
 }

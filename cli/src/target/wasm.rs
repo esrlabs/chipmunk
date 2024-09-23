@@ -6,7 +6,7 @@ pub fn get_build_cmd(prod: bool) -> ProcessCommand {
     let env = if prod { "--release" } else { "--dev" };
 
     ProcessCommand::new(
-        DevTool::WasmPack.cmd().to_string(),
+        DevTool::WasmPack.cmd(),
         vec![
             String::from("build"),
             String::from(env),
@@ -26,7 +26,7 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
     vec![
         TestSpawnCommand::new(
             ProcessCommand::new(
-                DevTool::WasmPack.cmd().to_string(),
+                DevTool::WasmPack.cmd(),
                 vec![
                     String::from("test"),
                     String::from("--node"),
@@ -39,7 +39,7 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
         ),
         TestSpawnCommand::new(
             ProcessCommand::new(
-                DevTool::Npm.cmd().to_string(),
+                DevTool::Npm.cmd(),
                 vec![String::from("run"), String::from(npm_test_command)],
             ),
             cwd.join("spec"),
