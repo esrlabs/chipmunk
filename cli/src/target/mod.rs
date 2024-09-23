@@ -69,6 +69,11 @@ impl ProcessCommand {
     pub fn new(cmd: String, args: Vec<String>) -> Self {
         Self { cmd, args }
     }
+
+    /// Combines the command and its arguments in one line to be used as a shell command.
+    pub fn combine(&self) -> String {
+        format!("{} {}", self.cmd, self.args.join(" "))
+    }
 }
 
 impl Display for ProcessCommand {

@@ -8,7 +8,10 @@ use fs::File;
 use paths::release_bin_path;
 
 use super::*;
-use crate::target::{ProcessCommand, Target};
+use crate::{
+    shell::shell_tokio_command,
+    target::{ProcessCommand, Target},
+};
 
 /// Runs bundle command on the already built Chipmunk, providing a snapshot file if needed.
 pub async fn bundle_release() -> anyhow::Result<()> {
@@ -22,8 +25,8 @@ pub async fn bundle_release() -> anyhow::Result<()> {
     println!("{}", style("Start Build Bundle command...").blue().bright());
     let build_cmd = bundle_cmd().context("Error while retrieving command to bundle release")?;
     let pwd = Target::App.cwd();
-    let status = tokio::process::Command::new(build_cmd.cmd)
-        .args(build_cmd.args)
+    let status = shell_tokio_command()
+        .arg(build_cmd.combine())
         .current_dir(pwd)
         .kill_on_drop(true)
         .status()

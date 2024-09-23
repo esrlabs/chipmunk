@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use crate::{
     release::paths::{release_build_path, release_path},
+    shell::shell_tokio_command,
     target::Target,
 };
 
@@ -31,15 +32,7 @@ pub async fn compress() -> anyhow::Result<()> {
 
     // We must call the shell and pass it all the arguments at once because we are using the shell
     // wild card `*` which can't be running without a shell.
-    let mut command = if cfg!(target_os = "windows") {
-        let mut cmd = tokio::process::Command::new("cmd");
-        cmd.arg("/C");
-        cmd
-    } else {
-        let mut cmd = tokio::process::Command::new("sh");
-        cmd.arg("-c");
-        cmd
-    };
+    let mut command = shell_tokio_command();
 
     let release_build_path = release_build_path();
     let cmd_status = command

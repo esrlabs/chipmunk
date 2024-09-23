@@ -3,11 +3,11 @@
 //! Chipmunk is built using different technologies and need a variety of development tools to be
 //! installed to build it and run it in development environment.
 
-use std::{fmt::Write, process::Command};
+use std::fmt::Write;
 
 use anyhow::bail;
 
-use crate::dev_tools::DevTool;
+use crate::{dev_tools::DevTool, shell::shell_std_command};
 
 /// Resolve the paths for all development tool returning an Error if any of them can't be resolved
 pub fn resolve_dev_tools() -> anyhow::Result<()> {
@@ -54,7 +54,10 @@ pub fn print_env_info() {
         println!("{tool} Info:");
         match tool.resolve_path() {
             Ok(cmd) => {
-                if let Err(err) = Command::new(cmd).arg(tool.version_args()).status() {
+                if let Err(err) = shell_std_command()
+                    .arg(format!("{} {}", cmd.to_string_lossy(), tool.version_args()))
+                    .status()
+                {
                     eprintln!("Error while retrieving dependency's information: {err}");
                 }
             }
