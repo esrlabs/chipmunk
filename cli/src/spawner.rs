@@ -2,7 +2,11 @@
 //! their output and status to the `Tracker`.
 
 use crate::{
-    jobs_runner::JobDefinition, location::get_root, target::ProcessCommand, tracker::get_tracker,
+    jobs_runner::JobDefinition,
+    location::get_root,
+    shell::{shell_std_command, shell_tokio_command},
+    target::ProcessCommand,
+    tracker::get_tracker,
     JobsState,
 };
 use anyhow::Context;
@@ -11,10 +15,7 @@ use std::{
     path::PathBuf,
     process::{ExitStatus, Stdio},
 };
-use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-    process::Command,
-};
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 #[derive(Clone, Debug)]
 pub struct SpawnResult {
@@ -99,9 +100,9 @@ pub async fn spawn(
 
     let tracker = get_tracker();
 
-    let command_result = Command::new(&command.cmd)
+    let command_result = shell_tokio_command()
+        .arg(command.combine())
         .current_dir(&cwd)
-        .args(&command.args)
         .envs(combined_env_vars)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -197,9 +198,9 @@ pub async fn spawn_blocking(
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
     combined_env_vars.extend(environment_vars);
 
-    let mut cmd = std::process::Command::new(&command.cmd);
+    let mut cmd = shell_std_command();
+    cmd.arg(command.combine());
     cmd.current_dir(&cwd);
-    cmd.args(&command.args);
     cmd.envs(combined_env_vars);
 
     let tracker = get_tracker();

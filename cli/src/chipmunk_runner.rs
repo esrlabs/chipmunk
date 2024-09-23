@@ -2,9 +2,7 @@
 
 use std::{io, process::ExitStatus};
 
-use tokio::process::Command;
-
-use crate::{dev_tools::DevTool, target::Target};
+use crate::{dev_tools::DevTool, shell::shell_tokio_command, target::Target};
 
 /// Runs Chipmunk application from its electron path.
 pub async fn run_chipmunk() -> io::Result<ExitStatus> {
@@ -18,9 +16,11 @@ pub async fn run_chipmunk() -> io::Result<ExitStatus> {
         "electron"
     };
 
-    Command::new(yarn_path)
+    let yarn_path = yarn_path.to_string_lossy();
+
+    shell_tokio_command()
+        .arg([&yarn_path, "run", electron_arg].join(" "))
         .current_dir(electron_path)
-        .args(["run", electron_arg])
         .kill_on_drop(true)
         .status()
         .await

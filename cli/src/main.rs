@@ -13,7 +13,7 @@ mod location;
 mod log_print;
 mod print_dot;
 mod release;
-mod shell_completion;
+mod shell;
 mod spawner;
 mod target;
 mod tracker;
@@ -160,7 +160,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             return Ok(());
         }
         Command::ShellCompletion { shell } => {
-            shell_completion::generate_completion(shell)?;
+            shell::generate_completion(shell)?;
 
             return Ok(());
         }

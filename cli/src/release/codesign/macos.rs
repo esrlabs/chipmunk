@@ -10,6 +10,7 @@ use crate::{
         compress::release_file_name,
         paths::{release_build_path, release_path},
     },
+    shell::shell_std_command,
     target::Target,
 };
 
@@ -132,9 +133,8 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
             .sign_paths
             .single_paths
             .iter()
-            .map(|p| release_build_path.join(p))
+            .map(|p| release_build_path.join(p)),
     );
-
 
     // Start signing files
     let sign_id = env::var(&config.env_vars.signing_id)
@@ -146,8 +146,7 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
             path.to_string_lossy()
         );
         println!("DEBUG: CodeSign CMD: '{cmd}'");
-        let cmd_status = std::process::Command::new("sh")
-            .arg("-c")
+        let cmd_status = shell_std_command()
             .arg(&cmd)
             .current_dir(&app_root)
             .status()
@@ -163,8 +162,7 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
         config.final_sign_command.command,
         final_sign_path.to_string_lossy()
     );
-    let cmd_status = std::process::Command::new("sh")
-        .arg("-c")
+    let cmd_status = shell_std_command()
         .arg(&final_cmd)
         .current_dir(&app_root)
         .status()
@@ -213,8 +211,7 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
 
     let app_root = Target::App.cwd();
 
-    let cmd_status = std::process::Command::new("sh")
-        .arg("-c")
+    let cmd_status = shell_std_command()
         .arg(&cmd)
         .current_dir(&app_root)
         .status()
