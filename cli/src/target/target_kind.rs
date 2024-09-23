@@ -36,7 +36,7 @@ impl TargetKind {
                     args.push("--release".into());
                 }
 
-                ProcessCommand::new(DevTool::Cargo.cmd().to_string(), args)
+                ProcessCommand::new(DevTool::Cargo.cmd(), args)
             }
         }
     }

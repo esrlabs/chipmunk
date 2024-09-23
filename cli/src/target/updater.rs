@@ -4,7 +4,7 @@ use super::ProcessCommand;
 
 pub fn get_build_cmd() -> ProcessCommand {
     ProcessCommand::new(
-        DevTool::Cargo.cmd().to_string(),
+        DevTool::Cargo.cmd(),
         vec![
             String::from("+stable"),
             String::from("build"),

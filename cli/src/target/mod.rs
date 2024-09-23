@@ -4,7 +4,7 @@
 use anyhow::bail;
 use clap::ValueEnum;
 use futures::future::join_all;
-use std::{fmt::Display, iter, path::PathBuf, str::FromStr};
+use std::{borrow::Cow, fmt::Display, iter, path::PathBuf, str::FromStr};
 use tokio::fs;
 
 use crate::{
@@ -61,14 +61,16 @@ pub enum Target {
 #[derive(Debug, Clone)]
 /// Represents a command to run with `process::Command` and its arguments
 pub struct ProcessCommand {
-    //TODO AAZ: Use Cow
-    pub cmd: String,
+    pub cmd: Cow<'static, str>,
     pub args: Vec<String>,
 }
 
 impl ProcessCommand {
-    pub fn new(cmd: String, args: Vec<String>) -> Self {
-        Self { cmd, args }
+    pub fn new(cmd: impl Into<Cow<'static, str>>, args: Vec<String>) -> Self {
+        Self {
+            cmd: cmd.into(),
+            args,
+        }
     }
 
     /// Combines the command and its arguments in one line to be used as a shell command.
@@ -412,7 +414,7 @@ impl Target {
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
         let command = ProcessCommand::new(
-            DevTool::Cargo.cmd().to_string(),
+            DevTool::Cargo.cmd(),
             vec![
                 String::from("clippy"),
                 String::from("--color"),
@@ -608,5 +610,5 @@ async fn install_general(
 /// Provides a process command with yarn as [`ProcessCommand::cmd`] and the given arguments
 /// as [`ProcessCommand::args`]
 fn yarn_command(args: Vec<String>) -> ProcessCommand {
-    ProcessCommand::new(DevTool::Yarn.cmd().to_string(), args)
+    ProcessCommand::new(DevTool::Yarn.cmd(), args)
 }

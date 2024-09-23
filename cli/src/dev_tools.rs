@@ -68,13 +68,12 @@ impl DevTool {
     }
 
     /// Provides the command line command for the development tool.
-    pub fn cmd(self) -> &'static str {
+    pub const fn cmd(self) -> &'static str {
         match self {
             DevTool::Node => "node",
             DevTool::Npm => "npm",
             DevTool::Yarn => "yarn",
             DevTool::RustUp => "rustup",
-            //TODO AAZ: Check cargo on windows taking two paths
             DevTool::Cargo => "cargo",
             DevTool::WasmPack => "wasm-pack",
             DevTool::NjCli => "nj-cli",
