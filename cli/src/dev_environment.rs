@@ -64,7 +64,8 @@ pub fn validate_dev_tools() -> anyhow::Result<()> {
 
 /// Prints the information of the needed tools for the development if available, otherwise prints
 /// error information to `stderr`
-pub fn print_env_info() {
+pub fn print_env_info() -> anyhow::Result<()> {
+    let mut errored = false;
     for tool in DevTool::all() {
         println!("{tool} Info:");
         let cmd = tool.cmd();
@@ -74,11 +75,21 @@ pub fn print_env_info() {
         {
             Ok(s) => {
                 if !s.success() {
+                    errored = true;
                     eprintln!("Error while retrieving dependency's information");
                 }
             }
-            Err(err) => eprintln!("Error while retrieving dependency's information: {err}"),
+            Err(err) => {
+                errored = true;
+                eprintln!("Error while retrieving dependency's information: {err}")
+            }
         }
         println!("------------------------------------------------------------------");
     }
+
+    if errored {
+        bail!("Error(s) while resolving development tools");
+    }
+
+    Ok(())
 }

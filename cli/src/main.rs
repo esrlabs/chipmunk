@@ -83,8 +83,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
                 return Ok(());
             }
             EnvironmentCommand::Print => {
-                print_env_info();
-                return Ok(());
+                return print_env_info();
             }
         },
         Command::PrintDot { all_jobs } => {
@@ -160,9 +159,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             return Ok(());
         }
         Command::ShellCompletion { shell } => {
-            shell::generate_completion(shell)?;
-
-            return Ok(());
+            return shell::generate_completion(shell);
         }
         Command::Release {
             verbose,
