@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use crate::target::Target;
+use crate::{benchmark::BenchTarget, target::Target};
 
 const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
 const NO_FAIL_FAST_HELP_TEXT: &str = "Don't stops execution immediately if any job fails.";
@@ -144,6 +144,10 @@ pub enum Command {
         #[arg(short, long)]
         code_sign: Option<PathBuf>,
     },
+    /// Runs benchmarks for the given target, its input source and configuration.
+    #[clap(visible_alias = "bench")]
+    #[command(subcommand)]
+    Benchmark(BenchTarget),
     /// Resets the checksums records what is used to check if there were any code changes for
     /// each target.
     #[clap(visible_alias = "reset")]

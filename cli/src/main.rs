@@ -1,6 +1,7 @@
 // Use the readme as the main documentation page.
 #![doc = include_str!("../README.md")]
 
+mod benchmark;
 mod checksum_records;
 mod chipmunk_runner;
 mod cli_args;
@@ -185,6 +186,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
 
             return Ok(());
         }
+        Command::Benchmark(bench) => return bench.run(),
     };
 
     // Shutdown and show results & report
