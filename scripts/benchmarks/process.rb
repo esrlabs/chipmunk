@@ -8,7 +8,7 @@ ENV['REPO_NAME'] = 'chipmunk'
 
 COMMANDS = [
   'cargo install --path=cli',
-  'cargo chipmunk test wrapper -p -s spec/build/spec/session.benchmark.spec.js -u print'
+  'cargo chipmunk test wrapper -p -s spec/build/spec/_session.benchmark.spec.js -u print'
 ]
 
 SHELL_SCRIPT_PATH = 'application/apps/rustcore/ts-bindings/spec'
