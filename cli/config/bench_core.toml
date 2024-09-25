@@ -1,0 +1,24 @@
+[[bench]]
+name = "mocks_producer"
+library = "sources"
+
+[[bench]]
+name = "dlt_producer"
+library = "sources"
+
+[[bench]]
+name = "someip_producer"
+library = "sources"
+
+[[bench]]
+name = "someip_legacy_producer"
+library = "sources"
+
+[[bench]]
+name = "text_producer"
+library = "sources"
+
+[[bench]]
+name = "map_benchmarks"
+library = "processor"
+
