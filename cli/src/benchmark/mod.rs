@@ -1,8 +1,11 @@
+//! Manages benchmarks commands to run the given benchmark or list all of the available ones.
+
 mod core;
 
 use clap::Subcommand;
 
 #[derive(Debug, Clone, Subcommand)]
+/// Represents benchmarks commands to run the given benchmark or list all of the available ones.
 pub enum BenchTarget {
     /// Run benchmarks in Rust Core
     Core {
@@ -10,9 +13,9 @@ pub enum BenchTarget {
         #[arg(index = 1, required = true)]
         name: String,
 
-        /// Path of configs of the input source to be used in the benchmarks
-        #[arg(index = 2, required = true)]
-        input_source: String,
+        /// Path or configurations of the input source to be used in the benchmarks
+        #[arg(short, long = "input")]
+        input_source: Option<String>,
 
         /// Additional configurations for the benchmarks
         #[arg(short, long)]
@@ -36,13 +39,7 @@ impl BenchTarget {
                 config,
                 run_count,
             } => {
-                //TODO AAZ: Remove debug code after done.
-                println!("Name: {}", name);
-                println!("Input: {}", input_source);
-                println!("Config: {:?}", config);
-                println!("Run Count: {:?}", run_count);
-
-                core::run_benchmark(name, input_source, config, run_count)
+                core::run_benchmark(name, input_source, config, run_count)?;
             }
             BenchTarget::List => {
                 println!("Listing all benchmarks from configurations...");
