@@ -16,7 +16,7 @@ mod mocks;
 /// NOTE: This benchmark suffers unfortunately from a lot of noise because we are running it with
 /// asynchronous runtime. This test is configured to reduce this amount of noise as possible,
 /// However it would be better to run it multiple time for double checking.
-fn mocks_benchmark(c: &mut Criterion) {
+fn mocks_producer(c: &mut Criterion) {
     let max_parse_calls = 50000;
 
     c.bench_with_input(
@@ -56,7 +56,7 @@ criterion_group! {
         // These two values help to reduce the noise level in the results.
         .significance_level(0.01)
         .noise_threshold(0.03);
-    targets = mocks_benchmark
+    targets = mocks_producer
 }
 
 criterion_main!(benches);

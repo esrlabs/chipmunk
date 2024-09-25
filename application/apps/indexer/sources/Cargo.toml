@@ -30,7 +30,7 @@ env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
 
 [[bench]]
-name = "mocks_benchmarks"
+name = "mocks_producer"
 harness = false
 
 [[bench]]
