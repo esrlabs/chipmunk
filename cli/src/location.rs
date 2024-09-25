@@ -51,3 +51,8 @@ pub fn init_location() -> Result<(), Error> {
         .expect("Developer Error: init location can't be called more than once");
     Ok(())
 }
+
+/// Return the path for the configuration directory of the Build CLI Tool.
+pub fn config_path() -> PathBuf {
+    get_root().join("cli").join("config")
+}
