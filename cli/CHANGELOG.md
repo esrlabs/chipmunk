@@ -1,3 +1,11 @@
+<!--TODO AAZ: Increase lib real version after the other PR is merged. -->
+# 0.2.5
+
+## Features:
+
+* Added `benchmark` commands to run benchmarks specified in a separate configuration `toml` file.
+
+
 # 0.2.4
 
 ## Changes:

@@ -13,6 +13,7 @@ from print_dot import run_print_dot_commands
 from shell_compl import run_shell_completion_commands
 from test_cmd import run_test_command
 from release import run_release_command
+from bench import run_benchmark_command
 
 
 def run_all():
@@ -64,6 +65,14 @@ def run_all():
         run_release_command()
     except Exception:
         print_err("Release")
+        raise
+    print_separator()
+
+    ### Benchmarks ###
+    try:
+        run_benchmark_command()
+    except Exception:
+        print_err("Benchmarks")
         raise
     print_separator()
 
