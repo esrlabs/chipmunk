@@ -6,7 +6,7 @@ import { getNativeModule } from '../native/native';
 import { Type, Source, NativeError } from '../interfaces/errors';
 
 import * as proto from 'protocol';
-import * as Types from '../protocol';
+import * as ty from '../protocol/index';
 
 export abstract class JobsNative {
     public abstract abort(sequence: number): Promise<void>;
@@ -200,13 +200,13 @@ export class Base {
             });
             task.then((buf: number[]) => {
                 try {
-                    const output: Types.CommandOutcome = proto.CommandOutcome.decode(
+                    const output: ty.CommandOutcome = proto.CommandOutcome.decode(
                         Uint8Array.from(buf),
                     );
-                    if (!output.outcome) {
+                    if (!output.outcome_oneof) {
                         return reject(new Error(`Invalid output from command`));
                     }
-                    const result = output.outcome;
+                    const result = output.outcome_oneof;
                     if ('Cancelled' in result || self.isCanceling()) {
                         if (!('Cancelled' in result) && self.isCanceling()) {
                             this.logger.warn('Job result dropped due canceling');
@@ -214,16 +214,20 @@ export class Base {
                         cancel();
                     } else if ('Finished' in result) {
                         const value = (() => {
-                            const value: { output: Types.Output | null } | null =
-                                result.Finished.result;
-                            if (!value || !value.output) {
+                            const value:
+                                | {
+                                      output_oneof: ty.OutputOneof | null | undefined;
+                                  }
+                                | null
+                                | undefined = result.Finished?.result;
+                            if (!value || !value.output_oneof) {
                                 return undefined;
                             }
-                            const output = value.output;
+                            const output = value.output_oneof;
                             if ('StringValue' in output) {
                                 return output.StringValue;
                             } else if ('StringVecValue' in output) {
-                                return output.StringVecValue.values;
+                                return output.StringVecValue?.values;
                             } else if ('OptionStringValue' in output) {
                                 return output.OptionStringValue === ''
                                     ? undefined

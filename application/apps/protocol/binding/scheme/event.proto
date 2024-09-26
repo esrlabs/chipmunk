@@ -18,7 +18,7 @@ message Notification {
 }
 
 message CallbackEvent {
-  oneof event {
+  oneof event_oneof {
     uint64 stream_updated = 1;
     bool file_read = 2;
     SearchUpdated search_updated = 3;
@@ -63,7 +63,7 @@ message CallbackEvent {
     ProgressDetail detail = 2;
 
     message ProgressDetail {
-      oneof detail {
+      oneof detail_oneof {
         progress.Ticks ticks = 1;
         Notification notification = 2;
         bool stopped = 3;

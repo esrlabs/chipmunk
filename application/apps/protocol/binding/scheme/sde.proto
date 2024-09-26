@@ -3,7 +3,7 @@ syntax = "proto3";
 package sde;
 
 message SdeRequest {
-  oneof request {
+  oneof request_oneof {
     string write_text = 1;
     bytes write_bytes = 2;
   }
