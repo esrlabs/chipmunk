@@ -5,21 +5,21 @@ package error;
 import "common.proto";
 
 message GrabError {
-  oneof error {
-    Config config = 1;
-    Communication communication = 2;
-    IoOperation io_operation = 3;
+  oneof grab_error_oneof {
+    GrabConfig grab_config = 1;
+    GrabCommunication grab_communication = 2;
+    GrabIoOperation grab_io_operation = 3;
     InvalidRange invalid_range = 4;
     Interrupted interrupted = 5;
     NotInitialize not_initialize = 6;
     Unsupported unsupported = 7;
   }
 
-  message Config { string message = 1; }
+  message GrabConfig { string message = 1; }
 
-  message Communication { string message = 1; }
+  message GrabCommunication { string message = 1; }
 
-  message IoOperation { string message = 1; }
+  message GrabIoOperation { string message = 1; }
 
   message InvalidRange {
     common.RangeInclusive range = 1;
@@ -34,21 +34,21 @@ message GrabError {
 }
 
 message SearchError {
-  oneof error {
-    Config config = 1;
-    Communication communication = 2;
-    IoOperation io_operation = 3;
+  oneof search_error_oneof {
+    SearchConfig search_config = 1;
+    SearchCommunication search_communication = 2;
+    SearchIoOperation search_io_operation = 3;
     Regex regex = 4;
     Input input = 5;
     Grab grab = 6;
     Aborted aborted = 7;
   }
 
-  message Config { string message = 1; }
+  message SearchConfig { string message = 1; }
 
-  message Communication { string message = 1; }
+  message SearchCommunication { string message = 1; }
 
-  message IoOperation { string message = 1; }
+  message SearchIoOperation { string message = 1; }
 
   message Regex { string message = 1; }
 
@@ -84,12 +84,12 @@ enum Severity {
 }
 
 message ComputationError {
-  oneof error {
+  oneof comp_error_oneof {
     DestinationPath destination_path = 1;
     SessionCreatingFail session_creating_fail = 2;
-    Communication communication = 3;
+    CompCommunication comp_communication = 3;
     OperationNotSupported operation_not_supported = 4;
-    IoOperation io_operation = 5;
+    CompIoOperation comp_io_operation = 5;
     InvalidData invalid_data = 6;
     InvalidArgs invalid_args = 7;
     Process process = 8;
@@ -106,11 +106,11 @@ message ComputationError {
 
   message SessionCreatingFail {}
 
-  message Communication { string message = 1; }
+  message CompCommunication { string message = 1; }
 
   message OperationNotSupported { string message = 1; }
 
-  message IoOperation { string message = 1; }
+  message CompIoOperation { string message = 1; }
 
   message InvalidData {}
 

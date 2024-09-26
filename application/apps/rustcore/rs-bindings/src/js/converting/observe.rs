@@ -49,17 +49,17 @@ fn get_stream_transport(opt: &observe::observe_origin::Stream) -> Result<factory
         .to_owned()
         .transport
         .ok_or(E::MissedField(String::from("transport")))?
-        .transport
+        .transport_oneof
         .ok_or(E::MissedField(String::from("transport")))?;
     Ok(match transport {
-        observe::transport::Transport::Process(opt) => {
+        observe::transport::TransportOneof::Process(opt) => {
             factory::Transport::Process(factory::ProcessTransportConfig {
                 command: opt.command,
                 cwd: PathBuf::from(opt.cwd),
                 envs: opt.envs,
             })
         }
-        observe::transport::Transport::Serial(opt) => {
+        observe::transport::TransportOneof::Serial(opt) => {
             factory::Transport::Serial(factory::SerialTransportConfig {
                 path: opt.path,
                 baud_rate: opt.baud_rate,
@@ -76,12 +76,12 @@ fn get_stream_transport(opt: &observe::observe_origin::Stream) -> Result<factory
                 exclusive: opt.exclusive,
             })
         }
-        observe::transport::Transport::Tcp(opt) => {
+        observe::transport::TransportOneof::Tcp(opt) => {
             factory::Transport::TCP(factory::TCPTransportConfig {
                 bind_addr: opt.bind_addr,
             })
         }
-        observe::transport::Transport::Udp(opt) => {
+        observe::transport::TransportOneof::Udp(opt) => {
             factory::Transport::UDP(factory::UDPTransportConfig {
                 bind_addr: opt.bind_addr,
                 multicast: opt
@@ -104,22 +104,22 @@ impl TryInto<factory::ObserveOptions> for JsIncomeBuffer {
         let origin = decoded
             .origin
             .ok_or(E::MissedField(String::from("origin")))?
-            .origin
+            .origin_oneof
             .ok_or(E::MissedField(String::from("origin")))?;
         let parser = decoded
             .parser
             .ok_or(E::MissedField(String::from("parser")))?
-            .r#type
+            .type_oneof
             .ok_or(E::MissedField(String::from("parser")))?;
         let origin = match origin {
-            observe::observe_origin::Origin::File(opt) => get_origin_as_file(&opt)?,
-            observe::observe_origin::Origin::Concat(opt) => get_origin_as_concat(&opt)?,
-            observe::observe_origin::Origin::Stream(opt) => {
+            observe::observe_origin::OriginOneof::File(opt) => get_origin_as_file(&opt)?,
+            observe::observe_origin::OriginOneof::Concat(opt) => get_origin_as_concat(&opt)?,
+            observe::observe_origin::OriginOneof::Stream(opt) => {
                 factory::ObserveOrigin::Stream(opt.name.to_owned(), get_stream_transport(&opt)?)
             }
         };
         let parser = match parser {
-            observe::parser_type::Type::Dlt(opt) => {
+            observe::parser_type::TypeOneof::Dlt(opt) => {
                 factory::ParserType::Dlt(factory::DltParserSettings {
                     filter_config: opt.filter_config.map(|opt| factory::DltFilterConfig {
                         min_log_level: Some(u8::try_from(opt.min_log_level).unwrap_or(0)),
@@ -139,7 +139,7 @@ impl TryInto<factory::ObserveOptions> for JsIncomeBuffer {
                     fibex_metadata: None,
                 })
             }
-            observe::parser_type::Type::SomeIp(opt) => {
+            observe::parser_type::TypeOneof::SomeIp(opt) => {
                 factory::ParserType::SomeIp(factory::SomeIpParserSettings {
                     fibex_file_paths: opt
                         .fibex_file_paths
@@ -148,7 +148,7 @@ impl TryInto<factory::ObserveOptions> for JsIncomeBuffer {
                         .then_some(opt.fibex_file_paths),
                 })
             }
-            observe::parser_type::Type::Text(_) => factory::ParserType::Text,
+            observe::parser_type::TypeOneof::Text(_) => factory::ParserType::Text,
         };
         Ok(factory::ObserveOptions { origin, parser })
     }

@@ -3,7 +3,7 @@ import { scope } from 'platform/env/scope';
 import { error as e } from 'platform/log/utils';
 
 import * as proto from 'protocol';
-import * as Types from '../protocol';
+import * as ty from '../protocol/index';
 
 export enum Type {
     NotImplemented = 'NotImplemented',
@@ -74,29 +74,29 @@ export enum Source {
     Other = 'Other',
 }
 
-function getGrubErr(err: Types.GrabError | null): NativeError {
-    if (err === null) {
+function getGrubErr(err: ty.GrabError | null | undefined): NativeError {
+    if (err === null || err === undefined) {
         return new NativeError(new Error('Grabbing error'), Type.Grabbing, Source.Native);
     }
-    const inner = err.error;
+    const inner = err.grab_error_oneof;
     if (inner === null) {
         return new NativeError(new Error('Grabbing error'), Type.Grabbing, Source.Native);
     } else {
         if ('Config' in inner) {
             return new NativeError(
-                new Error(`Grabbing [Config]: ${inner.Config.message}`),
+                new Error(`Grabbing [Config]: ${inner.GrabConfig?.message}`),
                 Type.Grabbing,
                 Source.Native,
             );
         } else if ('Communication' in inner) {
             return new NativeError(
-                new Error(`Grabbing [Communication]: ${inner.Communication.message}`),
+                new Error(`Grabbing [Communication]: ${inner.GrabCommunication?.message}`),
                 Type.Grabbing,
                 Source.Native,
             );
         } else if ('IoOperation' in inner) {
             return new NativeError(
-                new Error(`Grabbing [IoOperation]: ${inner.IoOperation.message}`),
+                new Error(`Grabbing [IoOperation]: ${inner.GrabIoOperation?.message}`),
                 Type.Grabbing,
                 Source.Native,
             );
@@ -104,8 +104,8 @@ function getGrubErr(err: Types.GrabError | null): NativeError {
             return new NativeError(
                 new Error(
                     `Grabbing [InvalidRange]: ${
-                        inner.InvalidRange.context
-                    }; range: ${JSON.stringify(inner.InvalidRange.range)}`,
+                        inner.InvalidRange?.context
+                    }; range: ${JSON.stringify(inner.InvalidRange?.range)}`,
                 ),
                 Type.Grabbing,
                 Source.Native,
@@ -118,7 +118,7 @@ function getGrubErr(err: Types.GrabError | null): NativeError {
             );
         } else if ('Unsupported' in inner) {
             return new NativeError(
-                new Error(`Grabbing [Unsupported]: ${inner.Unsupported.message}`),
+                new Error(`Grabbing [Unsupported]: ${inner.Unsupported?.message}`),
                 Type.Grabbing,
                 Source.Native,
             );
@@ -148,10 +148,10 @@ export class NativeError extends Error {
             if (smth instanceof Error) {
                 return new NativeError(smth, Type.Other, Source.Other);
             } else if (smth instanceof Array) {
-                const deserialized: Types.ComputationError = proto.ComputationError.decode(
+                const deserialized: ty.ComputationError = proto.ComputationError.decode(
                     Uint8Array.from(smth),
                 );
-                const err = deserialized.error;
+                const err = deserialized.comp_error_oneof;
                 if (err === null) {
                     return new NativeError(
                         new Error(`Fail decode error`),
@@ -173,13 +173,13 @@ export class NativeError extends Error {
                     );
                 } else if ('Communication' in err) {
                     return new NativeError(
-                        new Error(err.Communication.message),
+                        new Error(err.CompCommunication?.message),
                         Type.Communication,
                         Source.Native,
                     );
                 } else if ('OperationNotSupported' in err) {
                     return new NativeError(
-                        new Error(err.OperationNotSupported.message),
+                        new Error(err.OperationNotSupported?.message),
                         Type.OperationNotSupported,
                         Source.Native,
                     );
@@ -191,30 +191,34 @@ export class NativeError extends Error {
                     );
                 } else if ('IoOperation' in err) {
                     return new NativeError(
-                        new Error(err.IoOperation.message),
+                        new Error(err.CompIoOperation?.message),
                         Type.IoOperation,
                         Source.Native,
                     );
                 } else if ('InvalidArgs' in err) {
                     return new NativeError(
-                        new Error(err.InvalidArgs.message),
+                        new Error(err.InvalidArgs?.message),
                         Type.InvalidArgs,
                         Source.Native,
                     );
                 } else if ('Process' in err) {
                     return new NativeError(
-                        new Error(err.Process.message),
+                        new Error(err.Process?.message),
                         Type.Process,
                         Source.Native,
                     );
                 } else if ('Protocol' in err) {
                     return new NativeError(
-                        new Error(err.Protocol.message),
+                        new Error(err.Protocol?.message),
                         Type.Protocol,
                         Source.Native,
                     );
                 } else if ('SearchError' in err) {
-                    const inner = err.SearchError.error === null ? null : err.SearchError.error;
+                    const inner =
+                        err.SearchError?.search_error_oneof === null ||
+                        err.SearchError?.search_error_oneof === undefined
+                            ? null
+                            : err.SearchError?.search_error_oneof;
                     if (inner === null) {
                         return new NativeError(
                             new Error(`Unknown SearchError`),
@@ -224,14 +228,14 @@ export class NativeError extends Error {
                     } else {
                         if ('Config' in inner) {
                             return new NativeError(
-                                new Error(`Search error [Config]: ${inner.Config.message}`),
+                                new Error(`Search error [Config]: ${inner.SearchConfig?.message}`),
                                 Type.SearchError,
                                 Source.Native,
                             );
                         } else if ('Communication' in inner) {
                             return new NativeError(
                                 new Error(
-                                    `Search error [Communication]: ${inner.Communication.message}`,
+                                    `Search error [Communication]: ${inner.SearchCommunication?.message}`,
                                 ),
                                 Type.SearchError,
                                 Source.Native,
@@ -239,32 +243,32 @@ export class NativeError extends Error {
                         } else if ('IoOperation' in inner) {
                             return new NativeError(
                                 new Error(
-                                    `Search error [IoOperation]: ${inner.IoOperation.message}`,
+                                    `Search error [IoOperation]: ${inner.SearchIoOperation?.message}`,
                                 ),
                                 Type.SearchError,
                                 Source.Native,
                             );
                         } else if ('Regex' in inner) {
                             return new NativeError(
-                                new Error(`Search error [Regex]: ${inner.Regex.message}`),
+                                new Error(`Search error [Regex]: ${inner.Regex?.message}`),
                                 Type.SearchError,
                                 Source.Native,
                             );
                         } else if ('Input' in inner) {
                             return new NativeError(
-                                new Error(`Search error [Input]: ${inner.Input.message}`),
+                                new Error(`Search error [Input]: ${inner.Input?.message}`),
                                 Type.SearchError,
                                 Source.Native,
                             );
                         } else if ('Grab' in inner) {
                             return new NativeError(
-                                new Error(`Search error [Grab]: ${getGrubErr(inner.Grab.error)}`),
+                                new Error(`Search error [Grab]: ${getGrubErr(inner.Grab?.error)}`),
                                 Type.SearchError,
                                 Source.Native,
                             );
                         } else if ('Aborted' in inner) {
                             return new NativeError(
-                                new Error(`Search error [Aborted]: ${inner.Aborted.message}`),
+                                new Error(`Search error [Aborted]: ${inner.Aborted?.message}`),
                                 Type.SearchError,
                                 Source.Native,
                             );
@@ -290,14 +294,18 @@ export class NativeError extends Error {
                     );
                 } else if ('NativeError' in err) {
                     return new NativeError(
-                        new Error(err.NativeError.message),
+                        new Error(err.NativeError?.message),
                         Type.NativeError,
                         Source.Native,
                     );
                 } else if ('Grabbing' in err) {
-                    return getGrubErr(err.Grabbing.error === null ? null : err.Grabbing.error);
+                    return getGrubErr(
+                        err.Grabbing?.error === null || err.Grabbing?.error === undefined
+                            ? null
+                            : err.Grabbing?.error,
+                    );
                 } else if ('Sde' in err) {
-                    return new NativeError(new Error(err.Sde.message), Type.Sde, Source.Native);
+                    return new NativeError(new Error(err.Sde?.message), Type.Sde, Source.Native);
                 } else {
                     return new NativeError(
                         new Error(`Fail to recognize error: ${JSON.stringify(deserialized)}`),

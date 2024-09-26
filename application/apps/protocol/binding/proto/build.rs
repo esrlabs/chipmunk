@@ -18,11 +18,22 @@ fn main() {
             }
         })
         .collect();
-    prost_build::Config::new()
-        .type_attribute(
-            ".",
-            "#[derive(serde::Serialize, serde::Deserialize, ts_rs::TS)]#[ts(export)]",
-        )
-        .compile_protos(&protos, &[PROTO_SRC])
+    let binding = prost_build::Config::new();
+    let mut cfg = binding;
+    cfg.type_attribute(".", r#"#[derive(serde::Serialize, serde::Deserialize)]"#);
+    for proto in protos.iter() {
+        let file_name = proto
+            .file_stem()
+            .expect("Proto file has filename")
+            .to_str()
+            .expect("File name is valid UTF8");
+        cfg.type_attribute(
+            format!(".{file_name}"),
+            format!(
+                "#[tslink::tslink(target = \"./output/{file_name}.ts\", module = \"{file_name}\")]"
+            ),
+        );
+    }
+    cfg.compile_protos(&protos, &[PROTO_SRC])
         .expect("Fail to compile protos");
 }

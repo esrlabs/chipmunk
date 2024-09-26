@@ -1,8 +1,5 @@
 use super::error::E;
-use error::{
-    computation_error::{self, Error},
-    grab_error, search_error,
-};
+use error::{computation_error, grab_error, search_error};
 use node_bindgen::{
     core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
@@ -65,23 +62,29 @@ pub fn get_native_err(err: NativeError) -> error::NativeError {
 
 fn get_grab_err(err: GrabError) -> error::GrabError {
     error::GrabError {
-        error: Some(match err {
+        grab_error_oneof: Some(match err {
             GrabError::Communication(message) => {
-                grab_error::Error::Communication(grab_error::Communication { message })
+                grab_error::GrabErrorOneof::GrabCommunication(grab_error::GrabCommunication {
+                    message,
+                })
             }
-            GrabError::Config(message) => grab_error::Error::Config(grab_error::Config { message }),
+            GrabError::Config(message) => {
+                grab_error::GrabErrorOneof::GrabConfig(grab_error::GrabConfig { message })
+            }
             GrabError::IoOperation(message) => {
-                grab_error::Error::IoOperation(grab_error::IoOperation { message })
+                grab_error::GrabErrorOneof::GrabIoOperation(grab_error::GrabIoOperation { message })
             }
             GrabError::Unsupported(message) => {
-                grab_error::Error::Unsupported(grab_error::Unsupported { message })
+                grab_error::GrabErrorOneof::Unsupported(grab_error::Unsupported { message })
             }
             GrabError::NotInitialize => {
-                grab_error::Error::NotInitialize(grab_error::NotInitialize {})
+                grab_error::GrabErrorOneof::NotInitialize(grab_error::NotInitialize {})
             }
-            GrabError::Interrupted => grab_error::Error::Interrupted(grab_error::Interrupted {}),
+            GrabError::Interrupted => {
+                grab_error::GrabErrorOneof::Interrupted(grab_error::Interrupted {})
+            }
             GrabError::InvalidRange { range, context } => {
-                grab_error::Error::InvalidRange(grab_error::InvalidRange {
+                grab_error::GrabErrorOneof::InvalidRange(grab_error::InvalidRange {
                     range: Some(common::RangeInclusive {
                         start: range.start(),
                         end: range.end(),
@@ -95,27 +98,31 @@ fn get_grab_err(err: GrabError) -> error::GrabError {
 
 fn get_search_err(err: SearchError) -> error::SearchError {
     error::SearchError {
-        error: Some(match err {
+        search_error_oneof: Some(match err {
             SearchError::Aborted(message) => {
-                search_error::Error::Aborted(search_error::Aborted { message })
+                search_error::SearchErrorOneof::Aborted(search_error::Aborted { message })
             }
             SearchError::Communication(message) => {
-                search_error::Error::Communication(search_error::Communication { message })
+                search_error::SearchErrorOneof::SearchCommunication(
+                    search_error::SearchCommunication { message },
+                )
             }
             SearchError::Config(message) => {
-                search_error::Error::Config(search_error::Config { message })
+                search_error::SearchErrorOneof::SearchConfig(search_error::SearchConfig { message })
             }
-            SearchError::Grab(err) => search_error::Error::Grab(search_error::Grab {
+            SearchError::Grab(err) => search_error::SearchErrorOneof::Grab(search_error::Grab {
                 error: Some(get_grab_err(err)),
             }),
             SearchError::Input(message) => {
-                search_error::Error::Input(search_error::Input { message })
+                search_error::SearchErrorOneof::Input(search_error::Input { message })
             }
             SearchError::IoOperation(message) => {
-                search_error::Error::IoOperation(search_error::IoOperation { message })
+                search_error::SearchErrorOneof::SearchIoOperation(search_error::SearchIoOperation {
+                    message,
+                })
             }
             SearchError::Regex(message) => {
-                search_error::Error::Regex(search_error::Regex { message })
+                search_error::SearchErrorOneof::Regex(search_error::Regex { message })
             }
         }),
     }
@@ -124,48 +131,74 @@ impl From<ComputationErrorWrapper> for Vec<u8> {
     fn from(mut val: ComputationErrorWrapper) -> Self {
         let err = val.0.take().expect("Error has to be provided");
         let msg = error::ComputationError {
-            error: Some(match err {
+            comp_error_oneof: Some(match err {
                 ComputationError::Communication(message) => {
-                    Error::Communication(computation_error::Communication { message })
+                    computation_error::CompErrorOneof::CompCommunication(
+                        computation_error::CompCommunication { message },
+                    )
                 }
                 ComputationError::DestinationPath => {
-                    Error::DestinationPath(computation_error::DestinationPath {})
+                    computation_error::CompErrorOneof::DestinationPath(
+                        computation_error::DestinationPath {},
+                    )
                 }
                 ComputationError::SessionCreatingFail => {
-                    Error::SessionCreatingFail(computation_error::SessionCreatingFail {})
+                    computation_error::CompErrorOneof::SessionCreatingFail(
+                        computation_error::SessionCreatingFail {},
+                    )
                 }
                 ComputationError::MultipleInitCall => {
-                    Error::MultipleInitCall(computation_error::MultipleInitCall {})
+                    computation_error::CompErrorOneof::MultipleInitCall(
+                        computation_error::MultipleInitCall {},
+                    )
                 }
-                ComputationError::InvalidData => {
-                    Error::InvalidData(computation_error::InvalidData {})
-                }
+                ComputationError::InvalidData => computation_error::CompErrorOneof::InvalidData(
+                    computation_error::InvalidData {},
+                ),
                 ComputationError::SessionUnavailable => {
-                    Error::SessionUnavailable(computation_error::SessionUnavailable {})
+                    computation_error::CompErrorOneof::SessionUnavailable(
+                        computation_error::SessionUnavailable {},
+                    )
                 }
-                ComputationError::Grabbing(err) => Error::Grabbing(computation_error::Grabbing {
-                    error: Some(get_grab_err(err)),
-                }),
+                ComputationError::Grabbing(err) => {
+                    computation_error::CompErrorOneof::Grabbing(computation_error::Grabbing {
+                        error: Some(get_grab_err(err)),
+                    })
+                }
                 ComputationError::OperationNotSupported(message) => {
-                    Error::OperationNotSupported(computation_error::OperationNotSupported {
+                    computation_error::CompErrorOneof::OperationNotSupported(
+                        computation_error::OperationNotSupported { message },
+                    )
+                }
+                ComputationError::IoOperation(message) => {
+                    computation_error::CompErrorOneof::CompIoOperation(
+                        computation_error::CompIoOperation { message },
+                    )
+                }
+                ComputationError::InvalidArgs(message) => {
+                    computation_error::CompErrorOneof::InvalidArgs(computation_error::InvalidArgs {
                         message,
                     })
                 }
-                ComputationError::IoOperation(message) => {
-                    Error::IoOperation(computation_error::IoOperation { message })
-                }
-                ComputationError::InvalidArgs(message) => {
-                    Error::InvalidArgs(computation_error::InvalidArgs { message })
-                }
                 ComputationError::Process(message) => {
-                    Error::Process(computation_error::Process { message })
+                    computation_error::CompErrorOneof::Process(computation_error::Process {
+                        message,
+                    })
                 }
                 ComputationError::Protocol(message) => {
-                    Error::Protocol(computation_error::Protocol { message })
+                    computation_error::CompErrorOneof::Protocol(computation_error::Protocol {
+                        message,
+                    })
                 }
-                ComputationError::SearchError(err) => Error::SearchError(get_search_err(err)),
-                ComputationError::Sde(message) => Error::Sde(computation_error::Sde { message }),
-                ComputationError::NativeError(err) => Error::NativeError(get_native_err(err)),
+                ComputationError::SearchError(err) => {
+                    computation_error::CompErrorOneof::SearchError(get_search_err(err))
+                }
+                ComputationError::Sde(message) => {
+                    computation_error::CompErrorOneof::Sde(computation_error::Sde { message })
+                }
+                ComputationError::NativeError(err) => {
+                    computation_error::CompErrorOneof::NativeError(get_native_err(err))
+                }
             }),
         };
         prost::Message::encode_to_vec(&msg)

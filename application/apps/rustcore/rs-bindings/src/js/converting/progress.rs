@@ -22,20 +22,20 @@ impl From<LifecycleTransitionWrapper> for Vec<u8> {
             .take()
             .expect("LifecycleTransition has to be provided");
         let msg = progress::LifecycleTransition {
-            transition: Some(match ev {
+            transition_oneof: Some(match ev {
                 LifecycleTransition::Started { uuid, alias } => {
-                    lifecycle_transition::Transition::Started(progress::Started {
+                    lifecycle_transition::TransitionOneof::Started(progress::Started {
                         uuid: uuid.to_string(),
                         alias,
                     })
                 }
                 LifecycleTransition::Stopped(uuid) => {
-                    lifecycle_transition::Transition::Stopped(progress::Stopped {
+                    lifecycle_transition::TransitionOneof::Stopped(progress::Stopped {
                         uuid: uuid.to_string(),
                     })
                 }
                 LifecycleTransition::Ticks { uuid, ticks } => {
-                    lifecycle_transition::Transition::Ticks(progress::TicksWithUuid {
+                    lifecycle_transition::TransitionOneof::Ticks(progress::TicksWithUuid {
                         uuid: uuid.to_string(),
                         ticks: Some(progress::Ticks {
                             count: ticks.count,

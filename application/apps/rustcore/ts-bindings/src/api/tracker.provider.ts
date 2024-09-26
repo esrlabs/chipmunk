@@ -1,7 +1,7 @@
 import { Subject } from 'platform/env/subscription';
 import { Computation } from '../provider/provider';
 
-import * as Types from '../protocol';
+import * as Types from '../protocol/convertor';
 
 export interface Job {
     alias: string;

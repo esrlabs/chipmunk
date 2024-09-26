@@ -26,16 +26,16 @@ impl From<CommandOutcomeWrapper<String>> for Vec<u8> {
     fn from(output: CommandOutcomeWrapper<String>) -> Self {
         let msg = get(output.0)
             .map(|v| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Finished(
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Finished(
                     command_outcome::Finished {
                         result: Some(Output {
-                            output: Some(output::Output::StringValue(v)),
+                            output_oneof: Some(output::OutputOneof::StringValue(v)),
                         }),
                     },
                 )),
             })
             .unwrap_or_else(|| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
     }
@@ -45,16 +45,18 @@ impl From<CommandOutcomeWrapper<Option<String>>> for Vec<u8> {
     fn from(output: CommandOutcomeWrapper<Option<String>>) -> Self {
         let msg = get(output.0)
             .map(|v| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Finished(
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Finished(
                     command_outcome::Finished {
                         result: Some(Output {
-                            output: Some(output::Output::OptionStringValue(v.unwrap_or_default())),
+                            output_oneof: Some(output::OutputOneof::OptionStringValue(
+                                v.unwrap_or_default(),
+                            )),
                         }),
                     },
                 )),
             })
             .unwrap_or_else(|| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
     }
@@ -64,16 +66,18 @@ impl From<CommandOutcomeWrapper<Vec<String>>> for Vec<u8> {
     fn from(output: CommandOutcomeWrapper<Vec<String>>) -> Self {
         let msg = get(output.0)
             .map(|values| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Finished(
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Finished(
                     command_outcome::Finished {
                         result: Some(Output {
-                            output: Some(output::Output::StringVecValue(StringVec { values })),
+                            output_oneof: Some(output::OutputOneof::StringVecValue(StringVec {
+                                values,
+                            })),
                         }),
                     },
                 )),
             })
             .unwrap_or_else(|| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
     }
@@ -83,16 +87,16 @@ impl From<CommandOutcomeWrapper<bool>> for Vec<u8> {
     fn from(output: CommandOutcomeWrapper<bool>) -> Self {
         let msg = get(output.0)
             .map(|v| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Finished(
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Finished(
                     command_outcome::Finished {
                         result: Some(Output {
-                            output: Some(output::Output::BoolValue(v)),
+                            output_oneof: Some(output::OutputOneof::BoolValue(v)),
                         }),
                     },
                 )),
             })
             .unwrap_or_else(|| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
     }
@@ -102,16 +106,16 @@ impl From<CommandOutcomeWrapper<()>> for Vec<u8> {
     fn from(output: CommandOutcomeWrapper<()>) -> Self {
         let msg = get(output.0)
             .map(|_| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Finished(
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Finished(
                     command_outcome::Finished {
                         result: Some(Output {
-                            output: Some(output::Output::EmptyValue(Empty {})),
+                            output_oneof: Some(output::OutputOneof::EmptyValue(Empty {})),
                         }),
                     },
                 )),
             })
             .unwrap_or_else(|| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
     }
@@ -121,16 +125,16 @@ impl From<CommandOutcomeWrapper<i64>> for Vec<u8> {
     fn from(output: CommandOutcomeWrapper<i64>) -> Self {
         let msg = get(output.0)
             .map(|v| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Finished(
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Finished(
                     command_outcome::Finished {
                         result: Some(Output {
-                            output: Some(output::Output::Int64Value(v)),
+                            output_oneof: Some(output::OutputOneof::Int64Value(v)),
                         }),
                     },
                 )),
             })
             .unwrap_or_else(|| proto::CommandOutcome {
-                outcome: Some(command_outcome::Outcome::Cancelled(Cancelled {})),
+                outcome_oneof: Some(command_outcome::OutcomeOneof::Cancelled(Cancelled {})),
             });
         prost::Message::encode_to_vec(&msg)
     }

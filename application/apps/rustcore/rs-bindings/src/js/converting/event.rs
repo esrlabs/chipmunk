@@ -1,6 +1,6 @@
 use super::errors::get_native_err;
+use event::callback_event;
 use event::callback_event::search_values_updated;
-use event::callback_event::{self, Event};
 use node_bindgen::{
     core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
@@ -35,31 +35,39 @@ impl From<CallbackEventWrapped> for Vec<u8> {
     fn from(mut val: CallbackEventWrapped) -> Self {
         let ev = val.0.take().expect("Callback event has to be provided");
         let msg = event::CallbackEvent {
-            event: Some(match ev {
-                CallbackEvent::StreamUpdated(v) => Event::StreamUpdated(v),
-                CallbackEvent::FileRead => Event::FileRead(true),
+            event_oneof: Some(match ev {
+                CallbackEvent::StreamUpdated(v) => callback_event::EventOneof::StreamUpdated(v),
+                CallbackEvent::FileRead => callback_event::EventOneof::FileRead(true),
                 CallbackEvent::IndexedMapUpdated { len } => {
-                    Event::IndexedMapUpdated(callback_event::IndexedMapUpdated { len })
+                    callback_event::EventOneof::IndexedMapUpdated(
+                        callback_event::IndexedMapUpdated { len },
+                    )
                 }
-                CallbackEvent::OperationStarted(uuid) => Event::OperationStarted(uuid.to_string()),
+                CallbackEvent::OperationStarted(uuid) => {
+                    callback_event::EventOneof::OperationStarted(uuid.to_string())
+                }
                 CallbackEvent::OperationProcessing(uuid) => {
-                    Event::OperationProcessing(uuid.to_string())
+                    callback_event::EventOneof::OperationProcessing(uuid.to_string())
                 }
-                CallbackEvent::SessionDestroyed => Event::SessionDestroyed(true),
-                CallbackEvent::OperationDone(state) => Event::OperationDone(event::OperationDone {
-                    uuid: state.uuid.to_string(),
-                    result: state.result.unwrap_or_default(),
-                }),
+                CallbackEvent::SessionDestroyed => {
+                    callback_event::EventOneof::SessionDestroyed(true)
+                }
+                CallbackEvent::OperationDone(state) => {
+                    callback_event::EventOneof::OperationDone(event::OperationDone {
+                        uuid: state.uuid.to_string(),
+                        result: state.result.unwrap_or_default(),
+                    })
+                }
                 CallbackEvent::Progress { uuid, progress } => {
-                    Event::Progress(callback_event::Progress {
+                    callback_event::EventOneof::Progress(callback_event::Progress {
                         uuid: uuid.to_string(),
                         detail: Some(callback_event::progress::ProgressDetail {
-                            detail: Some(match progress {
+                            detail_oneof: Some(match progress {
                                 Progress::Stopped => {
-                                    callback_event::progress::progress_detail::Detail::Stopped(true)
+                                    callback_event::progress::progress_detail::DetailOneof::Stopped(true)
                                 }
                                 Progress::Notification(notification) => {
-                                    callback_event::progress::progress_detail::Detail::Notification(
+                                    callback_event::progress::progress_detail::DetailOneof::Notification(
                                         event::Notification {
                                             severity: match notification.severity {
                                                 Severity::ERROR => error::Severity::Error.into(),
@@ -73,7 +81,7 @@ impl From<CallbackEventWrapped> for Vec<u8> {
                                     )
                                 }
                                 Progress::Ticks(ticks) => {
-                                    callback_event::progress::progress_detail::Detail::Ticks(
+                                    callback_event::progress::progress_detail::DetailOneof::Ticks(
                                         progress::Ticks {
                                             count: ticks.count,
                                             state: ticks.state.unwrap_or_default(),
@@ -88,25 +96,30 @@ impl From<CallbackEventWrapped> for Vec<u8> {
                 CallbackEvent::AttachmentsUpdated {
                     len,
                     mut attachment,
-                } => Event::AttachmentsUpdated(callback_event::AttachmentsUpdated {
-                    len,
-                    attachment: Some(attachment::AttachmentInfo {
-                        uuid: attachment.uuid.to_string(),
-                        filepath: attachment.filepath.to_string_lossy().to_string(),
-                        name: mem::take(&mut attachment.name),
-                        ext: attachment.ext.take().unwrap_or_default(),
-                        size: attachment.size as u64,
-                        mime: attachment.mime.take().unwrap_or_default(),
-                        messages: attachment.messages.into_iter().map(|v| v as u64).collect(),
-                    }),
-                }),
+                } => callback_event::EventOneof::AttachmentsUpdated(
+                    callback_event::AttachmentsUpdated {
+                        len,
+                        attachment: Some(attachment::AttachmentInfo {
+                            uuid: attachment.uuid.to_string(),
+                            filepath: attachment.filepath.to_string_lossy().to_string(),
+                            name: mem::take(&mut attachment.name),
+                            ext: attachment.ext.take().unwrap_or_default(),
+                            size: attachment.size as u64,
+                            mime: attachment.mime.take().unwrap_or_default(),
+                            messages: attachment.messages.into_iter().map(|v| v as u64).collect(),
+                        }),
+                    },
+                ),
                 CallbackEvent::SearchMapUpdated(update) => {
-                    Event::SearchMapUpdated(callback_event::SearchMapUpdated {
+                    callback_event::EventOneof::SearchMapUpdated(callback_event::SearchMapUpdated {
                         update: update.unwrap_or_default(),
                     })
                 }
                 CallbackEvent::SearchUpdated { found, stat } => {
-                    Event::SearchUpdated(callback_event::SearchUpdated { found, stat })
+                    callback_event::EventOneof::SearchUpdated(callback_event::SearchUpdated {
+                        found,
+                        stat,
+                    })
                 }
                 CallbackEvent::SearchValuesUpdated(data) => {
                     let mut values: HashMap<u32, search_values_updated::ValueRange> =
@@ -116,11 +129,15 @@ impl From<CallbackEventWrapped> for Vec<u8> {
                             values.insert(k as u32, search_values_updated::ValueRange { min, max });
                         });
                     }
-                    Event::SearchValuesUpdated(callback_event::SearchValuesUpdated { values })
+                    callback_event::EventOneof::SearchValuesUpdated(
+                        callback_event::SearchValuesUpdated { values },
+                    )
                 }
-                CallbackEvent::SessionError(err) => Event::SessionError(get_native_err(err)),
+                CallbackEvent::SessionError(err) => {
+                    callback_event::EventOneof::SessionError(get_native_err(err))
+                }
                 CallbackEvent::OperationError { uuid, error } => {
-                    Event::OperationError(callback_event::OperationError {
+                    callback_event::EventOneof::OperationError(callback_event::OperationError {
                         uuid: uuid.to_string(),
                         error: Some(get_native_err(error)),
                     })

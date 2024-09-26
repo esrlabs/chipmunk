@@ -19,7 +19,7 @@ import { SdeRequest, SdeResponse } from 'platform/types/sde';
 import { getValidNum } from '../util/numbers';
 
 import * as proto from 'protocol';
-import * as Types from '../protocol';
+import * as Types from '../protocol/convertor';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,

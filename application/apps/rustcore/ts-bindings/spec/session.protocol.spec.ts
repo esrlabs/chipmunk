@@ -11,7 +11,7 @@ import { readConfigurationFile } from './config';
 
 import * as proto from 'protocol';
 import * as $ from 'platform/types/observe';
-import * as Types from '../src/protocol';
+import * as convertor from '../src/protocol/convertor';
 import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.protocol;
@@ -20,7 +20,7 @@ describe('Protocol', function () {
     it(config.regular.list[1], function () {
         return runners.noSession(config.regular, 1, async (logger, done) => {
             {
-                let origin = Types.toObserveOptions({
+                let origin = convertor.toObserveOptions({
                     origin: { File: ['somefile', $.Types.File.FileType.Text, 'path_to_file'] },
                     parser: { Text: null },
                 });
@@ -28,7 +28,7 @@ describe('Protocol', function () {
                 expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
             }
             {
-                let origin = Types.toObserveOptions({
+                let origin = convertor.toObserveOptions({
                     origin: {
                         Stream: ['stream', { TCP: { bind_addr: '0.0.0.0' } }],
                     },
@@ -38,7 +38,7 @@ describe('Protocol', function () {
                 expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
             }
             {
-                let origin = Types.toObserveOptions({
+                let origin = convertor.toObserveOptions({
                     origin: {
                         Stream: [
                             'stream',
