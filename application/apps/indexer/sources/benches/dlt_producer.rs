@@ -1,45 +1,55 @@
-mod bench_utls;
-
 use criterion::{Criterion, *};
+use std::path::PathBuf;
 
-use bench_utls::{create_binary_bytesource, get_config, read_binary, run_producer};
-use parsers::dlt::DltParser;
+use bench_utls::{
+    bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,
+};
+use parsers::dlt::{self, DltParser};
 use sources::producer::MessageProducer;
 
-fn dlt_benchmark(c: &mut Criterion) {
+mod bench_utls;
+
+/// This benchmark covers parsing from DLT file and supports providing the path for a fibex file as
+/// additional configuration.
+fn dlt_producer(c: &mut Criterion) {
     let data = read_binary();
-    println!("Data len: {}", data.len());
-    let config = get_config();
-    dbg!(&config);
+
+    // Additional configuration are assumed to be one path for a fibex file.
+    let fibex = get_config().map(|fibex_path| {
+        assert!(
+            PathBuf::from(&fibex_path).exists(),
+            "Given fibex metadata file as additional configuration doesn't exist"
+        );
+
+        println!("Loading fibex metadata file: {fibex_path}");
+
+        dlt::gather_fibex_data(dlt::FibexConfig {
+            fibex_file_paths: vec![fibex_path],
+        })
+        .expect("Error while loading fibex metadata")
+    });
 
     c.bench_function("dlt_producer", |bencher| {
         bencher
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter_batched(
                 || {
-                    let parser = create_dlt_parser(config.as_deref());
+                    let parser = DltParser::new(None, fibex.as_ref(), None, None, false);
                     let source = create_binary_bytesource(data);
                     let producer = MessageProducer::new(parser, source, black_box(None));
 
                     producer
                 },
                 |p| run_producer(p),
-                // |p| async {
-                //     let a = run_producer(p).await;
-                //     dbg!(a)
-                // },
                 BatchSize::SmallInput,
             )
     });
 }
 
-fn create_dlt_parser<'a>(config: Option<&str>) -> DltParser<'a> {
-    //TODO: Consider Configurations
-    let _ = config;
-    DltParser::new(None, None, None, None, false)
+criterion_group! {
+    name = benches;
+    config = bench_standrad_config();
+    targets = dlt_producer
 }
-
-//TODO: This is needed to be configured similar to benchmarking with mocking PR.
-criterion_group!(benches, dlt_benchmark);
 
 criterion_main!(benches);
