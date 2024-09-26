@@ -1,6 +1,6 @@
 //! Manages benchmarks commands for rust core target.
 
-use std::fs::read_to_string;
+use std::{borrow::Cow, ffi::OsStr, fs::read_to_string, path::PathBuf};
 
 use anyhow::{ensure, Context};
 use console::style;
@@ -115,11 +115,17 @@ pub fn run_benchmark(
 
         command.arg(&cmd);
 
-        if let Some(input) = &input_source {
+        if let Some(input) = input_source.as_deref() {
+            // Assuming that the input can be a path for a file in most cases, we need to resolve
+            // it and provide the absolute path before changing the current directory when running
+            // the benchmark command.
+            let input = resolve_if_path(input);
             command.env(INPUT_SOURCE_ENV_VAR, input);
         }
 
-        if let Some(config) = &additional_config {
+        if let Some(config) = additional_config.as_deref() {
+            // Same Case as input source above
+            let config = resolve_if_path(config);
             command.env(CONFIG_ENV_VAR, config);
         }
 
@@ -133,4 +139,21 @@ pub fn run_benchmark(
     }
 
     Ok(())
+}
+
+/// Resolves a relative path to its absolute path if the given argument is a valid path
+/// in the current directory returning the absolute path in that case, otherwise it'll
+/// return the same argument back.
+///
+/// This function is needed to resolve the relative paths before changing the current directory
+/// while running the benchmark commands.
+fn resolve_if_path(arg: &str) -> Cow<OsStr> {
+    let potential_path = PathBuf::from(&arg);
+    if potential_path.exists() {
+        if let Ok(path) = std::path::absolute(potential_path) {
+            return Cow::Owned(path.into_os_string());
+        }
+    }
+
+    Cow::Borrowed(arg.as_ref())
 }
