@@ -6,8 +6,10 @@ use std::{
     fs::File,
     io::{Cursor, Read},
     path::PathBuf,
+    time::Duration,
 };
 
+use criterion::Criterion;
 use parsers::{LogMessage, MessageStreamItem};
 use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
 use tokio_stream::StreamExt;
@@ -25,15 +27,23 @@ pub const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";
 pub fn read_binary() -> &'static [u8] {
     let input_file = match std::env::var(INPUT_SOURCE_ENV_VAR) {
         Ok(input) =>PathBuf::from(input),
-        Err(err) => panic!("Error while retrieving input file.\nPlease ensure to provide the path of input file for benchmarks via environment variable: '{INPUT_SOURCE_ENV_VAR}'\n Error Info: {err}"),
+        Err(err) => panic!("Error while retrieving input file.\n
+Please ensure to provide the path of input file for benchmarks via command line arguments if you are using chipmunk build cli tool\
+or via the environment variable: '{INPUT_SOURCE_ENV_VAR}' if you are running the benchmark directly.\n Error Info: {err}"),
     };
 
-    assert!(input_file.exists(), "Given input file doesn't exist");
+    assert!(
+        input_file.exists(),
+        "Given input file doesn't exist. Path: {}",
+        input_file.display()
+    );
 
     let mut binary = Vec::new();
 
-    let mut file = File::open(input_file).unwrap();
+    let mut file = File::open(&input_file).unwrap();
     file.read_to_end(&mut binary).unwrap();
+
+    println!("Input source file path: {}", input_file.display());
 
     binary.leak()
 }
@@ -98,4 +108,24 @@ where
     }
 
     counter
+}
+
+/// Sensible configuration for Criterion to run reduce the noise from the overhead
+/// of async runtime, while keeping a reasonable run duration for the benchmarks.
+///
+/// # Note:
+///
+/// Even with these configurations, it's advisable to run the benchmarks multiple times to increase the
+/// correctness of the results.
+pub fn bench_standrad_config() -> Criterion {
+    Criterion::default()
+        // Warm up time is very important here because multiple async runtimes will be spawn in
+        // that time which make the next ones to spawn more stable.
+        .warm_up_time(Duration::from_secs(10))
+        // Measurement time and sample sized to role out noise in the measurements as possible.
+        .measurement_time(Duration::from_secs(20))
+        .sample_size(200)
+        // These two values help to reduce the noise level in the results.
+        .significance_level(0.01)
+        .noise_threshold(0.03)
 }

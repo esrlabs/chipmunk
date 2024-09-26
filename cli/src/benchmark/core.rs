@@ -94,7 +94,12 @@ pub fn run_benchmark(
             print_log_separator();
         }
 
-        let msg = format!("Running benchmark {name} for the {} time...", i + 1);
+        let msg = if run_count > 1 {
+            format!("Running benchmark {name} for the {} time...", i + 1)
+        } else {
+            format!("Running benchmark {name}...")
+        };
+
         println!("{}\n", style(msg).bold().blue());
 
         //TODO AAZ: Use the unified function for creating command once their PR is merged.

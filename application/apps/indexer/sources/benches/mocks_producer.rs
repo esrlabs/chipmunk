@@ -1,12 +1,9 @@
-mod bench_utls;
-
-use std::time::Duration;
-
-use bench_utls::run_producer;
+use bench_utls::{bench_standrad_config, run_producer};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use mocks::{mock_parser::MockParser, mock_source::MockByteSource};
 use sources::producer::MessageProducer;
 
+mod bench_utls;
 mod mocks;
 
 /// Runs Benchmarks replicating the producer loop within Chipmunk sessions, using mocks for
@@ -46,16 +43,7 @@ fn mocks_producer(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
-    config = Criterion::default()
-        // Warm up time is very important here because multiple async runtimes will be spawn in
-        // that time which make the next ones to spawn more stable.
-        .warm_up_time(Duration::from_secs(10))
-        // Measurement time and sample sized to role out noise in the measurements as possible.
-        .measurement_time(Duration::from_secs(20))
-        .sample_size(200)
-        // These two values help to reduce the noise level in the results.
-        .significance_level(0.01)
-        .noise_threshold(0.03);
+    config = bench_standrad_config();
     targets = mocks_producer
 }
 
