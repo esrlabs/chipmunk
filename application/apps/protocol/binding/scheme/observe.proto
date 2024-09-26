@@ -64,7 +64,7 @@ message FileFormat {
 }
 
 message ParserType {
-  oneof type {
+  oneof type_oneof {
     DltParserSettings dlt = 1;
     SomeIpParserSettings some_ip = 2;
     bool text = 3;
@@ -72,7 +72,7 @@ message ParserType {
 }
 
 message Transport {
-  oneof transport {
+  oneof transport_oneof {
     ProcessTransportConfig process = 1;
     TCPTransportConfig tcp = 2;
     UDPTransportConfig udp = 3;
@@ -81,7 +81,7 @@ message Transport {
 }
 
 message ObserveOrigin {
-  oneof origin {
+  oneof origin_oneof {
     File file = 1;
     Concat concat = 2;
     Stream stream = 3;

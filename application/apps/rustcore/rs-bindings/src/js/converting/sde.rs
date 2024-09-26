@@ -29,11 +29,11 @@ impl TryInto<SdeRequest> for JsIncomeBuffer {
     type Error = E;
     fn try_into(self) -> Result<SdeRequest, E> {
         let decoded = sde::SdeRequest::decode(&*self.0)?
-            .request
+            .request_oneof
             .ok_or(E::MissedField(String::from("value of SdeRequest")))?;
         Ok(match decoded {
-            sde::sde_request::Request::WriteBytes(v) => SdeRequest::WriteBytes(v),
-            sde::sde_request::Request::WriteText(v) => SdeRequest::WriteText(v),
+            sde::sde_request::RequestOneof::WriteBytes(v) => SdeRequest::WriteBytes(v),
+            sde::sde_request::RequestOneof::WriteText(v) => SdeRequest::WriteText(v),
         })
     }
 }

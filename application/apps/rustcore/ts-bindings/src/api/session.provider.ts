@@ -5,7 +5,7 @@ import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity, IValuesMinMaxMap } from 'platform/types/filter';
 import { IAttachment } from 'platform/types/content';
 
-import * as Types from '../protocol';
+import * as Types from '../protocol/convertor';
 
 export interface IProgressState {
     total: number;
