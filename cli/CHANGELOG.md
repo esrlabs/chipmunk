@@ -1,4 +1,3 @@
-<!--TODO AAZ: Increase lib real version after the other PR is merged. -->
 # 0.2.5
 
 ## Features:
