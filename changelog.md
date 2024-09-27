@@ -1,3 +1,9 @@
+# 3.13.1 (27.09.2024)
+
+## Changes
+- improve performance of parsing Some/IP messages from DLT payload
+- import filters/chars/disabled from parent session on new one based on search results
+
 # 3.13.0 (19.09.2024)
 
 ## Fixes
