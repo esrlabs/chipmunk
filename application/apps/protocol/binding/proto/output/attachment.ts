@@ -1,6 +1,3 @@
-export interface AttachmentInfoList {
-    elements: AttachmentInfo[];
-}
 export interface AttachmentInfo {
     uuid: string;
     filepath: string;
@@ -9,4 +6,7 @@ export interface AttachmentInfo {
     size: number;
     mime: string;
     messages: number[];
+}
+export interface AttachmentInfoList {
+    elements: AttachmentInfo[];
 }
