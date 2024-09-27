@@ -1,10 +1,11 @@
-export interface ValueRange {
-    min: number;
-    max: number;
+import { Ticks } from "./progress";
+export interface DetailOneof {
+    Ticks?: Ticks;
+    Notification?: Notification;
+    Stopped?: boolean;
 }
-export interface OperationDone {
-    uuid: string;
-    result: string;
+export interface SearchMapUpdated {
+    update: string;
 }
 import { NativeError } from "./error";
 export interface EventOneof {
@@ -23,30 +24,22 @@ export interface EventOneof {
     OperationDone?: OperationDone;
     SessionDestroyed?: boolean;
 }
-import { Ticks } from "./progress";
-export interface DetailOneof {
-    Ticks?: Ticks;
-    Notification?: Notification;
-    Stopped?: boolean;
-}
-export interface SearchMapUpdated {
-    update: string;
+export interface IndexedMapUpdated {
+    len: number;
 }
 export interface CallbackEvent {
     event_oneof: EventOneof | null;
 }
-export interface SearchValuesUpdated {
-    values: Map<number, ValueRange>;
-}
 export interface ProgressDetail {
     detail_oneof: DetailOneof | null;
+}
+export interface OperationDone {
+    uuid: string;
+    result: string;
 }
 export interface OperationError {
     uuid: string;
     error: NativeError | null;
-}
-export interface IndexedMapUpdated {
-    len: number;
 }
 export interface Notification {
     severity: number;
@@ -57,12 +50,19 @@ export interface SearchUpdated {
     found: number;
     stat: Map<string, number>;
 }
-export interface Progress {
-    uuid: string;
-    detail: ProgressDetail | null;
+export interface SearchValuesUpdated {
+    values: Map<number, ValueRange>;
+}
+export interface ValueRange {
+    min: number;
+    max: number;
 }
 import { AttachmentInfo } from "./attachment";
 export interface AttachmentsUpdated {
     len: number;
     attachment: AttachmentInfo | null;
+}
+export interface Progress {
+    uuid: string;
+    detail: ProgressDetail | null;
 }

@@ -3,22 +3,22 @@ export interface TransitionOneof {
     Ticks?: TicksWithUuid;
     Stopped?: Stopped;
 }
-export interface Stopped {
-    uuid: string;
+export interface LifecycleTransition {
+    transition_oneof: TransitionOneof | null;
 }
-export interface Started {
+export interface TicksWithUuid {
     uuid: string;
-    alias: string;
+    ticks: Ticks | null;
 }
 export interface Ticks {
     count: number;
     state: string;
     total: number;
 }
-export interface TicksWithUuid {
+export interface Stopped {
     uuid: string;
-    ticks: Ticks | null;
 }
-export interface LifecycleTransition {
-    transition_oneof: TransitionOneof | null;
+export interface Started {
+    uuid: string;
+    alias: string;
 }

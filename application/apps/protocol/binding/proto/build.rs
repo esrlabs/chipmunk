@@ -19,6 +19,7 @@ fn main() {
         })
         .collect();
     let binding = prost_build::Config::new();
+
     let mut cfg = binding;
     cfg.type_attribute(".", r#"#[derive(serde::Serialize, serde::Deserialize)]"#);
     for proto in protos.iter() {

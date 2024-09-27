@@ -11,7 +11,7 @@ import { readConfigurationFile } from './config';
 
 import * as proto from 'protocol';
 import * as $ from 'platform/types/observe';
-import * as convertor from '../src/protocol/convertor';
+import * as convertor from '../src/util/convertor';
 import * as runners from './runners';
 
 const config = readConfigurationFile().get().tests.protocol;

@@ -480,7 +480,9 @@ dependencies = [
 
 [[package]]
 name = "tslink"
-version = "0.1.6"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7af33803ca4ffb62ac69c1230f7610ac0bc8a5b5a28dfb4d584bea0674ec416"
 dependencies = [
  "convert_case",
  "lazy_static",

@@ -4,39 +4,10 @@ export interface DetailOneof {
     Notification?: Notification;
     Stopped?: boolean;
 }
-import { NativeError } from "./error";
-export interface OperationError {
-    uuid: string;
-    error: NativeError | null;
-}
 export interface SearchMapUpdated {
     update: string;
 }
-import { AttachmentInfo } from "./attachment";
-export interface AttachmentsUpdated {
-    len: number;
-    attachment: AttachmentInfo | null;
-}
-export interface Progress {
-    uuid: string;
-    detail: ProgressDetail | null;
-}
-export interface SearchUpdated {
-    found: number;
-    stat: Map<string, number>;
-}
-export interface ValueRange {
-    min: number;
-    max: number;
-}
-export interface Notification {
-    severity: number;
-    content: string;
-    line: number;
-}
-export interface SearchValuesUpdated {
-    values: Map<number, ValueRange>;
-}
+import { NativeError } from "./error";
 export interface EventOneof {
     StreamUpdated?: number;
     FileRead?: boolean;
@@ -53,16 +24,45 @@ export interface EventOneof {
     OperationDone?: OperationDone;
     SessionDestroyed?: boolean;
 }
-export interface ProgressDetail {
-    detail_oneof: DetailOneof | null;
-}
 export interface IndexedMapUpdated {
     len: number;
+}
+export interface CallbackEvent {
+    event_oneof: EventOneof | null;
+}
+export interface ProgressDetail {
+    detail_oneof: DetailOneof | null;
 }
 export interface OperationDone {
     uuid: string;
     result: string;
 }
-export interface CallbackEvent {
-    event_oneof: EventOneof | null;
+export interface OperationError {
+    uuid: string;
+    error: NativeError | null;
+}
+export interface Notification {
+    severity: number;
+    content: string;
+    line: number;
+}
+export interface SearchUpdated {
+    found: number;
+    stat: Map<string, number>;
+}
+export interface SearchValuesUpdated {
+    values: Map<number, ValueRange>;
+}
+export interface ValueRange {
+    min: number;
+    max: number;
+}
+import { AttachmentInfo } from "./attachment";
+export interface AttachmentsUpdated {
+    len: number;
+    attachment: AttachmentInfo | null;
+}
+export interface Progress {
+    uuid: string;
+    detail: ProgressDetail | null;
 }

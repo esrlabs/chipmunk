@@ -19,7 +19,7 @@ import { SdeRequest, SdeResponse } from 'platform/types/sde';
 import { getValidNum } from '../util/numbers';
 
 import * as proto from 'protocol';
-import * as Types from '../protocol/convertor';
+import * as convertor from '../util/convertor';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -456,7 +456,7 @@ export class RustSessionWrapper extends RustSession {
             this._provider.debug().emit.operation('grab');
             this._native
                 .grab(start, len)
-                .then((buf: number[]) => resolve(Types.decodeGrabbedElementList(buf)))
+                .then((buf: number[]) => resolve(convertor.decodeGrabbedElementList(buf)))
                 .catch((err) => reject(NativeError.from(err)));
         });
     }
@@ -467,7 +467,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .grabIndexed(start, len)
                 .then((buf: number[]) => {
-                    resolve(Types.decodeGrabbedElementList(buf));
+                    resolve(convertor.decodeGrabbedElementList(buf));
                 })
                 .catch((err) => reject(NativeError.from(err)));
         });
@@ -555,7 +555,7 @@ export class RustSessionWrapper extends RustSession {
             this._provider.debug().emit.operation('grabRanges');
             this._native
                 .grabRanges(ranges.map((r) => [r.from, r.to]))
-                .then((buf: number[]) => resolve(Types.decodeGrabbedElementList(buf)))
+                .then((buf: number[]) => resolve(convertor.decodeGrabbedElementList(buf)))
                 .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
@@ -566,7 +566,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .grabSearch(start, len)
                 .then((buf: number[]) => {
-                    resolve(Types.decodeGrabbedElementList(buf));
+                    resolve(convertor.decodeGrabbedElementList(buf));
                 })
                 .catch((err: Error) => reject(NativeError.from(err)));
         });
@@ -615,7 +615,7 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .observe(
                     Buffer.copyBytesFrom(
-                        proto.ObserveOptions.encode(Types.toObserveOptions(source)),
+                        proto.ObserveOptions.encode(convertor.toObserveOptions(source)),
                     ),
                     operationUuid,
                 )
@@ -785,9 +785,9 @@ export class RustSessionWrapper extends RustSession {
             this._native
                 .sendIntoSde(
                     targetOperationUuid,
-                    Buffer.copyBytesFrom(Types.encodeSdeRequest(request)),
+                    Buffer.copyBytesFrom(convertor.encodeSdeRequest(request)),
                 )
-                .then((buf: number[]) => resolve(Types.decodeSdeResponse(buf)))
+                .then((buf: number[]) => resolve(convertor.decodeSdeResponse(buf)))
                 .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
@@ -796,7 +796,7 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .getAttachments()
-                .then((buf: number[]) => resolve(Types.decodeAttachmentInfoList(buf)))
+                .then((buf: number[]) => resolve(convertor.decodeAttachmentInfoList(buf)))
                 .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
@@ -805,7 +805,7 @@ export class RustSessionWrapper extends RustSession {
         return new Promise((resolve, reject) => {
             this._native
                 .getIndexedRanges()
-                .then((buf: number[]) => resolve(Types.decodeIRanges(buf)))
+                .then((buf: number[]) => resolve(convertor.decodeIRanges(buf)))
                 .catch((err: Error) => reject(NativeError.from(err)));
         });
     }
@@ -921,7 +921,7 @@ export class RustSessionWrapper extends RustSession {
             if (decode === false) {
                 return [];
             }
-            return Types.decodeGrabbedElementList(received);
+            return convertor.decodeGrabbedElementList(received);
         } catch (err) {
             return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
         }
