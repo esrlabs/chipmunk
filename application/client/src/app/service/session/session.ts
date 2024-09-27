@@ -365,6 +365,7 @@ export class Session extends Base {
             throw new Error(`Fail to find bound source`);
         }
         const current = sources[0].observe.clone();
+        const parentSearchStore = this.search.store();
         const observe = (() => {
             const file = current.origin.as<Origins.File.Configuration>(Origins.File.Configuration);
             const concat = current.origin.as<Origins.Concat.Configuration>(
@@ -403,7 +404,16 @@ export class Session extends Base {
         return session
             .initialize()
             .observe(observe)
-            .then(() => undefined);
+            .then((uuid: string) => {
+                const created = session.get(uuid);
+                if (created === undefined) {
+                    this.log().error(`Fail to find created session ${uuid}`);
+                    return;
+                }
+                created.search.store().filters().overwrite(parentSearchStore.filters().get());
+                created.search.store().charts().overwrite(parentSearchStore.charts().get());
+                created.search.store().disabled().overwrite(parentSearchStore.disabled().get());
+            });
     }
 }
 export interface Session extends LoggerInterface {}
