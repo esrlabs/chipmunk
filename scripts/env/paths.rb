@@ -74,4 +74,5 @@ module Paths
   UPDATER = "#{APPS}/precompiled/updater"
 
   PROTOCOL_WASM = "#{APPS}/protocol/binding/wasm"
+  PROTOCOL_GEN = "#{APPS}/protocol/binding/proto"
 end
