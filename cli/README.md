@@ -97,6 +97,15 @@ Options:
           Print help (see a summary with '-h')
 ```
 
+
+## Benchmarks via Build CLI Tool
+
+You can run benchmarks of the Rust Core part directly using the Build CLI tool. Some benchmarks require input sources and additional configurations, which should be provided via environment variables.
+
+The CLI tool simplifies running these benchmarks from anywhere in the Chipmunk repository. You can provide the input sources and configurations as CLI arguments, and the tool will handle setting the environment variables for the benchmarks. For more details, use the help command: `cargo chipmunk bench --help`.
+
+The registered benchmarks are loaded from `chipmunk/cli/config/bench_core.toml`. To add a new benchmark, please include it in this configuration file.
+
 ## Shell Completion
 
 The Chipmunk CLI tool supports shell completion for various shells. You can generate shell completions and print them to `stdout` using the following command:

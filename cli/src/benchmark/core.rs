@@ -6,7 +6,9 @@ use anyhow::{ensure, Context};
 use console::style;
 use serde::Deserialize;
 
-use crate::{location::config_path, log_print::print_log_separator, target::Target};
+use crate::{
+    location::config_path, log_print::print_log_separator, shell::shell_std_command, target::Target,
+};
 
 /// Filename for rust core benchmarks configurations.
 pub const CONFIG_FILENAME: &str = "bench_core.toml";
@@ -102,17 +104,7 @@ pub fn run_benchmark(
 
         println!("{}\n", style(msg).bold().blue());
 
-        //TODO AAZ: Use the unified function for creating command once their PR is merged.
-        let mut command = if cfg!(target_os = "windows") {
-            let mut cmd = std::process::Command::new("cmd");
-            cmd.arg("/C");
-            cmd
-        } else {
-            let mut cmd = std::process::Command::new("sh");
-            cmd.arg("-c");
-            cmd
-        };
-
+        let mut command = shell_std_command();
         command.arg(&cmd);
 
         if let Some(input) = input_source.as_deref() {
