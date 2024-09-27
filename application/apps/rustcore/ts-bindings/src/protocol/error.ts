@@ -1,73 +1,13 @@
-export interface SearchIoOperation {
+export interface Aborted {
     message: string;
-}
-export interface InvalidArgs {
-    message: string;
-}
-export interface GrabErrorOneof {
-    GrabConfig?: GrabConfig;
-    GrabCommunication?: GrabCommunication;
-    GrabIoOperation?: GrabIoOperation;
-    InvalidRange?: InvalidRange;
-    Interrupted?: Interrupted;
-    NotInitialize?: NotInitialize;
-    Unsupported?: Unsupported;
-}
-export interface NativeError {
-    severity: number;
-    kind: number;
-    message: string;
-}
-export interface SessionUnavailable {
-}
-export interface ComputationError {
-    comp_error_oneof: CompErrorOneof | null;
-}
-export interface Protocol {
-    message: string;
-}
-export interface CompIoOperation {
-    message: string;
-}
-export interface GrabCommunication {
-    message: string;
-}
-export interface InvalidData {
-}
-export interface Process {
-    message: string;
-}
-export interface GrabConfig {
-    message: string;
-}
-export interface DestinationPath {
 }
 export interface SessionCreatingFail {
 }
-export interface MultipleInitCall {
-}
-export interface Grabbing {
-    error: GrabError | null;
-}
-export interface NotInitialize {
-}
-export interface Grab {
-    error: GrabError | null;
-}
-export enum NativeErrorKind {
-    FileNotFound,
-    UnsupportedFileType,
-    ComputationFailed,
-    Configuration,
-    Interrupted,
-    OperationSearch,
-    NotYetImplemented,
-    ChannelError,
-    Io,
-    Grabber,
-}
 export interface Unsupported {
     message: string;
+}
+export interface SearchError {
+    search_error_oneof: SearchErrorOneof | null;
 }
 export interface CompErrorOneof {
     DestinationPath?: DestinationPath;
@@ -86,17 +26,35 @@ export interface CompErrorOneof {
     Grabbing?: Grabbing;
     Sde?: Sde;
 }
+export interface Interrupted {
+}
+export interface InvalidArgs {
+    message: string;
+}
 import { RangeInclusive } from "./common";
 export interface InvalidRange {
     range: RangeInclusive | null;
     context: string;
 }
-export interface Interrupted {
+export interface NotInitialize {
 }
-export interface GrabError {
-    grab_error_oneof: GrabErrorOneof | null;
+export interface SessionUnavailable {
 }
-export interface Aborted {
+export interface Process {
+    message: string;
+}
+export interface NativeError {
+    severity: number;
+    kind: number;
+    message: string;
+}
+export interface Input {
+    message: string;
+}
+export interface CompCommunication {
+    message: string;
+}
+export interface SearchCommunication {
     message: string;
 }
 export interface Sde {
@@ -106,17 +64,47 @@ export enum Severity {
     Warning,
     Error,
 }
-export interface Regex {
+export interface DestinationPath {
+}
+export interface ComputationError {
+    comp_error_oneof: CompErrorOneof | null;
+}
+export interface SearchConfig {
     message: string;
 }
-export interface Input {
+export interface SearchIoOperation {
+    message: string;
+}
+export interface InvalidData {
+}
+export interface GrabConfig {
+    message: string;
+}
+export interface Grab {
+    error: GrabError | null;
+}
+export interface CompIoOperation {
     message: string;
 }
 export interface GrabIoOperation {
     message: string;
 }
-export interface SearchConfig {
+export interface MultipleInitCall {
+}
+export interface GrabCommunication {
     message: string;
+}
+export interface GrabErrorOneof {
+    GrabConfig?: GrabConfig;
+    GrabCommunication?: GrabCommunication;
+    GrabIoOperation?: GrabIoOperation;
+    InvalidRange?: InvalidRange;
+    Interrupted?: Interrupted;
+    NotInitialize?: NotInitialize;
+    Unsupported?: Unsupported;
+}
+export interface GrabError {
+    grab_error_oneof: GrabErrorOneof | null;
 }
 export interface SearchErrorOneof {
     SearchConfig?: SearchConfig;
@@ -127,15 +115,27 @@ export interface SearchErrorOneof {
     Grab?: Grab;
     Aborted?: Aborted;
 }
-export interface CompCommunication {
+export interface Regex {
     message: string;
 }
-export interface SearchError {
-    search_error_oneof: SearchErrorOneof | null;
+export interface Protocol {
+    message: string;
 }
 export interface OperationNotSupported {
     message: string;
 }
-export interface SearchCommunication {
-    message: string;
+export interface Grabbing {
+    error: GrabError | null;
+}
+export enum NativeErrorKind {
+    FileNotFound,
+    UnsupportedFileType,
+    ComputationFailed,
+    Configuration,
+    Interrupted,
+    OperationSearch,
+    NotYetImplemented,
+    ChannelError,
+    Io,
+    Grabber,
 }

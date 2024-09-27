@@ -2,11 +2,11 @@
 
 import { IObserve, Observe } from 'platform/types/observe';
 import { Attachment, IGrabbedElement } from 'platform/types/content';
-import { getValidNum } from '../util/numbers';
+import { getValidNum } from './numbers';
 import { IRange } from 'platform/types/range';
 
 import * as proto from 'protocol';
-import * as ty from './index';
+import * as ty from '../protocol/index';
 import * as $ from 'platform/types/observe';
 import * as sde from 'platform/types/sde';
 
