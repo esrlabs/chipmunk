@@ -69,11 +69,11 @@ impl Parser<MockMessage> for MockParser
 where
     MockMessage: LogMessage,
 {
-    fn parse<'b>(
+    fn parse(
         &mut self,
-        input: &'b [u8],
+        _input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(&'b [u8], Option<ParseYield<MockMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<MockMessage>>), Error> {
         let seed_res = self
             .seeds
             .pop_front()
@@ -81,7 +81,7 @@ where
 
         let seed = seed_res?;
 
-        Ok((&input[seed.cosumed..], seed.parse_yeild))
+        Ok((seed.cosumed, seed.parse_yeild))
     }
 }
 
@@ -97,12 +97,12 @@ fn test_mock_parser() {
     ]);
 
     let parse_result_ok_none = parser.parse(&[b'a', b'b'], None);
-    assert!(matches!(parse_result_ok_none, Ok((&[b'b'], None))));
+    assert!(matches!(parse_result_ok_none, Ok((1, None))));
 
     let parse_result_ok_val = parser.parse(&[b'a', b'b'], None);
     assert!(matches!(
         parse_result_ok_val,
-        Ok((&[], Some(ParseYield::Message(MockMessage { content: 1 }))))
+        Ok((2, Some(ParseYield::Message(MockMessage { content: 1 }))))
     ));
 
     let parse_result_err = parser.parse(&[b'a', b'b'], None);

@@ -51,19 +51,18 @@ impl LogMessage for MockMessage {
 impl Parser<MockMessage> for MockParser {
     /// This will keep returning a valid item result until the counter reaches max count then it
     /// will be return [`parsers::Error::Eof`]
-    fn parse<'a>(
+    fn parse(
         &mut self,
-        input: &'a [u8],
+        input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
+    ) -> Result<(usize, Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
         #[inline(never)]
         fn inner(
             counter: usize,
             max_count: usize,
             input: &[u8],
             _timestamp: Option<u64>,
-        ) -> Result<(&'static [u8], Option<parsers::ParseYield<MockMessage>>), parsers::Error>
-        {
+        ) -> Result<(usize, Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
             // Return `Eof` Once the counter reaches max_count.
             if counter >= max_count {
                 const ERR: parsers::Error = parsers::Error::Eof;
@@ -85,14 +84,14 @@ impl Parser<MockMessage> for MockParser {
                 // Only this value will be always returned if the calls counter still smaller than
                 // the max value.
                 Ok((
-                    black_box(&[]),
+                    black_box(input.len()),
                     Some(parsers::ParseYield::Message(MockMessage {
                         content: black_box(MSG).into(),
                     })),
                 ))
             } else if black_box(20) > black_box(30) {
                 Ok((
-                    black_box(&[]),
+                    black_box(input.len()),
                     Some(parsers::ParseYield::Attachment(Attachment {
                         size: black_box(10),
                         name: String::from(black_box(MSG)),
@@ -104,7 +103,7 @@ impl Parser<MockMessage> for MockParser {
                 ))
             } else {
                 Ok((
-                    black_box(&[]),
+                    black_box(input.len()),
                     Some(parsers::ParseYield::MessageAndAttachment((
                         MockMessage {
                             content: black_box(MSG).into(),

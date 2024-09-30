@@ -191,11 +191,11 @@ impl SomeipParser {
         }
     }
 
-    pub(crate) fn parse_message<'a>(
+    pub(crate) fn parse_message(
         fibex_metadata: Option<&FibexMetadata>,
-        input: &'a [u8],
+        input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], SomeipLogMessage), Error> {
+    ) -> Result<(usize, SomeipLogMessage), Error> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
@@ -203,9 +203,9 @@ impl SomeipParser {
                 debug!("at {} : SD Message ({} bytes)", time, len);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     SomeipLogMessage::from(
                         sd_message_string(&header, &payload),
@@ -219,9 +219,9 @@ impl SomeipParser {
                 debug!("at {} : RPC Message ({:?} bytes)", time, len);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     SomeipLogMessage::from(
                         rpc_message_string(fibex_metadata, &header, &payload),
@@ -235,9 +235,9 @@ impl SomeipParser {
                 debug!("at {} : MCC Message", time);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     SomeipLogMessage::from(
                         String::from("MCC"), // Magic-Cookie-Client
@@ -251,9 +251,9 @@ impl SomeipParser {
                 debug!("at {} : MCS Message", time);
                 Ok((
                     if input.len() - len < Header::LENGTH {
-                        &[0; 0]
+                        input.len()
                     } else {
-                        &input[len..]
+                        len
                     },
                     SomeipLogMessage::from(
                         String::from("MCS"), // Magic-Cookie-Server
@@ -275,11 +275,11 @@ unsafe impl Send for SomeipParser {}
 unsafe impl Sync for SomeipParser {}
 
 impl Parser<SomeipLogMessage> for SomeipParser {
-    fn parse<'a>(
+    fn parse(
         &mut self,
-        input: &'a [u8],
+        input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(&'a [u8], Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error> {
         SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
             .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
     }
@@ -620,8 +620,8 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("MCC", &format!("{}", item));
@@ -641,8 +641,8 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("MCS", &format!("{}", item));
@@ -662,8 +662,8 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!(
@@ -692,8 +692,8 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("RPC\u{4}259\u{4}32772\u{4}8\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::emptyEvent ", &format!("{}", item));
@@ -714,8 +714,8 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!(
@@ -745,8 +745,8 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{}", item));
@@ -770,8 +770,8 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("RPC\u{4}260\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}UnknownService [01, 02]", &format!("{}", item));
@@ -795,8 +795,8 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}3\u{4}2\u{4}0\u{4}TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{}", item));
@@ -820,8 +820,8 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("RPC\u{4}259\u{4}32774\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::UnknownMethod [01, 02]", &format!("{}", item));
@@ -845,8 +845,8 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("RPC\u{4}259\u{4}32773\u{4}9\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{}", item));
@@ -869,8 +869,8 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!(
@@ -915,8 +915,8 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (output, message) = parser.parse(input, None).unwrap();
-        assert!(output.is_empty());
+        let (consumed, message) = parser.parse(input, None).unwrap();
+        assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
             assert_eq!("SD\u{4}65535\u{4}33024\u{4}64\u{4}0\u{4}0\u{4}1\u{4}2\u{4}0\u{4}Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{}", item));
