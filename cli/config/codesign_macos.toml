@@ -47,3 +47,5 @@ env_apple_id = "APPLEID"
 env_team_id = "TEAMID"
 # Environment variable for Password to be provided as CLI argument.
 env_password = "APPLEIDPASS"
+# Line to look for in the output of the notarizing command to ensure it has been accepted.
+accepted_line = "status: Accepted"
