@@ -1,6 +1,6 @@
 //! Manages code signing and notarizing on MacOS.
 
-use std::env;
+use std::{env, io::BufRead};
 
 use anyhow::{ensure, Context};
 use serde::{Deserialize, Serialize};
@@ -73,6 +73,8 @@ struct NotarizeCommand {
     env_team_id: String,
     /// Environment variable for Password to be provided as CLI argument.
     env_password: String,
+    /// Line to look for in the output of the notarizing command to ensure it has been accepted.
+    accepted_line: String,
 }
 
 /// Check if code signing and notarizing is allowed according to the environment variables.
@@ -211,15 +213,40 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
 
     let app_root = Target::App.cwd();
 
-    let cmd_status = shell_std_command()
+    let cmd_output = shell_std_command()
         .arg(&cmd)
         .current_dir(&app_root)
-        .status()
+        .output()
         .context("Error while running notarize command.")?;
 
     ensure!(
-        cmd_status.success(),
+        cmd_output.status.success(),
         "Code notarize failed. Command : '{cmd}'"
+    );
+
+    let mut accepted = false;
+
+    println!("Notarize commnad output on stdout:");
+    for line in cmd_output.stdout.lines().map_while(Result::ok) {
+        println!("{line}");
+        if !accepted && line.trim() == config.notarize_command.accepted_line.as_str() {
+            accepted = true;
+        }
+    }
+
+    println!("---------------------------------");
+
+    println!("Notarize commnad output on stderr:");
+    for line in cmd_output.stderr.lines().map_while(Result::ok) {
+        println!("{line}");
+        if !accepted && line.trim() == config.notarize_command.accepted_line.as_str() {
+            accepted = true;
+        }
+    }
+
+    ensure!(
+        accepted,
+        "Accepted line couldn't be found in notarize command output"
     );
 
     Ok(())
@@ -258,6 +285,7 @@ pub fn __generate_config_for_prototyping() -> MacOsConfig {
         env_apple_id: String::from("APPLEID"),
         env_team_id: String::from("TEAMID"),
         env_password: String::from("APPLEIDPASS"),
+        accepted_line: String::from("status: Accepted"),
     };
 
     MacOsConfig {
