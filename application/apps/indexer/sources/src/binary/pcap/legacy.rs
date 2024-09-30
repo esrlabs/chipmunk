@@ -45,13 +45,11 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                     );
                     consumed = bytes_read;
                     match block {
-                        PcapBlockOwned::LegacyHeader(ref hdr) => {
-                            println!("LegacyHeader {:?}", hdr);
+                        PcapBlockOwned::LegacyHeader(ref _hdr) => {
                             self.pcap_reader.consume(consumed);
                             continue;
                         }
                         PcapBlockOwned::Legacy(ref b) => {
-                            println!("Legacy: {:?}", b);
                             raw_data = &b.data[..b.origlen as usize];
                             break;
                         }
