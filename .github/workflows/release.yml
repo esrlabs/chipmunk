@@ -91,7 +91,7 @@ jobs:
       - name: build release macOS
         if: runner.os == 'macOS'
         run: |
-          cargo chipmunk release -c cli/codesign_config/macos.toml
+          cargo chipmunk release -c cli/config/codesign_macos.toml
         env:
           KEYCHAIN_NAME: "build.keychain"
           CSC_LINK: ${{ secrets.CSC_LINK }}
