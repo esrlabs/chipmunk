@@ -1,11 +1,17 @@
 <div *ngIf="row !== undefined" class="summary">
-    <span class="t-medium color-scheme-0"><span class="color-scheme-3">Row #:</span> {{row.position}}</span>
+    <span class="t-medium color-scheme-0"
+        ><span class="color-scheme-3">Row #:</span> {{row.position}}</span
+    >
     <span class="filler"></span>
     <span class="small-icon-button codicon codicon-copy" (click)="copy()"></span>
 </div>
-<div class="content" *ngIf="origin !== undefined">
-    <p class="t-small color-scheme-3 caption" *ngIf="origin !== undefined && parsed !== undefined">Origin</p>
-    <p class="color-scheme-0 value" [innerHTML]="origin"></p>
-    <p class="t-small color-scheme-3 caption" *ngIf="parsed !== undefined">Parsed</p>
-    <p class="color-scheme-0 value" id="parsed_content_holder" *ngIf="parsed !== undefined" [innerHTML]="parsed"></p>
+<div class="content">
+    <ng-container *ngIf="origin !== undefined">
+        <p class="t-small color-scheme-3 caption" *ngIf="parsed !== undefined">Origin</p>
+        <pre class="color-scheme-0" [innerHTML]="origin"></pre>
+    </ng-container>
+    <ng-container *ngIf="parsed !== undefined">
+        <p class="t-small color-scheme-3 caption">Parsed</p>
+        <pre class="color-scheme-0" id="parsed_content_holder" [innerHTML]="parsed"></pre>
+    </ng-container>
 </div>

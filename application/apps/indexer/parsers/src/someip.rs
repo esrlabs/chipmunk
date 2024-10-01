@@ -21,6 +21,11 @@ use log::{debug, error};
 use regex::Regex;
 use serde::Serialize;
 
+/// Marker for a column separator in the output string.
+const COLUMN_SEP: &str = "\u{0004}"; // EOT
+/// Marker for a newline in the output string.
+const LINE_SEP: &str = "\u{0006}"; // ACK
+
 /// Wrapper for a fibex-model (new-type pattern).
 pub struct FibexMetadata {
     model: FibexModel,
@@ -85,7 +90,12 @@ impl FibexMetadata {
             if let Some(som_type) = lock.get_som_type(fibex_type) {
                 match som_type.parse(&mut SOMParser::new(payload)) {
                     Ok(_) => {
-                        return Some(som_type.to_string().replace([' ', '\n'], ""));
+                        return Some(
+                            som_type
+                                .to_string()
+                                .replace('\n', LINE_SEP)
+                                .replace(&" ".repeat(4), "\t"),
+                        );
                     }
                     Err(error) => {
                         return Some(format!("'{}' {:02X?}", error, *payload));
@@ -274,8 +284,6 @@ impl Parser<SomeipLogMessage> for SomeipParser {
             .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
     }
 }
-
-const COLUMN_SEP: char = '\u{0004}';
 
 fn header_string(header: &Header) -> String {
     format!(
@@ -496,7 +504,7 @@ impl fmt::Debug for SomeipLogMessage {
 fn merge_columns(columns: &str) -> Cow<str> {
     lazy_static! {
         static ref REGEX : Regex = Regex::new(
-            r"(SD|RPC)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(\d+)\u{0004}(.*)"
+            &format!("(SD|RPC){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(.*)")
             ).unwrap();
     }
     REGEX.replace(columns, "${1} SERV:${2} METH:${3} LENG:${4} CLID:${5} SEID:${6} IVER:${7} MSTP:${8} RETC:${9} ${10}")
@@ -658,7 +666,10 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32772\u{0004}8\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}[]", &format!("{}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32772\u{4}8\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}[]",
+                &format!("{}", item)
+            );
             assert_eq!(
                 "RPC SERV:259 METH:32772 LENG:8 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 []",
                 &format!("{:?}", item)
@@ -685,7 +696,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32772\u{0004}8\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::emptyEvent ", &format!("{}", item));
+            assert_eq!("RPC\u{4}259\u{4}32772\u{4}8\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::emptyEvent ", &format!("{}", item));
             assert_eq!("RPC SERV:259 METH:32772 LENG:8 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::emptyEvent ", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
@@ -707,7 +718,10 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}[01, 02]", &format!("{}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}[01, 02]",
+                &format!("{}", item)
+            );
             assert_eq!(
                 "RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 [01, 02]",
                 &format!("{:?}", item)
@@ -735,8 +749,8 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{:?}", item));
+            assert_eq!("RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -760,7 +774,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}260\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}UnknownService [01, 02]", &format!("{}", item));
+            assert_eq!("RPC\u{4}260\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}UnknownService [01, 02]", &format!("{}", item));
             assert_eq!("RPC SERV:260 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 UnknownService [01, 02]", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
@@ -785,8 +799,8 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}10\u{0004}1\u{0004}2\u{0004}3\u{0004}2\u{0004}0\u{0004}TestService<1?>::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:3 MSTP:2 RETC:0 TestService<1?>::testEvent {value1(UINT8):1,value2(UINT8):2,}", &format!("{:?}", item));
+            assert_eq!("RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}3\u{4}2\u{4}0\u{4}TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{}", item));
+            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:3 MSTP:2 RETC:0 TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
         }
@@ -810,7 +824,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32774\u{0004}10\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::UnknownMethod [01, 02]", &format!("{}", item));
+            assert_eq!("RPC\u{4}259\u{4}32774\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::UnknownMethod [01, 02]", &format!("{}", item));
             assert_eq!("RPC SERV:259 METH:32774 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::UnknownMethod [01, 02]", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
@@ -835,7 +849,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{0004}259\u{0004}32773\u{0004}9\u{0004}1\u{0004}2\u{0004}1\u{0004}2\u{0004}0\u{0004}TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{}", item));
+            assert_eq!("RPC\u{4}259\u{4}32773\u{4}9\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{}", item));
             assert_eq!("RPC SERV:259 METH:32773 LENG:9 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
@@ -859,7 +873,10 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("SD\u{0004}65535\u{0004}33024\u{0004}20\u{0004}0\u{0004}0\u{0004}1\u{0004}2\u{0004}0\u{0004}Flags [C0]", &format!("{}", item));
+            assert_eq!(
+                "SD\u{4}65535\u{4}33024\u{4}20\u{4}0\u{4}0\u{4}1\u{4}2\u{4}0\u{4}Flags [C0]",
+                &format!("{}", item)
+            );
             assert_eq!(
                 "SD SERV:65535 METH:33024 LENG:20 CLID:0 SEID:0 IVER:1 MSTP:2 RETC:0 Flags [C0]",
                 &format!("{:?}", item)
@@ -902,7 +919,7 @@ mod test {
         assert!(output.is_empty());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("SD\u{0004}65535\u{0004}33024\u{0004}64\u{0004}0\u{0004}0\u{0004}1\u{0004}2\u{0004}0\u{0004}Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{}", item));
+            assert_eq!("SD\u{4}65535\u{4}33024\u{4}64\u{4}0\u{4}0\u{4}1\u{4}2\u{4}0\u{4}Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{}", item));
             assert_eq!("SD SERV:65535 METH:33024 LENG:64 CLID:0 SEID:0 IVER:1 MSTP:2 RETC:0 Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{:?}", item));
         } else {
             panic!("unexpected parse yield");
