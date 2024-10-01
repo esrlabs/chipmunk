@@ -56,13 +56,15 @@ export class Details extends ChangesDetector implements AfterViewInit, OnDestroy
                 if (content !== undefined) {
                     return content;
                 }
-                const parsed = document.querySelector('p[id="parsed_content_holder"]');
+                const parsed = document.querySelector('pre[id="parsed_content_holder"]');
                 if (parsed !== null) {
                     return parsed.textContent as string;
                 } else {
                     return row.content;
                 }
-            })(),
+            })()
+                .replace(/\u0006/gi, '\n')
+                .replace(/\t/gi, ' '.repeat(4)),
         );
     }
 
@@ -86,7 +88,11 @@ export class Details extends ChangesDetector implements AfterViewInit, OnDestroy
             this.row = this.session.cursor.getSingle().row();
             this.origin =
                 this.row !== undefined
-                    ? this.sanitizer.bypassSecurityTrustHtml(this.row.content)
+                    ? this.sanitizer.bypassSecurityTrustHtml(
+                          this.row.content
+                              .replace(/\u0006/gi, '<br>')
+                              .replace(/\t/gi, ' '.repeat(4)),
+                      )
                     : undefined;
             this.parsed =
                 this.row !== undefined && this.row.html !== undefined

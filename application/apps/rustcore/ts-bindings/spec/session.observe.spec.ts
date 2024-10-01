@@ -402,7 +402,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'TestService::timeEvent {timestamp(INT64):1683656786973,}',
+                                    'TestService::timeEvent {\u0006\ttimestamp (INT64) : 1683656786973,\u0006}',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
                                 finish(comps.session, done);
@@ -566,7 +566,7 @@ describe('Observe', function () {
                                     '2', // Message-Type
                                     '0', // Return-Type
                                     /* Payload */
-                                    'TestService::timeEvent {timestamp(INT64):1683656786973,}',
+                                    'TestService::timeEvent {\u0006\ttimestamp (INT64) : 1683656786973,\u0006}',
                                 ]);
                                 logger.debug('result of grab was: ' + JSON.stringify(result));
                                 finish(comps.session, done);
@@ -692,7 +692,7 @@ describe('Observe', function () {
                                 expect(result.length).toEqual(6);
                                 expect(result[0].content.split('\u0004')).toEqual([
                                     '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '204', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
-                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 TestService::timeEvent {timestamp(INT64):1683656786973,}',
+                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 TestService::timeEvent {\u0006\ttimestamp (INT64) : 1683656786973,\u0006}',
                                 ]);
                                 expect(result[1].content.split('\u0004')).toEqual([
                                     '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '205', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
@@ -700,7 +700,7 @@ describe('Observe', function () {
                                 ]);
                                 expect(result[2].content.split('\u0004')).toEqual([
                                     '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '206', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
-                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:3 MSTP:2 RETC:0 TestService<1?>::timeEvent {timestamp(INT64):1683656786973,}',
+                                    'SOME/IP RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:3 MSTP:2 RETC:0 TestService<1?>::timeEvent {\u0006\ttimestamp (INT64) : 1683656786973,\u0006}',
                                 ]);
                                 expect(result[3].content.split('\u0004')).toEqual([
                                     '2024-02-20T13:17:26.713537000Z', 'ECU1', '1', '571', '207', '28138506', 'ECU1', 'APP1', 'C1', 'IPC',
