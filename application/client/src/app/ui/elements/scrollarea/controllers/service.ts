@@ -75,6 +75,14 @@ export class Service implements Destroy {
         this._subjects.blur.destroy();
     }
 
+    public setAdhered(adhered: boolean) {
+        if (this.frame === undefined) {
+            console.error(`Attempt to access frame before initialization`);
+            return;
+        }
+        this.frame.setAdhered(adhered);
+    }
+
     public setLen(len: number) {
         this._subjects.len.emit(len);
     }

@@ -146,6 +146,7 @@ export class Stream extends Subscriber {
         restart(uuid: string, source: Observe): Promise<string>;
         list(): Promise<Map<string, Observe>>;
         sources(): ObserveSource[];
+        isFileSource(): boolean;
         descriptions: {
             get(id: number): $.Types.ISourceLink | undefined;
             id(alias: string): number | undefined;
@@ -236,6 +237,13 @@ export class Stream extends Subscriber {
                     sources.push(new ObserveSource(source));
                 });
                 return sources;
+            },
+            isFileSource: (): boolean => {
+                const sources = this.observe().sources();
+                if (sources.length !== 1) {
+                    return false;
+                }
+                return sources[0].observe.origin.files() !== undefined;
             },
             descriptions: {
                 get: (id: number): $.Types.ISourceLink | undefined => {
