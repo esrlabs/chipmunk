@@ -5,6 +5,8 @@ import { LimittedRange } from '@ui/env/entities/range.limited';
 
 export class Range {
     private range: LimittedRange = new LimittedRange('scroll_area_range', 0, 0, 0, 0, true);
+    // Set default state of sticky scrolling; true - initianally sticky scrolling; false - not
+    private adhered: boolean = false;
     private readonly _subjects: {
         change: Subject<ChangesInitiator>;
     } = {
@@ -14,7 +16,7 @@ export class Range {
         if (defaults !== undefined) {
             this.range
                 .$(defaults.total)
-                .max()
+                .max(true)
                 .$(defaults.len)
                 .len()
                 .$(defaults.range.from)
@@ -26,6 +28,10 @@ export class Range {
 
     public destroy() {
         this._subjects.change.destroy();
+    }
+
+    public setAdhered(adhered: boolean) {
+        this.adhered = adhered;
     }
 
     public setLength(len: number, initiator: ChangesInitiator) {
@@ -46,7 +52,7 @@ export class Range {
 
     public setTotal(total: number, initiator: ChangesInitiator) {
         const prev = this.range.hash();
-        this.range.$(total).max();
+        this.range.$(total).max(this.adhered);
         if (prev !== this.range.hash()) {
             this._subjects.change.emit(initiator);
         }

@@ -188,6 +188,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     }
 
     public onScrolling(position: number) {
+        this.frame.setAdhered(true);
         this.frame.moveTo(position, ChangesInitiator.Scrolling);
     }
 
@@ -201,6 +202,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
 
     public onWheel(event: WheelEvent) {
         if (Math.abs(event.deltaX) < Math.abs(event.deltaY)) {
+            this.frame.setAdhered(true);
             this.frame.offsetTo(event.deltaY, ChangesInitiator.Wheel);
             stop(event);
         }

@@ -88,6 +88,10 @@ export class Frame extends Subscriber {
         this._service.setFrame(this._frame.get());
     }
 
+    public setAdhered(adhered: boolean) {
+        this._frame.setAdhered(adhered);
+    }
+
     public get(): SafeRange {
         return this._frame.get();
     }

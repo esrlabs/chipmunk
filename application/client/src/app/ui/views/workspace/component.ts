@@ -85,6 +85,7 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
                 this.service.scrollTo(event.row);
             }),
             this.service.onBound(() => {
+                this.service.setAdhered(!this.session.stream.observe().isFileSource());
                 this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen('Ctrl + 1', () => {
                         this.service.focus().set();
