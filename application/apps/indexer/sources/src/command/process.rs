@@ -1,6 +1,5 @@
 use crate::{sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use buf_redux::Buffer;
-use futures;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
@@ -39,7 +38,7 @@ pub struct ProcessSource {
 
 impl Drop for ProcessSource {
     fn drop(&mut self) {
-        if let Err(err) = futures::executor::block_on(self.process.kill()) {
+        if let Err(err) = self.process.start_kill() {
             error!("Fail to kill child process: {err}");
         }
     }
