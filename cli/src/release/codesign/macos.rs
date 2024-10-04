@@ -246,7 +246,8 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
 
     ensure!(
         accepted,
-        "Accepted line couldn't be found in notarize command output"
+        r"Accepted line couldn't be found in notarize command output
+Ensure that the content of the `accepted_line` field in the codesign configuration file is included as a single line in the output of the notarize command"
     );
 
     Ok(())
