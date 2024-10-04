@@ -1,3 +1,11 @@
+# 3.13.2 (04.10.2024)
+
+## Changes
+- pretty printing Some/IP payloads
+
+## Fixes
+- fixed sticky scrolling for files and streams
+
 # 3.13.1 (27.09.2024)
 
 ## Changes
