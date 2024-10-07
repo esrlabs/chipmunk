@@ -1,0 +1,13 @@
+[package]
+name = "proto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+prost = "0.13"
+prost-types = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+tslink = "0.2"
+
+[build-dependencies]
+prost-build = "0.13"

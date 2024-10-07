@@ -5,6 +5,8 @@ import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity, IValuesMinMaxMap } from 'platform/types/filter';
 import { IAttachment } from 'platform/types/content';
 
+import * as convertor from '../util/convertor';
+
 export interface IProgressState {
     total: number;
     count: number;
@@ -113,9 +115,9 @@ interface ISessionEventsInterfaces {
     SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
     SearchValuesUpdated: { self: ['object', null] };
     SearchMapUpdated: { self: ['string', null] };
-    MapUpdated: { self: 'object'; map: typeof Array };
+    MapUpdated: { self: 'object'; map: typeof Array }; // TODO: seems unused event
     IndexedMapUpdated: { self: 'object'; len: 'number' };
-    MatchesUpdated: { self: 'object'; matches: typeof Array };
+    MatchesUpdated: { self: 'object'; matches: typeof Array }; // TODO: seems unused event
     Progress: {
         self: 'object';
         uuid: 'string';
@@ -194,7 +196,7 @@ export class EventProvider extends Computation<
     private readonly _convertors: ISessionEventsConvertors = {};
 
     constructor(uuid: string) {
-        super(uuid);
+        super(uuid, convertor.decodeCallbackEvent);
     }
 
     public getName(): string {
