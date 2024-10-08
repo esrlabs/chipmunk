@@ -85,26 +85,28 @@ where
     let s = producer.as_stream();
     tokio::pin!(s);
 
-    while let Some((_, i)) = s.next().await {
-        match i {
-            MessageStreamItem::Item(item) => match item {
-                parsers::ParseYield::Message(msg) => {
-                    counter.msg += 1;
-                    counter.txt += msg.to_string().len();
+    while let Some(items) = s.next().await {
+        for (_, i) in items {
+            match i {
+                MessageStreamItem::Item(item) => match item {
+                    parsers::ParseYield::Message(msg) => {
+                        counter.msg += 1;
+                        counter.txt += msg.to_string().len();
+                    }
+                    parsers::ParseYield::Attachment(att) => counter.att += att.size,
+                    parsers::ParseYield::MessageAndAttachment((msg, att)) => {
+                        counter.msg += 1;
+                        counter.txt += msg.to_string().len();
+                        counter.att += att.size;
+                    }
+                },
+                MessageStreamItem::Skipped => {
+                    counter.skipped += 1;
                 }
-                parsers::ParseYield::Attachment(att) => counter.att += att.size,
-                parsers::ParseYield::MessageAndAttachment((msg, att)) => {
-                    counter.msg += 1;
-                    counter.txt += msg.to_string().len();
-                    counter.att += att.size;
-                }
-            },
-            MessageStreamItem::Skipped => {
-                counter.skipped += 1;
+                MessageStreamItem::Incomplete => counter.incomplete += 1,
+                MessageStreamItem::Empty => counter.empty += 1,
+                MessageStreamItem::Done => break,
             }
-            MessageStreamItem::Incomplete => counter.incomplete += 1,
-            MessageStreamItem::Empty => counter.empty += 1,
-            MessageStreamItem::Done => break,
         }
     }
 
