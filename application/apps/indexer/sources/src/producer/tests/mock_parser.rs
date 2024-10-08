@@ -34,7 +34,7 @@ impl LogMessage for MockMessage {
 
 /// Mock Parser to use in prototyping and unit-tests
 pub struct MockParser {
-    /// The seeds that will be used to return value on [`Parser::parse()`] calls
+    /// The seeds that will be used to return values on [`Parser::parse()`] calls
     seeds: VecDeque<Result<Vec<MockParseSeed>, Error>>,
 }
 

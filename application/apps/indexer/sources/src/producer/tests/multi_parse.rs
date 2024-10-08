@@ -97,7 +97,7 @@ async fn parse_incomplete() {
     let stream = producer.as_stream();
     pin_mut!(stream);
 
-    // First message should be message with content and two items
+    // First message should be two messages with content
     let next = stream.next().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
@@ -150,7 +150,7 @@ async fn parsing_error_success_reload() {
     let stream = producer.as_stream();
     pin_mut!(stream);
 
-    // Message with content should be yielded consuming all the bytes.
+    // Two Messages with content should be yielded consuming all the bytes.
     let next = stream.next().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
