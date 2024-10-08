@@ -145,6 +145,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     iter.map(|item| match item {
                         (consumed, Some(m)) => {
                             let total_used_bytes = consumed + skipped_bytes;
+                            // Reset skipped bytes after it had been counted.
+                            skipped_bytes = 0;
                             debug!(
                             "Extracted a valid message, consumed {} bytes (total used {} bytes)",
                             consumed, total_used_bytes
@@ -156,6 +158,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                             total_consumed += consumed;
                             trace!("None, consumed {} bytes", consumed);
                             let total_used_bytes = consumed + skipped_bytes;
+                            // Reset skipped bytes after it had been counted.
+                            skipped_bytes = 0;
                             (total_used_bytes, MessageStreamItem::Skipped)
                         }
                     })
