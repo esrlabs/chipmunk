@@ -57,13 +57,15 @@ pub async fn scan_dlt_ft(
                         canceled = true;
                         break;
                     }
-                    item = tokio_stream::StreamExt::next(&mut stream) => {
-                        match item {
-                            Some((_, item)) => {
-                                if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
-                                    attachments.push(attachment);
-                                } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
-                                    attachments.push(attachment);
+                    items = tokio_stream::StreamExt::next(&mut stream) => {
+                        match items {
+                            Some(items) => {
+                                for (_, item) in items {
+                                    if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
+                                        attachments.push(attachment);
+                                    } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
+                                        attachments.push(attachment);
+                                    }
                                 }
                             }
                             _ => {

@@ -56,16 +56,19 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
     /// create a stream of pairs that contain the count of all consumed bytes and the
-    /// MessageStreamItem
-    pub fn as_stream(&mut self) -> impl Stream<Item = (usize, MessageStreamItem<T>)> + '_ {
+    /// MessageStreamItems in a boxed slice
+    pub fn as_stream(&mut self) -> impl Stream<Item = Box<[(usize, MessageStreamItem<T>)]>> + '_ {
         stream! {
-            while let Some(item) = self.read_next_segment().await {
-                yield item;
+            while let Some(items) = self.read_next_segment().await {
+                yield items;
             }
         }
     }
 
-    async fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
+    // Ensure the compiler will inline this function as long as it's used once to improve compiler
+    // optimization.
+    #[inline(always)]
+    async fn read_next_segment(&mut self) -> Option<Box<[(usize, MessageStreamItem<T>)]>> {
         if self.done {
             debug!("done...no next segment");
             return None;
@@ -135,28 +138,43 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
-                return Some((0, MessageStreamItem::Done));
+                return Some(Box::new([(0, MessageStreamItem::Done)]));
             }
+
+            // we can call consume only after all parse results are collected because of its
+            // reference to self.
+            let mut total_consumed = 0;
+
             match self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
-            {
-                Ok((rest, Some(m))) => {
-                    let consumed = available - rest.len();
-                    let total_used_bytes = consumed + skipped_bytes;
-                    debug!(
-                        "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                        consumed, total_used_bytes
-                    );
-                    self.byte_source.consume(consumed);
-                    return Some((total_used_bytes, MessageStreamItem::Item(m)));
-                }
-                Ok((rest, None)) => {
-                    let consumed = available - rest.len();
-                    self.byte_source.consume(consumed);
-                    trace!("None, consumed {} bytes", consumed);
-                    let total_used_bytes = consumed + skipped_bytes;
-                    return Some((total_used_bytes, MessageStreamItem::Skipped));
+                .map(|iter| {
+                    iter.map(|item| match item {
+                        (consumed, Some(m)) => {
+                            let total_used_bytes = consumed + skipped_bytes;
+                            // Reset skipped bytes since it had been counted here.
+                            skipped_bytes = 0;
+                            debug!(
+                            "Extracted a valid message, consumed {} bytes (total used {} bytes)",
+                            consumed, total_used_bytes
+                        );
+                            total_consumed += consumed;
+                            (total_used_bytes, MessageStreamItem::Item(m))
+                        }
+                        (consumed, None) => {
+                            total_consumed += consumed;
+                            trace!("None, consumed {} bytes", consumed);
+                            let total_used_bytes = consumed + skipped_bytes;
+                            // Reset skipped bytes since it had been counted here.
+                            skipped_bytes = 0;
+                            (total_used_bytes, MessageStreamItem::Skipped)
+                        }
+                    })
+                    .collect::<Box<[_]>>()
+                }) {
+                Ok(items) => {
+                    self.byte_source.consume(total_consumed);
+                    return Some(items);
                 }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
@@ -168,7 +186,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         let unused = skipped_bytes + available;
                         self.done = true;
 
-                        return Some((unused, MessageStreamItem::Done));
+                        return Some(Box::new([(unused, MessageStreamItem::Done)]));
                     }
 
                     trace!("New bytes has been loaded, trying parsing again.");
@@ -209,7 +227,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     if !loaded_new_data {
                         let unused = skipped_bytes + available;
                         self.done = true;
-                        return Some((unused, MessageStreamItem::Done));
+                        return Some(Box::new([(unused, MessageStreamItem::Done)]));
                     }
                 }
             }
