@@ -1,5 +1,9 @@
 [[bench]]
-name = "mocks_producer"
+name = "mocks_once_producer"
+library = "sources"
+
+[[bench]]
+name = "mocks_multi_producer"
 library = "sources"
 
 [[bench]]
