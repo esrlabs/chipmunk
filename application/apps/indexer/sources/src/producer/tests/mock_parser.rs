@@ -1,3 +1,4 @@
+use std::iter;
 use std::{collections::VecDeque, fmt, io::Write, mem, usize};
 
 use parsers::Error;
@@ -73,7 +74,7 @@ where
         &mut self,
         _input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<MockMessage>>), Error> {
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<MockMessage>>)>, Error> {
         let seed_res = self
             .seeds
             .pop_front()
@@ -81,7 +82,7 @@ where
 
         let seed = seed_res?;
 
-        Ok((seed.cosumed, seed.parse_yeild))
+        Ok(iter::once((seed.cosumed, seed.parse_yeild)))
     }
 }
 
@@ -96,13 +97,13 @@ fn test_mock_parser() {
         Err(ParserError::Eof),
     ]);
 
-    let parse_result_ok_none = parser.parse(&[b'a', b'b'], None);
-    assert!(matches!(parse_result_ok_none, Ok((1, None))));
+    let parse_result_ok_none = parser.parse(&[b'a', b'b'], None).unwrap().next().unwrap();
+    assert!(matches!(parse_result_ok_none, (1, None)));
 
-    let parse_result_ok_val = parser.parse(&[b'a', b'b'], None);
+    let parse_result_ok_val = parser.parse(&[b'a', b'b'], None).unwrap().next().unwrap();
     assert!(matches!(
         parse_result_ok_val,
-        Ok((2, Some(ParseYield::Message(MockMessage { content: 1 }))))
+        (2, Some(ParseYield::Message(MockMessage { content: 1 })))
     ));
 
     let parse_result_err = parser.parse(&[b'a', b'b'], None);
