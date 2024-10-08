@@ -18,8 +18,8 @@ pub struct MockParser<T> {
     max_count: usize,
     /// Internal counter to keep track how many times [`Parser::parse()`] has been called.
     counter: usize,
-    /// Marker to have two implementations for [`Parser`] trait.
-    _phantom: PhantomData<T>,
+    /// Marker to have multiple implementations for [`Parser`] trait.
+    _marker: PhantomData<T>,
 }
 
 // This is used in once benchmark only which lead to a warning when this module is
@@ -34,7 +34,7 @@ impl MockParser<IterOnce> {
         Self {
             max_count,
             counter: 0,
-            _phantom: PhantomData,
+            _marker: PhantomData,
         }
     }
 }
@@ -51,7 +51,7 @@ impl MockParser<IterMany> {
         Self {
             max_count,
             counter: 0,
-            _phantom: PhantomData,
+            _marker: PhantomData,
         }
     }
 }
@@ -80,8 +80,10 @@ impl LogMessage for MockMessage {
 }
 
 impl<T> MockParser<T> {
+    /// Method to replicate parse behavior with artificial if statements with black boxes to avoid
+    /// any uncounted compiler optimization.
     #[inline(never)]
-    fn inner(
+    fn inner_parse(
         counter: usize,
         max_count: usize,
         input: &[u8],
@@ -161,7 +163,7 @@ impl Parser<MockMessage> for MockParser<IterOnce> {
     > {
         self.counter += 1;
 
-        let item = Self::inner(self.counter, self.max_count, input, timestamp)?;
+        let item = Self::inner_parse(self.counter, self.max_count, input, timestamp)?;
 
         Ok(iter::once(item))
     }
@@ -185,7 +187,7 @@ impl Parser<MockMessage> for MockParser<IterMany> {
         const REPEAT: usize = 10;
         let mut res = Vec::with_capacity(black_box(REPEAT));
         for _ in 0..black_box(REPEAT) {
-            let item = Self::inner(self.counter, self.max_count, input, timestamp)?;
+            let item = Self::inner_parse(self.counter, self.max_count, input, timestamp)?;
             res.push(item)
         }
 
