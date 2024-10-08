@@ -56,15 +56,11 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
     /// create a stream of pairs that contain the count of all consumed bytes and the
-    /// MessageStreamItem
-    pub fn as_stream(&mut self) -> impl Stream<Item = (usize, MessageStreamItem<T>)> + '_ {
+    /// MessageStreamItems
+    pub fn as_stream(&mut self) -> impl Stream<Item = Box<[(usize, MessageStreamItem<T>)]>> + '_ {
         stream! {
             while let Some(items) = self.read_next_segment().await {
-                //TODO AAZ: Temporary solution for now. Change function signature as final
-                //solution.
-                for item in items {
-                    yield item;
-                }
+                yield items;
             }
         }
     }

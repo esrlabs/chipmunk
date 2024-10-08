@@ -25,7 +25,7 @@ use tokio::{
 use tokio_stream::StreamExt;
 
 enum Next<T: LogMessage> {
-    Item(MessageStreamItem<T>),
+    Items(Box<[(usize, MessageStreamItem<T>)]>),
     Timeout,
     Waiting,
 }
@@ -127,9 +127,9 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {
-                Ok(item) => {
-                    if let Some((_, item)) = item {
-                        Some(Next::Item(item))
+                Ok(items) => {
+                    if let Some(items) = items {
+                        Some(Next::Items(items))
                     } else {
                         Some(Next::Waiting)
                     }
@@ -140,41 +140,43 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
         _ = cancel.cancelled() => None,
     } {
         match next {
-            Next::Item(item) => {
-                match item {
-                    MessageStreamItem::Item(ParseYield::Message(item)) => {
-                        state
-                            .write_session_file(source_id, format!("{item}\n"))
-                            .await?;
-                    }
-                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                        item,
-                        attachment,
-                    ))) => {
-                        state
-                            .write_session_file(source_id, format!("{item}\n"))
-                            .await?;
-                        state.add_attachment(attachment)?;
-                    }
-                    MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
-                        state.add_attachment(attachment)?;
-                    }
-                    MessageStreamItem::Done => {
-                        trace!("observe, message stream is done");
-                        state.flush_session_file().await?;
-                        state.file_read().await?;
-                    }
-                    // MessageStreamItem::FileRead => {
-                    //     state.file_read().await?;
-                    // }
-                    MessageStreamItem::Skipped => {
-                        trace!("observe: skipped a message");
-                    }
-                    MessageStreamItem::Incomplete => {
-                        trace!("observe: incomplete message");
-                    }
-                    MessageStreamItem::Empty => {
-                        trace!("observe: empty message");
+            Next::Items(items) => {
+                for (_, item) in items {
+                    match item {
+                        MessageStreamItem::Item(ParseYield::Message(item)) => {
+                            state
+                                .write_session_file(source_id, format!("{item}\n"))
+                                .await?;
+                        }
+                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                            item,
+                            attachment,
+                        ))) => {
+                            state
+                                .write_session_file(source_id, format!("{item}\n"))
+                                .await?;
+                            state.add_attachment(attachment)?;
+                        }
+                        MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
+                            state.add_attachment(attachment)?;
+                        }
+                        MessageStreamItem::Done => {
+                            trace!("observe, message stream is done");
+                            state.flush_session_file().await?;
+                            state.file_read().await?;
+                        }
+                        // MessageStreamItem::FileRead => {
+                        //     state.file_read().await?;
+                        // }
+                        MessageStreamItem::Skipped => {
+                            trace!("observe: skipped a message");
+                        }
+                        MessageStreamItem::Incomplete => {
+                            trace!("observe: incomplete message");
+                        }
+                        MessageStreamItem::Empty => {
+                            trace!("observe: empty message");
+                        }
                     }
                 }
             }
