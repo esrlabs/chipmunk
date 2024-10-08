@@ -1,20 +1,16 @@
-mod mock_byte_source;
-mod mock_parser;
+//! Tests for parsers returning single value always
 
 use std::time::Duration;
 
+use super::mock_byte_source::*;
+use super::mock_parser::*;
+use super::*;
+
 use futures::{pin_mut, StreamExt};
 use parsers::{Error as ParseError, ParseYield};
-use tests::mock_parser::*;
 use tokio::sync::{mpsc::unbounded_channel, oneshot};
 
-use crate::{
-    producer::tests::mock_byte_source::{MockByteSource, MockReloadSeed},
-    sde::SdeRequest,
-    Error,
-};
-
-use super::*;
+use crate::{producer::MessageProducer, sde::SdeRequest, Error};
 
 #[tokio::test]
 async fn empty_byte_source() {
