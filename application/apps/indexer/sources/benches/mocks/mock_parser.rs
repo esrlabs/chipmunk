@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, iter};
 
 use criterion::black_box;
 use parsers::{Attachment, LogMessage, Parser};
@@ -55,7 +55,10 @@ impl Parser<MockMessage> for MockParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
+    ) -> Result<
+        impl Iterator<Item = (usize, Option<parsers::ParseYield<MockMessage>>)>,
+        parsers::Error,
+    > {
         #[inline(never)]
         fn inner(
             counter: usize,
@@ -123,6 +126,8 @@ impl Parser<MockMessage> for MockParser {
 
         self.counter += 1;
 
-        inner(self.counter, self.max_count, input, timestamp)
+        let item = inner(self.counter, self.max_count, input, timestamp)?;
+
+        Ok(iter::once(item))
     }
 }

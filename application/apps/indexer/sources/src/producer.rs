@@ -137,25 +137,29 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 self.done = true;
                 return Some((0, MessageStreamItem::Done));
             }
+            //TODO AAZ: Temporary solution so it can compile.
             match self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
+                .map(|iter| iter.collect::<Vec<_>>())
             {
-                Ok((consumed, Some(m))) => {
-                    let total_used_bytes = consumed + skipped_bytes;
-                    debug!(
-                        "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                        consumed, total_used_bytes
-                    );
-                    self.byte_source.consume(consumed);
-                    return Some((total_used_bytes, MessageStreamItem::Item(m)));
-                }
-                Ok((consumed, None)) => {
-                    self.byte_source.consume(consumed);
-                    trace!("None, consumed {} bytes", consumed);
-                    let total_used_bytes = consumed + skipped_bytes;
-                    return Some((total_used_bytes, MessageStreamItem::Skipped));
-                }
+                Ok(mut vec) => match vec.pop().unwrap() {
+                    (consumed, Some(m)) => {
+                        let total_used_bytes = consumed + skipped_bytes;
+                        debug!(
+                            "Extracted a valid message, consumed {} bytes (total used {} bytes)",
+                            consumed, total_used_bytes
+                        );
+                        self.byte_source.consume(consumed);
+                        return Some((total_used_bytes, MessageStreamItem::Item(m)));
+                    }
+                    (consumed, None) => {
+                        self.byte_source.consume(consumed);
+                        trace!("None, consumed {} bytes", consumed);
+                        let total_used_bytes = consumed + skipped_bytes;
+                        return Some((total_used_bytes, MessageStreamItem::Skipped));
+                    }
+                },
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
                     let (newly_loaded, _available_bytes, skipped) = self.load().await?;

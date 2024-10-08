@@ -34,17 +34,18 @@ impl<T> From<T> for ParseYield<T> {
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
 pub trait Parser<T> {
-    /// take a slice of bytes and try to apply a parser. If the parse was
-    /// successful, this will yield the consumed bytes count along with `Some(log_message)`
+    /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
+    /// it will return iterator of items with the consumed bytes count along with `Some(log_message)`
     ///
-    /// if the slice does not have enough bytes, an `Incomplete` error is returned.
+    /// if the slice does not have enough bytes to parse any item, an `Incomplete` error is returned.
     ///
-    /// in case we could parse a message but the message was filtered out, `None` is returned
+    /// in case we could parse a message but the message was filtered out, `None` is returned on
+    /// that item.
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<T>>), Error>;
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<T>>)>, Error>;
 }
 
 #[derive(Debug, Clone, Serialize)]
