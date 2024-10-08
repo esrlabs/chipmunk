@@ -1,4 +1,3 @@
-use std::iter;
 use std::{collections::VecDeque, fmt, io::Write, mem, usize};
 
 use parsers::Error;
@@ -36,12 +35,12 @@ impl LogMessage for MockMessage {
 /// Mock Parser to use in prototyping and unit-tests
 pub struct MockParser {
     /// The seeds that will be used to return value on [`Parser::parse()`] calls
-    seeds: VecDeque<Result<MockParseSeed, Error>>,
+    seeds: VecDeque<Result<Vec<MockParseSeed>, Error>>,
 }
 
 impl MockParser {
     /// * `seeds`: Seeds items which that will be used to produce return-values on [`Parser::parse()`] calls
-    pub fn new(seeds: impl Into<VecDeque<Result<MockParseSeed, Error>>>) -> Self {
+    pub fn new(seeds: impl Into<VecDeque<Result<Vec<MockParseSeed>, Error>>>) -> Self {
         Self {
             seeds: seeds.into(),
         }
@@ -80,20 +79,22 @@ where
             .pop_front()
             .expect("Seeds count must match parse count");
 
-        let seed = seed_res?;
+        let seeds = seed_res?;
 
-        Ok(iter::once((seed.cosumed, seed.parse_yeild)))
+        Ok(seeds
+            .into_iter()
+            .map(|seed| (seed.cosumed, seed.parse_yeild)))
     }
 }
 
 #[test]
 fn test_mock_parser() {
     let mut parser = MockParser::new([
-        Ok(MockParseSeed::new(1, None)),
-        Ok(MockParseSeed::new(
+        Ok(vec![MockParseSeed::new(1, None)]),
+        Ok(vec![MockParseSeed::new(
             2,
             Some(ParseYield::Message(MockMessage::from(1))),
-        )),
+        )]),
         Err(ParserError::Eof),
     ]);
 
