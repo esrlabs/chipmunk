@@ -59,13 +59,17 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// MessageStreamItem
     pub fn as_stream(&mut self) -> impl Stream<Item = (usize, MessageStreamItem<T>)> + '_ {
         stream! {
-            while let Some(item) = self.read_next_segment().await {
-                yield item;
+            while let Some(items) = self.read_next_segment().await {
+                //TODO AAZ: Temporary solution for now. Change function signature as final
+                //solution.
+                for item in items {
+                    yield item;
+                }
             }
         }
     }
 
-    async fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem<T>)> {
+    async fn read_next_segment(&mut self) -> Option<Box<[(usize, MessageStreamItem<T>)]>> {
         if self.done {
             debug!("done...no next segment");
             return None;
@@ -135,31 +139,39 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
-                return Some((0, MessageStreamItem::Done));
+                return Some(Box::new([(0, MessageStreamItem::Done)]));
             }
-            //TODO AAZ: Temporary solution so it can compile.
+            let mut total_consumed = 0;
             match self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
-                .map(|iter| iter.collect::<Vec<_>>())
-            {
-                Ok(mut vec) => match vec.pop().unwrap() {
-                    (consumed, Some(m)) => {
-                        let total_used_bytes = consumed + skipped_bytes;
-                        debug!(
+                .map(|iter| {
+                    iter.map(|item| match item {
+                        (consumed, Some(m)) => {
+                            let total_used_bytes = consumed + skipped_bytes;
+                            debug!(
                             "Extracted a valid message, consumed {} bytes (total used {} bytes)",
                             consumed, total_used_bytes
                         );
-                        self.byte_source.consume(consumed);
-                        return Some((total_used_bytes, MessageStreamItem::Item(m)));
-                    }
-                    (consumed, None) => {
-                        self.byte_source.consume(consumed);
-                        trace!("None, consumed {} bytes", consumed);
-                        let total_used_bytes = consumed + skipped_bytes;
-                        return Some((total_used_bytes, MessageStreamItem::Skipped));
-                    }
-                },
+                            total_consumed += consumed;
+                            (total_used_bytes, MessageStreamItem::Item(m))
+                        }
+                        (consumed, None) => {
+                            total_consumed += consumed;
+                            trace!("None, consumed {} bytes", consumed);
+                            let total_used_bytes = consumed + skipped_bytes;
+                            (total_used_bytes, MessageStreamItem::Skipped)
+                        }
+                    })
+                    .collect::<Box<[_]>>()
+                }) {
+                Ok(items) => {
+                    //TODO AAZ: Ensure we need this assertion
+                    debug_assert!(!items.is_empty());
+
+                    self.byte_source.consume(total_consumed);
+                    return Some(items);
+                }
                 Err(ParserError::Incomplete) => {
                     trace!("not enough bytes to parse a message");
                     let (newly_loaded, _available_bytes, skipped) = self.load().await?;
@@ -170,7 +182,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         let unused = skipped_bytes + available;
                         self.done = true;
 
-                        return Some((unused, MessageStreamItem::Done));
+                        return Some(Box::new([(unused, MessageStreamItem::Done)]));
                     }
 
                     trace!("New bytes has been loaded, trying parsing again.");
@@ -211,7 +223,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     if !loaded_new_data {
                         let unused = skipped_bytes + available;
                         self.done = true;
-                        return Some((unused, MessageStreamItem::Done));
+                        return Some(Box::new([(unused, MessageStreamItem::Done)]));
                     }
                 }
             }
