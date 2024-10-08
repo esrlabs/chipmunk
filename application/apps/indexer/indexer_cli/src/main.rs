@@ -1395,37 +1395,38 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let mut attachment_count = 0usize;
             let mut err_count = 0usize;
             let mut consumed = 0usize;
-            loop {
-                match msg_stream.next().await {
-                    Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
-                        item_count += 1;
-                        consumed += item.range.len();
+            'outer: while let Some(items) = msg_stream.next().await {
+                for item in items {
+                    match item {
+                        (_, MessageStreamItem::Item(ParseYield::Message(item))) => {
+                            item_count += 1;
+                            consumed += item.range.len();
+                        }
+                        (
+                            _,
+                            MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                                item,
+                                _attachment,
+                            ))),
+                        ) => {
+                            item_count += 1;
+                            attachment_count += 1;
+                            consumed += item.range.len();
+                        }
+                        (_, MessageStreamItem::Item(ParseYield::Attachment(_attachment))) => {
+                            attachment_count += 1;
+                        }
+                        (_, MessageStreamItem::Skipped) => item_count += 1,
+                        (_, MessageStreamItem::Incomplete) => err_count += 1,
+                        (_, MessageStreamItem::Empty) => err_count += 1,
+                        (_, MessageStreamItem::Done) => break 'outer,
                     }
-                    Some((
-                        _,
-                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                            item,
-                            _attachment,
-                        ))),
-                    )) => {
-                        item_count += 1;
-                        attachment_count += 1;
-                        consumed += item.range.len();
-                    }
-                    Some((_, MessageStreamItem::Item(ParseYield::Attachment(_attachment)))) => {
-                        attachment_count += 1;
-                    }
-                    Some((_, MessageStreamItem::Skipped)) => item_count += 1,
-                    Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
-                    Some((_, MessageStreamItem::Empty)) => err_count += 1,
-                    Some((_, MessageStreamItem::Done)) => break,
-                    None => break,
                 }
                 if item_count > 10 || err_count > 10 {
                     println!(
                         "DLT parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed}, attachments: {attachment_count}"
                     );
-                    break;
+                    break 'outer;
                 }
             }
         }
@@ -1441,24 +1442,24 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     let mut skipped_count = 0usize;
-                    loop {
-                        let x = msg_stream.next().await;
-                        match x {
-                            Some((used, MessageStreamItem::Item(_))) => {
-                                item_count += 1;
-                                consumed += used;
+                    'outer: while let Some(items) = msg_stream.next().await {
+                        for item in items {
+                            match item {
+                                (used, MessageStreamItem::Item(_)) => {
+                                    item_count += 1;
+                                    consumed += used;
+                                }
+                                (_, MessageStreamItem::Skipped) => skipped_count += 1,
+                                (_, MessageStreamItem::Incomplete) => err_count += 1,
+                                (_, MessageStreamItem::Empty) => err_count += 1,
+                                (_, MessageStreamItem::Done) => break 'outer,
                             }
-                            Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
-                            Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
-                            Some((_, MessageStreamItem::Empty)) => err_count += 1,
-                            Some((_, MessageStreamItem::Done)) => break,
-                            None => break,
-                        }
-                        if item_count > 10 || err_count > 10 {
-                            println!(
+                            if item_count > 10 || err_count > 10 {
+                                println!(
                                 "Someip pcap parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed} (skipped: {skipped_count})"
                             );
-                            break;
+                                break 'outer;
+                            }
                         }
                     }
                 }
@@ -1481,37 +1482,37 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
                     let mut skipped_count = 0usize;
-                    loop {
-                        let x = msg_stream.next().await;
-                        match x {
-                            Some((_, MessageStreamItem::Item(ParseYield::Message(item)))) => {
-                                item_count += 1;
-                                consumed += item.message.byte_len() as usize;
+                    'outer: while let Some(items) = msg_stream.next().await {
+                        for item in items {
+                            match item {
+                                (_, MessageStreamItem::Item(ParseYield::Message(item))) => {
+                                    item_count += 1;
+                                    consumed += item.message.byte_len() as usize;
+                                }
+                                (
+                                    _,
+                                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                                        item,
+                                        _attachment,
+                                    ))),
+                                ) => {
+                                    item_count += 1;
+                                    consumed += item.message.byte_len() as usize;
+                                }
+                                (_, MessageStreamItem::Item(ParseYield::Attachment(_))) => {
+                                    attachment_count += 1
+                                }
+                                (_, MessageStreamItem::Skipped) => skipped_count += 1,
+                                (_, MessageStreamItem::Incomplete) => err_count += 1,
+                                (_, MessageStreamItem::Empty) => err_count += 1,
+                                (_, MessageStreamItem::Done) => break 'outer,
                             }
-                            Some((
-                                _,
-                                MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                                    item,
-                                    _attachment,
-                                ))),
-                            )) => {
-                                item_count += 1;
-                                consumed += item.message.byte_len() as usize;
-                            }
-                            Some((_, MessageStreamItem::Item(ParseYield::Attachment(_)))) => {
-                                attachment_count += 1
-                            }
-                            Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
-                            Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
-                            Some((_, MessageStreamItem::Empty)) => err_count += 1,
-                            Some((_, MessageStreamItem::Done)) => break,
-                            None => break,
-                        }
-                        if item_count > 10 || err_count > 10 {
-                            println!(
+                            if item_count > 10 || err_count > 10 {
+                                println!(
                                 "DLT pcap parser, item_count: {item_count}, err_count: {err_count}, consumed: {consumed}, attachment_count: {attachment_count} (skipped: {skipped_count})"
                             );
-                            break;
+                                break 'outer;
+                            }
                         }
                     }
                 }
@@ -1534,50 +1535,51 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let mut consumed = 0usize;
             let mut attachment_count = 0usize;
             use std::io::Cursor;
-            loop {
-                match msg_stream.next().await {
-                    Some((_rest, MessageStreamItem::Item(ParseYield::Message(item)))) => {
-                        let mut buff = Cursor::new(vec![0; 100 * 1024]);
-                        let cnt = item.to_writer(&mut buff);
-                        consumed += cnt.unwrap_or(0);
-                        match std::str::from_utf8(buff.get_ref()) {
-                            Ok(_) => println!("valid utf8-text"),
-                            Err(_) => println!("INVALID utf8-text"),
-                        }
+            'outer: while let Some(items) = msg_stream.next().await {
+                for item in items {
+                    match item {
+                        (_rest, MessageStreamItem::Item(ParseYield::Message(item))) => {
+                            let mut buff = Cursor::new(vec![0; 100 * 1024]);
+                            let cnt = item.to_writer(&mut buff);
+                            consumed += cnt.unwrap_or(0);
+                            match std::str::from_utf8(buff.get_ref()) {
+                                Ok(_) => println!("valid utf8-text"),
+                                Err(_) => println!("INVALID utf8-text"),
+                            }
 
-                        item_count += 1
-                    }
-                    Some((
-                        _rest,
-                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                            item,
-                            _attachment,
-                        ))),
-                    )) => {
-                        let mut buff = Cursor::new(vec![0; 100 * 1024]);
-                        let cnt = item.to_writer(&mut buff);
-                        consumed += cnt.unwrap_or(0);
-                        match std::str::from_utf8(buff.get_ref()) {
-                            Ok(_) => println!("valid utf8-text"),
-                            Err(_) => println!("INVALID utf8-text"),
+                            item_count += 1
                         }
+                        (
+                            _rest,
+                            MessageStreamItem::Item(ParseYield::MessageAndAttachment((
+                                item,
+                                _attachment,
+                            ))),
+                        ) => {
+                            let mut buff = Cursor::new(vec![0; 100 * 1024]);
+                            let cnt = item.to_writer(&mut buff);
+                            consumed += cnt.unwrap_or(0);
+                            match std::str::from_utf8(buff.get_ref()) {
+                                Ok(_) => println!("valid utf8-text"),
+                                Err(_) => println!("INVALID utf8-text"),
+                            }
 
-                        item_count += 1
+                            item_count += 1
+                        }
+                        (_rest, MessageStreamItem::Item(ParseYield::Attachment(_attachment))) => {
+                            attachment_count += 1
+                        }
+                        (_, MessageStreamItem::Skipped) => skipped_count += 1,
+                        (_, MessageStreamItem::Incomplete) => err_count += 1,
+                        (_, MessageStreamItem::Empty) => err_count += 1,
+                        (_, MessageStreamItem::Done) => break 'outer,
                     }
-                    Some((_rest, MessageStreamItem::Item(ParseYield::Attachment(_attachment)))) => {
-                        attachment_count += 1
-                    }
-                    Some((_, MessageStreamItem::Skipped)) => skipped_count += 1,
-                    Some((_, MessageStreamItem::Incomplete)) => err_count += 1,
-                    Some((_, MessageStreamItem::Empty)) => err_count += 1,
-                    Some((_, MessageStreamItem::Done)) => break,
-                    None => break,
-                }
-                if item_count > 10 || err_count > 10 {
-                    println!(
+                    if item_count > 10 || err_count > 10 {
+                        println!(
                         "TEXT parser, item_count: {item_count}, err_count: {err_count}, skipped count: {skipped_count}, consumed: {consumed}, attachment_count: {attachment_count}"
                     );
-                    break;
+                        break 'outer;
+                    }
                 }
             }
         }
