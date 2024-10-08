@@ -10,14 +10,17 @@ mod mocks;
 /// [`parsers::Parser`] and [`sources::ByteSource`] to ensure that the measurements is for the
 /// producer loop only.
 ///
+/// The mock of [`parsers::Parser`] will return [`std::iter::once()`] replicating the behavior of
+/// the current built-in parsers in Chipmunk.
+///
 /// NOTE: This benchmark suffers unfortunately from a lot of noise because we are running it with
 /// asynchronous runtime. This test is configured to reduce this amount of noise as possible,
 /// However it would be better to run it multiple time for double checking.
-fn mocks_producer(c: &mut Criterion) {
+fn mocks_once_producer(c: &mut Criterion) {
     let max_parse_calls = 50000;
 
     c.bench_with_input(
-        BenchmarkId::new("mocks_producer", max_parse_calls),
+        BenchmarkId::new("mocks_once_producer", max_parse_calls),
         &(max_parse_calls),
         |bencher, &max| {
             bencher
@@ -28,7 +31,7 @@ fn mocks_producer(c: &mut Criterion) {
                 .iter_batched(
                     || {
                         // Exclude initiation time from benchmarks.
-                        let parser = MockParser::new(max);
+                        let parser = MockParser::new_once(max);
                         let byte_source = MockByteSource::new();
                         let producer = MessageProducer::new(parser, byte_source, black_box(None));
 
@@ -44,7 +47,7 @@ fn mocks_producer(c: &mut Criterion) {
 criterion_group! {
     name = benches;
     config = bench_standrad_config();
-    targets = mocks_producer
+    targets = mocks_once_producer
 }
 
 criterion_main!(benches);
