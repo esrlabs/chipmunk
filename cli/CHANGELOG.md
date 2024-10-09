@@ -3,6 +3,7 @@
 ## Features:
 
 * Check the latest version of this tool on the local repository and compare it to the installed one.
+* Add the running process commands and their current directory to the logs.
 
 
 # 0.2.5
