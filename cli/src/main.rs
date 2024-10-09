@@ -18,6 +18,7 @@ mod shell;
 mod spawner;
 mod target;
 mod tracker;
+mod version;
 
 use anyhow::{bail, Error};
 use checksum_records::ChecksumRecords;
@@ -46,6 +47,9 @@ async fn main() -> Result<(), Error> {
 
     // Validate current directory location.
     init_location()?;
+
+    // Check for newer versions
+    version::check_version();
 
     // Handle the app main process in a separate method, keeping this method for handling
     // manual cancelling as well.
