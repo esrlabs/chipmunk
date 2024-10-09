@@ -10,6 +10,14 @@ const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.
 const NO_FAIL_FAST_HELP_TEXT: &str = "Don't stops execution immediately if any job fails.";
 const UI_LOG_OPTION_HELP_TEXT: &str =
     "Specifies the UI options for displaying command logs and progress in the terminal";
+const HELP_TEMPLATE: &str = "\
+{before-help}{about}
+version: {version}
+
+{usage-heading} {usage}
+
+{all-args}{after-help}
+";
 
 // To enable calling the app as cargo subcommand the following changes were made:
 // * Cli commands are nested are subcommand within Chipmunk command
@@ -21,7 +29,7 @@ pub enum CargoCli {
 }
 
 #[derive(clap::Args, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, help_template = HELP_TEMPLATE)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
