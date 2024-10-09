@@ -1,3 +1,10 @@
+# 0.2.6
+
+## Features:
+
+* Check the latest version of this tool on the local repository and compare it to the installed one.
+
+
 # 0.2.5
 
 ## Features:
