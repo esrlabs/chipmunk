@@ -99,9 +99,14 @@ pub async fn spawn(
     combined_env_vars.extend(environment_vars);
 
     let tracker = get_tracker();
+    let cmd_combined = command.combine();
+    let cmd_msg = format!("Running command: {cmd_combined}");
+    tracker.msg(job_def, cmd_msg);
+    let cwd_msg = format!("Running in directory: {}", cwd.display());
+    tracker.msg(job_def, cwd_msg);
 
     let command_result = shell_tokio_command()
-        .arg(command.combine())
+        .arg(cmd_combined)
         .current_dir(&cwd)
         .envs(combined_env_vars)
         .stdout(Stdio::piped())
@@ -198,12 +203,18 @@ pub async fn spawn_blocking(
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
     combined_env_vars.extend(environment_vars);
 
+    let tracker = get_tracker();
+
+    let cmd_combined = command.combine();
+    let cmd_msg = format!("Running command: {cmd_combined}");
+    tracker.msg(job_def, cmd_msg);
+    let cwd_msg = format!("Running in directory: {}", cwd.display());
+    tracker.msg(job_def, cwd_msg);
+
     let mut cmd = shell_std_command();
-    cmd.arg(command.combine());
+    cmd.arg(cmd_combined);
     cmd.current_dir(&cwd);
     cmd.envs(combined_env_vars);
-
-    let tracker = get_tracker();
 
     let status = tracker.run_synchronously(job_def, cmd).await?;
 
