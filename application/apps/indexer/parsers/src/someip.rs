@@ -192,6 +192,7 @@ impl SomeipParser {
         }
     }
 
+    /// Parses a SOME/IP message (header and payload) from the given input.
     pub(crate) fn parse_message(
         fibex_metadata: Option<&FibexMetadata>,
         input: &[u8],

@@ -1437,6 +1437,7 @@ dependencies = [
  "lazy_static",
  "log",
  "memchr",
+ "nom",
  "rand",
  "regex",
  "serde",
