@@ -25,6 +25,7 @@ use dlt_core::{
     service_id::service_id_lookup,
 };
 use log::trace;
+use someip_tools::parse_prefix;
 
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
@@ -604,7 +605,12 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
                     if let Some(slice) = slices.get(1) {
                         match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
                             Ok((_, message)) => {
-                                return write!(f, "SOME/IP {:?}", message);
+                                let prefix = slices.first().map_or_else(String::default, |s| {
+                                    parse_prefix(s)
+                                        .ok()
+                                        .map_or_else(String::default, |p| format!("{} ", p.1))
+                                });
+                                return write!(f, "SOME/IP {}{:?}", prefix, message);
                             }
                             Err(error) => {
                                 return write!(f, "SOME/IP '{}' {:02X?}", error, slice);

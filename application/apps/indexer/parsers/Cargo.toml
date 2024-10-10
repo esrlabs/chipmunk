@@ -18,6 +18,7 @@ thiserror.workspace = true
 rand.workspace = true
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+someip-tools = { path = "../addons/someip-tools" }
 
 [dev-dependencies]
 stringreader = "0.1.1"

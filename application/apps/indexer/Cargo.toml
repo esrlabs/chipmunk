@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "addons/dlt-tools",
+    "addons/someip-tools",
     "addons/file-tools",
     "addons/text_grep",
     "indexer_base",
