@@ -13,6 +13,7 @@ lazy_static.workspace = true
 log.workspace = true
 regex.workspace = true
 memchr = "2.4"
+nom = "7.1"
 serde = { workspace = true , features = ["derive"] }
 thiserror.workspace = true
 rand.workspace = true

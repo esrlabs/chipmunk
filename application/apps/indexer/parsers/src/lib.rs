@@ -18,6 +18,20 @@ pub enum Error {
     Eof,
 }
 
+impl nom::error::ParseError<&[u8]> for Error {
+    fn from_error_kind(input: &[u8], kind: nom::error::ErrorKind) -> Self {
+        Error::Parse(format!(
+            "Nom error: {:?} ({} bytes left)",
+            kind,
+            input.len()
+        ))
+    }
+
+    fn append(_: &[u8], _: nom::error::ErrorKind, other: Self) -> Self {
+        other
+    }
+}
+
 #[derive(Debug)]
 pub enum ParseYield<T> {
     Message(T),
