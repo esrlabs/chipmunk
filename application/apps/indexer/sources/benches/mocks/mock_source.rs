@@ -22,7 +22,8 @@ impl ByteSource for MockByteSource {
             const ZERO: usize = 0;
 
             if offset == black_box(ZERO) {
-                println!("Random message to make sure the compiler won't optimize this");
+                // Print message to avoid misleading compile time optimizations.
+                println!("Consume is called with Zero offset");
             }
         }
 
