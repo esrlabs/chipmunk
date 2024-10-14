@@ -34,7 +34,7 @@ fn dlt_producer(c: &mut Criterion) {
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter_batched(
                 || {
-                    let parser = DltParser::new(None, fibex.as_ref(), None, None, false);
+                    let parser = DltParser::new(None, fibex.as_ref(), None, None, true);
                     let source = create_binary_bytesource(data);
                     let producer = MessageProducer::new(parser, source, black_box(None));
 
