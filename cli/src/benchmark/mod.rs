@@ -24,6 +24,10 @@ pub enum BenchTarget {
         /// Determines how many times to run the benchmark.
         #[arg(short, long, default_value = "1")]
         run_count: u8,
+
+        /// Sets sample size on criterion benchmarks
+        #[arg(short, long)]
+        sample_size: Option<usize>,
     },
     /// Lists all the available benchmarks in configuration files.
     List,
@@ -38,8 +42,9 @@ impl BenchTarget {
                 input_source,
                 config,
                 run_count,
+                sample_size,
             } => {
-                core::run_benchmark(name, input_source, config, run_count)?;
+                core::run_benchmark(name, input_source, config, run_count, sample_size)?;
             }
             BenchTarget::List => {
                 println!("Listing all benchmarks from configurations...");
