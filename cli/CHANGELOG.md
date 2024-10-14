@@ -1,3 +1,10 @@
+# 0.2.7
+
+## Features:
+
+* Add sample size CLI argument on benchmarks for rust core.
+
+
 # 0.2.6
 
 ## Features:

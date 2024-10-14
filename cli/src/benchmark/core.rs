@@ -17,6 +17,8 @@ pub const CONFIG_FILENAME: &str = "bench_core.toml";
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
 /// Environment variables to pass configurations to benchmarks.
 pub const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";
+/// Environment variables to pass sample size to benchmarks.
+pub const SAMPLE_SIZE_ENV_VAR: &str = "CHIPMUNK_BENCH_SAMPLE_SIZE";
 
 #[derive(Debug, Clone, Deserialize)]
 /// Configurations info for rust core benchmarks.
@@ -80,6 +82,7 @@ pub fn run_benchmark(
     input_source: Option<String>,
     additional_config: Option<String>,
     run_count: u8,
+    sample_size: Option<usize>,
 ) -> anyhow::Result<()> {
     let config_info = ConfigsInfos::load()?;
     let bench = config_info
@@ -119,6 +122,10 @@ pub fn run_benchmark(
             // Same Case as input source above
             let config = resolve_if_path(config);
             command.env(CONFIG_ENV_VAR, config);
+        }
+
+        if let Some(sample_size) = sample_size {
+            command.env(SAMPLE_SIZE_ENV_VAR, sample_size.to_string());
         }
 
         command.current_dir(&cwd);

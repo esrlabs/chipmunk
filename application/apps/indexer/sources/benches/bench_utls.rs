@@ -16,6 +16,7 @@ use tokio_stream::StreamExt;
 
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
 pub const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";
+pub const SAMPLE_SIZE_ENV_VAR: &str = "CHIPMUNK_BENCH_SAMPLE_SIZE";
 
 /// Retrieves the path of the binary files from the environment variable [`INPUT_SOURCE_ENV_VAR`]
 /// then reads it providing its content as bytes.
@@ -118,13 +119,19 @@ where
 /// Even with these configurations, it's advisable to run the benchmarks multiple times to increase the
 /// correctness of the results.
 pub fn bench_standrad_config() -> Criterion {
+    // Sample size can be additionally configured via environment variables
+    let sample_size = std::env::var(SAMPLE_SIZE_ENV_VAR)
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(200);
+
     Criterion::default()
         // Warm up time is very important here because multiple async runtimes will be spawn in
         // that time which make the next ones to spawn more stable.
         .warm_up_time(Duration::from_secs(10))
         // Measurement time and sample sized to role out noise in the measurements as possible.
         .measurement_time(Duration::from_secs(20))
-        .sample_size(200)
+        .sample_size(sample_size)
         // These two values help to reduce the noise level in the results.
         .significance_level(0.01)
         .noise_threshold(0.03)
