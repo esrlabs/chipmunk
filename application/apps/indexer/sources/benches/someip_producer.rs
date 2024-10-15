@@ -7,6 +7,10 @@ use sources::{binary::pcap::ng::PcapngByteSource, producer::MessageProducer};
 
 mod bench_utls;
 
+// The MiMalloc allocator is currently used in the Chipmunk app.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 /// This benchmark covers parsing from SomeIP file using [`PcapngByteSource`] byte source.
 /// It supports providing the path for a fibex file as additional configuration.
 fn someip_producer(c: &mut Criterion) {
