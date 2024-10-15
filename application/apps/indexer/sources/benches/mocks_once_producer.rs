@@ -8,6 +8,10 @@ use sources::producer::MessageProducer;
 mod bench_utls;
 mod mocks;
 
+// The MiMalloc allocator is currently used in the Chipmunk app.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 /// Runs Benchmarks replicating the producer loop within Chipmunk sessions, using mocks for
 /// [`parsers::Parser`] and [`sources::ByteSource`] to ensure that the measurements is for the
 /// producer loop only.
