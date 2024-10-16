@@ -29,9 +29,18 @@ shellexpand = "3.0.0"
 env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
 mimalloc.workspace = true
+tikv-jemallocator.workspace = true
 
 [[bench]]
 name = "mocks_once_producer"
+harness = false
+
+[[bench]]
+name = "mocks_once_producer_jemalloc"
+harness = false
+
+[[bench]]
+name = "mocks_once_producer_sysalloc"
 harness = false
 
 [[bench]]
