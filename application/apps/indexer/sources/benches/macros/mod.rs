@@ -4,4 +4,5 @@
 // together yet.
 #![allow(unused)]
 
+pub mod mock_producer_multi;
 pub mod mock_producer_once;

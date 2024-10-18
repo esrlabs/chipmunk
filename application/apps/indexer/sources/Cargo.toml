@@ -48,6 +48,14 @@ name = "mocks_multi_producer"
 harness = false
 
 [[bench]]
+name = "mocks_multi_producer_jemalloc"
+harness = false
+
+[[bench]]
+name = "mocks_multi_producer_sysalloc"
+harness = false
+
+[[bench]]
 name = "dlt_producer"
 harness = false
 
