@@ -34,7 +34,6 @@ jobs:
         uses: actions/setup-node@master
         with:
           node-version: "lts/*"
-
       - name: Install Ruby and related tools
         run: ./scripts/benchmarks/setup_dependencies.sh
 
