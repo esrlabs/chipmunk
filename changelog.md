@@ -1,3 +1,8 @@
+# 3.13.3 (18.10.2024)
+
+## Fixes
+- fix a filters on selecting file dialog
+
 # 3.13.2 (04.10.2024)
 
 ## Changes
