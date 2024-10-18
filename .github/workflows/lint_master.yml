@@ -19,7 +19,7 @@ jobs:
       - name: install node
         uses: actions/setup-node@master
         with:
-          node-version: "current"
+          node-version: "lts/*"
       - name: Set up Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -67,7 +67,7 @@ jobs:
       - name: install node
         uses: actions/setup-node@master
         with:
-          node-version: "current"
+          node-version: "lts/*"
       - name: Set up Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
