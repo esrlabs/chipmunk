@@ -72,4 +72,7 @@ module Paths
   RS_BINDINGS = "#{RUSTCORE}/rs-bindings"
   TS_BINDINGS = "#{RUSTCORE}/ts-bindings"
   UPDATER = "#{APPS}/precompiled/updater"
+
+  PROTOCOL_WASM = "#{APPS}/protocol/binding/wasm"
+  PROTOCOL_GEN = "#{APPS}/protocol/binding/proto"
 end

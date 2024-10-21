@@ -1,16 +1,12 @@
-use crate::js::{
-    converting::filter::WrappedSearchFilter, session::events::ComputationErrorWrapper,
-};
+mod converting;
+
+use crate::js::converting::{errors::ComputationErrorWrapper, filter::WrappedSearchFilter};
+use converting::CommandOutcomeWrapper;
 use log::{debug, error};
-use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
-    derive::node_bindgen,
-    sys::napi_value,
-};
-use serde::Serialize;
+use node_bindgen::derive::node_bindgen;
 use session::{
     events::ComputationError,
-    unbound::{api::UnboundSessionAPI, commands::CommandOutcome, UnboundSession},
+    unbound::{api::UnboundSessionAPI, UnboundSession},
 };
 use std::{convert::TryFrom, thread};
 use tokio::runtime::Runtime;
@@ -21,23 +17,9 @@ struct UnboundJobs {
     finished: CancellationToken,
 }
 
-pub(crate) struct CommandOutcomeWrapper<T: Serialize>(pub CommandOutcome<T>);
-
-impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
-    /// serialize into json object
-    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        match serde_json::to_string(&self.0) {
-            Ok(s) => js_env.create_string_utf8(&s),
-            Err(e) => Err(NjError::Other(format!(
-                "Could not convert Callback event to json: {e}"
-            ))),
-        }
-    }
-}
-
 fn u64_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
     u64::try_from(id).map_err(|_| {
-        ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
+        ComputationErrorWrapper::new(ComputationError::InvalidArgs(String::from(
             "ID of job is invalid",
         )))
     })
@@ -45,7 +27,7 @@ fn u64_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
 
 fn usize_from_i64(id: i64) -> Result<usize, ComputationErrorWrapper> {
     usize::try_from(id).map_err(|_| {
-        ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
+        ComputationErrorWrapper::new(ComputationError::InvalidArgs(String::from(
             "Fail to conver i64 to usize",
         )))
     })
@@ -105,7 +87,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .cancel_job(&u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
+            .map_err(ComputationErrorWrapper::new)
     }
 
     // Custom methods (jobs)
@@ -131,8 +113,8 @@ impl UnboundJobs {
                 include_folders,
             )
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -146,8 +128,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .is_file_binary(u64_from_i64(id)?, file_path)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -162,8 +144,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .spawn_process(u64_from_i64(id)?, path, args)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -177,8 +159,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_file_checksum(u64_from_i64(id)?, path)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -192,8 +174,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_dlt_stats(u64_from_i64(id)?, files)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -207,8 +189,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_someip_statistic(u64_from_i64(id)?, files)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -221,8 +203,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_shell_profiles(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -235,8 +217,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_context_envvars(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -249,8 +231,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_serial_ports_list(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -264,8 +246,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .get_regex_error(u64_from_i64(id)?, filter.as_filter())
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -280,8 +262,8 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .cancel_test(u64_from_i64(id)?, custom_arg_a, custom_arg_b)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 
     #[node_bindgen]
@@ -295,7 +277,7 @@ impl UnboundJobs {
             .ok_or(ComputationError::SessionUnavailable)?
             .sleep(u64_from_i64(id)?, u64_from_i64(ms)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
+            .map_err(ComputationErrorWrapper::new)
+            .map(CommandOutcomeWrapper::new)
     }
 }

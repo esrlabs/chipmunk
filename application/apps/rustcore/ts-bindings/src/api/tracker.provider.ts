@@ -1,6 +1,8 @@
 import { Subject } from 'platform/env/subscription';
 import { Computation } from '../provider/provider';
 
+import * as convertor from '../util/convertor';
+
 export interface Job {
     alias: string;
     uuid: string;
@@ -74,7 +76,7 @@ export class EventProvider extends Computation<
     private readonly _convertors = {};
 
     constructor(uuid: string) {
-        super(uuid);
+        super(uuid, convertor.decodeLifecycleTransition);
     }
 
     public getName(): string {
