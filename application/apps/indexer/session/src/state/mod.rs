@@ -709,7 +709,12 @@ pub async fn run(
                 state.cancelling_operations.remove(&uuid);
             }
             Api::AddAttachment(attachment) => {
-                state.handle_add_attachment(attachment, tx_callback_events.clone())?;
+                let at_name = attachment.name.clone();
+                if let Err(err) =
+                    state.handle_add_attachment(attachment, tx_callback_events.clone())
+                {
+                    error!("Fail to process attachment {at_name:?}; error: {err:?}");
+                }
             }
             Api::GetAttachments(tx_response) => {
                 tx_response.send(state.attachments.get()).map_err(|_| {
