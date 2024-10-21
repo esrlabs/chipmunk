@@ -35,49 +35,62 @@ pub struct AttachmentInfo {
 }
 
 const FILE_NAME_INDEXES_LIMIT: usize = 1000;
+const ALLOWED_FILENAME_CHARS: &[char] = &['-', '_'];
 
 fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> {
+    fn sanitize<S: AsRef<str>>(input: S) -> String {
+        input
+            .as_ref()
+            .chars()
+            .map(|ch| {
+                if ch.is_alphanumeric() || ALLOWED_FILENAME_CHARS.contains(&ch) {
+                    ch
+                } else {
+                    '_'
+                }
+            })
+            .collect()
+    }
     let origin_path = PathBuf::from(origin);
     let origin_file_name = PathBuf::from(origin_path.file_name().ok_or(io::Error::new(
         io::ErrorKind::Other,
         format!("Cannot get file name from {origin:?}"),
     ))?);
-    if let Some(basename) = origin_file_name.file_stem() {
-        let extension = origin_file_name.extension();
-        let mut index: usize = 0;
-        loop {
-            let mut suggestion = if index == 0 {
-                dest.join(PathBuf::from(basename))
-            } else {
-                dest.join(PathBuf::from(format!(
-                    "{}_{index}",
-                    basename.to_string_lossy()
-                )))
-            };
-            if let Some(extension) = extension {
-                suggestion = PathBuf::from(format!(
-                    "{}.{}",
-                    suggestion.to_string_lossy(),
-                    extension.to_string_lossy()
-                ));
-            }
-            if !suggestion.exists() {
-                return Ok(suggestion);
-            } else {
-                index += 1;
-            }
-            if index > FILE_NAME_INDEXES_LIMIT {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Cannot find suitable file name for {origin}"),
-                ));
-            }
+    let basename = sanitize(
+        origin_file_name
+            .file_stem()
+            .ok_or(io::Error::new(
+                io::ErrorKind::Other,
+                "Fail to parse origin attachment path",
+            ))?
+            .to_string_lossy(),
+    );
+    let extension = origin_file_name.extension();
+    let mut index: usize = 0;
+    loop {
+        let mut suggestion = if index == 0 {
+            dest.join(PathBuf::from(&basename))
+        } else {
+            dest.join(PathBuf::from(format!("{basename}_{index}")))
+        };
+        if let Some(extension) = extension {
+            suggestion = PathBuf::from(format!(
+                "{}.{}",
+                suggestion.to_string_lossy(),
+                sanitize(extension.to_string_lossy())
+            ));
         }
-    } else {
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "Fail to parse origin attachment path",
-        ))
+        if !suggestion.exists() {
+            return Ok(suggestion);
+        } else {
+            index += 1;
+        }
+        if index > FILE_NAME_INDEXES_LIMIT {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Cannot find suitable file name for {origin}"),
+            ));
+        }
     }
 }
 
