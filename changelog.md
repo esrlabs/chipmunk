@@ -1,3 +1,12 @@
+# 3.13.4 (21.10.2024)
+
+## Fixes
+- sanitize the attachment path before saving
+- prevent closing session on invalid attachment
+
+## Changes
+- add support for multiple values/messages on the producer level
+
 # 3.13.3 (18.10.2024)
 
 ## Fixes
