@@ -70,7 +70,7 @@ where
     if sections.is_empty() {
         debug!("no sections configured");
         // export everything
-        while let Some(items) = s.next().await {
+        'outer: while let Some(items) = s.next().await {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
@@ -85,7 +85,7 @@ where
                         msg.to_writer(&mut out_writer)?;
                         true
                     }
-                    MessageStreamItem::Done => break,
+                    MessageStreamItem::Done => break 'outer,
                     _ => false,
                 };
                 if written && text_file {
@@ -99,7 +99,7 @@ where
         return Ok(exported);
     }
 
-    while let Some(items) = s.next().await {
+    'outer: while let Some(items) = s.next().await {
         if cancel.is_cancelled() {
             return Err(ExportError::Cancelled);
         }
@@ -116,7 +116,7 @@ where
                     if matches!(item, MessageStreamItem::Item(_)) {
                         current_index += 1;
                     }
-                    break;
+                    break 'outer;
                 }
                 // check if we are in next section again
                 if sections[section_index].first_line == current_index {
@@ -140,7 +140,7 @@ where
                 }
                 MessageStreamItem::Done => {
                     debug!("No more messages to export");
-                    break;
+                    break 'outer;
                 }
                 _ => false,
             };
@@ -150,7 +150,7 @@ where
         }
     }
     if read_to_end {
-        while let Some(items) = s.next().await {
+        'outer: while let Some(items) = s.next().await {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
@@ -160,7 +160,7 @@ where
                         current_index += 1;
                     }
                     MessageStreamItem::Done => {
-                        break;
+                        break 'outer;
                     }
                     _ => {}
                 }
