@@ -89,7 +89,7 @@ impl FibexMetadata {
     ) -> Option<String> {
         if let Ok(mut lock) = self.types.lock() {
             if let Some(som_type) = lock.get_som_type(fibex_type) {
-                match som_type.parse(&mut SOMParser::new(payload)) {
+                match som_type.parse(&mut SOMParser::new(payload).non_strict()) {
                     Ok(_) => {
                         return Some(
                             som_type
