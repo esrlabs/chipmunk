@@ -124,6 +124,8 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     let cancel_on_tail = cancel.clone();
+    //TODO AAZ: Remove this timer after benchmarking on all machines is done.
+    let timer = std::time::Instant::now();
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {
@@ -162,6 +164,14 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         }
                         MessageStreamItem::Done => {
                             trace!("observe, message stream is done");
+                            let elapsed = timer.elapsed();
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+                            println!("File Read Took: {}", elapsed.as_millis());
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
                             state.flush_session_file().await?;
                             state.file_read().await?;
                         }
