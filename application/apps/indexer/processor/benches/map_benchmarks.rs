@@ -4,6 +4,9 @@ extern crate processor;
 use criterion::{Criterion, *};
 use processor::map::{FilterMatch, SearchMap};
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn scaled_benchmark(c: &mut Criterion) {
     let mut example_map: SearchMap = SearchMap::new();
     let mut v = vec![];
