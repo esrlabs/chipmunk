@@ -57,40 +57,21 @@ pub fn config_path() -> PathBuf {
     get_root().join("cli").join("config")
 }
 
-/// Return the path for the home directory directory where logs and configuration are placed,
-/// creating it if needed.
+/// Return the path for the home directory directory where logs and configuration are placed.
 pub fn chipmunk_home_dir() -> anyhow::Result<PathBuf> {
     let home_dir = dirs::home_dir()
         .map(|home| home.join(".chipmunk"))
         .context("Resolving home directory failed")?;
 
-    if !home_dir.exists() {
-        std::fs::create_dir(&home_dir).with_context(|| {
-            format!(
-                "Error while craeting Chipmunk home directory. Path: {}",
-                home_dir.display()
-            )
-        })?;
-    }
-
     Ok(home_dir)
 }
 
-/// Return the path for the build CLI directory in Chipmunk home directory, creating it if needed.
+/// Return the path for the build CLI directory in Chipmunk home directory.
 pub fn build_cli_home_dir() -> anyhow::Result<PathBuf> {
     let chipmunk_home =
         chipmunk_home_dir().context("Error while resolving Chipmunk home directory")?;
     const BUILD_CLI_DIR_NAME: &str = "build_cli";
     let build_cli_path = chipmunk_home.join(BUILD_CLI_DIR_NAME);
-
-    if !build_cli_path.exists() {
-        std::fs::create_dir(&build_cli_path).with_context(|| {
-            format!(
-                "Error while craeting Chipmunk home directory. Path: {}",
-                build_cli_path.display()
-            )
-        })?;
-    }
 
     Ok(build_cli_path)
 }
