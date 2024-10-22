@@ -18,6 +18,7 @@ mod shell;
 mod spawner;
 mod target;
 mod tracker;
+mod user_config;
 mod version;
 
 use anyhow::{bail, Error};
@@ -36,6 +37,7 @@ use tokio::signal;
 use tracker::{get_tracker, init_tracker};
 
 pub use jobs_runner::jobs_state::JobsState;
+use user_config::UserConfiguration;
 
 use crate::cli_args::EnvironmentCommand;
 
@@ -47,6 +49,9 @@ async fn main() -> Result<(), Error> {
 
     // Validate current directory location.
     init_location()?;
+
+    // Load and validate user configurations
+    UserConfiguration::init()?;
 
     // Check for newer versions
     version::check_version();
