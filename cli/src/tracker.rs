@@ -17,7 +17,7 @@ use tokio::sync::{
     oneshot,
 };
 
-use crate::{cli_args::UiMode, jobs_runner::JobDefinition};
+use crate::{cli_args::UiMode, jobs_runner::JobDefinition, user_config::UserConfiguration};
 
 const TIME_BAR_WIDTH: usize = 5;
 
@@ -120,10 +120,15 @@ impl JobBarState {
 
 /// Initialize progress tracker with the given configurations.
 ///
+/// * `ui_mode`: Optionally override the UI mode from user configurations, when not provided
+///   then the value from [`UserConfiguration`] will be used.
+///
 /// # Panics
 ///
 /// This functions panics if it is initialized more than once.
-pub fn init_tracker(ui_mode: UiMode) {
+pub fn init_tracker(ui_mode: Option<UiMode>) {
+    let ui_mode = ui_mode.unwrap_or_else(|| UserConfiguration::get().ui_mode);
+
     TRACKER
         .set(Tracker::new(ui_mode))
         .expect("Progress Tracker can't be initialized more than once");
