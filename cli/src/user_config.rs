@@ -30,6 +30,10 @@ impl UserConfiguration {
 
         let config = Self::load().context("Error while loading user configuration")?;
 
+        config
+            .validate()
+            .context("Validation of user configuration failed")?;
+
         USER_CONFIGURATION
             .set(config)
             .expect("User configuration can't be load more than once");
@@ -144,5 +148,18 @@ impl UserConfiguration {
         })?;
 
         Ok(config)
+    }
+
+    fn validate(&self) -> anyhow::Result<()> {
+        ensure!(
+            self.shell.exist(),
+            "Configured shell doesn't exist on the system. Shell: {}, Shell binary name: {}\n\
+             Please check your configuration file in: {}",
+            self.shell,
+            self.shell.bin(),
+            Self::file_path().unwrap_or_default().display()
+        );
+
+        Ok(())
     }
 }

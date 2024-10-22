@@ -1,7 +1,7 @@
 //! Provides struct representing the shell running by user besides a method to generate
 //! completion of the CLI sub-commands and arguments for the given shell.
 
-use std::io;
+use std::{fmt::Display, io};
 
 use anyhow::Context;
 use clap::CommandFactory;
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::{cli_args::CargoCli, user_config::UserConfiguration};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 /// Represents the shell running by users providing method to create commands to run process
 /// on the given shell.
 pub enum UserShell {
@@ -35,10 +35,25 @@ impl Default for UserShell {
     }
 }
 
+impl Display for UserShell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UserShell::Sh => write!(f, "SH"),
+            UserShell::Bash => write!(f, "Bash"),
+            UserShell::Zsh => write!(f, "ZSH"),
+            UserShell::Fish => write!(f, "Fish"),
+            UserShell::NuShell => write!(f, "Nu Shell"),
+            UserShell::Elvish => write!(f, "Envish"),
+            UserShell::Cmd => write!(f, "Cmd"),
+            UserShell::PowerShell => write!(f, "Power Shell"),
+        }
+    }
+}
+
 impl UserShell {
     /// Provides [`std::process::Command`] to run a process on the given shell.
     pub fn std_command(self) -> std::process::Command {
-        let mut cmd = std::process::Command::new(self.cmd());
+        let mut cmd = std::process::Command::new(self.bin());
         cmd.arg(self.arg());
 
         cmd
@@ -46,14 +61,14 @@ impl UserShell {
 
     /// Provides an asynchronous [`tokio::process::Command`] to run a process on the given shell.
     pub fn tokio_command(self) -> tokio::process::Command {
-        let mut cmd = tokio::process::Command::new(self.cmd());
+        let mut cmd = tokio::process::Command::new(self.bin());
         cmd.arg(self.arg());
 
         cmd
     }
 
     /// Binary name for the shell
-    const fn cmd(self) -> &'static str {
+    pub const fn bin(self) -> &'static str {
         match self {
             UserShell::Sh => "sh",
             UserShell::Bash => "bash",
@@ -77,6 +92,28 @@ impl UserShell {
             | UserShell::Elvish => "-c",
             UserShell::Cmd => "/C",
             UserShell::PowerShell => "-Command",
+        }
+    }
+
+    /// Checks if the shell exist on the system by running it with the version argument.
+    pub fn exist(self) -> bool {
+        std::process::Command::new(self.bin())
+            .arg(self.version_arg())
+            .output()
+            .is_ok_and(|o| o.status.success())
+    }
+
+    /// Provides the argument to show the version of the given shell.
+    const fn version_arg(self) -> &'static str {
+        match self {
+            UserShell::Sh
+            | UserShell::Bash
+            | UserShell::Zsh
+            | UserShell::Fish
+            | UserShell::NuShell
+            | UserShell::Elvish => "--version",
+            UserShell::Cmd => "/? ",
+            UserShell::PowerShell => "-Version",
         }
     }
 }
