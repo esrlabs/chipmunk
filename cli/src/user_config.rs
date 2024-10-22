@@ -15,7 +15,9 @@ static USER_CONFIGURATION: OnceLock<UserConfiguration> = OnceLock::new();
 /// Represents the configuration of this tool on the user level, providing settings like
 /// [`UserShell`] and [`UiMode`] besides methods to load this configurations from a file.
 pub struct UserConfiguration {
+    #[serde(default)]
     pub shell: UserShell,
+    #[serde(default)]
     pub ui_mode: UiMode,
 }
 
