@@ -3,7 +3,8 @@
 
 use std::{fs::read_to_string, path::PathBuf, sync::OnceLock};
 
-use anyhow::Context;
+use anyhow::{ensure, Context};
+use console::style;
 use serde::{Deserialize, Serialize};
 
 use crate::{cli_args::UiMode, location::build_cli_home_dir, shell::UserShell};
@@ -56,6 +57,68 @@ impl UserConfiguration {
         let config_path = build_cli_dir.join(USER_CONFIG_FILE_NAME);
 
         Ok(config_path)
+    }
+
+    /// Serializes the default configurations to `toml` pretty format.
+    fn default_serialized() -> anyhow::Result<String> {
+        let config = Self::default();
+        let config_print = toml::to_string_pretty(&config)
+            .context("Error while serializing user configurations to toml format")?;
+
+        Ok(config_print)
+    }
+
+    /// Prints the default configurations in to `stdout` in `toml` format, to be used as a
+    /// reference in creating configuration files
+    pub fn print_default() -> anyhow::Result<()> {
+        let config_print = Self::default_serialized()?;
+
+        println!("{config_print}");
+
+        Ok(())
+    }
+
+    /// Writes the default configurations to the configuration file if it doesn't exit, creating
+    /// all the directories to the file path if needed.
+    ///
+    /// # Errors
+    /// This function errors if the file already exists, besides other IO and serialization errors.
+    pub fn write_default_to_file() -> anyhow::Result<()> {
+        let file_path =
+            Self::file_path().context("Error while resolving user configuration file")?;
+
+        ensure!(
+            !file_path.exists(),
+            "Abort because configuration file already exists. Path: {}",
+            file_path.display()
+        );
+
+        let config_serialized = Self::default_serialized()?;
+
+        // Create directories if needed.
+        let parent_dir = file_path
+            .parent()
+            .expect("User config path always has parent directory");
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(parent_dir).with_context(|| {
+                format!("Error while creating directory: {}", parent_dir.display())
+            })?;
+        }
+
+        std::fs::write(&file_path, config_serialized.as_bytes()).with_context(|| {
+            format!(
+                "Error while writing user configuration for file. Path: {}",
+                file_path.display()
+            )
+        })?;
+
+        println!(
+            "{}",
+            style("Default user configuration written to file successfully").green()
+        );
+        println!("Config file path: {}", file_path.display());
+
+        Ok(())
     }
 
     /// Loads the configuration from the config file if exists, otherwise it'll provide the default

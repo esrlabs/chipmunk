@@ -21,10 +21,10 @@ mod tracker;
 mod user_config;
 mod version;
 
-use anyhow::{bail, Error};
+use anyhow::{bail, Context, Error};
 use checksum_records::ChecksumRecords;
 use clap::Parser;
-use cli_args::{CargoCli, Command, UiMode};
+use cli_args::{CargoCli, Command, UiMode, UserConfigCommand};
 use console::style;
 use dev_environment::{print_env_info, validate_dev_tools};
 use job_type::JobType;
@@ -104,6 +104,22 @@ async fn main_process(command: Command) -> Result<(), Error> {
             }
             return Ok(());
         }
+        Command::UserConfiguration(sub_command) => match sub_command {
+            UserConfigCommand::PrintPath => {
+                let config_path = UserConfiguration::file_path()
+                    .context("Error while resolving user configurations file path")?;
+
+                println!("{}", config_path.display());
+
+                return Ok(());
+            }
+            UserConfigCommand::DumpDefaultConfiguration => {
+                return UserConfiguration::print_default()
+            }
+            UserConfigCommand::WriteDefaultToFile => {
+                return UserConfiguration::write_default_to_file()
+            }
+        },
         Command::Lint {
             target,
             fail_fast,

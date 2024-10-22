@@ -73,6 +73,10 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         all_jobs: bool,
     },
+    #[clap(name = "configuration", visible_alias = "config")]
+    #[command(subcommand)]
+    /// Provides commands for the configuration of this tool on user level.
+    UserConfiguration(UserConfigCommand),
     /// Runs linting & clippy for all or the specified targets
     Lint {
         /// Target to lint, by default whole application will be linted
@@ -179,4 +183,18 @@ pub enum EnvironmentCommand {
     /// Prints the information of the needed tools for the development
     #[clap(visible_alias = "list")]
     Print,
+}
+
+#[derive(Debug, Subcommand, Clone, Copy)]
+pub enum UserConfigCommand {
+    #[clap(visible_alias = "path")]
+    /// Prints the path to the user configurations file.
+    PrintPath,
+    #[clap(name = "print-default", visible_alias = "dump")]
+    /// Dumps the configurations with the default values to be used as a reference and base to
+    /// user configurations.
+    DumpDefaultConfiguration,
+    #[clap(name = "write-default", visible_alias = "write")]
+    /// Creates user configurations file if doesn't exist then writes the default configurations to it.
+    WriteDefaultToFile,
 }
