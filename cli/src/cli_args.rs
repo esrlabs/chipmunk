@@ -41,7 +41,7 @@ pub struct Cli {
 // Link for the issue: https://github.com/clap-rs/clap/issues/4416.
 
 #[derive(Debug, Clone, Copy, Default, clap::ValueEnum, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 /// Specifies the UI mode for displaying command logs and progress in the terminal.
 pub enum UiMode {
     /// Displays progress bars, showing the current line of the output of each command. [aliases: 'b']
