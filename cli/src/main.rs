@@ -199,7 +199,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             } else {
                 UiMode::PrintOnJobFinish
             };
-            init_tracker(ui_mode);
+            init_tracker(Some(ui_mode));
             validate_dev_tools()?;
             do_release(development, code_sign).await?;
             let tracker = get_tracker();
