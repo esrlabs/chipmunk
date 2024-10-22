@@ -10,41 +10,40 @@ use serde::{Deserialize, Serialize};
 
 use crate::{cli_args::CargoCli, user_config::UserConfiguration};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 /// Represents the shell running by users providing method to create commands to run process
 /// on the given shell.
 pub enum UserShell {
+    #[cfg(unix)]
+    #[cfg_attr(all(unix, not(target_os = "macos")), default)]
     Sh,
+
+    #[cfg(windows)]
+    #[default]
+    Cmd,
+
     Bash,
+    #[cfg_attr(target_os = "macos", default)]
     Zsh,
     Fish,
     NuShell,
     Elvish,
-    Cmd,
     PowerShell,
-}
-
-impl Default for UserShell {
-    fn default() -> Self {
-        if cfg!(windows) {
-            UserShell::Cmd
-        } else {
-            UserShell::Sh
-        }
-    }
 }
 
 impl Display for UserShell {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UserShell::Sh => write!(f, "SH"),
+            #[cfg(unix)]
+            UserShell::Sh => write!(f, "Sh"),
+            #[cfg(windows)]
+            UserShell::Cmd => write!(f, "Cmd"),
             UserShell::Bash => write!(f, "Bash"),
-            UserShell::Zsh => write!(f, "ZSH"),
+            UserShell::Zsh => write!(f, "Zsh"),
             UserShell::Fish => write!(f, "Fish"),
             UserShell::NuShell => write!(f, "Nu Shell"),
             UserShell::Elvish => write!(f, "Envish"),
-            UserShell::Cmd => write!(f, "Cmd"),
             UserShell::PowerShell => write!(f, "Power Shell"),
         }
     }
@@ -70,13 +69,15 @@ impl UserShell {
     /// Binary name for the shell
     pub const fn bin(self) -> &'static str {
         match self {
+            #[cfg(unix)]
             UserShell::Sh => "sh",
+            #[cfg(windows)]
+            UserShell::Cmd => "cmd",
             UserShell::Bash => "bash",
             UserShell::Zsh => "zsh",
             UserShell::Fish => "fish",
             UserShell::NuShell => "nu",
             UserShell::Elvish => "elvish",
-            UserShell::Cmd => "cmd",
             UserShell::PowerShell => "pwsh",
         }
     }
@@ -84,37 +85,42 @@ impl UserShell {
     /// Argument provided by each shell to run the provided process command and its arguments.
     const fn arg(self) -> &'static str {
         match self {
-            UserShell::Sh
-            | UserShell::Bash
+            #[cfg(unix)]
+            UserShell::Sh => "-c",
+            #[cfg(windows)]
+            UserShell::Cmd => "/C",
+            UserShell::Bash
             | UserShell::Zsh
             | UserShell::Fish
             | UserShell::NuShell
             | UserShell::Elvish => "-c",
-            UserShell::Cmd => "/C",
             UserShell::PowerShell => "-Command",
         }
     }
 
     /// Checks if the shell exist on the system by running it with the version argument.
     pub fn exist(self) -> bool {
-        std::process::Command::new(self.bin())
-            .arg(self.version_arg())
-            .output()
-            .is_ok_and(|o| o.status.success())
-    }
-
-    /// Provides the argument to show the version of the given shell.
-    const fn version_arg(self) -> &'static str {
-        match self {
-            UserShell::Sh
-            | UserShell::Bash
+        // Default shell is always installed on their respecting operating system and doesn't need
+        // extra checks avoiding other potential problem because `sh` doesn't have a version
+        // argument.
+        let version_arg = match self {
+            #[cfg(unix)]
+            UserShell::Sh => return true,
+            #[cfg(windows)]
+            UserShell::Cmd => return true,
+            UserShell::Bash
             | UserShell::Zsh
             | UserShell::Fish
             | UserShell::NuShell
             | UserShell::Elvish => "--version",
-            UserShell::Cmd => "/? ",
             UserShell::PowerShell => "-Version",
-        }
+        };
+
+        // Other wise run the shell with version argument to check if exists.
+        std::process::Command::new(self.bin())
+            .arg(version_arg)
+            .output()
+            .is_ok_and(|o| o.status.success())
     }
 }
 
