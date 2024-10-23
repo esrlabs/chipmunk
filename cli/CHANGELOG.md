@@ -1,3 +1,10 @@
+# 0.2.8
+
+## Features:
+
+* User can configure the tool on user levels to set their preferred shell and UI mode.
+* Default shell will be retrieved from environment variables in unix-based environments.
+
 # 0.2.7
 
 ## Features:
