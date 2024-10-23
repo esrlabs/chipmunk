@@ -193,7 +193,7 @@ pub enum UserConfigCommand {
     #[clap(visible_alias = "path")]
     /// Prints the path to the user configurations file.
     PrintPath,
-    #[clap(name = "print-default", visible_alias = "dump")]
+    #[clap(name = "print-default", visible_alias = "default")]
     /// Dumps the configurations with the default values to be used as a reference and base to
     /// user configurations.
     DumpDefaultConfiguration,
