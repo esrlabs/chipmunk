@@ -147,7 +147,7 @@ export class NativeError extends Error {
         try {
             if (smth instanceof Error) {
                 return new NativeError(smth, Type.Other, Source.Other);
-            } else if (smth instanceof Array) {
+            } else if (smth instanceof Array || smth instanceof Buffer) {
                 const deserialized: ty.ComputationError = proto.ComputationError.decode(
                     Uint8Array.from(smth),
                 );
