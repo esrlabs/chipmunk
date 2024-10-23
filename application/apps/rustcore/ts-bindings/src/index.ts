@@ -17,7 +17,6 @@ export {
     SessionStream,
     ISessionEvents,
     IProgressEvent,
-    IProgressState,
     IEventMapUpdated,
     IEventMatchesUpdated,
     IEventIndexedMapUpdated,
