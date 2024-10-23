@@ -190,7 +190,7 @@ export class EventProvider extends Computation<
         SearchValuesUpdated: new Subject<IValuesMinMaxMap | null>(),
         SearchMapUpdated: new Subject<string>(),
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),
-        Progress: new Subject<IProgressEvent>(),
+        Progress: new Subject<IProgressEvent>(), // This even isn't used. No listeners on ts side and never fires on rs side
         AttachmentsUpdated: new Subject<IAttachmentsUpdatedUpdated>(),
         SessionError: new Subject<IError>(),
         OperationError: new Subject<IErrorEvent>(),
