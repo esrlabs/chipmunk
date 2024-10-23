@@ -4,11 +4,25 @@ import { IObserve, Observe } from 'platform/types/observe';
 import { Attachment, IGrabbedElement } from 'platform/types/content';
 import { getValidNum } from './numbers';
 import { IRange } from 'platform/types/range';
+import { IValuesMinMaxMap } from 'platform/types/filter';
 
 import * as proto from 'protocol';
-import * as ty from '../protocol/index';
+import * as ty from '../protocol';
 import * as $ from 'platform/types/observe';
 import * as sde from 'platform/types/sde';
+
+export type ProgressEventTy =
+    | {
+          progress: { total: number | undefined; count: number; state: string | undefined };
+      }
+    | { stopped: boolean }
+    | {
+          notification: {
+              content: string;
+              line: number;
+              severity: number;
+          };
+      };
 
 export function decodeIRanges(buf: number[]): IRange[] {
     const list: ty.RangeInclusiveList = proto.RangeInclusiveList.decode(Uint8Array.from(buf));
@@ -19,6 +33,7 @@ export function decodeIRanges(buf: number[]): IRange[] {
         };
     });
 }
+
 export function toObserveOptions(source: IObserve): ty.ObserveOptions {
     const ob = new Observe(source);
     const file = ob.origin.as<$.Origin.File.Configuration>($.Origin.File.Configuration);
@@ -232,10 +247,82 @@ export function decodeLifecycleTransition(buf: number[] | Buffer): any {
         throw new Error(`Fail to parse event: ${JSON.stringify(event)}`);
     }
 }
-export function decodeCallbackEvent(buf: number[] | Buffer): any {
+
+export type CallbackEventType =
+    | { SessionDestroyed: null }
+    | { FileRead: null }
+    | {
+          AttachmentsUpdated: {
+              len: number;
+              attachment:
+                  | undefined
+                  | {
+                        uuid: string;
+                        filepath: string;
+                        name: string;
+                        ext: string;
+                        size: number;
+                        mime: string;
+                        messages: number[];
+                    };
+          };
+      }
+    | {
+          OperationDone: {
+              uuid: string;
+              result: string | undefined;
+          };
+      }
+    | {
+          OperationStarted: string;
+      }
+    | { OperationProcessing: string }
+    | {
+          OperationError: {
+              uuid: string;
+              error:
+                  | undefined
+                  | {
+                        severity: string;
+                        message: string;
+                        kind: string;
+                    };
+          };
+      }
+    | {
+          SessionError: {
+              severity: string;
+              message: string;
+              kind: string;
+          };
+      }
+    | {
+          Progress: {
+              uuid: string;
+              event: ProgressEventTy;
+          };
+      }
+    | {
+          StreamUpdated: number;
+      }
+    | {
+          SearchUpdated: {
+              found: number;
+              stat: Map<string, number>;
+          };
+      }
+    | {
+          SearchMapUpdated: string;
+      }
+    | {
+          IndexedMapUpdated: { len: number };
+      }
+    | { SearchValuesUpdated: IValuesMinMaxMap };
+
+export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType | Error {
     const event: ty.CallbackEvent = proto.CallbackEvent.decode(Uint8Array.from(buf));
     if (!event.event_oneof) {
-        return {};
+        return new Error(`Field "event_oneof" isn't found in CallbackEvent`);
     }
     const inner: ty.EventOneof = event.event_oneof;
     if ('SessionDestroyed' in inner) {
@@ -243,114 +330,189 @@ export function decodeCallbackEvent(buf: number[] | Buffer): any {
     } else if ('FileRead' in inner) {
         return { FileRead: null };
     } else if ('AttachmentsUpdated' in inner) {
-        const attachment = inner.AttachmentsUpdated?.attachment;
+        const attachment = inner.AttachmentsUpdated;
+        if (!attachment) {
+            return new Error(`Has been recieved AttachmentsUpdated without even definition`);
+        }
+        const body = attachment.attachment;
         return {
             AttachmentsUpdated: {
-                len: inner.AttachmentsUpdated?.len,
+                len: attachment.len,
                 attachment:
-                    attachment === null || attachment === undefined
-                        ? null
+                    body === null || body === undefined
+                        ? undefined
                         : {
-                              uuid: attachment.uuid,
-                              filepath: attachment.filepath,
-                              name: attachment.name,
-                              ext: attachment.ext,
-                              size: attachment.size,
-                              mime: attachment.mime,
-                              messages: attachment.messages,
+                              uuid: body.uuid,
+                              filepath: body.filepath,
+                              name: body.name,
+                              ext: body.ext,
+                              size: body.size,
+                              mime: body.mime,
+                              messages: body.messages,
                           },
             },
         };
     } else if ('OperationDone' in inner) {
+        const operation = inner.OperationDone;
+        if (!operation) {
+            return new Error(`Has been recieved OperationDone without even definition`);
+        }
         return {
             OperationDone: {
-                uuid: inner.OperationDone?.uuid,
-                result: inner.OperationDone?.result,
+                uuid: operation.uuid,
+                result: operation.result,
             },
         };
     } else if ('OperationStarted' in inner) {
+        const operation = inner.OperationStarted;
+        if (!operation) {
+            return new Error(`Has been recieved OperationStarted without even definition`);
+        }
         return {
-            OperationStarted: inner.OperationStarted,
+            OperationStarted: operation,
         };
     } else if ('OperationProcessing' in inner) {
-        return { OperationProcessing: inner.OperationProcessing };
+        const operation = inner.OperationProcessing;
+        if (!operation) {
+            return new Error(`Has been recieved OperationProcessing without even definition`);
+        }
+        return { OperationProcessing: operation };
     } else if ('OperationError' in inner) {
-        const err = inner.OperationError?.error;
+        const error = inner.OperationError;
+        if (!error) {
+            return new Error(`Has been recieved OperationError without even definition`);
+        }
         return {
             OperationError: {
-                uuid: inner.OperationError?.uuid,
+                uuid: error.uuid,
                 error:
-                    err === null || err === undefined
-                        ? null
+                    error.error === null || error.error === undefined
+                        ? undefined
                         : {
-                              severity: err.severity.toString(),
-                              message: err.message,
-                              kind: err.kind.toString(),
+                              severity: error.error.severity.toString(),
+                              message: error.error.message,
+                              kind: error.error.kind.toString(),
                           },
             },
         };
     } else if ('SessionError' in inner) {
-        const err = inner.SessionError;
+        const error = inner.SessionError;
+        if (!error) {
+            return new Error(`Has been recieved SessionError without even definition`);
+        }
         return {
             SessionError: {
-                severity: err?.severity.toString(),
-                message: err?.message,
-                kind: err?.kind.toString(),
+                severity: error.severity.toString(),
+                message: error.message,
+                kind: error.kind.toString(),
             },
         };
     } else if ('Progress' in inner) {
-        const ticks =
-            inner.Progress?.detail === null || inner.Progress?.detail === undefined
-                ? null
-                : inner.Progress?.detail.detail_oneof === null
-                ? null
-                : inner.Progress?.detail.detail_oneof;
-        if (ticks !== null && 'Ticks' in ticks) {
-            return {
-                Progress: {
-                    uuid: inner.Progress?.uuid,
-                    progress:
-                        ticks === null
-                            ? null
-                            : {
-                                  count: ticks.Ticks?.count,
-                                  total: ticks.Ticks?.total,
-                                  type: ticks.Ticks?.state,
-                              },
-                },
-            };
-        } else {
-            return {
-                Progress: {
-                    uuid: inner.Progress?.uuid,
-                    progress: null,
-                },
-            };
+        const progress = inner.Progress;
+        if (!progress) {
+            return new Error(`Has been recieved Progress without even definition`);
         }
-    } else if ('StreamUpdated' in inner) {
+        const details =
+            progress.detail === null || progress.detail === undefined
+                ? null
+                : progress.detail.detail_oneof === null
+                ? null
+                : progress.detail.detail_oneof;
+        if (!details) {
+            return new Error(
+                `Has been recieved Progress without event definition (detail.detail_oneof)`,
+            );
+        }
+        if (!details.Notification && !details.Stopped && !details.Ticks) {
+            return new Error(
+                `Has been recieved Progress without event type definition (Notification or Stopped or Ticks aren't found)`,
+            );
+        }
+        const ticks = !details.Ticks ? null : details.Ticks;
+        const stopped = !details.Stopped ? null : details.Stopped;
+        const notification = !details.Notification ? null : details.Notification;
         return {
-            StreamUpdated: inner.StreamUpdated,
+            Progress: {
+                uuid: progress.uuid,
+                event:
+                    ticks !== null
+                        ? {
+                              progress: {
+                                  count: ticks.count,
+                                  total: ticks.total,
+                                  state: ticks.state.trim() === '' ? undefined : ticks.state,
+                              },
+                          }
+                        : stopped !== null
+                        ? {
+                              stopped: true,
+                          }
+                        : notification !== null
+                        ? {
+                              notification: {
+                                  content: notification.content,
+                                  line: notification.line,
+                                  severity: notification.severity,
+                              },
+                          }
+                        : // Set default value
+                          {
+                              progress: {
+                                  count: 0,
+                                  total: 0,
+                                  state: undefined,
+                              },
+                          },
+            },
+        };
+    } else if ('StreamUpdated' in inner) {
+        const event = inner.StreamUpdated;
+        if (!event) {
+            return new Error(`Has been recieved StreamUpdated without even definition`);
+        }
+        return {
+            StreamUpdated: event,
         };
     } else if ('SearchUpdated' in inner) {
+        const event = inner.SearchUpdated;
+        if (!event) {
+            return new Error(`Has been recieved SearchUpdated without even definition`);
+        }
         return {
             SearchUpdated: {
-                found: inner.SearchUpdated?.found,
-                stat: inner.SearchUpdated?.stat,
+                found: !event.found ? 0 : event.found,
+                stat: !event.stat ? new Map() : event.stat,
             },
         };
     } else if ('SearchValuesUpdated' in inner) {
+        const event = inner.SearchValuesUpdated;
+        if (!event) {
+            return new Error(`Has been recieved SearchValuesUpdated without even definition`);
+        }
+        const values: IValuesMinMaxMap = {};
+        event.values.forEach((range, key) => {
+            values[key] = [range.min, range.max];
+        });
         return {
-            SearchValuesUpdated: inner.SearchValuesUpdated?.values,
+            SearchValuesUpdated: values,
         };
     } else if ('SearchMapUpdated' in inner) {
+        const event = inner.SearchMapUpdated;
+        if (!event) {
+            return new Error(`Has been recieved SearchMapUpdated without even definition`);
+        }
         // TODO: Map represented as a JSON string and has to be parsed in addition
         return {
-            SearchMapUpdated: inner.SearchMapUpdated?.update,
+            SearchMapUpdated: event.update,
         };
     } else if ('IndexedMapUpdated' in inner) {
+        const event = inner.IndexedMapUpdated;
+        if (!event) {
+            return new Error(`Has been recieved IndexedMapUpdated without even definition`);
+        }
         return {
             IndexedMapUpdated: {
-                len: inner.IndexedMapUpdated?.len,
+                len: event.len,
             },
         };
     } else {

@@ -7,14 +7,9 @@ import { IAttachment } from 'platform/types/content';
 
 import * as convertor from '../util/convertor';
 
-export interface IProgressState {
-    total: number;
-    count: number;
-}
-
 export interface IProgressEvent {
     uuid: string;
-    Progress: IProgressState;
+    event: convertor.ProgressEventTy;
 }
 
 export interface IError {
@@ -56,9 +51,7 @@ export interface ISessionEvents {
     SearchUpdated: Subject<ISearchUpdated>;
     SearchValuesUpdated: Subject<IValuesMinMaxMap | null>;
     SearchMapUpdated: Subject<string>;
-    MapUpdated: Subject<IEventMapUpdated>;
     IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
-    MatchesUpdated: Subject<IEventMatchesUpdated>;
     Progress: Subject<IProgressEvent>;
     AttachmentsUpdated: Subject<IAttachmentsUpdatedUpdated>;
     SessionError: Subject<IError>;
@@ -77,9 +70,7 @@ interface ISessionEventsSignatures {
     SearchUpdated: 'SearchUpdated';
     SearchValuesUpdated: 'SearchValuesUpdated';
     SearchMapUpdated: 'SearchMapUpdated';
-    MapUpdated: 'MapUpdated';
     IndexedMapUpdated: 'IndexedMapUpdated';
-    MatchesUpdated: 'MatchesUpdated';
     Progress: 'Progress';
     AttachmentsUpdated: 'AttachmentsUpdated';
     SessionError: 'SessionError';
@@ -96,9 +87,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     SearchUpdated: 'SearchUpdated',
     SearchValuesUpdated: 'SearchValuesUpdated',
     SearchMapUpdated: 'SearchMapUpdated',
-    MapUpdated: 'MapUpdated',
     IndexedMapUpdated: 'IndexedMapUpdated',
-    MatchesUpdated: 'MatchesUpdated',
     AttachmentsUpdated: 'AttachmentsUpdated',
     Progress: 'Progress',
     SessionError: 'SessionError',
@@ -115,15 +104,25 @@ interface ISessionEventsInterfaces {
     SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
     SearchValuesUpdated: { self: ['object', null] };
     SearchMapUpdated: { self: ['string', null] };
-    MapUpdated: { self: 'object'; map: typeof Array }; // TODO: seems unused event
     IndexedMapUpdated: { self: 'object'; len: 'number' };
-    MatchesUpdated: { self: 'object'; matches: typeof Array }; // TODO: seems unused event
     Progress: {
         self: 'object';
         uuid: 'string';
-        progress: [
-            { self: 'object'; total: 'number'; count: 'number' },
-            { self: 'object'; type: 'string' },
+        event: [
+            {
+                self: 'object';
+                progress: { self: 'object'; total: 'number'; count: 'number'; state: 'string' };
+            },
+            { self: 'object'; stopped: { self: 'object'; type: 'boolean' } },
+            {
+                self: 'object';
+                notification: {
+                    self: 'object';
+                    severity: 'number';
+                    line: 'number';
+                    content: 'string';
+                };
+            },
         ];
     };
     AttachmentsUpdated: { self: 'object'; len: 'number'; attachment: typeof Object };
@@ -145,15 +144,25 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     SearchUpdated: { self: 'object', found: 'number', stat: Object },
     SearchValuesUpdated: { self: ['object', null] },
     SearchMapUpdated: { self: ['string', null] },
-    MapUpdated: { self: 'object', map: Array },
     IndexedMapUpdated: { self: 'object', len: 'number' },
-    MatchesUpdated: { self: 'object', matches: Array },
     Progress: {
         self: 'object',
         uuid: 'string',
-        progress: [
-            { self: 'object', total: 'number', count: 'number' },
-            { self: 'object', type: 'string' },
+        event: [
+            {
+                self: 'object',
+                progress: { self: 'object', total: 'number', count: 'number', state: 'string' },
+            },
+            { self: 'object', stopped: { self: 'object', type: 'boolean' } },
+            {
+                self: 'object',
+                notification: {
+                    self: 'object',
+                    severity: 'number',
+                    line: 'number',
+                    content: 'string',
+                },
+            },
         ],
     },
     AttachmentsUpdated: { self: 'object', len: 'number', attachment: Object },
@@ -180,9 +189,7 @@ export class EventProvider extends Computation<
         SearchUpdated: new Subject<ISearchUpdated>(),
         SearchValuesUpdated: new Subject<IValuesMinMaxMap | null>(),
         SearchMapUpdated: new Subject<string>(),
-        MapUpdated: new Subject<IEventMapUpdated>(),
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),
-        MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy
         Progress: new Subject<IProgressEvent>(),
         AttachmentsUpdated: new Subject<IAttachmentsUpdatedUpdated>(),
         SessionError: new Subject<IError>(),

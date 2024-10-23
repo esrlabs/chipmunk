@@ -6,7 +6,7 @@ import { getNativeModule } from '../native/native';
 import { Type, Source, NativeError } from '../interfaces/errors';
 
 import * as proto from 'protocol';
-import * as ty from '../protocol/index';
+import * as ty from '../protocol';
 
 export abstract class JobsNative {
     public abstract abort(sequence: number): Promise<void>;
