@@ -1,7 +1,7 @@
 //! Provides struct representing the shell running by user besides a method to generate
 //! completion of the CLI sub-commands and arguments for the given shell.
 
-use std::{fmt::Display, io};
+use std::{fmt::Display, io, sync::LazyLock};
 
 use anyhow::Context;
 use clap::CommandFactory;
@@ -10,21 +10,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::{cli_args::CargoCli, user_config::UserConfiguration};
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 /// Represents the shell running by users providing method to create commands to run process
 /// on the given shell.
 pub enum UserShell {
     #[cfg(unix)]
-    #[cfg_attr(all(unix, not(target_os = "macos")), default)]
     Sh,
-
     #[cfg(windows)]
-    #[default]
     Cmd,
-
     Bash,
-    #[cfg_attr(target_os = "macos", default)]
     Zsh,
     Fish,
     NuShell,
@@ -46,6 +41,40 @@ impl Display for UserShell {
             UserShell::Elvish => write!(f, "Envish"),
             UserShell::PowerShell => write!(f, "Power Shell"),
         }
+    }
+}
+
+#[cfg(unix)]
+impl Default for UserShell {
+    fn default() -> Self {
+        // Try to retrieve the default shell from the environment variable if available,
+        // otherwise use 'sh'
+        static DEFAULT_SHELL: LazyLock<UserShell> = LazyLock::new(|| {
+            let shell = std::env::var("SHELL")
+                .ok()
+                .and_then(|shell| shell.rsplit('/').next().map(|a| a.to_owned()))
+                .map(|shell| match shell.to_lowercase().as_str() {
+                    "bash" => UserShell::Bash,
+                    "zsh" => UserShell::Zsh,
+                    "fish" => UserShell::Fish,
+                    "pwsh" => UserShell::PowerShell,
+                    "nu" => UserShell::NuShell,
+                    "elvish" => UserShell::Elvish,
+                    _ => UserShell::Sh,
+                })
+                .unwrap_or(UserShell::Sh);
+
+            shell
+        });
+
+        *DEFAULT_SHELL
+    }
+}
+
+#[cfg(windows)]
+impl Default for UserShell {
+    fn default() -> Self {
+        UserShell::Cmd
     }
 }
 
