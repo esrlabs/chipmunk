@@ -1,5 +1,5 @@
-use criterion::{Criterion, *};
-use std::path::PathBuf;
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use std::{hint::black_box, path::PathBuf};
 
 use bench_utls::{
     bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,

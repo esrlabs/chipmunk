@@ -1,5 +1,5 @@
-use criterion::black_box;
 use sources::ByteSource;
+use std::hint::black_box;
 
 #[derive(Debug, Clone)]
 pub struct MockByteSource {}
