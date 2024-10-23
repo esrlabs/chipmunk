@@ -3,7 +3,7 @@ import { scope } from 'platform/env/scope';
 import { error as e } from 'platform/log/utils';
 
 import * as proto from 'protocol';
-import * as ty from '../protocol/index';
+import * as ty from '../protocol';
 
 export enum Type {
     NotImplemented = 'NotImplemented',

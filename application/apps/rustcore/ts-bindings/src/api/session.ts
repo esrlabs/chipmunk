@@ -15,7 +15,6 @@ import { OperationStat } from '../interfaces/index';
 export {
     ISessionEvents,
     IProgressEvent,
-    IProgressState,
     IEventMapUpdated,
     IEventMatchesUpdated,
     IEventIndexedMapUpdated,

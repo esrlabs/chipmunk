@@ -1,5 +1,5 @@
-export { RangeInclusive } from "./common";
 export { Range } from "./common";
+export { RangeInclusive } from "./common";
 export { RangeInclusiveList } from "./common";
 export { AttachmentInfo } from "./attachment";
 export { AttachmentInfoList } from "./attachment";
