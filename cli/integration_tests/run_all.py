@@ -14,6 +14,7 @@ from shell_compl import run_shell_completion_commands
 from test_cmd import run_test_command
 from release import run_release_command
 from bench import run_benchmark_command
+from user_config import run_user_configs_commands
 
 
 def run_all():
@@ -81,6 +82,14 @@ def run_all():
         run_print_dot_commands()
     except Exception:
         print_err("Print Dots")
+        raise
+    print_separator()
+
+    ### User Configurations ###
+    try:
+        run_user_configs_commands()
+    except Exception:
+        print_err("User Configurations")
         raise
     print_separator()
 
