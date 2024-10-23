@@ -1,7 +1,7 @@
 //! Provides struct representing the shell running by user besides a method to generate
 //! completion of the CLI sub-commands and arguments for the given shell.
 
-use std::{fmt::Display, io, sync::LazyLock};
+use std::{fmt::Display, io};
 
 use anyhow::Context;
 use clap::CommandFactory;
@@ -47,6 +47,7 @@ impl Display for UserShell {
 #[cfg(unix)]
 impl Default for UserShell {
     fn default() -> Self {
+        use std::sync::LazyLock;
         // Try to retrieve the default shell from the environment variable if available,
         // otherwise use 'sh'
         static DEFAULT_SHELL: LazyLock<UserShell> = LazyLock::new(|| {
@@ -129,7 +130,7 @@ impl UserShell {
 
     /// Checks if the shell exist on the system by running it with the version argument.
     pub fn exist(self) -> bool {
-        // Default shell is always installed on their respecting operating system and doesn't need
+        // Default shells are always installed on their respecting operating system and don't need
         // extra checks avoiding other potential problem because `sh` doesn't have a version
         // argument.
         let version_arg = match self {
