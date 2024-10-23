@@ -218,31 +218,64 @@ export function toObserveOptions(source: IObserve): ty.ObserveOptions {
     return { origin: { origin_oneof }, parser };
 }
 
-export function decodeLifecycleTransition(buf: number[] | Buffer): any {
+export function decodeLifecycleTransition(buf: number[] | Buffer):
+    | {
+          Started: { uuid: string; alias: string };
+      }
+    | {
+          Stopped: string;
+      }
+    | {
+          Ticks: {
+              uuid: string;
+              progress: {
+                  count: number;
+                  state: string | undefined;
+                  total: number | undefined;
+              };
+          };
+      }
+    | Error {
     const event: ty.LifecycleTransition = proto.LifecycleTransition.decode(Uint8Array.from(buf));
     if (!event.transition_oneof) {
-        return {};
+        return new Error(`Field "transition_oneof" isn't found in LifecycleTransition`);
     }
     const inner: ty.TransitionOneof = event.transition_oneof;
     if ('Started' in inner) {
-        return { Started: { uuid: inner.Started?.uuid, alias: inner.Started?.alias } };
+        if (!inner.Started) {
+            return new Error(
+                `Has been recieved LifecycleTransition.Started without even definition`,
+            );
+        }
+        return { Started: { uuid: inner.Started.uuid, alias: inner.Started.alias } };
     } else if ('Ticks' in inner) {
-        const ticks = inner.Ticks?.ticks;
+        if (!inner.Ticks) {
+            return new Error(`Has been recieved LifecycleTransition.Ticks without even definition`);
+        }
+        const ticks = inner.Ticks.ticks;
         return {
             Ticks: {
-                uuid: inner.Ticks?.uuid,
-                progress:
-                    ticks === null || ticks === undefined
-                        ? {}
-                        : {
-                              count: Number(ticks.count),
-                              state: ticks.state,
-                              total: Number(ticks.total),
-                          },
+                uuid: inner.Ticks.uuid,
+                progress: !ticks
+                    ? {
+                          count: 0,
+                          state: undefined,
+                          total: undefined,
+                      }
+                    : {
+                          count: Number(ticks.count),
+                          state: ticks.state,
+                          total: Number(ticks.total),
+                      },
             },
         };
     } else if ('Stopped' in inner) {
-        return { Stopped: inner.Stopped?.uuid };
+        if (!inner.Stopped) {
+            return new Error(
+                `Has been recieved LifecycleTransition.Stopped without even definition`,
+            );
+        }
+        return { Stopped: inner.Stopped.uuid };
     } else {
         throw new Error(`Fail to parse event: ${JSON.stringify(event)}`);
     }

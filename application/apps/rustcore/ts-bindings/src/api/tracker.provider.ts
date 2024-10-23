@@ -42,10 +42,12 @@ interface ISessionEventsInterfaces {
     Ticks: {
         self: 'object';
         uuid: 'string';
-        progress: [
-            { self: 'object'; total: 'number'; count: 'number' },
-            { self: 'object'; type: 'string' },
-        ];
+        progress: {
+            self: 'object';
+            total: ['number', 'undefined'];
+            count: 'number';
+            state: ['string', 'undefined'];
+        };
     };
 }
 
@@ -55,10 +57,12 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     Ticks: {
         self: 'object',
         uuid: 'string',
-        progress: [
-            { self: 'object', total: 'number', count: 'number' },
-            { self: 'object', type: 'string' },
-        ],
+        progress: {
+            self: 'object',
+            total: ['number', 'undefined'],
+            count: 'number',
+            state: ['string', 'undefined'],
+        },
     },
 };
 
