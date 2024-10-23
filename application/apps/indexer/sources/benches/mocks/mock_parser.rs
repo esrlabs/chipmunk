@@ -1,8 +1,8 @@
 use std::{fmt::Display, iter, marker::PhantomData};
 
-use criterion::black_box;
 use parsers::{Attachment, LogMessage, Parser};
 use serde::Serialize;
+use std::hint::black_box;
 
 /// Empty type used as phantom data with mock parser to indicate that its [`Parser::parse()`]
 /// implementation will always return [`iter::once()`].
@@ -93,7 +93,7 @@ impl<T> MockParser<T> {
         if counter >= max_count {
             const ERR: parsers::Error = parsers::Error::Eof;
 
-            return Err(criterion::black_box(ERR));
+            return Err(black_box(ERR));
         }
 
         // Unnecessary check to convince the compiler that we are using the input.

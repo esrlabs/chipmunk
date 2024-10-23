@@ -1,4 +1,6 @@
-use criterion::{Criterion, *};
+use std::hint::black_box;
+
+use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 use bench_utls::{bench_standrad_config, create_binary_bytesource, read_binary, run_producer};
 use parsers::text::StringTokenizer;
