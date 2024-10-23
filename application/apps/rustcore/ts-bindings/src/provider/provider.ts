@@ -17,7 +17,7 @@ export interface IOrderStat {
     duration: number;
 }
 
-export type Decoder = (buf: number[] | Buffer) => any;
+export type Decoder = (buf: number[] | Buffer) => any | Error;
 
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
@@ -256,6 +256,12 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         try {
             if (data instanceof Array || data instanceof Buffer) {
                 event = this._decoder(data);
+                if (event instanceof Error) {
+                    this.debug().emit.error(
+                        this.logger.error(`Fail to parse message: ${event.message}`),
+                    );
+                    return;
+                }
             } else if (typeof data === 'string') {
                 try {
                     event = JSON.parse(data);
@@ -268,9 +274,11 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
             } else if (typeof data === 'object' && data !== null) {
                 event = data;
             } else {
-                const msg: string = `Unsupported format of event data: ${typeof data} / ${data}.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
-                this.debug().emit.error(msg);
-                this.logger.error(msg);
+                this.debug().emit.error(
+                    this.logger.error(
+                        `Unsupported format of event data: ${typeof data} / ${data}.\n Expecting type (JSON string): { [type: string]: string | undefined }`,
+                    ),
+                );
                 return;
             }
             if (typeof event === 'string') {
@@ -280,9 +288,11 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 event === null ||
                 Object.keys(event).length !== 1
             ) {
-                const msg: string = `Has been gotten incorrect event data: ${data} (type: ${typeof data}). No any props field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
-                this.debug().emit.error(msg);
-                this.logger.error(msg);
+                this.debug().emit.error(
+                    this.logger.error(
+                        `Has been gotten incorrect event data: ${data} (type: ${typeof data}). No any props field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`,
+                    ),
+                );
             } else {
                 const type: string = Object.keys(event)[0];
                 const body: any = event[type];
