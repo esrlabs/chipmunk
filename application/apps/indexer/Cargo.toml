@@ -40,7 +40,6 @@ env_logger = "0.10"
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
 criterion = { version = "0.5", features = ["html_reports"] }
 mimalloc = "0.1"
-tikv-jemallocator = "0.6"
 
 # only uncomment when profiling
 # [profile.release]
