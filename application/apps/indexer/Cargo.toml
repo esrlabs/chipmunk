@@ -40,6 +40,7 @@ env_logger = "0.10"
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
 criterion = { version = "0.5", features = ["html_reports"] }
+pretty_assertions = "1.4"
 
 # only uncomment when profiling
 # [profile.release]
