@@ -248,7 +248,12 @@ export class Charts extends Subscriber {
                         to: range !== undefined ? range.to : undefined,
                     }),
                 ).then((response) => {
-                    return response.values;
+                    if (typeof response.error === 'string' && response.error.trim().length > 0) {
+                        this.log().error(`Fail to load values: ${response.error}`);
+                        return Promise.reject(new Error(response.error));
+                    } else {
+                        return response.values;
+                    }
                 });
             },
             matches: (): Promise<ISearchMap> => {
