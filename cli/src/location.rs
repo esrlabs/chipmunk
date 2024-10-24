@@ -56,3 +56,22 @@ pub fn init_location() -> Result<(), Error> {
 pub fn config_path() -> PathBuf {
     get_root().join("cli").join("config")
 }
+
+/// Return the path for the home directory directory where logs and configuration are placed.
+pub fn chipmunk_home_dir() -> anyhow::Result<PathBuf> {
+    let home_dir = dirs::home_dir()
+        .map(|home| home.join(".chipmunk"))
+        .context("Resolving home directory failed")?;
+
+    Ok(home_dir)
+}
+
+/// Return the path for the build CLI directory in Chipmunk home directory.
+pub fn build_cli_home_dir() -> anyhow::Result<PathBuf> {
+    let chipmunk_home =
+        chipmunk_home_dir().context("Error while resolving Chipmunk home directory")?;
+    const BUILD_CLI_DIR_NAME: &str = "build_cli";
+    let build_cli_path = chipmunk_home.join(BUILD_CLI_DIR_NAME);
+
+    Ok(build_cli_path)
+}

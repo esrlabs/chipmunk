@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+use serde::{Deserialize, Serialize};
 
 use crate::{benchmark::BenchTarget, target::Target};
 
@@ -39,22 +40,26 @@ pub struct Cli {
 // alaises in options description.
 // Link for the issue: https://github.com/clap-rs/clap/issues/4416.
 
-#[derive(Debug, Clone, Copy, Default, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, clap::ValueEnum, Serialize, Deserialize)]
 /// Specifies the UI mode for displaying command logs and progress in the terminal.
 pub enum UiMode {
     /// Displays progress bars, showing the current line of the output of each command. [aliases: 'b']
     #[default]
     #[value(name = "bars", alias("b"))]
+    #[serde(rename = "bars")]
     ProgressBars,
     /// Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. [aliases: 'r']
     #[value(name = "report", alias("r"))]
+    #[serde(rename = "report")]
     BarsWithReport,
     /// Outputs each job's result to stdout once the job finishes. No progress bars are displayed. [aliases: 'p']
     #[value(name = "print", alias("p"))]
+    #[serde(rename = "print")]
     PrintOnJobFinish,
     /// Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs.
     /// No progress bars are displayed. [aliases: 'i']
     #[value(name = "immediate", alias("i"))]
+    #[serde(rename = "immediate")]
     PrintImmediately,
 }
 
@@ -71,6 +76,10 @@ pub enum Command {
         #[arg(short, long, default_value_t = false)]
         all_jobs: bool,
     },
+    #[clap(name = "configuration", visible_alias = "config")]
+    #[command(subcommand)]
+    /// Provides commands for the configuration of this tool on user level.
+    UserConfiguration(UserConfigCommand),
     /// Runs linting & clippy for all or the specified targets
     Lint {
         /// Target to lint, by default whole application will be linted
@@ -80,8 +89,8 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
-        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
-        ui_mode: UiMode,
+        #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: Option<UiMode>,
     },
     /// Build all or the specified targets
     Build {
@@ -96,8 +105,8 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
-        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
-        ui_mode: UiMode,
+        #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: Option<UiMode>,
     },
     /// Clean all or the specified targets
     Clean {
@@ -105,8 +114,8 @@ pub enum Command {
         #[arg(index = 1)]
         target: Option<Vec<Target>>,
 
-        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
-        ui_mode: UiMode,
+        #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: Option<UiMode>,
     },
     /// Run tests for all or the specified targets
     Test {
@@ -121,8 +130,8 @@ pub enum Command {
         #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
         fail_fast: bool,
 
-        #[arg(short, long, default_value_t = UiMode::default(), help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
-        ui_mode: UiMode,
+        #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
+        ui_mode: Option<UiMode>,
 
         /// Sets which test specifications should be run.
         /// Currently implemented for wrapper target (ts-bindings) only
@@ -177,4 +186,18 @@ pub enum EnvironmentCommand {
     /// Prints the information of the needed tools for the development
     #[clap(visible_alias = "list")]
     Print,
+}
+
+#[derive(Debug, Subcommand, Clone, Copy)]
+pub enum UserConfigCommand {
+    #[clap(visible_alias = "path")]
+    /// Prints the path to the user configurations file.
+    PrintPath,
+    #[clap(name = "print-default", visible_alias = "default")]
+    /// Dumps the configurations with the default values to be used as a reference and base to
+    /// user configurations.
+    DumpDefaultConfiguration,
+    #[clap(name = "write-default", visible_alias = "write")]
+    /// Creates user configurations file if doesn't exist then writes the default configurations to it.
+    WriteDefaultToFile,
 }

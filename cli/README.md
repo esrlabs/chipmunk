@@ -39,6 +39,7 @@ Usage: cargo chipmunk <COMMAND>
 Commands:
   environment       Provides commands for the needed tools for the development [aliases: env]
   print-dot         Prints an overview of targets dependencies in print-dot format for `Graphviz` [aliases: dot]
+  configuration     Provides commands for the configuration of this tool on user level [aliases: config]
   lint              Runs linting & clippy for all or the specified targets
   build             Build all or the specified targets
   clean             Clean all or the specified targets
@@ -97,6 +98,38 @@ Options:
           Print help (see a summary with '-h')
 ```
 
+## User Configurations
+
+Users can configure their preferences for the shell used to run process commands and the default UI mode. The configuration file should be located in the Chipmunk home directory, within the `build_cli` directory, named `config.toml`.
+
+Configurations can be managed via the CLI using the `config` subcommands. These subcommands allow you to resolve the path to the configuration file and generate default configurations, with an option to write them directly to the file.
+
+Below is an example of the configuration file with the available settings:
+
+```toml
+# Defines the shell to be used for executing process commands.
+# Options:
+#   - `sh` (Unix-based systems only)
+#   - `cmd` (Windows only)
+#   - `bash`
+#   - `zsh`
+#   - `fish`
+#   - `nu-shell`
+#   - `elvish`
+#   - `power-shell`
+# If not specified, the system will default to:
+#   - The value of the `SHELL` environment variable on Unix-based systems.
+#   - `cmd` on Windows.
+shell = "sh"
+
+# Defines the preferred UI mode.
+# Options:
+#   - `bars`: Displays progress bars, showing the current line of the output of each command.
+#   - `report`: Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished.
+#   - `print`: Outputs each job's result to stdout once the job finishes. No progress bars are displayed.
+#   - `immediate`: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed.
+ui_mode = "bars"
+```
 
 ## Benchmarks via Build CLI Tool
 

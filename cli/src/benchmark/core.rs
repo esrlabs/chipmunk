@@ -33,20 +33,20 @@ impl ConfigsInfos {
         let config_file_path = config_path().join(CONFIG_FILENAME);
         ensure!(
             config_file_path.exists(),
-            "Configuration file doesn't exist. Path: {}",
+            "Benchmarks Configuration file doesn't exist. Path: {}",
             config_file_path.display()
         );
 
         let content = read_to_string(&config_file_path).with_context(|| {
             format!(
-                "Error while reading configuration file. Path: {}",
+                "Error while reading benchmarks configuration file. Path: {}",
                 config_file_path.display()
             )
         })?;
 
         let config = toml::from_str(&content).with_context(|| {
             format!(
-                "Error while parsing configuration file. Path: {}",
+                "Error while parsing benchmarks configuration file. Path: {}",
                 config_file_path.display()
             )
         })?;

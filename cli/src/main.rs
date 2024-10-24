@@ -18,12 +18,13 @@ mod shell;
 mod spawner;
 mod target;
 mod tracker;
+mod user_config;
 mod version;
 
-use anyhow::{bail, Error};
+use anyhow::{bail, Context, Error};
 use checksum_records::ChecksumRecords;
 use clap::Parser;
-use cli_args::{CargoCli, Command, UiMode};
+use cli_args::{CargoCli, Command, UiMode, UserConfigCommand};
 use console::style;
 use dev_environment::{print_env_info, validate_dev_tools};
 use job_type::JobType;
@@ -36,6 +37,7 @@ use tokio::signal;
 use tracker::{get_tracker, init_tracker};
 
 pub use jobs_runner::jobs_state::JobsState;
+use user_config::UserConfiguration;
 
 use crate::cli_args::EnvironmentCommand;
 
@@ -47,6 +49,9 @@ async fn main() -> Result<(), Error> {
 
     // Validate current directory location.
     init_location()?;
+
+    // Load and validate user configurations
+    UserConfiguration::init()?;
 
     // Check for newer versions
     version::check_version();
@@ -99,6 +104,22 @@ async fn main_process(command: Command) -> Result<(), Error> {
             }
             return Ok(());
         }
+        Command::UserConfiguration(sub_command) => match sub_command {
+            UserConfigCommand::PrintPath => {
+                let config_path = UserConfiguration::file_path()
+                    .context("Error while resolving user configurations file path")?;
+
+                println!("{}", config_path.display());
+
+                return Ok(());
+            }
+            UserConfigCommand::DumpDefaultConfiguration => {
+                return UserConfiguration::print_default()
+            }
+            UserConfigCommand::WriteDefaultToFile => {
+                return UserConfiguration::write_default_to_file()
+            }
+        },
         Command::Lint {
             target,
             fail_fast,
@@ -178,7 +199,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             } else {
                 UiMode::PrintOnJobFinish
             };
-            init_tracker(ui_mode);
+            init_tracker(Some(ui_mode));
             validate_dev_tools()?;
             do_release(development, code_sign).await?;
             let tracker = get_tracker();

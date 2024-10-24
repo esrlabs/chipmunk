@@ -1,6 +1,6 @@
 [package]
 name = "cargo-chipmunk"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2021"
 description = "CLI Tool for chipmunk application development"
@@ -33,6 +33,7 @@ serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 glob = "0.3"
 toml = "0.8"
+dirs = "5.0"
 
 [dev-dependencies]
 tempdir.workspace = true
