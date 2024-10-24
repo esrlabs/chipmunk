@@ -1930,6 +1930,7 @@ dependencies = [
  "merging",
  "mime_guess",
  "parsers",
+ "pretty_assertions",
  "processor",
  "rustc-hash",
  "serde",
