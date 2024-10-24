@@ -7,6 +7,10 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use parsers::someip::SomeipParser;
 use sources::{binary::pcap::legacy::PcapLegacyByteSource, producer::MessageProducer};
 
+// The MiMalloc allocator is currently used in the Chipmunk app.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 /// This benchmark covers parsing from SomeIP file using [`PcapLegacyByteSource`] byte source.
 /// It supports providing the path for a fibex file as additional configuration.
 fn someip_legacy_producer(c: &mut Criterion) {
