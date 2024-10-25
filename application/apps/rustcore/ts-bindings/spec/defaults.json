@@ -140,6 +140,7 @@
 
                 },
                 "files": {
+                    "dlt": ["./application/developing/resources/attachments.dlt","./application/developing/resources/someip.dlt"]    
                 }
             }
         },
