@@ -7,7 +7,7 @@ import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
 import { IGrabbedElement } from 'platform/types/content';
-import { createSampleFile, finish } from './common';
+import { createSampleFile, finish, relativePath, rootPath } from './common';
 import { readConfigurationFile } from './config';
 import { fromIndexes } from 'platform/types/range';
 import { v4 } from 'uuid';
@@ -307,650 +307,611 @@ describe('Exporting', function () {
         });
     });
 
-    if (
-        config.regular.files['dlt'] === undefined ||
-        config.regular.files['dlt'].length < 1 ||
-        !fs.existsSync(config.regular.files['dlt'][0])
-    ) {
-        console.log(
-            `"${config.regular.list[4]}" has been ignored - fail to find DLT file for testing`,
-        );
-        console.log(
-            `"${config.regular.list[5]}" has been ignored - fail to find DLT file for testing`,
-        );
-    } else {
-        it(config.regular.list[4], function () {
-            return runners.withSession(config.regular, 4, async (logger, done, comps) => {
-                const configuration = new Factory.File()
-                    .type(Factory.FileType.Binary)
-                    .asDlt({
-                        fibex_file_paths: [],
-                        filter_config: undefined,
-                        with_storage_header: true,
-                        tz: undefined,
+    it(config.regular.list[4], function () {
+        return runners.withSession(config.regular, 4, async (logger, done, comps) => {
+            const filename = relativePath(config.regular.files['dlt'][0]);
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .file(filename)
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 9 || gotten) {
+                    return;
+                }
+                gotten = true;
+                comps.stream
+                    .grab(0, 9)
+                    .then((grabbed) => {
+                        const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
+                        comps.stream
+                            .export(output, [{ from: 0, to: 8 }], {
+                                columns: [],
+                                spliter: undefined,
+                                delimiter: undefined,
+                            })
+                            .then(() => {
+                                fs.promises
+                                    .readFile(output, { encoding: 'utf-8' })
+                                    .then((content) => {
+                                        const rows = content.split('\n');
+                                        expect(rows.length).toEqual(grabbed.length);
+                                        for (let i = 0; i < rows.length; i += 1) {
+                                            expect(rows[i]).toEqual(grabbed[i].content);
+                                            if (rows[i] !== grabbed[i].content) {
+                                                console.log(
+                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                );
+                                                return finish(comps.session, done);
+                                            }
+                                        }
+                                        finish(comps.session, done);
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            comps.session,
+                                            done,
+                                            new Error(
+                                                `Fail to read output file due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    })
+                                    .finally(() => {
+                                        fs.unlinkSync(output);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
                     })
-                    .file(config.regular.files['dlt'][0])
-                    .get();
-                console.log(configuration);
-                comps.stream
-                    .observe(
-                        new Factory.File()
-                            .type(Factory.FileType.Binary)
-                            .asDlt({
-                                fibex_file_paths: [],
-                                filter_config: undefined,
-                                with_storage_header: true,
-                                tz: undefined,
-                            })
-                            .file(config.regular.files['dlt'][0])
-                            .get()
-                            .sterilized(),
-                    )
-                    .catch(finish.bind(null, comps.session, done));
-                let gotten: boolean = false;
-                comps.events.StreamUpdated.subscribe((rows: number) => {
-                    if (rows < 400 || gotten) {
-                        return;
-                    }
-                    gotten = true;
-                    comps.stream
-                        .grab(100, 100)
-                        .then((grabbed) => {
-                            const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
-                            comps.stream
-                                .export(output, [{ from: 100, to: 199 }], {
-                                    columns: [],
-                                    spliter: undefined,
-                                    delimiter: undefined,
-                                })
-                                .then(() => {
-                                    fs.promises
-                                        .readFile(output, { encoding: 'utf-8' })
-                                        .then((content) => {
-                                            const rows = content.split('\n');
-                                            expect(rows.length).toEqual(grabbed.length);
-                                            for (let i = 0; i < rows.length; i += 1) {
-                                                expect(rows[i]).toEqual(grabbed[i].content);
-                                                if (rows[i] !== grabbed[i].content) {
-                                                    console.log(
-                                                        `Rows are dismatch. Stream position ${grabbed[i].position}.`,
-                                                    );
-                                                    return finish(comps.session, done);
-                                                }
-                                            }
-                                            finish(comps.session, done);
-                                        })
-                                        .catch((err: Error) => {
-                                            finish(
-                                                comps.session,
-                                                done,
-                                                new Error(
-                                                    `Fail to read output file due error: ${
-                                                        err instanceof Error ? err.message : err
-                                                    }`,
-                                                ),
-                                            );
-                                        })
-                                        .finally(() => {
-                                            fs.unlinkSync(output);
-                                        });
-                                })
-                                .catch((err: Error) => {
-                                    finish(
-                                        comps.session,
-                                        done,
-                                        new Error(
-                                            `Fail to export data due error: ${
-                                                err instanceof Error ? err.message : err
-                                            }`,
-                                        ),
-                                    );
-                                });
-                        })
-                        .catch((err: Error) => {
-                            finish(
-                                undefined,
-                                done,
-                                new Error(
-                                    `Fail to grab due error: ${
-                                        err instanceof Error ? err.message : err
-                                    }`,
-                                ),
-                            );
-                        });
-                });
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
             });
         });
+    });
 
-        it(config.regular.list[5], function () {
-            return runners.withSession(config.regular, 5, async (logger, done, comps) => {
+    it(config.regular.list[5], function () {
+        return runners.withSession(config.regular, 5, async (logger, done, comps) => {
+            const filename = relativePath(config.regular.files['dlt'][0]);
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .file(filename)
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 9 || gotten) {
+                    return;
+                }
+                gotten = true;
                 comps.stream
-                    .observe(
-                        new Factory.File()
-                            .type(Factory.FileType.Binary)
-                            .asDlt({
-                                fibex_file_paths: [],
-                                filter_config: undefined,
-                                with_storage_header: true,
-                                tz: undefined,
-                            })
-                            .file(config.regular.files['dlt'][0])
-                            .get()
-                            .sterilized(),
-                    )
-                    .catch(finish.bind(null, comps.session, done));
-                let gotten: boolean = false;
-                comps.events.StreamUpdated.subscribe((rows: number) => {
-                    if (rows < 400 || gotten) {
-                        return;
-                    }
-                    gotten = true;
-                    comps.stream
-                        .grab(100, 100)
-                        .then((grabbed) => {
-                            const output = path.resolve(os.tmpdir(), `${v4()}.dlt`);
-                            comps.stream
-                                .exportRaw(output, [{ from: 100, to: 199 }])
-                                .then(async () => {
-                                    comps.session
-                                        .destroy()
-                                        .then(async () => {
-                                            const { session, stream, search, events } =
-                                                await runners.initializeSession(
-                                                    config.regular.list[5],
-                                                );
-                                            stream
-                                                .observe(
-                                                    new Factory.File()
-                                                        .type(Factory.FileType.Binary)
-                                                        .asDlt({
-                                                            fibex_file_paths: [],
-                                                            filter_config: undefined,
-                                                            with_storage_header: true,
-                                                            tz: undefined,
-                                                        })
-                                                        .file(output)
-                                                        .get()
-                                                        .sterilized(),
-                                                )
-                                                .catch(finish.bind(null, session, done));
-                                            let gotten: boolean = false;
-                                            gotten = false;
-                                            events.StreamUpdated.subscribe((rows: number) => {
-                                                if (rows < 99 || gotten) {
-                                                    return;
-                                                }
-                                                gotten = true;
-                                                comps.stream
-                                                    .grab(0, 100)
-                                                    .then((rows) => {
-                                                        expect(rows.length).toEqual(grabbed.length);
-                                                        for (let i = 0; i < rows.length; i += 1) {
-                                                            expect(rows[i].content).toEqual(
-                                                                grabbed[i].content,
-                                                            );
-                                                            if (
-                                                                rows[i].content !==
-                                                                grabbed[i].content
-                                                            ) {
-                                                                console.log(
-                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
-                                                                );
-                                                                return finish(session, done);
-                                                            }
-                                                        }
-                                                        finish(session, done);
+                    .grab(0, 9)
+                    .then((grabbed) => {
+                        const output = path.resolve(os.tmpdir(), `${v4()}.dlt`);
+                        comps.stream
+                            .exportRaw(output, [{ from: 0, to: 8 }])
+                            .then(async () => {
+                                comps.session
+                                    .destroy()
+                                    .then(async () => {
+                                        const { session, stream, search, events } =
+                                            await runners.initializeSession(config.regular.list[5]);
+                                        stream
+                                            .observe(
+                                                new Factory.File()
+                                                    .type(Factory.FileType.Binary)
+                                                    .asDlt({
+                                                        fibex_file_paths: [],
+                                                        filter_config: undefined,
+                                                        with_storage_header: true,
+                                                        tz: undefined,
                                                     })
-                                                    .catch((err: Error) => {
-                                                        finish(
-                                                            undefined,
-                                                            done,
-                                                            new Error(
-                                                                `Fail to grab due error: ${
-                                                                    err instanceof Error
-                                                                        ? err.message
-                                                                        : err
-                                                                }`,
-                                                            ),
-                                                        );
-                                                    });
-                                            });
-                                        })
-                                        .catch((err: Error) => {
-                                            finish(
-                                                undefined,
-                                                done,
-                                                new Error(
-                                                    `Fail to destroy session due error: ${
-                                                        err instanceof Error ? err.message : err
-                                                    }`,
-                                                ),
-                                            );
-                                        });
-                                })
-                                .catch((err: Error) => {
-                                    finish(
-                                        comps.session,
-                                        done,
-                                        new Error(
-                                            `Fail to export data due error: ${
-                                                err instanceof Error ? err.message : err
-                                            }`,
-                                        ),
-                                    );
-                                });
-                        })
-                        .catch((err: Error) => {
-                            finish(
-                                undefined,
-                                done,
-                                new Error(
-                                    `Fail to grab due error: ${
-                                        err instanceof Error ? err.message : err
-                                    }`,
-                                ),
-                            );
-                        });
-                });
-            });
-        });
-    }
-
-    if (
-        config.regular.files['dlt'] === undefined ||
-        config.regular.files['dlt'].length < 2 ||
-        !fs.existsSync(config.regular.files['dlt'][1])
-    ) {
-        console.log(
-            `"${config.regular.list[6]}" has been ignored - fail to find DLT file for testing`,
-        );
-        console.log(
-            `"${config.regular.list[7]}" has been ignored - fail to find DLT file for testing`,
-        );
-    } else {
-        it(config.regular.list[6], function () {
-            return runners.withSession(config.regular, 6, async (logger, done, comps) => {
-                comps.stream
-                    .observe(
-                        new Factory.Concat()
-                            .type(Factory.FileType.Binary)
-                            .asDlt({
-                                fibex_file_paths: [],
-                                filter_config: undefined,
-                                with_storage_header: true,
-                                tz: undefined,
-                            })
-                            .files([config.regular.files['dlt'][1], config.regular.files['dlt'][1]])
-                            .get()
-                            .sterilized(),
-                    )
-                    .catch(finish.bind(null, comps.session, done));
-                let gotten: boolean = false;
-                comps.events.StreamUpdated.subscribe((rows: number) => {
-                    if (rows < 200 || gotten) {
-                        return;
-                    }
-                    gotten = true;
-                    comps.stream
-                        .grab(50, 100)
-                        .then((grabbed) => {
-                            expect(grabbed[54].source_id).toEqual(0);
-                            expect(grabbed[55].source_id).toEqual(1);
-                            const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
-                            comps.stream
-                                .export(output, [{ from: 50, to: 149 }], {
-                                    columns: [],
-                                    spliter: undefined,
-                                    delimiter: undefined,
-                                })
-                                .then(() => {
-                                    fs.promises
-                                        .readFile(output, { encoding: 'utf-8' })
-                                        .then((content) => {
-                                            const rows = content.split('\n');
-                                            expect(rows.length).toEqual(grabbed.length);
-                                            for (let i = 0; i < rows.length; i += 1) {
-                                                expect(rows[i]).toEqual(grabbed[i].content);
-                                                if (rows[i] !== grabbed[i].content) {
-                                                    console.log(
-                                                        `Rows are dismatch. Stream position ${grabbed[i].position}.`,
-                                                    );
-                                                    return finish(comps.session, done);
-                                                }
-                                            }
-                                            finish(comps.session, done);
-                                        })
-                                        .catch((err: Error) => {
-                                            finish(
-                                                comps.session,
-                                                done,
-                                                new Error(
-                                                    `Fail to read output file due error: ${
-                                                        err instanceof Error ? err.message : err
-                                                    }`,
-                                                ),
-                                            );
-                                        })
-                                        .finally(() => {
-                                            fs.unlinkSync(output);
-                                        });
-                                })
-                                .catch((err: Error) => {
-                                    finish(
-                                        comps.session,
-                                        done,
-                                        new Error(
-                                            `Fail to export data due error: ${
-                                                err instanceof Error ? err.message : err
-                                            }`,
-                                        ),
-                                    );
-                                });
-                        })
-                        .catch((err: Error) => {
-                            finish(
-                                undefined,
-                                done,
-                                new Error(
-                                    `Fail to grab due error: ${
-                                        err instanceof Error ? err.message : err
-                                    }`,
-                                ),
-                            );
-                        });
-                });
-            });
-        });
-
-        it(config.regular.list[7], function () {
-            return runners.withSession(config.regular, 7, async (logger, done, comps) => {
-                comps.stream
-                    .observe(
-                        new Factory.Concat()
-                            .type(Factory.FileType.Binary)
-                            .asDlt({
-                                fibex_file_paths: [],
-                                filter_config: undefined,
-                                with_storage_header: true,
-                                tz: undefined,
-                            })
-                            .files([config.regular.files['dlt'][1], config.regular.files['dlt'][1]])
-                            .get()
-                            .sterilized(),
-                    )
-                    .catch(finish.bind(null, comps.session, done));
-                let gotten: boolean = false;
-                comps.events.StreamUpdated.subscribe((rows: number) => {
-                    if (rows < 200 || gotten) {
-                        return;
-                    }
-                    gotten = true;
-                    comps.stream
-                        .grab(50, 100)
-                        .then((grabbed) => {
-                            expect(grabbed[54].source_id).toEqual(0);
-                            expect(grabbed[55].source_id).toEqual(1);
-                            const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
-                            comps.stream
-                                .exportRaw(output, [{ from: 50, to: 149 }])
-                                .then(() => {
-                                    comps.session
-                                        .destroy()
-                                        .then(async () => {
-                                            const { session, stream, search, events } =
-                                                await runners.initializeSession(
-                                                    config.regular.list[7],
-                                                );
-                                            if (stream instanceof Error) {
-                                                finish(session, done, stream);
+                                                    .file(output)
+                                                    .get()
+                                                    .sterilized(),
+                                            )
+                                            .catch(finish.bind(null, session, done));
+                                        let gotten: boolean = false;
+                                        gotten = false;
+                                        events.StreamUpdated.subscribe((rows: number) => {
+                                            if (rows < 9 || gotten) {
                                                 return;
                                             }
+                                            gotten = true;
                                             stream
-                                                .observe(
-                                                    new Factory.File()
-                                                        .type(Factory.FileType.Binary)
-                                                        .asDlt({
-                                                            fibex_file_paths: [],
-                                                            filter_config: undefined,
-                                                            with_storage_header: true,
-                                                            tz: undefined,
-                                                        })
-                                                        .file(output)
-                                                        .get()
-                                                        .sterilized(),
-                                                )
-                                                .catch(finish.bind(null, session, done));
-                                            if (events instanceof Error) {
-                                                finish(session, done, events);
+                                                .grab(0, 9)
+                                                .then((rows) => {
+                                                    expect(rows.length).toEqual(grabbed.length);
+                                                    for (let i = 0; i < rows.length; i += 1) {
+                                                        expect(rows[i].content).toEqual(
+                                                            grabbed[i].content,
+                                                        );
+                                                        if (
+                                                            rows[i].content !== grabbed[i].content
+                                                        ) {
+                                                            console.log(
+                                                                `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                            );
+                                                            return finish(session, done);
+                                                        }
+                                                    }
+                                                    finish(session, done);
+                                                })
+                                                .catch((err: Error) => {
+                                                    finish(
+                                                        session,
+                                                        done,
+                                                        new Error(
+                                                            `Fail to grab due error: ${
+                                                                err instanceof Error
+                                                                    ? err.message
+                                                                    : err
+                                                            }`,
+                                                        ),
+                                                    );
+                                                });
+                                        });
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            undefined,
+                                            done,
+                                            new Error(
+                                                `Fail to destroy session due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
+            });
+        });
+    });
+
+    it(config.regular.list[6], function () {
+        return runners.withSession(config.regular, 6, async (logger, done, comps) => {
+            const filename_a = relativePath(config.regular.files['dlt'][0]);
+            const filename_b = relativePath(config.regular.files['dlt'][1]);
+            comps.stream
+                .observe(
+                    new Factory.Concat()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .files([filename_a, filename_b])
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 15 || gotten) {
+                    return;
+                }
+                gotten = true;
+                comps.stream
+                    .grab(0, 15)
+                    .then((grabbed) => {
+                        expect(grabbed[8].source_id).toEqual(0);
+                        expect(grabbed[10].source_id).toEqual(1);
+                        const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
+                        comps.stream
+                            .export(output, [{ from: 0, to: 14 }], {
+                                columns: [],
+                                spliter: undefined,
+                                delimiter: undefined,
+                            })
+                            .then(() => {
+                                fs.promises
+                                    .readFile(output, { encoding: 'utf-8' })
+                                    .then((content) => {
+                                        const rows = content.split('\n');
+                                        expect(rows.length).toEqual(grabbed.length);
+                                        for (let i = 0; i < rows.length; i += 1) {
+                                            expect(rows[i]).toEqual(grabbed[i].content);
+                                            if (rows[i] !== grabbed[i].content) {
+                                                console.log(
+                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                );
+                                                return finish(comps.session, done);
+                                            }
+                                        }
+                                        finish(comps.session, done);
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            comps.session,
+                                            done,
+                                            new Error(
+                                                `Fail to read output file due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    })
+                                    .finally(() => {
+                                        fs.unlinkSync(output);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
+            });
+        });
+    });
+
+    it(config.regular.list[7], function () {
+        return runners.withSession(config.regular, 7, async (logger, done, comps) => {
+            const filename_a = relativePath(config.regular.files['dlt'][0]);
+            const filename_b = relativePath(config.regular.files['dlt'][1]);
+            comps.stream
+                .observe(
+                    new Factory.Concat()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .files([filename_a, filename_b])
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 15 || gotten) {
+                    return;
+                }
+                gotten = true;
+                comps.stream
+                    .grab(0, 15)
+                    .then((grabbed) => {
+                        expect(grabbed[8].source_id).toEqual(0);
+                        expect(grabbed[10].source_id).toEqual(1);
+                        const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
+                        comps.stream
+                            .exportRaw(output, [{ from: 0, to: 14 }])
+                            .then(() => {
+                                comps.session
+                                    .destroy()
+                                    .then(async () => {
+                                        const { session, stream, search, events } =
+                                            await runners.initializeSession(config.regular.list[7]);
+                                        if (stream instanceof Error) {
+                                            finish(session, done, stream);
+                                            return;
+                                        }
+                                        stream
+                                            .observe(
+                                                new Factory.File()
+                                                    .type(Factory.FileType.Binary)
+                                                    .asDlt({
+                                                        fibex_file_paths: [],
+                                                        filter_config: undefined,
+                                                        with_storage_header: true,
+                                                        tz: undefined,
+                                                    })
+                                                    .file(output)
+                                                    .get()
+                                                    .sterilized(),
+                                            )
+                                            .catch(finish.bind(null, session, done));
+                                        if (events instanceof Error) {
+                                            finish(session, done, events);
+                                            return;
+                                        }
+                                        gotten = false;
+                                        events.StreamUpdated.subscribe((rows: number) => {
+                                            if (rows < 15 || gotten) {
                                                 return;
                                             }
-                                            gotten = false;
-                                            events.StreamUpdated.subscribe((rows: number) => {
-                                                if (rows < 90 || gotten) {
-                                                    return;
-                                                }
-                                                gotten = true;
-                                                stream
-                                                    .grab(0, 100)
-                                                    .then((rows) => {
-                                                        expect(rows.length).toEqual(grabbed.length);
-                                                        for (let i = 0; i < rows.length; i += 1) {
-                                                            expect(rows[i].content).toEqual(
-                                                                grabbed[i].content,
-                                                            );
-                                                            if (
-                                                                rows[i].content !==
-                                                                grabbed[i].content
-                                                            ) {
-                                                                console.log(
-                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
-                                                                );
-                                                                return finish(session, done);
-                                                            }
-                                                        }
-                                                        finish(session, done);
-                                                    })
-                                                    .catch((err: Error) => {
-                                                        finish(
-                                                            undefined,
-                                                            done,
-                                                            new Error(
-                                                                `Fail to grab due error: ${
-                                                                    err instanceof Error
-                                                                        ? err.message
-                                                                        : err
-                                                                }`,
-                                                            ),
-                                                        );
-                                                    });
-                                            });
-                                        })
-                                        .catch((err: Error) => {
-                                            finish(
-                                                undefined,
-                                                done,
-                                                new Error(
-                                                    `Fail to destroy session due error: ${
-                                                        err instanceof Error ? err.message : err
-                                                    }`,
-                                                ),
-                                            );
-                                        });
-                                })
-                                .catch((err: Error) => {
-                                    finish(
-                                        comps.session,
-                                        done,
-                                        new Error(
-                                            `Fail to export data due error: ${
-                                                err instanceof Error ? err.message : err
-                                            }`,
-                                        ),
-                                    );
-                                });
-                        })
-                        .catch((err: Error) => {
-                            finish(
-                                undefined,
-                                done,
-                                new Error(
-                                    `Fail to grab due error: ${
-                                        err instanceof Error ? err.message : err
-                                    }`,
-                                ),
-                            );
-                        });
-                });
-            });
-        });
-
-        it(config.regular.list[8], function () {
-            return runners.withSession(config.regular, 8, async (logger, done, comps) => {
-                comps.stream
-                    .observe(
-                        new Factory.Concat()
-                            .type(Factory.FileType.Binary)
-                            .asDlt({
-                                fibex_file_paths: [],
-                                filter_config: undefined,
-                                with_storage_header: true,
-                                tz: undefined,
-                            })
-                            .files([config.regular.files['dlt'][1], config.regular.files['dlt'][1]])
-                            .get()
-                            .sterilized(),
-                    )
-                    .catch(finish.bind(null, comps.session, done));
-                let gotten: boolean = false;
-                comps.events.StreamUpdated.subscribe((rows: number) => {
-                    if (rows < 200 || gotten) {
-                        return;
-                    }
-                    const ranges = [
-                        {
-                            from: 50,
-                            to: 60,
-                        },
-                        {
-                            from: 150,
-                            to: 160,
-                        },
-                    ];
-                    gotten = true;
-                    Promise.all(ranges.map((r) => comps.stream.grab(r.from, r.to - r.from)))
-                        .then((results) => {
-                            let grabbed: IGrabbedElement[] = [];
-                            results.forEach((g) => (grabbed = grabbed.concat(g)));
-                            grabbed.sort((a, b) => (a.position > b.position ? 1 : -1));
-                            const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
-                            comps.stream
-                                .exportRaw(
-                                    output,
-                                    ranges.map((r) => {
-                                        return { from: r.from, to: r.to - 1 };
-                                    }),
-                                )
-                                .then(() => {
-                                    comps.session
-                                        .destroy()
-                                        .then(async () => {
-                                            const { session, stream, search, events } =
-                                                await runners.initializeSession(
-                                                    config.regular.list[8],
-                                                );
+                                            gotten = true;
                                             stream
-                                                .observe(
-                                                    new Factory.File()
-                                                        .type(Factory.FileType.Binary)
-                                                        .asDlt({
-                                                            fibex_file_paths: [],
-                                                            filter_config: undefined,
-                                                            with_storage_header: true,
-                                                            tz: undefined,
-                                                        })
-                                                        .file(output)
-                                                        .get()
-                                                        .sterilized(),
-                                                )
-                                                .catch(finish.bind(null, session, done));
-                                            gotten = false;
-                                            events.StreamUpdated.subscribe((rows: number) => {
-                                                if (rows < 20 || gotten) {
-                                                    return;
-                                                }
-                                                gotten = true;
-                                                stream
-                                                    .grab(0, 20)
-                                                    .then((rows) => {
-                                                        expect(rows.length).toEqual(grabbed.length);
-                                                        for (let i = 0; i < rows.length; i += 1) {
-                                                            expect(rows[i].content).toEqual(
-                                                                grabbed[i].content,
-                                                            );
-                                                            if (
-                                                                rows[i].content !==
-                                                                grabbed[i].content
-                                                            ) {
-                                                                console.log(
-                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
-                                                                );
-                                                                return finish(session, done);
-                                                            }
-                                                        }
-                                                        finish(session, done);
-                                                    })
-                                                    .catch((err: Error) => {
-                                                        finish(
-                                                            undefined,
-                                                            done,
-                                                            new Error(
-                                                                `Fail to grab due error: ${
-                                                                    err instanceof Error
-                                                                        ? err.message
-                                                                        : err
-                                                                }`,
-                                                            ),
+                                                .grab(0, 15)
+                                                .then((rows) => {
+                                                    expect(rows.length).toEqual(grabbed.length);
+                                                    for (let i = 0; i < rows.length; i += 1) {
+                                                        expect(rows[i].content).toEqual(
+                                                            grabbed[i].content,
                                                         );
-                                                    });
-                                            });
-                                        })
-                                        .catch((err: Error) => {
-                                            finish(
-                                                undefined,
-                                                done,
-                                                new Error(
-                                                    `Fail to destroy session due error: ${
-                                                        err instanceof Error ? err.message : err
-                                                    }`,
-                                                ),
-                                            );
+                                                        if (
+                                                            rows[i].content !== grabbed[i].content
+                                                        ) {
+                                                            console.log(
+                                                                `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                            );
+                                                            return finish(session, done);
+                                                        }
+                                                    }
+                                                    finish(session, done);
+                                                })
+                                                .catch((err: Error) => {
+                                                    finish(
+                                                        session,
+                                                        done,
+                                                        new Error(
+                                                            `Fail to grab due error: ${
+                                                                err instanceof Error
+                                                                    ? err.message
+                                                                    : err
+                                                            }`,
+                                                        ),
+                                                    );
+                                                });
                                         });
-                                })
-                                .catch((err: Error) => {
-                                    finish(
-                                        comps.session,
-                                        done,
-                                        new Error(
-                                            `Fail to export data due error: ${
-                                                err instanceof Error ? err.message : err
-                                            }`,
-                                        ),
-                                    );
-                                });
-                        })
-                        .catch((err: Error) => {
-                            finish(
-                                undefined,
-                                done,
-                                new Error(
-                                    `Fail to grab due error: ${
-                                        err instanceof Error ? err.message : err
-                                    }`,
-                                ),
-                            );
-                        });
-                });
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            undefined,
+                                            done,
+                                            new Error(
+                                                `Fail to destroy session due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
             });
         });
-    }
+    });
+    it(config.regular.list[8], function () {
+        return runners.withSession(config.regular, 8, async (logger, done, comps) => {
+            const filename_a = relativePath(config.regular.files['dlt'][0]);
+            const filename_b = relativePath(config.regular.files['dlt'][1]);
+            comps.stream
+                .observe(
+                    new Factory.Concat()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .files([filename_a, filename_b])
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 15 || gotten) {
+                    return;
+                }
+                const ranges = [
+                    {
+                        from: 0,
+                        to: 5,
+                    },
+                    {
+                        from: 9,
+                        to: 14,
+                    },
+                ];
+                gotten = true;
+                Promise.all(ranges.map((r) => comps.stream.grab(r.from, r.to - r.from)))
+                    .then((results) => {
+                        let grabbed: IGrabbedElement[] = [];
+                        results.forEach((g) => (grabbed = grabbed.concat(g)));
+                        grabbed.sort((a, b) => (a.position > b.position ? 1 : -1));
+                        const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
+                        comps.stream
+                            .exportRaw(
+                                output,
+                                ranges.map((r) => {
+                                    return { from: r.from, to: r.to - 1 };
+                                }),
+                            )
+                            .then(() => {
+                                comps.session
+                                    .destroy()
+                                    .then(async () => {
+                                        const { session, stream, search, events } =
+                                            await runners.initializeSession(config.regular.list[8]);
+                                        stream
+                                            .observe(
+                                                new Factory.File()
+                                                    .type(Factory.FileType.Binary)
+                                                    .asDlt({
+                                                        fibex_file_paths: [],
+                                                        filter_config: undefined,
+                                                        with_storage_header: true,
+                                                        tz: undefined,
+                                                    })
+                                                    .file(output)
+                                                    .get()
+                                                    .sterilized(),
+                                            )
+                                            .catch(finish.bind(null, session, done));
+                                        gotten = false;
+                                        events.StreamUpdated.subscribe((rows: number) => {
+                                            if (rows < 5 || gotten) {
+                                                return;
+                                            }
+                                            gotten = true;
+                                            stream
+                                                .grab(0, 10)
+                                                .then((rows) => {
+                                                    expect(rows.length).toEqual(grabbed.length);
+                                                    for (let i = 0; i < rows.length; i += 1) {
+                                                        expect(rows[i].content).toEqual(
+                                                            grabbed[i].content,
+                                                        );
+                                                        if (
+                                                            rows[i].content !== grabbed[i].content
+                                                        ) {
+                                                            console.log(
+                                                                `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                            );
+                                                            return finish(session, done);
+                                                        }
+                                                    }
+                                                    finish(session, done);
+                                                })
+                                                .catch((err: Error) => {
+                                                    finish(
+                                                        session,
+                                                        done,
+                                                        new Error(
+                                                            `Fail to grab due error: ${
+                                                                err instanceof Error
+                                                                    ? err.message
+                                                                    : err
+                                                            }`,
+                                                        ),
+                                                    );
+                                                });
+                                        });
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            undefined,
+                                            done,
+                                            new Error(
+                                                `Fail to destroy session due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
+            });
+        });
+    });
 });

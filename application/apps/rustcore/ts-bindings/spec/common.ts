@@ -1,14 +1,13 @@
 // tslint:disable
 
 import { Jobs, Tracker, Session } from '../src/index';
-import { Logger, getLogger } from './logger';
+import { Logger } from './logger';
 import { error, numToLogLevel } from 'platform/log/utils';
 import { state } from 'platform/log';
 
 import * as tmp from 'tmp';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 
 const NS_PER_SEC = 1e9;
 const NS_PER_MS = 1000000;
@@ -16,6 +15,24 @@ const MS_PER_SEC = 1000;
 
 // Get rid of default Jasmine timeout
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 900000;
+
+export function rootPath(): string {
+    const parts = path.dirname(module.filename).split(path.sep);
+    if (parts.length > 0 && parts[0].trim() === '') {
+        parts[0] = path.sep;
+    }
+    for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const el = parts[i];
+        parts.splice(i, 1);
+        if (el === 'application') {
+            break;
+        }
+    }
+    return path.join(...parts);
+}
+export function relativePath(dest: string): string {
+    return path.join(rootPath(), dest);
+}
 
 export function readConfigFile<T>(filenameEnvVar: string, defaultPaths: string[]): T | Error {
     const defaults = (() => {
