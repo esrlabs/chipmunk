@@ -151,10 +151,31 @@ pub struct Grabber {
 }
 
 impl Grabber {
+    /// Copies a specified range of lines from the source to the provided writer.
+    ///
+    /// `modifier` can be used to modify content before writing; for example it can be used to
+    /// exclude some content during exporting (write selected columns only)
+    ///
+    /// # Arguments
+    ///
+    /// * `writer` - This is where the copied content will be written.
+    /// * `line_range` - A reference to a `LineRange` struct that specifies the range of lines
+    ///                  to be copied from the source.
+    /// * `modifier` - An optional function that takes a `String` as input and returns a modified
+    ///                `String`. If provided, this function will be applied to each line before
+    ///                writing it to the writer.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), GrabError>`:
+    ///     * `Ok(())` if the content is copied successfully.
+    ///     * `Err(GrabError)` if an error occurs during the copying process.
+    ///
     pub fn copy_content<W: std::io::Write>(
         &self,
         writer: &mut W,
         line_range: &LineRange,
+        modifier: Option<impl Fn(String) -> String>,
     ) -> Result<(), GrabError> {
         match &self.metadata {
             None => Err(GrabError::NotInitialize),
@@ -165,7 +186,7 @@ impl Grabber {
                         context: "Cannot get entries of empty range".to_string(),
                     });
                 }
-                self.source.write_to(writer, md, line_range)
+                self.source.write_to(writer, md, line_range, modifier)
             }
         }
     }

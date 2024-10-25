@@ -88,9 +88,31 @@ pub enum OperationKind {
     SearchValues {
         filters: Vec<String>,
     },
+    /// Export operation containing parameters for exporting data.
+    ///
+    /// # Fields
+    ///
+    /// * `out_path` - The file system path where the exported data will be saved.
+    /// * `ranges` - A vector of inclusive ranges specifying the segments of data to export.
+    /// * `columns` - A vector of column indices indicating which columns to include in the export.
+    /// * `spliter` - An optional string used as the record separator in session file to split log message to columns.
+    /// * `delimiter` - An optional string used as the field delimiter within each record in output file.
+    ///
+    /// # Notes
+    ///
+    /// Exporting with considering selected columns (`columns`) will be done only if `spliter` and `delimiter` are
+    /// defined. In all other cases, the export will save into `out_path` full log records.
     Export {
+        /// The output path where the exported data will be written.
         out_path: PathBuf,
+        /// The ranges of data to be exported, each defined as an inclusive range.
         ranges: Vec<std::ops::RangeInclusive<u64>>,
+        /// The indices of the columns to include in the export.
+        columns: Vec<usize>,
+        /// An optional string used as the record separator in session file to split log message to columns. Defaults can be applied if `None`.
+        spliter: Option<String>,
+        /// An optional string used as the field delimiter within each record in output file. Defaults can be applied if `None`.
+        delimiter: Option<String>,
     },
     ExportRaw {
         out_path: PathBuf,
@@ -314,10 +336,23 @@ impl OperationAPI {
                     )
                     .await;
                 }
-                OperationKind::Export { out_path, ranges } => {
+                OperationKind::Export {
+                    out_path,
+                    ranges,
+                    columns,
+                    spliter,
+                    delimiter,
+                } => {
                     api.finish(
                         Ok(state
-                            .export_session(out_path, ranges, api.cancellation_token())
+                            .export_session(
+                                out_path,
+                                ranges,
+                                columns,
+                                spliter,
+                                delimiter,
+                                api.cancellation_token(),
+                            )
                             .await
                             .ok()),
                         operation_str,

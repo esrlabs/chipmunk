@@ -246,10 +246,32 @@ impl SessionState {
         Ok(())
     }
 
+    /// Exports data to the specified output path with the given parameters. This method is used to export
+    /// only into text format.
+    ///
+    /// # Arguments
+    ///
+    /// * `out_path` - A `PathBuf` representing the path to the output file where data will be exported.
+    /// * `ranges` - A `Vec<RangeInclusive<u64>>` specifying the ranges of data to export.
+    /// * `columns` - A `Vec<usize>` containing the column number to be exported.
+    /// * `spliter` - A `String` used as the record separator in session file to split log message to columns.
+    /// * `delimiter` - A `String` used as the field delimiter within each record in output file.
+    /// * `cancel` - A `CancellationToken` used to cancel exporting operation
+    ///
+    /// # Returns
+    ///
+    /// * `Result<bool, NativeError>`:
+    ///     - `Ok(true)` if the export is successful.
+    ///     - `Ok(false)` if the export was stopped with `cancel`.
+    ///     - `Err(NativeError)` if an error occurs during the export process.
+    ///
     async fn handle_export_session(
         &mut self,
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
+        columns: Vec<usize>,
+        spliter: Option<String>,
+        delimiter: Option<String>,
         cancel: CancellationToken,
     ) -> Result<bool, NativeError> {
         let mut writer = BufWriter::new(File::create(&out_path).map_err(|e| NativeError {
@@ -262,8 +284,24 @@ impl SessionState {
             )),
         })?);
         for (i, range) in ranges.iter().enumerate() {
-            self.session_file
-                .copy_content(&mut writer, &LineRange::from(range.clone()))?;
+            let modifier =
+                if let (Some(spliter), Some(delimiter)) = (spliter.as_ref(), delimiter.as_ref()) {
+                    Some(|s: String| {
+                        s.split(spliter.as_str())
+                            .enumerate()
+                            .filter(|(n, _)| columns.contains(n))
+                            .map(|(_, s)| s)
+                            .collect::<Vec<&str>>()
+                            .join(delimiter.as_str())
+                    })
+                } else {
+                    None
+                };
+            self.session_file.copy_content(
+                &mut writer,
+                &LineRange::from(range.clone()),
+                modifier,
+            )?;
             if i != ranges.len() - 1 {
                 writer.write(b"\n").map_err(|e| NativeError {
                     severity: Severity::ERROR,
@@ -467,10 +505,15 @@ pub async fn run(
             Api::ExportSession {
                 out_path,
                 ranges,
+                columns,
+                spliter,
+                delimiter,
                 cancel,
                 tx_response,
             } => {
-                let res = state.handle_export_session(out_path, ranges, cancel).await;
+                let res = state
+                    .handle_export_session(out_path, ranges, columns, spliter, delimiter, cancel)
+                    .await;
                 tx_response
                     .send(res)
                     .map_err(|_| NativeError::channel("Failed to respond to Api::ExportSession"))?;

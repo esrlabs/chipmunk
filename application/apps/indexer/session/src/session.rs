@@ -352,16 +352,43 @@ impl Session {
             .map_err(ComputationError::NativeError)
     }
 
+    /// Exports data to the specified output path with the given parameters. This method is used to export
+    /// only into text format. For exporting into raw format is using method `export_raw`
+    ///
+    /// # Arguments
+    ///
+    /// * `out_path` - A `PathBuf` representing the path to the output file where data will be exported.
+    /// * `ranges` - A `Vec<RangeInclusive<u64>>` specifying the ranges of data to export.
+    /// * `columns` - A `Vec<usize>` containing the column number to be exported.
+    /// * `spliter` - A `String` used as the record separator in session file to split log message to columns.
+    /// * `delimiter` - A `String` used as the field delimiter within each record in output file.
+    /// * `operation_id` - A `String` representing the unique identifier for the export operation, used for tracking.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), ComputationError>`:
+    ///     - `Ok(())` if the export is successful.
+    ///     - `Err(ComputationError)` if an error occurs during the export process.
+    ///
     pub fn export(
         &self,
         operation_id: Uuid,
         out_path: PathBuf,
         ranges: Vec<RangeInclusive<u64>>,
+        columns: Vec<usize>,
+        spliter: Option<String>,
+        delimiter: Option<String>,
     ) -> Result<(), ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Export { out_path, ranges },
+                operations::OperationKind::Export {
+                    out_path,
+                    ranges,
+                    columns,
+                    spliter,
+                    delimiter,
+                },
             ))
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }

@@ -13,9 +13,10 @@ use log::{debug, error, info, warn};
 use node_bindgen::derive::node_bindgen;
 use processor::grabber::LineRange;
 use session::{
-    events::{CallbackEvent, ComputationError, NativeError},
+    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind},
     factory::ObserveOptions,
     operations,
+    progress::Severity,
     session::Session,
 };
 use sources::sde;
@@ -190,11 +191,32 @@ impl RustSession {
         // Log
     }
 
+    /// Exports data to the specified output path with the given parameters. This method is used to export
+    /// only into text format. For exporting into raw format is using method `export_raw`
+    ///
+    /// # Arguments
+    ///
+    /// * `out_path` - A `String` representing the path to the output file where data will be exported.
+    /// * `ranges` - A `Vec<(i64, i64)>` specifying the ranges of data to export.
+    /// * `columns` - A `Vec<i32>` containing the column number to be exported.
+    /// * `spliter` - A `String` used as the record separator in session file to split log message to columns.
+    /// * `delimiter` - A `String` used as the field delimiter within each record in output file.
+    /// * `operation_id` - A `String` representing the unique identifier for the export operation, used for tracking.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), ComputationErrorWrapper>`:
+    ///     - `Ok(())` if the export is successful.
+    ///     - `Err(ComputationErrorWrapper)` if an error occurs during the export process.
+    ///
     #[node_bindgen]
     async fn export(
         &self,
         out_path: String,
         ranges: Vec<(i64, i64)>,
+        columns: Vec<i32>,
+        spliter: String,
+        delimiter: String,
         operation_id: String,
     ) -> Result<(), ComputationErrorWrapper> {
         if let Some(ref session) = self.session {
@@ -206,6 +228,21 @@ impl RustSession {
                         .iter()
                         .map(|(s, e)| RangeInclusive::<u64>::new(*s as u64, *e as u64))
                         .collect::<Vec<RangeInclusive<u64>>>(),
+                    columns
+                        .into_iter()
+                        .map(usize::try_from)
+                        .collect::<Result<Vec<usize>, _>>()
+                        .map_err(|_| {
+                            ComputationErrorWrapper(ComputationError::NativeError(NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::Io,
+                                message: Some(String::from(
+                                    "Fail to get valid columns list. Supported type: [u8]",
+                                )),
+                            }))
+                        })?,
+                    (!spliter.is_empty()).then_some(spliter),
+                    (!delimiter.is_empty()).then_some(delimiter),
                 )
                 .map_err(ComputationErrorWrapper)?;
             Ok(())

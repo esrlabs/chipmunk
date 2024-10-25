@@ -281,18 +281,45 @@ impl TextFileSource {
         self.clear_lines(&read_buf, &file_part)
     }
 
+    /// Takes line range to read it from source file and writes into destination
+    ///
+    /// `modifier` can be used to modify content before writing; for example it can be used to
+    /// exclude some content during exporting (write selected columns only)
+    ///
+    /// # Arguments
+    ///
+    /// * `writer` - This is where the copied content will be written.
+    /// * `metadata` - Reference to grabber metadata, which contains lines map of origin file.
+    /// * `line_range` - A reference to a `LineRange` struct that specifies the range of lines
+    ///                  to be copied from the source.
+    /// * `modifier` - An optional function that takes a `String` as input and returns a modified
+    ///                `String`. If provided, this function will be applied to each line before
+    ///                writing it to the writer.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), GrabError>`:
+    ///     * `Ok(())` if the content is copied successfully.
+    ///     * `Err(GrabError)` if an error occurs during the copying process.
+    ///
     pub fn write_to<W: std::io::Write>(
         &self,
         writer: &mut W,
         metadata: &GrabMetadata,
         line_range: &LineRange,
+        modifier: Option<impl Fn(String) -> String>,
     ) -> Result<(), GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
+        let lines = self.clear_lines(&read_buf, &file_part)?;
         writer
             .write(
-                self.clear_lines(&read_buf, &file_part)?
-                    .join("\n")
-                    .as_bytes(),
+                if let Some(modifier) = modifier {
+                    lines.into_iter().map(modifier).collect()
+                } else {
+                    lines
+                }
+                .join("\n")
+                .as_bytes(),
             )
             .map_err(|e| GrabError::IoOperation(format!("Could not write into file {e:?}")))?;
         Ok(())
