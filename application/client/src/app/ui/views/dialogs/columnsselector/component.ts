@@ -69,7 +69,7 @@ export class ColumnsSelector extends ChangesDetector implements AfterContentInit
         return (
             Object.keys(this.selected).find(
                 (k: string) => this.selected[k as unknown as number],
-            ) === undefined
+            ) === undefined || this.delimiter === ''
         );
     }
 }
