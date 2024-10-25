@@ -95,6 +95,7 @@
         "./types/chart": "./dist/types/chart.js",
         "./types/comment": "./dist/types/comment.js",
         "./types/bookmark": "./dist/types/bookmark.js",
+        "./types/exporting": "./dist/types/exporting.js",
         "./types/observe": "./dist/types/observe/index.js",
         "./types/observe/factory": "./dist/types/observe/factory.js",
         "./types/observe/description": "./dist/types/observe/description.js",

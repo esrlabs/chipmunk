@@ -1,0 +1,31 @@
+<div class="options">
+    <div class="left">
+        <div class="header" *ngFor="let header of headers" [ngStyle]="getBgColor(header)">
+            <mat-checkbox
+                class="material-mofication-mini"
+                [disableRipple]="true"
+                [(ngModel)]="selected[header.index]"
+            ></mat-checkbox>
+            <div class="title">
+                <span class="label t-normal" [ngStyle]="getFgColor(header)"
+                    >{{header.caption}}</span
+                >
+                <span class="sublabel t-small" [ngStyle]="getFgColor(header)">{{header.desc}}</span>
+            </div>
+        </div>
+    </div>
+    <div class="right">
+        <p class="t-normal color-scheme-2">
+            Please select columns to be exported and define the delimiter, which will be used to
+            split columns.
+        </p>
+        <mat-form-field class="material-mofication-normal row">
+            <mat-label>Delimiter</mat-label>
+            <input matInput [(ngModel)]="delimiter" />
+        </mat-form-field>
+    </div>
+</div>
+<div class="controlls">
+    <button mat-stroked-button [disabled]="disabled()" (click)="export()">Export</button>
+    <button mat-stroked-button (click)="close()">Cancel</button>
+</div>

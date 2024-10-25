@@ -15,6 +15,7 @@ import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { IObserve, Observe } from 'platform/types/observe';
+import { TextExportOptions } from 'platform/types/exporting';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
@@ -133,7 +134,12 @@ export abstract class RustSession extends RustSessionRequiered {
      */
     public abstract observe(source: IObserve, operationUuid: string): Promise<void>;
 
-    public abstract export(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
+    public abstract export(
+        dest: string,
+        ranges: IRange[],
+        opt: TextExportOptions,
+        operationUuid: string,
+    ): Promise<void>;
 
     public abstract exportRaw(dest: string, ranges: IRange[], operationUuid: string): Promise<void>;
 
@@ -237,7 +243,14 @@ export abstract class RustSessionNative {
 
     public abstract getSearchLen(): Promise<number>;
 
-    public abstract export(dest: string, ranges: number[][], operationUuid: string): Promise<void>;
+    public abstract export(
+        dest: string,
+        ranges: number[][],
+        columns: number[],
+        spliter: string,
+        delimiter: string,
+        operationUuid: string,
+    ): Promise<void>;
 
     public abstract exportRaw(
         dest: string,
@@ -872,7 +885,12 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public export(dest: string, ranges: IRange[], operationUuid: string): Promise<void> {
+    public export(
+        dest: string,
+        ranges: IRange[],
+        opt: TextExportOptions,
+        operationUuid: string,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('export', operationUuid);
@@ -880,6 +898,9 @@ export class RustSessionWrapper extends RustSession {
                     .export(
                         dest,
                         ranges.map((r) => [r.from, r.to]),
+                        opt.columns,
+                        opt.spliter === undefined ? '' : opt.spliter,
+                        opt.delimiter === undefined ? '' : opt.delimiter,
                         operationUuid,
                     )
                     .then(resolve)

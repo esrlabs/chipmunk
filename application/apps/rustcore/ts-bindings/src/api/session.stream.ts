@@ -11,6 +11,7 @@ import { IRange } from 'platform/types/range';
 import { ISourceLink } from 'platform/types/observe/types';
 import { Attachment, IndexingMode } from 'platform/types/content';
 import { IObserve } from 'platform/types/observe';
+import { TextExportOptions } from 'platform/types/exporting';
 
 export class SessionStream {
     private readonly _provider: EventProvider;
@@ -102,8 +103,12 @@ export class SessionStream {
         return this._session.getIndexedRanges();
     }
 
-    public export(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {
-        return Executors.export(this._session, this._provider, this._logger, { dest, ranges });
+    public export(
+        dest: string,
+        ranges: IRange[],
+        opt: TextExportOptions,
+    ): ICancelablePromise<boolean> {
+        return Executors.export(this._session, this._provider, this._logger, { dest, ranges, opt });
     }
 
     public exportRaw(dest: string, ranges: IRange[]): ICancelablePromise<boolean> {

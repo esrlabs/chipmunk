@@ -7,6 +7,7 @@ import { AboutModule } from './about/module';
 import { ColorSelectorModule } from './colors/module';
 import { CommentModule } from './comment/module';
 import { JumpToModule } from './jumpto/module';
+import { ColumnsSelectorModule } from './columnsselector/module';
 
 @NgModule({
     imports: [
@@ -17,6 +18,7 @@ import { JumpToModule } from './jumpto/module';
         ColorSelectorModule,
         CommentModule,
         JumpToModule,
+        ColumnsSelectorModule,
     ],
     declarations: [],
     exports: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule],
