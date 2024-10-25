@@ -261,10 +261,31 @@ impl SessionFile {
         }
     }
 
+    /// Copies a specified range of lines from the source to the provided writer.
+    ///
+    /// `modifier` can be used to modify content before writing; for example it can be used to
+    /// exclude some content during exporting (write selected columns only)
+    ///
+    /// # Arguments
+    ///
+    /// * `writer` - This is where the copied content will be written.
+    /// * `line_range` - A reference to a `LineRange` struct that specifies the range of lines
+    ///                  to be copied from the source.
+    /// * `modifier` - An optional function that takes a `String` as input and returns a modified
+    ///                `String`. If provided, this function will be applied to each line before
+    ///                writing it to the writer.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), NativeError>`:
+    ///     * `Ok(())` if the content is copied successfully.
+    ///     * `Err(NativeError)` if an error occurs during the copying process.
+    ///
     pub fn copy_content<W: std::io::Write>(
         &mut self,
         writer: &mut W,
         line_range: &LineRange,
+        modifier: Option<impl Fn(String) -> String>,
     ) -> Result<(), NativeError> {
         let grabber = &mut (self.grabber.as_ref().ok_or(NativeError {
             severity: Severity::ERROR,
@@ -272,7 +293,7 @@ impl SessionFile {
             message: Some(String::from("Grabber isn't inited")),
         })?);
         grabber
-            .copy_content(writer, line_range)
+            .copy_content(writer, line_range, modifier)
             .map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Grabber,

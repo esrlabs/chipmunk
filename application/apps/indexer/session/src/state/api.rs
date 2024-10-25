@@ -42,10 +42,36 @@ pub enum Api {
     AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
     GetExecutedHolder(oneshot::Sender<Observed>),
     IsRawExportAvailable(oneshot::Sender<bool>),
+    /// Export operation containing parameters for exporting data.
+    ///
+    /// # Fields
+    ///
+    /// * `out_path` - The file system path where the exported data will be saved.
+    /// * `ranges` - A vector of inclusive ranges specifying the segments of data to export.
+    /// * `columns` - A vector of column indices indicating which columns to include in the export.
+    /// * `spliter` - An optional string used as the record separator in session file to split log message to columns.
+    /// * `delimiter` - An optional string used as the field delimiter within each record in output file.
+    /// * `cancel` - Used to stop export operation
+    /// * `tx_response` - Used to send operation status result
+    ///
+    /// # Notes
+    ///
+    /// Exporting with considering selected columns (`columns`) will be done only if `spliter` and `delimiter` are
+    /// defined. In all other cases, the export will save into `out_path` full log records.
     ExportSession {
+        /// The output path where the exported data will be written.
         out_path: PathBuf,
+        /// The ranges of data to be exported, each defined as an inclusive range.
         ranges: Vec<std::ops::RangeInclusive<u64>>,
+        /// The indices of the columns to include in the export.
+        columns: Vec<usize>,
+        /// An optional string used as the record separator in session file to split log message to columns. Defaults can be applied if `None`.
+        spliter: Option<String>,
+        /// An optional string used as the field delimiter within each record in output file. Defaults can be applied if `None`.
+        delimiter: Option<String>,
+        /// Used to stop export operation
         cancel: CancellationToken,
+        /// Used to send operation status result
         tx_response: oneshot::Sender<Result<bool, NativeError>>,
     },
     FileRead(oneshot::Sender<()>),
@@ -429,10 +455,31 @@ impl SessionStateAPI {
             .await
     }
 
+    /// Exports data to the specified output path with the given parameters. This method is used to export
+    /// only into text format.
+    ///
+    /// # Arguments
+    ///
+    /// * `out_path` - A `PathBuf` representing the path to the output file where data will be exported.
+    /// * `ranges` - A `Vec<RangeInclusive<u64>>` specifying the ranges of data to export.
+    /// * `columns` - A `Vec<usize>` containing the column number to be exported.
+    /// * `spliter` - A `String` used as the record separator in session file to split log message to columns.
+    /// * `delimiter` - A `String` used as the field delimiter within each record in output file.
+    /// * `cancel` - A `CancellationToken` used to stop export operation
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), ComputationError>`:
+    ///     - `Ok(())` if the export is successful.
+    ///     - `Err(ComputationError)` if an error occurs during the export process.
+    ///
     pub async fn export_session(
         &self,
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
+        columns: Vec<usize>,
+        spliter: Option<String>,
+        delimiter: Option<String>,
         cancel: CancellationToken,
     ) -> Result<bool, NativeError> {
         let (tx_response, rx) = oneshot::channel();
@@ -440,6 +487,9 @@ impl SessionStateAPI {
             Api::ExportSession {
                 out_path,
                 ranges,
+                columns,
+                spliter,
+                delimiter,
                 tx_response,
                 cancel,
             },
