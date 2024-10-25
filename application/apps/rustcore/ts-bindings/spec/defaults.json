@@ -136,8 +136,11 @@
                     "5": "Test 5. DLT: Assign & export raw",
                     "6": "Test 6. DLT: Concat & export",
                     "7": "Test 7. DLT: Concat & export raw",
-                    "8": "Test 8. DLT: Concat & export raw (multiple ranges)"
-
+                    "8": "Test 8. DLT: Concat & export raw (multiple ranges)",
+                    "9": "Test 9. DLT: Assign & export columns (from left)",
+                    "10": "Test 10. DLT: Assign & export columns (from right)",
+                    "11": "Test 11. DLT: Assign & export columns (single)",
+                    "12": "Test 12. DLT: Assign & export columns (stability)"
                 },
                 "files": {
                     "dlt": ["./application/developing/resources/attachments.dlt","./application/developing/resources/someip.dlt"]    

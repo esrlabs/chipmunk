@@ -350,10 +350,13 @@ describe('Exporting', function () {
                                         for (let i = 0; i < rows.length; i += 1) {
                                             expect(rows[i]).toEqual(grabbed[i].content);
                                             if (rows[i] !== grabbed[i].content) {
-                                                console.log(
-                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                return finish(
+                                                    comps.session,
+                                                    done,
+                                                    new Error(
+                                                        `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                    ),
                                                 );
-                                                return finish(comps.session, done);
                                             }
                                         }
                                         finish(comps.session, done);
@@ -469,10 +472,13 @@ describe('Exporting', function () {
                                                         if (
                                                             rows[i].content !== grabbed[i].content
                                                         ) {
-                                                            console.log(
-                                                                `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                            return finish(
+                                                                session,
+                                                                done,
+                                                                new Error(
+                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                ),
                                                             );
-                                                            return finish(session, done);
                                                         }
                                                     }
                                                     finish(session, done);
@@ -577,10 +583,13 @@ describe('Exporting', function () {
                                         for (let i = 0; i < rows.length; i += 1) {
                                             expect(rows[i]).toEqual(grabbed[i].content);
                                             if (rows[i] !== grabbed[i].content) {
-                                                console.log(
-                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                return finish(
+                                                    comps.session,
+                                                    done,
+                                                    new Error(
+                                                        `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                    ),
                                                 );
-                                                return finish(comps.session, done);
                                             }
                                         }
                                         finish(comps.session, done);
@@ -706,10 +715,13 @@ describe('Exporting', function () {
                                                         if (
                                                             rows[i].content !== grabbed[i].content
                                                         ) {
-                                                            console.log(
-                                                                `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                            return finish(
+                                                                session,
+                                                                done,
+                                                                new Error(
+                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                ),
                                                             );
-                                                            return finish(session, done);
                                                         }
                                                     }
                                                     finish(session, done);
@@ -767,6 +779,7 @@ describe('Exporting', function () {
             });
         });
     });
+
     it(config.regular.list[8], function () {
         return runners.withSession(config.regular, 8, async (logger, done, comps) => {
             const filename_a = relativePath(config.regular.files['dlt'][0]);
@@ -853,10 +866,13 @@ describe('Exporting', function () {
                                                         if (
                                                             rows[i].content !== grabbed[i].content
                                                         ) {
-                                                            console.log(
-                                                                `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                            return finish(
+                                                                session,
+                                                                done,
+                                                                new Error(
+                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                ),
                                                             );
-                                                            return finish(session, done);
                                                         }
                                                     }
                                                     finish(session, done);
@@ -910,6 +926,388 @@ describe('Exporting', function () {
                                 }`,
                             ),
                         );
+                    });
+            });
+        });
+    });
+
+    it(config.regular.list[9], function () {
+        return runners.withSession(config.regular, 9, async (logger, done, comps) => {
+            const filename = relativePath(config.regular.files['dlt'][0]);
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .file(filename)
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 9 || gotten) {
+                    return;
+                }
+                gotten = true;
+                comps.stream
+                    .grab(0, 9)
+                    .then((grabbed) => {
+                        const output = path.resolve(os.tmpdir(), `${v4()}.txt`);
+                        comps.stream
+                            .export(output, [{ from: 0, to: 8 }], {
+                                columns: [0, 1],
+                                spliter: '\u0004',
+                                delimiter: ';',
+                            })
+                            .then(async () => {
+                                fs.promises
+                                    .readFile(output, { encoding: 'utf-8' })
+                                    .then((content) => {
+                                        const rows = content.split('\n');
+                                        expect(rows.length).toEqual(grabbed.length);
+                                        for (let i = 0; i < rows.length; i += 1) {
+                                            const columns = rows[i].split(';');
+                                            const origin = grabbed[i].content.split('\u0004');
+                                            expect(columns.length).toEqual(2);
+                                            for (let n = 0; n < columns.length; n += 1) {
+                                                expect(columns[n]).toEqual(origin[n]);
+                                                expect(columns[n].length > 0).toBe(true);
+                                            }
+                                        }
+                                        finish(comps.session, done);
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            comps.session,
+                                            done,
+                                            new Error(
+                                                `Fail to read output file due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    })
+                                    .finally(() => {
+                                        fs.unlinkSync(output);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
+            });
+        });
+    });
+
+    it(config.regular.list[10], function () {
+        return runners.withSession(config.regular, 10, async (logger, done, comps) => {
+            const filename = relativePath(config.regular.files['dlt'][0]);
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .file(filename)
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 9 || gotten) {
+                    return;
+                }
+                gotten = true;
+                comps.stream
+                    .grab(0, 9)
+                    .then((grabbed) => {
+                        const output = path.resolve(os.tmpdir(), `${v4()}.txt`);
+                        comps.stream
+                            .export(output, [{ from: 0, to: 8 }], {
+                                columns: [9, 10],
+                                spliter: '\u0004',
+                                delimiter: ';',
+                            })
+                            .then(async () => {
+                                fs.promises
+                                    .readFile(output, { encoding: 'utf-8' })
+                                    .then((content) => {
+                                        const rows = content.split('\n');
+                                        expect(rows.length).toEqual(grabbed.length);
+                                        for (let i = 0; i < rows.length; i += 1) {
+                                            const columns = rows[i].split(';');
+                                            const origin = grabbed[i].content.split('\u0004');
+                                            expect(columns.length).toEqual(2);
+                                            for (let n = 0; n < columns.length; n += 1) {
+                                                expect(columns[n]).toEqual(origin[9 + n]);
+                                                expect(columns[n].length > 0).toBe(true);
+                                            }
+                                        }
+                                        finish(comps.session, done);
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            comps.session,
+                                            done,
+                                            new Error(
+                                                `Fail to read output file due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    })
+                                    .finally(() => {
+                                        fs.unlinkSync(output);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
+            });
+        });
+    });
+    it(config.regular.list[11], function () {
+        return runners.withSession(config.regular, 11, async (logger, done, comps) => {
+            const filename = relativePath(config.regular.files['dlt'][0]);
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .file(filename)
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 9 || gotten) {
+                    return;
+                }
+                gotten = true;
+                comps.stream
+                    .grab(0, 9)
+                    .then((grabbed) => {
+                        const output = path.resolve(os.tmpdir(), `${v4()}.txt`);
+                        comps.stream
+                            .export(output, [{ from: 0, to: 8 }], {
+                                columns: [10],
+                                spliter: '\u0004',
+                                delimiter: ';',
+                            })
+                            .then(async () => {
+                                fs.promises
+                                    .readFile(output, { encoding: 'utf-8' })
+                                    .then((content) => {
+                                        const rows = content.split('\n');
+                                        expect(rows.length).toEqual(grabbed.length);
+                                        for (let i = 0; i < rows.length; i += 1) {
+                                            const columns = rows[i].split(';');
+                                            const origin = grabbed[i].content.split('\u0004');
+                                            expect(columns.length).toEqual(1);
+                                            for (let n = 0; n < columns.length; n += 1) {
+                                                expect(columns[n]).toEqual(origin[10 + n]);
+                                                expect(columns[n].length > 0).toBe(true);
+                                            }
+                                        }
+                                        finish(comps.session, done);
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            comps.session,
+                                            done,
+                                            new Error(
+                                                `Fail to read output file due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    })
+                                    .finally(() => {
+                                        fs.unlinkSync(output);
+                                    });
+                            })
+                            .catch((err: Error) => {
+                                finish(
+                                    comps.session,
+                                    done,
+                                    new Error(
+                                        `Fail to export data due error: ${
+                                            err instanceof Error ? err.message : err
+                                        }`,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch((err: Error) => {
+                        finish(
+                            undefined,
+                            done,
+                            new Error(
+                                `Fail to grab due error: ${
+                                    err instanceof Error ? err.message : err
+                                }`,
+                            ),
+                        );
+                    });
+            });
+        });
+    });
+
+    it(config.regular.list[12], function () {
+        return runners.withSession(config.regular, 12, async (logger, done, comps) => {
+            const filename = relativePath(config.regular.files['dlt'][0]);
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .type(Factory.FileType.Binary)
+                        .asDlt({
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: undefined,
+                        })
+                        .file(filename)
+                        .get()
+                        .sterilized(),
+                )
+                .catch(finish.bind(null, comps.session, done));
+            let gotten: boolean = false;
+            comps.events.StreamUpdated.subscribe((rows: number) => {
+                if (rows < 9 || gotten) {
+                    return;
+                }
+                gotten = true;
+                const cases = [
+                    {
+                        output: path.resolve(os.tmpdir(), `${v4()}.txt`),
+                        options: {
+                            columns: [],
+                            spliter: '\u0004',
+                            delimiter: ';',
+                        },
+                    },
+                    {
+                        output: path.resolve(os.tmpdir(), `${v4()}.txt`),
+                        options: {
+                            columns: [0, 1, 2],
+                            spliter: undefined,
+                            delimiter: ';',
+                        },
+                    },
+                    {
+                        output: path.resolve(os.tmpdir(), `${v4()}.txt`),
+                        options: {
+                            columns: [0, 1, 2],
+                            spliter: '\u0004',
+                            delimiter: undefined,
+                        },
+                    },
+                    {
+                        output: path.resolve(os.tmpdir(), `${v4()}.txt`),
+                        options: {
+                            columns: [0, 1, 2],
+                            spliter: undefined,
+                            delimiter: undefined,
+                        },
+                    },
+                    {
+                        output: path.resolve(os.tmpdir(), `${v4()}.txt`),
+                        options: {
+                            columns: [0, 0, 0, 0, 0, 1, 2, 3, 4, 1000000],
+                            spliter: '\u0004',
+                            delimiter: ';',
+                        },
+                    },
+                ];
+                Promise.allSettled(
+                    cases.map((usecase) => {
+                        const output = usecase.output;
+                        return comps.stream
+                            .export(output, [{ from: 0, to: 8 }], usecase.options)
+                            .then(async () => {
+                                fs.promises
+                                    .readFile(output, { encoding: 'utf-8' })
+                                    .then((content) => {
+                                        expect(content.length > 0).toBe(true);
+                                    })
+                                    .catch((err: Error) => {
+                                        finish(
+                                            comps.session,
+                                            done,
+                                            new Error(
+                                                `Fail to read output file due error: ${
+                                                    err instanceof Error ? err.message : err
+                                                }`,
+                                            ),
+                                        );
+                                    })
+                                    .finally(() => {
+                                        fs.unlinkSync(output);
+                                    });
+                            });
+                    }),
+                )
+                    .then(() => {
+                        finish(comps.session, done);
+                    })
+                    .catch((err) => {
+                        finish(comps.session, done, err);
                     });
             });
         });
