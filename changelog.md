@@ -1,3 +1,11 @@
+# 3.14.0 (25.10.2024)
+
+## Features
+- allow select columns, which will be exported into a file
+
+## Developing
+- add additional tests for exporting functionality
+
 # 3.13.5 (21.10.2024)
 
 ## Fixes
