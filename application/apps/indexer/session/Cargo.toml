@@ -35,3 +35,4 @@ walkdir = "2.3"
 lazy_static.workspace = true
 tempfile.workspace = true
 pretty_assertions.workspace = true
+scopeguard = "1.2"

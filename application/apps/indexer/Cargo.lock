@@ -1933,6 +1933,7 @@ dependencies = [
  "pretty_assertions",
  "processor",
  "rustc-hash",
+ "scopeguard",
  "serde",
  "serde_json",
  "serialport",
