@@ -10,6 +10,7 @@ import { ObserveSource } from './observing/source';
 import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
+import { TextExportOptions } from '@platform/types/exporting';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -322,15 +323,23 @@ export class Stream extends Subscriber {
     }
 
     public export(): {
-        text(ranges: IRange[], dest?: string): Promise<string | undefined>;
+        text(ranges: IRange[], dest?: string, opt?: TextExportOptions): Promise<string | undefined>;
         raw(ranges: IRange[], dest?: string): Promise<string | undefined>;
         isRawAvailable(): Promise<boolean>;
     } {
         return {
-            text: (ranges: IRange[], dest?: string): Promise<string | undefined> => {
+            text: (
+                ranges: IRange[],
+                dest?: string,
+                opt?: TextExportOptions,
+            ): Promise<string | undefined> => {
                 if (this._len === 0) {
                     return Promise.resolve(undefined);
                 }
+                const options =
+                    opt === undefined
+                        ? { columns: [], delimiter: undefined, spliter: undefined }
+                        : opt;
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Session.Export.Response,
@@ -338,6 +347,7 @@ export class Stream extends Subscriber {
                             session: this._uuid,
                             dest,
                             ranges,
+                            options,
                         }),
                     )
                         .then((response: Requests.Session.Export.Response) => {

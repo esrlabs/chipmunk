@@ -45,7 +45,7 @@ export const handler = Requests.InjectLogger<
             }
             stored.session
                 .getStream()
-                .export(dest, request.ranges)
+                .export(dest, request.ranges, request.options)
                 .then((complete) => {
                     resolve(
                         new Requests.Session.Export.Response({

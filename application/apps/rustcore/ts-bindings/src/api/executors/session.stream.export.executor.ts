@@ -2,10 +2,12 @@ import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './ex
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 import { IRange } from 'platform/types/range';
+import { TextExportOptions } from 'platform/types/exporting';
 
 export interface Options {
     dest: string;
     ranges: IRange[];
+    opt: TextExportOptions;
 }
 
 export const executor: TExecutor<boolean, Options> = (
@@ -20,7 +22,7 @@ export const executor: TExecutor<boolean, Options> = (
         logger,
         opt,
         function (session: RustSession, opt: Options, operationUuid: string): Promise<void> {
-            return session.export(opt.dest, opt.ranges, operationUuid);
+            return session.export(opt.dest, opt.ranges, opt.opt, operationUuid);
         },
         function (data: any, resolve: (done: boolean) => void, reject: (err: Error) => void) {
             data = data === 'true' ? true : data === 'false' ? false : data;

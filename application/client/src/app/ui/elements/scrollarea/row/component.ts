@@ -19,6 +19,7 @@ import { Selecting } from '../controllers/selection';
 import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { components } from '@env/decorators/initial';
 import { scheme_color_1 } from '@ui/styles/colors';
+import { TextExportOptions } from '@platform/types/exporting';
 
 import * as dom from '@ui/env/dom';
 
@@ -72,7 +73,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 new Notification({ message: 'Data has been exported into file', actions: [] }),
             );
         };
-        const exportSelected = (raw: boolean) => {
+        const exportSelected = (raw: boolean, opt?: TextExportOptions) => {
             const progress = this.ilc().services.ui.lockers.lock(
                 new Locker(true, 'exporting into file...')
                     .set()
@@ -83,7 +84,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 },
             );
             this.row.session.exporter
-                .export(raw)
+                .export(raw, opt)
                 .stream(this.row.session.selection().ranges())
                 .then((filepath: string | undefined) => {
                     filepath !== undefined && confirmToUser();
@@ -161,23 +162,65 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                     },
                 },
                 {},
+                ...(this.render === 2
+                    ? [
+                          {
+                              caption:
+                                  selectedRowsCount === 0
+                                      ? 'Export Selected as Table'
+                                      : `Export ${selectedRowsCount} row${
+                                            selectedRowsCount > 1 ? 's' : ''
+                                        } as Table`,
+                              disabled: selectedRowsCount === 0,
+                              handler: () => {
+                                  popup.open({
+                                      component: {
+                                          factory: components.get('app-dialogs-columns-selector'),
+                                          inputs: {
+                                              session: this.row.session,
+                                              accept: (
+                                                  columns: number[],
+                                                  delimiter: string | undefined,
+                                              ) => {
+                                                  exportSelected(false, {
+                                                      columns,
+                                                      delimiter,
+                                                      spliter: this.row.session.render.delimiter(),
+                                                  });
+                                              },
+                                          },
+                                      },
+                                      position: {
+                                          vertical: Vertical.center,
+                                          horizontal: Horizontal.center,
+                                      },
+                                      uuid: 'Selecting columns',
+                                  });
+                              },
+                          },
+                      ]
+                    : [
+                          {
+                              caption:
+                                  selectedRowsCount === 0
+                                      ? 'Export Selected'
+                                      : `Export ${selectedRowsCount} row${
+                                            selectedRowsCount > 1 ? 's' : ''
+                                        } `,
+                              disabled: selectedRowsCount === 0,
+                              handler: () => {
+                                  exportSelected(false);
+                              },
+                          },
+                      ]),
+
                 {
                     caption:
                         selectedRowsCount === 0
-                            ? 'Export Selected'
-                            : `Export ${selectedRowsCount} row${selectedRowsCount > 1 ? 's' : ''}`,
-                    disabled: selectedRowsCount === 0,
-                    handler: () => {
-                        exportSelected(false);
-                    },
-                },
-                {
-                    caption:
-                        selectedRowsCount === 0
-                            ? 'Export Selected'
+                            ? 'Export Selected as Raw'
                             : `Export ${selectedRowsCount} row${
                                   selectedRowsCount > 1 ? 's' : ''
-                              } as raw`,
+                              } as Raw`,
                     disabled: !isRawAvailable || selectedRowsCount === 0,
                     handler: () => {
                         exportSelected(true);
