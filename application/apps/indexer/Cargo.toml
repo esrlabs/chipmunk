@@ -40,7 +40,14 @@ env_logger = "0.10"
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
 criterion = { version = "0.5", features = ["html_reports"] }
-pretty_assertions = "1.4"
+insta = { version = "1.41", features = ["yaml"] }
+
+# `insta` crate and its dependency `similar` will be compiled once and run many times, 
+# therefore it's suggested to compile them with more optimizations for faster runs.
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3
+
 
 # only uncomment when profiling
 # [profile.release]

@@ -11,6 +11,7 @@ use uuid::Uuid;
 pub struct SessionFiles {
     /// The content of the main session file, normally with name `{uuid}.session`
     /// Content saved as line for better comparison in testing.
+    #[serde(rename = "session_file")]
     pub session_file_lines: Vec<String>,
     /// The generated files for the attachments in the attachments directory with the name `{uuid}`
     pub attachments: Vec<AttachmentInfo>,
@@ -22,6 +23,7 @@ pub struct AttachmentInfo {
     pub filename: String,
     /// Content of the file when it has textual content. For binary format it will stay empty.
     /// Content saved as line for better comparison in testing.
+    #[serde(rename = "content")]
     pub content_lines: Vec<String>,
 }
 
@@ -72,7 +74,7 @@ impl SessionFiles {
 }
 
 /// Remove session main file and attachments for the given session file.
-pub fn cleanup_session_file(session_file: &PathBuf) {
+pub fn cleanup_session_files(session_file: &PathBuf) {
     std::fs::remove_file(session_file)
         .expect("Removing generated temporary session file shouldn't fail");
     let session_dir = session_dir_form_file(session_file);
