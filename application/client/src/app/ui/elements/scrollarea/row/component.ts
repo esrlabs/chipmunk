@@ -102,7 +102,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                     );
                 });
         };
-        const exportSearch = (raw: boolean) => {
+        const exportSearch = (raw: boolean, opt?: TextExportOptions) => {
             const progress = this.ilc().services.ui.lockers.lock(
                 new Locker(true, 'exporting into file...')
                     .set()
@@ -113,7 +113,7 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 },
             );
             this.row.session.exporter
-                .export(raw)
+                .export(raw, opt)
                 .search()
                 .then((filepath: string | undefined) => {
                     filepath !== undefined && confirmToUser();
@@ -263,13 +263,50 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
                 ...(this.row.owner === Owner.Search
                     ? [
                           {},
-                          {
-                              caption: 'Export All Search Result',
-                              disabled: this.row.session.indexed.len() === 0,
-                              handler: () => {
-                                  exportSearch(false);
-                              },
-                          },
+                          ...(this.render === 2
+                              ? [
+                                    {
+                                        caption: 'Export All Search Result As Table',
+                                        disabled: this.row.session.indexed.len() === 0,
+                                        handler: () => {
+                                            popup.open({
+                                                component: {
+                                                    factory: components.get(
+                                                        'app-dialogs-columns-selector',
+                                                    ),
+                                                    inputs: {
+                                                        session: this.row.session,
+                                                        accept: (
+                                                            columns: number[],
+                                                            delimiter: string | undefined,
+                                                        ) => {
+                                                            exportSearch(false, {
+                                                                columns,
+                                                                delimiter,
+                                                                spliter:
+                                                                    this.row.session.render.delimiter(),
+                                                            });
+                                                        },
+                                                    },
+                                                },
+                                                position: {
+                                                    vertical: Vertical.center,
+                                                    horizontal: Horizontal.center,
+                                                },
+                                                uuid: 'Selecting columns',
+                                            });
+                                        },
+                                    },
+                                ]
+                              : [
+                                    {
+                                        caption: 'Export All Search Result',
+                                        disabled: this.row.session.indexed.len() === 0,
+                                        handler: () => {
+                                            exportSearch(false);
+                                        },
+                                    },
+                                ]),
                           {
                               caption: 'Export All Search Result as Raw',
                               disabled: !isRawAvailable || this.row.session.indexed.len() === 0,
