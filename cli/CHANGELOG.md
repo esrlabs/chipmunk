@@ -1,3 +1,10 @@
+# 0.2.11
+
+## Features:
+
+* Provide option to test command to accept snapshot tests.
+* Prevent snapshot tests to generate files when the value aren't gonna be accepted.
+
 # 0.2.10
 
 ## Features:
