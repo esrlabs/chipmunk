@@ -48,6 +48,7 @@ pub struct JobsConfig {
     custom_specs: Vec<String>,
     // Additional features for the given jobs.
     additional_features: Vec<AdditionalFeatures>,
+    accept_snapshots: bool,
 }
 
 impl JobsConfig {
@@ -73,6 +74,12 @@ impl JobsConfig {
     #[must_use]
     pub fn additional_features(mut self, additional_features: Vec<AdditionalFeatures>) -> Self {
         self.additional_features = additional_features;
+        self
+    }
+
+    #[must_use]
+    pub fn accept_snapshots(mut self, accept_snapshots: bool) -> Self {
+        self.accept_snapshots = accept_snapshots;
         self
     }
 }
@@ -177,5 +184,10 @@ impl JobsState {
     /// Gets the additional features for the running job.
     pub fn additional_features(&self) -> &[AdditionalFeatures] {
         self.configuration.additional_features.as_slice()
+    }
+
+    /// Gets if changes of all snapshots in test should be accepted.
+    pub fn accept_snapshots(&self) -> bool {
+        self.configuration.accept_snapshots
     }
 }

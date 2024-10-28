@@ -361,12 +361,22 @@ impl Target {
         debug_assert!(!test_cmds.is_empty());
 
         let job_def = JobDefinition::new(*self, JobType::Test { production });
+
+        // Environment value to set with for snapshot testing using `isnta` crate.
+        let insta_env = if JobsState::get().accept_snapshots() {
+            // This value will overwrite all changes on snapshots.
+            "always"
+        } else {
+            // This will show the changes without writing any temporary file (with format
+            // `*.snap.new`)
+            "no"
+        };
         let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
             spawn(
                 job_def,
                 cmd.command,
                 Some(cmd.cwd),
-                iter::empty(),
+                [(String::from("INSTA_UPDATE"), String::from(insta_env))],
                 cmd.spawn_opts,
             )
         }))

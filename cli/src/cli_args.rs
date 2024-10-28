@@ -139,6 +139,10 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
+        /// Accepts the new results in all snapshot tests.
+        #[arg(short, long, default_value_t = false)]
+        accept_snapshots: bool,
+
         /// Sets which test specifications should be run.
         /// Currently implemented for wrapper target (ts-bindings) only
         #[arg(short, long = "specs")]

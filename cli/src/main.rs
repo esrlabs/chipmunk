@@ -161,9 +161,14 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             fail_fast,
             ui_mode,
+            accept_snapshots,
             specifications,
         } => {
-            JobsState::init(JobsConfig::new(fail_fast).custom_specs(specifications));
+            JobsState::init(
+                JobsConfig::new(fail_fast)
+                    .custom_specs(specifications)
+                    .accept_snapshots(accept_snapshots),
+            );
             init_tracker(ui_mode);
             validate_dev_tools()?;
             let targets = get_targets_or_all(target);
