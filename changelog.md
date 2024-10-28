@@ -1,3 +1,9 @@
+# 3.14.1 (28.10.2024)
+
+## Corrections
+- allow select columns, which will be exported into a file on search results export
+- suggest default file name on exporting and saving of attachments
+
 # 3.14.0 (25.10.2024)
 
 ## Features
