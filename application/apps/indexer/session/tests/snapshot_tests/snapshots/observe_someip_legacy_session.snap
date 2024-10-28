@@ -1,6 +1,6 @@
 ---
-source: session/tests/snapshots/mod.rs
-description: Snapshot for SomeIP file with Pcapng byte source.
+source: session/tests/snapshot_tests/mod.rs
+description: Snapshot for SomeIP file with Pcap Legacy byte source.
 info:
   fibex_file_paths:
     - "../../../developing/resources/someip.xml"

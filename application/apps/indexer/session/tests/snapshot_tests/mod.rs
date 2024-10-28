@@ -41,8 +41,10 @@ async fn observe_dlt_with_someip_session() {
         "Fibex file path doesn't exist. Path: {fibex_file}"
     );
 
-    let mut parser_settings = DltParserSettings::default();
-    parser_settings.fibex_file_paths = Some(vec![String::from(fibex_file)]);
+    let parser_settings = DltParserSettings {
+        fibex_file_paths: Some(vec![String::from(fibex_file)]),
+        ..Default::default()
+    };
 
     let session_main_file = run_observe_session(
         input,
