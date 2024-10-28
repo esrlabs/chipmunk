@@ -1,1 +1,1 @@
-mod snapshots;
+mod snapshot_tests;

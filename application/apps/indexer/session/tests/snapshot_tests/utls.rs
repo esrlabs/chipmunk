@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use session::{events::CallbackEvent, session::Session};
 use sources::factory::{FileFormat, ObserveOptions, ParserType};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,20 +29,20 @@ pub struct AttachmentInfo {
 
 impl SessionFiles {
     /// Creates a session files infos reading the main session file and the attachments if exists.
-    pub fn from_session_file(session_file: &PathBuf) -> Self {
+    pub fn from_session_file(session_file: &Path) -> Self {
         assert!(
             session_file.exists(),
             "Session file doesn't exist. Path: {}",
             session_file.display()
         );
 
-        let session_file_lines = std::fs::read_to_string(&session_file)
+        let session_file_lines = std::fs::read_to_string(session_file)
             .expect("Session file can be read to string without problems")
             .lines()
             .map(ToString::to_string)
             .collect();
 
-        let session_dir = session_dir_form_file(&session_file);
+        let session_dir = session_dir_form_file(session_file);
 
         let mut attachments = Vec::new();
 
@@ -85,7 +85,7 @@ pub fn cleanup_session_files(session_file: &PathBuf) {
 }
 
 /// Provide the name of the attachments directory for the given session main file.
-fn session_dir_form_file(session_file: &PathBuf) -> PathBuf {
+fn session_dir_form_file(session_file: &Path) -> PathBuf {
     const SESSION_FILE_SUFFIX: &str = ".session";
 
     session_file
@@ -133,7 +133,5 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
         }
     }
 
-    let file = session.get_state().get_session_file().await.unwrap();
-
-    file
+    session.get_state().get_session_file().await.unwrap()
 }

@@ -1,5 +1,5 @@
 ---
-source: session/tests/snapshots/mod.rs
+source: session/tests/snapshot_tests/mod.rs
 description: Snapshot for DLT file with SomeIP network trace.
 info:
   filter_config: ~

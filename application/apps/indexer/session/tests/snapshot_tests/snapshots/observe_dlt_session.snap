@@ -1,5 +1,5 @@
 ---
-source: session/tests/snapshots/mod.rs
+source: session/tests/snapshot_tests/mod.rs
 description: Snapshot for DLT file with text attachments.
 info:
   filter_config: ~
