@@ -25,14 +25,21 @@ export class Dialogs extends Implementation {
         this._window = window;
     }
 
-    public saveFile(ext?: string): Promise<string | undefined> {
+    public saveFile(ext?: string, defaultFileName?: string): Promise<string | undefined> {
         this.fixFocusAndMouse();
+        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`);
+        console.log(`EXT: ${ext}`);
+        console.log(`defaultFileName: ${defaultFileName}`);
+        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`);
         return dialog
             .showSaveDialog(this._window, {
                 title: 'Select file to save',
                 properties: ['createDirectory', 'showOverwriteConfirmation'],
+                defaultPath: defaultFileName,
                 filters:
-                    ext !== undefined
+                    defaultFileName !== undefined
+                        ? []
+                        : ext !== undefined
                         ? ext.split(',').map((e) => {
                               return { name: `*.${e}`, extensions: [e] };
                           })

@@ -98,6 +98,10 @@ export function getFileName(filename: string): string {
     return match[0];
 }
 
+export function getSafeFileName(filename: string): string {
+    return filename.replace(/[^\w\d\-.]/gi, '_');
+}
+
 export function getParentFolder(filename: string): string {
     const name = getFileName(filename);
     return filename.replace(name, '').replace(/[/\\]$/gi, '');

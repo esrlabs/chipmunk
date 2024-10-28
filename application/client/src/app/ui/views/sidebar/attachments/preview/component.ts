@@ -14,7 +14,12 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Locker } from '@ui/service/lockers';
 import { Notification } from '@ui/service/notifications';
 import { Subject } from '@platform/env/subscription';
-import { getFileExtention, appendFileExtention } from '@platform/types/files';
+import {
+    getFileExtention,
+    appendFileExtention,
+    getFileName,
+    getSafeFileName,
+} from '@platform/types/files';
 
 @Component({
     selector: 'app-views-attachments-preview',
@@ -58,7 +63,9 @@ export class Preview extends ChangesDetector implements AfterContentInit {
 
     public async saveAs(): Promise<void> {
         const bridge = this.ilc().services.system.bridge;
-        let dest = await bridge.files().select.save();
+        let dest = await bridge
+            .files()
+            .select.save(undefined, getSafeFileName(getFileName(this.attachment.filepath)));
         if (dest === undefined) {
             return;
         }

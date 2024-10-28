@@ -15,7 +15,7 @@ export const handler = Requests.InjectLogger<
         return new CancelablePromise((resolve) => {
             electron
                 .dialogs()
-                .saveFile(request.ext)
+                .saveFile(request.ext, request.defaultFileName)
                 .then((file: string | undefined) => {
                     resolve(
                         new Requests.File.Save.Response({

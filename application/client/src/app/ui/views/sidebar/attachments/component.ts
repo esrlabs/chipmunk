@@ -19,7 +19,12 @@ import { Owner } from '@schema/content/row';
 import { Preview } from './preview/component';
 import { NormalizedBackgroundTask } from '@platform/env/normalized';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { getFileExtention, appendFileExtention } from '@platform/types/files';
+import {
+    getFileExtention,
+    appendFileExtention,
+    getFileName,
+    getSafeFileName,
+} from '@platform/types/files';
 
 import * as dom from '@ui/env/dom';
 
@@ -346,7 +351,9 @@ export class Attachments extends ChangesDetector implements AfterContentInit {
                     }
                     attachment = selected[0];
                 }
-                let dest = await bridge.files().select.save();
+                let dest = await bridge
+                    .files()
+                    .select.save(undefined, getSafeFileName(getFileName(attachment.filepath)));
                 if (dest === undefined) {
                     return;
                 }
