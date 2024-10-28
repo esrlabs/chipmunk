@@ -3,6 +3,7 @@ import { cutUuid } from '@log/index';
 import { Stream } from './stream';
 import { Indexed } from './indexed';
 import { IRange } from '@platform/types/range';
+import { getFileName, getSafeFileName } from '@platform/types/files';
 import { bridge } from '@service/bridge';
 import { TextExportOptions } from '@platform/types/exporting';
 
@@ -38,6 +39,17 @@ export class Exporter {
         search(): Promise<string | undefined>;
     } {
         const uuid = this._uuid;
+        let defaultFileName = this._stream.observe().getSourceFileName();
+        if (defaultFileName === undefined) {
+            defaultFileName = getSafeFileName(
+                `export_${new Date().toLocaleDateString()}_${new Date().toLocaleTimeString()}`,
+            );
+        } else {
+            defaultFileName = getSafeFileName(`${getFileName(defaultFileName)}_export`);
+        }
+        if (!asRaw) {
+            defaultFileName = `${defaultFileName}.txt`;
+        }
         return {
             all(): Promise<void> {
                 return Requests.IpcRequest.send(
@@ -53,7 +65,7 @@ export class Exporter {
                 if (ranges.length === 0) {
                     return undefined;
                 }
-                const dest = await bridge.files().select.save();
+                const dest = await bridge.files().select.save(undefined, defaultFileName);
                 if (dest === undefined) {
                     return undefined;
                 }
@@ -65,7 +77,7 @@ export class Exporter {
                 if (this._indexed.len() === 0) {
                     return undefined;
                 }
-                const dest = await bridge.files().select.save();
+                const dest = await bridge.files().select.save(undefined, defaultFileName);
                 if (dest === undefined) {
                     return undefined;
                 }

@@ -520,7 +520,7 @@ export class Providers {
             export: (): void => {
                 bridge
                     .files()
-                    .select.save()
+                    .select.save(undefined, undefined)
                     .then((filename: string | undefined) => {
                         if (filename === undefined) return;
                         history

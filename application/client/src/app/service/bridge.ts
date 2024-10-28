@@ -68,7 +68,10 @@ export class Service extends Implementation {
             pcap(): Promise<File[]>;
             text(): Promise<File[]>;
             custom(ext: string): Promise<File[]>;
-            save(ext?: string): Promise<string | undefined>;
+            save(
+                ext: string | undefined,
+                defaultFileName: string | undefined,
+            ): Promise<string | undefined>;
         };
     } {
         const request = (target: FileType | undefined, ext?: string): Promise<File[]> => {
@@ -299,11 +302,15 @@ export class Service extends Implementation {
                 custom: (ext: string): Promise<File[]> => {
                     return request(undefined, ext);
                 },
-                save: (ext?: string): Promise<string | undefined> => {
+                save: (
+                    ext: string | undefined,
+                    defaultFileName: string | undefined,
+                ): Promise<string | undefined> => {
                     return Requests.IpcRequest.send(
                         Requests.File.Save.Response,
                         new Requests.File.Save.Request({
                             ext,
+                            defaultFileName,
                         }),
                     ).then((response) => {
                         if (response.error !== undefined) {

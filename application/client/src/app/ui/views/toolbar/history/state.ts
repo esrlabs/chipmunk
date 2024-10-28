@@ -52,7 +52,7 @@ export class State {
                 this.parent
                     .ilc()
                     .services.system.bridge.files()
-                    .select.save()
+                    .select.save(undefined, undefined)
                     .then((filename: string | undefined) => {
                         if (filename === undefined) {
                             return;
