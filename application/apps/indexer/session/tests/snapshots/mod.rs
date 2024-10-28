@@ -1,16 +1,13 @@
-// TODO AAZ: Remove after prototyping
-#![allow(unused)]
-
 mod utls;
 
-use pretty_assertions::{assert_eq, assert_ne};
 use scopeguard::defer;
 use sources::factory::{DltParserSettings, FileFormat, ParserType};
 use utls::*;
 
 #[tokio::test]
-async fn export_dlt() {
+async fn observe_dlt_session() {
     let input = "../../../developing/resources/attachments.dlt";
+    let parser_settings = DltParserSettings::default();
     let session_main_file = run_observe_session(
         input,
         FileFormat::Binary,
@@ -18,9 +15,16 @@ async fn export_dlt() {
     )
     .await;
 
-    defer! { cleanup_session_file(&session_main_file)};
+    defer! { cleanup_session_files(&session_main_file)};
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
-    panic!("{:#?}", session_files);
+    insta::with_settings!({
+        info => &parser_settings,
+        description => "Snapshot for DLT file with text attachments.",
+        omit_expression => true,
+        prepend_module_to_snapshot => false,
+    }, {
+        insta::assert_yaml_snapshot!(session_files);
+    });
 }
