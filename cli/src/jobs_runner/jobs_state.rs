@@ -44,10 +44,12 @@ pub enum AdditionalFeatures {
 pub struct JobsConfig {
     fail_fast: bool,
     is_release_build: bool,
-    // Custom specifications for the given jobs.
+    /// Custom specifications for the given jobs.
     custom_specs: Vec<String>,
     // Additional features for the given jobs.
     additional_features: Vec<AdditionalFeatures>,
+    /// Set to accept the changes in snapshot testing.
+    /// Snapshot testing is currently implemented in some Rust parts only.
     accept_snapshots: bool,
 }
 
@@ -186,7 +188,8 @@ impl JobsState {
         self.configuration.additional_features.as_slice()
     }
 
-    /// Gets if changes of all snapshots in test should be accepted.
+    /// Gets if changes of all snapshots in tests should be accepted.
+    /// Snapshot testing is implemented only for some Rust parts.
     pub fn accept_snapshots(&self) -> bool {
         self.configuration.accept_snapshots
     }

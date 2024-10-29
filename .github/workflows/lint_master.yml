@@ -94,4 +94,7 @@ jobs:
         run: cargo install wasm-pack
       - name: Execute tests
         timeout-minutes: 30
+        env:
+          # Environment variable is needed for snapshot testing in Rust via `insta` crate
+          CI: true
         run: cargo chipmunk test -u immediate
