@@ -19,12 +19,12 @@ session_file:
   - "1970-01-01T00:00:00Z\u0004ecu\u00040\u0004\u00040\u0004\u0004ecu2\u0004\u0004\u0004LogLevel INFO\u0004\u0005FLFI\u00051005083951\u0005FLFI"
   - "1970-01-01T00:00:00Z\u0004ecu\u00040\u0004\u00040\u0004\u0004ecu3\u0004\u0004\u0004LogLevel INFO\u0004\u0005FLFI\u00052406339683\u0005FLFI"
 attachments:
+  - filename: test1.txt
+    content:
+      - test1
   - filename: test2.txt
     content:
       - test22
   - filename: test3.txt
     content:
       - test333
-  - filename: test1.txt
-    content:
-      - test1
