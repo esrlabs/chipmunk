@@ -60,7 +60,7 @@ impl SessionFiles {
                         .to_string(),
                     content_lines: std::fs::read_to_string(entry_path)
                         .map(|content| content.lines().map(ToString::to_string).collect())
-                        .unwrap_or_default(),
+                        .unwrap_or_default(), // Use empty content for binary files.
                 });
 
             attachments.extend(atts_iter);
@@ -80,7 +80,7 @@ pub fn cleanup_session_files(session_file: &PathBuf) {
     let session_dir = session_dir_form_file(session_file);
     if session_dir.exists() {
         std::fs::remove_dir_all(session_dir)
-            .expect("Removing generated temporary session attachments directory shouldn't fial");
+            .expect("Removing generated temporary session attachments directory shouldn't fail");
     }
 }
 
@@ -92,7 +92,7 @@ fn session_dir_form_file(session_file: &Path) -> PathBuf {
         .to_str()
         .and_then(|file| file.strip_suffix(SESSION_FILE_SUFFIX))
         .map(PathBuf::from)
-        .unwrap()
+        .expect("Session path can't fail while converting to string")
 }
 
 /// Runs a processor observe session generating the session files in Chipmunk temporary directory
@@ -125,13 +125,17 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
     while let Some(feedback) = receiver.recv().await {
         match feedback {
             CallbackEvent::FileRead | CallbackEvent::SessionDestroyed => break,
-            CallbackEvent::SessionError(err) => panic!("Recieved session error: {err:#?}"),
+            CallbackEvent::SessionError(err) => panic!("Received session error: {err:#?}"),
             CallbackEvent::OperationError { error, .. } => {
-                panic!("Recieved operation error: {error:#?}")
+                panic!("Received operation error: {error:#?}")
             }
             _ => {}
         }
     }
 
-    session.get_state().get_session_file().await.unwrap()
+    session
+        .get_state()
+        .get_session_file()
+        .await
+        .expect("We must have a session file after observe session is done")
 }
