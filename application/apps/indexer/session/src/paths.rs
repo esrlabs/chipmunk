@@ -23,7 +23,7 @@ pub fn get_home_dir() -> Result<PathBuf, NativeError> {
 pub fn get_streams_dir() -> Result<PathBuf, NativeError> {
     let streams = get_home_dir()?.join(CHIPMUNK_TMP);
     if !streams.exists() {
-        std::fs::create_dir(&streams).map_err(|e| NativeError {
+        std::fs::create_dir_all(&streams).map_err(|e| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
             message: Some(format!(
