@@ -20,6 +20,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub const FLUSH_DATA_IN_MS: u128 = 500;
+pub const SESSION_FILE_EXTENSION: &str = "session";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GrabbedElement {
@@ -93,7 +94,7 @@ impl SessionFile {
                 filename
             } else {
                 let streams = paths::get_streams_dir()?;
-                let filename = streams.join(format!("{}.session", Uuid::new_v4()));
+                let filename = streams.join(format!("{}.{SESSION_FILE_EXTENSION}", Uuid::new_v4()));
                 debug!("Session file setup: {}", filename.to_string_lossy());
                 self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
                     NativeError {
@@ -301,19 +302,55 @@ impl SessionFile {
             })
     }
 
+    /// Cleans up the temporary generated files and for the session on its attachments if exist
+    /// for none-linked sessions.
     pub fn cleanup(&mut self) -> Result<(), NativeError> {
         if self.writer.is_none() {
+            // Session is linked. No temporary files has been generated.
             return Ok(());
         }
+
+        // Remove session main file.
         let filename = self.filename()?;
         debug!("cleaning up files: {:?}", filename);
         if filename.exists() {
-            std::fs::remove_file(filename).map_err(|e| NativeError {
+            std::fs::remove_file(&filename).map_err(|e| NativeError {
                 severity: Severity::ERROR,
                 kind: NativeErrorKind::Io,
-                message: Some(e.to_string()),
+                message: Some(format!(
+                    "Removing session main file fialed. Error: {e}. Path: {}",
+                    filename.display()
+                )),
             })?;
         }
+
+        // Remove attachments directory if exists.
+        let attachments_dir = filename
+            .to_str()
+            .and_then(|file| file.strip_suffix(&format!(".{SESSION_FILE_EXTENSION}")))
+            .map(PathBuf::from)
+            .ok_or_else(|| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Io,
+                message: Some("Session file name isn't UTF-8 valid".into()),
+            })?;
+
+        if attachments_dir.exists() {
+            debug!(
+                "Cleaning up attachments direcotry: {}",
+                attachments_dir.display()
+            );
+
+            std::fs::remove_dir_all(&attachments_dir).map_err(|err| NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Io,
+                message: Some(format!(
+                    "Removing attachments directory failed. Error: {err}, Path: {}",
+                    attachments_dir.display()
+                )),
+            })?
+        }
+
         Ok(())
     }
 }

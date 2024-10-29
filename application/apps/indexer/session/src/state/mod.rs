@@ -771,7 +771,6 @@ pub async fn run(
             }
             Api::ShutdownWithError => {
                 debug!("shutdown state loop with error for testing");
-                state.session_file.cleanup()?;
                 return Err(NativeError {
                     severity: Severity::ERROR,
                     kind: NativeErrorKind::Io,
@@ -780,7 +779,15 @@ pub async fn run(
             }
         }
     }
-    state.session_file.cleanup()?;
     debug!("task is finished");
     Ok(())
+}
+
+impl Drop for SessionState {
+    fn drop(&mut self) {
+        // Ensure session files are cleaned up by calling the cleanup function on drop.
+        if let Err(err) = self.session_file.cleanup() {
+            log::error!("Cleaning up session files failed. Error: {err:#?}");
+        }
+    }
 }
