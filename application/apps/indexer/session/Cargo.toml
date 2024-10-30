@@ -33,3 +33,4 @@ walkdir = "2.3"
 
 [dev-dependencies]
 lazy_static.workspace = true
+tempfile.workspace = true
