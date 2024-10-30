@@ -1916,6 +1916,7 @@ dependencies = [
  "serde_json",
  "serialport",
  "sources",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-stream",
