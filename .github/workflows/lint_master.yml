@@ -44,7 +44,7 @@ jobs:
       - name: install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: JS/TS linting
-        run: cargo chipmunk lint -u print
+        run: cargo chipmunk lint -u immediate
       - name: TypeScript Check - Client Application
         working-directory: application/client
         run: yarn run check
@@ -92,4 +92,4 @@ jobs:
       - name: install wasm-pack
         run: cargo install wasm-pack
       - name: Execute tests
-        run: cargo chipmunk test -u print
+        run: cargo chipmunk test -u immediate
