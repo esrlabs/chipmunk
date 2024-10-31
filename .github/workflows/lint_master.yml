@@ -92,4 +92,4 @@ jobs:
       - name: install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Execute tests
-        run: cargo chipmunk test core wrapper wasm -u print
+        run: cargo chipmunk test -u print
