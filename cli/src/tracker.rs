@@ -23,7 +23,7 @@ const TIME_BAR_WIDTH: usize = 5;
 
 static TRACKER: OnceLock<Tracker> = OnceLock::new();
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum OperationResult {
     Success,
     Failed,
@@ -77,6 +77,13 @@ enum LogTick {
     GetLogs(JobDefinition, oneshot::Sender<Vec<String>>),
     /// Shutdowns the logs cache channel.
     Shutdown,
+}
+
+#[derive(Debug, Clone, Copy)]
+/// Represents the standard output target.
+enum OutputTarget {
+    Stdout,
+    Stderr,
 }
 
 #[derive(Clone, Debug)]
@@ -472,8 +479,23 @@ impl Tracker {
 
     /// Send a message of the job to be shown on UI and saved in logs cache.
     pub fn msg(&self, job_def: JobDefinition, log: String) {
+        self.msg_intern(job_def, log, OutputTarget::Stdout)
+    }
+
+    /// Send a error message of the job to be shown on UI and saved in logs cache.
+    pub fn msg_err(&self, job_def: JobDefinition, log: String) {
+        self.msg_intern(job_def, log, OutputTarget::Stderr)
+    }
+
+    /// Internal implementation for sending messages (standard and error)
+    fn msg_intern(&self, job_def: JobDefinition, log: String, target: OutputTarget) {
         if self.print_immediately() {
-            println!("Job '{}': {}", job_def.job_title(), log.trim());
+            let msg = format!("Job '{}': {}", job_def.job_title(), log.trim());
+            match target {
+                OutputTarget::Stdout => println!("{msg}"),
+                OutputTarget::Stderr => eprintln!("{msg}"),
+            };
+
             return;
         }
 
@@ -495,8 +517,22 @@ impl Tracker {
 
     /// Send a message of the job to be be saved within logs cache without showing it in UI.
     pub fn log(&self, job_def: JobDefinition, log: String) {
+        self.log_intern(job_def, log, OutputTarget::Stdout)
+    }
+
+    /// Send a error message of the job to be be saved within logs cache without showing it in UI.
+    pub fn log_err(&self, job_def: JobDefinition, log: String) {
+        self.log_intern(job_def, log, OutputTarget::Stderr)
+    }
+
+    /// Internal implementation for sending log messages (standard and error)
+    fn log_intern(&self, job_def: JobDefinition, log: String, target: OutputTarget) {
         if self.print_immediately() {
-            println!("Job '{}': {}", job_def.job_title(), log.trim());
+            let msg = format!("Job '{}': {}", job_def.job_title(), log.trim());
+            match target {
+                OutputTarget::Stdout => println!("{msg}"),
+                OutputTarget::Stderr => eprintln!("{msg}"),
+            }
             return;
         }
 
