@@ -156,9 +156,9 @@ pub async fn spawn(
 
                 if !stderr_line.trim().is_empty() {
                     if opts.suppress_ui {
-                        tracker.log(job_def, stderr_line);
+                        tracker.log_err(job_def, stderr_line);
                     } else {
-                        tracker.msg(job_def, stderr_line);
+                        tracker.msg_err(job_def, stderr_line);
                     }
                 }
 
