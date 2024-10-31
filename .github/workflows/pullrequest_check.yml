@@ -92,6 +92,6 @@ jobs:
         if: steps.cache-cargo.outputs.cache-hit != 'true'
         run: cargo install --path=cli
       - name: install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: cargo install wasm-pack
       - name: Execute tests
         run: cargo chipmunk test -u print
