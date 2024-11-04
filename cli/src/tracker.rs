@@ -255,6 +255,9 @@ impl Tracker {
         let max = u64::MAX;
         let mut bars: BTreeMap<JobDefinition, JobBarState> = BTreeMap::new();
         let mp = MultiProgress::new();
+        // Reduces flickering. This works well if progress bars count doesn't change while running.
+        mp.set_move_cursor(true);
+
         let start_time = Instant::now();
         while let Some(tick) = rx.recv().await {
             match tick {
