@@ -256,7 +256,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
                 }
             }
             Err(err) => {
-                eprintln!("Builder error: {:?}", err);
+                eprintln!("Error: {:?}", err);
                 eprintln!("---------------------------------------------------------------------");
                 success = false;
             }
