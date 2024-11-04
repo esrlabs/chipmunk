@@ -42,8 +42,9 @@ jobs:
           echo ${{steps.cache-cargo.outputs}}
           cargo install --path=cli
       - name: install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: cargo install wasm-pack
       - name: JS/TS linting
+        timeout-minutes: 30
         run: cargo chipmunk lint -u immediate
       - name: TypeScript Check - Client Application
         working-directory: application/client
@@ -92,4 +93,5 @@ jobs:
       - name: install wasm-pack
         run: cargo install wasm-pack
       - name: Execute tests
+        timeout-minutes: 30
         run: cargo chipmunk test -u immediate
