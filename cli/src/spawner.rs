@@ -10,6 +10,7 @@ use crate::{
     JobsState,
 };
 use anyhow::Context;
+use console::style;
 use core::panic;
 use std::{
     path::PathBuf,
@@ -229,6 +230,10 @@ pub async fn spawn_blocking(
 
 /// This spawns a new task and return immediately showing that the job has been skipped
 pub async fn spawn_skip(job_def: JobDefinition, command: String) -> anyhow::Result<SpawnResult> {
+    if get_tracker().print_immediately() {
+        let msg = format!("Job '{}' has been skipped", job_def.job_title());
+        println!("{}", style(msg).cyan().bold());
+    }
     Ok(SpawnResult::create_for_skipped(
         job_def.job_title(),
         command,
