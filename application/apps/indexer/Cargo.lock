@@ -1952,7 +1952,6 @@ dependencies = [
  "parsers",
  "processor",
  "rustc-hash",
- "scopeguard",
  "serde",
  "serde_json",
  "serialport",

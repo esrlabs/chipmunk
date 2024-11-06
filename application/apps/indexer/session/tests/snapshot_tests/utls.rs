@@ -75,19 +75,6 @@ impl SessionFiles {
     }
 }
 
-/// Remove session main file and attachments for the given session file.
-/// TODO: This shouldn't be needed after the cleanup improvements are merged because the cleaning
-/// up will be called automatically when the session is dropped.
-pub fn cleanup_session_files(session_file: &PathBuf) {
-    std::fs::remove_file(session_file)
-        .expect("Removing generated temporary session file shouldn't fail");
-    let session_dir = session_dir_form_file(session_file);
-    if session_dir.exists() {
-        std::fs::remove_dir_all(session_dir)
-            .expect("Removing generated temporary session attachments directory shouldn't fail");
-    }
-}
-
 /// Provide the name of the attachments directory for the given session main file.
 fn session_dir_form_file(session_file: &Path) -> PathBuf {
     const SESSION_FILE_SUFFIX: &str = ".session";

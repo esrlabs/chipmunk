@@ -1,6 +1,3 @@
-// TODO AAZ: Better docs
-// Rust can't tell if a dependency is used in development only
-// #![deny(unused_crate_dependencies)]
 pub mod events;
 mod handlers;
 pub mod operations;

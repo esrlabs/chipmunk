@@ -19,7 +19,6 @@ mod utls;
 
 use std::path::PathBuf;
 
-use scopeguard::defer;
 use sources::factory::{DltParserSettings, FileFormat, ParserType, SomeIpParserSettings};
 use utls::*;
 
@@ -33,8 +32,6 @@ async fn observe_dlt_session() {
         ParserType::Dlt(parser_settings.clone()),
     )
     .await;
-
-    defer! { cleanup_session_files(&session_main_file)};
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
@@ -70,8 +67,6 @@ async fn observe_dlt_with_someip_session() {
     )
     .await;
 
-    defer! { cleanup_session_files(&session_main_file)};
-
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
@@ -105,8 +100,6 @@ async fn observe_someip_bcapng_session() {
     )
     .await;
 
-    defer! { cleanup_session_files(&session_main_file)};
-
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
@@ -139,8 +132,6 @@ async fn observe_someip_legacy_session() {
         ParserType::SomeIp(parser_settings.clone()),
     )
     .await;
-
-    defer! { cleanup_session_files(&session_main_file)};
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
