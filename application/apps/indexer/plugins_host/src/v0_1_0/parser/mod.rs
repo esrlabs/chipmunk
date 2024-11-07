@@ -11,9 +11,8 @@ use wasmtime::{
 use wasmtime_wasi::ResourceTable;
 
 use crate::{
-    plugins_shared::get_wasi_ctx_builder, v0_1_0::parser::bindings::ParseError,
-    wasm_host::get_wasm_host, PluginGuestInitError, PluginHostInitError, PluginParseMessage,
-    PluginType, WasmPlugin,
+    plugins_shared::get_wasi_ctx_builder, wasm_host::get_wasm_host, PluginGuestInitError,
+    PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
 };
 
 use self::{
@@ -81,8 +80,8 @@ impl PluginParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<(usize, Option<p::ParseYield<PluginParseMessage>>), p::Error>>
-           + Send {
+    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
+    {
         let call_res =
             futures::executor::block_on(self.plugin_bindings.chipmunk_plugin_parser().call_parse(
                 &mut self.store,
@@ -91,15 +90,16 @@ impl PluginParser {
             ));
 
         let parse_results = match call_res {
-            Ok(results) => results,
+            Ok(results) => results?,
             Err(call_err) => {
-                vec![Err(ParseError::Unrecoverable(format!(
+                return Err(p::Error::Unrecoverable(format!(
                     "Call parse on the plugin failed. Error: {call_err}"
-                )))]
+                )))
             }
         };
 
-        parse_results.into_iter().map(guest_to_host_parse_results)
+        let res = parse_results.into_iter().map(guest_to_host_parse_results);
+        Ok(res)
     }
 
     #[inline]
@@ -110,48 +110,48 @@ impl PluginParser {
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
-        //TODO AAZ: Temporary fix.
-        // In original implementation we were returning Vec<Result<>>
-        // Now we should return Result<Vec<>>.
+        debug_assert!(
+            self.store.data_mut().results_queue.is_empty(),
+            "Host results most be empty at the start of parse call"
+        );
 
-        // Old solution:
-        // debug_assert!(
-        //     self.store.data_mut().results_queue.is_empty(),
-        //     "Host results most be empty at the start of parse call"
-        // );
-        //
-        // let call_res = futures::executor::block_on(
-        //     self.plugin_bindings
-        //         .chipmunk_plugin_parser()
-        //         .call_parse_with_add(&mut self.store, input, timestamp),
-        // );
-        //
-        // let parse_results = if let Err(call_err) = call_res {
-        //     vec![Err(ParseError::Unrecoverable(format!(
-        //         "Call parse on the plugin failed. Error: {call_err}"
-        //     )))]
-        // } else {
-        //     std::mem::take(&mut self.store.data_mut().results_queue)
-        // };
-        //
-        //
-        // parse_results.into_iter().map(guest_to_host_parse_results)
+        let parse_res = futures::executor::block_on(
+            self.plugin_bindings
+                .chipmunk_plugin_parser()
+                .call_parse_with_add(&mut self.store, input, timestamp),
+        )
+        .map_err(|call_err| {
+            p::Error::Unrecoverable(format!(
+                "Call parse on the plugin failed. Error: {call_err}"
+            ))
+        })?;
 
-        // Temporary:
-        Ok([].into_iter())
+        if let Err(parse_err) = parse_res {
+            //TODO AAZ: Decide what to do if we have already parsed items.
+
+            if !self.store.data().results_queue.is_empty() {
+                self.store.data_mut().results_queue.clear();
+                return Err(p::Error::Unrecoverable(format!("Plugin return parse error and submitted parsed items on the same call. Plugin Error: {parse_err}")));
+            } else {
+                return Err(parse_err.into());
+            }
+        }
+
+        let parse_results = std::mem::take(&mut self.store.data_mut().results_queue);
+
+        let res = parse_results.into_iter().map(guest_to_host_parse_results);
+
+        Ok(res)
     }
 }
 
 fn guest_to_host_parse_results(
-    guest_res: Result<ParseReturn, ParseError>,
-) -> Result<(usize, Option<p::ParseYield<PluginParseMessage>>), p::Error> {
-    match guest_res {
-        Ok(parse_res) => Ok((
-            parse_res.consumed as usize,
-            parse_res.value.map(|v| v.into()),
-        )),
-        Err(parse_err) => Err(parse_err.into()),
-    }
+    parse_res: ParseReturn,
+) -> (usize, Option<p::ParseYield<PluginParseMessage>>) {
+    (
+        parse_res.consumed as usize,
+        parse_res.value.map(|v| v.into()),
+    )
 }
 
 use parsers as p;

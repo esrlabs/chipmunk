@@ -6,13 +6,13 @@ use super::bindings::{
         logging::{self, Level},
         parse_types, shared_types,
     },
-    ParseError, ParseReturn,
+    ParseReturn,
 };
 
 pub struct ParserPluginState {
     pub ctx: WasiCtx,
     pub table: ResourceTable,
-    pub results_queue: Vec<Result<ParseReturn, ParseError>>,
+    pub results_queue: Vec<ParseReturn>,
 }
 
 impl ParserPluginState {
@@ -37,7 +37,7 @@ impl WasiView for ParserPluginState {
 
 impl Host for ParserPluginState {
     // Add parse results one by one directly at the host memory
-    fn add(&mut self, item: Result<ParseReturn, ParseError>) {
+    fn add(&mut self, item: ParseReturn) {
         self.results_queue.push(item);
     }
 }
