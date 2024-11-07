@@ -69,7 +69,7 @@ pub trait Parser {
         &mut self,
         data: &[u8],
         timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<ParseReturn, ParseError>> + Send;
+    ) -> Result<impl Iterator<Item = ParseReturn>, ParseError>;
 }
 
 #[macro_export]
@@ -102,8 +102,8 @@ pub trait Parser {
 ///  #        &mut self,
 ///  #        _data: &[u8],
 ///  #        _timestamp: Option<u64>,
-///  #    ) -> impl IntoIterator<Item = Result<ParseReturn, ParseError>> + Send {
-///  #        Vec::new()
+///  #    ) -> Result<impl Iterator<Item = ParseReturn>, ParseError> {
+///  #        Ok(std::iter::empty())
 ///  #    }
 /// }
 ///
@@ -157,25 +157,29 @@ macro_rules! parser_export {
             fn parse(
                 data: ::std::vec::Vec<u8>,
                 timestamp: ::std::option::Option<u64>,
-            ) -> ::std::vec::Vec<
-                ::std::result::Result<$crate::parser::ParseReturn, $crate::parser::ParseError>,
+            ) -> ::std::result::Result<
+                ::std::vec::Vec<$crate::parser::ParseReturn>,
+                $crate::parser::ParseError,
             > {
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
-                parser.parse(&data, timestamp).into_iter().collect()
+                parser.parse(&data, timestamp).map(|items| items.collect())
             }
 
             /// Parse the given bytes returning the results to the host one by one using the function `add` provided by the host.
-            fn parse_with_add(data: ::std::vec::Vec<u8>, timestamp: ::std::option::Option<u64>) {
+            fn parse_with_add(
+                data: ::std::vec::Vec<u8>,
+                timestamp: ::std::option::Option<u64>,
+            ) -> ::std::result::Result<(), $crate::parser::ParseError> {
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
-                for item in parser.parse(&data, timestamp) {
-                    $crate::parser::__internal_bindings::chipmunk::plugin::host_add::add(
-                        item.as_ref(),
-                    );
+                for item in parser.parse(&data, timestamp)? {
+                    $crate::parser::__internal_bindings::chipmunk::plugin::host_add::add(&item);
                 }
+
+                Ok(())
             }
         }
 
@@ -208,8 +212,8 @@ mod prototyping {
             &mut self,
             _data: &[u8],
             _timestamp: Option<u64>,
-        ) -> impl IntoIterator<Item = Result<ParseReturn, ParseError>> + Send {
-            Vec::new()
+        ) -> Result<impl Iterator<Item = ParseReturn>, ParseError> {
+            Ok(std::iter::empty())
         }
     }
 

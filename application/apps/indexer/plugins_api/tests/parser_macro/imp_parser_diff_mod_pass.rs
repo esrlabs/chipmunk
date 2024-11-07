@@ -21,9 +21,9 @@ mod impl_mod {
             &mut self,
             _data: &[u8],
             _timestamp: Option<u64>,
-        ) -> impl IntoIterator<Item = Result<crate::parser::ParseReturn, crate::parser::ParseError>> + Send
+        ) -> Result<impl Iterator<Item = crate::parser::ParseReturn>, crate::parser::ParseError>
         {
-            Vec::new()
+            Ok(std::iter::empty())
         }
     }
 }

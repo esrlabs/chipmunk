@@ -18,9 +18,8 @@ impl crate::parser::Parser for Dummy {
         &mut self,
         _data: &[u8],
         _timestamp: Option<u64>,
-    ) -> impl IntoIterator<Item = Result<crate::parser::ParseReturn, crate::parser::ParseError>> + Send
-    {
-        Vec::new()
+    ) -> Result<impl Iterator<Item = crate::parser::ParseReturn>, crate::parser::ParseError> {
+        Ok(std::iter::empty())
     }
 }
 
