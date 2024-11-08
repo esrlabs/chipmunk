@@ -19,6 +19,10 @@ name = "text_producer"
 library = "sources"
 
 [[bench]]
+name = "plugin_praser_producer"
+library = "sources"
+
+[[bench]]
 name = "mocks_once_producer"
 library = "sources"
 
