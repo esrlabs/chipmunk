@@ -10,6 +10,8 @@ pub struct SemanticVersion {
     pub patch: usize,
 }
 
+//TODO AAZ: Remove when used.
+#[allow(unused)]
 impl SemanticVersion {
     /// Creates a new [`SemanticVersion`]
     pub fn new(major: usize, minor: usize, patch: usize) -> Self {
