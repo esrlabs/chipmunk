@@ -2,6 +2,7 @@
 
 ## Corrections
 - better parsing Some/IP in the scope of DLT Network Trace
+- cleanup temporary session files
 
 # 3.14.1 (28.10.2024)
 
