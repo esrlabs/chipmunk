@@ -1,3 +1,8 @@
+# 3.14.2 (08.11.2024)
+
+## Corrections
+- better parsing Some/IP in the scope of DLT Network Trace
+
 # 3.14.1 (28.10.2024)
 
 ## Corrections
