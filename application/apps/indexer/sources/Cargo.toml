@@ -28,6 +28,7 @@ shellexpand = "3.1"
 [dev-dependencies]
 env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
+plugins_host = {path = "../plugins_host/"}
 mimalloc = "0.1"
 tikv-jemallocator = "0.6"
 
@@ -45,6 +46,10 @@ harness = false
 
 [[bench]]
 name = "text_producer"
+harness = false
+
+[[bench]]
+name = "plugin_praser_producer"
 harness = false
 
 [[bench]]
