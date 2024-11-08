@@ -2986,6 +2986,7 @@ dependencies = [
  "mimalloc",
  "parsers",
  "pcap-parser",
+ "plugins_host",
  "regex",
  "serde",
  "shellexpand 3.1.0",
