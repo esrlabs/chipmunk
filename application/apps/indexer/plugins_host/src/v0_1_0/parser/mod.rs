@@ -74,9 +74,10 @@ impl PluginParser {
         })
     }
 
+    #[allow(unused)]
     #[inline]
     /// Call parse function that returns the result as a collection.
-    fn _parse_with_list(
+    fn parse_with_list(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
@@ -102,6 +103,7 @@ impl PluginParser {
         Ok(res)
     }
 
+    #[allow(unused)]
     #[inline]
     /// Call parse function that adds the results directly at the host using the add method.
     fn parse_with_add(
@@ -163,7 +165,21 @@ impl p::Parser<PluginParseMessage> for PluginParser {
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
         // TODO AAZ: We keep both functions for now until we can benchmark them properly.
+        // Update: Parsing with add provide slightly better performance currently. But there is no
+        // clear winner here because parse with list provides better API but has slightly worse
+        // performance.
+        //
+        // ### Benchmarks results for 500 MB DLT file with default allocator ###
+        //
+        // # Performance with add method:
+        // plugin_parser_producer  time:   [8.7054 s 8.7257 s 8.7566 s]
+        // plugin_parser_producer  time:   [8.7059 s 8.7216 s 8.7412 s]
+        //
+        // # Performance with list:
+        // plugin_parser_producer  time:   [9.0579 s 9.0758 s 9.0898 s]
+        // plugin_parser_producer  time:   [9.0844 s 9.0964 s 9.1101 s]
+        //
         self.parse_with_add(input, timestamp)
-        // self._parse_with_list(input, timestamp)
+        // self.parse_with_list(input, timestamp)
     }
 }

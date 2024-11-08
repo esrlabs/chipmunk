@@ -120,6 +120,8 @@ async fn run_source_intern<S: ByteSource>(
             };
             let proto_plugin_path = PathBuf::from(plugin_path);
             let settings = sources::plugins::PluginParserSettings::prototyping(proto_plugin_path);
+            //TODO AAZ: Remove loading time bench after prototyping.
+            let now = std::time::Instant::now();
 
             let parser = PluginParser::create(
                 &settings.plugin_path,
@@ -127,6 +129,12 @@ async fn run_source_intern<S: ByteSource>(
                 settings.custom_config_path.as_ref(),
             )
             .await?;
+            let elapsed = now.elapsed();
+            println!(
+                "-------------   Loading module took: {}   -----------------",
+                elapsed.as_millis()
+            );
+
             let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
