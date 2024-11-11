@@ -1,27 +1,18 @@
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
-use super::bindings::{
-    chipmunk::plugin::{
-        host_add::Host,
-        logging::{self, Level},
-        parse_types, shared_types,
-    },
-    ParseReturn,
+use super::bindings::chipmunk::plugin::{
+    logging::{self, Level},
+    parse_types, shared_types,
 };
 
 pub struct ParserPluginState {
     pub ctx: WasiCtx,
     pub table: ResourceTable,
-    pub results_queue: Vec<ParseReturn>,
 }
 
 impl ParserPluginState {
     pub fn new(ctx: WasiCtx, table: ResourceTable) -> Self {
-        Self {
-            ctx,
-            table,
-            results_queue: Default::default(),
-        }
+        Self { ctx, table }
     }
 }
 
@@ -32,13 +23,6 @@ impl WasiView for ParserPluginState {
 
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
-    }
-}
-
-impl Host for ParserPluginState {
-    // Add parse results one by one directly at the host memory
-    fn add(&mut self, item: ParseReturn) {
-        self.results_queue.push(item);
     }
 }
 
