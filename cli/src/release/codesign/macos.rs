@@ -219,11 +219,6 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
         .output()
         .context("Error while running notarize command.")?;
 
-    ensure!(
-        cmd_output.status.success(),
-        "Code notarize failed. Command : '{cmd}'"
-    );
-
     let mut accepted = false;
 
     println!("Notarize commnad output on stdout:");
@@ -243,6 +238,14 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
             accepted = true;
         }
     }
+
+    ensure!(
+        cmd_output.status.success(),
+        "Code notarize failed. Command : '{}'",
+        cmd.replace(&apple_id, "***")
+            .replace(&team_id, "***")
+            .replace(&password, "***")
+    );
 
     ensure!(
         accepted,

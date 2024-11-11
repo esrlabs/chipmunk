@@ -1,3 +1,10 @@
+# 0.2.9
+
+## Fixes:
+
+* Show notarize command logs before checking its status to ensure that logs will be always printed.
+* Hide credentials when printing notarize command.
+
 # 0.2.8
 
 ## Features:
