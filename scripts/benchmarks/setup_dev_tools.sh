@@ -16,3 +16,8 @@ sudo chown -R $(whoami) /usr/local
 rvm use 3.1.2 --default
 export PATH="/usr/share/rvm:$PATH"
 gem install dotenv json octokit tmpdir fileutils
+curl https://sh.rustup.rs -sSf | RUSTUP_INIT_SKIP_PATH_CHECK=yes sh -s -- -y
+rustup default stable
+rustup update stable
+export PATH="/root/.cargo/bin:$PATH"
+source ~/.bashrc

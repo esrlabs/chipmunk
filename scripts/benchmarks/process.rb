@@ -113,7 +113,7 @@ def process_release_or_pr(branch_or_tag_name, identifier, env_vars)
         puts "Benchmark results:"
         system("cat #{result_path}")
       else
-        puts "Benchmark results not found at #{result_path}."
+        raise "Benchmark results not found at #{result_path}."
       end
     rescue => e
       puts "An error occurred while processing #{identifier}: #{e.message}"
