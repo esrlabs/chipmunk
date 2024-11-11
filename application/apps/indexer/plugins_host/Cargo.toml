@@ -16,3 +16,11 @@ wasmtime-wasi = "21.0.1"
 
 parsers = {path = "../parsers"}
 sources = {path = "../sources"}
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["async_tokio"] }
+
+[[bench]]
+name = "plugin_parser_init"
+harness = false
+

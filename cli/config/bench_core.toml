@@ -70,3 +70,6 @@ library = "sources"
 name = "mocks_multi_parallel_mimalloc"
 library = "sources"
 
+[[bench]]
+name = "plugin_parser_init"
+library = "plugins_host"
