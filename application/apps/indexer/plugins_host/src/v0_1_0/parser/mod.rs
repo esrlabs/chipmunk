@@ -129,19 +129,35 @@ impl PluginParser {
         })?;
 
         if let Err(parse_err) = parse_res {
-            //TODO AAZ: Decide what to do if we have already parsed items.
-
+            // TODO AAZ: Verify the logic here.
+            // Check if plugins has returned an error and submitted item with `add()` function in
+            // the same call.
+            // In case the error is unrecoverable then ignore the item and return the error.
+            // Otherwise return the items on this call since the recoverable errors will be
+            // reproduced on the next parse call.
             if !self.store.data().results_queue.is_empty() {
-                self.store.data_mut().results_queue.clear();
-                return Err(p::Error::Unrecoverable(format!("Plugin return parse error and submitted parsed items on the same call. Plugin Error: {parse_err}")));
-            } else {
-                return Err(parse_err.into());
+                match parse_err {
+                    bindings::ParseError::Unrecoverable(err) => {
+                        log::error!("Unrecoverable message sent from plugin with newly submitted parsed items in the same call. \
+                           Items will be ignored and error will be returned.");
+
+                        self.store.data_mut().results_queue.clear();
+
+                        return Err(p::Error::Unrecoverable(err));
+                    }
+                    bindings::ParseError::Parse(_)
+                    | bindings::ParseError::Incomplete
+                    | bindings::ParseError::Eof => {
+                        log::warn!("Plugin returned a recoverable error and submitted items in that same call. \
+                            Error will be ignored and items will be returned");
+                    }
+                };
             }
         }
 
-        let parse_results = std::mem::take(&mut self.store.data_mut().results_queue);
+        let parsed_items = std::mem::take(&mut self.store.data_mut().results_queue);
 
-        let res = parse_results.into_iter().map(guest_to_host_parse_results);
+        let res = parsed_items.into_iter().map(guest_to_host_parse_results);
 
         Ok(res)
     }
