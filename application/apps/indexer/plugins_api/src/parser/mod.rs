@@ -166,21 +166,6 @@ macro_rules! parser_export {
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
                 parser.parse(&data, timestamp).map(|items| items.collect())
             }
-
-            /// Parse the given bytes returning the results to the host one by one using the function `add` provided by the host.
-            fn parse_with_add(
-                data: ::std::vec::Vec<u8>,
-                timestamp: ::std::option::Option<u64>,
-            ) -> ::std::result::Result<(), $crate::parser::ParseError> {
-                // SAFETY: Parse method has mutable reference to self and can't be called more than
-                // once on the same time on host
-                let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
-                for item in parser.parse(&data, timestamp)? {
-                    $crate::parser::__internal_bindings::chipmunk::plugin::host_add::add(&item);
-                }
-
-                Ok(())
-            }
         }
 
         // Call the generated export macro from wit-bindgen

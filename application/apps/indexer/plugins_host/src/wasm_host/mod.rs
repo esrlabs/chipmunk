@@ -17,7 +17,7 @@ impl WasmHost {
         config.wasm_component_model(true);
         config.async_support(true);
 
-        //TODO AAZ: Check the impact
+        //TODO AAZ: Check the impact on the final version
 
         // Benchmark results:
         // NOTE: Compilation time while loading the plugin isn't part of the parse benchmarks results.
@@ -26,23 +26,11 @@ impl WasmHost {
         // ### Parse Performance ###
         // #########################
         // ### With speed: ###
-        //   * With Add:
-        // plugin_parser_producer  time:   [8.5547 s 8.5811 s 8.6088 s]
-        // plugin_parser_producer  time:   [8.6281 s 8.6340 s 8.6409 s]
-        // plugin_parser_producer  time:   [8.6167 s 8.6393 s 8.6641 s]
-        //
-        //  * With list:
-        // plugin_parser_producer  time:   [8.9655 s 9.0264 s 9.0855 s]
-        //
+        // [8.9655 s 9.0264 s 9.0855 s]
         //
         // ### Without: ###
-        //   * With Add:
-        // plugin_parser_producer  time:   [8.7054 s 8.7257 s 8.7566 s]
-        // plugin_parser_producer  time:   [8.7059 s 8.7216 s 8.7412 s]
-        //
-        //   * With list:
-        // plugin_parser_producer  time:   [9.0579 s 9.0758 s 9.0898 s]
-        // plugin_parser_producer  time:   [9.0844 s 9.0964 s 9.1101 s]
+        // [9.0579 s 9.0758 s 9.0898 s]
+        // [9.0844 s 9.0964 s 9.1101 s]
         //
         // **************************************************************************
         //
