@@ -3,6 +3,7 @@ use crate::{
     state::AttachmentInfo,
 };
 use crossbeam_channel as cc;
+use enum_ids::enum_ids;
 use processor::{grabber::GrabError, search::error::SearchError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -152,6 +153,7 @@ pub struct OperationDone {
     pub result: Option<String>,
 }
 
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CallbackEvent {
     /**

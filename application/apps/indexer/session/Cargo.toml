@@ -30,6 +30,7 @@ tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir = "2.3"
+enum_ids = "0.5"
 
 [dev-dependencies]
 lazy_static.workspace = true

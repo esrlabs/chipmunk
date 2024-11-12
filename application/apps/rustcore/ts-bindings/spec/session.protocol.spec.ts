@@ -103,4 +103,18 @@ describe('Protocol', function () {
             finish(comps.session, done);
         });
     });
+    it(config.regular.list[3], function () {
+        return runners.withSession(config.regular, 3, async (logger, done, comps) => {
+            const evs = comps.session.getNativeSession().testCallbackEventsAsProto(true);
+            expect(evs instanceof Array).toBe(true);
+            if (!(evs instanceof Array)) {
+                return;
+            }
+            for (let ev of evs) {
+                expect(!(ev instanceof Error));
+                console.log(`Got CallbackEvent:${JSON.stringify(ev)}`);
+            }
+            finish(comps.session, done);
+        });
+    });
 });

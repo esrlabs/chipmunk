@@ -2,9 +2,14 @@ pub mod progress_tracker;
 
 use crate::{
     js::converting::{
-        attachment::AttachmentInfoList, errors::ComputationErrorWrapper,
-        event::CallbackEventWrapped, filter::WrappedSearchFilter, grabbing::GrabbedElements,
-        ranges::RangeInclusiveList, sde::SdeResponseWrapped, source::WrappedSourceDefinition,
+        attachment::AttachmentInfoList,
+        errors::ComputationErrorWrapper,
+        event::{self, CallbackEventWrapped},
+        filter::WrappedSearchFilter,
+        grabbing::GrabbedElements,
+        ranges::RangeInclusiveList,
+        sde::SdeResponseWrapped,
+        source::WrappedSourceDefinition,
         JsIncomeBuffer,
     },
     logging::targets,
@@ -723,5 +728,15 @@ impl RustSession {
         }
         let msg = proto::GrabbedElementList { elements };
         Ok(SafeArrayBuffer::new(prost::Message::encode_to_vec(&msg)))
+    }
+
+    #[node_bindgen]
+    fn test_callback_events_as_proto(
+        &self,
+    ) -> Result<Vec<SafeArrayBuffer>, ComputationErrorWrapper> {
+        Ok(event::test_cases()
+            .into_iter()
+            .map(|ev| SafeArrayBuffer::new(ev.into()))
+            .collect::<Vec<SafeArrayBuffer>>())
     }
 }

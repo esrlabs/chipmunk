@@ -208,6 +208,11 @@ export abstract class RustSession extends RustSessionRequiered {
 
     // Used only for testing and debug
     public abstract testGrabElsAsProto(decode?: boolean): IGrabbedElement[] | NativeError;
+
+    // Used only for testing and debug
+    public abstract testCallbackEventsAsProto(
+        decode?: boolean,
+    ): convertor.CallbackEventType[] | NativeError;
 }
 
 export abstract class RustSessionNative {
@@ -343,6 +348,9 @@ export abstract class RustSessionNative {
 
     // Used only for testing and debug
     public abstract testGrabElsAsProto(): number[];
+
+    // Used only for testing and debug
+    public abstract testCallbackEventsAsProto(): number[][];
 }
 
 export function rustSessionFactory(
@@ -922,6 +930,26 @@ export class RustSessionWrapper extends RustSession {
                 return [];
             }
             return convertor.decodeGrabbedElementList(received);
+        } catch (err) {
+            return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
+        }
+    }
+
+    // Used only for testing and debug
+    public testCallbackEventsAsProto(
+        decode?: boolean,
+    ): convertor.CallbackEventType[] | NativeError {
+        try {
+            const received = this._native.testCallbackEventsAsProto();
+            if (decode === false) {
+                return [];
+            }
+            const events = received.map((ev) => convertor.decodeCallbackEvent(ev));
+            const error = events.find((e) => e instanceof Error);
+            if (error !== undefined) {
+                return new NativeError(new Error(utils.error(error)), Type.Other, Source.Other);
+            }
+            return events as convertor.CallbackEventType[];
         } catch (err) {
             return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
         }

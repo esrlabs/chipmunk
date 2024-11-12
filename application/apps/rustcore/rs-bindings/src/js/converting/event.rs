@@ -6,9 +6,13 @@ use node_bindgen::{
     sys::napi_value,
 };
 use proto::*;
-use session::progress::Severity;
-use session::{events::CallbackEvent, progress::Progress};
-use std::{collections::HashMap, mem};
+use session::{
+    events::{CallbackEvent, CallbackEventId, NativeError, NativeErrorKind, OperationDone},
+    progress::{Notification, Progress, Ticks},
+};
+use session::{progress::Severity, state::AttachmentInfo};
+use std::{collections::HashMap, mem, path::PathBuf};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct CallbackEventWrapped(Option<CallbackEvent>);
@@ -146,4 +150,96 @@ impl From<CallbackEventWrapped> for Vec<u8> {
         };
         prost::Message::encode_to_vec(&msg)
     }
+}
+
+pub fn test_cases() -> Vec<CallbackEventWrapped> {
+    let events: Vec<CallbackEvent> = CallbackEventId::as_vec()
+        .into_iter()
+        .flat_map(|id| match id {
+            CallbackEventId::FileRead => vec![CallbackEvent::FileRead],
+            CallbackEventId::AttachmentsUpdated => vec![CallbackEvent::AttachmentsUpdated {
+                len: 9,
+                attachment: AttachmentInfo {
+                    uuid: Uuid::new_v4(),
+                    filepath: PathBuf::from("fake/path"),
+                    name: String::from("test"),
+                    ext: Some(String::from("test")),
+                    size: 999,
+                    mime: Some(String::from("media")),
+                    messages: vec![1, 2, 3, 100, 101, 102],
+                },
+            }],
+            CallbackEventId::IndexedMapUpdated => {
+                vec![CallbackEvent::IndexedMapUpdated { len: 999 }]
+            }
+            CallbackEventId::OperationDone => vec![CallbackEvent::OperationDone(OperationDone {
+                uuid: Uuid::new_v4(),
+                result: Some(String::from("test")),
+            })],
+            CallbackEventId::OperationError => vec![CallbackEvent::OperationError {
+                uuid: Uuid::new_v4(),
+                error: NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::ChannelError,
+                    message: Some(String::from("test")),
+                },
+            }],
+            CallbackEventId::OperationProcessing => {
+                vec![CallbackEvent::OperationProcessing(Uuid::new_v4())]
+            }
+            CallbackEventId::OperationStarted => {
+                vec![CallbackEvent::OperationStarted(Uuid::new_v4())]
+            }
+            CallbackEventId::Progress => vec![
+                CallbackEvent::Progress {
+                    uuid: Uuid::new_v4(),
+                    progress: Progress::Ticks(Ticks {
+                        count: 1,
+                        state: Some(String::from("test")),
+                        total: Some(100),
+                    }),
+                },
+                CallbackEvent::Progress {
+                    uuid: Uuid::new_v4(),
+                    progress: Progress::Notification(Notification {
+                        severity: Severity::ERROR,
+                        content: String::from("test"),
+                        line: Some(999),
+                    }),
+                },
+                CallbackEvent::Progress {
+                    uuid: Uuid::new_v4(),
+                    progress: Progress::Stopped,
+                },
+            ],
+            CallbackEventId::SearchMapUpdated => {
+                vec![CallbackEvent::SearchMapUpdated(Some(String::from("test")))]
+            }
+            CallbackEventId::SearchUpdated => {
+                let mut stat = HashMap::new();
+                stat.insert(String::from("a"), 999);
+                stat.insert(String::from("b"), 999);
+                stat.insert(String::from("c"), 999);
+                vec![CallbackEvent::SearchUpdated {
+                    found: 999 * 3,
+                    stat,
+                }]
+            }
+            CallbackEventId::SearchValuesUpdated => {
+                let mut data = HashMap::new();
+                data.insert(1, (1.2, 10.2));
+                data.insert(2, (2.2, 20.2));
+                data.insert(3, (3.2, 30.2));
+                vec![CallbackEvent::SearchValuesUpdated(Some(data))]
+            }
+            CallbackEventId::SessionDestroyed => vec![CallbackEvent::SessionDestroyed],
+            CallbackEventId::SessionError => vec![CallbackEvent::SessionError(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::ChannelError,
+                message: Some(String::from("test")),
+            })],
+            CallbackEventId::StreamUpdated => vec![CallbackEvent::StreamUpdated(999)],
+        })
+        .collect();
+    events.into_iter().map(|ev| ev.into()).collect()
 }

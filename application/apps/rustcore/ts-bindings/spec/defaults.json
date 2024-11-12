@@ -33,8 +33,8 @@
                 "execute_only": [],
                 "list": {
                     "1": "Test 1. CallbackEvent",
-                    "2": "Test 2. Comparing JSON vs Protobuf"
-
+                    "2": "Test 2. Comparing JSON vs Protobuf",
+                    "3": "Test 3. All CallbackEvens as Protobuf"
                 },
                 "files": {
                 }
