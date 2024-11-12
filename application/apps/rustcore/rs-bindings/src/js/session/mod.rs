@@ -17,7 +17,6 @@ use node_bindgen::{
 use processor::grabber::LineRange;
 use session::{
     events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind},
-    factory::ObserveOptions,
     operations,
     progress::Severity,
     session::Session,
@@ -211,21 +210,23 @@ impl RustSession {
                         .map(usize::try_from)
                         .collect::<Result<Vec<usize>, _>>()
                         .map_err(|_| {
-                            ComputationErrorWrapper(ComputationError::NativeError(NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::Io,
-                                message: Some(String::from(
-                                    "Fail to get valid columns list. Supported type: [u8]",
-                                )),
-                            }))
+                            ComputationErrorWrapper::new(ComputationError::NativeError(
+                                NativeError {
+                                    severity: Severity::ERROR,
+                                    kind: NativeErrorKind::Io,
+                                    message: Some(String::from(
+                                        "Fail to get valid columns list. Supported type: [u8]",
+                                    )),
+                                },
+                            ))
                         })?,
                     (!spliter.is_empty()).then_some(spliter),
                     (!delimiter.is_empty()).then_some(delimiter),
                 )
-                .map_err(ComputationErrorWrapper)?;
+                .map_err(ComputationErrorWrapper::new)?;
             Ok(())
         } else {
-            Err(ComputationErrorWrapper(
+            Err(ComputationErrorWrapper::new(
                 ComputationError::SessionUnavailable,
             ))
         }

@@ -10,7 +10,7 @@ use session::events::{NativeError, NativeErrorKind};
 use session::{events::ComputationError, progress::Severity};
 
 #[derive(Debug)]
-pub struct ComputationErrorWrapper(Option<ComputationError>);
+pub struct ComputationErrorWrapper(pub Option<ComputationError>);
 
 impl ComputationErrorWrapper {
     pub fn new(err: ComputationError) -> Self {
