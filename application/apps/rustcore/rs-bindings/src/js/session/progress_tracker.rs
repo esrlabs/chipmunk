@@ -1,5 +1,5 @@
 use crate::js::converting::{
-    errors::ComputationErrorWrapper, progress::LifecycleTransitionWrapper,
+    errors::ComputationErrorWrapper, progress::LifecycleTransitionWrapped,
 };
 use log::trace;
 use node_bindgen::derive::node_bindgen;
@@ -27,7 +27,7 @@ impl RustProgressTracker {
     }
 
     #[node_bindgen(mt)]
-    async fn init<F: Fn(LifecycleTransitionWrapper) + Send + 'static>(
+    async fn init<F: Fn(LifecycleTransitionWrapped) + Send + 'static>(
         &mut self,
         callback: F,
     ) -> Result<(), ComputationErrorWrapper> {
@@ -43,7 +43,7 @@ impl RustProgressTracker {
                         Ok(mut rx) => {
                             let _ = result_tx.send(Ok(()));
                             while let Some(progress_report) = rx.recv().await {
-                                callback(LifecycleTransitionWrapper::new(progress_report))
+                                callback(LifecycleTransitionWrapped::new(progress_report))
                             }
                         }
                         Err(e) => {

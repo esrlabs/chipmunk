@@ -4,19 +4,29 @@ use node_bindgen::{
 };
 use progress::{self, lifecycle_transition};
 use proto::*;
-use session::events::LifecycleTransition;
+use session::{
+    events::{LifecycleTransition, LifecycleTransitionId},
+    progress::Ticks,
+};
+use uuid::Uuid;
 
 #[derive(Debug)]
-pub(crate) struct LifecycleTransitionWrapper(Option<LifecycleTransition>);
+pub(crate) struct LifecycleTransitionWrapped(Option<LifecycleTransition>);
 
-impl LifecycleTransitionWrapper {
+impl LifecycleTransitionWrapped {
     pub fn new(lt: LifecycleTransition) -> Self {
-        LifecycleTransitionWrapper(Some(lt))
+        LifecycleTransitionWrapped(Some(lt))
     }
 }
 
-impl From<LifecycleTransitionWrapper> for Vec<u8> {
-    fn from(mut val: LifecycleTransitionWrapper) -> Self {
+impl From<LifecycleTransition> for LifecycleTransitionWrapped {
+    fn from(ev: LifecycleTransition) -> LifecycleTransitionWrapped {
+        LifecycleTransitionWrapped::new(ev)
+    }
+}
+
+impl From<LifecycleTransitionWrapped> for Vec<u8> {
+    fn from(mut val: LifecycleTransitionWrapped) -> Self {
         let ev = val
             .0
             .take()
@@ -50,8 +60,54 @@ impl From<LifecycleTransitionWrapper> for Vec<u8> {
     }
 }
 
-impl TryIntoJs for LifecycleTransitionWrapper {
+impl TryIntoJs for LifecycleTransitionWrapped {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
         SafeArrayBuffer::new(self.into()).try_to_js(js_env)
     }
+}
+
+pub fn test_cases() -> Vec<LifecycleTransitionWrapped> {
+    let events: Vec<LifecycleTransition> = LifecycleTransitionId::as_vec()
+        .into_iter()
+        .flat_map(|id| match id {
+            LifecycleTransitionId::Started => vec![
+                LifecycleTransition::Started {
+                    uuid: Uuid::new_v4(),
+                    alias: String::from("test"),
+                },
+                LifecycleTransition::Started {
+                    uuid: Uuid::new_v4(),
+                    alias: String::new(),
+                },
+            ],
+            LifecycleTransitionId::Stopped => vec![LifecycleTransition::Stopped(Uuid::new_v4())],
+            LifecycleTransitionId::Ticks => vec![
+                LifecycleTransition::Ticks {
+                    uuid: Uuid::new_v4(),
+                    ticks: Ticks {
+                        count: 1,
+                        state: Some(String::from("test")),
+                        total: Some(100),
+                    },
+                },
+                LifecycleTransition::Ticks {
+                    uuid: Uuid::new_v4(),
+                    ticks: Ticks {
+                        count: 0,
+                        state: Some(String::new()),
+                        total: Some(0),
+                    },
+                },
+                LifecycleTransition::Ticks {
+                    uuid: Uuid::new_v4(),
+                    ticks: Ticks {
+                        count: 0,
+                        state: None,
+                        total: None,
+                    },
+                },
+            ],
+        })
+        .collect();
+    events.into_iter().map(|ev| ev.into()).collect()
 }

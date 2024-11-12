@@ -218,7 +218,7 @@ export function toObserveOptions(source: IObserve): ty.ObserveOptions {
     return { origin: { origin_oneof }, parser };
 }
 
-export function decodeLifecycleTransition(buf: number[] | Buffer):
+export type LifecycleTransitionType =
     | {
           Started: { uuid: string; alias: string };
       }
@@ -234,8 +234,9 @@ export function decodeLifecycleTransition(buf: number[] | Buffer):
                   total: number | undefined;
               };
           };
-      }
-    | Error {
+      };
+
+export function decodeLifecycleTransition(buf: number[] | Buffer): LifecycleTransitionType | Error {
     const event: ty.LifecycleTransition = proto.LifecycleTransition.decode(Uint8Array.from(buf));
     if (!event.transition_oneof) {
         return new Error(`Field "transition_oneof" isn't found in LifecycleTransition`);
@@ -244,13 +245,15 @@ export function decodeLifecycleTransition(buf: number[] | Buffer):
     if ('Started' in inner) {
         if (!inner.Started) {
             return new Error(
-                `Has been recieved LifecycleTransition.Started without even definition`,
+                `Has been recieved LifecycleTransition.Started without event definition`,
             );
         }
         return { Started: { uuid: inner.Started.uuid, alias: inner.Started.alias } };
     } else if ('Ticks' in inner) {
         if (!inner.Ticks) {
-            return new Error(`Has been recieved LifecycleTransition.Ticks without even definition`);
+            return new Error(
+                `Has been recieved LifecycleTransition.Ticks without event definition`,
+            );
         }
         const ticks = inner.Ticks.ticks;
         return {
@@ -272,7 +275,7 @@ export function decodeLifecycleTransition(buf: number[] | Buffer):
     } else if ('Stopped' in inner) {
         if (!inner.Stopped) {
             return new Error(
-                `Has been recieved LifecycleTransition.Stopped without even definition`,
+                `Has been recieved LifecycleTransition.Stopped without event definition`,
             );
         }
         return { Stopped: inner.Stopped.uuid };
@@ -365,7 +368,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('AttachmentsUpdated' in inner) {
         const attachment = inner.AttachmentsUpdated;
         if (!attachment) {
-            return new Error(`Has been recieved AttachmentsUpdated without even definition`);
+            return new Error(`Has been recieved AttachmentsUpdated without event definition`);
         }
         const body = attachment.attachment;
         return {
@@ -388,7 +391,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('OperationDone' in inner) {
         const operation = inner.OperationDone;
         if (!operation) {
-            return new Error(`Has been recieved OperationDone without even definition`);
+            return new Error(`Has been recieved OperationDone without event definition`);
         }
         return {
             OperationDone: {
@@ -399,7 +402,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('OperationStarted' in inner) {
         const operation = inner.OperationStarted;
         if (!operation) {
-            return new Error(`Has been recieved OperationStarted without even definition`);
+            return new Error(`Has been recieved OperationStarted without event definition`);
         }
         return {
             OperationStarted: operation,
@@ -407,13 +410,13 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('OperationProcessing' in inner) {
         const operation = inner.OperationProcessing;
         if (!operation) {
-            return new Error(`Has been recieved OperationProcessing without even definition`);
+            return new Error(`Has been recieved OperationProcessing without event definition`);
         }
         return { OperationProcessing: operation };
     } else if ('OperationError' in inner) {
         const error = inner.OperationError;
         if (!error) {
-            return new Error(`Has been recieved OperationError without even definition`);
+            return new Error(`Has been recieved OperationError without event definition`);
         }
         return {
             OperationError: {
@@ -431,7 +434,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('SessionError' in inner) {
         const error = inner.SessionError;
         if (!error) {
-            return new Error(`Has been recieved SessionError without even definition`);
+            return new Error(`Has been recieved SessionError without event definition`);
         }
         return {
             SessionError: {
@@ -443,7 +446,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('Progress' in inner) {
         const progress = inner.Progress;
         if (!progress) {
-            return new Error(`Has been recieved Progress without even definition`);
+            return new Error(`Has been recieved Progress without event definition`);
         }
         const details =
             progress.detail === null || progress.detail === undefined
@@ -500,16 +503,13 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
         };
     } else if ('StreamUpdated' in inner) {
         const event = inner.StreamUpdated;
-        if (!event) {
-            return new Error(`Has been recieved StreamUpdated without even definition`);
-        }
         return {
-            StreamUpdated: event,
+            StreamUpdated: !event ? 0 : event,
         };
     } else if ('SearchUpdated' in inner) {
         const event = inner.SearchUpdated;
         if (!event) {
-            return new Error(`Has been recieved SearchUpdated without even definition`);
+            return new Error(`Has been recieved SearchUpdated without event definition`);
         }
         return {
             SearchUpdated: {
@@ -520,7 +520,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('SearchValuesUpdated' in inner) {
         const event = inner.SearchValuesUpdated;
         if (!event) {
-            return new Error(`Has been recieved SearchValuesUpdated without even definition`);
+            return new Error(`Has been recieved SearchValuesUpdated without event definition`);
         }
         const values: IValuesMinMaxMap = {};
         event.values.forEach((range, key) => {
@@ -532,7 +532,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('SearchMapUpdated' in inner) {
         const event = inner.SearchMapUpdated;
         if (!event) {
-            return new Error(`Has been recieved SearchMapUpdated without even definition`);
+            return new Error(`Has been recieved SearchMapUpdated without event definition`);
         }
         // TODO: Map represented as a JSON string and has to be parsed in addition
         return {
@@ -541,7 +541,7 @@ export function decodeCallbackEvent(buf: number[] | Buffer): CallbackEventType |
     } else if ('IndexedMapUpdated' in inner) {
         const event = inner.IndexedMapUpdated;
         if (!event) {
-            return new Error(`Has been recieved IndexedMapUpdated without even definition`);
+            return new Error(`Has been recieved IndexedMapUpdated without event definition`);
         }
         return {
             IndexedMapUpdated: {

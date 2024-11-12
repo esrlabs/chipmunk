@@ -8,7 +8,7 @@ use node_bindgen::{
 use proto::*;
 use session::{
     events::{CallbackEvent, CallbackEventId, NativeError, NativeErrorKind, OperationDone},
-    progress::{Notification, Progress, Ticks},
+    progress::{Notification, Progress, ProgressId, Ticks},
 };
 use session::{progress::Severity, state::AttachmentInfo};
 use std::{collections::HashMap, mem, path::PathBuf};
@@ -157,80 +157,136 @@ pub fn test_cases() -> Vec<CallbackEventWrapped> {
         .into_iter()
         .flat_map(|id| match id {
             CallbackEventId::FileRead => vec![CallbackEvent::FileRead],
-            CallbackEventId::AttachmentsUpdated => vec![CallbackEvent::AttachmentsUpdated {
-                len: 9,
-                attachment: AttachmentInfo {
-                    uuid: Uuid::new_v4(),
-                    filepath: PathBuf::from("fake/path"),
-                    name: String::from("test"),
-                    ext: Some(String::from("test")),
-                    size: 999,
-                    mime: Some(String::from("media")),
-                    messages: vec![1, 2, 3, 100, 101, 102],
+            CallbackEventId::AttachmentsUpdated => vec![
+                CallbackEvent::AttachmentsUpdated {
+                    len: 9,
+                    attachment: AttachmentInfo {
+                        uuid: Uuid::new_v4(),
+                        filepath: PathBuf::from("fake/path"),
+                        name: String::from("test"),
+                        ext: Some(String::from("test")),
+                        size: 999,
+                        mime: Some(String::from("media")),
+                        messages: vec![1, 2, 3, 100, 101, 102],
+                    },
                 },
-            }],
+                CallbackEvent::AttachmentsUpdated {
+                    len: 9,
+                    attachment: AttachmentInfo {
+                        uuid: Uuid::new_v4(),
+                        filepath: PathBuf::new(),
+                        name: String::new(),
+                        ext: None,
+                        size: 0,
+                        mime: None,
+                        messages: Vec::new(),
+                    },
+                },
+            ],
             CallbackEventId::IndexedMapUpdated => {
-                vec![CallbackEvent::IndexedMapUpdated { len: 999 }]
+                vec![
+                    CallbackEvent::IndexedMapUpdated { len: 999 },
+                    CallbackEvent::IndexedMapUpdated { len: 0 },
+                ]
             }
-            CallbackEventId::OperationDone => vec![CallbackEvent::OperationDone(OperationDone {
-                uuid: Uuid::new_v4(),
-                result: Some(String::from("test")),
-            })],
-            CallbackEventId::OperationError => vec![CallbackEvent::OperationError {
-                uuid: Uuid::new_v4(),
-                error: NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::ChannelError,
-                    message: Some(String::from("test")),
+            CallbackEventId::OperationDone => vec![
+                CallbackEvent::OperationDone(OperationDone {
+                    uuid: Uuid::new_v4(),
+                    result: Some(String::from("test")),
+                }),
+                CallbackEvent::OperationDone(OperationDone {
+                    uuid: Uuid::new_v4(),
+                    result: None,
+                }),
+                CallbackEvent::OperationDone(OperationDone {
+                    uuid: Uuid::new_v4(),
+                    result: Some(String::new()),
+                }),
+            ],
+            CallbackEventId::OperationError => vec![
+                CallbackEvent::OperationError {
+                    uuid: Uuid::new_v4(),
+                    error: NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::from("test")),
+                    },
                 },
-            }],
+                CallbackEvent::OperationError {
+                    uuid: Uuid::new_v4(),
+                    error: NativeError {
+                        severity: Severity::WARNING,
+                        kind: NativeErrorKind::ChannelError,
+                        message: Some(String::new()),
+                    },
+                },
+                CallbackEvent::OperationError {
+                    uuid: Uuid::new_v4(),
+                    error: NativeError {
+                        severity: Severity::ERROR,
+                        kind: NativeErrorKind::ChannelError,
+                        message: None,
+                    },
+                },
+            ],
             CallbackEventId::OperationProcessing => {
                 vec![CallbackEvent::OperationProcessing(Uuid::new_v4())]
             }
             CallbackEventId::OperationStarted => {
                 vec![CallbackEvent::OperationStarted(Uuid::new_v4())]
             }
-            CallbackEventId::Progress => vec![
-                CallbackEvent::Progress {
+            CallbackEventId::Progress => ProgressId::as_vec()
+                .into_iter()
+                .map(|pid| CallbackEvent::Progress {
                     uuid: Uuid::new_v4(),
-                    progress: Progress::Ticks(Ticks {
-                        count: 1,
-                        state: Some(String::from("test")),
-                        total: Some(100),
-                    }),
-                },
-                CallbackEvent::Progress {
-                    uuid: Uuid::new_v4(),
-                    progress: Progress::Notification(Notification {
-                        severity: Severity::ERROR,
-                        content: String::from("test"),
-                        line: Some(999),
-                    }),
-                },
-                CallbackEvent::Progress {
-                    uuid: Uuid::new_v4(),
-                    progress: Progress::Stopped,
-                },
-            ],
+                    progress: match pid {
+                        ProgressId::Notification => Progress::Notification(Notification {
+                            severity: Severity::ERROR,
+                            content: String::from("test"),
+                            line: Some(999),
+                        }),
+                        ProgressId::Stopped => Progress::Stopped,
+                        ProgressId::Ticks => Progress::Ticks(Ticks {
+                            count: 1,
+                            state: Some(String::from("test")),
+                            total: Some(100),
+                        }),
+                    },
+                })
+                .collect(),
             CallbackEventId::SearchMapUpdated => {
-                vec![CallbackEvent::SearchMapUpdated(Some(String::from("test")))]
+                vec![
+                    CallbackEvent::SearchMapUpdated(Some(String::from("test"))),
+                    CallbackEvent::SearchMapUpdated(Some(String::new())),
+                    CallbackEvent::SearchMapUpdated(None),
+                ]
             }
             CallbackEventId::SearchUpdated => {
                 let mut stat = HashMap::new();
                 stat.insert(String::from("a"), 999);
                 stat.insert(String::from("b"), 999);
                 stat.insert(String::from("c"), 999);
-                vec![CallbackEvent::SearchUpdated {
-                    found: 999 * 3,
-                    stat,
-                }]
+                vec![
+                    CallbackEvent::SearchUpdated {
+                        found: 999 * 3,
+                        stat,
+                    },
+                    CallbackEvent::SearchUpdated {
+                        found: 0,
+                        stat: HashMap::new(),
+                    },
+                ]
             }
             CallbackEventId::SearchValuesUpdated => {
                 let mut data = HashMap::new();
                 data.insert(1, (1.2, 10.2));
                 data.insert(2, (2.2, 20.2));
                 data.insert(3, (3.2, 30.2));
-                vec![CallbackEvent::SearchValuesUpdated(Some(data))]
+                vec![
+                    CallbackEvent::SearchValuesUpdated(Some(data)),
+                    CallbackEvent::SearchValuesUpdated(None),
+                    CallbackEvent::SearchValuesUpdated(Some(HashMap::new())),
+                ]
             }
             CallbackEventId::SessionDestroyed => vec![CallbackEvent::SessionDestroyed],
             CallbackEventId::SessionError => vec![CallbackEvent::SessionError(NativeError {
@@ -238,7 +294,10 @@ pub fn test_cases() -> Vec<CallbackEventWrapped> {
                 kind: NativeErrorKind::ChannelError,
                 message: Some(String::from("test")),
             })],
-            CallbackEventId::StreamUpdated => vec![CallbackEvent::StreamUpdated(999)],
+            CallbackEventId::StreamUpdated => vec![
+                CallbackEvent::StreamUpdated(999),
+                CallbackEvent::StreamUpdated(0),
+            ],
         })
         .collect();
     events.into_iter().map(|ev| ev.into()).collect()

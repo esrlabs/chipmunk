@@ -25,7 +25,7 @@ describe('Protocol', function () {
                     parser: { Text: null },
                 });
                 let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
+                expect(origin).toEqual(decoded);
             }
             {
                 let origin = convertor.toObserveOptions({
@@ -35,7 +35,7 @@ describe('Protocol', function () {
                     parser: { Text: null },
                 });
                 let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
+                expect(origin).toEqual(decoded);
             }
             {
                 let origin = convertor.toObserveOptions({
@@ -48,7 +48,124 @@ describe('Protocol', function () {
                     parser: { Text: null },
                 });
                 let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(JSON.stringify(origin)).toEqual(JSON.stringify(decoded));
+                expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: {
+                        Concat: [
+                            ['somefile1', $.Types.File.FileType.Text, 'path_to_file'],
+                            ['somefile2', $.Types.File.FileType.Text, 'path_to_file'],
+                            ['somefile3', $.Types.File.FileType.Text, 'path_to_file'],
+                        ],
+                    },
+                    parser: { Text: null },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: ['path'],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: undefined,
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: ['path'],
+                            filter_config: {
+                                min_log_level: 1,
+                                app_id_count: 1,
+                                context_id_count: 1,
+                                app_ids: ['test'],
+                                ecu_ids: ['test'],
+                                context_ids: ['test'],
+                            },
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'] },
+                    parser: {
+                        SomeIp: {
+                            fibex_file_paths: ['path'],
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'] },
+                    parser: {
+                        SomeIp: {
+                            fibex_file_paths: [],
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
+            }
+            {
+                let origin = convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'] },
+                    parser: {
+                        SomeIp: {
+                            fibex_file_paths: undefined,
+                        },
+                    },
+                });
+                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
+                // expect(origin).toEqual(decoded);
             }
             finish(undefined, done);
         });
@@ -105,7 +222,7 @@ describe('Protocol', function () {
     });
     it(config.regular.list[3], function () {
         return runners.withSession(config.regular, 3, async (logger, done, comps) => {
-            const evs = comps.session.getNativeSession().testCallbackEventsAsProto(true);
+            const evs = comps.session.getNativeSession().testCallbackEventsAsProto();
             expect(evs instanceof Array).toBe(true);
             if (!(evs instanceof Array)) {
                 return;
@@ -113,6 +230,20 @@ describe('Protocol', function () {
             for (let ev of evs) {
                 expect(!(ev instanceof Error));
                 console.log(`Got CallbackEvent:${JSON.stringify(ev)}`);
+            }
+            finish(comps.session, done);
+        });
+    });
+    it(config.regular.list[4], function () {
+        return runners.withSession(config.regular, 4, async (logger, done, comps) => {
+            const evs = comps.session.getNativeSession().testLtEventsAsProto();
+            expect(evs instanceof Array).toBe(true);
+            if (!(evs instanceof Array)) {
+                return;
+            }
+            for (let ev of evs) {
+                expect(!(ev instanceof Error));
+                console.log(`Got LifecycleTransition:${JSON.stringify(ev)}`);
             }
             finish(comps.session, done);
         });

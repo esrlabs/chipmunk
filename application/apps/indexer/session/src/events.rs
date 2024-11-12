@@ -312,6 +312,7 @@ impl std::fmt::Display for CallbackEvent {
     }
 }
 
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum LifecycleTransition {
     Started { uuid: Uuid, alias: String },

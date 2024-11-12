@@ -7,6 +7,7 @@ use crate::{
         event::{self, CallbackEventWrapped},
         filter::WrappedSearchFilter,
         grabbing::GrabbedElements,
+        progress,
         ranges::RangeInclusiveList,
         sde::SdeResponseWrapped,
         source::WrappedSourceDefinition,
@@ -735,6 +736,14 @@ impl RustSession {
         &self,
     ) -> Result<Vec<SafeArrayBuffer>, ComputationErrorWrapper> {
         Ok(event::test_cases()
+            .into_iter()
+            .map(|ev| SafeArrayBuffer::new(ev.into()))
+            .collect::<Vec<SafeArrayBuffer>>())
+    }
+
+    #[node_bindgen]
+    fn test_lt_events_as_proto(&self) -> Result<Vec<SafeArrayBuffer>, ComputationErrorWrapper> {
+        Ok(progress::test_cases()
             .into_iter()
             .map(|ev| SafeArrayBuffer::new(ev.into()))
             .collect::<Vec<SafeArrayBuffer>>())
