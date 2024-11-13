@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use plugins_host::PluginParser;
+use plugins_host::PluginsParser;
 use std::{hint::black_box, path::PathBuf};
 
 use bench_utls::{
@@ -27,7 +27,7 @@ fn plugin_parser_producer(c: &mut Criterion) {
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter_batched(
                 || {
-                    let parser = futures::executor::block_on(PluginParser::create(
+                    let parser = futures::executor::block_on(PluginsParser::create(
                         &settings.plugin_path,
                         &settings.general_settings,
                         settings.custom_config_path.as_ref(),

@@ -12,7 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield, Parser,
 };
-use plugins_host::PluginParser;
+use plugins_host::PluginsParser;
 use sources::{
     factory::ParserType,
     producer::{MessageProducer, SdeReceiver},
@@ -83,7 +83,7 @@ async fn run_source_intern<S: ByteSource>(
             println!("------------------------------------------------------");
             println!("-------------    WASM parser used    -----------------");
             println!("------------------------------------------------------");
-            let parser = PluginParser::create(
+            let parser = PluginsParser::create(
                 &settings.plugin_path,
                 &settings.general_settings,
                 settings.custom_config_path.as_ref(),
@@ -123,7 +123,7 @@ async fn run_source_intern<S: ByteSource>(
             //TODO AAZ: Remove loading time bench after prototyping.
             let now = std::time::Instant::now();
 
-            let parser = PluginParser::create(
+            let parser = PluginsParser::create(
                 &settings.plugin_path,
                 &settings.general_settings,
                 settings.custom_config_path.as_ref(),
