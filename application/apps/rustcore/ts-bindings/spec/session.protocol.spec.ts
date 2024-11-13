@@ -13,45 +13,77 @@ import * as proto from 'protocol';
 import * as $ from 'platform/types/observe';
 import * as convertor from '../src/util/convertor';
 import * as runners from './runners';
+import * as ty from '../src/protocol';
 
 const config = readConfigurationFile().get().tests.protocol;
+
+function deepEqualObj(a: any, b: any, depth = Infinity): boolean {
+    if (depth < 1 || (typeof a !== 'object' && typeof b !== 'object')) {
+        return a === b || (a == null && b == null);
+    }
+    if (a == null || b == null) {
+        return a == null && b == null;
+    }
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        return a.every((item, index) => deepEqualObj(item, b[index], depth - 1));
+    }
+    if (typeof a === 'object' && typeof b === 'object') {
+        const keys1 = Object.keys(a);
+        const keys2 = Object.keys(b);
+
+        if (keys1.length !== keys2.length) return false;
+        if (!keys1.every((key) => keys2.includes(key))) return false;
+
+        return keys1.every((key) => deepEqualObj(a[key], b[key], depth - 1));
+    }
+    return a === b;
+}
 
 describe('Protocol', function () {
     it(config.regular.list[1], function () {
         return runners.noSession(config.regular, 1, async (logger, done) => {
-            {
-                let origin = convertor.toObserveOptions({
+            function check(origin: ty.ObserveOptions) {
+                expect(
+                    deepEqualObj(
+                        proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin)),
+                        origin,
+                    ),
+                ).toBe(true);
+            }
+            check(
+                convertor.toObserveOptions({
                     origin: { File: ['somefile', $.Types.File.FileType.Text, 'path_to_file'] },
                     parser: { Text: null },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
                     origin: {
                         Stream: ['stream', { TCP: { bind_addr: '0.0.0.0' } }],
                     },
                     parser: { Text: null },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
                     origin: {
                         Stream: [
                             'stream',
-                            { Process: { command: 'command', cwd: 'cwd', envs: { one: 'one' } } },
+                            {
+                                Process: {
+                                    command: 'command',
+                                    cwd: 'cwd',
+                                    envs: { one: 'one' },
+                                },
+                            },
                         ],
                     },
                     parser: { Text: null },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
                     origin: {
                         Concat: [
                             ['somefile1', $.Types.File.FileType.Text, 'path_to_file'],
@@ -60,13 +92,13 @@ describe('Protocol', function () {
                         ],
                     },
                     parser: { Text: null },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
                     parser: {
                         Dlt: {
                             fibex_file_paths: ['path'],
@@ -75,13 +107,13 @@ describe('Protocol', function () {
                             tz: 'zz',
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
                     parser: {
                         Dlt: {
                             fibex_file_paths: [],
@@ -90,13 +122,13 @@ describe('Protocol', function () {
                             tz: 'zz',
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
                     parser: {
                         Dlt: {
                             fibex_file_paths: undefined,
@@ -105,13 +137,13 @@ describe('Protocol', function () {
                             tz: 'zz',
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
                     parser: {
                         Dlt: {
                             fibex_file_paths: ['path'],
@@ -127,46 +159,44 @@ describe('Protocol', function () {
                             tz: 'zz',
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'],
+                    },
                     parser: {
                         SomeIp: {
                             fibex_file_paths: ['path'],
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'],
+                    },
                     parser: {
                         SomeIp: {
                             fibex_file_paths: [],
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
-            {
-                let origin = convertor.toObserveOptions({
-                    origin: { File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'] },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'],
+                    },
                     parser: {
                         SomeIp: {
                             fibex_file_paths: undefined,
                         },
                     },
-                });
-                let decoded = proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin));
-                // expect(origin).toEqual(decoded);
-            }
+                }),
+            );
             finish(undefined, done);
         });
     });
