@@ -7,7 +7,7 @@ mod wasm_host;
 
 pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginsParser};
 
-pub use bytesource_shared::PluginByteSource;
+pub use bytesource_shared::PluginsByteSource;
 
 pub use plugins_shared::plugin_init_error::{PluginGuestInitError, PluginHostInitError};
 

@@ -49,7 +49,7 @@ pub async fn observe_file<'a>(
                     plugins::ByteSourceInput::File(filename.into()),
                 );
 
-                let plugin_source = PluginByteSource::create(
+                let plugin_source = PluginsByteSource::create(
                     &setting.plugin_path,
                     setting.source_input,
                     &setting.general_settings,

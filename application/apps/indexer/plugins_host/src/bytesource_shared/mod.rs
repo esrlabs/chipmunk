@@ -12,11 +12,26 @@ use crate::{
 
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:plugin/byte-source";
 
-pub enum PluginByteSource {
+/// The maximum number of consecutive returns with empty bytes allowed from a plugin.
+/// If a plugin exceeds this number, it may be considered harmful to the system.
+const MAX_ALLOWED_EMPTY_RETURNS: u8 = 20;
+
+/// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM byte source plugin.
+pub struct PluginsByteSource {
+    /// The actual byte source for each supported version in plugins API.
+    source: PlugVerByteSource,
+    /// Tracks the number of consecutive returns of read method with no data within.
+    /// This helps prevent plugins from causing harm to the Chipmunk system by
+    /// always returning no data for read calls without any errors.
+    empty_count: u8,
+}
+
+/// Represents the plugin byte source for each supported version in plugins API.
+pub enum PlugVerByteSource {
     Ver010(v0_1_0::bytesource::PluginByteSource),
 }
 
-impl PluginByteSource {
+impl PluginsByteSource {
     pub async fn create(
         plugin_path: impl AsRef<Path>,
         input: ByteSourceInput,
@@ -74,7 +89,10 @@ impl PluginByteSource {
                 )
                 .await?;
 
-                Ok(Self::Ver010(source))
+                Ok(Self {
+                    source: PlugVerByteSource::Ver010(source),
+                    empty_count: 0,
+                })
             }
             invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
                 "Plugin version {invalid_version} is not supported"
@@ -83,13 +101,30 @@ impl PluginByteSource {
     }
 
     async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
-        match self {
-            PluginByteSource::Ver010(source) => source.read_next(len).await,
-        }
+        let res = match &mut self.source {
+            PlugVerByteSource::Ver010(source) => source.read_next(len).await,
+        };
+
+        if res.as_ref().is_ok_and(|bytes| bytes.is_empty()) {
+            self.empty_count += 1;
+            if self.empty_count > MAX_ALLOWED_EMPTY_RETURNS {
+                return Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    format!(
+                        "Plugin byte source returned empty data more than \
+                        {MAX_ALLOWED_EMPTY_RETURNS} times consecutively."
+                    ),
+                ));
+            }
+        } else {
+            self.empty_count = 0;
+        };
+
+        res
     }
 }
 
-impl Read for PluginByteSource {
+impl Read for PluginsByteSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let len = buf.len();
 
