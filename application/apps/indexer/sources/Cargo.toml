@@ -32,11 +32,39 @@ mimalloc = "0.1"
 tikv-jemallocator = "0.6"
 
 [[bench]]
+name = "dlt_producer"
+harness = false
+
+[[bench]]
+name = "someip_producer"
+harness = false
+
+[[bench]]
+name = "someip_legacy_producer"
+harness = false
+
+[[bench]]
+name = "text_producer"
+harness = false
+
+[[bench]]
 name = "mocks_once_producer"
 harness = false
 
 [[bench]]
 name = "mocks_once_producer_jemalloc"
+harness = false
+
+[[bench]]
+name = "mocks_once_parallel"
+harness = false
+
+[[bench]]
+name = "mocks_once_parallel_jemalloc"
+harness = false
+
+[[bench]]
+name = "mocks_once_parallel_mimalloc"
 harness = false
 
 [[bench]]
@@ -56,17 +84,13 @@ name = "mocks_multi_producer_mimalloc"
 harness = false
 
 [[bench]]
-name = "dlt_producer"
+name = "mocks_multi_parallel"
 harness = false
 
 [[bench]]
-name = "someip_producer"
+name = "mocks_multi_parallel_jemalloc"
 harness = false
 
 [[bench]]
-name = "someip_legacy_producer"
-harness = false
-
-[[bench]]
-name = "text_producer"
+name = "mocks_multi_parallel_mimalloc"
 harness = false

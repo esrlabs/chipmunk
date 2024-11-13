@@ -5,4 +5,6 @@
 #![allow(unused)]
 
 pub mod mock_producer_multi;
+pub mod mock_producer_multi_parallel;
 pub mod mock_producer_once;
+pub mod mock_producer_once_parallel;
