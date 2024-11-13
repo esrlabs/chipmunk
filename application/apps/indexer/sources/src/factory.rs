@@ -1,12 +1,13 @@
+pub use dlt::DltFilterConfig;
+use enum_ids::enum_ids;
 pub use indexer_base::config::MulticastInfo;
 use parsers::dlt;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
 
-pub use dlt::DltFilterConfig;
-
 #[allow(clippy::large_enum_variant)]
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
     Dlt(DltParserSettings),
@@ -69,6 +70,7 @@ pub struct SomeIpParserSettings {
     pub fibex_file_paths: Option<Vec<String>>,
 }
 
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Transport {
     Process(ProcessTransportConfig),
@@ -107,6 +109,7 @@ pub struct UDPTransportConfig {
     pub multicast: Vec<MulticastInfo>,
 }
 
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum FileFormat {
     PcapNG,
@@ -115,6 +118,7 @@ pub enum FileFormat {
     Binary,
 }
 
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ObserveOrigin {
     File(String, FileFormat, PathBuf),

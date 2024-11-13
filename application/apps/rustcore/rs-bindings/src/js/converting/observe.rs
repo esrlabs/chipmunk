@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     convert::{TryFrom, TryInto},
     ops::Not,
     path::PathBuf,
@@ -8,6 +9,7 @@ use super::{error::E, JsIncomeBuffer};
 use prost::Message;
 use proto::*;
 use session::factory;
+use sources::factory::{FileFormatId, ObserveOriginId, ParserTypeId, TransportId};
 
 fn get_as_file(
     opt: &observe::observe_origin::File,
@@ -152,4 +154,149 @@ impl TryInto<factory::ObserveOptions> for JsIncomeBuffer {
         };
         Ok(factory::ObserveOptions { origin, parser })
     }
+}
+
+fn get_test_cases_file_origin() -> Vec<observe::observe_origin::File> {
+    FileFormatId::as_vec()
+        .into_iter()
+        .map(|id| observe::observe_origin::File {
+            format: match id {
+                FileFormatId::Text => observe::file_format::Type::Text,
+                FileFormatId::Binary => observe::file_format::Type::Binary,
+                FileFormatId::PcapLegacy => observe::file_format::Type::PcapLegacy,
+                FileFormatId::PcapNG => observe::file_format::Type::PcapNg,
+            }
+            .into(),
+            name: String::from("test"),
+            path: String::from("test"),
+        })
+        .collect()
+}
+
+fn get_test_cases_stream_origin() -> Vec<observe::observe_origin::Stream> {
+    TransportId::as_vec()
+        .into_iter()
+        .map(|id| observe::observe_origin::Stream {
+            name: String::from("test"),
+            transport: Some(Transport {
+                transport_oneof: Some(match id {
+                    TransportId::Process => {
+                        let mut envs = HashMap::new();
+                        envs.insert(String::from("a"), String::from("b"));
+                        envs.insert(String::from("c"), String::from("d"));
+                        observe::transport::TransportOneof::Process(ProcessTransportConfig {
+                            cwd: String::from("test"),
+                            command: String::from("test"),
+                            envs,
+                        })
+                    }
+                    TransportId::TCP => {
+                        observe::transport::TransportOneof::Tcp(TcpTransportConfig {
+                            bind_addr: String::from("0.0.0.0"),
+                        })
+                    }
+                    TransportId::UDP => {
+                        observe::transport::TransportOneof::Udp(UdpTransportConfig {
+                            bind_addr: String::from("0.0.0.0"),
+                            multicast: vec![
+                                MulticastInfo {
+                                    multiaddr: String::from("0.0.0.0"),
+                                    interface: String::from("0.0.0.0"),
+                                },
+                                MulticastInfo {
+                                    multiaddr: String::from("0.0.0.0"),
+                                    interface: String::from("0.0.0.0"),
+                                },
+                            ],
+                        })
+                    }
+                    TransportId::Serial => {
+                        observe::transport::TransportOneof::Serial(SerialTransportConfig {
+                            path: String::from("test"),
+                            baud_rate: 1,
+                            data_bits: 2,
+                            flow_control: 3,
+                            parity: 4,
+                            stop_bits: 5,
+                            send_data_delay: 6,
+                            exclusive: true,
+                        })
+                    }
+                }),
+            }),
+        })
+        .collect()
+}
+
+fn get_test_cases_parser() -> Vec<observe::ParserType> {
+    ParserTypeId::as_vec()
+        .into_iter()
+        .map(|id| observe::ParserType {
+            type_oneof: Some(match id {
+                ParserTypeId::Text => observe::parser_type::TypeOneof::Text(true),
+                ParserTypeId::Dlt => {
+                    observe::parser_type::TypeOneof::Dlt(observe::DltParserSettings {
+                        fibex_file_paths: vec![String::from("test")],
+                        filter_config: Some(observe::DltFilterConfig {
+                            min_log_level: 1,
+                            context_id_count: 1,
+                            app_id_count: 1,
+                            app_ids: vec![String::from("test")],
+                            context_ids: vec![String::from("test")],
+                            ecu_ids: vec![String::from("test")],
+                        }),
+                        with_storage_header: true,
+                        tz: String::from("test"),
+                    })
+                }
+                ParserTypeId::SomeIp => {
+                    observe::parser_type::TypeOneof::SomeIp(observe::SomeIpParserSettings {
+                        fibex_file_paths: vec![String::from("test")],
+                    })
+                }
+            }),
+        })
+        .collect()
+}
+
+pub fn test_cases() -> Vec<Vec<u8>> {
+    let origins = ObserveOriginId::as_vec()
+        .into_iter()
+        .flat_map(|or| match or {
+            ObserveOriginId::File => get_test_cases_file_origin()
+                .into_iter()
+                .map(|f| observe::ObserveOrigin {
+                    origin_oneof: Some(observe::observe_origin::OriginOneof::File(f)),
+                })
+                .collect::<Vec<observe::ObserveOrigin>>(),
+            ObserveOriginId::Concat => get_test_cases_file_origin()
+                .into_iter()
+                .map(|f| observe::ObserveOrigin {
+                    origin_oneof: Some(observe::observe_origin::OriginOneof::Concat(
+                        observe::observe_origin::Concat {
+                            files: vec![f.clone(), f.clone(), f],
+                        },
+                    )),
+                })
+                .collect::<Vec<observe::ObserveOrigin>>(),
+            ObserveOriginId::Stream => get_test_cases_stream_origin()
+                .into_iter()
+                .map(|s| observe::ObserveOrigin {
+                    origin_oneof: Some(observe::observe_origin::OriginOneof::Stream(s)),
+                })
+                .collect::<Vec<observe::ObserveOrigin>>(),
+        })
+        .collect::<Vec<observe::ObserveOrigin>>();
+    origins
+        .into_iter()
+        .flat_map(|or| {
+            get_test_cases_parser()
+                .into_iter()
+                .map(move |p| observe::ObserveOptions {
+                    origin: Some(or.clone()),
+                    parser: Some(p),
+                })
+        })
+        .map(|ob| prost::Message::encode_to_vec(&ob))
+        .collect()
 }

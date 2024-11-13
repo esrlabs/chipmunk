@@ -7,7 +7,7 @@ use crate::{
         event::{self, CallbackEventWrapped},
         filter::WrappedSearchFilter,
         grabbing::GrabbedElements,
-        progress,
+        observe, progress,
         ranges::RangeInclusiveList,
         sde::SdeResponseWrapped,
         source::WrappedSourceDefinition,
@@ -746,6 +746,14 @@ impl RustSession {
         Ok(progress::test_cases()
             .into_iter()
             .map(|ev| SafeArrayBuffer::new(ev.into()))
+            .collect::<Vec<SafeArrayBuffer>>())
+    }
+
+    #[node_bindgen]
+    fn test_observe_as_proto(&self) -> Result<Vec<SafeArrayBuffer>, ComputationErrorWrapper> {
+        Ok(observe::test_cases()
+            .into_iter()
+            .map(SafeArrayBuffer::new)
             .collect::<Vec<SafeArrayBuffer>>())
     }
 }

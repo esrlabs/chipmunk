@@ -214,6 +214,9 @@ export abstract class RustSession extends RustSessionRequiered {
 
     // Used only for testing and debug
     public abstract testLtEventsAsProto(): convertor.LifecycleTransitionType[] | NativeError;
+
+    // Used only for testing and debug
+    public abstract testObserveAsProto(): proto.ObserveOptions[] | NativeError;
 }
 
 export abstract class RustSessionNative {
@@ -354,6 +357,9 @@ export abstract class RustSessionNative {
     public abstract testCallbackEventsAsProto(): number[][];
 
     public abstract testLtEventsAsProto(): number[][];
+
+    // Used only for testing and debug
+    public abstract testObserveAsProto(): number[][];
 }
 
 export function rustSessionFactory(
@@ -963,6 +969,22 @@ export class RustSessionWrapper extends RustSession {
                 return new NativeError(new Error(utils.error(error)), Type.Other, Source.Other);
             }
             return events as convertor.LifecycleTransitionType[];
+        } catch (err) {
+            return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
+        }
+    }
+
+    public testObserveAsProto(): proto.ObserveOptions[] | NativeError {
+        try {
+            const received = this._native.testObserveAsProto();
+            const observe = received.map((buf) =>
+                proto.ObserveOptions.decode(Uint8Array.from(buf)),
+            );
+            const error = observe.find((e) => e instanceof Error);
+            if (error !== undefined) {
+                return new NativeError(new Error(utils.error(error)), Type.Other, Source.Other);
+            }
+            return observe as proto.ObserveOptions[];
         } catch (err) {
             return new NativeError(new Error(utils.error(err)), Type.Other, Source.Other);
         }

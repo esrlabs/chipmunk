@@ -259,7 +259,6 @@ describe('Protocol', function () {
             }
             for (let ev of evs) {
                 expect(!(ev instanceof Error));
-                console.log(`Got CallbackEvent:${JSON.stringify(ev)}`);
             }
             finish(comps.session, done);
         });
@@ -273,7 +272,19 @@ describe('Protocol', function () {
             }
             for (let ev of evs) {
                 expect(!(ev instanceof Error));
-                console.log(`Got LifecycleTransition:${JSON.stringify(ev)}`);
+            }
+            finish(comps.session, done);
+        });
+    });
+    it(config.regular.list[5], function () {
+        return runners.withSession(config.regular, 5, async (logger, done, comps) => {
+            const evs = comps.session.getNativeSession().testObserveAsProto();
+            expect(evs instanceof Array).toBe(true);
+            if (!(evs instanceof Array)) {
+                return;
+            }
+            for (let ev of evs) {
+                expect(!(ev instanceof Error));
             }
             finish(comps.session, done);
         });

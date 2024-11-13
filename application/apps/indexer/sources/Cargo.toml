@@ -24,6 +24,7 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 regex.workspace = true
 lazy_static.workspace = true
 shellexpand = "3.0.0"
+enum_ids.workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true
