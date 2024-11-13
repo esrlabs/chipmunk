@@ -7,7 +7,8 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use parsers::someip::SomeipParser;
 use sources::{binary::pcap::legacy::PcapLegacyByteSource, producer::MessageProducer};
 
-// The MiMalloc allocator is currently used in the Chipmunk app.
+// The MiMalloc allocator is currently used in the Chipmunk app on Windows.
+#[cfg(windows)]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

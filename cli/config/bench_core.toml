@@ -3,7 +3,11 @@ name = "mocks_once_producer"
 library = "sources"
 
 [[bench]]
-name = "mocks_once_producer_sysalloc"
+name = "mocks_once_producer_jemalloc"
+library = "sources"
+
+[[bench]]
+name = "mocks_once_producer_mimalloc"
 library = "sources"
 
 [[bench]]
@@ -11,7 +15,11 @@ name = "mocks_multi_producer"
 library = "sources"
 
 [[bench]]
-name = "mocks_multi_producer_sysalloc"
+name = "mocks_multi_producer_jemalloc"
+library = "sources"
+
+[[bench]]
+name = "mocks_multi_producer_mimalloc"
 library = "sources"
 
 [[bench]]

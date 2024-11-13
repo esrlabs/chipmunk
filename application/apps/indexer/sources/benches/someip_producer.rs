@@ -7,7 +7,8 @@ use sources::{binary::pcap::ng::PcapngByteSource, producer::MessageProducer};
 
 mod bench_utls;
 
-// The MiMalloc allocator is currently used in the Chipmunk app.
+// The MiMalloc allocator is currently used in the Chipmunk app on Windows.
+#[cfg(windows)]
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 

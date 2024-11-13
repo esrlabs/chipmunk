@@ -28,7 +28,6 @@ criterion.workspace = true
 pretty_assertions = "1.3"
 rand.workspace = true
 tempfile.workspace = true
-mimalloc.workspace = true
 
 [[bench]]
 name = "map_benchmarks"
