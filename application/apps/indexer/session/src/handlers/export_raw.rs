@@ -12,7 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem,
 };
-use plugins_host::PluginParser;
+use plugins_host::PluginsParser;
 use processor::export::{export_raw, ExportError};
 use sources::{
     binary::{
@@ -143,7 +143,7 @@ async fn export<S: ByteSource>(
             println!("------------------------------------------------------");
             println!("-------------    WASM parser used    -----------------");
             println!("------------------------------------------------------");
-            let parser = PluginParser::create(
+            let parser = PluginsParser::create(
                 &settings.plugin_path,
                 &settings.general_settings,
                 settings.custom_config_path.as_ref(),

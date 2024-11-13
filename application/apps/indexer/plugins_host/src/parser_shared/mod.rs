@@ -12,11 +12,26 @@ pub mod plugin_parse_message;
 
 const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
 
-pub enum PluginParser {
+/// The maximum number of consecutive recoverable errors allowed from a plugin.
+/// If a plugin exceeds this number, it may be considered harmful to the system.
+const MAX_ALLOWED_CONSECUTIVE_ERRORS: u8 = 20;
+
+/// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
+pub struct PluginsParser {
+    /// The actual parser for each supported version in plugins API.
+    parser: PlugVerParser,
+    /// Tracks the number of consecutive recoverable errors sent by a plugin.
+    /// This helps prevent plugins from causing harm to the Chipmunk system
+    /// by sending too many recoverable errors in a row.
+    errors_counter: u8,
+}
+
+/// Represents the plugin parser for each supported version in plugins API.
+enum PlugVerParser {
     Ver010(v0_1_0::parser::PluginParser),
 }
 
-impl PluginParser {
+impl PluginsParser {
     pub async fn create(
         plugin_path: impl AsRef<Path>,
         general_config: &PluginParserGeneralSetttings,
@@ -68,7 +83,10 @@ impl PluginParser {
                 let parser =
                     v0_1_0::parser::PluginParser::create(component, general_config, config_path)
                         .await?;
-                Ok(PluginParser::Ver010(parser))
+                Ok(Self {
+                    parser: PlugVerParser::Ver010(parser),
+                    errors_counter: 0,
+                })
             }
             invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
                 "Plugin version {invalid_version} is not supported"
@@ -78,15 +96,33 @@ impl PluginParser {
 }
 
 use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginParser {
+impl p::Parser<PluginParseMessage> for PluginsParser {
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
-        match self {
-            PluginParser::Ver010(parser) => parser.parse(input, timestamp),
+        let res = match &mut self.parser {
+            PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
+        };
+
+        match &res {
+            Ok(_) | Err(p::Error::Unrecoverable(_)) => {
+                self.errors_counter = 0;
+            }
+            Err(p::Error::Parse(_)) | Err(p::Error::Incomplete) | Err(p::Error::Eof) => {
+                self.errors_counter += 1;
+                if self.errors_counter > MAX_ALLOWED_CONSECUTIVE_ERRORS {
+                    self.errors_counter = 0;
+                    return Err(p::Error::Unrecoverable(format!(
+                        "Plugin parser returned more than \
+                        {MAX_ALLOWED_CONSECUTIVE_ERRORS} recoverable errors consecutively"
+                    )));
+                }
+            }
         }
+
+        res
     }
 }
