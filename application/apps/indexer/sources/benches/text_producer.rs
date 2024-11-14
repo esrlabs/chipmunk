@@ -8,11 +8,6 @@ use sources::producer::MessageProducer;
 
 mod bench_utls;
 
-// The MiMalloc allocator is currently used in the Chipmunk app on Windows.
-#[cfg(windows)]
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 /// This benchmark covers parsing from text file file using [`BinaryByteSource`].
 /// This benchmark doesn't support any additional configurations.
 fn text_producer(c: &mut Criterion) {

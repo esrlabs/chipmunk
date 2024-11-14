@@ -9,11 +9,6 @@ use sources::producer::MessageProducer;
 
 mod bench_utls;
 
-// The MiMalloc allocator is currently used in the Chipmunk app on Windows.
-#[cfg(windows)]
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 /// This benchmark covers parsing from DLT file and supports providing the path for a fibex file as
 /// additional configuration.
 fn dlt_producer(c: &mut Criterion) {
