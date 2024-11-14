@@ -137,8 +137,11 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             fail_fast,
             ui_mode,
+            additional_features,
         } => {
-            JobsState::init(JobsConfig::new(fail_fast));
+            let features = additional_features
+                .unwrap_or_else(|| UserConfiguration::get().additional_features.clone());
+            JobsState::init(JobsConfig::new(fail_fast).additional_features(features));
             init_tracker(ui_mode);
             validate_dev_tools()?;
             let targets = get_targets_or_all(target);
@@ -170,8 +173,11 @@ async fn main_process(command: Command) -> Result<(), Error> {
         Command::Run {
             production,
             no_fail_fast,
+            additional_features,
         } => {
-            JobsState::init(JobsConfig::new(!no_fail_fast));
+            let features = additional_features
+                .unwrap_or_else(|| UserConfiguration::get().additional_features.clone());
+            JobsState::init(JobsConfig::new(!no_fail_fast).additional_features(features));
             init_tracker(Default::default());
             validate_dev_tools()?;
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;

@@ -2,7 +2,13 @@ use std::fs;
 
 use anyhow::{bail, Context};
 
-use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult, tracker::get_tracker};
+use crate::{
+    fstools,
+    jobs_runner::{jobs_state::AdditionalFeatures, JobDefinition},
+    spawner::SpawnResult,
+    tracker::get_tracker,
+    JobsState,
+};
 
 use super::{ProcessCommand, Target};
 
@@ -18,6 +24,15 @@ pub fn get_build_cmd(prod: bool) -> anyhow::Result<ProcessCommand> {
     if prod {
         args.push("--release".into());
     }
+
+    if JobsState::get()
+        .additional_features()
+        .contains(&AdditionalFeatures::CustomAllocator)
+    {
+        args.push(String::from("--"));
+        args.push(String::from("--features custom-alloc"));
+    }
+
     Ok(ProcessCommand::new(
         path.to_string_lossy().to_string(),
         args,

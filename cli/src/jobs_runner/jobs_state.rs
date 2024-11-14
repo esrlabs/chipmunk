@@ -3,6 +3,7 @@
 
 use std::{sync::OnceLock, time::Duration};
 
+use serde::{Deserialize, Serialize};
 use tokio::time::timeout;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
@@ -28,6 +29,16 @@ pub struct JobsState {
     configuration: JobsConfig,
 }
 
+/// Represents defined additional features that can activated on parts on build process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, Serialize, Deserialize)]
+pub enum AdditionalFeatures {
+    /// Activate `custom-alloc` feature in rs-binding to use custom memory allocator
+    /// instead of the default one.
+    #[serde(rename = "custom-alloc")]
+    #[value(name = "custom-alloc")]
+    CustomAllocator,
+}
+
 #[derive(Debug, Clone, Default)]
 /// Represents the configuration and specification for the jobs.
 pub struct JobsConfig {
@@ -35,6 +46,8 @@ pub struct JobsConfig {
     is_release_build: bool,
     // Custom specifications for the given jobs.
     custom_specs: Vec<String>,
+    // Additional features for the given jobs.
+    additional_features: Vec<AdditionalFeatures>,
 }
 
 impl JobsConfig {
@@ -54,6 +67,12 @@ impl JobsConfig {
     #[must_use]
     pub fn custom_specs(mut self, custom_specs: Vec<String>) -> Self {
         self.custom_specs = custom_specs;
+        self
+    }
+
+    #[must_use]
+    pub fn additional_features(mut self, additional_features: Vec<AdditionalFeatures>) -> Self {
+        self.additional_features = additional_features;
         self
     }
 }
@@ -153,5 +172,10 @@ impl JobsState {
     /// Gets the job custom specifications if specified.
     pub fn custom_specs(&self) -> &[String] {
         self.configuration.custom_specs.as_slice()
+    }
+
+    /// Gets the additional features for the running job.
+    pub fn additional_features(&self) -> &[AdditionalFeatures] {
+        self.configuration.additional_features.as_slice()
     }
 }
