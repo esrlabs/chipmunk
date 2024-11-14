@@ -255,8 +255,6 @@ impl Tracker {
         let max = u64::MAX;
         let mut bars: BTreeMap<JobDefinition, JobBarState> = BTreeMap::new();
         let mp = MultiProgress::new();
-        // Reduces flickering. This works well if progress bars count doesn't change while running.
-        mp.set_move_cursor(true);
 
         let start_time = Instant::now();
         while let Some(tick) = rx.recv().await {
@@ -292,12 +290,17 @@ impl Tracker {
                         let _ = mp.println("Fail to send response while starting the jobs");
                     }
                 }
-                UiTick::Message(job_def, log) => match bars.get(&job_def) {
-                    Some(job_bar) => job_bar.bar.set_message(log),
-                    None => unreachable!(
-                        "Job must exist in progress bar before messaging it. Job Info: {job_def:?}"
-                    ),
-                },
+                UiTick::Message(job_def, log) => {
+                    if !log.trim().is_empty() {
+                        match bars.get(&job_def)
+                                {
+                                    Some(job_bar) => job_bar.bar.set_message(log),
+                                    None => unreachable!(
+                                        "Job must exist in progress bar before messaging it. Job Info: {job_def:?}"
+                                    ),
+                                }
+                    }
+                }
                 UiTick::Progress(job_def, pos) => {
                     let Some(job_bar) = bars.get(&job_def) else {
                         unreachable!("Job must exist in progress bar before changing it progress. Job Info: {job_def:?}")
@@ -492,8 +495,9 @@ impl Tracker {
 
     /// Internal implementation for sending messages (standard and error)
     fn msg_intern(&self, job_def: JobDefinition, log: String, target: OutputTarget) {
+        let log = log.trim_end();
         if self.print_immediately() {
-            let msg = format!("Job '{}': {}", job_def.job_title(), log.trim());
+            let msg = format!("Job '{}': {}", job_def.job_title(), log);
             match target {
                 OutputTarget::Stdout => println!("{msg}"),
                 OutputTarget::Stderr => eprintln!("{msg}"),
@@ -505,14 +509,14 @@ impl Tracker {
         if self.cache_logs() {
             if let Err(err) = self
                 .log_tx
-                .send(LogTick::SendSingleLog(job_def, log.clone()))
+                .send(LogTick::SendSingleLog(job_def, log.to_owned()))
             {
                 eprintln!("Fail to communicate with tracker: {err}");
             }
         }
 
         if self.show_bars() {
-            if let Err(e) = self.ui_tx.send(UiTick::Message(job_def, log)) {
+            if let Err(e) = self.ui_tx.send(UiTick::Message(job_def, log.to_owned())) {
                 eprintln!("Fail to communicate with tracker: {e}");
             }
         }
@@ -530,8 +534,9 @@ impl Tracker {
 
     /// Internal implementation for sending log messages (standard and error)
     fn log_intern(&self, job_def: JobDefinition, log: String, target: OutputTarget) {
+        let log = log.trim_end();
         if self.print_immediately() {
-            let msg = format!("Job '{}': {}", job_def.job_title(), log.trim());
+            let msg = format!("Job '{}': {}", job_def.job_title(), log);
             match target {
                 OutputTarget::Stdout => println!("{msg}"),
                 OutputTarget::Stderr => eprintln!("{msg}"),
@@ -542,7 +547,7 @@ impl Tracker {
         if self.cache_logs() {
             if let Err(err) = self
                 .log_tx
-                .send(LogTick::SendSingleLog(job_def, log.clone()))
+                .send(LogTick::SendSingleLog(job_def, log.to_owned()))
             {
                 eprintln!("Fail to communicate with tracker: {err}");
             }

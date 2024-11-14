@@ -252,7 +252,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
                         status
                             .report
                             .iter()
-                            .for_each(|line| eprintln!("{}", line.trim()));
+                            .for_each(|line| eprintln!("{}", line.trim_end()));
 
                         eprintln!(
                             "---------------------------------------------------------------------"
