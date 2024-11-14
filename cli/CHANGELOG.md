@@ -1,3 +1,10 @@
+# 0.2.10
+
+## Features:
+
+* Add `additional features` to both CLI arguments and user configuration to enable additional features in the build process.
+* Add `custom-alloc` additional feature to enable using custom memory allocators in rs-bindings.
+
 # 0.2.9
 
 ## Fixes:

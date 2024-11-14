@@ -50,7 +50,7 @@ pub enum Target {
     Wasm,
     /// Represents the path `application/client`
     Client,
-    /// Represents the path `application/apps/precompiled/updater
+    /// Represents the path `application/apps/precompiled/updater`
     Updater,
     /// Represents the path `application/holder`
     App,
