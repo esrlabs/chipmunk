@@ -57,7 +57,7 @@ pub fn validate_dev_tools() -> anyhow::Result<()> {
     }
 
     match errors {
-        Some(err_text) => bail!("{}", err_text.trim()),
+        Some(err_text) => bail!("{}", err_text.trim_end()),
         None => Ok(()),
     }
 }

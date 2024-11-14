@@ -35,7 +35,7 @@ pub fn print_report(spawn_result: &SpawnResult) {
     spawn_result
         .report
         .iter()
-        .for_each(|line| println!("{}", line.trim()))
+        .for_each(|line| println!("{}", line.trim_end()))
 }
 
 /// Prints a separator to be used between the jobs reports.

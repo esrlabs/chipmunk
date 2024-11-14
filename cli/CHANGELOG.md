@@ -5,6 +5,11 @@
 * Add `additional features` to both CLI arguments and user configuration to enable additional features in the build process.
 * Add `custom-alloc` additional feature to enable using custom memory allocators in rs-bindings.
 
+## Fixes:
+
+* Fix UI bars unintended up movements and clearing up the messages once done.
+* Keep logs indentation when printing them.
+
 # 0.2.9
 
 ## Fixes:
