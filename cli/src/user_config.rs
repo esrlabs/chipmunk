@@ -7,18 +7,24 @@ use anyhow::{ensure, Context};
 use console::style;
 use serde::{Deserialize, Serialize};
 
-use crate::{cli_args::UiMode, location::build_cli_home_dir, shell::UserShell};
+use crate::{
+    cli_args::UiMode, jobs_runner::jobs_state::AdditionalFeatures, location::build_cli_home_dir,
+    shell::UserShell,
+};
 
 static USER_CONFIGURATION: OnceLock<UserConfiguration> = OnceLock::new();
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 /// Represents the configuration of this tool on the user level, providing settings like
-/// [`UserShell`] and [`UiMode`] besides methods to load this configurations from a file.
+/// [`UserShell`], [`UiMode`] and [`AdditionalFeatures`] besides methods to load this
+/// configurations from a file.
 pub struct UserConfiguration {
     #[serde(default)]
     pub shell: UserShell,
     #[serde(default)]
     pub ui_mode: UiMode,
+    #[serde(default)]
+    pub additional_features: Vec<AdditionalFeatures>,
 }
 
 impl UserConfiguration {
