@@ -86,13 +86,17 @@ Options:
   -u, --ui-mode <UI_MODE>
           Specifies the UI options for displaying command logs and progress in the terminal
 
-          [default: bars]
-
           Possible values:
           - bars:      Displays progress bars, showing the current line of the output of each command. [aliases: 'b']
           - report:    Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. [aliases: 'r']
           - print:     Outputs each job's result to stdout once the job finishes. No progress bars are displayed. [aliases: 'p']
           - immediate: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed. [aliases: 'i']
+
+  -a, --additional-features <ADDITIONAL_FEATURES>
+          Specifies additional features to be enabled in the build process
+
+          Possible values:
+          - custom-alloc: Activate `custom-alloc` feature in rs-binding to use custom memory allocator instead of the default one.
 
   -h, --help
           Print help (see a summary with '-h')
@@ -129,6 +133,11 @@ shell = "sh"
 #   - `print`: Outputs each job's result to stdout once the job finishes. No progress bars are displayed.
 #   - `immediate`: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed.
 ui_mode = "bars"
+
+# Specifies additional features to enable during the build process.
+# Options:
+#  - "custom-alloc": Activate `custom-alloc` feature in rs-binding to use custom memory allocator instead of the default one.
+additional_features = []
 ```
 
 ## Benchmarks via Build CLI Tool
