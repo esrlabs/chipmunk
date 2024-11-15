@@ -2,6 +2,7 @@
 
 ## Corrections
 - show recently added filters after importing
+- add parsing of DLT payload's network prefix
 
 # 3.14.2 (08.11.2024)
 
