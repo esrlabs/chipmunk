@@ -1,3 +1,4 @@
+use core::str;
 use std::{iter, path::PathBuf};
 
 use memchr::memchr;
@@ -7,27 +8,25 @@ use plugins_api::{
     parser_export,
 };
 
-/// Simple struct that converts the given bytes into UTF-8 Strings - including
-/// invalid characters, line by line.
+/// Simple struct that converts the given bytes into valid UTF-8 Strings line by line.
 pub struct StringTokenizer;
 
 impl StringTokenizer {
     /// Converts a slice from the given data to UTF-8 String stopping when it hit the first
     /// break-line character to return one line at a time.
+    ///
+    /// # Panic:
+    /// The function will panic is the provided data is empty.
     fn parse_line(&self, data: &[u8]) -> Result<ParseReturn, ParseError> {
-        let res = if let Some(line_brk_idx) = memchr(b'\n', data) {
-            let line = String::from_utf8_lossy(&data[..line_brk_idx]);
-            let yld = ParseYield::Message(line.into());
+        assert!(!data.is_empty(), "Provided data can't be empty");
 
-            ParseReturn::new((line_brk_idx + 1) as u64, Some(yld))
-        } else {
-            let content = String::from_utf8_lossy(data);
-            let yld = ParseYield::Message(content.into());
+        let end_idx = memchr(b'\n', data).unwrap_or_else(|| data.len() - 1);
 
-            ParseReturn::new(data.len() as u64, Some(yld))
-        };
+        let line = str::from_utf8(&data[..end_idx])
+            .map_err(|err| ParseError::Parse(format!("Convertion to UTF-8 failed. Error {err}")))?;
+        let yld = ParseYield::Message(line.into());
 
-        Ok(res)
+        Ok(ParseReturn::new((end_idx + 1) as u64, Some(yld)))
     }
 }
 
