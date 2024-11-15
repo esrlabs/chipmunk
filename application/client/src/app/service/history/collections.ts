@@ -112,7 +112,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     static fromMinifiedStr(src: { [key: string]: number | string }): ICollection {
         return {
             name: obj.getAsNotEmptyString(src, 'n'),
-            created: obj.getAsValidNumber(src, 'c'),
+            created: Date.now(),
             used: obj.getAsValidNumber(src, 'u'),
             last: obj.getAsValidNumber(src, 'l'),
             preset: obj.getAsBool(src, 'p'),
@@ -262,6 +262,10 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
 
     public hasName(): boolean {
         return this.name !== '' && this.name !== '-';
+    }
+
+    public filterByDateTime(tm: number): boolean {
+        return this.created > tm;
     }
 
     public isSame(collections: Collections): boolean {
