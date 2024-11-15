@@ -1,7 +1,6 @@
-//! This is an example of a simple Chipmunk bytesource plugin that reads byte data from a file,
-//! and provides it to the Chipmunk application.
-//!
-//! TODO: Complete the documentation
+//! This example demonstrates a simple bytesource plugin in Chipmunk.
+//! The plugin reads byte data from a file and provides it to the Chipmunk application.
+//! This example will guide you through creating and configuring a plugin using the provided configurations, as well as utilizing support functions from this library, such as logging.
 
 use std::{
     fs::File,
@@ -11,7 +10,7 @@ use std::{
 
 use plugins_api::{
     bytesource::{ByteSource, InitError, InputSource, SourceConfig, SourceError},
-    bytesource_export,
+    bytesource_export, log,
 };
 
 /// Simple struct that opens a file and read its content, providing them as bytes to Chipmunk when
@@ -20,15 +19,31 @@ struct FileSource {
     reader: BufReader<File>,
 }
 
+/// Struct must implement [`ByteSource`] trait to be compiled as a byte-source plugin in Chipmunk.
 impl ByteSource for FileSource {
     fn create(
         input_source: InputSource,
-        _general_configs: SourceConfig,
-        _config_path: Option<PathBuf>,
+        general_configs: SourceConfig,
+        config_path: Option<PathBuf>,
     ) -> Result<Self, InitError>
     where
         Self: Sized,
     {
+        // Demonstrates log functionality
+        log::debug!(
+            "Plugin initialize called with input source: {:?}",
+            input_source
+        );
+        log::debug!(
+            "Plugin initialize called with the general settings: {:?}",
+            general_configs
+        );
+        log::debug!(
+            "Plugin initialize called with the optional custom config path: {:?}",
+            config_path
+        );
+
+        // Plugin Initialization
         let file_path = match input_source {
             InputSource::File(path) => PathBuf::from(path),
             _ => return Err(InitError::Unsupported("Input Type must be a file".into())),
@@ -43,7 +58,7 @@ impl ByteSource for FileSource {
     }
 
     fn read(&mut self, len: usize) -> Result<Vec<u8>, SourceError> {
-        //TODO: Remove unsafe code if this binary will not used for benchmarking.
+        //TODO AAZ: Remove unsafe code if this binary will not used for benchmarking.
         // Initialize a vector with the given length to use as buffer for reading from the file
         let mut buf = Vec::with_capacity(len);
 
