@@ -112,6 +112,7 @@ export class StorageCollections {
         suitable(): Suitable;
         named(): Collections[];
         all(): Collections[];
+        byTimeStamp(tm: number): Collections[];
     } {
         return {
             related: (): Collections[] => {
@@ -145,6 +146,9 @@ export class StorageCollections {
             },
             all: (): Collections[] => {
                 return Array.from(this.collections.values());
+            },
+            byTimeStamp: (tm: number): Collections[] => {
+                return Array.from(this.collections.values()).filter((c) => c.filterByDateTime(tm));
             },
         };
     }

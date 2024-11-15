@@ -15,6 +15,7 @@ export interface Selection {
 
 export class State {
     protected parent!: IlcInterface & ChangesDetector;
+    protected recentImport: number | undefined = undefined;
 
     public history!: HistorySession;
     public groups: SuitableGroup[] = [];
@@ -104,10 +105,12 @@ export class State {
                 if (files.length !== 1) {
                     return;
                 }
+                this.recentImport = Date.now();
                 this.parent
                     .ilc()
                     .services.system.history.import(files[0].filename)
                     .then(() => {
+                        this.filtered = -4;
                         this.list().update();
                         this.parent.detectChanges();
                     })
@@ -139,6 +142,17 @@ export class State {
     public update(): State {
         const groups: SuitableGroup[] = (() => {
             switch (this.filtered) {
+                case -4:
+                    return [
+                        {
+                            caption: 'Recently Added',
+                            rank: 0,
+                            collections:
+                                this.recentImport !== undefined
+                                    ? this.history.find().byTimeStamp(this.recentImport)
+                                    : this.history.find().all(),
+                        },
+                    ];
                 case -3:
                     return [{ caption: 'All', rank: 0, collections: this.history.find().all() }];
                 case -2:
@@ -185,6 +199,7 @@ export class State {
         const suitable = this.history.find().suitable();
         const groups = suitable.asGroups();
         this.filters = [
+            ...(this.recentImport === undefined ? [] : [{ caption: 'Recently Added', value: -4 }]),
             { caption: 'All', value: -3 },
             { caption: 'All Suitable', value: -2 },
             { caption: 'Named Presets', value: -1 },

@@ -173,6 +173,7 @@ export class HistorySession extends Subscriber {
         suitable(): Suitable;
         all(): Collections[];
         named(): Collections[];
+        byTimeStamp(tm: number): Collections[];
     } {
         return {
             related: (): Collections | undefined => {
@@ -188,6 +189,9 @@ export class HistorySession extends Subscriber {
             },
             named: (): Collections[] => {
                 return this.storage.collections.find().named();
+            },
+            byTimeStamp: (tm: number): Collections[] => {
+                return this.storage.collections.find().byTimeStamp(tm);
             },
         };
     }
