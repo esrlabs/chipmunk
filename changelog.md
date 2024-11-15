@@ -1,3 +1,8 @@
+# 3.14.3 (15.11.2024)
+
+## Corrections
+- show recently added filters after importing
+
 # 3.14.2 (08.11.2024)
 
 ## Corrections
