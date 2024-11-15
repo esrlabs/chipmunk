@@ -78,6 +78,10 @@ async fn run_source_intern<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
+    //TODO AAZ: Remove when done.
+    const FORCE_PLUGIN_ENV: &str = "FORCE_PLUGIN";
+    const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
+
     match parser {
         ParserType::Plugin(settings) => {
             println!("------------------------------------------------------");
@@ -102,17 +106,12 @@ async fn run_source_intern<S: ByteSource>(
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
-        ParserType::Text => {
-            let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
-        }
-        //TODO AAZ: Remove the whole block here a
-        ParserType::Dlt(_) if std::env::var("FORCE_PLUGIN").is_ok() => {
+        //TODO AAZ: Remove the whole block when done.
+        ParserType::Dlt(_) | ParserType::Text if std::env::var(FORCE_PLUGIN_ENV).is_ok() => {
             println!("------------------------------------------------------");
             println!("-------------   WASM parser forced   -----------------");
             println!("------------------------------------------------------");
 
-            const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
             //TODO AAZ: Find a better way to deliver plugin path than environment variables
             let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
                 Ok(path) => path,
@@ -120,7 +119,6 @@ async fn run_source_intern<S: ByteSource>(
             };
             let proto_plugin_path = PathBuf::from(plugin_path);
             let settings = sources::plugins::PluginParserSettings::prototyping(proto_plugin_path);
-            //TODO AAZ: Remove loading time bench after prototyping.
             let now = std::time::Instant::now();
 
             let parser = PluginsParser::create(
@@ -136,6 +134,10 @@ async fn run_source_intern<S: ByteSource>(
             );
 
             let producer = MessageProducer::new(parser, source, rx_sde);
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
+        }
+        ParserType::Text => {
+            let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         ParserType::Dlt(settings) => {

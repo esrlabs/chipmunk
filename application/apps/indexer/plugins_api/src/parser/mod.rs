@@ -72,6 +72,13 @@ pub trait Parser {
     ) -> Result<impl Iterator<Item = ParseReturn>, ParseError>;
 }
 
+impl ParseReturn {
+    /// Creates a new instance from the given arguments.
+    pub fn new(consumed: u64, value: Option<ParseYield>) -> Self {
+        Self { value, consumed }
+    }
+}
+
 #[macro_export]
 /// Registers the provided type as parser plugin to use within Chipmunk
 ///
