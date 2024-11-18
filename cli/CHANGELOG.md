@@ -1,3 +1,9 @@
+# 0.2.12
+
+## Changes:
+
+* Update dependencies
+
 # 0.2.11
 
 ## Features:
