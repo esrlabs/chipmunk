@@ -20,7 +20,7 @@ parsers = { path = "../parsers" }
 processor = { path = "../processor" }
 session = { path = "../session" }
 structopt = "0.3"
-rustyline = "11.0"
+rustyline = "15.0"
 sources = { path = "../sources" }
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
