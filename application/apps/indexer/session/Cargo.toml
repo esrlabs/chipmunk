@@ -5,7 +5,7 @@ authors = ["esrlabs.com"]
 edition = "2021"
 
 [dependencies]
-blake3 = "1.3"
+blake3 = "1.5"
 crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics"] }
@@ -16,20 +16,20 @@ indexer_base = { path = "../indexer_base" }
 lazy_static.workspace = true
 log.workspace = true
 merging = { path = "../merging" }
-mime_guess = "2.0.4"
+mime_guess = "2.0"
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }
-rustc-hash = "1.1"
+rustc-hash = "2"
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
-serialport = "4.2.2"
+serialport = "4.6"
 sources = { path = "../sources" }
 thiserror.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
-walkdir = "2.3"
+walkdir = "2.5"
 
 [dev-dependencies]
 lazy_static.workspace = true

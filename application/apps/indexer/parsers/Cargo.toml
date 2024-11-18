@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-byteorder = "1.4"
+byteorder = "1.5"
 chrono = "0.4"
-chrono-tz = "0.8"
+chrono-tz = "0.10"
 dlt-core.workspace = true
 humantime = "2.1"
 lazy_static.workspace = true
 log.workspace = true
 regex.workspace = true
-memchr = "2.4"
+memchr = "2.7"
 serde = { workspace = true , features = ["derive"] }
 thiserror.workspace = true
 rand.workspace = true
@@ -21,4 +21,4 @@ someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
 someip-tools = { path = "../addons/someip-tools" }
 
 [dev-dependencies]
-stringreader = "0.1.1"
+stringreader = "0.1"
