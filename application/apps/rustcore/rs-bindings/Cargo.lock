@@ -1572,7 +1572,7 @@ dependencies = [
  "serde_json",
  "session",
  "sources",
- "thiserror",
+ "thiserror 1.0.65",
  "tikv-jemallocator",
  "tokio",
  "tokio-util",
@@ -1763,7 +1763,7 @@ dependencies = [
  "someip-messages",
  "someip-payload",
  "someip-tools",
- "thiserror",
+ "thiserror 2.0.3",
 ]
 
 [[package]]
@@ -2432,7 +2432,7 @@ name = "someip-tools"
 version = "0.1.0"
 dependencies = [
  "nom",
- "thiserror",
+ "thiserror 2.0.3",
 ]
 
 [[package]]
