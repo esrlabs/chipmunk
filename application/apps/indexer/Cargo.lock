@@ -1456,12 +1456,12 @@ dependencies = [
  "lazy_static",
  "log",
  "memchr",
- "nom",
  "rand",
  "regex",
  "serde",
  "someip-messages",
  "someip-payload",
+ "someip-tools",
  "stringreader",
  "thiserror",
 ]
@@ -2059,6 +2059,14 @@ dependencies = [
  "thiserror",
  "ux",
  "voca_rs",
+]
+
+[[package]]
+name = "someip-tools"
+version = "0.1.0"
+dependencies = [
+ "nom",
+ "thiserror",
 ]
 
 [[package]]
