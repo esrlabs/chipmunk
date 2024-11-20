@@ -19,6 +19,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libudev-dev
+      - name: protobuf
+        run: sudo apt-get install -y protobuf-compiler
       - name: install node
         uses: actions/setup-node@master
         with:
@@ -67,6 +69,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libudev-dev
+      - name: protobuf
+        run: sudo apt-get install -y protobuf-compiler
       - name: install node
         uses: actions/setup-node@master
         with:
