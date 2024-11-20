@@ -1,5 +1,3 @@
-export interface Cancelled {
-}
 export interface OutputOneof {
     StringValue?: string;
     StringVecValue?: StringVec;
@@ -8,20 +6,22 @@ export interface OutputOneof {
     Int64Value?: number;
     EmptyValue?: Empty;
 }
-export interface Output {
-    output_oneof: OutputOneof | null;
-}
-export interface Empty {
-}
 export interface OutcomeOneof {
     Finished?: Finished;
     Cancelled?: Cancelled;
 }
-export interface StringVec {
-    values: string[];
+export interface Cancelled {
+}
+export interface Empty {
 }
 export interface Finished {
     result: Output | null;
+}
+export interface Output {
+    output_oneof: OutputOneof | null;
+}
+export interface StringVec {
+    values: string[];
 }
 export interface CommandOutcome {
     outcome_oneof: OutcomeOneof | null;
