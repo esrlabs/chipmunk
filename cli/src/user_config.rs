@@ -8,8 +8,8 @@ use console::style;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cli_args::UiMode, jobs_runner::jobs_state::AdditionalFeatures, location::build_cli_home_dir,
-    shell::UserShell,
+    cli_args::UiMode, jobs_runner::additional_features::AdditionalFeatures,
+    location::build_cli_home_dir, shell::UserShell,
 };
 
 static USER_CONFIGURATION: OnceLock<UserConfiguration> = OnceLock::new();
