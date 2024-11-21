@@ -37,7 +37,8 @@ tokio-util = "0.7"
 uuid = { version = "1.3", features = ["serde", "v4"] }
 
 [target.'cfg(unix)'.dependencies]
-tikv-jemallocator = {version = "0.6" , optional = true }
+# Jemalloc combined with Node.js exceeds the default TLS memory limit on Linux.
+tikv-jemallocator = { version = "0.6" , optional = true, features = ["disable_initial_exec_tls"] }
 
 [target.'cfg(windows)'.dependencies]
 mimalloc = {version = "0.1" , optional = true }
