@@ -4,7 +4,7 @@ use anyhow::{bail, Context};
 
 use crate::{
     fstools,
-    jobs_runner::{jobs_state::AdditionalFeatures, JobDefinition},
+    jobs_runner::{additional_features::AdditionalFeatures, JobDefinition},
     spawner::SpawnResult,
     tracker::get_tracker,
     JobsState,

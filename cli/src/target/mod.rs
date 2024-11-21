@@ -4,11 +4,12 @@
 use anyhow::bail;
 use clap::ValueEnum;
 use futures::future::join_all;
+use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, fmt::Display, iter, path::PathBuf, str::FromStr};
 use tokio::fs;
 
 use crate::{
-    checksum_records::ChecksumRecords,
+    build_state_records::BuildStateRecords,
     dev_tools::DevTool,
     fstools,
     job_type::JobType,
@@ -31,7 +32,9 @@ mod updater;
 mod wasm;
 mod wrapper;
 
-#[derive(Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug, ValueEnum, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 // * NOTE: The order of targets must match the running-order between them because it's used for
 // solving their dependencies-graph using BTreeMap
 //
@@ -446,8 +449,8 @@ impl Target {
 
         // Clean doesn't differentiate between development and production, and both of them will be
         // cleaned from the files when the data are persisted.
-        let checksum = ChecksumRecords::get(false)?;
-        checksum.remove_hash_if_exist(*self)?;
+        let checksum = BuildStateRecords::get(false)?;
+        checksum.remove_state_if_exist(*self)?;
 
         let mut paths_to_remove = vec![self.cwd().join("dist")];
         let path = match self.kind() {

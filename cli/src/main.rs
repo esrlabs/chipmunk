@@ -2,7 +2,7 @@
 #![doc = include_str!("../README.md")]
 
 mod benchmark;
-mod checksum_records;
+mod build_state_records;
 mod chipmunk_runner;
 mod cli_args;
 mod dev_environment;
@@ -22,7 +22,7 @@ mod user_config;
 mod version;
 
 use anyhow::{bail, Context, Error};
-use checksum_records::ChecksumRecords;
+use build_state_records::BuildStateRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command, UiMode, UserConfigCommand};
 use console::style;
@@ -189,9 +189,8 @@ async fn main_process(command: Command) -> Result<(), Error> {
             (JobType::Run { production }, results)
         }
         Command::ResetChecksum => {
-            ChecksumRecords::remove_records_file(false)?;
-            ChecksumRecords::remove_records_file(true)?;
-            println!("Checksum-Records for development and production has been reset",);
+            BuildStateRecords::remove_records_file()?;
+            println!("Checksum-Records has been reset",);
 
             return Ok(());
         }
@@ -216,7 +215,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             let tracker = get_tracker();
             tracker.shutdown(false).await?;
 
-            ChecksumRecords::update_and_save(JobType::Build {
+            BuildStateRecords::update_and_save(JobType::Build {
                 production: !development,
             })?;
 
@@ -277,7 +276,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
         bail!("Some tasks have failed")
     };
 
-    ChecksumRecords::update_and_save(job_type)?;
+    BuildStateRecords::update_and_save(job_type)?;
 
     if matches!(job_type, JobType::Run { .. }) {
         println!("Starting chipmunk...");

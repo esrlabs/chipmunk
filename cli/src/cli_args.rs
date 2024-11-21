@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
-use crate::{benchmark::BenchTarget, jobs_runner::jobs_state::AdditionalFeatures, target::Target};
+use crate::{
+    benchmark::BenchTarget, jobs_runner::additional_features::AdditionalFeatures, target::Target,
+};
 
 const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
 const NO_FAIL_FAST_HELP_TEXT: &str = "Don't stops execution immediately if any job fails.";
