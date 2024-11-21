@@ -180,10 +180,10 @@ pub enum Command {
     #[clap(visible_alias = "bench")]
     #[command(subcommand)]
     Benchmark(BenchTarget),
-    /// Resets the checksums records what is used to check if there were any code changes for
+    /// Resets the build states records what is used to check if there were any changes for
     /// each target.
     #[clap(visible_alias = "reset")]
-    ResetChecksum,
+    ResetRecords,
     /// Generate shell completion for the commands of this tool in the given shell,
     /// printing them to stdout.
     #[clap(visible_alias = "compl")]
