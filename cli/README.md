@@ -47,7 +47,7 @@ Commands:
   run               Build and Run the application
   release           Builds Chipmunk and generates a release (defaults to Release mode)
   benchmark         Runs benchmarks for the given target, its input source and configuration [aliases: bench]
-  reset-checksum    Resets the checksums records what is used to check if there were any code changes for each target [aliases: reset]
+  reset-records     Resets the build states records what is used to check if there were any changes for each target [aliases: reset]
   shell-completion  Generate shell completion for the commands of this tool in the given shell, printing them to stdout [aliases: compl]
   help              Print this message or the help of the given subcommand(s)
 

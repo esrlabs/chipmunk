@@ -188,7 +188,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
             (JobType::Run { production }, results)
         }
-        Command::ResetChecksum => {
+        Command::ResetRecords => {
             BuildStateRecords::remove_records_file()?;
             println!("Checksum-Records has been reset",);
 
