@@ -1,0 +1,292 @@
+// tslint:disable
+
+// We need to provide path to TypeScript types definitions
+/// <reference path="../node_modules/@types/jasmine/index.d.ts" />
+/// <reference path="../node_modules/@types/node/index.d.ts" />
+import { initLogger } from './logger';
+initLogger();
+
+import { finish } from './common';
+import { readConfigurationFile } from './config';
+
+import * as proto from 'protocol';
+import * as $ from 'platform/types/observe';
+import * as convertor from '../src/util/convertor';
+import * as runners from './runners';
+import * as ty from '../src/protocol';
+
+const config = readConfigurationFile().get().tests.protocol;
+
+function deepEqualObj(a: any, b: any, depth = Infinity): boolean {
+    if (depth < 1 || (typeof a !== 'object' && typeof b !== 'object')) {
+        return a === b || (a == null && b == null);
+    }
+    if (a == null || b == null) {
+        return a == null && b == null;
+    }
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        return a.every((item, index) => deepEqualObj(item, b[index], depth - 1));
+    }
+    if (typeof a === 'object' && typeof b === 'object') {
+        const keys1 = Object.keys(a);
+        const keys2 = Object.keys(b);
+
+        if (keys1.length !== keys2.length) return false;
+        if (!keys1.every((key) => keys2.includes(key))) return false;
+
+        return keys1.every((key) => deepEqualObj(a[key], b[key], depth - 1));
+    }
+    return a === b;
+}
+
+describe('Protocol', function () {
+    it(config.regular.list[1], function () {
+        return runners.noSession(config.regular, 1, async (logger, done) => {
+            function check(origin: ty.ObserveOptions) {
+                expect(
+                    deepEqualObj(
+                        proto.ObserveOptions.decode(proto.ObserveOptions.encode(origin)),
+                        origin,
+                    ),
+                ).toBe(true);
+            }
+            check(
+                convertor.toObserveOptions({
+                    origin: { File: ['somefile', $.Types.File.FileType.Text, 'path_to_file'] },
+                    parser: { Text: null },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        Stream: ['stream', { TCP: { bind_addr: '0.0.0.0' } }],
+                    },
+                    parser: { Text: null },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        Stream: [
+                            'stream',
+                            {
+                                Process: {
+                                    command: 'command',
+                                    cwd: 'cwd',
+                                    envs: { one: 'one' },
+                                },
+                            },
+                        ],
+                    },
+                    parser: { Text: null },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        Concat: [
+                            ['somefile1', $.Types.File.FileType.Text, 'path_to_file'],
+                            ['somefile2', $.Types.File.FileType.Text, 'path_to_file'],
+                            ['somefile3', $.Types.File.FileType.Text, 'path_to_file'],
+                        ],
+                    },
+                    parser: { Text: null },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: ['path'],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: [],
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: undefined,
+                            filter_config: undefined,
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.Binary, 'path_to_file'],
+                    },
+                    parser: {
+                        Dlt: {
+                            fibex_file_paths: ['path'],
+                            filter_config: {
+                                min_log_level: 1,
+                                app_id_count: 1,
+                                context_id_count: 1,
+                                app_ids: ['test'],
+                                ecu_ids: ['test'],
+                                context_ids: ['test'],
+                            },
+                            with_storage_header: true,
+                            tz: 'zz',
+                        },
+                    },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'],
+                    },
+                    parser: {
+                        SomeIp: {
+                            fibex_file_paths: ['path'],
+                        },
+                    },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'],
+                    },
+                    parser: {
+                        SomeIp: {
+                            fibex_file_paths: [],
+                        },
+                    },
+                }),
+            );
+            check(
+                convertor.toObserveOptions({
+                    origin: {
+                        File: ['somefile', $.Types.File.FileType.PcapNG, 'path_to_file'],
+                    },
+                    parser: {
+                        SomeIp: {
+                            fibex_file_paths: undefined,
+                        },
+                    },
+                }),
+            );
+            finish(undefined, done);
+        });
+    });
+    it(config.regular.list[2], function () {
+        return runners.withSession(config.regular, 2, async (logger, done, comps) => {
+            const MESSAGES_COUNT = 1000;
+            {
+                const meausere: { json: number; proto: number } = { json: 0, proto: 0 };
+                meausere.json = Date.now();
+                for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                    const msg = comps.session.getNativeSession().testGrabElsAsJson(false);
+                    expect(msg instanceof Array).toBe(true);
+                }
+                meausere.json = Date.now() - meausere.json;
+                meausere.proto = Date.now();
+                for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                    const msg = comps.session.getNativeSession().testGrabElsAsProto(false);
+                    expect(msg instanceof Array).toBe(true);
+                }
+                meausere.proto = Date.now() - meausere.proto;
+                console.log(
+                    `Receiving messages (no decoding) count: ${MESSAGES_COUNT}\nJSON: ${
+                        meausere.json
+                    }ms (per msg ${(meausere.json / MESSAGES_COUNT).toFixed(2)});\nPROTO: ${
+                        meausere.proto
+                    }ms (per msg ${(meausere.proto / MESSAGES_COUNT).toFixed(2)})`,
+                );
+            }
+            {
+                const meausere: { json: number; proto: number } = { json: 0, proto: 0 };
+                meausere.json = Date.now();
+                for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                    const msg = comps.session.getNativeSession().testGrabElsAsJson();
+                    expect(msg instanceof Array).toBe(true);
+                }
+                meausere.json = Date.now() - meausere.json;
+                meausere.proto = Date.now();
+                for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                    const msg = comps.session.getNativeSession().testGrabElsAsProto();
+                    expect(msg instanceof Array).toBe(true);
+                }
+                meausere.proto = Date.now() - meausere.proto;
+                console.log(
+                    `Grabbing messages (with decoding) count: ${MESSAGES_COUNT}\nJSON: ${
+                        meausere.json
+                    }ms (per msg ${(meausere.json / MESSAGES_COUNT).toFixed(2)});\nPROTO: ${
+                        meausere.proto
+                    }ms (per msg ${(meausere.proto / MESSAGES_COUNT).toFixed(2)})`,
+                );
+            }
+            finish(comps.session, done);
+        });
+    });
+    it(config.regular.list[3], function () {
+        return runners.withSession(config.regular, 3, async (logger, done, comps) => {
+            const evs = comps.session.getNativeSession().testCallbackEventsAsProto();
+            expect(evs instanceof Array).toBe(true);
+            if (!(evs instanceof Array)) {
+                return;
+            }
+            for (let ev of evs) {
+                expect(!(ev instanceof Error));
+            }
+            finish(comps.session, done);
+        });
+    });
+    it(config.regular.list[4], function () {
+        return runners.withSession(config.regular, 4, async (logger, done, comps) => {
+            const evs = comps.session.getNativeSession().testLtEventsAsProto();
+            expect(evs instanceof Array).toBe(true);
+            if (!(evs instanceof Array)) {
+                return;
+            }
+            for (let ev of evs) {
+                expect(!(ev instanceof Error));
+            }
+            finish(comps.session, done);
+        });
+    });
+    it(config.regular.list[5], function () {
+        return runners.withSession(config.regular, 5, async (logger, done, comps) => {
+            const evs = comps.session.getNativeSession().testObserveAsProto();
+            expect(evs instanceof Array).toBe(true);
+            if (!(evs instanceof Array)) {
+                return;
+            }
+            for (let ev of evs) {
+                expect(!(ev instanceof Error));
+            }
+            finish(comps.session, done);
+        });
+    });
+});

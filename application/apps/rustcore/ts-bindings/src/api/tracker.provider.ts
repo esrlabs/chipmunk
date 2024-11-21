@@ -1,6 +1,8 @@
 import { Subject } from 'platform/env/subscription';
 import { Computation } from '../provider/provider';
 
+import * as convertor from '../util/convertor';
+
 export interface Job {
     alias: string;
     uuid: string;
@@ -40,10 +42,12 @@ interface ISessionEventsInterfaces {
     Ticks: {
         self: 'object';
         uuid: 'string';
-        progress: [
-            { self: 'object'; total: 'number'; count: 'number' },
-            { self: 'object'; type: 'string' },
-        ];
+        progress: {
+            self: 'object';
+            total: ['number', 'undefined'];
+            count: 'number';
+            state: ['string', 'undefined'];
+        };
     };
 }
 
@@ -53,10 +57,12 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     Ticks: {
         self: 'object',
         uuid: 'string',
-        progress: [
-            { self: 'object', total: 'number', count: 'number' },
-            { self: 'object', type: 'string' },
-        ],
+        progress: {
+            self: 'object',
+            total: ['number', 'undefined'],
+            count: 'number',
+            state: ['string', 'undefined'],
+        },
     },
 };
 
@@ -74,7 +80,7 @@ export class EventProvider extends Computation<
     private readonly _convertors = {};
 
     constructor(uuid: string) {
-        super(uuid);
+        super(uuid, convertor.decodeLifecycleTransition);
     }
 
     public getName(): string {

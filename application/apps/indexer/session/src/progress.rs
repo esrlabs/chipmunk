@@ -2,6 +2,7 @@ use crate::{
     events::{ComputationError, LifecycleTransition},
     TRACKER_CHANNEL,
 };
+use enum_ids::enum_ids;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -21,6 +22,7 @@ pub struct Notification {
     pub line: Option<usize>,
 }
 
+#[enum_ids(derive = "Debug")]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Progress {

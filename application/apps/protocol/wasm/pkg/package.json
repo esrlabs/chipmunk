@@ -1,0 +1,11 @@
+{
+  "name": "protocol",
+  "version": "0.1.0",
+  "files": [
+    "protocol_bg.wasm",
+    "protocol.js",
+    "protocol.d.ts"
+  ],
+  "main": "protocol.js",
+  "types": "protocol.d.ts"
+}
