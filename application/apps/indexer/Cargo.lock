@@ -736,9 +736,9 @@ dependencies = [
 
 [[package]]
 name = "etherparse"
-version = "0.13.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "827292ea592108849932ad8e30218f8b1f21c0dfd0696698a18b5d0aed62d990"
+checksum = "b8d8a704b617484e9d867a0423cd45f7577f008c4068e2e33378f8d3860a6d73"
 dependencies = [
  "arrayvec",
 ]
@@ -1468,9 +1468,9 @@ dependencies = [
 
 [[package]]
 name = "pcap-parser"
-version = "0.14.1"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b79dfb40aef938ed2082c9ae9443f4eba21b79c1a9d6cfa071f5c2bd8d829491"
+checksum = "2f8d57cc6bdf76d7abd6d3cc1113278047dab29c2ff6d97190e8d1c29d4efdac"
 dependencies = [
  "circular",
  "nom",
