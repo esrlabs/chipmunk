@@ -3,6 +3,7 @@ use crate::{
     TransportProtocol,
 };
 use buf_redux::Buffer;
+use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
 use std::io::Read;
@@ -70,8 +71,8 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     debug!("reloading from pcap file, EOF");
                     return Ok(None);
                 }
-                Err(PcapError::Incomplete) => {
-                    trace!("reloading from pcap file, Incomplete");
+                Err(PcapError::Incomplete(size)) => {
+                    trace!("reloading from pcap file, Incomplete ({})", size);
                     self.pcapng_reader
                         .refill()
                         .expect("refill pcapng reader failed");
@@ -84,9 +85,21 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                 }
             }
         }
-        let res = match etherparse::SlicedPacket::from_ethernet(raw_data) {
+        let res = match SlicedPacket::from_ethernet(raw_data) {
             Ok(value) => {
-                skipped += consumed - value.payload.len();
+                let payload = match &value.transport {
+                    Some(TransportSlice::Icmpv4(slice)) => slice.payload(),
+                    Some(TransportSlice::Icmpv6(slice)) => slice.payload(),
+                    Some(TransportSlice::Udp(slice)) => slice.payload(),
+                    Some(TransportSlice::Tcp(slice)) => slice.payload(),
+                    None => {
+                        return Err(SourceError::Unrecoverable(format!(
+                            "ethernet frame with unknown payload: {:02X?}",
+                            raw_data
+                        )));
+                    }
+                };
+                skipped += consumed - payload.len();
                 match (value.transport, filter) {
                     (
                         Some(actual),
@@ -95,7 +108,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                         }),
                     ) => {
                         let actual_tp: TransportProtocol = actual.into();
-                        let received_bytes = self.buffer.copy_from_slice(value.payload);
+                        let received_bytes = self.buffer.copy_from_slice(payload);
                         let available_bytes = self.buffer.len();
                         if actual_tp == *wanted {
                             Ok(Some(ReloadInfo::new(
@@ -108,13 +121,13 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                             Ok(Some(ReloadInfo::new(
                                 0,
                                 0,
-                                value.payload.len() + skipped,
+                                payload.len() + skipped,
                                 self.last_know_timestamp,
                             )))
                         }
                     }
                     _ => {
-                        let copied = self.buffer.copy_from_slice(value.payload);
+                        let copied = self.buffer.copy_from_slice(payload);
                         let available_bytes = self.buffer.len();
                         Ok(Some(ReloadInfo::new(
                             copied,

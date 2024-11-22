@@ -8,12 +8,12 @@ edition = "2021"
 async-stream = "0.3"
 buf_redux.workspace = true
 bytes = "1.3"
-etherparse = "0.13"
+etherparse = "0.16"
 futures.workspace = true
 indexer_base = { path = "../indexer_base" }
 log.workspace = true
 parsers = { path = "../parsers" }
-pcap-parser = "0.14"
+pcap-parser = "0.16"
 thiserror.workspace = true
 tokio.workspace = true
 tokio-serial = "5.4"
