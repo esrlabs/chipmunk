@@ -77,6 +77,13 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
           security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | tr -d '"')
           security list-keychains
+          applewwdrca="${HOME}/AppleWWDRCA.cer"
+          curl https://developer.apple.com/certificationauthority/AppleWWDRCA.cer > "$applewwdrca"
+          security import \
+            "$applewwdrca" \
+            -k "$KEYCHAIN_NAME" \
+            -A \
+            -T /usr/bin/codesign
           certfile="${HOME}/buildcert.p12"
           echo "$CSC_LINK" | base64 -d > "$certfile"
           security import \
