@@ -74,6 +74,9 @@ jobs:
         run: |
           security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
           security default-keychain -s "$KEYCHAIN_NAME"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
+          security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | tr -d '"')
+          security list-keychains
           certfile="${HOME}/buildcert.p12"
           echo "$CSC_LINK" | base64 -d > "$certfile"
           security import \
@@ -87,7 +90,7 @@ jobs:
             -s \
             -k "$KEYCHAIN_PWD" \
             "$KEYCHAIN_NAME"
-          security set-keychain-settings -lut 1200
+          security set-keychain-settings -lut 2400
       - name: build release macOS
         if: runner.os == 'macOS'
         run: |
