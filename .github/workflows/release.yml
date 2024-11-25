@@ -67,7 +67,7 @@ jobs:
       - name: setup keychain for signing and notarising
         if: runner.os == 'macOS'
         env:
-          KEYCHAIN_NAME: "build.keychain"
+          KEYCHAIN_NAME: "build.keychain-db"
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
@@ -96,7 +96,7 @@ jobs:
         run: |
           cargo chipmunk release -c cli/config/codesign_macos.toml
         env:
-          KEYCHAIN_NAME: "build.keychain"
+          KEYCHAIN_NAME: "build.keychain-db"
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLEID: ${{ secrets.APPLEID }}
