@@ -29,7 +29,7 @@ pub mod __internal_bindings {
 // External exports for users
 pub use __internal_bindings::chipmunk::plugin::{
     logging::Level,
-    parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParserConfig},
+    parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParsedMessage, ParserConfig},
     shared_types::InitError,
 };
 

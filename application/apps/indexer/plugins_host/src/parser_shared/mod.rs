@@ -12,6 +12,9 @@ pub mod plugin_parse_message;
 
 const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
 
+/// Marker for a column separator in the output string.
+pub const COLUMN_SEP: &str = "\u{0004}";
+
 /// The maximum number of consecutive recoverable errors allowed from a plugin.
 /// If a plugin exceeds this number, it may be considered harmful to the system.
 const MAX_ALLOWED_CONSECUTIVE_ERRORS: u8 = 20;

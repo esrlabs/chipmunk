@@ -1,4 +1,4 @@
-use crate::{PluginGuestInitError, PluginParseMessage};
+use crate::{parser_shared::COLUMN_SEP, PluginGuestInitError, PluginParseMessage};
 use sources::plugins::PluginParserGeneralSetttings;
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
@@ -76,5 +76,16 @@ impl From<ParseError> for p::Error {
             ParseError::Incomplete => p::Error::Incomplete,
             ParseError::Eof => p::Error::Eof,
         }
+    }
+}
+
+impl From<ParsedMessage> for PluginParseMessage {
+    fn from(msg: ParsedMessage) -> Self {
+        let content = match msg {
+            ParsedMessage::Line(msg) => msg,
+            ParsedMessage::Columns(columns) => columns.join(COLUMN_SEP),
+        };
+
+        Self { content }
     }
 }

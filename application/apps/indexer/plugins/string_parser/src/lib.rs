@@ -4,7 +4,7 @@ use std::{iter, path::PathBuf};
 use memchr::memchr;
 use plugins_api::{
     log,
-    parser::{InitError, ParseError, ParseReturn, ParseYield, Parser, ParserConfig},
+    parser::{InitError, ParseError, ParseReturn, ParseYield, ParsedMessage, Parser, ParserConfig},
     parser_export,
 };
 
@@ -24,7 +24,8 @@ impl StringTokenizer {
 
         let line = str::from_utf8(&data[..end_idx])
             .map_err(|err| ParseError::Parse(format!("Convertion to UTF-8 failed. Error {err}")))?;
-        let yld = ParseYield::Message(line.into());
+        let msg = ParsedMessage::Line(String::from(line));
+        let yld = ParseYield::Message(msg);
 
         Ok(ParseReturn::new((end_idx + 1) as u64, Some(yld)))
     }
