@@ -16,11 +16,19 @@ interface parse-types {
     consumed: u64,
   }
 
+  /// Represents a parsed message with either a single line or multiple columns.
+  variant parsed-message {
+    /// Single string representing the message.
+    line(string),
+    /// List of strings representing the message split into columns.
+    columns(list<string>),
+  }
+
   /// Represents a parsed item
   variant parse-yield {
-    message(string),
+    message(parsed-message),
     attachment(attachment),
-    message-and-attachment(tuple<string, attachment>),
+    message-and-attachment(tuple<parsed-message, attachment>),
   }
 
   /// Attachment included within parsed item

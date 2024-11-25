@@ -5,7 +5,7 @@ use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct PluginParseMessage {
-    content: String,
+    pub content: String,
 }
 
 impl PluginParseMessage {
