@@ -5,7 +5,7 @@
 
 # Provided Options to be given as arguments for the standard code signing command
 # for files and directories to be
-sign_cmd_options = "--force --timestamp --options runtime --verbose --deep --strict --entitlements ./resources/mac/entitlements.mac.plist"
+sign_cmd_options = "--force --timestamp --options runtime --verbose=4 --deep --strict --entitlements ./resources/mac/entitlements.mac.plist"
 
 # Represents the needed environment variables while code signing
 [env_vars]
