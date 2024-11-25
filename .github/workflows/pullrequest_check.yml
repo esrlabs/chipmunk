@@ -30,11 +30,12 @@ jobs:
           override: true
       - name: Cache Rust dependencies and CLI tool
         id: cache-cargo
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.toml', 'cli/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
           cache-targets: true
           cache-all-crates: "true"
+          workspaces: cli
       - name: Install nj-cli
         run: cargo install nj-cli
       - name: enable corepack for yarnpkg upgrade
@@ -78,11 +79,12 @@ jobs:
           override: true
       - name: Cache Rust dependencies and CLI tool
         id: cache-cargo
-        uses: Swatinem/rust-cache@v2.7.3
+        uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ runner.os }}-cargo-${{ hashFiles('cli/Cargo.toml', 'cli/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
           cache-targets: true
           cache-all-crates: "true"
+          workspaces: cli
       - name: Install nj-cli
         run: cargo install nj-cli
       - name: enable corepack for yarnpkg upgrade

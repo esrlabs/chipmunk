@@ -15,7 +15,7 @@ on:
 jobs:
   invoke_jasmine_tests:
     name: Invoke Jasmine performance tests
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} || ${{ github.event_name }}" == 'workflow_dispatch'
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch' }}
     runs-on: self-hosted-runner-ubuntu
     steps:
       - name: Cleanup build folder
