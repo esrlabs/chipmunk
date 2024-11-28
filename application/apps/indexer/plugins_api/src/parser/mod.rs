@@ -1,8 +1,6 @@
 //! Provides types, methods and macros to write plugins that provide parser functionality.
 //!
 
-use std::path::PathBuf;
-
 mod logging;
 
 // This is needed to be public because it's used in the export macro
@@ -30,26 +28,40 @@ pub mod __internal_bindings {
 pub use __internal_bindings::chipmunk::plugin::{
     logging::Level,
     parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParsedMessage, ParserConfig},
-    shared_types::InitError,
+    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError},
 };
 
 /// Trait representing a parser for Chipmunk plugins. Types that need to be
 /// exported as parser plugins for use within Chipmunk must implement this trait.
 pub trait Parser {
+    /// Provides the schemas for the configurations required by the plugin, which
+    /// must be specified by the users.
+    ///
+    /// These schemas define the expected structure, types, and constraints
+    /// for plugin-specific configurations. The values of these configurations
+    /// will be passed to the [`Parser::create()`] method for initializing the parser.
+    ///
+    /// # Returns
+    ///
+    /// A `Vec` of [`ConfigSchemaItem`] objects, where each item represents
+    /// a schema for a specific plugin configuration.
+    fn get_config_schemas() -> Vec<ConfigSchemaItem>;
+
     /// Creates an instance of the parser. This method initializes the parser,
     /// configuring it with the provided settings and preparing it to perform parsing.
     ///
     /// # Parameters
     ///
     /// * `general_configs` - General configurations that apply to all parser plugins.
-    /// * `config_path` - Optional path to a custom configuration file specific to this plugin.
+    /// * `plugins_configs` - Plugin-specific configurations, with their schemas provided
+    ///   in [`Parser::get_config_schemas()`] method.
     ///
     /// # Returns
     ///
     /// A `Result` containing an instance of the implementing type on success, or an `InitError` on failure.
     fn create(
         general_configs: ParserConfig,
-        config_path: Option<PathBuf>,
+        plugins_configs: Vec<ConfigItem>,
     ) -> Result<Self, InitError>
     where
         Self: Sized;
@@ -95,9 +107,13 @@ impl ParseReturn {
 ///
 /// impl Parser for CustomParser {
 ///   // ... //
+///  #    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+///  #       vec![]
+///  #    }
+///  #
 ///  #    fn create(
 ///  #        _general_configs: ParserConfig,
-///  #        _config_path: Option<PathBuf>,
+///  #        _plugins_configs: Vec<ConfigItem>,
 ///  #    ) -> Result<Self, InitError>
 ///  #    where
 ///  #        Self: Sized,
@@ -136,10 +152,16 @@ macro_rules! parser_export {
         impl $crate::parser::__internal_bindings::exports::chipmunk::plugin::parser::Guest
             for InternalPluginParserGuest
         {
+            /// Provides the schemas for the configurations needed by the plugin to
+            /// be specified by the users.
+            fn get_config_schemas() -> ::std::vec::Vec<$crate::parser::ConfigSchemaItem> {
+                <$par as $crate::parser::Parser>::get_config_schemas()
+            }
+
             /// Initialize the parser with the given configurations
             fn init(
                 general_configs: $crate::parser::ParserConfig,
-                plugin_configs: ::std::option::Option<::std::string::String>,
+                plugin_configs: ::std::vec::Vec<$crate::parser::ConfigItem>,
             ) -> ::std::result::Result<(), $crate::parser::InitError> {
                 // Logger initialization
                 let level = $crate::log::Level::from(general_configs.log_level);
@@ -148,10 +170,8 @@ macro_rules! parser_export {
                     .expect("Logger can be set on initialization only");
 
                 // Initializing the given parser
-                let parser = <$par as $crate::parser::Parser>::create(
-                    general_configs,
-                    plugin_configs.map(|path| path.into()),
-                )?;
+                let parser =
+                    <$par as $crate::parser::Parser>::create(general_configs, plugin_configs)?;
                 // SAFETY: Initializing the parser happens once only on the host
                 unsafe {
                     PARSER = ::std::option::Option::Some(parser);
@@ -190,9 +210,13 @@ mod prototyping {
     struct Dummy;
 
     impl Parser for Dummy {
+        fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+            todo!()
+        }
+
         fn create(
             _general_configs: ParserConfig,
-            _config_path: Option<PathBuf>,
+            _plugins_configs: Vec<ConfigItem>,
         ) -> Result<Self, InitError>
         where
             Self: Sized,

@@ -52,11 +52,19 @@ interface parse-types {
 }
 
 interface parser {
-  use shared-types.{init-error};
+  use shared-types.{init-error, config-item, config-schema-item};
   use parse-types.{parser-config, parse-return, parse-error};
+
+  /// Provides the schemas for the configurations required by the plugin, which
+  /// must be specified by the users.
+  ///
+  /// These schemas define the expected structure, types, and constraints
+  /// for plugin-specific configurations. The values of these configurations
+  /// will be passed to the initializing method of the parser.
+  get-config-schemas: func() -> list<config-schema-item>;
   
   /// Initialize the parser with the given configurations
-  init: func(general-configs: parser-config, plugin-configs: option<string>) -> result<_, init-error>;
+  init: func(general-configs: parser-config, plugin-configs: list<config-item>) -> result<_, init-error>;
 
   /// Parse the given bytes returning a list of parsed items, 
   /// or parse error if an error occurred and no item has been parsed.
