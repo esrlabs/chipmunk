@@ -1,5 +1,5 @@
 use super::CommandOutcome;
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{error::ComputationError, unbound::signal::Signal};
 use dlt_core::statistics::{collect_dlt_stats, StatisticInfo};
 use std::path::Path;
 
