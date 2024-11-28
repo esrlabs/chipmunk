@@ -1,5 +1,5 @@
 use super::{CommandOutcome, CommandOutcome::Finished};
-use crate::events::{ComputationError, ComputationError::OperationNotSupported};
+use crate::error::{ComputationError, ComputationError::OperationNotSupported};
 use file_tools::is_binary;
 
 pub fn is_file_binary(file_path: String) -> Result<CommandOutcome<bool>, ComputationError> {

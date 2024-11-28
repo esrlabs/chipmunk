@@ -1,5 +1,5 @@
 use super::CommandOutcome;
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{error::ComputationError, unbound::signal::Signal};
 use envvars;
 use serde_json;
 

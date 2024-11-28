@@ -1,4 +1,4 @@
-use crate::events::ComputationError;
+use crate::error::ComputationError;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};

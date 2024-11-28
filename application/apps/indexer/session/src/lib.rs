@@ -1,4 +1,4 @@
-pub mod events;
+pub mod error;
 mod handlers;
 pub mod operations;
 pub mod paths;

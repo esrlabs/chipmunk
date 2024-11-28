@@ -1,5 +1,5 @@
 use super::CommandOutcome;
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{error::ComputationError, unbound::signal::Signal};
 
 pub fn get_someip_statistic(
     _files: Vec<String>,
