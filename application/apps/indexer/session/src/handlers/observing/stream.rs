@@ -1,8 +1,6 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     handlers::observing,
     operations::{OperationAPI, OperationResult},
-    progress::Severity,
     state::SessionStateAPI,
 };
 use sources::{
@@ -26,9 +24,9 @@ pub async fn observe_stream<'a>(
         Transport::UDP(settings) => {
             let udp_source = UdpSource::new(&settings.bind_addr, settings.multicast.clone())
                 .await
-                .map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Interrupted,
+                .map_err(|e| stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Interrupted,
                     message: Some(format!("{e}")),
                 })?;
             observing::run_source(
@@ -45,9 +43,9 @@ pub async fn observe_stream<'a>(
         Transport::TCP(settings) => {
             let tcp_source = TcpSource::new(settings.bind_addr.clone())
                 .await
-                .map_err(|e| NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Interrupted,
+                .map_err(|e| stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Interrupted,
                     message: Some(format!("{e}")),
                 })?;
             observing::run_source(
@@ -62,9 +60,9 @@ pub async fn observe_stream<'a>(
             .await
         }
         Transport::Serial(settings) => {
-            let serial_source = SerialSource::new(settings).map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Interrupted,
+            let serial_source = SerialSource::new(settings).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Interrupted,
                 message: Some(format!("{e}")),
             })?;
             observing::run_source(
@@ -85,9 +83,9 @@ pub async fn observe_stream<'a>(
                 settings.envs.clone(),
             )
             .await
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Interrupted,
+            .map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Interrupted,
                 message: Some(format!("{e}")),
             })?;
             observing::run_source(

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use session::{events::CallbackEvent, session::Session};
+use session::session::Session;
 use sources::factory::{FileFormat, ObserveOptions, ParserType};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -115,9 +115,9 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
 
     while let Some(feedback) = receiver.recv().await {
         match feedback {
-            CallbackEvent::FileRead | CallbackEvent::SessionDestroyed => break,
-            CallbackEvent::SessionError(err) => panic!("Received session error: {err:#?}"),
-            CallbackEvent::OperationError { error, .. } => {
+            stypes::CallbackEvent::FileRead | stypes::CallbackEvent::SessionDestroyed => break,
+            stypes::CallbackEvent::SessionError(err) => panic!("Received session error: {err:#?}"),
+            stypes::CallbackEvent::OperationError { error, .. } => {
                 panic!("Received operation error: {error:#?}")
             }
             _ => {}
