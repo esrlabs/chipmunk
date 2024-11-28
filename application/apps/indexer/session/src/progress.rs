@@ -152,7 +152,7 @@ pub async fn run_tracking(
                     match lifecycle_event {
                         Some(stypes::LifecycleTransition::Started { uuid, alias }) => {
                             info!("job {alias} ({uuid}) started");
-                            ongoing_operations.insert(uuid, stypes::Ticks::new());
+                            ongoing_operations.insert(uuid, stypes::Ticks::default());
                             log_if_err(lifecycle_events_channel.0.send(stypes::LifecycleTransition::started(&uuid, &alias)).await);
                         }
                         Some(stypes::LifecycleTransition::Stopped(uuid)) => {

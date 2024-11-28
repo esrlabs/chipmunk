@@ -7,12 +7,4 @@ impl Ticks {
             None => false,
         }
     }
-
-    pub fn new() -> Self {
-        Ticks {
-            count: 0,
-            state: None,
-            total: None,
-        }
-    }
 }
