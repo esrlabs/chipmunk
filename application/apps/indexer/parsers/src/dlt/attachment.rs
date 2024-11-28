@@ -322,6 +322,42 @@ impl FileExtractor {
     }
 }
 
+pub struct TempDir {
+    pub dir: PathBuf,
+}
+
+impl TempDir {
+    pub fn new() -> Self {
+        use rand::Rng;
+        use std::{env, fs};
+        let mut rand = rand::thread_rng();
+        let dir = env::current_dir()
+            .unwrap()
+            .join(format!("temp_{}", rand.gen::<u64>()));
+        fs::create_dir(dir.clone()).unwrap();
+        TempDir { dir }
+    }
+
+    pub fn assert_file(&self, name: &str, content: &str) {
+        let path = self.dir.join(name);
+        let string =
+            std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", &path));
+        assert_eq!(string, content);
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(self.dir.clone()).unwrap();
+    }
+}
+
+impl Default for TempDir {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(clippy::get_first)]
 #[cfg(test)]
 pub mod tests {
@@ -749,41 +785,5 @@ pub mod tests {
         assert_eq!(files[1].1, "00000001_test2.txt");
         assert_eq!(files[2].0.name, "test3.txt");
         assert_eq!(files[2].1, "00000002_test3.txt");
-    }
-}
-
-pub struct TempDir {
-    pub dir: PathBuf,
-}
-
-impl TempDir {
-    pub fn new() -> Self {
-        use rand::Rng;
-        use std::{env, fs};
-        let mut rand = rand::thread_rng();
-        let dir = env::current_dir()
-            .unwrap()
-            .join(format!("temp_{}", rand.gen::<u64>()));
-        fs::create_dir(dir.clone()).unwrap();
-        TempDir { dir }
-    }
-
-    pub fn assert_file(&self, name: &str, content: &str) {
-        let path = self.dir.join(name);
-        let string =
-            std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", &path));
-        assert_eq!(string, content);
-    }
-}
-
-impl Drop for TempDir {
-    fn drop(&mut self) {
-        std::fs::remove_dir_all(self.dir.clone()).unwrap();
-    }
-}
-
-impl Default for TempDir {
-    fn default() -> Self {
-        Self::new()
     }
 }

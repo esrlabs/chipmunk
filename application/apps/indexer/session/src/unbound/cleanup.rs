@@ -84,13 +84,13 @@ mod tests {
         let past = SystemTime::now()
             .checked_sub(Duration::from_secs(3600))
             .unwrap();
-        cleanup_dir(&temp_path, past).unwrap();
+        cleanup_dir(temp_path, past).unwrap();
         for entry in &entries {
             assert!(entry.exists());
         }
 
         // Cleaning up with now must remove all files and directories.
-        cleanup_dir(&temp_path, SystemTime::now()).unwrap();
+        cleanup_dir(temp_path, SystemTime::now()).unwrap();
 
         // Temp directory itself shouldn't be removed.
         assert!(temp_path.exists());
