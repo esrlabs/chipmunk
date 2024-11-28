@@ -1,5 +1,5 @@
 use super::CommandOutcome;
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{error::ComputationError, unbound::signal::Signal};
 use tokio::time;
 
 // This command is used for testing/debug goals only. It should ignore signal to ignore

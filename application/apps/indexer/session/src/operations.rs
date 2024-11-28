@@ -1,5 +1,5 @@
 use crate::{
-    events::ComputationError, handlers, state::SessionStateAPI, tracker::OperationTrackerAPI,
+    error::ComputationError, handlers, state::SessionStateAPI, tracker::OperationTrackerAPI,
 };
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;

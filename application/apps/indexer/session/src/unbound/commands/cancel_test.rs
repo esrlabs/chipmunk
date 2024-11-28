@@ -1,5 +1,5 @@
 use crate::{
-    events::ComputationError,
+    error::ComputationError,
     unbound::{commands::CommandOutcome, signal::Signal},
 };
 use tokio::{

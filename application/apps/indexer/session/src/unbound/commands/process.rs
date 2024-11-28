@@ -1,5 +1,5 @@
 use super::CommandOutcome;
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{error::ComputationError, unbound::signal::Signal};
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::{

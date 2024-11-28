@@ -3,7 +3,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{events::ComputationError, unbound::signal::Signal};
+use crate::{error::ComputationError, unbound::signal::Signal};
 
 use super::CommandOutcome;
 

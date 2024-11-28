@@ -4,7 +4,7 @@ pub mod commands;
 mod signal;
 
 use crate::{
-    events::ComputationError,
+    error::ComputationError,
     progress::ProgressProviderAPI,
     unbound::{
         api::{UnboundSessionAPI, API},
