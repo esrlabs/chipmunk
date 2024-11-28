@@ -1,5 +1,5 @@
 use crate::{
-    events::ComputationError,
+    error::ComputationError,
     operations,
     operations::Operation,
     state,

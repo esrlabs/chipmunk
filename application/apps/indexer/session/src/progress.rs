@@ -1,4 +1,4 @@
-use crate::{events::ComputationError, TRACKER_CHANNEL};
+use crate::{error::ComputationError, TRACKER_CHANNEL};
 use log::{error, info};
 use std::collections::HashMap;
 use tokio::{

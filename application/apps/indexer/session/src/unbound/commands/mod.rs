@@ -10,7 +10,7 @@ mod shells;
 mod sleep;
 mod someip;
 
-use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
+use crate::{error::ComputationError, unbound::commands::someip::get_someip_statistic};
 
 use log::{debug, error};
 use processor::search::filter::SearchFilter;
