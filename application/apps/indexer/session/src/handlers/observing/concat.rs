@@ -1,7 +1,5 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    progress::Severity,
     state::SessionStateAPI,
 };
 use sources::{
@@ -26,18 +24,18 @@ pub async fn concat_files(
     }
     for file in files.iter() {
         let (uuid, file_type, filename) = file;
-        let source_id = state.get_source(uuid).await?.ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
+        let source_id = state.get_source(uuid).await?.ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
             message: Some(format!(
                 "Cannot find source id for file {} with alias {}",
                 filename.to_string_lossy(),
                 uuid,
             )),
         })?;
-        let input_file = File::open(filename).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
+        let input_file = File::open(filename).map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
             message: Some(format!(
                 "Fail open file {}: {}",
                 filename.to_string_lossy(),

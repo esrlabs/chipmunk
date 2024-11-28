@@ -1,7 +1,5 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    progress::Severity,
     state::SessionStateAPI,
 };
 use log::debug;
@@ -37,11 +35,14 @@ pub async fn execute_search(
     state.drop_search().await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     let mut holder = state.get_search_holder(operation_api.id()).await?;
-    if let Err(err) = holder.setup(filters.clone()).map_err(|e| NativeError {
-        severity: Severity::ERROR,
-        kind: NativeErrorKind::OperationSearch,
-        message: Some(format!("Fail to setup search terms: {e}")),
-    }) {
+    if let Err(err) = holder
+        .setup(filters.clone())
+        .map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::OperationSearch,
+            message: Some(format!("Fail to setup search terms: {e}")),
+        })
+    {
         state
             .set_search_holder(Some(holder), operation_api.id())
             .await?;
@@ -74,7 +75,7 @@ pub async fn execute_search(
                     FiltersStats,
                     RegularSearchHolder,
                 ),
-                (Option<RegularSearchHolder>, NativeError),
+                (Option<RegularSearchHolder>, stypes::NativeError),
             >,
         > = select! {
             res = async {
@@ -87,17 +88,17 @@ pub async fn execute_search(
                     {
                         Ok(recv_results) => {
                             break recv_results.map_or(
-                                Err((None, NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::OperationSearch,
+                                Err((None, stypes::NativeError {
+                                    severity: stypes::Severity::ERROR,
+                                    kind: stypes::NativeErrorKind::OperationSearch,
                                     message: Some("Fail to receive search results".to_string()),
                                 })),
                                 |(holder, search_results)| {
                                     match search_results {
                                         Ok((processed, matches, stats)) => Ok((processed, matches.len(), matches, stats, holder)),
-                                        Err(err) => Err((Some(holder), NativeError {
-                                            severity: Severity::ERROR,
-                                            kind: NativeErrorKind::OperationSearch,
+                                        Err(err) => Err((Some(holder), stypes::NativeError {
+                                            severity: stypes::Severity::ERROR,
+                                            kind: stypes::NativeErrorKind::OperationSearch,
                                             message: Some(format!(
                                                 "Fail to execute search. Error: {err}"
                                             )),

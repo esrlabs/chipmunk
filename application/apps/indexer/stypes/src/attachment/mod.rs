@@ -1,3 +1,6 @@
+#[cfg(any(test, feature = "rustcore"))]
+mod converting;
+
 use crate::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -13,3 +16,7 @@ pub struct AttachmentInfo {
     pub mime: Option<String>,
     pub messages: Vec<usize>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+pub struct AttachmentList(Vec<AttachmentInfo>);
