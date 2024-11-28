@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use sources::plugins::PluginParserGeneralSetttings;
+use sources::plugins as pl;
 use wasmtime::component::Component;
 
 use crate::{
@@ -37,8 +37,8 @@ enum PlugVerParser {
 impl PluginsParser {
     pub async fn create(
         plugin_path: impl AsRef<Path>,
-        general_config: &PluginParserGeneralSetttings,
-        config_path: Option<impl AsRef<Path>>,
+        general_config: &pl::PluginParserGeneralSetttings,
+        plugin_configs: Vec<pl::ConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
@@ -84,7 +84,7 @@ impl PluginsParser {
                 patch: 0,
             } => {
                 let parser =
-                    v0_1_0::parser::PluginParser::create(component, general_config, config_path)
+                    v0_1_0::parser::PluginParser::create(component, general_config, plugin_configs)
                         .await?;
                 Ok(Self {
                     parser: PlugVerParser::Ver010(parser),

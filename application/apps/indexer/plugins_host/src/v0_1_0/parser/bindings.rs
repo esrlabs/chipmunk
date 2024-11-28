@@ -1,4 +1,5 @@
 use crate::{parser_shared::COLUMN_SEP, PluginGuestInitError, PluginParseMessage};
+use sources::plugins as pl;
 use sources::plugins::PluginParserGeneralSetttings;
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
@@ -87,5 +88,51 @@ impl From<ParsedMessage> for PluginParseMessage {
         };
 
         Self { content }
+    }
+}
+
+impl From<pl::ConfigValue> for ConfigValue {
+    fn from(value: pl::ConfigValue) -> Self {
+        match value {
+            pl::ConfigValue::Boolean(val) => ConfigValue::Boolean(val),
+            pl::ConfigValue::Number(val) => ConfigValue::Number(val),
+            pl::ConfigValue::Float(val) => ConfigValue::Float(val),
+            pl::ConfigValue::Text(val) => ConfigValue::Text(val),
+            pl::ConfigValue::Path(val) => ConfigValue::Path(val.to_string_lossy().to_string()),
+            pl::ConfigValue::Dropdown(val) => ConfigValue::Dropdown(val),
+        }
+    }
+}
+
+impl From<pl::ConfigItem> for ConfigItem {
+    fn from(item: pl::ConfigItem) -> Self {
+        Self {
+            id: item.id,
+            value: item.value.into(),
+        }
+    }
+}
+
+impl From<ConfigSchemaType> for pl::ConfigSchemaType {
+    fn from(value: ConfigSchemaType) -> Self {
+        match value {
+            ConfigSchemaType::Boolean => pl::ConfigSchemaType::Boolean,
+            ConfigSchemaType::Number => pl::ConfigSchemaType::Number,
+            ConfigSchemaType::Float => pl::ConfigSchemaType::Float,
+            ConfigSchemaType::Text => pl::ConfigSchemaType::Text,
+            ConfigSchemaType::Path => pl::ConfigSchemaType::Path,
+            ConfigSchemaType::Dropdown(items) => pl::ConfigSchemaType::Dropdown(items),
+        }
+    }
+}
+
+impl From<ConfigSchemaItem> for pl::ConfigSchemaItem {
+    fn from(item: ConfigSchemaItem) -> Self {
+        Self {
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            input_type: item.input_type.into(),
+        }
     }
 }

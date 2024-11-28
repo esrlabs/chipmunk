@@ -44,7 +44,8 @@ impl PluginByteSource {
 
         BytesourcePlugin::add_to_linker(&mut linker, |state| state)?;
 
-        let mut ctx = get_wasi_ctx_builder(config_path.as_ref())?;
+        //TODO AAZ: Fix when config is implemented for bytesource
+        let mut ctx = get_wasi_ctx_builder(&[])?;
 
         // Additional access privileges for ctx depending on input type.
         match &input {
