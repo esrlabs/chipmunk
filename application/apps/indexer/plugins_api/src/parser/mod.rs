@@ -31,6 +31,22 @@ pub use __internal_bindings::chipmunk::plugin::{
     shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError},
 };
 
+impl ConfigSchemaItem {
+    pub fn new<S: Into<String>>(
+        id: S,
+        title: S,
+        description: Option<S>,
+        input_type: ConfigSchemaType,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            title: title.into(),
+            description: description.map(|d| d.into()),
+            input_type,
+        }
+    }
+}
+
 /// Trait representing a parser for Chipmunk plugins. Types that need to be
 /// exported as parser plugins for use within Chipmunk must implement this trait.
 pub trait Parser {
