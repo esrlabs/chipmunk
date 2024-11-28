@@ -20,7 +20,7 @@ pub enum Progress {
     Stopped,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[extend::encode_decode]
 pub struct Ticks {
     pub count: u64,
