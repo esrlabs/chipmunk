@@ -30,7 +30,7 @@ mod source_ids;
 pub(crate) mod values;
 
 pub use api::{Api, SessionStateAPI};
-pub use attachments::{AttachmentInfo, Attachments};
+pub use attachments::{AttachmentInfo, Attachments, AttachmentsError};
 pub use indexes::{
     controller::{Controller as Indexes, Mode as IndexesMode},
     frame::Frame,
@@ -41,7 +41,7 @@ use observed::Observed;
 use searchers::{SearcherState, Searchers};
 pub use session_file::{GrabbedElement, SessionFile, SessionFileOrigin, SessionFileState};
 pub use source_ids::SourceDefinition;
-pub use values::Values;
+pub use values::{Values, ValuesError};
 
 #[derive(Debug)]
 pub enum Status {
