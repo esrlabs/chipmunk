@@ -31,6 +31,9 @@ export interface IConfiguration {
         observe: {
             regular: IRegularTests;
         };
+        protocol: {
+            regular: IRegularTests;
+        };
         stream: {
             regular: IRegularTests;
         };

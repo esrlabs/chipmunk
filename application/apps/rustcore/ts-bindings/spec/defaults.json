@@ -28,6 +28,20 @@
         }
       }
     },
+    "protocol": {
+      "regular": {
+          "execute_only": [],
+          "list": {
+              "1": "Test 1. CallbackEvent",
+              "2": "Test 2. Comparing JSON vs Protobuf",
+              "3": "Test 3. All CallbackEvens as Protobuf",
+              "4": "Test 4. All LifecycleTransition as Protobuf",
+              "5": "Test 5. Observe Options variants as Protobuf"
+          },
+          "files": {
+          }
+      }
+    },
     "stream": {
       "regular": {
         "execute_only": [],
