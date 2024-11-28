@@ -22,7 +22,13 @@ fn plugin_parser_init(c: &mut Criterion) {
         plugin_file.display()
     );
 
-    let settings = black_box(PluginParserSettings::prototyping(plugin_file));
+    //TODO AAZ: Deliver plugin configurations for benchmarks
+    let plugin_configs = Vec::new();
+
+    let settings = black_box(PluginParserSettings::prototyping(
+        plugin_file,
+        plugin_configs,
+    ));
 
     c.bench_function("plugin_parser_init", |bencher| {
         bencher
@@ -32,7 +38,7 @@ fn plugin_parser_init(c: &mut Criterion) {
                 let parser = plugins_host::PluginsParser::create(
                     &settings.plugin_path,
                     &settings.general_settings,
-                    settings.custom_config_path.as_ref(),
+                    settings.plugin_configs.clone(),
                 )
                 .await
                 .unwrap();

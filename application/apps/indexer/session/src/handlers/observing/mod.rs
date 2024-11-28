@@ -90,7 +90,7 @@ async fn run_source_intern<S: ByteSource>(
             let parser = PluginsParser::create(
                 &settings.plugin_path,
                 &settings.general_settings,
-                settings.custom_config_path.as_ref(),
+                settings.plugin_configs.clone(),
             )
             .await?;
             let producer = MessageProducer::new(parser, source, rx_sde);
@@ -112,19 +112,29 @@ async fn run_source_intern<S: ByteSource>(
             println!("-------------   WASM parser forced   -----------------");
             println!("------------------------------------------------------");
 
+            use sources::plugins as pl;
             //TODO AAZ: Find a better way to deliver plugin path than environment variables
             let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
                 Ok(path) => path,
                 Err(err) => panic!("Retrieving plugin path environment variable failed. Err {err}"),
             };
             let proto_plugin_path = PathBuf::from(plugin_path);
-            let settings = sources::plugins::PluginParserSettings::prototyping(proto_plugin_path);
+
+            // Hard-coded configurations for string parser for now.
+            const LOSSY_ID: &str = "lossy";
+            let string_parser_configs = vec![pl::ConfigItem::new(
+                LOSSY_ID,
+                pl::ConfigValue::Boolean(true),
+            )];
+
+            let settings =
+                pl::PluginParserSettings::prototyping(proto_plugin_path, string_parser_configs);
             let now = std::time::Instant::now();
 
             let parser = PluginsParser::create(
                 &settings.plugin_path,
                 &settings.general_settings,
-                settings.custom_config_path.as_ref(),
+                settings.plugin_configs.clone(),
             )
             .await?;
             let elapsed = now.elapsed();

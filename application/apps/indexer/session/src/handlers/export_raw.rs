@@ -146,7 +146,7 @@ async fn export<S: ByteSource>(
             let parser = PluginsParser::create(
                 &settings.plugin_path,
                 &settings.general_settings,
-                settings.custom_config_path.as_ref(),
+                settings.plugin_configs.clone(),
             )
             .await?;
             let mut producer = MessageProducer::new(parser, source, None);
