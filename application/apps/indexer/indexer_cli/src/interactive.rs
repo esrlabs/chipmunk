@@ -104,9 +104,9 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         start = Instant::now();
                         let start_op = Instant::now();
                         let content = session.grab(LineRange::from(0u64..=1000)).await.expect("grab failed");
-                        let len = content.len();
+                        let len = content.0.len();
                         println!("content has {len} elemenst");
-                        for elem in content {
+                        for elem in content.0 {
                             println!("{elem:?}");
                         }
                         duration_report(start_op, format!("grabbing {len} lines"));

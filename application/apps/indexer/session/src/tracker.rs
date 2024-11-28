@@ -1,9 +1,4 @@
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    operations::OperationStat,
-    progress::{ProgressProviderAPI, Severity},
-    state::SessionStateAPI,
-};
+use crate::{operations::OperationStat, progress::ProgressProviderAPI, state::SessionStateAPI};
 use log::{debug, error};
 use sources::producer::SdeSender;
 use std::collections::{hash_map::Entry, HashMap};
@@ -33,7 +28,7 @@ pub enum TrackerCommand {
     RemoveOperation((Uuid, oneshot::Sender<bool>)),
     CancelOperation((Uuid, oneshot::Sender<bool>)),
     SetDebugMode((bool, oneshot::Sender<()>)),
-    GetOperationsStat(oneshot::Sender<Result<String, NativeError>>),
+    GetOperationsStat(oneshot::Sender<Result<String, stypes::NativeError>>),
     GetSdeSender((Uuid, oneshot::Sender<Option<SdeSender>>)),
     CancelAll(oneshot::Sender<()>),
     Shutdown,
@@ -83,13 +78,13 @@ impl OperationTrackerAPI {
         &self,
         command: TrackerCommand,
         rx_response: oneshot::Receiver<T>,
-    ) -> Result<T, NativeError> {
+    ) -> Result<T, stypes::NativeError> {
         let api_str = format!("{command}");
         self.tx_api.send(command).map_err(|e| {
-            NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
+            stypes::NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
         rx_response.await.map_err(|_| {
-            NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
+            stypes::NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
         })
     }
 
@@ -100,7 +95,7 @@ impl OperationTrackerAPI {
         tx_sde: Option<SdeSender>,
         canceler: CancellationToken,
         done: CancellationToken,
-    ) -> Result<bool, NativeError> {
+    ) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(
             TrackerCommand::AddOperation((uuid, name, tx_sde, canceler, done, tx)),
@@ -109,53 +104,56 @@ impl OperationTrackerAPI {
         .await
     }
 
-    pub async fn remove_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
+    pub async fn remove_operation(&self, uuid: Uuid) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(TrackerCommand::RemoveOperation((uuid, tx)), rx)
             .await
     }
 
-    pub async fn cancel_operation(&self, uuid: Uuid) -> Result<bool, NativeError> {
+    pub async fn cancel_operation(&self, uuid: Uuid) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(TrackerCommand::CancelOperation((uuid, tx)), rx)
             .await
     }
 
-    pub async fn cancel_all(&self) -> Result<(), NativeError> {
+    pub async fn cancel_all(&self) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(TrackerCommand::CancelAll(tx), rx).await
     }
 
-    pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
+    pub async fn set_debug(&self, debug: bool) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(TrackerCommand::SetDebugMode((debug, tx)), rx)
             .await?;
         Ok(())
     }
 
-    pub async fn get_operations_stat(&self) -> Result<String, NativeError> {
+    pub async fn get_operations_stat(&self) -> Result<String, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(TrackerCommand::GetOperationsStat(tx), rx)
             .await?
     }
 
-    pub async fn get_sde_sender(&self, uuid: Uuid) -> Result<Option<SdeSender>, NativeError> {
+    pub async fn get_sde_sender(
+        &self,
+        uuid: Uuid,
+    ) -> Result<Option<SdeSender>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(TrackerCommand::GetSdeSender((uuid, tx)), rx)
             .await
     }
 
-    pub fn shutdown(&self) -> Result<(), NativeError> {
+    pub fn shutdown(&self) -> Result<(), stypes::NativeError> {
         self.tx_api.send(TrackerCommand::Shutdown).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
+            stypes::NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
     }
 
-    pub fn shutdown_with_error(&self) -> Result<(), NativeError> {
+    pub fn shutdown_with_error(&self) -> Result<(), stypes::NativeError> {
         self.tx_api
             .send(TrackerCommand::ShutdownWithError)
             .map_err(|e| {
-                NativeError::channel(&format!(
+                stypes::NativeError::channel(&format!(
                     "fail to send to Api::ShutdownWithError; error: {e}",
                 ))
             })
@@ -165,7 +163,7 @@ impl OperationTrackerAPI {
 pub async fn run(
     state: SessionStateAPI,
     mut rx_api: UnboundedReceiver<TrackerCommand>,
-) -> Result<(), NativeError> {
+) -> Result<(), stypes::NativeError> {
     let mut tracker = OperationTracker {
         operations: HashMap::new(),
         stat: vec![],
@@ -198,7 +196,7 @@ pub async fn run(
                     })
                     .is_err()
                 {
-                    return Err(NativeError::channel(
+                    return Err(stypes::NativeError::channel(
                         "fail to response to Api::AddOperation",
                     ));
                 } else {
@@ -225,7 +223,7 @@ pub async fn run(
                     .send(tracker.operations.remove(&uuid).is_some())
                     .is_err()
                 {
-                    return Err(NativeError::channel(
+                    return Err(stypes::NativeError::channel(
                         "fail to response to Api::RemoveOperation",
                     ));
                 }
@@ -260,7 +258,7 @@ pub async fn run(
                         },
                     )
                     .map_err(|_| {
-                        NativeError::channel("Failed to respond to Api::CancelOperation")
+                        stypes::NativeError::channel("Failed to respond to Api::CancelOperation")
                     })?;
             }
             TrackerCommand::CancelAll(tx_response) => {
@@ -287,7 +285,7 @@ pub async fn run(
                 }
                 tracker.operations.clear();
                 if tx_response.send(()).is_err() {
-                    return Err(NativeError::channel(
+                    return Err(stypes::NativeError::channel(
                         "fail to response to Api::CloseSession",
                     ));
                 }
@@ -295,7 +293,7 @@ pub async fn run(
             TrackerCommand::SetDebugMode((debug, tx_response)) => {
                 tracker.debug = debug;
                 if tx_response.send(()).is_err() {
-                    return Err(NativeError::channel(
+                    return Err(stypes::NativeError::channel(
                         "fail to response to Api::SetDebugMode",
                     ));
                 }
@@ -304,15 +302,15 @@ pub async fn run(
                 if tx_response
                     .send(match serde_json::to_string(&tracker.stat) {
                         Ok(serialized) => Ok(serialized),
-                        Err(err) => Err(NativeError {
-                            severity: Severity::ERROR,
-                            kind: NativeErrorKind::ComputationFailed,
+                        Err(err) => Err(stypes::NativeError {
+                            severity: stypes::Severity::ERROR,
+                            kind: stypes::NativeErrorKind::ComputationFailed,
                             message: Some(format!("{err}")),
                         }),
                     })
                     .is_err()
                 {
-                    return Err(NativeError::channel(
+                    return Err(stypes::NativeError::channel(
                         "fail to response to Api::GetOperationsStat",
                     ));
                 }
@@ -328,7 +326,7 @@ pub async fn run(
                     )
                     .is_err()
                 {
-                    return Err(NativeError::channel(
+                    return Err(stypes::NativeError::channel(
                         "fail to response to Api::GetSdeSender",
                     ));
                 }
@@ -339,9 +337,9 @@ pub async fn run(
             }
             TrackerCommand::ShutdownWithError => {
                 debug!("shutdown tracker loop with error for testing");
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Io,
                     message: Some(String::from("Shutdown tracker loop with error for testing")),
                 });
             }

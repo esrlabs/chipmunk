@@ -10,7 +10,7 @@ use futures::{pin_mut, StreamExt};
 use parsers::{Error as ParseError, ParseYield};
 use tokio::sync::{mpsc::unbounded_channel, oneshot};
 
-use crate::{producer::MessageProducer, sde::SdeRequest, Error};
+use crate::{producer::MessageProducer, Error};
 
 #[tokio::test]
 async fn empty_byte_source() {
@@ -464,7 +464,7 @@ async fn sde_communication() {
     const SDE_TEXT: &str = "sde_msg";
     tx_sde
         .send((
-            SdeRequest::WriteText(String::from(SDE_TEXT)),
+            stypes::SdeRequest::WriteText(String::from(SDE_TEXT)),
             tx_sde_response,
         ))
         .unwrap();

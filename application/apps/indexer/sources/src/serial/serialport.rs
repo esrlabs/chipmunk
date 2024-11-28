@@ -1,5 +1,5 @@
 use crate::{
-    factory::SerialTransportConfig, sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+    factory::SerialTransportConfig, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
 use buf_redux::Buffer;
 use bytes::{BufMut, BytesMut};
@@ -176,9 +176,12 @@ impl ByteSource for SerialSource {
         self.len() == 0
     }
 
-    async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
+    async fn income(
+        &mut self,
+        request: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, SourceError> {
         Ok(match request {
-            sde::SdeRequest::WriteText(mut str) => {
+            stypes::SdeRequest::WriteText(mut str) => {
                 let len = str.len();
                 if self.send_data_delay == 0 {
                     self.write_stream
@@ -194,9 +197,9 @@ impl ByteSource for SerialSource {
                         sleep(Duration::from_millis(self.send_data_delay as u64)).await;
                     }
                 }
-                sde::SdeResponse { bytes: len }
+                stypes::SdeResponse { bytes: len }
             }
-            sde::SdeRequest::WriteBytes(mut bytes) => {
+            stypes::SdeRequest::WriteBytes(mut bytes) => {
                 let len = bytes.len();
                 if self.send_data_delay == 0 {
                     self.write_stream
@@ -212,7 +215,7 @@ impl ByteSource for SerialSource {
                         sleep(Duration::from_millis(self.send_data_delay as u64)).await;
                     }
                 }
-                sde::SdeResponse { bytes: len }
+                stypes::SdeResponse { bytes: len }
             }
         })
     }

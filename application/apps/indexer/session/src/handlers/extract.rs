@@ -1,8 +1,4 @@
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    operations::OperationResult,
-    progress::Severity,
-};
+use crate::operations::OperationResult;
 
 use processor::search::{
     extractor::{ExtractedMatchValue, MatchesExtractor},
@@ -21,9 +17,9 @@ where
     extractor
         .extract_matches()
         .map(Some)
-        .map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::OperationSearch,
+        .map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::OperationSearch,
             message: Some(format!(
                 "Fail to execute extract search result operation. Error: {e}"
             )),

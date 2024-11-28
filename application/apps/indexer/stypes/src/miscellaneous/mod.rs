@@ -1,4 +1,6 @@
 #[cfg(any(test, feature = "rustcore"))]
+mod converting;
+#[cfg(any(test, feature = "rustcore"))]
 mod extending;
 
 use crate::*;
@@ -6,7 +8,7 @@ use std::ops::RangeInclusive;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-pub struct Ranges(Vec<RangeInclusive<u64>>);
+pub struct Ranges(pub Vec<RangeInclusive<u64>>);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
@@ -17,7 +19,7 @@ pub struct SourceDefinition {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-pub struct Sources(Vec<SourceDefinition>);
+pub struct Sources(pub Vec<SourceDefinition>);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
@@ -47,8 +49,8 @@ pub struct GrabbedElement {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-pub struct GrabbedElementList(Vec<GrabbedElement>);
+pub struct GrabbedElementList(pub Vec<GrabbedElement>);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-pub struct AroundIndexes((Option<u64>, Option<u64>));
+pub struct AroundIndexes(pub (Option<u64>, Option<u64>));

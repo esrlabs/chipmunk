@@ -1,4 +1,4 @@
-use crate::{sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use buf_redux::Buffer;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
@@ -210,13 +210,16 @@ impl ByteSource for ProcessSource {
         self.len() == 0
     }
 
-    async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
+    async fn income(
+        &mut self,
+        request: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, SourceError> {
         let bytes = match request {
-            sde::SdeRequest::WriteText(ref str) => str.as_bytes(),
-            sde::SdeRequest::WriteBytes(ref bytes) => bytes,
+            stypes::SdeRequest::WriteText(ref str) => str.as_bytes(),
+            stypes::SdeRequest::WriteBytes(ref bytes) => bytes,
         };
         self.stdin.write_all(bytes).await.map_err(SourceError::Io)?;
-        Ok(sde::SdeResponse { bytes: bytes.len() })
+        Ok(stypes::SdeResponse { bytes: bytes.len() })
     }
 }
 

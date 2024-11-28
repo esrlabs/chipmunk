@@ -1,7 +1,5 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    progress::Severity,
     state::SessionStateAPI,
     tail,
 };
@@ -95,9 +93,9 @@ pub async fn observe_file<'a>(
                     let result = select! {
                         res = async move {
                             while let Some(update) = rx_tail.recv().await {
-                                update.map_err(|err| NativeError {
-                                    severity: Severity::ERROR,
-                                    kind: NativeErrorKind::Interrupted,
+                                update.map_err(|err| stypes::NativeError {
+                                    severity: stypes::Severity::ERROR,
+                                    kind: stypes::NativeErrorKind::Interrupted,
                                     message: Some(err.to_string()),
                                 })?;
                                 state.update_session(source_id).await?;
@@ -112,9 +110,9 @@ pub async fn observe_file<'a>(
             );
             result
                 .and_then(|_| {
-                    tracker.map_err(|e| NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Interrupted,
+                    tracker.map_err(|e| stypes::NativeError {
+                        severity: stypes::Severity::ERROR,
+                        kind: stypes::NativeErrorKind::Interrupted,
                         message: Some(format!("Tailing error: {e}")),
                     })
                 })
@@ -123,10 +121,10 @@ pub async fn observe_file<'a>(
     }
 }
 
-fn input_file(filename: &Path) -> Result<File, NativeError> {
-    File::open(filename).map_err(|e| NativeError {
-        severity: Severity::ERROR,
-        kind: NativeErrorKind::Io,
+fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+    File::open(filename).map_err(|e| stypes::NativeError {
+        severity: stypes::Severity::ERROR,
+        kind: stypes::NativeErrorKind::Io,
         message: Some(format!(
             "Fail open file {}: {}",
             filename.to_string_lossy(),

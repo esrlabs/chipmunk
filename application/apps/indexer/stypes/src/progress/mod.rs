@@ -1,3 +1,6 @@
+#[cfg(any(test, feature = "rustcore"))]
+mod extending;
+
 use crate::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -9,6 +12,7 @@ pub struct Notification {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
 #[extend::encode_decode]
 pub enum Progress {
     Ticks(Ticks),
