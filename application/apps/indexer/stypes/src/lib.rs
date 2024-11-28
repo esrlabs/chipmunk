@@ -1,3 +1,6 @@
+#[cfg(any(test, feature = "nodejs"))]
+mod nodejs;
+
 mod attachment;
 mod callback;
 mod error;
@@ -17,3 +20,9 @@ pub use progress::*;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::{collections::HashMap, path::PathBuf};
 pub(crate) use uuid::Uuid;
+
+#[cfg(any(test, feature = "nodejs"))]
+pub(crate) use node_bindgen::{
+    core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
+    sys::napi_value,
+};
