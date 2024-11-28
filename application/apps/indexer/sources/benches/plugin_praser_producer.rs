@@ -20,7 +20,10 @@ fn plugin_parser_producer(c: &mut Criterion) {
         .map(PathBuf::from)
         .expect("Path to plugin must be provided as additional config");
 
-    let settings = PluginParserSettings::prototyping(plugin_path);
+    //TODO AAZ: Deliver plugin configurations for benchmarks
+    let plugin_configs = Vec::new();
+
+    let settings = PluginParserSettings::prototyping(plugin_path, plugin_configs);
 
     c.bench_function("plugin_parser_producer", |bencher| {
         bencher
@@ -30,7 +33,7 @@ fn plugin_parser_producer(c: &mut Criterion) {
                     let parser = futures::executor::block_on(PluginsParser::create(
                         &settings.plugin_path,
                         &settings.general_settings,
-                        settings.custom_config_path.as_ref(),
+                        settings.plugin_configs.clone(),
                     ))
                     .unwrap();
 

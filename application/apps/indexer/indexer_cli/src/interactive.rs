@@ -113,7 +113,10 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
                         let proto_plugin_path = PathBuf::from(plugin_path);
-                        let plugin_parser_settings = PluginParserSettings::prototyping(proto_plugin_path);
+
+                        //TODO AAZ: plugins configuration aren't delivered here.
+                        let plugin_configs = Vec::new();
+                        let plugin_parser_settings = PluginParserSettings::prototyping(proto_plugin_path, plugin_configs);
                         session.observe(uuid, ObserveOptions::file(file_path, FileFormat::Binary, ParserType::Plugin(plugin_parser_settings))).expect("observe failed");
                     }
                     Some(Command::Grab) => {

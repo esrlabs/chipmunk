@@ -1,9 +1,8 @@
 mod bindings;
 mod parser_plugin_state;
 
-use std::path::Path;
+use sources::plugins as pl;
 
-use sources::plugins::PluginParserGeneralSetttings;
 use wasmtime::{
     component::{Component, Linker},
     Store,
@@ -31,8 +30,8 @@ impl WasmPlugin for PluginParser {
 impl PluginParser {
     pub async fn create(
         component: Component,
-        general_config: &PluginParserGeneralSetttings,
-        config_path: Option<impl AsRef<Path>>,
+        general_config: &pl::PluginParserGeneralSetttings,
+        plugin_configs: Vec<pl::ConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
@@ -43,23 +42,18 @@ impl PluginParser {
 
         ParsePlugin::add_to_linker(&mut linker, |state| state)?;
 
-        let mut ctx = get_wasi_ctx_builder(config_path.as_ref())?;
+        let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
         let resource_table = ResourceTable::new();
 
         let mut store = Store::new(engine, ParserPluginState::new(ctx.build(), resource_table));
 
         let (plugin_bindings, _instance) =
             ParsePlugin::instantiate_async(&mut store, &component, &linker).await?;
+        let plugin_configs: Vec<_> = plugin_configs.into_iter().map(|item| item.into()).collect();
 
-        let plugin_config_path =
-            config_path.map(|path| path.as_ref().to_string_lossy().to_string());
         plugin_bindings
             .chipmunk_plugin_parser()
-            .call_init(
-                &mut store,
-                general_config.into(),
-                plugin_config_path.as_deref(),
-            )
+            .call_init(&mut store, general_config.into(), &plugin_configs)
             .await?
             .map_err(|guest_err| {
                 PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
