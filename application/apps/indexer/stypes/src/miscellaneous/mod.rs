@@ -2,6 +2,8 @@
 mod converting;
 #[cfg(any(test, feature = "rustcore"))]
 mod extending;
+#[cfg(any(test, feature = "nodejs"))]
+mod nodejs;
 
 use crate::*;
 use std::ops::RangeInclusive;

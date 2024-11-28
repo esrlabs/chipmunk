@@ -1,3 +1,6 @@
+#[cfg(any(test, feature = "nodejs"))]
+mod nodejs;
+
 use crate::*;
 use dlt_core::filtering::DltFilterConfig;
 

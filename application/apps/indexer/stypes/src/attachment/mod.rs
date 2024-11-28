@@ -1,5 +1,7 @@
 #[cfg(any(test, feature = "rustcore"))]
 mod converting;
+#[cfg(any(test, feature = "nodejs"))]
+mod nodejs;
 
 use crate::*;
 
