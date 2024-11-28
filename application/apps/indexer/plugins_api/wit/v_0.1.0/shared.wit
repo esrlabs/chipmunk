@@ -8,6 +8,43 @@ interface shared-types {
     unsupported(string),
     other(string),
   }
+
+  /// Represents a configuration item, which includes an identifier and its corresponding value.
+  record config-item {
+    id: string,
+    value: config-value,
+  }
+
+  /// Represents the value of a configuration item.
+  variant config-value {
+    boolean(bool),
+    number(s64),
+    float(f64),
+    text(string),
+    /// A string representing a file or directory path.
+    path(string),
+    /// A string representing a selected option from a drop-down menu
+    dropdown(string)
+  }
+
+  /// Represents the schema for a configuration item.
+  record config-schema-item {
+    id: string,
+    title: string,
+    description: option<string>,
+    input-type: config-schema-type,
+  }
+
+  /// Defines the possible input types for configuration schemas.
+  variant config-schema-type {
+    boolean,
+    number,
+    float,
+    text,
+    path,
+    /// Drop-down input type with a list of selectable options.
+    dropdown(list<string>)
+  }
 }
 
 /// Logging definitions and methods for all plugins

@@ -6,10 +6,14 @@ struct Dummy;
 trait ExtendParser: crate::parser::Parser {}
 
 impl crate::parser::Parser for Dummy {
+    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+        todo!()
+    }
+
     fn create(
-        _general_configs: crate::parser::ParserConfig,
-        _config_path: Option<std::path::PathBuf>,
-    ) -> Result<Self, crate::parser::InitError>
+        _general_configs: ParserConfig,
+        _plugins_configs: Vec<ConfigItem>,
+    ) -> Result<Self, InitError>
     where
         Self: Sized,
     {
@@ -20,7 +24,7 @@ impl crate::parser::Parser for Dummy {
         &mut self,
         _data: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = crate::parser::ParseReturn>, crate::parser::ParseError> {
+    ) -> Result<impl Iterator<Item = ParseReturn>, ParseError> {
         Ok(std::iter::empty())
     }
 }
