@@ -1,16 +1,16 @@
 use crate::{
-    events::{CallbackEvent, ComputationError},
+    events::ComputationError,
     operations,
     operations::Operation,
     state,
-    state::{AttachmentInfo, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
+    state::{IndexesMode, SessionStateAPI},
     tracker,
     tracker::OperationTrackerAPI,
 };
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
-use sources::{factory::ObserveOptions, sde};
+use sources::factory::ObserveOptions;
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
@@ -48,13 +48,13 @@ impl Session {
     ///
     pub async fn new(
         uuid: Uuid,
-    ) -> Result<(Self, UnboundedReceiver<CallbackEvent>), ComputationError> {
+    ) -> Result<(Self, UnboundedReceiver<stypes::CallbackEvent>), ComputationError> {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
         let (state_api, rx_state_api) = SessionStateAPI::new(tracker_api.clone());
         let (tx_callback_events, rx_callback_events): (
-            UnboundedSender<CallbackEvent>,
-            UnboundedReceiver<CallbackEvent>,
+            UnboundedSender<stypes::CallbackEvent>,
+            UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
         let session = Self {
             uuid,
@@ -133,7 +133,7 @@ impl Session {
         tx_operations: &UnboundedSender<Operation>,
         destroying: &CancellationToken,
         name: &str,
-        f: impl Future<Output = Result<(), crate::events::NativeError>> + Send + 'static,
+        f: impl Future<Output = Result<(), stypes::NativeError>> + Send + 'static,
     ) {
         if let Err(err) = f.await {
             error!("State loop exits with error:: {:?}", err);
@@ -152,20 +152,25 @@ impl Session {
         self.state.clone()
     }
 
-    pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, ComputationError> {
+    pub async fn grab(
+        &self,
+        range: LineRange,
+    ) -> Result<stypes::GrabbedElementList, ComputationError> {
         self.state
             .grab(range)
             .await
+            .map(|els| els.into())
             .map_err(ComputationError::NativeError)
     }
 
     pub async fn grab_indexed(
         &self,
         range: RangeInclusive<u64>,
-    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+    ) -> Result<stypes::GrabbedElementList, ComputationError> {
         self.state
             .grab_indexed(range)
             .await
+            .map(|els| els.into())
             .map_err(ComputationError::NativeError)
     }
 
@@ -190,10 +195,11 @@ impl Session {
     pub async fn get_around_indexes(
         &self,
         position: u64,
-    ) -> Result<(Option<u64>, Option<u64>), ComputationError> {
+    ) -> Result<stypes::AroundIndexes, ComputationError> {
         self.state
             .get_around_indexes(position)
             .await
+            .map(|v| v.into())
             .map_err(ComputationError::NativeError)
     }
 
@@ -233,20 +239,22 @@ impl Session {
     pub async fn grab_search(
         &self,
         range: LineRange,
-    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+    ) -> Result<stypes::GrabbedElementList, ComputationError> {
         self.state
             .grab_search(range)
             .await
+            .map(|els| els.into())
             .map_err(ComputationError::NativeError)
     }
 
     pub async fn grab_ranges(
         &self,
         ranges: Vec<RangeInclusive<u64>>,
-    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+    ) -> Result<stypes::GrabbedElementList, ComputationError> {
         self.state
             .grab_ranges(ranges)
             .await
+            .map(|els| els.into())
             .map_err(ComputationError::NativeError)
     }
 
@@ -262,8 +270,8 @@ impl Session {
     pub async fn send_into_sde(
         &self,
         target: Uuid,
-        msg: sde::SdeRequest,
-    ) -> Result<sde::SdeResponse, ComputationError> {
+        msg: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, ComputationError> {
         let (tx_response, rx_response) = oneshot::channel();
         if let Some(tx_sde) = self
             .tracker
@@ -345,10 +353,11 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn get_sources(&self) -> Result<Vec<SourceDefinition>, ComputationError> {
+    pub async fn get_sources(&self) -> Result<stypes::Sources, ComputationError> {
         self.state
             .get_sources_definitions()
             .await
+            .map(|v| v.into())
             .map_err(ComputationError::NativeError)
     }
 
@@ -501,17 +510,19 @@ impl Session {
             .map_err(|e| ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn get_attachments(&self) -> Result<Vec<AttachmentInfo>, ComputationError> {
+    pub async fn get_attachments(&self) -> Result<stypes::AttachmentList, ComputationError> {
         self.state
             .get_attachments()
             .await
+            .map(|v| v.into())
             .map_err(ComputationError::NativeError)
     }
 
-    pub async fn get_indexed_ranges(&self) -> Result<Vec<RangeInclusive<u64>>, ComputationError> {
+    pub async fn get_indexed_ranges(&self) -> Result<stypes::Ranges, ComputationError> {
         self.state
             .get_indexed_ranges()
             .await
+            .map(|v| v.into())
             .map_err(ComputationError::NativeError)
     }
 

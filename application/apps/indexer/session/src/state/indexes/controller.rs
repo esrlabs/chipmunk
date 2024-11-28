@@ -1,8 +1,4 @@
 use super::{frame::Frame, map::Map, nature::Nature};
-use crate::{
-    events::{CallbackEvent, NativeError},
-    state::GrabbedElement,
-};
 use log::error;
 use processor::map::FilterMatch;
 use std::ops::RangeInclusive;
@@ -22,11 +18,11 @@ pub enum Mode {
 pub struct Controller {
     map: Map,
     mode: Mode,
-    tx_callback_events: Option<UnboundedSender<CallbackEvent>>,
+    tx_callback_events: Option<UnboundedSender<stypes::CallbackEvent>>,
 }
 
 impl Controller {
-    pub(crate) fn new(tx_callback_events: Option<UnboundedSender<CallbackEvent>>) -> Self {
+    pub(crate) fn new(tx_callback_events: Option<UnboundedSender<stypes::CallbackEvent>>) -> Self {
         Self {
             map: Map::new(),
             mode: Mode::Regular,
@@ -34,7 +30,7 @@ impl Controller {
         }
     }
 
-    pub(crate) fn set_mode(&mut self, mode: Mode) -> Result<(), NativeError> {
+    pub(crate) fn set_mode(&mut self, mode: Mode) -> Result<(), stypes::NativeError> {
         if self.mode == mode {
             return Ok(());
         }
@@ -57,7 +53,7 @@ impl Controller {
         Ok(())
     }
 
-    pub(crate) fn add_bookmark(&mut self, row: u64) -> Result<(), NativeError> {
+    pub(crate) fn add_bookmark(&mut self, row: u64) -> Result<(), stypes::NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map.breadcrumbs_insert_and_update(
                 &[row],
@@ -72,7 +68,7 @@ impl Controller {
         Ok(())
     }
 
-    pub(crate) fn remove_bookmark(&mut self, row: u64) -> Result<(), NativeError> {
+    pub(crate) fn remove_bookmark(&mut self, row: u64) -> Result<(), stypes::NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map
                 .breadcrumbs_drop_and_update(&[row], Nature::BOOKMARK)?;
@@ -84,7 +80,7 @@ impl Controller {
         Ok(())
     }
 
-    pub(crate) fn set_bookmarks(&mut self, rows: Vec<u64>) -> Result<(), NativeError> {
+    pub(crate) fn set_bookmarks(&mut self, rows: Vec<u64>) -> Result<(), stypes::NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map
                 .breadcrumbs_drop_and_update(&rows, Nature::BOOKMARK)?;
@@ -102,7 +98,7 @@ impl Controller {
         Ok(())
     }
 
-    pub(crate) fn set_stream_len(&mut self, len: u64) -> Result<(), NativeError> {
+    pub(crate) fn set_stream_len(&mut self, len: u64) -> Result<(), stypes::NativeError> {
         self.map.set_stream_len(
             len,
             MIN_BREADCRUMBS_DISTANCE,
@@ -113,7 +109,7 @@ impl Controller {
         Ok(())
     }
 
-    pub(crate) fn drop_search(&mut self) -> Result<(), NativeError> {
+    pub(crate) fn drop_search(&mut self) -> Result<(), stypes::NativeError> {
         self.map.clean(
             Nature::SEARCH
                 .union(Nature::BREADCRUMB)
@@ -130,7 +126,7 @@ impl Controller {
     pub(crate) fn set_search_results(
         &mut self,
         matches: &[FilterMatch],
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         self.map.clean(
             Nature::SEARCH
                 .union(Nature::BREADCRUMB)
@@ -149,7 +145,7 @@ impl Controller {
     pub(crate) fn append_search_results(
         &mut self,
         matches: &[FilterMatch],
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map.breadcrumbs_insert_and_update(
                 &matches.iter().map(|f| f.index).collect::<Vec<u64>>(),
@@ -170,11 +166,11 @@ impl Controller {
     pub(crate) fn get_around_indexes(
         &mut self,
         position: &u64,
-    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         self.map.get_around_indexes(position)
     }
 
-    pub(crate) fn naturalize(&self, elements: &mut [GrabbedElement]) {
+    pub(crate) fn naturalize(&self, elements: &mut [stypes::GrabbedElement]) {
         self.map.naturalize(elements);
     }
 
@@ -183,13 +179,16 @@ impl Controller {
         seporator: u64,
         offset: u64,
         above: bool,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         self.map.breadcrumbs_expand(seporator, offset, above)?;
         self.notify();
         Ok(())
     }
 
-    pub(crate) fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
+    pub(crate) fn frame(
+        &mut self,
+        range: &mut RangeInclusive<u64>,
+    ) -> Result<Frame, stypes::NativeError> {
         self.map.frame(range)
     }
 
@@ -208,7 +207,7 @@ impl Controller {
 
     fn notify(&self) {
         if let Some(tx) = self.tx_callback_events.as_ref() {
-            if let Err(err) = tx.send(CallbackEvent::IndexedMapUpdated {
+            if let Err(err) = tx.send(stypes::CallbackEvent::IndexedMapUpdated {
                 len: self.map.len() as u64,
             }) {
                 error!("Fail to send indexed map notification: {err:?}");

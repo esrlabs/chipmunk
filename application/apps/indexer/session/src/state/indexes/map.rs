@@ -1,9 +1,4 @@
 use super::{frame::Frame, keys::Keys, nature::Nature};
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    progress::Severity,
-    state::GrabbedElement,
-};
 use log::error;
 use rustc_hash::FxHashMap;
 use std::{cmp, ops::RangeInclusive};
@@ -134,7 +129,7 @@ impl Map {
         self.insert(&positions, nature);
     }
 
-    fn remove_from(&mut self, position: &u64) -> Result<(), NativeError> {
+    fn remove_from(&mut self, position: &u64) -> Result<(), stypes::NativeError> {
         let removed = self.keys.remove_from(position)?;
         removed.iter().for_each(|position| {
             self.indexes.remove(position);
@@ -173,7 +168,7 @@ impl Map {
         self.indexes_remove(&mut to_be_removed);
     }
 
-    pub fn naturalize(&self, elements: &mut [GrabbedElement]) {
+    pub fn naturalize(&self, elements: &mut [stypes::GrabbedElement]) {
         elements.iter_mut().for_each(|el| {
             if let Some(nature) = self.indexes.get(&(el.pos as u64)) {
                 el.set_nature(nature.bits());
@@ -186,7 +181,7 @@ impl Map {
     pub fn get_around_indexes(
         &mut self,
         position: &u64,
-    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         self.keys.get_positions_around(position)
     }
 
@@ -195,13 +190,13 @@ impl Map {
         range: RangeInclusive<u64>,
         min_distance: u64,
         min_offset: u64,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let start_pos = *range.start();
         let end_pos = *range.end();
         if end_pos >= self.stream_len {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Out of range. Invalid index: {end_pos}. Map len: {};",
                     self.indexes.len()
@@ -252,7 +247,7 @@ impl Map {
         &mut self,
         min_distance: u64,
         min_offset: u64,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         self.clean(Nature::BREADCRUMB);
         self.clean(Nature::BREADCRUMB_SEPORATOR);
         self.clean(Nature::EXPANDED);
@@ -263,9 +258,9 @@ impl Map {
         if keys.is_empty() {
             return Ok(());
         }
-        let first_postion = *self.keys.first().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+        let first_postion = *self.keys.first().ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(String::from(
                 "Keys vector is empty. Cannot extract first position",
             )),
@@ -278,9 +273,9 @@ impl Map {
         for pair in keys.windows(2) {
             let [from, to]: [u64; 2] = pair.try_into().unwrap();
             if from >= to {
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
                     message: Some(format!("Map map is broken. Fail to compare previous and next elements. Prev: {from}; next: {to}",)),
                 });
             }
@@ -290,9 +285,9 @@ impl Map {
                 min_offset,
             )?;
         }
-        let last_position = *self.keys.last().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+        let last_position = *self.keys.last().ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(String::from(
                 "Keys vector is empty. Cannot extract last position",
             )),
@@ -311,14 +306,14 @@ impl Map {
         nature: Nature,
         min_distance: u64,
         min_offset: u64,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         if self.stream_len == 0 {
             return Ok(());
         }
         if nature.is_breadcrumb() || nature.is_seporator() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(String::from("Cannot insert Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR to modify indexed map")),
             });
         }
@@ -359,23 +354,23 @@ impl Map {
         &mut self,
         positions: &[u64],
         nature: Nature,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         if self.stream_len == 0 {
             return Ok(());
         }
         for position in positions.iter() {
             if let Some(index) = self.indexes.get_mut(position) {
                 if !index.contains(&nature) {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
+                    return Err(stypes::NativeError {
+                        severity: stypes::Severity::ERROR,
+                        kind: stypes::NativeErrorKind::Grabber,
                         message: Some(format!("Index doesn't include target nature {nature:?}")),
                     });
                 }
                 if index.cross(Nature::BREADCRUMB.union(Nature::BREADCRUMB_SEPORATOR)) {
-                    return Err(NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Grabber,
+                    return Err(stypes::NativeError {
+                        severity: stypes::Severity::ERROR,
+                        kind: stypes::NativeErrorKind::Grabber,
                         message: Some(String::from("Cannot drop Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR | Nature::Search to modify indexed map")),
                     });
                 }
@@ -383,9 +378,9 @@ impl Map {
                     index.set_if_cross(Nature::EXPANDED, Nature::BREADCRUMB);
                 }
             } else {
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
                     message: Some(String::from("Fail to find Index for position {position}")),
                 });
             }
@@ -399,7 +394,7 @@ impl Map {
         to: u64,
         min_distance: u64,
         min_offset: u64,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         self.remove_if(from, Nature::BREADCRUMB);
         self.remove_if(to, Nature::BREADCRUMB);
         // If we already have breadcrumbs, which was expanded before by user, we don't need
@@ -458,16 +453,16 @@ impl Map {
         seporator: u64,
         offset: u64,
         above: bool,
-    ) -> Result<(), NativeError> {
-        let sep_index = self.indexes.get(&seporator).ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+    ) -> Result<(), stypes::NativeError> {
+        let sep_index = self.indexes.get(&seporator).ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(format!("Index {seporator} cannot be found.",)),
         })?;
         if !sep_index.is_seporator() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Index {seporator} isn't Nature::BREADCRUMB_SEPORATOR.",
                 )),
@@ -475,9 +470,9 @@ impl Map {
         }
         let (before, after) = self.get_arround_positions(&seporator)?;
         if before.is_none() && after.is_none() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Fail to find indexes around Nature::BREADCRUMB_SEPORATOR on {seporator}"
                 )),
@@ -504,9 +499,9 @@ impl Map {
             };
             if update_after <= update_before {
                 // Some error during calculation
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
                     message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
                 });
             } else if update_after - update_before > 1 {
@@ -523,9 +518,9 @@ impl Map {
             );
             if seporator <= updated {
                 // Some error during calculation
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
                     message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
                 });
             } else if seporator - updated > 1 {
@@ -542,9 +537,9 @@ impl Map {
             );
             if seporator <= updated {
                 // Some error during calculation
-                return Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Grabber,
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
                     message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
                 });
             } else if seporator - updated > 1 {
@@ -555,7 +550,7 @@ impl Map {
         Ok(())
     }
 
-    fn breadcrumbs_drop_before(&mut self, from: u64) -> Result<Option<u64>, NativeError> {
+    fn breadcrumbs_drop_before(&mut self, from: u64) -> Result<Option<u64>, stypes::NativeError> {
         let mut cursor: usize = self.keys.get_index(&from)?;
         let mut to_drop: Vec<u64> = vec![];
         let mut before: Option<u64> = None;
@@ -577,7 +572,7 @@ impl Map {
         Ok(before)
     }
 
-    fn breadcrumbs_drop_after(&mut self, from: u64) -> Result<Option<u64>, NativeError> {
+    fn breadcrumbs_drop_after(&mut self, from: u64) -> Result<Option<u64>, stypes::NativeError> {
         let len = self.indexes.keys().len();
         let mut cursor: usize = self.keys.get_index(&from)?;
         let mut to_drop: Vec<u64> = vec![];
@@ -604,7 +599,7 @@ impl Map {
     fn get_arround_positions(
         &mut self,
         position: &u64,
-    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         let mut before: Option<u64> = None;
         let mut after: Option<u64> = None;
         let len = self.indexes.keys().len();
@@ -623,12 +618,12 @@ impl Map {
         from_key_index: usize,
         filter: Nature,
         walk_down: bool,
-    ) -> Result<Option<(&u64, &Nature)>, NativeError> {
+    ) -> Result<Option<(&u64, &Nature)>, stypes::NativeError> {
         let len = self.indexes.keys().len();
         if from_key_index >= len {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Target from-key-index {from_key_index} is out of keys(); keys().len = {len}",
                 )),
@@ -691,7 +686,7 @@ impl Map {
         min_distance: u64,
         min_offset: u64,
         update_breadcrumbs: bool,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         self.stream_len = len;
         if self.stream_len == 0 {
             self.indexes.clear();
@@ -699,9 +694,9 @@ impl Map {
             return Ok(());
         }
         if update_breadcrumbs {
-            let last_postion = *self.keys.last().ok_or(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            let last_postion = *self.keys.last().ok_or(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(String::from(
                     "Keys vector is empty. Cannot extract last position",
                 )),
@@ -737,11 +732,11 @@ impl Map {
         self.len() == 0
     }
 
-    pub fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, NativeError> {
+    pub fn frame(&mut self, range: &mut RangeInclusive<u64>) -> Result<Frame, stypes::NativeError> {
         if range.end() >= &(self.indexes.len() as u64) {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Out of range. Map len: {}; requested: {range:?}",
                     self.indexes.len()
@@ -752,9 +747,9 @@ impl Map {
         let mut frame = Frame::new();
         for index in range {
             let position = self.keys.get_position(index as usize)?;
-            let nature = self.indexes.get(&position).ok_or(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            let nature = self.indexes.get(&position).ok_or(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!("Cannot find nature for {position}")),
             })?;
             frame.insert((position, *nature));

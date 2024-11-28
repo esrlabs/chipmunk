@@ -1,8 +1,6 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     handlers::observing,
     operations::{OperationAPI, OperationResult},
-    progress::Severity,
     state::SessionStateAPI,
 };
 use log::error;
@@ -30,9 +28,9 @@ pub async fn start_observing(
                 state.get_session_file_origin().await?,
             );
             match session_file_origin {
-                Some(origin) if origin.is_linked() => Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Configuration,
+                Some(origin) if origin.is_linked() => Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Configuration,
                     message: Some(String::from(
                         "Cannot observe file, because session is linked to other text file",
                     )),
@@ -63,9 +61,9 @@ pub async fn start_observing(
         }
         ObserveOrigin::Concat(files) => {
             if files.is_empty() {
-                Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Configuration,
+                Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Configuration,
                     message: Some(String::from("No files are defined for Concat operation")),
                 })
             } else {

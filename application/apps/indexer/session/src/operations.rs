@@ -1,9 +1,5 @@
 use crate::{
-    events::{CallbackEvent, ComputationError, NativeError, NativeErrorKind, OperationDone},
-    handlers,
-    progress::Severity,
-    state::SessionStateAPI,
-    tracker::OperationTrackerAPI,
+    events::ComputationError, handlers, state::SessionStateAPI, tracker::OperationTrackerAPI,
 };
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
@@ -170,11 +166,11 @@ impl std::fmt::Display for OperationKind {
 #[derive(Debug, Serialize, Clone)]
 pub struct NoOperationResults;
 
-pub type OperationResult<T> = Result<Option<T>, NativeError>;
+pub type OperationResult<T> = Result<Option<T>, stypes::NativeError>;
 
 #[derive(Clone)]
 pub struct OperationAPI {
-    tx_callback_events: UnboundedSender<CallbackEvent>,
+    tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
     operation_id: Uuid,
     state_api: SessionStateAPI,
     tracker_api: OperationTrackerAPI,
@@ -188,7 +184,7 @@ impl OperationAPI {
     pub fn new(
         state_api: SessionStateAPI,
         tracker_api: OperationTrackerAPI,
-        tx_callback_events: UnboundedSender<CallbackEvent>,
+        tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
         operation_id: Uuid,
         cancellation_token: CancellationToken,
     ) -> Self {
@@ -210,7 +206,7 @@ impl OperationAPI {
         self.done_token.clone()
     }
 
-    pub fn emit(&self, event: CallbackEvent) {
+    pub fn emit(&self, event: stypes::CallbackEvent) {
         let event_log = format!("{event:?}");
         if let Err(err) = self.tx_callback_events.send(event) {
             error!("Fail to send event {}; error: {}", event_log, err)
@@ -218,11 +214,11 @@ impl OperationAPI {
     }
 
     pub fn started(&self) {
-        self.emit(CallbackEvent::OperationStarted(self.id()));
+        self.emit(stypes::CallbackEvent::OperationStarted(self.id()));
     }
 
     pub fn processing(&self) {
-        self.emit(CallbackEvent::OperationProcessing(self.id()));
+        self.emit(stypes::CallbackEvent::OperationProcessing(self.id()));
     }
 
     pub async fn finish<T>(&self, result: OperationResult<T>, alias: &str)
@@ -233,21 +229,23 @@ impl OperationAPI {
             Ok(result) => {
                 if let Some(result) = result.as_ref() {
                     match serde_json::to_string(result) {
-                        Ok(serialized) => CallbackEvent::OperationDone(OperationDone {
+                        Ok(serialized) => {
+                            stypes::CallbackEvent::OperationDone(stypes::OperationDone {
+                                uuid: self.operation_id,
+                                result: Some(serialized),
+                            })
+                        }
+                        Err(err) => stypes::CallbackEvent::OperationError {
                             uuid: self.operation_id,
-                            result: Some(serialized),
-                        }),
-                        Err(err) => CallbackEvent::OperationError {
-                            uuid: self.operation_id,
-                            error: NativeError {
-                                severity: Severity::ERROR,
-                                kind: NativeErrorKind::ComputationFailed,
+                            error: stypes::NativeError {
+                                severity: stypes::Severity::ERROR,
+                                kind: stypes::NativeErrorKind::ComputationFailed,
                                 message: Some(format!("{err}")),
                             },
                         },
                     }
                 } else {
-                    CallbackEvent::OperationDone(OperationDone {
+                    stypes::CallbackEvent::OperationDone(stypes::OperationDone {
                         uuid: self.operation_id,
                         result: None,
                     })
@@ -258,7 +256,7 @@ impl OperationAPI {
                     "Operation {} done with error: {:?}",
                     self.operation_id, error
                 );
-                CallbackEvent::OperationError {
+                stypes::CallbackEvent::OperationError {
                     uuid: self.operation_id,
                     error,
                 }
@@ -284,7 +282,7 @@ impl OperationAPI {
         operation: Operation,
         tx_sde: Option<SdeSender>,
         rx_sde: Option<SdeReceiver>,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let added = self
             .tracker_api
             .add_operation(
@@ -296,9 +294,9 @@ impl OperationAPI {
             )
             .await?;
         if !added {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::ComputationFailed,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::ComputationFailed,
                 message: Some(format!("Operation {} already exists", self.id())),
             });
         }
@@ -429,9 +427,9 @@ impl OperationAPI {
                                 .await;
                         } else {
                             api.finish::<OperationResult<()>>(
-                                Err(NativeError {
-                                    severity: Severity::WARNING,
-                                    kind: NativeErrorKind::Io,
+                                Err(stypes::NativeError {
+                                    severity: stypes::Severity::WARNING,
+                                    kind: stypes::NativeErrorKind::Io,
                                     message: Some(format!(
                                         "Fail to cancel operation {target}; operation isn't found"
                                     )),
@@ -443,9 +441,9 @@ impl OperationAPI {
                     }
                     Err(err) => {
                         api.finish::<OperationResult<()>>(
-                            Err(NativeError {
-                                severity: Severity::WARNING,
-                                kind: NativeErrorKind::Io,
+                            Err(stypes::NativeError {
+                                severity: stypes::Severity::WARNING,
+                                kind: stypes::NativeErrorKind::Io,
                                 message: Some(format!(
                                     "Fail to cancel operation {target}; error: {err:?}"
                                 )),
@@ -488,7 +486,7 @@ pub async fn run(
     mut rx_operations: UnboundedReceiver<Operation>,
     state_api: SessionStateAPI,
     tracker_api: OperationTrackerAPI,
-    tx_callback_events: UnboundedSender<CallbackEvent>,
+    tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
 ) {
     debug!("task is started");
     while let Some(operation) = rx_operations.recv().await {
@@ -508,7 +506,7 @@ pub async fn run(
                     (None, None)
                 };
             if let Err(err) = operation_api.execute(operation, tx_sde, rx_sde).await {
-                operation_api.emit(CallbackEvent::OperationError {
+                operation_api.emit(stypes::CallbackEvent::OperationError {
                     uuid: operation_api.id(),
                     error: err,
                 });

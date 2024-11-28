@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::RangeInclusive};
+
 pub struct MappedRanges<'a> {
     ranges: Vec<&'a (RangeInclusive<u64>, u16)>,
 }
@@ -18,12 +18,6 @@ impl<'a> MappedRanges<'a> {
             }
         })
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SourceDefinition {
-    pub id: u16,
-    pub alias: String,
 }
 
 #[derive(Debug)]
@@ -81,14 +75,14 @@ impl SourceIDs {
         }
     }
 
-    pub fn get_sources_definitions(&self) -> Vec<SourceDefinition> {
+    pub fn get_sources_definitions(&self) -> Vec<stypes::SourceDefinition> {
         self.sources
             .iter()
-            .map(|(id, alias)| SourceDefinition {
+            .map(|(id, alias)| stypes::SourceDefinition {
                 id: *id,
                 alias: alias.to_string(),
             })
-            .collect::<Vec<SourceDefinition>>()
+            .collect::<Vec<stypes::SourceDefinition>>()
     }
 
     pub fn add_range(&mut self, range: RangeInclusive<u64>, source_id: u16) {

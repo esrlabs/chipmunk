@@ -14,14 +14,12 @@ use std::sync::Mutex;
 pub use sources::factory;
 use tokio::sync::mpsc;
 
-use crate::events::LifecycleTransition;
-
 extern crate lazy_static;
 
 lazy_static::lazy_static! {
     pub static ref TRACKER_CHANNEL: Mutex<(
-        mpsc::UnboundedSender<LifecycleTransition>,
-        Option<mpsc::UnboundedReceiver<LifecycleTransition>>
+        mpsc::UnboundedSender<stypes::LifecycleTransition>,
+        Option<mpsc::UnboundedReceiver<stypes::LifecycleTransition>>
     )> = {
         let (tx, rx) = mpsc::unbounded_channel();
         Mutex::new((tx, Some(rx)))

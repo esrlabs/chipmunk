@@ -1,8 +1,3 @@
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    progress::Severity,
-};
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Nature(u8);
 impl Nature {
@@ -18,12 +13,12 @@ impl Nature {
 }
 
 impl TryFrom<u8> for Nature {
-    type Error = NativeError;
+    type Error = stypes::NativeError;
     fn try_from(n: u8) -> Result<Self, Self::Error> {
         if 0b00111100 & n > 0 {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Invalid index of Nature u8: {}",
                     Self::as_string(n)

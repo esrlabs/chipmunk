@@ -1,7 +1,3 @@
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    progress::Severity,
-};
 use std::ops::RangeInclusive;
 
 #[derive(Debug)]
@@ -66,16 +62,16 @@ impl Keys {
         Ok(())
     }
 
-    pub fn remove_from(&mut self, position_from: &u64) -> Result<Vec<u64>, NativeError> {
+    pub fn remove_from(&mut self, position_from: &u64) -> Result<Vec<u64>, stypes::NativeError> {
         self.sort();
-        let from_index = self
-            .keys
-            .binary_search(position_from)
-            .map_err(|_| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
-                message: Some(format!("Cannot find index for position: {position_from}")),
-            })?;
+        let from_index =
+            self.keys
+                .binary_search(position_from)
+                .map_err(|_| stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
+                    message: Some(format!("Cannot find index for position: {position_from}")),
+                })?;
         if from_index + 1 < self.keys.len() {
             Ok(self.keys.drain((from_index + 1)..self.keys.len()).collect())
         } else {
@@ -100,19 +96,21 @@ impl Keys {
         self.sorted = false;
     }
 
-    pub fn get_index(&mut self, position: &u64) -> Result<usize, NativeError> {
+    pub fn get_index(&mut self, position: &u64) -> Result<usize, stypes::NativeError> {
         self.sort();
-        self.keys.binary_search(position).map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(format!("Cannot find index for position: {position}")),
-        })
+        self.keys
+            .binary_search(position)
+            .map_err(|_| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
+                message: Some(format!("Cannot find index for position: {position}")),
+            })
     }
 
-    pub fn get_position(&self, index: usize) -> Result<u64, NativeError> {
-        self.keys.get(index).copied().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+    pub fn get_position(&self, index: usize) -> Result<u64, stypes::NativeError> {
+        self.keys.get(index).copied().ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(format!("Cannot find position for index: {index}")),
         })
     }
@@ -120,15 +118,18 @@ impl Keys {
     pub fn get_positions_around(
         &mut self,
         position: &u64,
-    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         let mut before: Option<u64> = None;
         let mut after: Option<u64> = None;
         self.sort();
-        let key = self.keys.binary_search(position).map_err(|_| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(format!("Cannot index for position: {position}")),
-        })?;
+        let key = self
+            .keys
+            .binary_search(position)
+            .map_err(|_| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
+                message: Some(format!("Cannot index for position: {position}")),
+            })?;
         if key > 0 {
             before = Some(self.keys[key - 1]);
         }
