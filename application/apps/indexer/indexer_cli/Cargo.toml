@@ -27,3 +27,4 @@ serde_json.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-util = { workspace = true, features = ["codec", "net"] }
 uuid.workspace = true
+stypes = { path = "../stypes", features=["rustcore"] }

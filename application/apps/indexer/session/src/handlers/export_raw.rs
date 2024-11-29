@@ -13,7 +13,6 @@ use sources::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
         raw::BinaryByteSource,
     },
-    factory::{FileFormat, ParserType},
     producer::MessageProducer,
     ByteSource,
 };
@@ -76,8 +75,8 @@ pub async fn execute_export(
 async fn assing_source(
     src: &PathBuf,
     dest: &Path,
-    parser: &ParserType,
-    file_format: &FileFormat,
+    parser: &stypes::ParserType,
+    file_format: &stypes::FileFormat,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
     cancel: &CancellationToken,
@@ -88,7 +87,7 @@ async fn assing_source(
         message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
     })?;
     match file_format {
-        FileFormat::Binary | FileFormat::Text => {
+        stypes::FileFormat::Binary | stypes::FileFormat::Text => {
             export(
                 dest,
                 parser,
@@ -99,7 +98,7 @@ async fn assing_source(
             )
             .await
         }
-        FileFormat::PcapNG => {
+        stypes::FileFormat::PcapNG => {
             export(
                 dest,
                 parser,
@@ -110,7 +109,7 @@ async fn assing_source(
             )
             .await
         }
-        FileFormat::PcapLegacy => {
+        stypes::FileFormat::PcapLegacy => {
             export(
                 dest,
                 parser,
@@ -126,14 +125,14 @@ async fn assing_source(
 
 async fn export<S: ByteSource>(
     dest: &Path,
-    parser: &ParserType,
+    parser: &stypes::ParserType,
     source: S,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, stypes::NativeError> {
     match parser {
-        ParserType::SomeIp(settings) => {
+        stypes::ParserType::SomeIp(settings) => {
             let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
                 SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
             } else {
@@ -150,7 +149,7 @@ async fn export<S: ByteSource>(
             )
             .await
         }
-        ParserType::Dlt(settings) => {
+        stypes::ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
@@ -170,7 +169,7 @@ async fn export<S: ByteSource>(
             )
             .await
         }
-        ParserType::Text => {
+        stypes::ParserType::Text(()) => {
             let mut producer = MessageProducer::new(StringTokenizer {}, source, None);
             export_runner(
                 Box::pin(producer.as_stream()),

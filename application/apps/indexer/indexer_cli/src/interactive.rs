@@ -4,11 +4,7 @@ use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use session::session::Session;
-use sources::{
-    factory::{DltParserSettings, FileFormat, ObserveOptions, ParserType},
-    producer::MessageProducer,
-    socket::udp::UdpSource,
-};
+use sources::{producer::MessageProducer, socket::udp::UdpSource};
 use std::path::PathBuf;
 use tokio_util::sync::CancellationToken;
 
@@ -88,15 +84,15 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
-                        session.observe(uuid, ObserveOptions::file(file_path.clone(),FileFormat::Text, ParserType::Text)).expect("observe failed");
+                        session.observe(uuid, stypes::ObserveOptions::file(file_path.clone(),stypes::FileFormat::Text, stypes::ParserType::Text(()))).expect("observe failed");
                     }
                     Some(Command::Dlt) => {
                         println!("dlt command received");
                         start = Instant::now();
                         let uuid = Uuid::new_v4();
                         let file_path = input.clone().expect("input must be present");
-                        let dlt_parser_settings = DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, tz: None, fibex_metadata: None };
-                        session.observe(uuid, ObserveOptions::file(file_path.clone(), FileFormat::Binary, ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
+                        let dlt_parser_settings = stypes::DltParserSettings { filter_config: None, fibex_file_paths: None, with_storage_header: true, tz: None, fibex_metadata: None };
+                        session.observe(uuid, stypes::ObserveOptions::file(file_path.clone(), stypes::FileFormat::Binary, stypes::ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
                         println!("dlt session was destroyed");
                     }
                     Some(Command::Grab) => {
