@@ -19,34 +19,60 @@ pub mod __internal_bindings {
     });
 }
 
-use std::path::PathBuf;
-
 // External exports for users
 pub use __internal_bindings::chipmunk::plugin::{
-    bytesource_types::{InputSource, SocketInfo, SourceConfig, SourceError},
+    bytesource_types::{SourceConfig, SourceError},
     logging::Level,
-    shared_types::InitError,
+    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError},
 };
+
+impl ConfigSchemaItem {
+    pub fn new<S: Into<String>>(
+        id: S,
+        title: S,
+        description: Option<S>,
+        input_type: ConfigSchemaType,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            title: title.into(),
+            description: description.map(|d| d.into()),
+            input_type,
+        }
+    }
+}
 
 /// Trait representing a bytesource for Chipmunk plugins. Types that need to be
 /// exported as bytesource plugins for use within Chipmunk must implement this trait.
 pub trait ByteSource {
+    /// Provides the schemas for the configurations required by the plugin, which
+    /// must be specified by the users.
+    ///
+    /// These schemas define the expected structure, types, and constraints
+    /// for plugin-specific configurations. The values of these configurations
+    /// will be passed to the [`ByteSource::create()`] method for initializing the byte source.
+    ///
+    /// # Returns
+    ///
+    /// A `Vec` of [`ConfigSchemaItem`] objects, where each item represents
+    /// a schema for a specific plugin configuration.
+    fn get_config_schemas() -> Vec<ConfigSchemaItem>;
+
     /// Creates an instance of the bytesource. This method initializes the bytesource,
     /// configuring it with the provided settings and preparing it to provide bytes to Chipmunk.
     ///
     /// # Parameters
     ///
-    /// * `input-source` - Source of the input to be used in the bytesource plugin.
     /// * `general_configs` - General configurations that apply to all bytesource plugins.
-    /// * `config_path` - Optional path to a custom configuration file specific to this plugin.
+    /// * `plugins_configs` - Plugin-specific configurations, with their schemas provided
+    ///   in [`ByteSource::get_config_schemas()`] method.
     ///
     /// # Returns
     ///
     /// A `Result` containing an instance of the implementing type on success, or an `InitError` on failure.
     fn create(
-        input_source: InputSource,
         general_configs: SourceConfig,
-        config_path: Option<PathBuf>,
+        plugins_configs: Vec<ConfigItem>,
     ) -> Result<Self, InitError>
     where
         Self: Sized;
@@ -73,16 +99,18 @@ pub trait ByteSource {
 /// ```
 /// # use plugins_api::bytesource::*;
 /// # use plugins_api::*;
-/// # use std::path::PathBuf;
 ///
 /// struct CustomByteSoruce;
 ///
 /// impl ByteSource for CustomByteSoruce {
 ///   // ... //
+///  #    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+///  #        vec![]
+///  #    }
+///  #
 ///  #    fn create(
-///  #        _input_source: InputSource,
 ///  #        _general_configs: SourceConfig,
-///  #        _config_path: Option<PathBuf>,
+///  #        _plugins_configs: Vec<ConfigItem>,
 ///  #    ) -> Result<Self, InitError>
 ///  #    where
 ///  #        Self: Sized,
@@ -90,7 +118,9 @@ pub trait ByteSource {
 ///  #        Ok(Self)
 ///  #    }
 ///  #
-///  #    fn read(&mut self, len: usize) -> Result<Vec<u8>, SourceError> { todo!() }
+///  #    fn read(&mut self, _len: usize) -> Result<Vec<u8>, SourceError> {
+///  #        Ok(vec![])
+///  #    }
 ///  }
 ///
 /// bytesource_export!(CustomByteSoruce);
@@ -114,11 +144,16 @@ macro_rules! bytesource_export {
         impl $crate::bytesource::__internal_bindings::exports::chipmunk::plugin::byte_source::Guest
             for InternalPluginByteSourceGuest
         {
+            /// Provides the schemas for the configurations needed by the plugin to
+            /// be specified by the users.
+            fn get_config_schemas() -> ::std::vec::Vec<$crate::bytesource::ConfigSchemaItem> {
+                <$par as $crate::bytesource::ByteSource>::get_config_schemas()
+            }
+
             /// Initialize the bytesource with the given configurations
             fn init(
-                input_source: $crate::bytesource::InputSource,
                 general_configs: $crate::bytesource::SourceConfig,
-                plugin_configs: ::std::option::Option<::std::string::String>,
+                plugin_configs: ::std::vec::Vec<$crate::bytesource::ConfigItem>,
             ) -> ::std::result::Result<(), $crate::bytesource::InitError> {
                 // Logger initialization
                 let level = $crate::log::Level::from(general_configs.log_level);
@@ -128,9 +163,8 @@ macro_rules! bytesource_export {
 
                 // Initializing the given bytesource
                 let source = <$par as $crate::bytesource::ByteSource>::create(
-                    input_source,
                     general_configs,
-                    plugin_configs.map(|path| path.into()),
+                    plugin_configs,
                 )?;
                 // SAFETY: Initializing the bytesource happens once only on the host
                 unsafe {
@@ -168,10 +202,13 @@ mod prototyping {
     struct Dummy;
 
     impl ByteSource for Dummy {
+        fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+            todo!()
+        }
+
         fn create(
-            _input_source: InputSource,
             _general_configs: SourceConfig,
-            _config_path: Option<PathBuf>,
+            _plugins_configs: Vec<ConfigItem>,
         ) -> Result<Self, InitError>
         where
             Self: Sized,

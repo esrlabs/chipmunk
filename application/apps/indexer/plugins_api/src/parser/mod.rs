@@ -117,7 +117,6 @@ impl ParseReturn {
 /// ```
 /// # use plugins_api::parser::*;
 /// # use plugins_api::*;
-/// # use std::path::PathBuf;
 ///
 /// struct CustomParser;
 ///
