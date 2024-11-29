@@ -56,7 +56,7 @@ interface parser {
   use parse-types.{parser-config, parse-return, parse-error};
 
   /// Provides the schemas for the configurations required by the plugin, which
-  /// must be specified by the users.
+  /// will be specified by the users.
   ///
   /// These schemas define the expected structure, types, and constraints
   /// for plugin-specific configurations. The values of these configurations

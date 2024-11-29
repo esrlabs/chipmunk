@@ -5,7 +5,7 @@ use sources::plugins as pl;
 
 use crate::PluginHostInitError;
 
-pub mod plugin_init_error;
+pub mod plugin_errors;
 
 /// Creates [`WasiCtxBuilder`] with shared configurations, giving the plugin read access to
 /// their configuration files' directories.
