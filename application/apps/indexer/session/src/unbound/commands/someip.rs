@@ -1,10 +1,9 @@
-use super::CommandOutcome;
 use crate::unbound::signal::Signal;
 
 pub fn get_someip_statistic(
     _files: Vec<String>,
     _signal: Signal,
-) -> Result<CommandOutcome<String>, stypes::ComputationError> {
+) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
     Err(stypes::ComputationError::OperationNotSupported(
         "NYI".into(),
     ))
@@ -37,9 +36,9 @@ pub fn get_someip_statistic(
     // }
     // if signal.is_cancelling() {
     //     warn!("Operation of geting statistic for: {files:?} has been cancelled");
-    //     return Ok(CommandOutcome::Cancelled);
+    //     return Ok(stypes::CommandOutcome::Cancelled);
     // }
-    // Ok(CommandOutcome::Finished(
+    // Ok(stypes::CommandOutcome::Finished(
     //     serde_json::to_string(&statistic)
     //         .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?,
     // ))

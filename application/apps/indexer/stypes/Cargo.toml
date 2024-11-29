@@ -6,11 +6,11 @@ edition = "2021"
 
 [features]
 rustcore = [
-    "tokio"
+    "tokio",
+    "walkdir"
 ]
 nodejs = [
-    "node-bindgen",
-    "paste"
+    "node-bindgen"
 ]
 
 [dependencies]
@@ -22,10 +22,10 @@ uuid = { workspace = true, features = ["serde"] }
 
 tokio = { workspace = true, optional = true }
 node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master", optional = true}
-paste = {version = "1.0", optional = true}
 thiserror.workspace = true
+walkdir = { workspace = true , optional = true}
 
 [dev-dependencies]
 tokio = { workspace = true  }
+walkdir = { workspace = true }
 node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master"  }
-paste = { version = "1.0" }

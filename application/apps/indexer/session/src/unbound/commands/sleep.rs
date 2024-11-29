@@ -1,4 +1,3 @@
-use super::CommandOutcome;
 use crate::unbound::signal::Signal;
 use tokio::time;
 
@@ -7,7 +6,7 @@ use tokio::time;
 pub async fn sleep(
     ms: u64,
     _signal: Signal,
-) -> Result<CommandOutcome<()>, stypes::ComputationError> {
+) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
     let _ = time::sleep(time::Duration::from_millis(ms)).await;
-    Ok(CommandOutcome::Finished(()))
+    Ok(stypes::CommandOutcome::Finished(()))
 }

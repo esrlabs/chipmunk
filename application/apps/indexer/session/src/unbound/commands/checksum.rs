@@ -1,4 +1,3 @@
-use super::CommandOutcome;
 use crate::unbound::signal::Signal;
 use blake3;
 use std::{
@@ -9,7 +8,7 @@ use std::{
 pub fn checksum(
     filename: &str,
     _signal: Signal,
-) -> Result<CommandOutcome<String>, stypes::ComputationError> {
+) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
     let mut file =
         File::open(filename).map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?;
     let mut hasher = blake3::Hasher::new();
@@ -24,5 +23,7 @@ pub fn checksum(
             Err(e) => return Err(stypes::ComputationError::IoOperation(e.to_string())),
         }
     }
-    Ok(CommandOutcome::Finished(hasher.finalize().to_string()))
+    Ok(stypes::CommandOutcome::Finished(
+        hasher.finalize().to_string(),
+    ))
 }
