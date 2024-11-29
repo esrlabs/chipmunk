@@ -43,17 +43,22 @@ pub async fn observe_file<'a>(
                 println!("------------------------------------------------------");
 
                 use plugins_host::*;
-                use sources::plugins;
-                let setting = plugins::PluginByteSourceSettings::prototyping(
-                    path.into(),
-                    plugins::ByteSourceInput::File(filename.into()),
-                );
+                use sources::plugins as pl;
+
+                // Hard-coded configurations for file byte-source plugin temporally.
+                const INPUT_PATH_ID: &str = "input-path";
+                let file_source_configs = vec![pl::ConfigItem::new(
+                    INPUT_PATH_ID,
+                    pl::ConfigValue::Path(filename.into()),
+                )];
+
+                let setting =
+                    pl::PluginByteSourceSettings::prototyping(path.into(), file_source_configs);
 
                 let plugin_source = PluginsByteSource::create(
                     &setting.plugin_path,
-                    setting.source_input,
                     &setting.general_settings,
-                    setting.custom_config_path.as_ref(),
+                    setting.plugin_configs.clone(),
                 )
                 .await?;
 
