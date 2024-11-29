@@ -9,8 +9,6 @@ pub mod tracker;
 pub mod unbound;
 
 use std::sync::Mutex;
-
-pub use sources::factory;
 use tokio::sync::mpsc;
 
 extern crate lazy_static;

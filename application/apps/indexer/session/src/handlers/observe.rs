@@ -4,27 +4,24 @@ use crate::{
     state::SessionStateAPI,
 };
 use log::error;
-use sources::{
-    factory::{ObserveOptions, ObserveOrigin, ParserType},
-    producer::SdeReceiver,
-};
+use sources::producer::SdeReceiver;
 
 pub async fn start_observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    mut options: ObserveOptions,
+    mut options: stypes::ObserveOptions,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
-    if let ParserType::Dlt(ref mut settings) = options.parser {
+    if let stypes::ParserType::Dlt(ref mut settings) = options.parser {
         settings.load_fibex_metadata();
     };
     if let Err(err) = state.add_executed_observe(options.clone()).await {
         error!("Fail to store observe options: {:?}", err);
     }
     match &options.origin {
-        ObserveOrigin::File(uuid, file_origin, filename) => {
+        stypes::ObserveOrigin::File(uuid, file_origin, filename) => {
             let (is_text, session_file_origin) = (
-                matches!(options.parser, ParserType::Text),
+                matches!(options.parser, stypes::ParserType::Text(())),
                 state.get_session_file_origin().await?,
             );
             match session_file_origin {
@@ -59,7 +56,7 @@ pub async fn start_observing(
                 }
             }
         }
-        ObserveOrigin::Concat(files) => {
+        stypes::ObserveOrigin::Concat(files) => {
             if files.is_empty() {
                 Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
@@ -70,7 +67,7 @@ pub async fn start_observing(
                 observing::concat::concat_files(operation_api, state, files, &options.parser).await
             }
         }
-        ObserveOrigin::Stream(uuid, transport) => {
+        stypes::ObserveOrigin::Stream(uuid, transport) => {
             observing::stream::observe_stream(
                 operation_api,
                 state,

@@ -3,10 +3,7 @@ use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
-use sources::{
-    factory::ObserveOptions,
-    producer::{SdeReceiver, SdeSender},
-};
+use sources::producer::{SdeReceiver, SdeSender};
 use std::{
     ops::RangeInclusive,
     path::PathBuf,
@@ -75,7 +72,7 @@ impl Operation {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum OperationKind {
-    Observe(ObserveOptions),
+    Observe(stypes::ObserveOptions),
     Search {
         filters: Vec<SearchFilter>,
     },

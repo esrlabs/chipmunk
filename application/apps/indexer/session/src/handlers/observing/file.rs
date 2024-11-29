@@ -3,12 +3,9 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use sources::{
-    binary::{
-        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
-        raw::BinaryByteSource,
-    },
-    factory::{FileFormat, ParserType},
+use sources::binary::{
+    pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+    raw::BinaryByteSource,
 };
 use std::{fs::File, path::Path};
 use tokio::{
@@ -21,9 +18,9 @@ pub async fn observe_file<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
-    file_format: &FileFormat,
+    file_format: &stypes::FileFormat,
     filename: &Path,
-    parser: &'a ParserType,
+    parser: &'a stypes::ParserType,
 ) -> OperationResult<()> {
     let source_id = state.add_source(uuid).await?;
     let (tx_tail, mut rx_tail): (
@@ -31,7 +28,7 @@ pub async fn observe_file<'a>(
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
     match file_format {
-        FileFormat::Binary => {
+        stypes::FileFormat::Binary => {
             let source = BinaryByteSource::new(input_file(filename)?);
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
@@ -47,7 +44,7 @@ pub async fn observe_file<'a>(
             );
             listening
         }
-        FileFormat::PcapLegacy => {
+        stypes::FileFormat::PcapLegacy => {
             let source = PcapLegacyByteSource::new(input_file(filename)?)?;
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
@@ -63,7 +60,7 @@ pub async fn observe_file<'a>(
             );
             listening
         }
-        FileFormat::PcapNG => {
+        stypes::FileFormat::PcapNG => {
             let source = PcapngByteSource::new(input_file(filename)?)?;
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),
@@ -79,7 +76,7 @@ pub async fn observe_file<'a>(
             );
             listening
         }
-        FileFormat::Text => {
+        stypes::FileFormat::Text => {
             state.set_session_file(Some(filename.to_path_buf())).await?;
             // Grab main file content
             state.update_session(source_id).await?;

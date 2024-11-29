@@ -72,8 +72,12 @@ pub enum ComputationError {
     SessionUnavailable,
     #[error("{0:?}")]
     NativeError(NativeError),
-    #[error("Grabbing content not possible: {0:?}")]
+    #[error("Grabbing content not possible: {0}")]
     Grabbing(String),
-    #[error("Sending data to source error: {0:?}")]
+    #[error("Sending data to source error: {0}")]
     Sde(String),
+    #[error("Decoding message error: {0}")]
+    Decoding(String),
+    #[error("Encoding message error: {0}")]
+    Encoding(String),
 }
