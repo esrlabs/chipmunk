@@ -1,11 +1,8 @@
-use super::events::{ComputationErrorWrapper, LifecycleTransitionWrapper};
 use log::trace;
 use node_bindgen::derive::node_bindgen;
-use session::{
-    events::ComputationError,
-    progress::{run_tracking, ProgressCommand, ProgressTrackerAPI},
-};
+use session::progress::{run_tracking, ProgressCommand, ProgressTrackerAPI};
 use std::thread;
+use stypes::LifecycleTransition;
 use tokio::{runtime::Runtime, sync::mpsc::UnboundedReceiver};
 
 struct RustProgressTracker {
@@ -25,12 +22,12 @@ impl RustProgressTracker {
     }
 
     #[node_bindgen(mt)]
-    async fn init<F: Fn(LifecycleTransitionWrapper) + Send + 'static>(
+    async fn init<F: Fn(LifecycleTransition) + Send + 'static>(
         &mut self,
         callback: F,
-    ) -> Result<(), ComputationErrorWrapper> {
+    ) -> Result<(), stypes::ComputationError> {
         let rt = Runtime::new().map_err(|e| {
-            ComputationError::Process(format!("Could not start tokio runtime: {e}"))
+            stypes::ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
         if let Some(rx_events) = self.rx_events.take() {
             let (result_tx, result_rx) = std::sync::mpsc::channel();
@@ -41,7 +38,7 @@ impl RustProgressTracker {
                         Ok(mut rx) => {
                             let _ = result_tx.send(Ok(()));
                             while let Some(progress_report) = rx.recv().await {
-                                callback(LifecycleTransitionWrapper(progress_report))
+                                callback(progress_report)
                             }
                         }
                         Err(e) => {
@@ -50,34 +47,23 @@ impl RustProgressTracker {
                     }
                 })
             });
-            result_rx
-                .recv()
-                .map_err(|_| {
-                    ComputationErrorWrapper(ComputationError::Protocol(
-                        "could not setup tracking".to_string(),
-                    ))
-                })?
-                .map_err(ComputationErrorWrapper)
+            result_rx.recv().map_err(|_| {
+                stypes::ComputationError::Protocol("could not setup tracking".to_string())
+            })?
         } else {
-            Err(ComputationErrorWrapper(ComputationError::Protocol(
+            Err(stypes::ComputationError::Protocol(
                 "Could not init progress_tracker".to_string(),
-            )))
+            ))
         }
     }
 
     #[node_bindgen]
-    async fn stats(&self) -> Result<String, ComputationErrorWrapper> {
-        self.tracker_api
-            .content()
-            .await
-            .map_err(ComputationErrorWrapper)
+    async fn stats(&self) -> Result<String, stypes::ComputationError> {
+        self.tracker_api.content().await
     }
 
     #[node_bindgen]
-    async fn destroy(&self) -> Result<(), ComputationErrorWrapper> {
-        self.tracker_api
-            .abort()
-            .await
-            .map_err(ComputationErrorWrapper)
+    async fn destroy(&self) -> Result<(), stypes::ComputationError> {
+        self.tracker_api.abort().await
     }
 }

@@ -19,3 +19,13 @@ impl From<tokio::sync::mpsc::error::SendError<CallbackEvent>> for NativeError {
         }
     }
 }
+
+impl From<ComputationError> for NativeError {
+    fn from(err: ComputationError) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(err.to_string()),
+        }
+    }
+}

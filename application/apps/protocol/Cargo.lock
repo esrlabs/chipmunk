@@ -312,6 +312,7 @@ dependencies = [
  "dlt-core",
  "extend",
  "serde",
+ "thiserror",
  "uuid",
 ]
 
