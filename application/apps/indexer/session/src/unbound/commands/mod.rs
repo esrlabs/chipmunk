@@ -12,41 +12,17 @@ mod someip;
 
 use crate::unbound::commands::someip::get_someip_statistic;
 
+use super::signal::Signal;
 use log::{debug, error};
 use processor::search::filter::SearchFilter;
-use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
-use uuid::Uuid;
-
-use super::signal::Signal;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum CommandOutcome<T> {
-    Finished(T),
-    Cancelled,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum UuidCommandOutcome<T: Serialize> {
-    Finished((Uuid, T)),
-    Cancelled(Uuid),
-}
-
-impl<T: Serialize> CommandOutcome<T> {
-    pub fn as_command_result(self, uuid: Uuid) -> UuidCommandOutcome<T> {
-        match self {
-            CommandOutcome::Cancelled => UuidCommandOutcome::Cancelled(uuid),
-            CommandOutcome::Finished(c) => UuidCommandOutcome::Finished((uuid, c)),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum Command {
     // This command is used only for testing/debug goals
     Sleep(
         u64,
-        oneshot::Sender<Result<CommandOutcome<()>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
     ),
     FolderContent(
         Vec<String>,
@@ -54,40 +30,50 @@ pub enum Command {
         usize,
         bool,
         bool,
-        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::FoldersScanningResult>, stypes::ComputationError>,
+        >,
     ),
     SpawnProcess(
         String,
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<()>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
     ),
     GetRegexError(
         SearchFilter,
-        oneshot::Sender<Result<CommandOutcome<Option<String>>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<Option<String>>, stypes::ComputationError>>,
     ),
     Checksum(
         String,
-        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
     ),
     GetDltStats(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
     ),
     GetSomeipStatistic(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
     ),
-    GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>),
-    GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>),
-    SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, stypes::ComputationError>>),
+    GetShellProfiles(
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+    ),
+    GetContextEnvvars(
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+    ),
+    SerialPortsList(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::SerialPortsList>, stypes::ComputationError>,
+        >,
+    ),
     IsFileBinary(
         String,
-        oneshot::Sender<Result<CommandOutcome<bool>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<bool>, stypes::ComputationError>>,
     ),
     CancelTest(
         i64,
         i64,
-        oneshot::Sender<Result<CommandOutcome<i64>, stypes::ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
 }
 

@@ -3,6 +3,7 @@ mod nodejs;
 
 mod attachment;
 mod callback;
+mod command;
 mod error;
 mod lf_transition;
 mod miscellaneous;
@@ -11,13 +12,14 @@ mod progress;
 
 pub use attachment::*;
 pub use callback::*;
+pub use command::*;
 pub use error::*;
 pub use lf_transition::*;
 pub use miscellaneous::*;
 pub use observe::*;
 pub use progress::*;
 
-pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};
 pub(crate) use std::{collections::HashMap, path::PathBuf};
 pub(crate) use uuid::Uuid;
 

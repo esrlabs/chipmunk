@@ -1,4 +1,4 @@
-use crate::unbound::{commands::CommandOutcome, signal::Signal};
+use crate::unbound::signal::Signal;
 use tokio::{
     select,
     time::{sleep, Duration},
@@ -8,13 +8,13 @@ pub async fn cancel_test(
     custom_arg_a: i64,
     custom_arg_b: i64,
     signal: Signal,
-) -> Result<CommandOutcome<i64>, stypes::ComputationError> {
+) -> Result<stypes::CommandOutcome<i64>, stypes::ComputationError> {
     Ok(select! {
         _ = signal.cancelled() => {
-            CommandOutcome::Cancelled
+            stypes::CommandOutcome::Cancelled
         }
         _ = sleep(Duration::from_millis(500)) => {
-            CommandOutcome::Finished(custom_arg_a + custom_arg_b)
+            stypes::CommandOutcome::Finished(custom_arg_a + custom_arg_b)
         }
     })
 }

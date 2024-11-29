@@ -4,7 +4,7 @@ use crate::{js::converting::filter::WrappedSearchFilter, logging::targets};
 use log::{debug, error, info, warn};
 use node_bindgen::{core::buffer::JSArrayBuffer, derive::node_bindgen};
 use processor::grabber::LineRange;
-use session::{factory::ObserveOptions, operations, session::Session};
+use session::{operations, session::Session};
 use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
 use stypes::GrabbedElementList;
 use tokio::{runtime::Runtime, sync::oneshot};
@@ -575,23 +575,21 @@ impl RustSession {
     async fn send_into_sde(
         &self,
         target: String,
-        msg: String,
-    ) -> Result<String, stypes::ComputationError> {
-        let request = serde_json::from_str::<stypes::SdeRequest>(&msg)
-            .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?;
+        request: JSArrayBuffer,
+    ) -> Result<stypes::SdeResponse, stypes::ComputationError> {
+        let request = stypes::SdeRequest::decode(&request.to_vec())
+            .map_err(stypes::ComputationError::Decoding)?;
         let session = self
             .session
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
-        let response = session
+        session
             .send_into_sde(operations::uuid_from_str(&target)?, request)
-            .await?;
-        Ok(serde_json::to_string(&response)
-            .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?)
+            .await
     }
 
     #[node_bindgen]
-    async fn get_attachments(&self) -> Result<String, stypes::ComputationError> {
+    async fn get_attachments(&self) -> Result<stypes::AttachmentList, stypes::ComputationError> {
         let session = self
             .session
             .as_ref()
@@ -606,12 +604,11 @@ impl RustSession {
                         stypes::ComputationError::NativeError(e),
                     )
                 })?;
-        Ok(serde_json::to_string(&attachments)
-            .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?)
+        Ok(stypes::AttachmentList(attachments))
     }
 
     #[node_bindgen]
-    async fn get_indexed_ranges(&self) -> Result<String, stypes::ComputationError> {
+    async fn get_indexed_ranges(&self) -> Result<stypes::Ranges, stypes::ComputationError> {
         let session = self
             .session
             .as_ref()
@@ -626,8 +623,7 @@ impl RustSession {
                         stypes::ComputationError::NativeError(e),
                     )
                 })?;
-        Ok(serde_json::to_string(&ranges)
-            .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?)
+        Ok(stypes::Ranges(ranges))
     }
 
     #[node_bindgen]
