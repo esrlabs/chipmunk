@@ -3385,9 +3385,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"protocol@link:../../protocol/wasm/pkg::locator=rustcore%40workspace%3A.":
+"protocol@link:../../protocol/pkg::locator=rustcore%40workspace%3A.":
   version: 0.0.0-use.local
-  resolution: "protocol@link:../../protocol/wasm/pkg::locator=rustcore%40workspace%3A."
+  resolution: "protocol@link:../../protocol/pkg::locator=rustcore%40workspace%3A."
   languageName: node
   linkType: soft
 
@@ -3587,7 +3587,7 @@ __metadata:
     jasmine: "npm:^5.1.0"
     loglevel: "npm:^1.6.6"
     platform: "link:../../../platform"
-    protocol: "link:../../protocol/wasm/pkg"
+    protocol: "link:../../protocol/pkg"
     tmp: "npm:^0.2.3"
     ts-node: "npm:^10.4.0"
     tslib: "npm:^2.6.2"

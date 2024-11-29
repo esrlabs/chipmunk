@@ -2,6 +2,8 @@
 mod extending;
 #[cfg(any(test, feature = "nodejs"))]
 mod nodejs;
+#[cfg(test)]
+mod proptest;
 
 mod folders;
 mod serial;
