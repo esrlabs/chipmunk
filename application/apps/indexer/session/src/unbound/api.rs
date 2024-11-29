@@ -1,4 +1,3 @@
-use crate::error::ComputationError;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
@@ -24,42 +23,42 @@ impl UnboundSessionAPI {
         Self { tx }
     }
 
-    pub async fn shutdown(&self) -> Result<(), ComputationError> {
+    pub async fn shutdown(&self) -> Result<(), stypes::ComputationError> {
         let (tx, rx): (oneshot::Sender<()>, oneshot::Receiver<()>) = oneshot::channel();
         self.tx.send(API::Shutdown(tx)).map_err(|_| {
-            ComputationError::Communication(String::from("Fail to send API::Shutdown"))
+            stypes::ComputationError::Communication(String::from("Fail to send API::Shutdown"))
         })?;
         rx.await.map_err(|e| {
-            ComputationError::Communication(format!(
+            stypes::ComputationError::Communication(format!(
                 "Fail to get response from API::Shutdown: {e:?}"
             ))
         })
     }
 
-    pub async fn cancel_job(&self, operation_id: &u64) -> Result<(), ComputationError> {
+    pub async fn cancel_job(&self, operation_id: &u64) -> Result<(), stypes::ComputationError> {
         self.tx.send(API::CancelJob(*operation_id)).map_err(|_| {
-            ComputationError::Communication(String::from("Fail to send API::CancelJob"))
+            stypes::ComputationError::Communication(String::from("Fail to send API::CancelJob"))
         })
     }
 
     async fn process_command<T: Serialize>(
         &self,
         id: u64,
-        rx_results: oneshot::Receiver<Result<CommandOutcome<T>, ComputationError>>,
+        rx_results: oneshot::Receiver<Result<CommandOutcome<T>, stypes::ComputationError>>,
         command: Command,
-    ) -> Result<CommandOutcome<T>, ComputationError> {
+    ) -> Result<CommandOutcome<T>, stypes::ComputationError> {
         let cmd = command.to_string();
-        self.tx
-            .send(API::Run(command, id))
-            .map_err(|_| ComputationError::Communication(format!("Fail to send call {cmd}")))?;
+        self.tx.send(API::Run(command, id)).map_err(|_| {
+            stypes::ComputationError::Communication(format!("Fail to send call {cmd}"))
+        })?;
         rx_results
             .await
-            .map_err(|e| ComputationError::Communication(format!("channel error: {e}")))?
+            .map_err(|e| stypes::ComputationError::Communication(format!("channel error: {e}")))?
     }
 
-    pub(crate) fn remove_command(&self, id: u64) -> Result<(), ComputationError> {
+    pub(crate) fn remove_command(&self, id: u64) -> Result<(), stypes::ComputationError> {
         self.tx.send(API::Remove(id)).map_err(|_| {
-            ComputationError::Communication(format!("Fail to remove command id={id}"))
+            stypes::ComputationError::Communication(format!("Fail to remove command id={id}"))
         })?;
         Ok(())
     }
@@ -69,7 +68,7 @@ impl UnboundSessionAPI {
         id: u64,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<CommandOutcome<i64>, ComputationError> {
+    ) -> Result<CommandOutcome<i64>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -87,7 +86,7 @@ impl UnboundSessionAPI {
         paths: Vec<String>,
         include_files: bool,
         include_folders: bool,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -108,7 +107,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         file_path: String,
-    ) -> Result<CommandOutcome<bool>, ComputationError> {
+    ) -> Result<CommandOutcome<bool>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::IsFileBinary(file_path, tx_results))
             .await
@@ -119,7 +118,7 @@ impl UnboundSessionAPI {
         id: u64,
         path: String,
         args: Vec<String>,
-    ) -> Result<CommandOutcome<()>, ComputationError> {
+    ) -> Result<CommandOutcome<()>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -133,7 +132,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         path: String,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::Checksum(path, tx_results))
             .await
@@ -143,7 +142,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         files: Vec<String>,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetDltStats(files, tx_results))
             .await
@@ -153,7 +152,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         files: Vec<String>,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(
             id,
@@ -166,7 +165,7 @@ impl UnboundSessionAPI {
     pub async fn get_shell_profiles(
         &self,
         id: u64,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetShellProfiles(tx_results))
             .await
@@ -175,7 +174,7 @@ impl UnboundSessionAPI {
     pub async fn get_context_envvars(
         &self,
         id: u64,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetContextEnvvars(tx_results))
             .await
@@ -184,7 +183,7 @@ impl UnboundSessionAPI {
     pub async fn get_serial_ports_list(
         &self,
         id: u64,
-    ) -> Result<CommandOutcome<Vec<String>>, ComputationError> {
+    ) -> Result<CommandOutcome<Vec<String>>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::SerialPortsList(tx_results))
             .await
@@ -194,13 +193,17 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         filter: SearchFilter,
-    ) -> Result<CommandOutcome<Option<String>>, ComputationError> {
+    ) -> Result<CommandOutcome<Option<String>>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetRegexError(filter, tx_results))
             .await
     }
 
-    pub async fn sleep(&self, id: u64, ms: u64) -> Result<CommandOutcome<()>, ComputationError> {
+    pub async fn sleep(
+        &self,
+        id: u64,
+        ms: u64,
+    ) -> Result<CommandOutcome<()>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::Sleep(ms, tx_results))
             .await

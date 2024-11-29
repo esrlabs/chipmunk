@@ -1,4 +1,4 @@
-use crate::{error::ComputationError, TRACKER_CHANNEL};
+use crate::TRACKER_CHANNEL;
 use log::{error, info};
 use std::collections::HashMap;
 use tokio::{
@@ -13,8 +13,8 @@ use uuid::Uuid;
 /// Commands used to control/query the progress tracking
 #[derive(Debug)]
 pub enum ProgressCommand {
-    Content(oneshot::Sender<Result<String, ComputationError>>),
-    Abort(oneshot::Sender<Result<(), ComputationError>>),
+    Content(oneshot::Sender<Result<String, stypes::ComputationError>>),
+    Abort(oneshot::Sender<Result<(), stypes::ComputationError>>),
 }
 
 #[derive(Clone, Debug)]
@@ -23,10 +23,12 @@ pub struct ProgressProviderAPI {
 }
 
 impl ProgressProviderAPI {
-    pub fn new() -> Result<Self, ComputationError> {
+    pub fn new() -> Result<Self, stypes::ComputationError> {
         let tx = {
             let tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
-                ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+                stypes::ComputationError::Communication(format!(
+                    "Cannot init channels from mutex: {e}"
+                ))
             })?;
             tx_rx.0.clone()
             // scope will release Mutex lock
@@ -84,23 +86,27 @@ impl ProgressTrackerAPI {
         &self,
         command: ProgressCommand,
         rx_response: oneshot::Receiver<T>,
-    ) -> Result<T, ComputationError> {
+    ) -> Result<T, stypes::ComputationError> {
         let api_str = format!("{command:?}");
         self.tx_api.send(command).map_err(|e| {
-            ComputationError::Communication(format!("Failed to send to Api::{api_str}; error: {e}"))
+            stypes::ComputationError::Communication(format!(
+                "Failed to send to Api::{api_str}; error: {e}"
+            ))
         })?;
         rx_response.await.map_err(|_| {
-            ComputationError::Communication(format!("Failed to get response from Api::{api_str}"))
+            stypes::ComputationError::Communication(format!(
+                "Failed to get response from Api::{api_str}"
+            ))
         })
     }
 
-    pub async fn content(&self) -> Result<String, ComputationError> {
+    pub async fn content(&self) -> Result<String, stypes::ComputationError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(ProgressCommand::Content(tx), rx)
             .await?
     }
 
-    pub async fn abort(&self) -> Result<(), ComputationError> {
+    pub async fn abort(&self) -> Result<(), stypes::ComputationError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(ProgressCommand::Abort(tx), rx).await?
     }
@@ -118,17 +124,20 @@ fn log_if_err(res: Result<(), SendError<stypes::LifecycleTransition>>) {
 /// At any time, we can then track the progress of everything that is going on
 pub async fn run_tracking(
     mut command_rx: UnboundedReceiver<ProgressCommand>,
-) -> Result<mpsc::Receiver<stypes::LifecycleTransition>, ComputationError> {
+) -> Result<mpsc::Receiver<stypes::LifecycleTransition>, stypes::ComputationError> {
     let mut ongoing_operations: HashMap<Uuid, stypes::Ticks> = HashMap::new();
     let lifecycle_events_channel = mpsc::channel(1);
 
     let mut lifecycle_events = {
         let mut tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
-            ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+            stypes::ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
         })?;
-        tx_rx.1.take().ok_or(ComputationError::Communication(
-            "ProgressTracker channel already taken".to_string(),
-        ))?
+        tx_rx
+            .1
+            .take()
+            .ok_or(stypes::ComputationError::Communication(
+                "ProgressTracker channel already taken".to_string(),
+            ))?
     };
 
     tokio::spawn(async move {
@@ -138,7 +147,7 @@ pub async fn run_tracking(
                     match command {
                         Some(ProgressCommand::Content(result_channel)) => {
                             let res = serde_json::to_string(&ongoing_operations)
-                                .map_err(|e| ComputationError::Process(format!("{e}")));
+                                .map_err(|e| stypes::ComputationError::Process(format!("{e}")));
                             let _ = result_channel.send(res);
                         }
                         Some(ProgressCommand::Abort(result_channel)) => {
