@@ -21,4 +21,4 @@ pub struct AttachmentInfo {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
-pub struct AttachmentList(Vec<AttachmentInfo>);
+pub struct AttachmentList(pub Vec<AttachmentInfo>);
