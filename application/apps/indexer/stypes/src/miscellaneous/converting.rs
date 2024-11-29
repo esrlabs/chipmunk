@@ -24,3 +24,9 @@ impl From<Vec<RangeInclusive<u64>>> for Ranges {
         Self(value)
     }
 }
+
+impl From<&Vec<FilterMatch>> for FilterMatchList {
+    fn from(value: &Vec<FilterMatch>) -> Self {
+        FilterMatchList(value.to_vec())
+    }
+}

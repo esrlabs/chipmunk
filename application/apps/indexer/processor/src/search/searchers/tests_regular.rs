@@ -1,9 +1,6 @@
-use crate::{
-    map::FilterMatch,
-    search::{
-        filter::SearchFilter,
-        searchers::{regular::RegularSearchState, BaseSearcher},
-    },
+use crate::search::{
+    filter::SearchFilter,
+    searchers::{regular::RegularSearchState, BaseSearcher},
 };
 use std::io::{Error, ErrorKind, Write};
 use tokio_util::sync::CancellationToken;
@@ -22,7 +19,10 @@ const LOGS: &[&str] = &[
 ];
 
 // create tmp file with content, apply search
-fn filtered(content: &str, filters: Vec<SearchFilter>) -> Result<Vec<FilterMatch>, std::io::Error> {
+fn filtered(
+    content: &str,
+    filters: Vec<SearchFilter>,
+) -> Result<Vec<stypes::FilterMatch>, std::io::Error> {
     let mut tmp_file = tempfile::NamedTempFile::new()?;
     let input_file = tmp_file.as_file_mut();
     input_file.write_all(content.as_bytes())?;

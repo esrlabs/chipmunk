@@ -3,7 +3,6 @@ use super::{
     frame::Frame,
     nature::Nature,
 };
-use processor::map::FilterMatch;
 use std::ops::RangeInclusive;
 
 lazy_static::lazy_static! {
@@ -116,9 +115,9 @@ enum Action {
     // Checks a len of map usize - expected len
     CheckLen(usize),
     // Add searches into map
-    Search(Vec<FilterMatch>),
+    Search(Vec<stypes::FilterMatch>),
     // Append searches into map
-    AppendSearch(Vec<FilterMatch>),
+    AppendSearch(Vec<stypes::FilterMatch>),
     // Set mode
     SetMode(Mode),
     // Extending breadcrumbs
@@ -160,9 +159,9 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -190,9 +189,9 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::AddBookmark(0),
@@ -242,9 +241,9 @@ fn test() {
             vec![
                 Action::StreamLen(30),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::AddBookmark(23),
@@ -310,9 +309,9 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::AddBookmark(19),
@@ -360,9 +359,9 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::AddBookmark(11),
@@ -410,9 +409,9 @@ fn test() {
             vec![
                 Action::StreamLen(31),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -493,8 +492,8 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -521,9 +520,9 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(5, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(5, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -555,9 +554,9 @@ fn test() {
             vec![
                 Action::StreamLen(25),
                 Action::Search(vec![
-                    FilterMatch::new(5, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(5, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -593,9 +592,9 @@ fn test() {
             vec![
                 Action::StreamLen(22),
                 Action::Search(vec![
-                    FilterMatch::new(1, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(1, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -625,9 +624,9 @@ fn test() {
             vec![
                 Action::StreamLen(21),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -654,7 +653,7 @@ fn test() {
             "012",
             vec![
                 Action::StreamLen(20),
-                Action::Search(vec![FilterMatch::new(10, vec![])]),
+                Action::Search(vec![stypes::FilterMatch::new(10, vec![])]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
                     None,
@@ -688,7 +687,7 @@ fn test() {
             "014",
             vec![
                 Action::StreamLen(21),
-                Action::Search(vec![FilterMatch::new(20, vec![])]),
+                Action::Search(vec![stypes::FilterMatch::new(20, vec![])]),
                 Action::CheckLen(1),
                 Action::AddBookmark(10),
                 Action::CheckLen(2),
@@ -717,9 +716,9 @@ fn test() {
             vec![
                 Action::StreamLen(51),
                 Action::Search(vec![
-                    FilterMatch::new(10, vec![]),
-                    FilterMatch::new(20, vec![]),
-                    FilterMatch::new(50, vec![]),
+                    stypes::FilterMatch::new(10, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(50, vec![]),
                 ]),
                 Action::CheckLen(3),
                 Action::SetMode(Mode::Breadcrumbs),
@@ -878,7 +877,7 @@ fn test() {
             "016",
             vec![
                 Action::StreamLen(20),
-                Action::Search(vec![FilterMatch::new(10, vec![])]),
+                Action::Search(vec![stypes::FilterMatch::new(10, vec![])]),
                 Action::CheckLen(1),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -971,8 +970,8 @@ fn test() {
             vec![
                 Action::StreamLen(50),
                 Action::Search(vec![
-                    FilterMatch::new(0, vec![]),
-                    FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(0, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -1017,8 +1016,8 @@ fn test() {
                     ],
                 )),
                 Action::AppendSearch(vec![
-                    FilterMatch::new(30, vec![]),
-                    FilterMatch::new(40, vec![]),
+                    stypes::FilterMatch::new(30, vec![]),
+                    stypes::FilterMatch::new(40, vec![]),
                 ]),
                 Action::Frame((
                     None,
@@ -1062,8 +1061,8 @@ fn test() {
             vec![
                 Action::StreamLen(50),
                 Action::Search(vec![
-                    FilterMatch::new(20, vec![]),
-                    FilterMatch::new(40, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(40, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -1124,8 +1123,8 @@ fn test() {
             vec![
                 Action::StreamLen(41),
                 Action::Search(vec![
-                    FilterMatch::new(20, vec![]),
-                    FilterMatch::new(40, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(40, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -1221,8 +1220,8 @@ fn test() {
             vec![
                 Action::StreamLen(41),
                 Action::Search(vec![
-                    FilterMatch::new(20, vec![]),
-                    FilterMatch::new(40, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(40, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -1322,8 +1321,8 @@ fn test() {
             vec![
                 Action::StreamLen(41),
                 Action::Search(vec![
-                    FilterMatch::new(20, vec![]),
-                    FilterMatch::new(40, vec![]),
+                    stypes::FilterMatch::new(20, vec![]),
+                    stypes::FilterMatch::new(40, vec![]),
                 ]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
@@ -1479,7 +1478,7 @@ fn test() {
             "022",
             vec![
                 Action::StreamLen(100),
-                Action::Search(vec![FilterMatch::new(50, vec![])]),
+                Action::Search(vec![stypes::FilterMatch::new(50, vec![])]),
                 Action::SetMode(Mode::Breadcrumbs),
                 Action::Frame((
                     None,
