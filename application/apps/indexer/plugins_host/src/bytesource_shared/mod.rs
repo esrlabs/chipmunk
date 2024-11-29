@@ -7,7 +7,8 @@ use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSettings};
 use wasmtime::component::Component;
 
 use crate::{
-    semantic_version::SemanticVersion, v0_1_0, wasm_host::get_wasm_host, PluginHostInitError,
+    plugins_shared::plugin_errors::PluginError, semantic_version::SemanticVersion, v0_1_0,
+    wasm_host::get_wasm_host, PluginHostInitError, PluginType, WasmPlugin,
 };
 
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:plugin/byte-source";
@@ -121,6 +122,19 @@ impl PluginsByteSource {
         };
 
         res
+    }
+}
+
+impl WasmPlugin for PluginsByteSource {
+    fn get_type() -> PluginType {
+        PluginType::ByteSource
+    }
+
+    fn get_config_schemas(
+        &mut self,
+    ) -> Result<Vec<sources::plugins::ConfigSchemaItem>, PluginError> {
+        //TODO AAZ: deliver schemas from plugin
+        todo!()
     }
 }
 
