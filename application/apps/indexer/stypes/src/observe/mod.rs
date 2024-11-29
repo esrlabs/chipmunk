@@ -2,6 +2,8 @@
 mod extending;
 #[cfg(any(test, feature = "nodejs"))]
 mod nodejs;
+#[cfg(test)]
+mod proptest;
 
 #[cfg(any(test, feature = "rustcore"))]
 pub use extending::*;

@@ -29,3 +29,4 @@ walkdir = { workspace = true , optional = true}
 tokio = { workspace = true  }
 walkdir = { workspace = true }
 node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master"  }
+proptest = "1.5.0"

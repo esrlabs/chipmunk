@@ -6,6 +6,8 @@ mod extending;
 mod formating;
 #[cfg(any(test, feature = "nodejs"))]
 mod nodejs;
+#[cfg(test)]
+mod proptest;
 
 use crate::*;
 use thiserror::Error;
