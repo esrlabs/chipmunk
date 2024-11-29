@@ -9,9 +9,14 @@ use std::{
 };
 
 use plugins_api::{
-    bytesource::{ByteSource, InitError, InputSource, SourceConfig, SourceError},
+    bytesource::{
+        ByteSource, ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError,
+        SourceConfig, SourceError,
+    },
     bytesource_export, log,
 };
+
+const INPUT_PATH_ID: &str = "input-path";
 
 /// Simple struct that opens a file and read its content, providing them as bytes to Chipmunk when
 /// read method for the plugin is called
@@ -21,32 +26,52 @@ struct FileSource {
 
 /// Struct must implement [`ByteSource`] trait to be compiled as a byte-source plugin in Chipmunk.
 impl ByteSource for FileSource {
+    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+        vec![ConfigSchemaItem::new(
+            INPUT_PATH_ID,
+            "File Path",
+            Some("The path of the input file to read from"),
+            ConfigSchemaType::Path,
+        )]
+    }
+
     fn create(
-        input_source: InputSource,
         general_configs: SourceConfig,
-        config_path: Option<PathBuf>,
+        plugins_configs: Vec<ConfigItem>,
     ) -> Result<Self, InitError>
     where
         Self: Sized,
     {
         // Demonstrates log functionality
         log::debug!(
-            "Plugin initialize called with input source: {:?}",
-            input_source
-        );
-        log::debug!(
             "Plugin initialize called with the general settings: {:?}",
             general_configs
         );
+
         log::debug!(
-            "Plugin initialize called with the optional custom config path: {:?}",
-            config_path
+            "Plugin initialize called with custom configs: {:#?}",
+            plugins_configs
         );
 
         // Plugin Initialization
-        let file_path = match input_source {
-            InputSource::File(path) => PathBuf::from(path),
-            _ => return Err(InitError::Unsupported("Input Type must be a file".into())),
+        let file_path_config = plugins_configs
+            .iter()
+            .find(|item| item.id == INPUT_PATH_ID)
+            .ok_or_else(|| {
+                InitError::Config(format!(
+                    " No configuration value for id '{INPUT_PATH_ID}' is provided"
+                ))
+            })?;
+
+        let file_path = match &file_path_config.value {
+            ConfigValue::Path(path) => PathBuf::from(path),
+            invalid => {
+                let err_msg = format!(
+                    "Invalid config value for '{INPUT_PATH_ID}' was provided. Value: {:?}",
+                    invalid
+                );
+                return Err(InitError::Config(err_msg));
+            }
         };
 
         let file = File::open(file_path).map_err(|err| InitError::Io(err.to_string()))?;

@@ -83,7 +83,7 @@ impl Parser for StringTokenizer {
             .find(|item| item.id == LOSSY_ID)
             .ok_or_else(|| {
                 InitError::Config(format!(
-                    "No configuration value for id {LOSSY_ID} is provided"
+                    "No configuration value for id '{LOSSY_ID}' is provided"
                 ))
             })?;
 
@@ -91,7 +91,7 @@ impl Parser for StringTokenizer {
             ConfigValue::Boolean(lossy) => *lossy,
             invalid => {
                 let err_msg = format!(
-                    "Invalid config value for {LOSSY_ID} was provided. Value: {:?}",
+                    "Invalid config value for '{LOSSY_ID}' was provided. Value: {:?}",
                     invalid
                 );
                 return Err(InitError::Config(err_msg));
