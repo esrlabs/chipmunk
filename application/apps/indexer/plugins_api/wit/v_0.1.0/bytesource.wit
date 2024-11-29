@@ -3,22 +3,6 @@ package chipmunk:plugin@0.1.0;
 interface bytesource-types {
   use logging.{level};
 
-  /// Represents The input source for byte source to read from
-  variant input-source {
-    /// File input source with its path
-    file(string),
-    /// Socket Connection, identified with IP address and port
-    socket(socket-info),
-    /// Network source identified with URL
-    url(string),
-    /// Connection String for a Database
-    db-conncectoin-string(string),
-    /// In-Memory bytes buffer
-    memory(list<u8>),
-    /// Other types of input sources can be added here.
-    other(string),
-  }
-
   /// Represents the addresses defining a network socket
   record socket-info {
       ip: string,
@@ -39,11 +23,19 @@ interface bytesource-types {
 }
 
 interface byte-source {
-  use shared-types.{init-error};
-  use bytesource-types.{input-source ,source-config, source-error};
+  use shared-types.{init-error, config-item, config-schema-item};
+  use bytesource-types.{source-config, source-error};
+
+  /// Provides the schemas for the configurations required by the plugin, which
+  /// will be specified by the users.
+  ///
+  /// These schemas define the expected structure, types, and constraints
+  /// for plugin-specific configurations. The values of these configurations
+  /// will be passed to the initializing method of the bytesource.
+  get-config-schemas: func() -> list<config-schema-item>;
 
   /// Initialize the bytesource with the given configurations
-  init: func(input-source: input-source ,general-configs: source-config, plugin-configs: option<string>) -> result<_, init-error>;
+  init: func(general-configs: source-config, plugin-configs: list<config-item>) -> result<_, init-error>;
 
   /// Reads more bytes returning a list of bytes with the given length if possible
   read: func(len: u64) -> result<list<u8>, source-error>;
