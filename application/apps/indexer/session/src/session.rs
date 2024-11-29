@@ -9,7 +9,6 @@ use crate::{
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
-use sources::factory::ObserveOptions;
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
@@ -342,7 +341,7 @@ impl Session {
     pub fn observe(
         &self,
         operation_id: Uuid,
-        options: ObserveOptions,
+        options: stypes::ObserveOptions,
     ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(

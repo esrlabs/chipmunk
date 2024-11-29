@@ -2,7 +2,7 @@ pub mod progress_tracker;
 
 use crate::{js::converting::filter::WrappedSearchFilter, logging::targets};
 use log::{debug, error, info, warn};
-use node_bindgen::derive::node_bindgen;
+use node_bindgen::{core::buffer::JSArrayBuffer, derive::node_bindgen};
 use processor::grabber::LineRange;
 use session::{factory::ObserveOptions, operations, session::Session};
 use std::{convert::TryFrom, ops::RangeInclusive, path::PathBuf, thread};
@@ -389,12 +389,11 @@ impl RustSession {
     #[node_bindgen]
     async fn observe(
         &self,
-        options: String,
+        options: JSArrayBuffer,
         operation_id: String,
     ) -> Result<(), stypes::ComputationError> {
-        let options: ObserveOptions = serde_json::from_str(&options).map_err(|e| {
-            stypes::ComputationError::Process(format!("Cannot parse source settings: {e}"))
-        })?;
+        let options = stypes::ObserveOptions::decode(&options.to_vec())
+            .map_err(stypes::ComputationError::Decoding)?;
         self.session
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?

@@ -2,12 +2,9 @@ use crate::{
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
 };
-use sources::{
-    binary::{
-        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
-        raw::BinaryByteSource,
-    },
-    factory::{FileFormat, ParserType},
+use sources::binary::{
+    pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+    raw::BinaryByteSource,
 };
 use std::{fs::File, path::PathBuf};
 
@@ -15,8 +12,8 @@ use std::{fs::File, path::PathBuf};
 pub async fn concat_files(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    files: &[(String, FileFormat, PathBuf)],
-    parser: &ParserType,
+    files: &[(String, stypes::FileFormat, PathBuf)],
+    parser: &stypes::ParserType,
 ) -> OperationResult<()> {
     for file in files.iter() {
         let (uuid, _file_type, _filename) = file;
@@ -43,7 +40,7 @@ pub async fn concat_files(
             )),
         })?;
         match file_type {
-            FileFormat::Binary => {
+            stypes::FileFormat::Binary => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -55,7 +52,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            FileFormat::PcapLegacy => {
+            stypes::FileFormat::PcapLegacy => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -67,7 +64,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            FileFormat::PcapNG => {
+            stypes::FileFormat::PcapNG => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -79,7 +76,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            FileFormat::Text => {
+            stypes::FileFormat::Text => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),

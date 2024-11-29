@@ -1372,6 +1372,7 @@ dependencies = [
  "session",
  "sources",
  "structopt",
+ "stypes",
  "tokio",
  "tokio-util",
  "uuid",

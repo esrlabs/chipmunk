@@ -1517,7 +1517,6 @@ dependencies = [
  "node-bindgen",
  "processor",
  "serde",
- "serde_json",
  "session",
  "sources",
  "thiserror 1.0.69",
