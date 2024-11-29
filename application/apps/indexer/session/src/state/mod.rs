@@ -222,15 +222,14 @@ impl SessionState {
         {
             Some(Ok((_processed, mut matches, stats))) => {
                 self.indexes.append_search_results(&matches)?;
-                let map_updates = SearchMap::map_as_str(&matches);
+                let updates: stypes::FilterMatchList = (&matches).into();
                 let found = self.search_map.append(&mut matches) as u64;
                 self.search_map.append_stats(stats);
                 tx_callback_events.send(stypes::CallbackEvent::search_results(
                     found,
                     self.search_map.get_stats(),
                 ))?;
-                tx_callback_events
-                    .send(stypes::CallbackEvent::SearchMapUpdated(Some(map_updates)))?;
+                tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(Some(updates)))?;
             }
             Some(Err(err)) => error!("Fail to append search: {}", err),
             None => (),
@@ -687,9 +686,8 @@ pub async fn run(
                 })?;
             }
             Api::SetMatches((matches, stats, tx_response)) => {
-                let update = matches
-                    .as_ref()
-                    .map(|matches| SearchMap::map_as_str(matches));
+                let update: Option<stypes::FilterMatchList> =
+                    matches.as_ref().map(|matches| matches.into());
                 if let Some(matches) = matches.as_ref() {
                     state.indexes.set_search_results(matches)?;
                 }
