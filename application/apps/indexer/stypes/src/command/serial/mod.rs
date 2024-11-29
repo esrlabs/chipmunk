@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod proptest;
+
 use crate::*;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

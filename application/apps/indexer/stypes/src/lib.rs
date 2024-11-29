@@ -28,3 +28,6 @@ pub(crate) use node_bindgen::{
     core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
+
+#[cfg(test)]
+use proptest::prelude::*;
