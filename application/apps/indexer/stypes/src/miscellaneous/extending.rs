@@ -5,3 +5,9 @@ impl GrabbedElement {
         self.nature = nature;
     }
 }
+
+impl FilterMatch {
+    pub fn new(index: u64, filters: Vec<u8>) -> Self {
+        Self { index, filters }
+    }
+}

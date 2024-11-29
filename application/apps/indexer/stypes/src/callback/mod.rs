@@ -60,7 +60,7 @@ pub enum CallbackEvent {
      * >> Scope: session
      * >> Kind: repeated
      */
-    SearchMapUpdated(Option<String>),
+    SearchMapUpdated(Option<FilterMatchList>),
     /**
      * Triggered on update of search values data. Used for charts
      * @event SearchValuesUpdated

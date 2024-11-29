@@ -1,6 +1,5 @@
 use super::{frame::Frame, map::Map, nature::Nature};
 use log::error;
-use processor::map::FilterMatch;
 use std::ops::RangeInclusive;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -125,7 +124,7 @@ impl Controller {
 
     pub(crate) fn set_search_results(
         &mut self,
-        matches: &[FilterMatch],
+        matches: &[stypes::FilterMatch],
     ) -> Result<(), stypes::NativeError> {
         self.map.clean(
             Nature::SEARCH
@@ -144,7 +143,7 @@ impl Controller {
 
     pub(crate) fn append_search_results(
         &mut self,
-        matches: &[FilterMatch],
+        matches: &[stypes::FilterMatch],
     ) -> Result<(), stypes::NativeError> {
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map.breadcrumbs_insert_and_update(
