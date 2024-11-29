@@ -14,18 +14,12 @@ use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable};
 
 use crate::{
     plugins_shared::get_wasi_ctx_builder, wasm_host::get_wasm_host, PluginGuestInitError,
-    PluginHostInitError, PluginType, WasmPlugin,
+    PluginHostInitError,
 };
 
 pub struct PluginByteSource {
     store: Store<ByteSourcePluginState>,
     plugin_bindings: BytesourcePlugin,
-}
-
-impl WasmPlugin for PluginByteSource {
-    fn get_type() -> PluginType {
-        PluginType::ByteSource
-    }
 }
 
 impl PluginByteSource {

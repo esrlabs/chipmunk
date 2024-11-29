@@ -3,6 +3,7 @@ mod parser_plugin_state;
 
 use sources::plugins as pl;
 
+use futures::executor::block_on;
 use wasmtime::{
     component::{Component, Linker},
     Store,
@@ -10,8 +11,9 @@ use wasmtime::{
 use wasmtime_wasi::ResourceTable;
 
 use crate::{
-    plugins_shared::get_wasi_ctx_builder, wasm_host::get_wasm_host, PluginGuestInitError,
-    PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
+    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
+    wasm_host::get_wasm_host,
+    PluginGuestInitError, PluginHostInitError, PluginParseMessage,
 };
 
 use self::{bindings::ParsePlugin, parser_plugin_state::ParserPluginState};
@@ -19,12 +21,6 @@ use self::{bindings::ParsePlugin, parser_plugin_state::ParserPluginState};
 pub struct PluginParser {
     store: Store<ParserPluginState>,
     plugin_bindings: ParsePlugin,
-}
-
-impl WasmPlugin for PluginParser {
-    fn get_type() -> PluginType {
-        PluginType::Parser
-    }
 }
 
 impl PluginParser {
@@ -64,6 +60,16 @@ impl PluginParser {
             plugin_bindings,
         })
     }
+
+    pub fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+        let schemas = block_on(
+            self.plugin_bindings
+                .chipmunk_plugin_parser()
+                .call_get_config_schemas(&mut self.store),
+        )?;
+
+        Ok(schemas.into_iter().map(|item| item.into()).collect())
+    }
 }
 
 use parsers as p;
@@ -74,12 +80,11 @@ impl p::Parser<PluginParseMessage> for PluginParser {
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
-        let call_res =
-            futures::executor::block_on(self.plugin_bindings.chipmunk_plugin_parser().call_parse(
-                &mut self.store,
-                input,
-                timestamp,
-            ));
+        let call_res = block_on(self.plugin_bindings.chipmunk_plugin_parser().call_parse(
+            &mut self.store,
+            input,
+            timestamp,
+        ));
 
         let parse_results = match call_res {
             Ok(results) => results?,

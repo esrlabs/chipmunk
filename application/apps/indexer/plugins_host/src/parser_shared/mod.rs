@@ -4,8 +4,8 @@ use sources::plugins as pl;
 use wasmtime::component::Component;
 
 use crate::{
-    semantic_version::SemanticVersion, v0_1_0, wasm_host::get_wasm_host, PluginHostInitError,
-    PluginParseMessage,
+    plugins_shared::plugin_errors::PluginError, semantic_version::SemanticVersion, v0_1_0,
+    wasm_host::get_wasm_host, PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
@@ -94,6 +94,18 @@ impl PluginsParser {
             invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
                 "Plugin version {invalid_version} is not supported"
             ))),
+        }
+    }
+}
+
+impl WasmPlugin for PluginsParser {
+    fn get_type() -> PluginType {
+        PluginType::Parser
+    }
+
+    fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+        match &mut self.parser {
+            PlugVerParser::Ver010(parser) => parser.get_config_schemas(),
         }
     }
 }

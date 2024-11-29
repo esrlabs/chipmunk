@@ -27,3 +27,10 @@ pub enum PluginGuestInitError {
     #[error("Error: {0}")]
     Other(String),
 }
+
+/// Represents general errors in communication with plugins
+#[derive(Debug, Error)]
+pub enum PluginError {
+    #[error(transparent)]
+    WasmRunTimeError(#[from] anyhow::Error),
+}
