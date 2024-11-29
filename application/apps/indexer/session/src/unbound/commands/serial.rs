@@ -1,9 +1,11 @@
 use super::CommandOutcome;
-use crate::{error::ComputationError, unbound::signal::Signal};
+use crate::unbound::signal::Signal;
 
-pub fn available_ports(_signal: Signal) -> Result<CommandOutcome<Vec<String>>, ComputationError> {
+pub fn available_ports(
+    _signal: Signal,
+) -> Result<CommandOutcome<Vec<String>>, stypes::ComputationError> {
     serialport::available_ports()
-        .map_err(|e| ComputationError::IoOperation(e.to_string()))
+        .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))
         .map(|ports| {
             CommandOutcome::Finished(
                 ports

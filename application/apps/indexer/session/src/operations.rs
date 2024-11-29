@@ -1,6 +1,4 @@
-use crate::{
-    error::ComputationError, handlers, state::SessionStateAPI, tracker::OperationTrackerAPI,
-};
+use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;
@@ -473,10 +471,10 @@ impl OperationAPI {
     }
 }
 
-pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, ComputationError> {
+pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, stypes::ComputationError> {
     match Uuid::parse_str(operation_id) {
         Ok(uuid) => Ok(uuid),
-        Err(e) => Err(ComputationError::Process(format!(
+        Err(e) => Err(stypes::ComputationError::Process(format!(
             "Fail to parse operation uuid from {operation_id}. Error: {e}"
         ))),
     }

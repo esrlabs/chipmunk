@@ -22,19 +22,20 @@ dirs = "5.0"
 indexer_base = { path = "../../indexer/indexer_base" }
 log = "0.4"
 log4rs = "1.3"
-merging = { path = "../../indexer/merging" }
 # node-bindgen = {git = "https://github.com/DmitryAstafyev/node-bindgen.git", branch="master", features = ["serde-json"] }
 node-bindgen = {git = "https://github.com/infinyon/node-bindgen.git", branch="master", features = ["serde-json"] }
-# node-bindgen = { version = "5.0", features = ["serde-json"] }
-processor = { path = "../../indexer/processor" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-session = { path = "../../indexer/session" }
-sources = { path = "../../indexer/sources" }
 thiserror = "1.0"
 tokio = { version = "1.24", features = ["full"] }
 tokio-util = "0.7"
 uuid = { version = "1.3", features = ["serde", "v4"] }
+
+merging = { path = "../../indexer/merging" }
+processor = { path = "../../indexer/processor" }
+session = { path = "../../indexer/session" }
+sources = { path = "../../indexer/sources" }
+stypes = { path = "../../indexer/stypes", features=["nodejs"] }
 
 [target.'cfg(unix)'.dependencies]
 # Jemalloc combined with Node.js exceeds the default TLS memory limit on Linux.

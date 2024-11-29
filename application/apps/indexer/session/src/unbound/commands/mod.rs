@@ -10,7 +10,7 @@ mod shells;
 mod sleep;
 mod someip;
 
-use crate::{error::ComputationError, unbound::commands::someip::get_someip_statistic};
+use crate::unbound::commands::someip::get_someip_statistic;
 
 use log::{debug, error};
 use processor::search::filter::SearchFilter;
@@ -46,7 +46,7 @@ pub enum Command {
     // This command is used only for testing/debug goals
     Sleep(
         u64,
-        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<()>, stypes::ComputationError>>,
     ),
     FolderContent(
         Vec<String>,
@@ -54,40 +54,40 @@ pub enum Command {
         usize,
         bool,
         bool,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
     ),
     SpawnProcess(
         String,
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<()>, stypes::ComputationError>>,
     ),
     GetRegexError(
         SearchFilter,
-        oneshot::Sender<Result<CommandOutcome<Option<String>>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<Option<String>>, stypes::ComputationError>>,
     ),
     Checksum(
         String,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
     ),
     GetDltStats(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
     ),
     GetSomeipStatistic(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>,
     ),
-    GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
+    GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>),
+    GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, stypes::ComputationError>>),
+    SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, stypes::ComputationError>>),
     IsFileBinary(
         String,
-        oneshot::Sender<Result<CommandOutcome<bool>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<bool>, stypes::ComputationError>>,
     ),
     CancelTest(
         i64,
         i64,
-        oneshot::Sender<Result<CommandOutcome<i64>, ComputationError>>,
+        oneshot::Sender<Result<CommandOutcome<i64>, stypes::ComputationError>>,
     ),
 }
 
@@ -152,7 +152,7 @@ pub async fn process(command: Command, signal: Signal) {
     }
 }
 
-pub fn err(command: Command, err: ComputationError) {
+pub fn err(command: Command, err: stypes::ComputationError) {
     let cmd = command.to_string();
     if match command {
         Command::Sleep(_, tx) => tx.send(Err(err)).is_err(),
