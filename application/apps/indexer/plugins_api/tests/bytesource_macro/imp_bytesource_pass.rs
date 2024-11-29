@@ -5,10 +5,13 @@ use std::path::PathBuf;
 struct Dummy;
 
 impl ByteSource for Dummy {
+    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+        todo!()
+    }
+
     fn create(
-        _input_source: InputSource,
         _general_configs: SourceConfig,
-        _config_path: Option<PathBuf>,
+        _plugins_configs: Vec<ConfigItem>,
     ) -> Result<Self, InitError>
     where
         Self: Sized,
