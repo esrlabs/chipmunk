@@ -2,6 +2,8 @@
 mod converting;
 #[cfg(any(test, feature = "nodejs"))]
 mod nodejs;
+#[cfg(test)]
+mod proptest;
 
 use crate::*;
 

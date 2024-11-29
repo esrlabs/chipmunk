@@ -4,6 +4,8 @@ mod converting;
 mod extending;
 #[cfg(any(test, feature = "nodejs"))]
 mod nodejs;
+#[cfg(test)]
+mod proptest;
 
 use crate::*;
 use std::ops::RangeInclusive;
