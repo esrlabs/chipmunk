@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
 
@@ -10,19 +9,6 @@ use thiserror::Error;
 /// we create regions of the file that span possible multiple rows.
 /// [0-12] []
 pub type ScaledDistribution = Vec<Vec<(u8, u16)>>;
-
-/// Lists all matching filters at an index
-#[derive(Debug, Clone)]
-pub struct FilterMatch {
-    pub index: u64,
-    pub filters: Vec<u8>,
-}
-
-impl FilterMatch {
-    pub fn new(index: u64, filters: Vec<u8>) -> Self {
-        Self { index, filters }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FiltersStats {
@@ -69,7 +55,7 @@ pub enum MapError {
 ///
 #[derive(Default, Debug)]
 pub struct SearchMap {
-    pub matches: Vec<FilterMatch>,
+    pub matches: Vec<stypes::FilterMatch>,
     stats: FiltersStats,
     stream_len: u64,
 }
@@ -205,7 +191,7 @@ impl SearchMap {
         map
     }
 
-    pub fn indexes(&self, range: &RangeInclusive<u64>) -> Result<&[FilterMatch], MapError> {
+    pub fn indexes(&self, range: &RangeInclusive<u64>) -> Result<&[stypes::FilterMatch], MapError> {
         if range.end() >= &(self.len() as u64) {
             return Err(MapError::OutOfRange(format!(
                 "Search has: {} matches. Requested: {:?}",
@@ -245,12 +231,12 @@ impl SearchMap {
         }
     }
 
-    pub fn set(&mut self, matches: Option<Vec<FilterMatch>>, stats: Option<FiltersStats>) {
+    pub fn set(&mut self, matches: Option<Vec<stypes::FilterMatch>>, stats: Option<FiltersStats>) {
         self.matches = matches.map_or(vec![], |m| m);
         self.stats = stats.map_or(FiltersStats::default(), |s| s);
     }
 
-    pub fn append(&mut self, matches: &mut Vec<FilterMatch>) -> usize {
+    pub fn append(&mut self, matches: &mut Vec<stypes::FilterMatch>) -> usize {
         self.matches.append(matches);
         self.matches.len()
     }
@@ -276,11 +262,6 @@ impl SearchMap {
     pub fn is_empty(&self) -> bool {
         self.matches.is_empty()
     }
-
-    pub fn map_as_str(matches: &[FilterMatch]) -> String {
-        serde_json::to_string(&matches.iter().map(|m| m.index).collect::<Vec<u64>>())
-            .map_or(String::new(), |s| s)
-    }
 }
 
 #[allow(clippy::needless_range_loop)]
@@ -289,26 +270,26 @@ fn test_scaled_map() {
     let mut example_map: SearchMap = SearchMap::new();
     example_map.set(
         Some(vec![
-            FilterMatch::new(10, vec![0]),
-            FilterMatch::new(20, vec![1]),
-            FilterMatch::new(30, vec![0]),
-            FilterMatch::new(40, vec![1]),
-            FilterMatch::new(50, vec![0]),
-            FilterMatch::new(60, vec![1]),
-            FilterMatch::new(70, vec![0]),
-            FilterMatch::new(80, vec![1]),
-            FilterMatch::new(90, vec![0]),
-            FilterMatch::new(100, vec![1]),
-            FilterMatch::new(110, vec![0]),
-            FilterMatch::new(120, vec![1]),
-            FilterMatch::new(130, vec![0]),
-            FilterMatch::new(140, vec![1]),
-            FilterMatch::new(150, vec![0]),
-            FilterMatch::new(160, vec![1]),
-            FilterMatch::new(170, vec![0]),
-            FilterMatch::new(180, vec![1]),
-            FilterMatch::new(190, vec![0]),
-            FilterMatch::new(200, vec![1]),
+            stypes::FilterMatch::new(10, vec![0]),
+            stypes::FilterMatch::new(20, vec![1]),
+            stypes::FilterMatch::new(30, vec![0]),
+            stypes::FilterMatch::new(40, vec![1]),
+            stypes::FilterMatch::new(50, vec![0]),
+            stypes::FilterMatch::new(60, vec![1]),
+            stypes::FilterMatch::new(70, vec![0]),
+            stypes::FilterMatch::new(80, vec![1]),
+            stypes::FilterMatch::new(90, vec![0]),
+            stypes::FilterMatch::new(100, vec![1]),
+            stypes::FilterMatch::new(110, vec![0]),
+            stypes::FilterMatch::new(120, vec![1]),
+            stypes::FilterMatch::new(130, vec![0]),
+            stypes::FilterMatch::new(140, vec![1]),
+            stypes::FilterMatch::new(150, vec![0]),
+            stypes::FilterMatch::new(160, vec![1]),
+            stypes::FilterMatch::new(170, vec![0]),
+            stypes::FilterMatch::new(180, vec![1]),
+            stypes::FilterMatch::new(190, vec![0]),
+            stypes::FilterMatch::new(200, vec![1]),
         ]),
         None,
     );
@@ -451,7 +432,7 @@ fn test_scaled_map() {
                 (200, vec![3]),
             ]
             .into_iter()
-            .map(|(a, b)| FilterMatch::new(a, b))
+            .map(|(a, b)| stypes::FilterMatch::new(a, b))
             .collect(),
         ),
         None,

@@ -56,3 +56,14 @@ pub struct GrabbedElementList(pub Vec<GrabbedElement>);
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
 pub struct AroundIndexes(pub (Option<u64>, Option<u64>));
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+pub struct FilterMatch {
+    pub index: u64,
+    pub filters: Vec<u8>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+pub struct FilterMatchList(pub Vec<FilterMatch>);

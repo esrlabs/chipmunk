@@ -4,7 +4,7 @@ use crate::{
 };
 use log::debug;
 use processor::{
-    map::{FilterMatch, FiltersStats},
+    map::FiltersStats,
     search::{
         filter::SearchFilter,
         searchers::{self, regular::RegularSearchHolder},
@@ -71,7 +71,7 @@ pub async fn execute_search(
                 (
                     Range<usize>,
                     usize,
-                    Vec<FilterMatch>,
+                    Vec<stypes::FilterMatch>,
                     FiltersStats,
                     RegularSearchHolder,
                 ),

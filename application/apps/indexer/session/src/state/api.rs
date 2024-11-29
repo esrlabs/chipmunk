@@ -10,7 +10,7 @@ use log::error;
 use parsers;
 use processor::{
     grabber::LineRange,
-    map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution},
+    map::{FiltersStats, NearestPosition, ScaledDistribution},
     search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
 };
 use sources::factory::ObserveOptions;
@@ -149,7 +149,7 @@ pub enum Api {
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
     SetMatches(
         (
-            Option<Vec<FilterMatch>>,
+            Option<Vec<stypes::FilterMatch>>,
             Option<FiltersStats>,
             oneshot::Sender<()>,
         ),
@@ -557,7 +557,7 @@ impl SessionStateAPI {
 
     pub async fn set_matches(
         &self,
-        matches: Option<Vec<FilterMatch>>,
+        matches: Option<Vec<stypes::FilterMatch>>,
         stats: Option<FiltersStats>,
     ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();

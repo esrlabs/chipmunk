@@ -1,5 +1,5 @@
 use crate::{
-    map::{FilterMatch, FiltersStats},
+    map::FiltersStats,
     search::{error::SearchError, filter, filter::SearchFilter},
 };
 use regex::Regex;
@@ -14,11 +14,12 @@ use uuid::Uuid;
 
 use super::{BaseSearcher, SearchState};
 
-pub type SearchResults = Result<(Range<usize>, Vec<FilterMatch>, FiltersStats), SearchError>;
+pub type SearchResults =
+    Result<(Range<usize>, Vec<stypes::FilterMatch>, FiltersStats), SearchError>;
 
 #[derive(Debug)]
 struct Results {
-    indexes: Option<Vec<FilterMatch>>,
+    indexes: Option<Vec<stypes::FilterMatch>>,
     stats: Option<FiltersStats>,
 }
 
@@ -89,7 +90,7 @@ impl SearchState for RegularSearchState {
 }
 
 fn collect(row: u64, line: &str, state: &mut RegularSearchState) {
-    let mut line_indexes = FilterMatch::new(row, vec![]);
+    let mut line_indexes = stypes::FilterMatch::new(row, vec![]);
     let mut matched_rows = vec![];
     for (index, re) in state.matchers.iter().enumerate() {
         if re.is_match(line) {
