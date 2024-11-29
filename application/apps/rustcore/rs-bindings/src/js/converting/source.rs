@@ -6,10 +6,9 @@ use node_bindgen::{
     sys::napi_value,
 };
 use serde::Serialize;
-use session::state::SourceDefinition;
 
 #[derive(Serialize, Debug, Clone)]
-pub struct WrappedSourceDefinition(pub SourceDefinition);
+pub struct WrappedSourceDefinition(pub stypes::SourceDefinition);
 
 impl TryIntoJs for WrappedSourceDefinition {
     fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {

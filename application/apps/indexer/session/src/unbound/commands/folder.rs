@@ -3,7 +3,7 @@ use walkdir::{DirEntry, WalkDir};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{error::ComputationError, unbound::signal::Signal};
+use crate::unbound::signal::Signal;
 
 use super::CommandOutcome;
 
@@ -116,7 +116,7 @@ pub fn get_folder_content(
     include_files: bool,
     include_folders: bool,
     signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+) -> Result<CommandOutcome<String>, stypes::ComputationError> {
     let mut list: Vec<Entity> = vec![];
     let mut max_len_reached: bool = false;
     for depth in 1..=max_depth {
@@ -157,8 +157,8 @@ pub fn get_folder_content(
     };
     serde_json::to_string(&results)
         .map(CommandOutcome::Finished)
-        .map_err(|e| -> ComputationError {
-            ComputationError::Process(format!("Could not produce json: {e}"))
+        .map_err(|e| -> stypes::ComputationError {
+            stypes::ComputationError::Process(format!("Could not produce json: {e}"))
         })
 }
 

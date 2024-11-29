@@ -1,11 +1,13 @@
 use super::CommandOutcome;
-use crate::{error::ComputationError, unbound::signal::Signal};
+use crate::unbound::signal::Signal;
 
 pub fn get_someip_statistic(
     _files: Vec<String>,
     _signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
-    Err(ComputationError::OperationNotSupported("NYI".into()))
+) -> Result<CommandOutcome<String>, stypes::ComputationError> {
+    Err(stypes::ComputationError::OperationNotSupported(
+        "NYI".into(),
+    ))
     // use parsers::someip::{read_someip_statistic_from_pcapng, SomeipStatistic};
     // use log::{error, warn};
     // use std::path::Path;
@@ -31,7 +33,7 @@ pub fn get_someip_statistic(
     // });
     // if let Some(err) = error {
     //     error!("Fail to get statistic for: {files:?}");
-    //     return Err(ComputationError::IoOperation(err));
+    //     return Err(stypes::ComputationError::IoOperation(err));
     // }
     // if signal.is_cancelling() {
     //     warn!("Operation of geting statistic for: {files:?} has been cancelled");
@@ -39,6 +41,6 @@ pub fn get_someip_statistic(
     // }
     // Ok(CommandOutcome::Finished(
     //     serde_json::to_string(&statistic)
-    //         .map_err(|e| ComputationError::IoOperation(e.to_string()))?,
+    //         .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?,
     // ))
 }

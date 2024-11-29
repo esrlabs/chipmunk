@@ -21,10 +21,11 @@ extend = { path = "../tools/extend"}
 uuid = { workspace = true, features = ["serde"] }
 
 tokio = { workspace = true, optional = true }
-node-bindgen = {version = "6.1", optional = true}
+node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master", optional = true}
 paste = {version = "1.0", optional = true}
+thiserror.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true  }
-node-bindgen = { version = "6.1"  }
+node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master"  }
 paste = { version = "1.0" }
