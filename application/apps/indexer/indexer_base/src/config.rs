@@ -10,19 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 use serde::{Deserialize, Serialize};
-use std::{
-    net::{IpAddr, SocketAddr},
-    ops::RangeInclusive,
-};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("Problem with configuration found: {0}")]
-    Configuration(String),
-    #[error("IO error: {0:?}")]
-    Io(#[from] std::io::Error),
-}
+use std::ops::RangeInclusive;
 
 /// A IndexSection describes a section of a file by indicies
 /// to identify lines 10-12 (inclusively) => first_line = 10, last_line = 12
@@ -31,11 +19,6 @@ pub enum Error {
 pub struct IndexSection {
     pub first_line: usize,
     pub last_line: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SectionConfig {
-    pub sections: Vec<IndexSection>,
 }
 
 impl IndexSection {
@@ -65,66 +48,5 @@ impl IndexSection {
             first_line: (*range.start()) as usize,
             last_line: (*range.end()) as usize,
         }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct UdpConnectionInfo {
-    pub multicast_addr: Vec<MulticastInfo>,
-}
-
-/// network socket config
-/// if udp packets are sent via multicast, then the `multicast_addr` has to
-/// be specified
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SocketConfig {
-    pub udp_connection_info: Option<UdpConnectionInfo>,
-    pub bind_addr: String,
-    pub port: String,
-}
-
-impl SocketConfig {
-    pub fn socket_addr(&self) -> Result<SocketAddr, Error> {
-        // Touch IPv4
-        let addr: Option<SocketAddr> = match format!("{}:{}", self.bind_addr, self.port).parse() {
-            Ok(addr) => Some(addr),
-            Err(_) => None,
-        };
-        if let Some(addr) = addr {
-            Ok(addr)
-        } else {
-            // Touch IPv6
-            format!("[{}]:{}", self.bind_addr, self.port)
-                .parse()
-                .map_err(|_| {
-                    Error::Configuration(format!(
-                        "Could not parse socket address from {}, port {}",
-                        self.bind_addr, self.port
-                    ))
-                })
-        }
-    }
-}
-
-/// Multicast config information.
-/// `multiaddr` address must be a valid multicast address
-/// `interface` is the address of the local interface with which the
-/// system should join the
-/// multicast group. If it's equal to `INADDR_ANY` then an appropriate
-/// interface is chosen by the system.
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct MulticastInfo {
-    pub multiaddr: String,
-    pub interface: Option<String>,
-}
-
-impl MulticastInfo {
-    pub fn multicast_addr(&self) -> Result<IpAddr, Error> {
-        self.multiaddr.to_string().parse().map_err(|e| {
-            Error::Configuration(format!(
-                "Could not parse multicast address \"{}\": {e}",
-                self.multiaddr
-            ))
-        })
     }
 }

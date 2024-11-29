@@ -1,6 +1,4 @@
-use crate::{
-    factory::SerialTransportConfig, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use buf_redux::Buffer;
 use bytes::{BufMut, BytesMut};
 use futures::{
@@ -94,7 +92,7 @@ pub struct SerialSource {
 // }
 
 impl SerialSource {
-    pub fn new(config: &SerialTransportConfig) -> Result<Self, SourceError> {
+    pub fn new(config: &stypes::SerialTransportConfig) -> Result<Self, SourceError> {
         match tokio_serial::new(config.path.as_str(), config.baud_rate)
             .data_bits(data_bits(&config.data_bits))
             .flow_control(flow_control(&config.flow_control))

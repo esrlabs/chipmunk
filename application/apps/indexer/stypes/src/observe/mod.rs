@@ -1,14 +1,31 @@
+#[cfg(any(test, feature = "rustcore"))]
+mod extending;
 #[cfg(any(test, feature = "nodejs"))]
 mod nodejs;
+
+#[cfg(any(test, feature = "rustcore"))]
+pub use extending::*;
 
 use crate::*;
 use dlt_core::filtering::DltFilterConfig;
 
+/// Multicast config information.
+/// `multiaddr` address must be a valid multicast address
+/// `interface` is the address of the local interface with which the
+/// system should join the
+/// multicast group. If it's equal to `INADDR_ANY` then an appropriate
+/// interface is chosen by the system.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
 pub struct MulticastInfo {
     pub multiaddr: String,
     pub interface: Option<String>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+pub struct UdpConnectionInfo {
+    pub multicast_addr: Vec<MulticastInfo>,
 }
 
 #[allow(clippy::large_enum_variant)]

@@ -13,7 +13,6 @@ use processor::{
     map::{FiltersStats, NearestPosition, ScaledDistribution},
     search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
 };
-use sources::factory::ObserveOptions;
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
 use stypes::GrabbedElement;
 use tokio::sync::{
@@ -45,7 +44,7 @@ pub enum Api {
     GetSource((String, oneshot::Sender<Option<u16>>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
-    AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
+    AddExecutedObserve((stypes::ObserveOptions, oneshot::Sender<()>)),
     GetExecutedHolder(oneshot::Sender<Observed>),
     IsRawExportAvailable(oneshot::Sender<bool>),
     /// Export operation containing parameters for exporting data.
@@ -465,7 +464,7 @@ impl SessionStateAPI {
 
     pub async fn add_executed_observe(
         &self,
-        options: ObserveOptions,
+        options: stypes::ObserveOptions,
     ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddExecutedObserve((options, tx)), rx)

@@ -5,7 +5,6 @@ use crate::{
 };
 use sources::{
     command::process::ProcessSource,
-    factory::{ParserType, Transport},
     producer::SdeReceiver,
     serial::serialport::SerialSource,
     socket::{tcp::TcpSource, udp::UdpSource},
@@ -15,13 +14,13 @@ pub async fn observe_stream<'a>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
-    transport: &Transport,
-    parser: &'a ParserType,
+    transport: &stypes::Transport,
+    parser: &'a stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     let source_id = state.add_source(uuid).await?;
     match transport {
-        Transport::UDP(settings) => {
+        stypes::Transport::UDP(settings) => {
             let udp_source = UdpSource::new(&settings.bind_addr, settings.multicast.clone())
                 .await
                 .map_err(|e| stypes::NativeError {
@@ -40,7 +39,7 @@ pub async fn observe_stream<'a>(
             )
             .await
         }
-        Transport::TCP(settings) => {
+        stypes::Transport::TCP(settings) => {
             let tcp_source = TcpSource::new(settings.bind_addr.clone())
                 .await
                 .map_err(|e| stypes::NativeError {
@@ -59,7 +58,7 @@ pub async fn observe_stream<'a>(
             )
             .await
         }
-        Transport::Serial(settings) => {
+        stypes::Transport::Serial(settings) => {
             let serial_source = SerialSource::new(settings).map_err(|e| stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Interrupted,
@@ -76,7 +75,7 @@ pub async fn observe_stream<'a>(
             )
             .await
         }
-        Transport::Process(settings) => {
+        stypes::Transport::Process(settings) => {
             let process_source = ProcessSource::new(
                 settings.command.clone(),
                 settings.cwd.clone(),
