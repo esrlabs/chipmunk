@@ -3,8 +3,9 @@ use std::{
     path::Path,
 };
 
-use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSettings};
 use wasmtime::component::Component;
+
+use sources::plugins as pl;
 
 use crate::{
     plugins_shared::plugin_errors::PluginError, semantic_version::SemanticVersion, v0_1_0,
@@ -35,9 +36,8 @@ pub enum PlugVerByteSource {
 impl PluginsByteSource {
     pub async fn create(
         plugin_path: impl AsRef<Path>,
-        input: ByteSourceInput,
-        general_config: &PluginByteSourceGeneralSettings,
-        config_path: Option<impl AsRef<Path>>,
+        general_config: &pl::PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<pl::ConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
@@ -84,9 +84,8 @@ impl PluginsByteSource {
             } => {
                 let source = v0_1_0::bytesource::PluginByteSource::create(
                     component,
-                    input,
                     general_config,
-                    config_path,
+                    plugin_configs,
                 )
                 .await?;
 
@@ -133,8 +132,9 @@ impl WasmPlugin for PluginsByteSource {
     fn get_config_schemas(
         &mut self,
     ) -> Result<Vec<sources::plugins::ConfigSchemaItem>, PluginError> {
-        //TODO AAZ: deliver schemas from plugin
-        todo!()
+        match &mut self.source {
+            PlugVerByteSource::Ver010(source) => source.get_config_schemas(),
+        }
     }
 }
 
