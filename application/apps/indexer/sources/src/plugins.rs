@@ -36,26 +36,8 @@ impl PluginParserSettings {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PluginByteSourceSettings {
     pub plugin_path: PathBuf,
-    pub source_input: ByteSourceInput,
     pub general_settings: PluginByteSourceGeneralSettings,
-    pub custom_config_path: Option<PathBuf>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-/// Represents The input source for byte source to read from
-pub enum ByteSourceInput {
-    /// File input source with its path
-    File(PathBuf),
-    /// Socket Connection, identified with IP address and port
-    Socket { ip: String, port: u16 },
-    /// Network source identified with URL
-    Url(String),
-    /// Connection String for a Database
-    DbConnectionString(String),
-    /// In-Memory bytes buffer
-    Memory(Vec<u8>),
-    /// Other types of input sources can be added here.
-    Other(String),
+    pub plugin_configs: Vec<ConfigItem>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -66,14 +48,13 @@ pub struct PluginByteSourceGeneralSettings {
 
 impl PluginByteSourceSettings {
     /// Implementation needed during prototyping only
-    pub fn prototyping(plugin_path: PathBuf, source_input: ByteSourceInput) -> Self {
+    pub fn prototyping(plugin_path: PathBuf, plugin_configs: Vec<ConfigItem>) -> Self {
         Self {
             plugin_path,
-            source_input,
             general_settings: PluginByteSourceGeneralSettings {
                 placeholder: Default::default(),
             },
-            custom_config_path: None,
+            plugin_configs,
         }
     }
 }

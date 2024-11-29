@@ -1,20 +1,23 @@
 mod bindings;
 mod bytesource_plugin_state;
 
-use std::{io, path::Path};
+use std::io;
 
 use bindings::BytesourcePlugin;
 use bytesource_plugin_state::ByteSourcePluginState;
-use sources::plugins::{ByteSourceInput, PluginByteSourceGeneralSettings};
+use futures::executor::block_on;
 use wasmtime::{
     component::{Component, Linker},
     Store,
 };
-use wasmtime_wasi::{DirPerms, FilePerms, ResourceTable};
+use wasmtime_wasi::ResourceTable;
+
+use sources::plugins as pl;
 
 use crate::{
-    plugins_shared::get_wasi_ctx_builder, wasm_host::get_wasm_host, PluginGuestInitError,
-    PluginHostInitError,
+    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
+    wasm_host::get_wasm_host,
+    PluginGuestInitError, PluginHostInitError,
 };
 
 pub struct PluginByteSource {
@@ -25,9 +28,8 @@ pub struct PluginByteSource {
 impl PluginByteSource {
     pub async fn create(
         component: Component,
-        input: ByteSourceInput,
-        general_config: &PluginByteSourceGeneralSettings,
-        config_path: Option<impl AsRef<Path>>,
+        general_config: &pl::PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<pl::ConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
@@ -38,32 +40,7 @@ impl PluginByteSource {
 
         BytesourcePlugin::add_to_linker(&mut linker, |state| state)?;
 
-        //TODO AAZ: Fix when config is implemented for bytesource
-        let mut ctx = get_wasi_ctx_builder(&[])?;
-
-        // Additional access privileges for ctx depending on input type.
-        match &input {
-            ByteSourceInput::File(file_path) => {
-                let file_dir = file_path.parent().ok_or(PluginHostInitError::IO(
-                    "Resolve input file parent failed".into(),
-                ))?;
-                ctx.preopened_dir(
-                    file_dir,
-                    file_dir.to_string_lossy(),
-                    DirPerms::READ,
-                    FilePerms::READ,
-                )?;
-            }
-            ByteSourceInput::Socket { ip: _, port: _ }
-            | ByteSourceInput::Url(_)
-            //TODO: Plugins could need access to file system in local database case
-            | ByteSourceInput::DbConnectionString(_)
-            | ByteSourceInput::Memory(_)
-            | ByteSourceInput::Other(_) => {
-                // All sources except files could need access to host network
-                ctx.inherit_network();
-            }
-        }
+        let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
 
         let mut store = Store::new(
             engine,
@@ -73,16 +50,11 @@ impl PluginByteSource {
         let (plugin_bindings, _instance) =
             BytesourcePlugin::instantiate_async(&mut store, &component, &linker).await?;
 
-        let config_path = config_path.map(|path| path.as_ref().to_string_lossy().to_string());
+        let plugin_configs: Vec<_> = plugin_configs.into_iter().map(|item| item.into()).collect();
 
         plugin_bindings
             .chipmunk_plugin_byte_source()
-            .call_init(
-                &mut store,
-                &input.into(),
-                general_config.into(),
-                config_path.as_deref(),
-            )
+            .call_init(&mut store, general_config.into(), &plugin_configs)
             .await?
             .map_err(|guest_err| {
                 PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
@@ -92,6 +64,16 @@ impl PluginByteSource {
             store,
             plugin_bindings,
         })
+    }
+
+    pub fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+        let schemas = block_on(
+            self.plugin_bindings
+                .chipmunk_plugin_byte_source()
+                .call_get_config_schemas(&mut self.store),
+        )?;
+
+        Ok(schemas.into_iter().map(|item| item.into()).collect())
     }
 
     pub async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
