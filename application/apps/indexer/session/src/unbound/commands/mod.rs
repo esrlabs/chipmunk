@@ -3,6 +3,7 @@ mod checksum;
 mod dlt;
 mod file;
 mod folder;
+pub mod plugins;
 mod process;
 mod regex;
 mod serial;
@@ -89,6 +90,9 @@ pub enum Command {
         i64,
         oneshot::Sender<Result<CommandOutcome<i64>, ComputationError>>,
     ),
+    GetAllPlugins(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
+    GetActivePlugins(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
+    ReloadPlugins(oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>),
 }
 
 impl std::fmt::Display for Command {
@@ -109,6 +113,9 @@ impl std::fmt::Display for Command {
                 Command::GetSomeipStatistic(_, _) => "Getting someip statistic",
                 Command::GetRegexError(_, _) => "Checking regex",
                 Command::IsFileBinary(_, _) => "Checking if file is binary",
+                Command::GetAllPlugins(..) => "Getting all plugins",
+                Command::GetActivePlugins(..) => "Getting active plugins",
+                Command::ReloadPlugins(..) => "Reloading plugins' information",
             }
         )
     }
@@ -147,6 +154,9 @@ pub async fn process(command: Command, signal: Signal) {
         Command::CancelTest(a, b, tx) => tx
             .send(cancel_test::cancel_test(a, b, signal).await)
             .is_err(),
+        Command::GetAllPlugins(tx) => tx.send(plugins::get_all_plugins(signal)).is_err(),
+        Command::GetActivePlugins(tx) => tx.send(plugins::get_active_plugins(signal)).is_err(),
+        Command::ReloadPlugins(tx) => tx.send(plugins::reload_plugins(signal)).is_err(),
     } {
         error!("Fail to send response for command: {cmd}");
     }
@@ -167,6 +177,9 @@ pub fn err(command: Command, err: ComputationError) {
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
         Command::IsFileBinary(_filepath, tx) => tx.send(Err(err)).is_err(),
         Command::CancelTest(_a, _b, tx) => tx.send(Err(err)).is_err(),
+        Command::GetAllPlugins(tx) => tx.send(Err(err)).is_err(),
+        Command::GetActivePlugins(tx) => tx.send(Err(err)).is_err(),
+        Command::ReloadPlugins(tx) => tx.send(Err(err)).is_err(),
     } {
         error!("Fail to send error response for command: {cmd}");
     }

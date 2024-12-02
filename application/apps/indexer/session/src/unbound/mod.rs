@@ -44,6 +44,7 @@ impl UnboundSession {
     }
 
     pub async fn init(&mut self) -> Result<(), ComputationError> {
+        commands::plugins::initialize()?;
         let finished = self.finished.clone();
         let mut rx = self.rx.take().ok_or(ComputationError::SessionUnavailable)?; // Error: session already running
         let progress = ProgressProviderAPI::new()?;

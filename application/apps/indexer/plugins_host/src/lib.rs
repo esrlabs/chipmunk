@@ -1,11 +1,13 @@
 mod bytesource_shared;
 mod parser_shared;
+pub mod plugins_manager;
 mod plugins_shared;
 mod semantic_version;
 mod v0_1_0;
 mod wasm_host;
 
 use plugins_shared::plugin_errors::PluginError;
+use serde::{Deserialize, Serialize};
 use sources::plugins as pl;
 
 pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginsParser};
@@ -14,7 +16,7 @@ pub use bytesource_shared::PluginsByteSource;
 
 pub use plugins_shared::plugin_errors::{PluginGuestInitError, PluginHostInitError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PluginType {
     Parser,
     ByteSource,
