@@ -80,3 +80,8 @@ impl Arbitrary for FoldersScanningResult {
             .boxed()
     }
 }
+
+test_msg!(FolderEntityType, TESTS_USECASE_COUNT);
+test_msg!(FolderEntityDetails, TESTS_USECASE_COUNT);
+test_msg!(FoldersScanningResult, TESTS_USECASE_COUNT);
+test_msg!(FolderEntity, TESTS_USECASE_COUNT);

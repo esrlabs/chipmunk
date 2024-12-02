@@ -10,3 +10,5 @@ impl Arbitrary for SerialPortsList {
             .boxed()
     }
 }
+
+test_msg!(SerialPortsList, TESTS_USECASE_COUNT);

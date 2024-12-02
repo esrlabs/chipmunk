@@ -41,3 +41,6 @@ impl Arbitrary for AttachmentList {
             .boxed()
     }
 }
+
+test_msg!(AttachmentInfo, TESTS_USECASE_COUNT);
+test_msg!(AttachmentList, TESTS_USECASE_COUNT);
