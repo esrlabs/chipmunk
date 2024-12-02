@@ -12,6 +12,8 @@ import { readConfigurationFile } from './config';
 import * as protocol from 'protocol';
 import * as $ from 'platform/types/observe';
 import * as runners from './runners';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const config = readConfigurationFile().get().tests.protocol;
 
@@ -37,6 +39,54 @@ function deepEqualObj(a: any, b: any, depth = Infinity): boolean {
     }
     return a === b;
 }
+
+const MAP: { [key: string]: (buf: Uint8Array) => any } = {
+    AroundIndexes: protocol.decodeAroundIndexes,
+    AttachmentInfo: protocol.decodeAttachmentInfo,
+    AttachmentList: protocol.decodeAttachmentList,
+    CallbackEvent: protocol.decodeCallbackEvent,
+    CommandOutcome_bool: protocol.decodeCommandOutcomeWithbool,
+    CommandOutcome_FoldersScanningResult: protocol.decodeFoldersScanningResult,
+    CommandOutcome_i64: protocol.decodeCommandOutcomeWithi64,
+    CommandOutcome_Option_String: protocol.decodeCommandOutcomeWithOptionString,
+    CommandOutcome_SerialPortsList: protocol.decodeCommandOutcomeWithSerialPortsList,
+    CommandOutcome_String: protocol.decodeCommandOutcomeWithString,
+    CommandOutcome_Void: protocol.decodeCommandOutcomeWithVoid,
+    ComputationError: protocol.decodeComputationError,
+    DltParserSettings: protocol.decodeDltParserSettings,
+    FileFormat: protocol.decodeFileFormat,
+    FilterMatch: protocol.decodeFilterMatch,
+    FilterMatchList: protocol.decodeFilterMatchList,
+    FolderEntity: protocol.decodeFolderEntity,
+    FolderEntityDetails: protocol.decodeFolderEntityDetails,
+    FolderEntityType: protocol.decodeFolderEntityType,
+    FoldersScanningResult: protocol.decodeFoldersScanningResult,
+    GrabbedElement: protocol.decodeGrabbedElement,
+    GrabbedElementList: protocol.decodeGrabbedElementList,
+    LifecycleTransition: protocol.decodeLifecycleTransition,
+    MulticastInfo: protocol.decodeMulticastInfo,
+    NativeError: protocol.decodeNativeError,
+    NativeErrorKind: protocol.decodeNativeErrorKind,
+    ObserveOptions: protocol.decodeObserveOptions,
+    ObserveOrigin: protocol.decodeObserveOrigin,
+    OperationDone: protocol.decodeOperationDone,
+    ParserType: protocol.decodeParserType,
+    ProcessTransportConfig: protocol.decodeProcessTransportConfig,
+    Progress: protocol.decodeProgress,
+    Ranges: protocol.decodeRanges,
+    SdeRequest: protocol.decodeSdeRequest,
+    SdeResponse: protocol.decodeSdeResponse,
+    SerialPortsList: protocol.decodeSerialPortsList,
+    SerialTransportConfig: protocol.decodeSerialTransportConfig,
+    Severity: protocol.decodeSeverity,
+    SomeIpParserSettings: protocol.decodeSomeIpParserSettings,
+    SourceDefinition: protocol.decodeSourceDefinition,
+    Sources: protocol.decodeSources,
+    TCPTransportConfig: protocol.decodeTCPTransportConfig,
+    Transport: protocol.decodeTransport,
+    UdpConnectionInfo: protocol.decodeUdpConnectionInfo,
+    UDPTransportConfig: protocol.decodeUDPTransportConfig,
+};
 
 describe('Protocol', function () {
     it(config.regular.list[1], function () {
@@ -170,6 +220,55 @@ describe('Protocol', function () {
                     },
                 },
             });
+            finish(undefined, done);
+        });
+    });
+    it(config.regular.list[2], function () {
+        return runners.noSession(config.regular, 2, async (logger, done) => {
+            function check(origin: $.IObserve) {
+                const bytes = protocol.encodeObserveOptions(origin);
+                const decoded = protocol.decodeObserveOptions(bytes);
+                expect(deepEqualObj(decoded, origin)).toBe(true);
+            }
+            const casesPath = process.env['PROTOCOL_TEST_CASES_PATH'];
+            if (typeof casesPath !== 'string' || casesPath.trim() === '') {
+                logger.info('Testing of all use-cases is skipped');
+                return finish(undefined, done);
+            }
+            if (!fs.existsSync(casesPath)) {
+                return finish(
+                    undefined,
+                    done,
+                    new Error(
+                        `Fail to find data passed due PROTOCOL_TEST_CASES_PATH: ${casesPath} doesn't exist`,
+                    ),
+                );
+            }
+            const folders = fs.readdirSync(casesPath);
+            for (let typeOfMessage of folders) {
+                const targetFullPath = path.join(casesPath, typeOfMessage);
+                if (!fs.statSync(targetFullPath).isDirectory()) {
+                    continue;
+                }
+                const cases = fs.readdirSync(targetFullPath);
+                for (let testCase of cases) {
+                    const fullPath = path.join(targetFullPath, testCase);
+                    if (!fs.statSync(fullPath).isFile()) {
+                        continue;
+                    }
+                    const buffer = fs.readFileSync(fullPath);
+                    const decoder = MAP[typeOfMessage];
+                    if (decoder === undefined) {
+                        return finish(
+                            undefined,
+                            done,
+                            new Error(`Fail to find decoder for ${typeOfMessage}`),
+                        );
+                    }
+                    const msg = decoder(Uint8Array.from(buffer));
+                    console.log(msg);
+                }
+            }
             finish(undefined, done);
         });
     });

@@ -2509,7 +2509,7 @@ dependencies = [
  "libc",
  "log",
  "memchr",
- "nix 0.26.4",
+ "nix 0.29.0",
  "radix_trie",
  "unicode-segmentation",
  "unicode-width 0.2.0",
