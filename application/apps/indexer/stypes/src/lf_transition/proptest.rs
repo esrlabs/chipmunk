@@ -16,3 +16,5 @@ impl Arbitrary for LifecycleTransition {
         .boxed()
     }
 }
+
+test_msg!(LifecycleTransition, TESTS_USECASE_COUNT);
