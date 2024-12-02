@@ -116,3 +116,14 @@ impl Arbitrary for FilterMatchList {
             .boxed()
     }
 }
+
+test_msg!(Ranges, TESTS_USECASE_COUNT);
+test_msg!(SourceDefinition, TESTS_USECASE_COUNT);
+test_msg!(Sources, TESTS_USECASE_COUNT);
+test_msg!(SdeRequest, TESTS_USECASE_COUNT);
+test_msg!(SdeResponse, TESTS_USECASE_COUNT);
+test_msg!(GrabbedElement, TESTS_USECASE_COUNT);
+test_msg!(GrabbedElementList, TESTS_USECASE_COUNT);
+test_msg!(AroundIndexes, TESTS_USECASE_COUNT);
+test_msg!(FilterMatch, TESTS_USECASE_COUNT);
+test_msg!(FilterMatchList, TESTS_USECASE_COUNT);

@@ -90,3 +90,11 @@ impl Arbitrary for CommandOutcome<bool> {
         .boxed()
     }
 }
+
+test_msg!(CommandOutcome<()>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<bool>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<Option<String>>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<i64>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<SerialPortsList>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<String>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<FoldersScanningResult>, TESTS_USECASE_COUNT);

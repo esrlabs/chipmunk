@@ -43,3 +43,5 @@ impl Arbitrary for Progress {
         .boxed()
     }
 }
+
+test_msg!(Progress, TESTS_USECASE_COUNT);
