@@ -20,7 +20,11 @@ impl Arbitrary for Ticks {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<u64>(), any::<Option<String>>(), any::<Option<u64>>())
+        (
+            any::<u64>(),
+            any::<Option<String>>(),
+            any::<Option<u64>>(),
+        )
             .prop_map(|(count, state, total)| Ticks {
                 count,
                 state,
