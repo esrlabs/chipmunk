@@ -25,6 +25,7 @@ pub struct PluginLogger<C>
 where
     C: LogSend,
 {
+    /// Item implementing [`LogSend`], used to send the logs to the host.
     pub sender: C,
 }
 
