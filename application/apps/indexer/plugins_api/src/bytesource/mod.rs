@@ -27,6 +27,7 @@ pub use __internal_bindings::chipmunk::plugin::{
 };
 
 impl ConfigSchemaItem {
+    /// Creates a new configuration schema item with the given arguments
     pub fn new<S: Into<String>>(
         id: S,
         title: S,
@@ -181,6 +182,8 @@ macro_rules! bytesource_export {
                 // SAFETY: Bytesource host implements read trait, which takes a mutable reference
                 // to self when called. Therefor it's not possible to have multiple references on
                 // the static bytesource instance here at once.
+                //TODO AAZ: Find better way than denying the warning.
+                #[allow(static_mut_refs)]
                 let source =
                     unsafe { BYTESOURCE.as_mut().expect("Bytesource already initialized") };
                 source.read(len as usize)
