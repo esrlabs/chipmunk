@@ -32,6 +32,7 @@ pub use __internal_bindings::chipmunk::plugin::{
 };
 
 impl ConfigSchemaItem {
+    /// Creates a configuration schema item with the given arguments.
     pub fn new<S: Into<String>>(
         id: S,
         title: S,
@@ -205,6 +206,8 @@ macro_rules! parser_export {
             > {
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
+                //TODO AAZ: Find better way than denying the warning.
+                #[allow(static_mut_refs)]
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
                 parser.parse(&data, timestamp).map(|items| items.collect())
             }

@@ -1,3 +1,4 @@
+#![warn(missing_docs)]
 // Activate the banner on docs explaining that the items is only available with specific feature
 // `doc_cfg` is chosen over `doc_auto_cfg` to provide the exact feature name and not show every
 // conditional compilation detail in the docs, even it would require to specify the cfg_attr on
