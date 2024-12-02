@@ -81,3 +81,8 @@ impl Arbitrary for ComputationError {
         .boxed()
     }
 }
+
+test_msg!(Severity, TESTS_USECASE_COUNT);
+test_msg!(NativeErrorKind, TESTS_USECASE_COUNT);
+test_msg!(NativeError, TESTS_USECASE_COUNT);
+test_msg!(ComputationError, TESTS_USECASE_COUNT);

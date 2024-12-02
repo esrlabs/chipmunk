@@ -41,3 +41,6 @@ impl Arbitrary for CallbackEvent {
         .boxed()
     }
 }
+
+test_msg!(OperationDone, TESTS_USECASE_COUNT);
+test_msg!(CallbackEvent, TESTS_USECASE_COUNT);

@@ -255,3 +255,17 @@ impl Arbitrary for ObserveOptions {
             .boxed()
     }
 }
+
+test_msg!(ObserveOptions, TESTS_USECASE_COUNT);
+test_msg!(ObserveOrigin, TESTS_USECASE_COUNT);
+test_msg!(FileFormat, TESTS_USECASE_COUNT);
+test_msg!(UDPTransportConfig, TESTS_USECASE_COUNT);
+test_msg!(TCPTransportConfig, TESTS_USECASE_COUNT);
+test_msg!(SerialTransportConfig, TESTS_USECASE_COUNT);
+test_msg!(ProcessTransportConfig, TESTS_USECASE_COUNT);
+test_msg!(Transport, TESTS_USECASE_COUNT);
+test_msg!(SomeIpParserSettings, TESTS_USECASE_COUNT);
+test_msg!(DltParserSettings, TESTS_USECASE_COUNT);
+test_msg!(ParserType, TESTS_USECASE_COUNT);
+test_msg!(UdpConnectionInfo, TESTS_USECASE_COUNT);
+test_msg!(MulticastInfo, TESTS_USECASE_COUNT);

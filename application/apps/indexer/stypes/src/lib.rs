@@ -1,4 +1,7 @@
-#[cfg(any(test, feature = "nodejs"))]
+#[cfg(test)]
+mod tests;
+
+#[cfg(feature = "nodejs")]
 mod nodejs;
 
 mod attachment;
@@ -23,11 +26,13 @@ pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};
 pub(crate) use std::{collections::HashMap, path::PathBuf};
 pub(crate) use uuid::Uuid;
 
-#[cfg(any(test, feature = "nodejs"))]
+#[cfg(feature = "nodejs")]
 pub(crate) use node_bindgen::{
     core::{safebuffer::SafeArrayBuffer, val::JsEnv, NjError, TryIntoJs},
     sys::napi_value,
 };
 
 #[cfg(test)]
-use proptest::prelude::*;
+pub(crate) use proptest::prelude::*;
+#[cfg(test)]
+pub(crate) use tests::*;
