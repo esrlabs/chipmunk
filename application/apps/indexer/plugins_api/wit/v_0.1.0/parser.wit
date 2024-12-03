@@ -49,11 +49,21 @@ interface parse-types {
     incomplete,
     eof,
   }
+
+  /// Provides additional information to be rendered in the log view.
+  record render-options {
+    /// List of strings representing the header names to be rendered at the top of log messages.
+    /// This list allows users to specify which columns are visible as well.
+    /// 
+    /// Note: Headers should be provided only if the log messages have multiple columns, and their 
+    /// count must match the count of the columns of the log message as well.
+    headers: option<list<string>>,
+  }
 }
 
 interface parser {
   use shared-types.{version, init-error, config-item, config-schema-item};
-  use parse-types.{parser-config, parse-return, parse-error};
+  use parse-types.{render-options, parser-config, parse-return, parse-error};
  
   /// Provides the current semantic version of the plugin.
   /// This version is for the plugin only and is different from the plugin's API version.
@@ -66,6 +76,11 @@ interface parser {
   /// for plugin-specific configurations. The values of these configurations
   /// will be passed to the initializing method of the parser.
   get-config-schemas: func() -> list<config-schema-item>;
+
+  /// Provides the custom render options to be rendered in log view, enabling the users to 
+  /// change the visibility on the log columns when provided.
+  /// This function can be called before initializing the plugin instance.
+  get-render-options: func() -> render-options;
   
   /// Initialize the parser with the given configurations
   init: func(general-configs: parser-config, plugin-configs: list<config-item>) -> result<_, init-error>;
