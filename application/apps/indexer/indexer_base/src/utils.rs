@@ -29,7 +29,6 @@ pub fn is_newline(c: char) -> bool {
 }
 
 #[inline]
-
 pub fn number_string_len(linenr: usize) -> usize {
     if linenr == 0 {
         return 1;
