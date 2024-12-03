@@ -52,8 +52,12 @@ interface parse-types {
 }
 
 interface parser {
-  use shared-types.{init-error, config-item, config-schema-item};
+  use shared-types.{version, init-error, config-item, config-schema-item};
   use parse-types.{parser-config, parse-return, parse-error};
+ 
+  /// Provides the current semantic version of the plugin.
+  /// This version is for the plugin only and is different from the plugin's API version.
+  get-version: func() -> version;
 
   /// Provides the schemas for the configurations required by the plugin, which
   /// will be specified by the users.

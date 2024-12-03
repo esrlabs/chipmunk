@@ -28,7 +28,9 @@ pub mod __internal_bindings {
 pub use __internal_bindings::chipmunk::plugin::{
     logging::Level,
     parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParsedMessage, ParserConfig},
-    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError},
+    shared_types::{
+        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
+    },
 };
 
 impl ConfigSchemaItem {
@@ -48,9 +50,29 @@ impl ConfigSchemaItem {
     }
 }
 
+impl Version {
+    /// Creates a semantic version instance with the given arguments.
+    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
+        Self {
+            major,
+            minor,
+            patch,
+        }
+    }
+}
+
 /// Trait representing a parser for Chipmunk plugins. Types that need to be
 /// exported as parser plugins for use within Chipmunk must implement this trait.
 pub trait Parser {
+    /// Provides the current semantic version of the plugin.
+    ///
+    /// # Note
+    /// This version is for the plugin only and is different from the plugin's API version.
+    ///
+    /// # Returns
+    /// A `Version` struct representing the current version of the plugin.
+    fn get_version() -> Version;
+
     /// Provides the schemas for the configurations required by the plugin, which
     /// must be specified by the users.
     ///
@@ -123,6 +145,9 @@ impl ParseReturn {
 ///
 /// impl Parser for CustomParser {
 ///   // ... //
+///  #    fn get_version() -> Version {
+///  #       Version::new(0, 1, 0)
+///  #    }
 ///  #    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
 ///  #       vec![]
 ///  #    }
@@ -168,6 +193,11 @@ macro_rules! parser_export {
         impl $crate::parser::__internal_bindings::exports::chipmunk::plugin::parser::Guest
             for InternalPluginParserGuest
         {
+            /// Provides the current semantic version of the plugin.
+            /// This version is for the plugin only and is different from the plugin's API version.
+            fn get_version() -> $crate::parser::Version {
+                <$par as $crate::parser::Parser>::get_version()
+            }
             /// Provides the schemas for the configurations needed by the plugin to
             /// be specified by the users.
             fn get_config_schemas() -> ::std::vec::Vec<$crate::parser::ConfigSchemaItem> {
@@ -228,6 +258,10 @@ mod prototyping {
     struct Dummy;
 
     impl Parser for Dummy {
+        fn get_version() -> Version {
+            todo!()
+        }
+
         fn get_config_schemas() -> Vec<ConfigSchemaItem> {
             todo!()
         }
