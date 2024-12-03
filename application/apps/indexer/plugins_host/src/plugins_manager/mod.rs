@@ -1,16 +1,11 @@
 mod errors;
 
-use std::{
-    path::PathBuf,
-    sync::{OnceLock, RwLock},
-};
+use std::path::PathBuf;
 
 pub use errors::InitError;
 use serde::{Deserialize, Serialize};
 
 use crate::{semantic_version::SemanticVersion, PluginType};
-
-static PLUGINS_MANAGER: OnceLock<RwLock<PluginsManager>> = OnceLock::new();
 
 #[derive(Debug)]
 pub struct PluginsManager {
@@ -40,27 +35,11 @@ pub enum PluginState {
 }
 
 impl PluginsManager {
-    pub fn init() -> Result<(), InitError> {
-        let manager = PluginsManager::load()?;
-        assert!(
-            PLUGINS_MANAGER.set(RwLock::new(manager)).is_ok(),
-            "Plugin manager can't be initialized more than once"
-        );
-
-        Ok(())
-    }
-
-    fn load() -> Result<Self, InitError> {
+    pub fn load() -> Result<Self, InitError> {
         // TODO AAZ: Load from plugins directory.
         Ok(Self {
             plugins: Vec::new(),
         })
-    }
-
-    pub fn get() -> &'static RwLock<Self> {
-        PLUGINS_MANAGER
-            .get()
-            .expect("Plugin manager can't be used before initialization")
     }
 
     pub fn all_plugins(&self) -> &[PluginEntity] {

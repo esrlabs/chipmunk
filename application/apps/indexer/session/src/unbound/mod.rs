@@ -13,7 +13,10 @@ use crate::{
 };
 use cleanup::cleanup_temp_dir;
 use log::{debug, error, warn};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     time::{timeout, Duration},
@@ -44,7 +47,13 @@ impl UnboundSession {
     }
 
     pub async fn init(&mut self) -> Result<(), ComputationError> {
-        commands::plugins::initialize()?;
+        // TODO AAZ: Plugins manager is used temporally here in prototyping phase and will be moved
+        // to its own module. Reasons:
+        // * It doesn't need parallelism for most of task.
+        // * It'll need different state and locking management for downloading plugins, Updating
+        // caches etc...
+        let plugins_manager = commands::plugins::load_manager()?;
+        let plugins_manager = Arc::new(RwLock::new(plugins_manager));
         let finished = self.finished.clone();
         let mut rx = self.rx.take().ok_or(ComputationError::SessionUnavailable)?; // Error: session already running
         let progress = ProgressProviderAPI::new()?;
@@ -75,9 +84,10 @@ impl UnboundSession {
                         jobs.insert(id, signal.clone());
                         UnboundSession::started(&progress, job.to_string(), &mut uuids, &id);
                         let api = session_api.clone();
+                        let plugs_ref_clone = Arc::clone(&plugins_manager);
                         tokio::spawn(async move {
                             debug!("Job {job} has been called");
-                            commands::process(job, signal.clone()).await;
+                            commands::process(job, signal.clone(), plugs_ref_clone.as_ref()).await;
                             signal.confirm();
                             let _ = api.remove_command(id);
                         });
