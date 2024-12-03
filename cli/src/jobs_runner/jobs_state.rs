@@ -3,11 +3,12 @@
 
 use std::{sync::OnceLock, time::Duration};
 
-use serde::{Deserialize, Serialize};
 use tokio::time::timeout;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use crate::tracker::get_tracker;
+
+use super::additional_features::AdditionalFeatures;
 
 /// Duration to wait for jobs when cancellation is invoked.
 pub const TIMEOUT_DURATION: Duration = Duration::from_secs(2);
@@ -19,24 +20,14 @@ pub const FORCE_EXIT_DURATION: Duration = Duration::from_secs(3);
 /// [`JobsState`] singleton
 static JOBS_STATE: OnceLock<JobsState> = OnceLock::new();
 
-/// Manages the state of the running jobs, keeping track on all their spawned tasks, providing
-/// method to gracefully close them within a timeout.
+/// Manages the state of the currently running jobs, keeping track on all their spawned tasks,
+/// providing method to gracefully close them within a timeout.
 /// It keeps the info in task should fail fast too.
 #[derive(Debug)]
 pub struct JobsState {
     cancellation_token: CancellationToken,
     task_tracker: TaskTracker,
     configuration: JobsConfig,
-}
-
-/// Represents defined additional features that can activated on parts on build process.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, Serialize, Deserialize)]
-pub enum AdditionalFeatures {
-    /// Activate `custom-alloc` feature in rs-binding to use custom memory allocator
-    /// instead of the default one.
-    #[serde(rename = "custom-alloc")]
-    #[value(name = "custom-alloc")]
-    CustomAllocator,
 }
 
 #[derive(Debug, Clone, Default)]

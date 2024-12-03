@@ -76,3 +76,4 @@ scripts/tools/file_checklists/*.*
 # CLI build tool files #
 ########################
 .build_chksum_*
+.build_last_state

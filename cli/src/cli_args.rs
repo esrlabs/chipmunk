@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
-use crate::{benchmark::BenchTarget, jobs_runner::jobs_state::AdditionalFeatures, target::Target};
+use crate::{
+    benchmark::BenchTarget, jobs_runner::additional_features::AdditionalFeatures, target::Target,
+};
 
 const FAIL_FAST_HELP_TEXT: &str = "Stops execution immediately if any job fails.";
 const NO_FAIL_FAST_HELP_TEXT: &str = "Don't stops execution immediately if any job fails.";
@@ -178,10 +180,10 @@ pub enum Command {
     #[clap(visible_alias = "bench")]
     #[command(subcommand)]
     Benchmark(BenchTarget),
-    /// Resets the checksums records what is used to check if there were any code changes for
+    /// Resets the build states records what is used to check if there were any changes for
     /// each target.
     #[clap(visible_alias = "reset")]
-    ResetChecksum,
+    ResetRecords,
     /// Generate shell completion for the commands of this tool in the given shell,
     /// printing them to stdout.
     #[clap(visible_alias = "compl")]

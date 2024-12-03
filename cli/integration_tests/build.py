@@ -1,6 +1,6 @@
 """
-Provides methods to test the Build command and checksum implementation to watch source code changes 
-in Chipmunk Build CLI Tool.
+Provides methods to test the Build command and build state records implementation to watch source 
+code changes in Chipmunk Build CLI Tool.
 """
 
 from pathlib import Path
@@ -16,9 +16,9 @@ import platform
 
 def run_build_tests():
     """Runs many tests for build command:
-    - General Test: General test for build command and the created directories and checksum files.
-    - Checksum Test: Test how changing files in some target will affect the build on it and other targets depending on it.
-    - Reset Checksum Test: Make sure checksum file will deleted when the command is called.
+    - General Test: General test for build command and the created directories and build record file.
+    - Build Records Test: Test how changing files in some target will affect the build on it and other targets depending on it.
+    - Reset Build Records Test: Make sure build records file will deleted when the command is called.
     """
     print_blue_bold("Running General Checks for Build Command...")
     _build_general_check()
@@ -26,15 +26,15 @@ def run_build_tests():
 
     print("---------------------------------------------------------------")
 
-    print_blue_bold("Running Checksum Checks for Build Command...")
-    _build_checksum_check()
-    print_green_bold("*** Checksum Check for Build Command Succeeded ***")
+    print_blue_bold("Running Build Records Checks for Build Command...")
+    _build_states_records_check()
+    print_green_bold("*** Build Records Check for Build Command Succeeded ***")
 
     print("---------------------------------------------------------------")
 
-    print_blue_bold("Running Reset Checksum Command...")
-    _run_reset_checksum_command()
-    print_green_bold("*** Test Running Reset Checksum Command Succeeded ***")
+    print_blue_bold("Running Reset Build Records Command...")
+    _run_reset_build_records_command()
+    print_green_bold("*** Test Running Reset Build Records Command Succeeded ***")
 
 
 #######################################################################
@@ -83,8 +83,8 @@ APP_PATHS_FOR_BUILD_CHECK = [
     "holder/node_modules",
 ]
 
-# The name of the file where the checksum are saved for development build
-CHECKSUM_FILE_NAME = ".build_chksum_dev"
+# The name of the file where the states of the latest build are saved.
+BUILD_RECORDS_FILENAME = ".build_last_state"
 
 
 def get_build_paths(root_dir: Path) -> list[Path]:
@@ -98,19 +98,19 @@ def get_build_paths(root_dir: Path) -> list[Path]:
 
 def _build_general_check():
     """
-    Runs Build command for app targets and checks if all build directories + checksum file are created.
+    Runs Build command for app targets and checks if all build directories + Last build states records file are created.
     Build command will run with the default arguments regarding the ui and fail-fast
     """
     print("Running build command...")
     root_dir = get_root()
-    # The path for the file where build checksums are saved.
+    # The path for the file where build states are saved.
     # This file must be written on every call of build.
-    checksum_path = root_dir.joinpath(CHECKSUM_FILE_NAME)
+    last_build_state_path = root_dir.joinpath(BUILD_RECORDS_FILENAME)
 
-    # Get last modification date for checksum file if exists otherwise get minimal date
-    checksum_modified_before = (
-        get_last_modification_date(checksum_path)
-        if checksum_path.exists()
+    # Get last modification date for states file if exists otherwise get minimal date
+    build_state_modified_before = (
+        get_last_modification_date(last_build_state_path)
+        if last_build_state_path.exists()
         else datetime.min
     )
     run_command(BUILD_COMMAND)
@@ -123,25 +123,25 @@ def _build_general_check():
 
     print("Checking created directories Succeeded")
 
-    # Checksum Records file Checks: File must exist after build,
+    # Build Records file Checks: File must exist after build,
     # and it must have a more resent modification date compared to before build
-    print("Checking Checksum Records file changed...")
+    print("Checking Build states Records file changed...")
 
     assert (
-        checksum_path.exists()
-    ), f"Checksum record file doesn't exist after build. File Path: {checksum_path}"
+        last_build_state_path.exists()
+    ), f"Build states record file doesn't exist after build. File Path: {last_build_state_path}"
 
-    checksum_modified_after = get_last_modification_date(checksum_path)
+    build_state_modified_after = get_last_modification_date(last_build_state_path)
 
     assert (
-        checksum_modified_after > checksum_modified_before
-    ), f"Checksum file modification date after build isn't greater as before build.\
-         Before: {checksum_modified_before} , After: {checksum_modified_after}"
-    print("Checking if Checksum Records file changed Succeeded")
+        build_state_modified_after > build_state_modified_before
+    ), f"Build states records file modification date after build isn't greater as before build.\
+         Before: {build_state_modified_before} , After: {build_state_modified_after}"
+    print("Checking if Build States Records file changed Succeeded")
 
 
 #######################################################################
-####################   CHECKSUM RECORDS TESTS   #######################
+###################   LAST BUILD RECORDS TESTS   ######################
 #######################################################################
 
 # Name of the temporary file which will be used for testing if file changes will lead to rebuild
@@ -149,7 +149,7 @@ def _build_general_check():
 # This file should be created then deleted after the test is done.
 TEMP_FILE_NAME = "tmp_for_cli_test.txt"
 
-# Content of temporary file for testing checksum checks.
+# Content of temporary file for testing build records checks.
 # It should provide a clear message for the users to delete the file if the file somehow didn't
 # get deleted after the test has finished.
 TEMP_FILE_CONTENT = """This file is created to test the build CLI tool only and it should be deleted after each test.
@@ -157,9 +157,9 @@ Please delete this file manually if it still exists after build CLI tests are do
 and please consider opening an issue if you can reproduce this behavior"""
 
 # Paths of files and directory in platform target and all other targets depending on it.
-# The modification date for this files will be read before the checksum test starts, then it will be compared after
-# the build command has finished to insure that the those targets have been rebuilt.
-INVOLVED_PATHS_CHECKSUM_CHECK = [
+# The modification date for this files will be read before the build records test starts, then it will be
+# compared after the build command has finished to insure that the those targets have been rebuilt.
+INVOLVED_PATHS_BUILD_RECORDS_CHECK = [
     # Shared
     "platform/dist/lib.js",
     # Binding
@@ -173,9 +173,9 @@ INVOLVED_PATHS_CHECKSUM_CHECK = [
 ]
 
 # Paths of files and directory that must be not changed after running the build with the changes in platform
-# The modification date for this files will be read before the checksum test starts, then it will be compared after
-# the build command has finished to insure that the those targets have not been rebuilt.
-PATHS_NON_INVOLVED_CHECKSUM_CHECK = [
+# The modification date for this files will be read before the build records test starts, then it will be
+# compared after the build command has finished to insure that the those targets have not been rebuilt.
+PATHS_NON_INVOLVED_BUILD_RECORDS_CHECK = [
     # Core
     "apps/indexer/target",
     # Wasm
@@ -207,7 +207,7 @@ def get_last_modification_date(path: Path) -> datetime:
         return datetime.fromtimestamp(most_recent_time)
 
 
-def _build_checksum_check():
+def _build_states_records_check():
     """!!!This function must run directly after a full build!!!
     It creates a dummy file in platform directory and checks that all dependencies (Binding, Wrapper, Client, App)
     has been newly built.
@@ -216,29 +216,29 @@ def _build_checksum_check():
     root_dir = get_root()
     application_dir = root_dir.joinpath("application")
 
-    # Get and validate checksum file
-    chksum_file = root_dir.joinpath(CHECKSUM_FILE_NAME)
+    # Get and validate build states record file
+    build_state_file = root_dir.joinpath(BUILD_RECORDS_FILENAME)
     assert (
-        chksum_file.exists()
-    ), f"Checksum File must exist before running checksum tests. File Path: {chksum_file}"
+        build_state_file.exists()
+    ), f"Build State Records File must exist before running Build State Records tests. File Path: {build_state_file}"
 
     # Save modification date for build paths that must change before start to compare them later.
     modifi_involved_before_start: Dict[Path, datetime] = {}
-    for sub_path in INVOLVED_PATHS_CHECKSUM_CHECK:
+    for sub_path in INVOLVED_PATHS_BUILD_RECORDS_CHECK:
         sub_path = application_dir.joinpath(sub_path)
         assert (
             sub_path.exists()
-        ), f"Build Path must exist before checksum tests starts. Path {sub_path}"
+        ), f"Build Path must exist before build state records tests starts. Path {sub_path}"
         modifi_date = get_last_modification_date(sub_path)
         modifi_involved_before_start[sub_path] = modifi_date
 
     # Save modification date for build paths that must sta before start to compare them later.
     modifi_non_involved_before_start: Dict[Path, datetime] = {}
-    for sub_path in PATHS_NON_INVOLVED_CHECKSUM_CHECK:
+    for sub_path in PATHS_NON_INVOLVED_BUILD_RECORDS_CHECK:
         sub_path = application_dir.joinpath(sub_path)
         assert (
             sub_path.exists()
-        ), f"Build Path must exist before checksum tests starts. Path {sub_path}"
+        ), f"Build Path must exist before build state records tests starts. Path {sub_path}"
         modifi_date = get_last_modification_date(sub_path)
         modifi_non_involved_before_start[sub_path] = modifi_date
 
@@ -247,7 +247,7 @@ def _build_checksum_check():
     temp_file_path = application_dir.joinpath(f"platform/{TEMP_FILE_NAME}")
     assert (
         not temp_file_path.exists()
-    ), f"Temporary file can't exist before checksum test start. File Path: {temp_file_path}"
+    ), f"Temporary file can't exist before build state records test start. File Path: {temp_file_path}"
 
     try:
         # Create temporary file in platform directory
@@ -264,7 +264,7 @@ def _build_checksum_check():
 
         # Compare modification date for involved targets on different platforms
         if platform.system() != "Windows":
-            # On Unix systems we compare all the involved targets to insure the checksum solution is
+            # On Unix systems we compare all the involved targets to insure the build records solution is
             # working and to test the build dependencies logic
             for path, modifi_before in modifi_involved_before_start.items():
                 modifi_after = get_last_modification_date(path)
@@ -301,27 +301,27 @@ def _build_checksum_check():
             temp_file_path.unlink()
 
 
-#######################################################################
-####################   RESET CHECKSUM COMMAND   #######################
-#######################################################################
+######################################################################
+##################  RESET BUILD RECORDS COMMAND  #####################
+######################################################################
 
-RESET_CHECKSUM_COMMAND = ["cargo", "run", "-r", "--", "chipmunk", "reset-checksum"]
+RESET_BUILD_RECORDS_COMMAND = ["cargo", "run", "-r", "--", "chipmunk", "reset-records"]
 
 
-def _run_reset_checksum_command():
-    """This test will run reset-checksum command in development mode, then it insure that
-    the checksum file has been deleted"""
+def _run_reset_build_records_command():
+    """This test will run reset-records command in development mode, then it insure that
+    the records file has been deleted"""
 
-    checksum_path = get_root().joinpath(CHECKSUM_FILE_NAME)
+    records_path = get_root().joinpath(BUILD_RECORDS_FILENAME)
     assert (
-        checksum_path.exists()
-    ), f"Checksum file must exist before running 'reset-checksum' command. File Path: {checksum_path}"
+        records_path.exists()
+    ), f"Build state records file must exist before running 'reset-records' command. File Path: {records_path}"
 
-    run_command(RESET_CHECKSUM_COMMAND)
+    run_command(RESET_BUILD_RECORDS_COMMAND)
 
     assert (
-        not checksum_path.exists()
-    ), f"Checksum file must not exist after running 'reset-checksum' command. File Path: {checksum_path}"
+        not records_path.exists()
+    ), f"Build state records file must not exist after running 'reset-records' command. File Path: {records_path}"
 
     pass
 

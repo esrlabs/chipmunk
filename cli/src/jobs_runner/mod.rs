@@ -1,6 +1,7 @@
 //! Manages running the provided main job for the given targets after resolving the job
 //! dependencies, then it manages running them concurrently when possible.
 
+pub mod additional_features;
 mod job_definition;
 pub mod jobs_resolver;
 pub mod jobs_state;
@@ -11,7 +12,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 pub use job_definition::JobDefinition;
 
 use crate::{
-    checksum_records::{ChecksumCompareResult, ChecksumRecords},
+    build_state_records::{BuildStateRecords, ChecksumCompareResult},
     cli_args::UiMode,
     job_type::JobType,
     log_print::{print_log_separator, print_report},
@@ -178,7 +179,7 @@ fn spawn_jobs(
             } else {
                 // Calculate target checksums and compare it the persisted one
                 let prod = job_def.job_type.is_production().is_some_and(|prod| prod);
-                let checksum_rec = ChecksumRecords::get(prod)?;
+                let checksum_rec = BuildStateRecords::get(prod)?;
                 checksum_rec.register_job(job_def.target)?;
 
                 // Check if all dependent jobs are skipped, then do the checksum calculations

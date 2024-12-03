@@ -1,3 +1,10 @@
+# 0.2.13
+
+## Changes:
+
+* Include the applied additional features in the persisted records of the last build besides the checksum of the files of each target.
+* Use one file to persist the build state of the last build instead of two files.
+
 # 0.2.12
 
 ## Changes:
