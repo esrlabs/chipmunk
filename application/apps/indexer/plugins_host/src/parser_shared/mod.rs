@@ -9,6 +9,9 @@ use crate::{
 };
 
 pub mod plugin_parse_message;
+mod render_options;
+
+pub use render_options::RenderOptions;
 
 const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
 
@@ -94,6 +97,12 @@ impl PluginsParser {
             invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
                 "Plugin version {invalid_version} is not supported"
             ))),
+        }
+    }
+
+    pub fn get_render_options(&mut self) -> Result<RenderOptions, PluginError> {
+        match &mut self.parser {
+            PlugVerParser::Ver010(parser) => parser.get_render_options(),
         }
     }
 }

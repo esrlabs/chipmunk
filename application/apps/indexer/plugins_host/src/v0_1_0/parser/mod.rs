@@ -17,6 +17,8 @@ use crate::{
     PluginGuestInitError, PluginHostInitError, PluginParseMessage,
 };
 
+use crate::parser_shared as shared;
+
 use self::{bindings::ParsePlugin, parser_plugin_state::ParserPluginState};
 
 pub struct PluginParser {
@@ -80,6 +82,15 @@ impl PluginParser {
         )?;
 
         Ok(version.into())
+    }
+
+    pub fn get_render_options(&mut self) -> Result<shared::RenderOptions, PluginError> {
+        let options = block_on(
+            self.plugin_bindings
+                .chipmunk_plugin_parser()
+                .call_get_render_options(&mut self.store),
+        )?;
+        Ok(options.into())
     }
 }
 
