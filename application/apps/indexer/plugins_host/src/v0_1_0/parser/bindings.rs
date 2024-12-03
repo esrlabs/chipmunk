@@ -1,3 +1,4 @@
+use crate::parser_shared as shared;
 use crate::{
     parser_shared::COLUMN_SEP, semantic_version::SemanticVersion, PluginGuestInitError,
     PluginParseMessage,
@@ -143,5 +144,13 @@ impl From<ConfigSchemaItem> for pl::ConfigSchemaItem {
 impl From<Version> for SemanticVersion {
     fn from(value: Version) -> Self {
         Self::new(value.major, value.minor, value.patch)
+    }
+}
+
+impl From<RenderOptions> for shared::RenderOptions {
+    fn from(value: RenderOptions) -> Self {
+        Self {
+            headers: value.headers,
+        }
     }
 }
