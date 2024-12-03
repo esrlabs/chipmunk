@@ -1,4 +1,7 @@
-use crate::{parser_shared::COLUMN_SEP, PluginGuestInitError, PluginParseMessage};
+use crate::{
+    parser_shared::COLUMN_SEP, semantic_version::SemanticVersion, PluginGuestInitError,
+    PluginParseMessage,
+};
 use sources::plugins as pl;
 use sources::plugins::PluginParserGeneralSetttings;
 
@@ -134,5 +137,11 @@ impl From<ConfigSchemaItem> for pl::ConfigSchemaItem {
             description: item.description,
             input_type: item.input_type.into(),
         }
+    }
+}
+
+impl From<Version> for SemanticVersion {
+    fn from(value: Version) -> Self {
+        Self::new(value.major, value.minor, value.patch)
     }
 }
