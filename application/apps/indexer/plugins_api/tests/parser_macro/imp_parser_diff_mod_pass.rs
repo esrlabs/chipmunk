@@ -8,6 +8,10 @@ mod impl_mod {
     use super::*;
 
     impl crate::parser::Parser for Dummy {
+        fn get_version() -> Version {
+            todo!()
+        }
+
         fn get_config_schemas() -> Vec<ConfigSchemaItem> {
             todo!()
         }

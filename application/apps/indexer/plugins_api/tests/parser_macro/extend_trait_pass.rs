@@ -6,6 +6,10 @@ struct Dummy;
 trait ExtendParser: crate::parser::Parser {}
 
 impl crate::parser::Parser for Dummy {
+    fn get_version() -> Version {
+        todo!()
+    }
+
     fn get_config_schemas() -> Vec<ConfigSchemaItem> {
         todo!()
     }

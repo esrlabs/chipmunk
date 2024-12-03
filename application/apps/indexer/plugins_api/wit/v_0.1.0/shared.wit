@@ -1,6 +1,13 @@
 /// Interface used for shard types among all plugins 
 interface shared-types {
 
+  /// Represents a semantic version.
+  record version {
+    major: u16,
+    minor: u16,
+    patch: u16,
+  }
+
   /// Error type while initializing the plugins
   variant init-error {
     config(string),
