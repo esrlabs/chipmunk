@@ -27,7 +27,9 @@ pub mod __internal_bindings {
 // External exports for users
 pub use __internal_bindings::chipmunk::plugin::{
     logging::Level,
-    parse_types::{Attachment, ParseError, ParseReturn, ParseYield, ParsedMessage, ParserConfig},
+    parse_types::{
+        Attachment, ParseError, ParseReturn, ParseYield, ParsedMessage, ParserConfig, RenderOptions,
+    },
     shared_types::{
         ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
     },
@@ -61,6 +63,23 @@ impl Version {
     }
 }
 
+impl RenderOptions {
+    /// Creates a new instance of render options with the given arguments
+    ///
+    /// * `headers`: List of strings representing the header names to be rendered at
+    ///   the top of log messages, allowing users to specify the visibility of the
+    ///   columns as well.
+    pub fn new(headers: Option<Vec<String>>) -> Self {
+        Self { headers }
+    }
+}
+
+impl Default for RenderOptions {
+    fn default() -> Self {
+        Self { headers: None }
+    }
+}
+
 /// Trait representing a parser for Chipmunk plugins. Types that need to be
 /// exported as parser plugins for use within Chipmunk must implement this trait.
 pub trait Parser {
@@ -85,6 +104,13 @@ pub trait Parser {
     /// A `Vec` of [`ConfigSchemaItem`] objects, where each item represents
     /// a schema for a specific plugin configuration.
     fn get_config_schemas() -> Vec<ConfigSchemaItem>;
+
+    /// Provides the custom render options to be rendered in log view, enabling the users to
+    /// change the visibility on the log columns when provided.
+    ///
+    /// # Note
+    /// This function can be called before initializing the plugin instance.
+    fn get_render_options() -> RenderOptions;
 
     /// Creates an instance of the parser. This method initializes the parser,
     /// configuring it with the provided settings and preparing it to perform parsing.
@@ -148,8 +174,13 @@ impl ParseReturn {
 ///  #    fn get_version() -> Version {
 ///  #       Version::new(0, 1, 0)
 ///  #    }
+///  #
 ///  #    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
 ///  #       vec![]
+///  #    }
+///  #
+///  #    fn get_render_options() -> RenderOptions {
+///  #       RenderOptions::default()
 ///  #    }
 ///  #
 ///  #    fn create(
@@ -198,10 +229,15 @@ macro_rules! parser_export {
             fn get_version() -> $crate::parser::Version {
                 <$par as $crate::parser::Parser>::get_version()
             }
+
             /// Provides the schemas for the configurations needed by the plugin to
             /// be specified by the users.
             fn get_config_schemas() -> ::std::vec::Vec<$crate::parser::ConfigSchemaItem> {
                 <$par as $crate::parser::Parser>::get_config_schemas()
+            }
+
+            fn get_render_options() -> $crate::parser::RenderOptions {
+                <$par as $crate::parser::Parser>::get_render_options()
             }
 
             /// Initialize the parser with the given configurations
@@ -263,6 +299,10 @@ mod prototyping {
         }
 
         fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+            todo!()
+        }
+
+        fn get_render_options() -> RenderOptions {
             todo!()
         }
 

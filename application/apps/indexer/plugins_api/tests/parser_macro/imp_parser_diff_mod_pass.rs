@@ -16,6 +16,10 @@ mod impl_mod {
             todo!()
         }
 
+        fn get_render_options() -> RenderOptions {
+            todo!()
+        }
+
         fn create(
             _general_configs: ParserConfig,
             _plugins_configs: Vec<ConfigItem>,
