@@ -16,6 +16,7 @@ use sources::plugins as pl;
 
 use crate::{
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
+    semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
     PluginGuestInitError, PluginHostInitError,
 };
@@ -74,6 +75,16 @@ impl PluginByteSource {
         )?;
 
         Ok(schemas.into_iter().map(|item| item.into()).collect())
+    }
+
+    pub fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
+        let version = block_on(
+            self.plugin_bindings
+                .chipmunk_plugin_byte_source()
+                .call_get_version(&mut self.store),
+        )?;
+
+        Ok(version.into())
     }
 
     pub async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {

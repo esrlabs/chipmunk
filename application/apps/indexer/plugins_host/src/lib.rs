@@ -7,6 +7,7 @@ mod v0_1_0;
 mod wasm_host;
 
 use plugins_shared::plugin_errors::PluginError;
+use semantic_version::SemanticVersion;
 use serde::{Deserialize, Serialize};
 use sources::plugins as pl;
 
@@ -23,7 +24,14 @@ pub enum PluginType {
 }
 
 pub trait WasmPlugin {
+    /// Provides the Type of the plugin.
     fn get_type() -> PluginType;
+
+    /// Provides the current semantic version of the plugin.
+    ///
+    /// # Note
+    /// This version is for the plugin only and is different from the plugin's API version.
+    fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError>;
 
     /// Provides the schemas for the configurations required by the plugin, which
     /// will be specified by the users.
