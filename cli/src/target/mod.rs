@@ -517,9 +517,7 @@ impl Target {
         }
     }
 
-    /// Performs build process without checking the current builds states
-
-    /// Perform any needed copy operation after the build is done
+    /// Performs any needed copy operation after the build is done
     pub async fn after_build(
         &self,
         prod: bool,

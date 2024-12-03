@@ -57,7 +57,7 @@ fn try_new_from_fibex_message_info(message_info: &str) -> Option<MessageType> {
 
 struct DltMessageType<'a>(&'a MessageType);
 
-impl<'a> fmt::Display for DltMessageType<'a> {
+impl fmt::Display for DltMessageType<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match &self.0 {
             MessageType::ApplicationTrace(app_type) => write!(f, "{} ", app_type.as_ref()),
@@ -71,7 +71,7 @@ impl<'a> fmt::Display for DltMessageType<'a> {
 //   EColumn.DATETIME,
 //   EColumn.ECUID,
 struct DltStorageHeader<'a>(&'a StorageHeader);
-impl<'a> fmt::Display for DltStorageHeader<'a> {
+impl fmt::Display for DltStorageHeader<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(
             f,
@@ -85,7 +85,7 @@ impl<'a> fmt::Display for DltStorageHeader<'a> {
 
 struct DltValue<'a>(&'a Value);
 
-impl<'a> fmt::Display for DltValue<'a> {
+impl fmt::Display for DltValue<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         match &self.0 {
             Value::Bool(value) => value.fmt(f),
@@ -114,7 +114,7 @@ impl<'a> fmt::Display for DltValue<'a> {
 
 struct DltArgument<'a>(&'a Argument);
 
-impl<'a> fmt::Display for DltArgument<'a> {
+impl fmt::Display for DltArgument<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         if let Some(n) = &self.0.name {
             write!(f, "{n}")?;
@@ -134,7 +134,7 @@ impl<'a> fmt::Display for DltArgument<'a> {
 
 struct DltDltTimeStamp<'a>(&'a DltTimeStamp);
 
-impl<'a> fmt::Display for DltDltTimeStamp<'a> {
+impl fmt::Display for DltDltTimeStamp<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         let dt: Option<DateTime<Utc>> =
             DateTime::from_timestamp(i64::from(self.0.seconds), self.0.microseconds * 1000);
@@ -156,7 +156,7 @@ impl<'a> fmt::Display for DltDltTimeStamp<'a> {
 //   EColumn.ECUID,
 struct DltStandardHeader<'a>(&'a StandardHeader);
 
-impl<'a> fmt::Display for DltStandardHeader<'a> {
+impl fmt::Display for DltStandardHeader<'_> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}{}", self.0.version, DLT_COLUMN_SENTINAL)?;
         if let Some(id) = &self.0.session_id {
@@ -203,7 +203,7 @@ pub struct FormattableMessage<'a> {
     pub options: Option<&'a FormatOptions>,
 }
 
-impl<'a> Serialize for FormattableMessage<'a> {
+impl Serialize for FormattableMessage<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -300,7 +300,7 @@ impl<'a> Serialize for FormattableMessage<'a> {
     }
 }
 
-impl<'a> From<Message> for FormattableMessage<'a> {
+impl From<Message> for FormattableMessage<'_> {
     fn from(message: Message) -> Self {
         FormattableMessage {
             message,
@@ -334,14 +334,14 @@ impl<'a> PrintableMessage<'a> {
     }
 }
 
-impl<'a> FormattableMessage<'a> {
+impl FormattableMessage<'_> {
     pub fn printable_parts<'b>(
         &'b self,
         ext_h_app_id: &'b str,
         ext_h_ctx_id: Option<&'b str>,
         ext_h_msg_type: Option<MessageType>,
         empty: &'b str,
-    ) -> Result<PrintableMessage, fmt::Error> {
+    ) -> Result<PrintableMessage<'b>, fmt::Error> {
         let eh_ctx_id: &str = ext_h_ctx_id.unwrap_or(empty);
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
@@ -539,7 +539,7 @@ impl<'a> FormattableMessage<'a> {
     }
 }
 
-impl<'a> fmt::Display for FormattableMessage<'a> {
+impl fmt::Display for FormattableMessage<'_> {
     /// will format dlt Message with those fields:
     /// ********* storage-header ********
     /// date-time

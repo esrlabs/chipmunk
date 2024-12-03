@@ -48,11 +48,7 @@ impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
                 .map_err(|e| SourceError::Unrecoverable(format!("Could not fill buffer: {e}")))?;
             content.len()
         };
-        let newly_loaded_bytes = if available > initial_buf_len {
-            available - initial_buf_len
-        } else {
-            0
-        };
+        let newly_loaded_bytes = available.saturating_sub(initial_buf_len);
         trace!(
             "after: capacity: {} (newly loaded: {})",
             self.reader.capacity(),

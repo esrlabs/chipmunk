@@ -495,14 +495,7 @@ impl Map {
                 );
                 (updated, after_pos)
             } else {
-                let updated = cmp::max(
-                    before_pos + 1,
-                    if after_pos >= offset {
-                        after_pos - offset
-                    } else {
-                        0
-                    },
-                );
+                let updated = cmp::max(before_pos + 1, after_pos.saturating_sub(offset));
                 self.insert_range(
                     RangeInclusive::new(updated, after_pos - 1),
                     Nature::BREADCRUMB.union(Nature::EXPANDED),
@@ -542,14 +535,7 @@ impl Map {
         } else {
             // before.is_none() && after.is_some()
             let after_pos = Option::unwrap(after);
-            let updated = cmp::max(
-                seporator + 1,
-                if after_pos >= offset {
-                    after_pos - offset
-                } else {
-                    0
-                },
-            );
+            let updated = cmp::max(seporator + 1, after_pos.saturating_sub(offset));
             self.insert_range(
                 RangeInclusive::new(updated, after_pos - 1),
                 Nature::BREADCRUMB.union(Nature::EXPANDED),
