@@ -103,6 +103,12 @@ impl WasmPlugin for PluginsParser {
         PluginType::Parser
     }
 
+    fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
+        match &mut self.parser {
+            PlugVerParser::Ver010(parser) => parser.plugin_version(),
+        }
+    }
+
     fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
         match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.get_config_schemas(),

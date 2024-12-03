@@ -7,16 +7,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SemanticVersion {
-    pub major: usize,
-    pub minor: usize,
-    pub patch: usize,
+    pub major: u16,
+    pub minor: u16,
+    pub patch: u16,
 }
 
 //TODO AAZ: Remove when used.
 #[allow(unused)]
 impl SemanticVersion {
     /// Creates a new [`SemanticVersion`]
-    pub fn new(major: usize, minor: usize, patch: usize) -> Self {
+    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,
             minor,
@@ -26,19 +26,19 @@ impl SemanticVersion {
 
     /// Returns the major version number.
     #[inline]
-    pub fn major(&self) -> usize {
+    pub fn major(&self) -> u16 {
         self.major
     }
 
     /// Returns the minor version number.
     #[inline]
-    pub fn minor(&self) -> usize {
+    pub fn minor(&self) -> u16 {
         self.minor
     }
 
     /// Returns the patch version number.
     #[inline]
-    pub fn patch(&self) -> usize {
+    pub fn patch(&self) -> u16 {
         self.patch
     }
 }

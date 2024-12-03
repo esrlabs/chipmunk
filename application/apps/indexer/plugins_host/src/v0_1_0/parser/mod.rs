@@ -12,6 +12,7 @@ use wasmtime_wasi::ResourceTable;
 
 use crate::{
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
+    semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
     PluginGuestInitError, PluginHostInitError, PluginParseMessage,
 };
@@ -69,6 +70,16 @@ impl PluginParser {
         )?;
 
         Ok(schemas.into_iter().map(|item| item.into()).collect())
+    }
+
+    pub fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
+        let version = block_on(
+            self.plugin_bindings
+                .chipmunk_plugin_parser()
+                .call_get_version(&mut self.store),
+        )?;
+
+        Ok(version.into())
     }
 }
 

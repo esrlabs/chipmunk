@@ -2,10 +2,10 @@ use std::io;
 
 use sources::plugins as pl;
 
-use crate::PluginGuestInitError;
+use crate::{semantic_version::SemanticVersion, PluginGuestInitError};
 
 pub use self::chipmunk::plugin::{bytesource_types, shared_types};
-use self::shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue};
+use self::shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, Version};
 
 wasmtime::component::bindgen!({
     path: "../plugins_api/wit/v_0.1.0/",
@@ -103,5 +103,11 @@ impl From<ConfigSchemaItem> for pl::ConfigSchemaItem {
             description: item.description,
             input_type: item.input_type.into(),
         }
+    }
+}
+
+impl From<Version> for SemanticVersion {
+    fn from(value: Version) -> Self {
+        Self::new(value.major, value.minor, value.patch)
     }
 }
