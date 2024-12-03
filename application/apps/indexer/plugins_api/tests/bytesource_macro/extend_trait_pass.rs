@@ -7,6 +7,10 @@ trait ExtendTrait: ByteSource {}
 struct Dummy;
 
 impl ByteSource for Dummy {
+    fn get_version() -> Version {
+        todo!()
+    }
+
     fn get_config_schemas() -> Vec<ConfigSchemaItem> {
         todo!()
     }
