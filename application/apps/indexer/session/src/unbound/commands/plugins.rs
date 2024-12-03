@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 use crate::{
     events::{ComputationError, NativeError, NativeErrorKind},
     progress::Severity,
@@ -8,13 +10,16 @@ use plugins_host::plugins_manager::{self, PluginsManager};
 use super::CommandOutcome;
 
 /// Initialize the plugin manager loading all the plugins from their directory.
-pub fn initialize() -> Result<(), ComputationError> {
-    PluginsManager::init().map_err(|err| ComputationError::NativeError(err.into()))
+pub fn load_manager() -> Result<PluginsManager, ComputationError> {
+    PluginsManager::load().map_err(|err| ComputationError::NativeError(err.into()))
 }
 
 /// Get all the read plugins (valid and invalid)
-pub fn get_all_plugins(_signal: Signal) -> Result<CommandOutcome<String>, ComputationError> {
-    let manager = PluginsManager::get()
+pub fn get_all_plugins(
+    plugins_manager: &RwLock<PluginsManager>,
+    _signal: Signal,
+) -> Result<CommandOutcome<String>, ComputationError> {
+    let manager = plugins_manager
         .read()
         .map_err(|_| poison_plugins_manager_error())?;
 
@@ -26,8 +31,11 @@ pub fn get_all_plugins(_signal: Signal) -> Result<CommandOutcome<String>, Comput
 }
 
 /// Get all valid plugins only.
-pub fn get_active_plugins(_signal: Signal) -> Result<CommandOutcome<String>, ComputationError> {
-    let manager = PluginsManager::get()
+pub fn get_active_plugins(
+    plugins_manager: &RwLock<PluginsManager>,
+    _signal: Signal,
+) -> Result<CommandOutcome<String>, ComputationError> {
+    let manager = plugins_manager
         .read()
         .map_err(|_| poison_plugins_manager_error())?;
 
@@ -41,8 +49,11 @@ pub fn get_active_plugins(_signal: Signal) -> Result<CommandOutcome<String>, Com
 }
 
 /// Reload plugins from the plugins directory.
-pub fn reload_plugins(_signal: Signal) -> Result<CommandOutcome<()>, ComputationError> {
-    let mut manager = PluginsManager::get()
+pub fn reload_plugins(
+    plugins_manager: &RwLock<PluginsManager>,
+    _signal: Signal,
+) -> Result<CommandOutcome<()>, ComputationError> {
+    let mut manager = plugins_manager
         .write()
         .map_err(|_| poison_plugins_manager_error())?;
 
