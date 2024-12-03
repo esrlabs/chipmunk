@@ -7,6 +7,10 @@ mod impl_mod {
     use std::path::PathBuf;
 
     impl ByteSource for Dummy {
+        fn get_version() -> Version {
+            todo!()
+        }
+
         fn get_config_schemas() -> Vec<ConfigSchemaItem> {
             todo!()
         }

@@ -5,6 +5,10 @@ use std::path::PathBuf;
 struct Dummy;
 
 impl ByteSource for Dummy {
+    fn get_version() -> Version {
+        todo!()
+    }
+
     fn get_config_schemas() -> Vec<ConfigSchemaItem> {
         todo!()
     }

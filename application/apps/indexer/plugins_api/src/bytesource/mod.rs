@@ -23,7 +23,9 @@ pub mod __internal_bindings {
 pub use __internal_bindings::chipmunk::plugin::{
     bytesource_types::{SourceConfig, SourceError},
     logging::Level,
-    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError},
+    shared_types::{
+        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
+    },
 };
 
 impl ConfigSchemaItem {
@@ -43,9 +45,29 @@ impl ConfigSchemaItem {
     }
 }
 
+impl Version {
+    /// Creates a semantic version instance with the given arguments.
+    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
+        Self {
+            major,
+            minor,
+            patch,
+        }
+    }
+}
+
 /// Trait representing a bytesource for Chipmunk plugins. Types that need to be
 /// exported as bytesource plugins for use within Chipmunk must implement this trait.
 pub trait ByteSource {
+    /// Provides the current semantic version of the plugin.
+    ///
+    /// # Note
+    /// This version is for the plugin only and is different from the plugin's API version.
+    ///
+    /// # Returns
+    /// A `Version` object representing the current version of the plugin.
+    fn get_version() -> Version;
+
     /// Provides the schemas for the configurations required by the plugin, which
     /// must be specified by the users.
     ///
@@ -105,6 +127,9 @@ pub trait ByteSource {
 ///
 /// impl ByteSource for CustomByteSoruce {
 ///   // ... //
+///  #    fn get_version() -> Version {
+///  #        Version::new(0, 1, 0)
+///  #    }
 ///  #    fn get_config_schemas() -> Vec<ConfigSchemaItem> {
 ///  #        vec![]
 ///  #    }
@@ -145,6 +170,11 @@ macro_rules! bytesource_export {
         impl $crate::bytesource::__internal_bindings::exports::chipmunk::plugin::byte_source::Guest
             for InternalPluginByteSourceGuest
         {
+            /// Provides the current semantic version of the plugin.
+            /// This version is for the plugin only and is different from the plugin's API version.
+            fn get_version() -> $crate::bytesource::Version {
+                <$par as $crate::bytesource::ByteSource>::get_version()
+            }
             /// Provides the schemas for the configurations needed by the plugin to
             /// be specified by the users.
             fn get_config_schemas() -> ::std::vec::Vec<$crate::bytesource::ConfigSchemaItem> {
@@ -205,6 +235,10 @@ mod prototyping {
     struct Dummy;
 
     impl ByteSource for Dummy {
+        fn get_version() -> Version {
+            todo!()
+        }
+
         fn get_config_schemas() -> Vec<ConfigSchemaItem> {
             todo!()
         }
