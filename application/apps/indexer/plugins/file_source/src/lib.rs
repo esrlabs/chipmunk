@@ -11,7 +11,7 @@ use std::{
 use plugins_api::{
     bytesource::{
         ByteSource, ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError,
-        SourceConfig, SourceError,
+        SourceConfig, SourceError, Version,
     },
     bytesource_export, log,
 };
@@ -26,6 +26,10 @@ struct FileSource {
 
 /// Struct must implement [`ByteSource`] trait to be compiled as a byte-source plugin in Chipmunk.
 impl ByteSource for FileSource {
+    fn get_version() -> Version {
+        Version::new(0, 1, 0)
+    }
+
     fn get_config_schemas() -> Vec<ConfigSchemaItem> {
         vec![ConfigSchemaItem::new(
             INPUT_PATH_ID,
