@@ -6,7 +6,7 @@ use plugins_api::{
     log,
     parser::{
         ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, ParseError,
-        ParseReturn, ParseYield, ParsedMessage, Parser, ParserConfig,
+        ParseReturn, ParseYield, ParsedMessage, Parser, ParserConfig, RenderOptions, Version,
     },
     parser_export,
 };
@@ -51,6 +51,10 @@ impl StringTokenizer {
 
 /// Struct must implement [`Parser`] trait to be compiled as a parser plugin in Chipmunk.
 impl Parser for StringTokenizer {
+    fn get_version() -> Version {
+        Version::new(0, 1, 0)
+    }
+
     fn get_config_schemas() -> Vec<ConfigSchemaItem> {
         vec![ConfigSchemaItem::new(
             LOSSY_ID,
@@ -58,6 +62,11 @@ impl Parser for StringTokenizer {
             Some("Parse UTF-8 including invalid characters"),
             ConfigSchemaType::Boolean,
         )]
+    }
+
+    fn get_render_options() -> RenderOptions {
+        // String Tokenizer doesn't use headers
+        RenderOptions::default()
     }
 
     fn create(
