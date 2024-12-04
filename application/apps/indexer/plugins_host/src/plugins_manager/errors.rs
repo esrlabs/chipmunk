@@ -1,3 +1,5 @@
+use std::io;
+
 use thiserror::Error;
 
 use crate::wasm_host::WasmHostInitError;
@@ -8,6 +10,8 @@ pub enum InitError {
     WasmHost(#[from] WasmHostInitError),
     #[error(transparent)]
     WasmRunTimeError(#[from] anyhow::Error),
+    #[error("IO Error. {0}")]
+    IO(#[from] io::Error),
     #[error("Error during initialization. {0}")]
     Other(String),
 }

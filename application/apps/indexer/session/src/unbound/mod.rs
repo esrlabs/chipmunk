@@ -13,12 +13,12 @@ use crate::{
 };
 use cleanup::cleanup_temp_dir;
 use log::{debug, error, warn};
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, sync::Arc};
 use tokio::{
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        RwLock,
+    },
     time::{timeout, Duration},
 };
 use tokio_util::sync::CancellationToken;
@@ -52,7 +52,7 @@ impl UnboundSession {
         // * It doesn't need parallelism for most of task.
         // * It'll need different state and locking management for downloading plugins, Updating
         // caches etc...
-        let plugins_manager = commands::plugins::load_manager()?;
+        let plugins_manager = commands::plugins::load_manager().await?;
         let plugins_manager = Arc::new(RwLock::new(plugins_manager));
         let finished = self.finished.clone();
         let mut rx = self.rx.take().ok_or(ComputationError::SessionUnavailable)?; // Error: session already running

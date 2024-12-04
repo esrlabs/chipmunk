@@ -11,15 +11,13 @@ mod shells;
 mod sleep;
 mod someip;
 
-use std::sync::RwLock;
-
 use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
 
 use log::{debug, error};
 use plugins_host::plugins_manager::PluginsManager;
 use processor::search::filter::SearchFilter;
 use serde::{Deserialize, Serialize};
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, RwLock};
 use uuid::Uuid;
 
 use super::signal::Signal;
@@ -158,13 +156,13 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
             .send(cancel_test::cancel_test(a, b, signal).await)
             .is_err(),
         Command::GetAllPlugins(tx) => tx
-            .send(plugins::get_all_plugins(plugins_manager, signal))
+            .send(plugins::get_all_plugins(plugins_manager, signal).await)
             .is_err(),
         Command::GetActivePlugins(tx) => tx
-            .send(plugins::get_active_plugins(plugins_manager, signal))
+            .send(plugins::get_active_plugins(plugins_manager, signal).await)
             .is_err(),
         Command::ReloadPlugins(tx) => tx
-            .send(plugins::reload_plugins(plugins_manager, signal))
+            .send(plugins::reload_plugins(plugins_manager, signal).await)
             .is_err(),
     } {
         error!("Fail to send response for command: {cmd}");
