@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 /// Provides additional information to be rendered in the log view.
-pub struct RenderOptions {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParserRenderOptions {
     /// List of strings representing the header names to be rendered at the top of log messages.
     /// This list allows users to specify which columns are visible as well.
     ///

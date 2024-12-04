@@ -8,9 +8,10 @@ use wasmtime::{
     component::{Component, Linker},
     Store,
 };
-use wasmtime_wasi::ResourceTable;
+use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 
 use crate::{
+    parser_shared::ParserRenderOptions,
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
     semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
@@ -26,7 +27,56 @@ pub struct PluginParser {
     plugin_bindings: ParsePlugin,
 }
 
+// Represents the retrieved static information form parser WASM file.
+pub(crate) struct PluginInfo {
+    pub version: SemanticVersion,
+    pub config_schemas: Vec<pl::ConfigSchemaItem>,
+    pub render_options: ParserRenderOptions,
+}
+
 impl PluginParser {
+    /// Load wasm file temporally to retrieve the static plugin information defined by `wit` file
+    pub(crate) async fn get_info(component: Component) -> Result<PluginInfo, PluginHostInitError> {
+        //TODO AAZ: Avoid duplicating code with `create()` method
+        let engine = get_wasm_host()
+            .map(|host| &host.engine)
+            .map_err(|err| err.to_owned())?;
+
+        let mut linker: Linker<ParserPluginState> = Linker::new(engine);
+        wasmtime_wasi::add_to_linker_async(&mut linker)?;
+
+        ParsePlugin::add_to_linker(&mut linker, |state| state)?;
+
+        let mut ctx = WasiCtxBuilder::new();
+        let resource_table = ResourceTable::new();
+
+        let mut store = Store::new(engine, ParserPluginState::new(ctx.build(), resource_table));
+
+        let (plugin_bindings, _instance) =
+            ParsePlugin::instantiate_async(&mut store, &component, &linker).await?;
+
+        let version = plugin_bindings
+            .chipmunk_plugin_parser()
+            .call_get_version(&mut store)
+            .await?;
+
+        let render_options = plugin_bindings
+            .chipmunk_plugin_parser()
+            .call_get_render_options(&mut store)
+            .await?;
+
+        let config_schemas = plugin_bindings
+            .chipmunk_plugin_parser()
+            .call_get_config_schemas(&mut store)
+            .await?;
+
+        Ok(PluginInfo {
+            version: version.into(),
+            config_schemas: config_schemas.into_iter().map(|item| item.into()).collect(),
+            render_options: render_options.into(),
+        })
+    }
+
     pub async fn create(
         component: Component,
         general_config: &pl::PluginParserGeneralSetttings,
@@ -84,7 +134,7 @@ impl PluginParser {
         Ok(version.into())
     }
 
-    pub fn get_render_options(&mut self) -> Result<shared::RenderOptions, PluginError> {
+    pub fn get_render_options(&mut self) -> Result<shared::ParserRenderOptions, PluginError> {
         let options = block_on(
             self.plugin_bindings
                 .chipmunk_plugin_parser()
