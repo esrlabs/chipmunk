@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     plugins_manager::{InvalidPluginInfo, PluginState},
-    PluginType, PluginsParser,
+    PluginHostInitError, PluginType, PluginsParser,
 };
 
 use super::{InitError, PluginEntity, PluginMetadata};
@@ -118,8 +118,10 @@ async fn load_parser(dir: PathBuf) -> Result<PluginEntity, InitError> {
         }
     };
 
-    let plugin_info = match PluginsParser::get_info(&wasm_file).await {
+    let plugin_info = match PluginsParser::get_info(wasm_file).await {
         Ok(info) => info,
+        // Stop the whole loading on engine errors
+        Err(PluginHostInitError::EngineError(err)) => return Err(err.into()),
         Err(err) => {
             let err_msg = format!("Loading plugin binray fail. Error: {err}");
             let invalid = PluginEntity {
