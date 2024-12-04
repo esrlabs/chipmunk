@@ -4,8 +4,9 @@ use sources::plugins as pl;
 use wasmtime::component::Component;
 
 use crate::{
-    plugins_shared::plugin_errors::PluginError, semantic_version::SemanticVersion, v0_1_0,
-    wasm_host::get_wasm_host, PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
+    plugins_manager::ValidPluginInfo, plugins_shared::plugin_errors::PluginError,
+    semantic_version::SemanticVersion, v0_1_0, wasm_host::get_wasm_host, PluginHostInitError,
+    PluginParseMessage, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
@@ -38,6 +39,12 @@ enum PlugVerParser {
 }
 
 impl PluginsParser {
+    pub async fn get_info(
+        _plugin_path: impl AsRef<Path>,
+    ) -> Result<ValidPluginInfo, PluginHostInitError> {
+        todo!()
+    }
+
     pub async fn create(
         plugin_path: impl AsRef<Path>,
         general_config: &pl::PluginParserGeneralSetttings,
