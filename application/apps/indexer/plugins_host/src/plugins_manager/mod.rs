@@ -7,7 +7,7 @@ pub use errors::InitError;
 use serde::{Deserialize, Serialize};
 use sources::plugins as pl;
 
-use crate::{semantic_version::SemanticVersion, PluginType};
+use crate::{parser_shared::ParserRenderOptions, semantic_version::SemanticVersion, PluginType};
 
 #[derive(Debug)]
 pub struct PluginsManager {
@@ -35,11 +35,18 @@ pub enum PluginState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RenderOptions {
+    Parser(ParserRenderOptions),
+    ByteSource,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidPluginInfo {
     pub wasm_file_path: PathBuf,
     pub api_version: SemanticVersion,
     pub plugin_version: SemanticVersion,
     pub config_schemas: Vec<pl::ConfigSchemaItem>,
+    pub render_options: RenderOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

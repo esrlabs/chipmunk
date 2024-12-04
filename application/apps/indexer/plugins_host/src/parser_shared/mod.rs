@@ -1,18 +1,21 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use sources::plugins as pl;
 use wasmtime::component::Component;
 
 use crate::{
-    plugins_manager::ValidPluginInfo, plugins_shared::plugin_errors::PluginError,
-    semantic_version::SemanticVersion, v0_1_0, wasm_host::get_wasm_host, PluginHostInitError,
-    PluginParseMessage, PluginType, WasmPlugin,
+    plugins_manager::{RenderOptions, ValidPluginInfo},
+    plugins_shared::plugin_errors::PluginError,
+    semantic_version::SemanticVersion,
+    v0_1_0,
+    wasm_host::get_wasm_host,
+    PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
 mod render_options;
 
-pub use render_options::RenderOptions;
+pub use render_options::ParserRenderOptions;
 
 const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
 
@@ -39,10 +42,69 @@ enum PlugVerParser {
 }
 
 impl PluginsParser {
-    pub async fn get_info(
-        _plugin_path: impl AsRef<Path>,
-    ) -> Result<ValidPluginInfo, PluginHostInitError> {
-        todo!()
+    pub async fn get_info(plugin_path: PathBuf) -> Result<ValidPluginInfo, PluginHostInitError> {
+        let engine = get_wasm_host()
+            .map(|host| &host.engine)
+            .map_err(|err| err.to_owned())?;
+
+        if !plugin_path.exists() {
+            return Err(PluginHostInitError::IO("Plugin path doesn't exist".into()));
+        }
+
+        if !plugin_path.is_file() {
+            return Err(PluginHostInitError::IO("Plugin path is not a file".into()));
+        }
+
+        let component = Component::from_file(engine, &plugin_path)
+            .map_err(|err| PluginHostInitError::PluginInvalid(err.to_string()))?;
+
+        let component_types = component.component_type();
+
+        let export_info = component_types.exports(engine).next().ok_or_else(|| {
+            PluginHostInitError::PluginInvalid("Plugin doesn't have exports information".into())
+        })?;
+
+        let (interface_name, version) = export_info.0.split_once('@').ok_or_else(|| {
+            PluginHostInitError::PluginInvalid(
+                "Plugin package schema doesn't match `wit` file definitions".into(),
+            )
+        })?;
+
+        if interface_name != PARSER_INTERFACE_NAME {
+            return Err(PluginHostInitError::PluginInvalid(
+                "Plugin package name doesn't match `wit` file".into(),
+            ));
+        }
+
+        let version: SemanticVersion = version.parse().map_err(|err| {
+            PluginHostInitError::PluginInvalid(format!("Plugin version parsing failed: {err}"))
+        })?;
+
+        let plug_info = match version {
+            SemanticVersion {
+                major: 0,
+                minor: 1,
+                patch: 0,
+            } => {
+                let info = v0_1_0::parser::PluginParser::get_info(component).await?;
+                info
+            }
+            invalid_version => {
+                return Err(PluginHostInitError::PluginInvalid(format!(
+                    "Plugin version {invalid_version} is not supported"
+                )))
+            }
+        };
+
+        let plugin_info = ValidPluginInfo {
+            wasm_file_path: plugin_path,
+            api_version: version,
+            plugin_version: plug_info.version,
+            config_schemas: plug_info.config_schemas,
+            render_options: RenderOptions::Parser(plug_info.render_options),
+        };
+
+        Ok(plugin_info)
     }
 
     pub async fn create(
@@ -107,7 +169,7 @@ impl PluginsParser {
         }
     }
 
-    pub fn get_render_options(&mut self) -> Result<RenderOptions, PluginError> {
+    pub fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
         match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.get_render_options(),
         }

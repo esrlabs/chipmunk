@@ -147,7 +147,7 @@ impl From<Version> for SemanticVersion {
     }
 }
 
-impl From<RenderOptions> for shared::RenderOptions {
+impl From<RenderOptions> for shared::ParserRenderOptions {
     fn from(value: RenderOptions) -> Self {
         Self {
             headers: value.headers,
