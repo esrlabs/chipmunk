@@ -765,7 +765,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.85",
+ "syn 2.0.90",
 ]
 
 [[package]]
@@ -1519,6 +1519,7 @@ dependencies = [
  "serde",
  "session",
  "sources",
+ "stypes",
  "thiserror 1.0.69",
  "tikv-jemallocator",
  "tokio",
@@ -1842,6 +1843,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "stypes",
  "thiserror 2.0.3",
  "tokio-util",
  "uuid",
@@ -2179,6 +2181,7 @@ dependencies = [
  "serde_json",
  "serialport",
  "sources",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "tokio-stream",
@@ -2311,6 +2314,7 @@ dependencies = [
  "regex",
  "serde",
  "shellexpand",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "tokio-serial",
@@ -2340,7 +2344,7 @@ dependencies = [
  "extend",
  "node-bindgen",
  "serde",
- "thiserror",
+ "thiserror 2.0.3",
  "tokio",
  "uuid",
  "walkdir",
