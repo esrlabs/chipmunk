@@ -269,6 +269,48 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
+    async fn get_all_plugins(
+        &self,
+        id: i64,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .get_all_plugins(u64_from_i64(id)?)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
+    async fn get_active_plugins(
+        &self,
+        id: i64,
+    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .get_active_plugins(u64_from_i64(id)?)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
+    async fn reload_plugins(
+        &self,
+        id: i64,
+    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
+        self.api
+            .as_ref()
+            .ok_or(ComputationError::SessionUnavailable)?
+            .reload_plugins(u64_from_i64(id)?)
+            .await
+            .map_err(ComputationErrorWrapper)
+            .map(CommandOutcomeWrapper)
+    }
+
+    #[node_bindgen]
     async fn job_cancel_test(
         &self,
         id: i64,
