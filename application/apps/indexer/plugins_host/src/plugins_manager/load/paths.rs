@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use crate::plugins_manager::InitError;
 
 const PLUGINS_DIR: &str = "plugins";
-const PARSER_DIR: &str = "parser";
-const BYTESOURCE_DIR: &str = "bytesource";
+const PARSER_DIR: &str = "parsers";
+const BYTESOURCE_DIR: &str = "bytesources";
 
 /// Copied from `session/src/paths.rs`
 /// TODO AAZ: Use global function everywhere in rust core.

@@ -143,7 +143,7 @@ async fn export<S: ByteSource>(
             println!("------------------------------------------------------");
             println!("-------------    WASM parser used    -----------------");
             println!("------------------------------------------------------");
-            let parser = PluginsParser::create(
+            let parser = PluginsParser::initialize(
                 &settings.plugin_path,
                 &settings.general_settings,
                 settings.plugin_configs.clone(),
