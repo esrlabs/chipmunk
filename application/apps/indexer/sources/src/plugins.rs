@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PluginParserSettings {
     pub plugin_path: PathBuf,
-    pub general_settings: PluginParserGeneralSetttings,
+    pub general_settings: PluginParserGeneralSettings,
     pub plugin_configs: Vec<ConfigItem>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 /// General settings for all parsers as plugins
-pub struct PluginParserGeneralSetttings {
+pub struct PluginParserGeneralSettings {
     pub placeholder: String,
 }
 
@@ -20,7 +20,7 @@ impl PluginParserSettings {
     pub fn prototyping(plugin_path: PathBuf, plugin_configs: Vec<ConfigItem>) -> Self {
         Self {
             plugin_path,
-            general_settings: PluginParserGeneralSetttings {
+            general_settings: PluginParserGeneralSettings {
                 placeholder: Default::default(),
             },
             plugin_configs,

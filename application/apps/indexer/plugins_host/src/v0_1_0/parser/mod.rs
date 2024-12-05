@@ -81,7 +81,7 @@ impl PluginParser {
     /// session.
     pub async fn initialize(
         component: Component,
-        general_config: &pl::PluginParserGeneralSetttings,
+        general_config: &pl::PluginParserGeneralSettings,
         plugin_configs: Vec<pl::ConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
