@@ -1,12 +1,29 @@
+use std::{env::temp_dir, path::PathBuf};
+
 use proptest::prelude::*;
 
 pub const TESTS_USECASE_COUNT: usize = 100;
+pub const OUTPUT_PATH_DEFAULT: &str = "stypes_test";
+pub const OUTPUT_PATH_ENVVAR: &str = "CHIPMUNK_PROTOCOL_TEST_OUTPUT";
 
 pub fn rnd_usize() -> BoxedStrategy<usize> {
     any::<u32>().prop_map(|n| n as usize).boxed()
 }
 pub fn rnd_u64() -> BoxedStrategy<u64> {
     any::<u32>().prop_map(|n| n as u64).boxed()
+}
+pub fn get_output_path() -> PathBuf {
+    std::env::var(OUTPUT_PATH_ENVVAR)
+        .map_err(|err| err.to_string())
+        .and_then(|s| {
+            if s.is_empty() {
+                Err(String::from("Default output folder will be used"))
+            } else {
+                Ok(s)
+            }
+        })
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| temp_dir().join(OUTPUT_PATH_DEFAULT))
 }
 
 #[macro_export]
@@ -23,12 +40,11 @@ macro_rules! test_msg {
                 #[allow(non_snake_case)]
                 #[test]
                 fn [< write_test_data_for_ $type >](cases in proptest::collection::vec($type::arbitrary(), $exp_count)) {
-                    use std::{env::temp_dir};
                     use std::fs::{File, create_dir_all};
                     use std::io::{Write};
                     use remove_dir_all::remove_dir_all;
 
-                    let dest = temp_dir().join("stypes_test").join(stringify!($type));
+                    let dest = get_output_path().join(stringify!($type));
                     if dest.exists() {
                         remove_dir_all(&dest).expect("Folder for tests has been cleaned");
                     }
@@ -68,12 +84,11 @@ macro_rules! test_msg {
                 #[allow(non_snake_case)]
                 #[test]
                 fn [< write_test_data_for_ $type Void >](cases in proptest::collection::vec($type::<()>::arbitrary(), $exp_count)) {
-                    use std::{env::temp_dir};
                     use std::fs::{File, create_dir_all};
                     use std::io::{Write};
                     use remove_dir_all::remove_dir_all;
 
-                    let dest = temp_dir().join("stypes_test").join(format!("{}_Void",stringify!($type)));
+                    let dest = get_output_path().join(format!("{}_Void",stringify!($type)));
                     if dest.exists() {
                         remove_dir_all(&dest).expect("Folder for tests has been cleaned");
                     }
@@ -113,12 +128,11 @@ macro_rules! test_msg {
                 #[allow(non_snake_case)]
                 #[test]
                 fn [< write_test_data_for_ $type $generic >](cases in proptest::collection::vec($type::<$generic>::arbitrary(), $exp_count)) {
-                    use std::{env::temp_dir};
                     use std::fs::{File, create_dir_all};
                     use std::io::{Write};
                     use remove_dir_all::remove_dir_all;
 
-                    let dest = temp_dir().join("stypes_test").join(format!("{}_{}",stringify!($type), stringify!($generic)));
+                    let dest = get_output_path().join(format!("{}_{}",stringify!($type), stringify!($generic)));
                     if dest.exists() {
                         remove_dir_all(&dest).expect("Folder for tests has been cleaned");
                     }
@@ -155,12 +169,11 @@ macro_rules! test_msg {
                 #[allow(non_snake_case)]
                 #[test]
                 fn [< write_test_data_for_ $type $generic $nested>](cases in proptest::collection::vec($type::<$generic<$nested>>::arbitrary(), $exp_count)) {
-                    use std::{env::temp_dir};
                     use std::fs::{File, create_dir_all};
                     use std::io::{Write};
                     use remove_dir_all::remove_dir_all;
 
-                    let dest = temp_dir().join("stypes_test").join(format!("{}_{}_{}",stringify!($type), stringify!($generic), stringify!($nested)));
+                    let dest = get_output_path().join(format!("{}_{}_{}",stringify!($type), stringify!($generic), stringify!($nested)));
                     if dest.exists() {
                         remove_dir_all(&dest).expect("Folder for tests has been cleaned");
                     }
