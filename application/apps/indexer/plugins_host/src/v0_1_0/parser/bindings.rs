@@ -4,7 +4,7 @@ use crate::{
     PluginParseMessage,
 };
 use sources::plugins as pl;
-use sources::plugins::PluginParserGeneralSetttings;
+use sources::plugins::PluginParserGeneralSettings;
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
 wasmtime::component::bindgen!({
@@ -15,8 +15,8 @@ wasmtime::component::bindgen!({
     },
 });
 
-impl From<&PluginParserGeneralSetttings> for ParserConfig {
-    fn from(_value: &PluginParserGeneralSetttings) -> Self {
+impl From<&PluginParserGeneralSettings> for ParserConfig {
+    fn from(_value: &PluginParserGeneralSettings) -> Self {
         // We must use the current log level form chipmunk because we are using the same log
         // functionality to log the message from the plugins.
         let current_log_level = log::max_level().to_level().unwrap_or(log::Level::Error);
