@@ -11,8 +11,8 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 
 use crate::{
-    parser_shared::ParserRenderOptions,
-    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
+    plugins_manager::RenderOptions,
+    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
     semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
     PluginGuestInitError, PluginHostInitError, PluginParseMessage,
@@ -25,13 +25,6 @@ use self::{bindings::ParsePlugin, parser_plugin_state::ParserPluginState};
 pub struct PluginParser {
     store: Store<ParserPluginState>,
     plugin_bindings: ParsePlugin,
-}
-
-// Represents the retrieved static information form parser WASM file.
-pub(crate) struct PluginInfo {
-    pub version: SemanticVersion,
-    pub config_schemas: Vec<pl::ConfigSchemaItem>,
-    pub render_options: ParserRenderOptions,
 }
 
 impl PluginParser {
@@ -49,7 +42,7 @@ impl PluginParser {
         Ok(PluginInfo {
             version,
             config_schemas,
-            render_options,
+            render_options: RenderOptions::Parser(render_options),
         })
     }
 
