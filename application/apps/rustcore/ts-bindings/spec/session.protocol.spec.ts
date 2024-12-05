@@ -46,7 +46,7 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     AttachmentList: protocol.decodeAttachmentList,
     CallbackEvent: protocol.decodeCallbackEvent,
     CommandOutcome_bool: protocol.decodeCommandOutcomeWithbool,
-    CommandOutcome_FoldersScanningResult: protocol.decodeFoldersScanningResult,
+    CommandOutcome_FoldersScanningResult: protocol.decodeCommandOutcomeWithFoldersScanningResult,
     CommandOutcome_i64: protocol.decodeCommandOutcomeWithi64,
     CommandOutcome_Option_String: protocol.decodeCommandOutcomeWithOptionString,
     CommandOutcome_SerialPortsList: protocol.decodeCommandOutcomeWithSerialPortsList,
@@ -265,8 +265,9 @@ describe('Protocol', function () {
                             new Error(`Fail to find decoder for ${typeOfMessage}`),
                         );
                     }
+                    // console.log(`Decoding: ${typeOfMessage}`);
                     const msg = decoder(Uint8Array.from(buffer));
-                    console.log(msg);
+                    // console.log(msg);
                 }
             }
             finish(undefined, done);

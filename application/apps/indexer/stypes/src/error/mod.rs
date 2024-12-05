@@ -14,6 +14,7 @@ use thiserror::Error;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum Severity {
     WARNING,
@@ -21,6 +22,7 @@ pub enum Severity {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum NativeErrorKind {
     /// The file in question does not exist
@@ -46,6 +48,7 @@ pub struct NativeError {
 }
 
 #[derive(Error, Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum ComputationError {
     #[error("Destination path should be defined to stream from MassageProducer")]

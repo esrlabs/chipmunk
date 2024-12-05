@@ -1,4 +1,13 @@
+use proptest::prelude::*;
+
 pub const TESTS_USECASE_COUNT: usize = 100;
+
+pub fn rnd_usize() -> BoxedStrategy<usize> {
+    any::<u32>().prop_map(|n| n as usize).boxed()
+}
+pub fn rnd_u64() -> BoxedStrategy<u64> {
+    any::<u32>().prop_map(|n| n as u64).boxed()
+}
 
 #[macro_export]
 macro_rules! test_msg {
@@ -33,6 +42,11 @@ macro_rules! test_msg {
                         let mut file = File::create(dest.join(format!("{n}.raw")))?;
                         assert!(file.write_all(&bytes).is_ok());
                         assert!(file.flush().is_ok());
+                        let msg = $type::decode(&bytes);
+                        if let Err(err) = &msg {
+                            eprintln!("Decoding error: {err:?}");
+                        }
+                        assert!(msg.is_ok());
                     }
 
                 }
@@ -73,6 +87,11 @@ macro_rules! test_msg {
                         let mut file = File::create(dest.join(format!("{n}.raw")))?;
                         assert!(file.write_all(&bytes).is_ok());
                         assert!(file.flush().is_ok());
+                        let msg = $type::<()>::decode(&bytes);
+                        if let Err(err) = &msg {
+                            eprintln!("Decoding error: {err:?}");
+                        }
+                        assert!(msg.is_ok());
                     }
 
                 }
@@ -113,10 +132,12 @@ macro_rules! test_msg {
                         let mut file = File::create(dest.join(format!("{n}.raw")))?;
                         assert!(file.write_all(&bytes).is_ok());
                         assert!(file.flush().is_ok());
+                        let msg = $type::<$generic>::decode(&bytes);
+                        if let Err(err) = &msg {
+                            eprintln!("Decoding error: {err:?}");
+                        }
                     }
-
                 }
-
             }
         }
     };
@@ -153,10 +174,12 @@ macro_rules! test_msg {
                         let mut file = File::create(dest.join(format!("{n}.raw")))?;
                         assert!(file.write_all(&bytes).is_ok());
                         assert!(file.flush().is_ok());
+                        let msg = $type::<$generic<$nested>>::decode(&bytes);
+                        if let Err(err) = &msg {
+                            eprintln!("Decoding error: {err:?}");
+                        }
                     }
-
                 }
-
             }
         }
     };

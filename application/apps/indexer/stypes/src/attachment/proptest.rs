@@ -12,9 +12,9 @@ impl Arbitrary for AttachmentInfo {
             any::<PathBuf>(),
             any::<String>(),
             any::<Option<String>>(),
-            any::<usize>(),
+            rnd_usize(),
             any::<Option<String>>(),
-            prop::collection::vec(any::<usize>(), 0..10),
+            prop::collection::vec(rnd_usize(), 0..10),
         )
             .prop_map(
                 |(uuid, filepath, name, ext, size, mime, messages)| AttachmentInfo {
