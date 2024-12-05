@@ -5,11 +5,11 @@ impl Arbitrary for Notification {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<Severity>(), any::<String>(), any::<Option<usize>>())
+        (any::<Severity>(), any::<String>(), any::<Option<u32>>())
             .prop_map(|(severity, content, line)| Notification {
                 severity,
                 content,
-                line,
+                line: line.map(|n| n as usize),
             })
             .boxed()
     }
@@ -20,15 +20,11 @@ impl Arbitrary for Ticks {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (
-            any::<u64>(),
-            any::<Option<String>>(),
-            any::<Option<u64>>(),
-        )
+        (rnd_u64(), any::<Option<String>>(), any::<Option<u32>>())
             .prop_map(|(count, state, total)| Ticks {
                 count,
                 state,
-                total,
+                total: total.map(|n| n as u64),
             })
             .boxed()
     }

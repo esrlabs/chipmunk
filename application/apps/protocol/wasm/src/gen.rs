@@ -8,10 +8,10 @@ macro_rules! gen_encode_decode_fns {
             pub fn [<decode $type>](buf: &[u8]) -> Result<JsValue, E> {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
-                    .serialize_maps_as_objects(true)
-                    .serialize_large_number_types_as_bigints(false);
+                    .serialize_maps_as_objects(false)
+                    .serialize_large_number_types_as_bigints(true);
                 $type::decode(buf)
-                    .map_err(E::DecodeError)?
+                    .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
                     .map_err(|e| E::DecodeError(e.to_string()))
             }
@@ -34,10 +34,10 @@ macro_rules! gen_encode_decode_fns {
             pub fn [<decode $type WithVoid>](buf: &[u8]) -> Result<JsValue, E> {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
-                    .serialize_maps_as_objects(true)
-                    .serialize_large_number_types_as_bigints(false);
+                    .serialize_maps_as_objects(false)
+                    .serialize_large_number_types_as_bigints(true);
                 $type::<()>::decode(buf)
-                    .map_err(E::DecodeError)?
+                    .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
                     .map_err(|e| E::DecodeError(e.to_string()))
             }
@@ -60,10 +60,10 @@ macro_rules! gen_encode_decode_fns {
             pub fn [<decode $type With $generic>](buf: &[u8]) -> Result<JsValue, E> {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
-                    .serialize_maps_as_objects(true)
-                    .serialize_large_number_types_as_bigints(false);
+                    .serialize_maps_as_objects(false)
+                    .serialize_large_number_types_as_bigints(true);
                 $type::<$generic>::decode(buf)
-                    .map_err(E::DecodeError)?
+                    .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
                     .map_err(|e| E::DecodeError(e.to_string()))
             }
@@ -86,10 +86,10 @@ macro_rules! gen_encode_decode_fns {
             pub fn [<decode $type With $generic $nested>](buf: &[u8]) -> Result<JsValue, E> {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
-                    .serialize_maps_as_objects(true)
-                    .serialize_large_number_types_as_bigints(false);
+                    .serialize_maps_as_objects(false)
+                    .serialize_large_number_types_as_bigints(true);
                 $type::<$generic<$nested>>::decode(buf)
-                    .map_err(E::DecodeError)?
+                    .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
                     .map_err(|e| E::DecodeError(e.to_string()))
             }

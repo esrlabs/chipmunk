@@ -8,6 +8,7 @@ mod proptest;
 use crate::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum LifecycleTransition {
     Started { uuid: Uuid, alias: String },
