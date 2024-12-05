@@ -5,9 +5,12 @@ impl Arbitrary for Ranges {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        prop::collection::vec((0u64.., 0u64..).prop_map(|(start, end)| start..=end), 0..10)
-            .prop_map(Ranges)
-            .boxed()
+        prop::collection::vec(
+            (0u32.., 0u32..).prop_map(|(start, end)| start as u64..=end as u64),
+            0..10,
+        )
+        .prop_map(Ranges)
+        .boxed()
     }
 }
 
@@ -51,7 +54,8 @@ impl Arbitrary for SdeResponse {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        any::<usize>()
+        any::<u32>()
+            .prop_map(|n| n as usize)
             .prop_map(|bytes| SdeResponse { bytes })
             .boxed()
     }
@@ -62,7 +66,7 @@ impl Arbitrary for GrabbedElement {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<u16>(), any::<String>(), any::<usize>(), any::<u8>())
+        (any::<u16>(), any::<String>(), rnd_usize(), any::<u8>())
             .prop_map(|(source_id, content, pos, nature)| GrabbedElement {
                 source_id,
                 content,
@@ -89,8 +93,10 @@ impl Arbitrary for AroundIndexes {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<Option<u64>>(), any::<Option<u64>>())
-            .prop_map(|(start, end)| AroundIndexes((start, end)))
+        (any::<Option<u32>>(), any::<Option<u32>>())
+            .prop_map(|(start, end)| {
+                AroundIndexes((start.map(|n| n as u64), end.map(|n| n as u64)))
+            })
             .boxed()
     }
 }
@@ -100,7 +106,7 @@ impl Arbitrary for FilterMatch {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<u64>(), prop::collection::vec(any::<u8>(), 0..10))
+        (rnd_u64(), prop::collection::vec(any::<u8>(), 0..10))
             .prop_map(|(index, filters)| FilterMatch { index, filters })
             .boxed()
     }

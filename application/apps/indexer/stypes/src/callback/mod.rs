@@ -17,6 +17,7 @@ pub struct OperationDone {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum CallbackEvent {
     /**

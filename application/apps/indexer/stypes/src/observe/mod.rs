@@ -32,6 +32,7 @@ pub struct UdpConnectionInfo {
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum ParserType {
     Dlt(DltParserSettings),
@@ -57,6 +58,7 @@ pub struct SomeIpParserSettings {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum Transport {
     Process(ProcessTransportConfig),
@@ -100,6 +102,7 @@ pub struct UDPTransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum FileFormat {
     PcapNG,
@@ -109,6 +112,7 @@ pub enum FileFormat {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum ObserveOrigin {
     File(String, FileFormat, PathBuf),
