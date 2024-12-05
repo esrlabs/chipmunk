@@ -120,7 +120,7 @@ impl PluginsParser {
     /// session.
     pub async fn initialize(
         plugin_path: impl AsRef<Path>,
-        general_config: &pl::PluginParserGeneralSetttings,
+        general_config: &pl::PluginParserGeneralSettings,
         plugin_configs: Vec<pl::ConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let (component, version) = Self::load(&plugin_path).await?;
