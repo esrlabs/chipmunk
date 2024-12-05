@@ -16,7 +16,7 @@ pub struct Notification {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum Progress {
     Ticks(Ticks),

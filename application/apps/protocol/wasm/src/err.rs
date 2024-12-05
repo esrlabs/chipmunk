@@ -7,6 +7,10 @@ pub enum E {
     MissedField(String),
     #[error("Invalid value of: {0}")]
     InvalidValue(String),
+    #[error("Codec decode error: {0}")]
+    CodecDecodeError(String),
+    #[error("Codec encode error: {0}")]
+    CodecEncodeError(String),
     #[error("Decode error: {0}")]
     DecodeError(String),
     #[error("Encode error: {0}")]

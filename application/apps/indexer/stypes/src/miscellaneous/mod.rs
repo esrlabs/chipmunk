@@ -26,6 +26,7 @@ pub struct SourceDefinition {
 pub struct Sources(pub Vec<SourceDefinition>);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum SdeRequest {
     WriteText(String),
@@ -41,13 +42,9 @@ pub struct SdeResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[extend::encode_decode]
 pub struct GrabbedElement {
-    #[serde(rename = "id")]
     pub source_id: u16,
-    #[serde(rename = "c")]
     pub content: String,
-    #[serde(rename = "p")]
     pub pos: usize,
-    #[serde(rename = "n")]
     pub nature: u8,
 }
 

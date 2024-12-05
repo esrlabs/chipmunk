@@ -9,15 +9,16 @@ use crate::*;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Serialize, Deserialize, Debug)]
+// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum FolderEntityType {
-    BlockDevice = 0,
-    CharacterDevice = 1,
-    Directory = 2,
-    FIFO = 3,
-    File = 4,
-    Socket = 5,
-    SymbolicLink = 6,
+    BlockDevice,
+    CharacterDevice,
+    Directory,
+    FIFO,
+    File,
+    Socket,
+    SymbolicLink,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

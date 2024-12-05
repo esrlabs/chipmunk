@@ -18,14 +18,20 @@ impl Arbitrary for CallbackEvent {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop_oneof![
-            any::<u64>().prop_map(CallbackEvent::StreamUpdated),
+            rnd_u64().prop_map(CallbackEvent::StreamUpdated),
             Just(CallbackEvent::FileRead),
-            (any::<u64>(), any::<HashMap<String, u64>>(),)
-                .prop_map(|(found, stat)| CallbackEvent::SearchUpdated { found, stat }),
-            any::<u64>().prop_map(|len| CallbackEvent::IndexedMapUpdated { len }),
+            (rnd_u64(), any::<Vec<(String, u32)>>(),).prop_map(|(found, stat)| {
+                CallbackEvent::SearchUpdated {
+                    found,
+                    stat: stat.into_iter().map(|(k, v)| (k, v as u64)).collect(),
+                }
+            }),
+            rnd_u64().prop_map(|len| CallbackEvent::IndexedMapUpdated { len }),
             any::<Option<FilterMatchList>>().prop_map(CallbackEvent::SearchMapUpdated),
-            any::<Option<HashMap<u8, (f64, f64)>>>().prop_map(CallbackEvent::SearchValuesUpdated),
-            (any::<u64>(), any::<AttachmentInfo>(),).prop_map(|(len, attachment)| {
+            any::<Option<Vec<(u8, (f64, f64))>>>().prop_map(|ev| {
+                CallbackEvent::SearchValuesUpdated(ev.map(|ev| ev.into_iter().collect()))
+            }),
+            (rnd_u64(), any::<AttachmentInfo>(),).prop_map(|(len, attachment)| {
                 CallbackEvent::AttachmentsUpdated { len, attachment }
             }),
             (Just(Uuid::new_v4()), any::<Progress>(),)
