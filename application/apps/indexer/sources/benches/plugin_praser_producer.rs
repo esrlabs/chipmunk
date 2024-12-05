@@ -30,7 +30,7 @@ fn plugin_parser_producer(c: &mut Criterion) {
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter_batched(
                 || {
-                    let parser = futures::executor::block_on(PluginsParser::create(
+                    let parser = futures::executor::block_on(PluginsParser::initialize(
                         &settings.plugin_path,
                         &settings.general_settings,
                         settings.plugin_configs.clone(),

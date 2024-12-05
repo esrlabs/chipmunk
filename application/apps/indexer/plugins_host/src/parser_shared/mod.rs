@@ -42,57 +42,21 @@ enum PlugVerParser {
 }
 
 impl PluginsParser {
-    pub async fn get_info(plugin_path: PathBuf) -> Result<ValidPluginInfo, PluginHostInitError> {
-        let engine = get_wasm_host()
-            .map(|host| &host.engine)
-            .map_err(|err| err.to_owned())?;
-
-        if !plugin_path.exists() {
-            return Err(PluginHostInitError::IO("Plugin path doesn't exist".into()));
-        }
-
-        if !plugin_path.is_file() {
-            return Err(PluginHostInitError::IO("Plugin path is not a file".into()));
-        }
-
-        let component = Component::from_file(engine, &plugin_path)
-            .map_err(|err| PluginHostInitError::PluginInvalid(err.to_string()))?;
-
-        let component_types = component.component_type();
-
-        let export_info = component_types.exports(engine).next().ok_or_else(|| {
-            PluginHostInitError::PluginInvalid("Plugin doesn't have exports information".into())
-        })?;
-
-        let (interface_name, version) = export_info.0.split_once('@').ok_or_else(|| {
-            PluginHostInitError::PluginInvalid(
-                "Plugin package schema doesn't match `wit` file definitions".into(),
-            )
-        })?;
-
-        if interface_name != PARSER_INTERFACE_NAME {
-            return Err(PluginHostInitError::PluginInvalid(
-                "Plugin package name doesn't match `wit` file".into(),
-            ));
-        }
-
-        let version: SemanticVersion = version.parse().map_err(|err| {
-            PluginHostInitError::PluginInvalid(format!("Plugin version parsing failed: {err}"))
-        })?;
+    /// Loads the plugin and extract the needed plugin info if valid.
+    pub async fn get_info(plugin_path: PathBuf) -> Result<ValidPluginInfo, PluginError> {
+        let (component, version) = Self::load(&plugin_path).await?;
 
         let plug_info = match version {
             SemanticVersion {
                 major: 0,
                 minor: 1,
                 patch: 0,
-            } => {
-                let info = v0_1_0::parser::PluginParser::get_info(component).await?;
-                info
-            }
+            } => v0_1_0::parser::PluginParser::get_info(component).await?,
             invalid_version => {
                 return Err(PluginHostInitError::PluginInvalid(format!(
                     "Plugin version {invalid_version} is not supported"
-                )))
+                ))
+                .into())
             }
         };
 
@@ -107,20 +71,20 @@ impl PluginsParser {
         Ok(plugin_info)
     }
 
-    pub async fn create(
+    /// Loads and validate a plugin returning the its [`Component`] and API [`SemanticVersion`]
+    async fn load(
         plugin_path: impl AsRef<Path>,
-        general_config: &pl::PluginParserGeneralSetttings,
-        plugin_configs: Vec<pl::ConfigItem>,
-    ) -> Result<Self, PluginHostInitError> {
+    ) -> Result<(Component, SemanticVersion), PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
-            .map_err(|err| err.to_owned())?;
+            .map_err(|err| PluginHostInitError::from(err.to_owned()))?;
+        let plugin_path = plugin_path.as_ref();
 
-        if !plugin_path.as_ref().exists() {
+        if !plugin_path.exists() {
             return Err(PluginHostInitError::IO("Plugin path doesn't exist".into()));
         }
 
-        if !plugin_path.as_ref().is_file() {
+        if !plugin_path.is_file() {
             return Err(PluginHostInitError::IO("Plugin path is not a file".into()));
         }
 
@@ -149,15 +113,30 @@ impl PluginsParser {
             PluginHostInitError::PluginInvalid(format!("Plugin version parsing failed: {err}"))
         })?;
 
+        Ok((component, version))
+    }
+
+    /// Initialize parser instance with the needed configuration to be used within a parsing
+    /// session.
+    pub async fn initialize(
+        plugin_path: impl AsRef<Path>,
+        general_config: &pl::PluginParserGeneralSetttings,
+        plugin_configs: Vec<pl::ConfigItem>,
+    ) -> Result<Self, PluginHostInitError> {
+        let (component, version) = Self::load(&plugin_path).await?;
+
         match version {
             SemanticVersion {
                 major: 0,
                 minor: 1,
                 patch: 0,
             } => {
-                let parser =
-                    v0_1_0::parser::PluginParser::create(component, general_config, plugin_configs)
-                        .await?;
+                let parser = v0_1_0::parser::PluginParser::initialize(
+                    component,
+                    general_config,
+                    plugin_configs,
+                )
+                .await?;
                 Ok(Self {
                     parser: PlugVerParser::Ver010(parser),
                     errors_counter: 0,
@@ -169,9 +148,9 @@ impl PluginsParser {
         }
     }
 
-    pub fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
+    pub async fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
         match &mut self.parser {
-            PlugVerParser::Ver010(parser) => parser.get_render_options(),
+            PlugVerParser::Ver010(parser) => parser.get_render_options().await,
         }
     }
 }
@@ -181,15 +160,15 @@ impl WasmPlugin for PluginsParser {
         PluginType::Parser
     }
 
-    fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
+    async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
         match &mut self.parser {
-            PlugVerParser::Ver010(parser) => parser.plugin_version(),
+            PlugVerParser::Ver010(parser) => parser.plugin_version().await,
         }
     }
 
-    fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+    async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
         match &mut self.parser {
-            PlugVerParser::Ver010(parser) => parser.get_config_schemas(),
+            PlugVerParser::Ver010(parser) => parser.get_config_schemas().await,
         }
     }
 }

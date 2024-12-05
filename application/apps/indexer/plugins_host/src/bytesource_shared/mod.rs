@@ -129,17 +129,17 @@ impl WasmPlugin for PluginsByteSource {
         PluginType::ByteSource
     }
 
-    fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
+    async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
         match &mut self.source {
-            PlugVerByteSource::Ver010(source) => source.plugin_version(),
+            PlugVerByteSource::Ver010(source) => source.plugin_version().await,
         }
     }
 
-    fn get_config_schemas(
+    async fn get_config_schemas(
         &mut self,
     ) -> Result<Vec<sources::plugins::ConfigSchemaItem>, PluginError> {
         match &mut self.source {
-            PlugVerByteSource::Ver010(source) => source.get_config_schemas(),
+            PlugVerByteSource::Ver010(source) => source.get_config_schemas().await,
         }
     }
 }
