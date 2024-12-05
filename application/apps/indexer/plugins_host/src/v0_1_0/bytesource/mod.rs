@@ -9,12 +9,13 @@ use wasmtime::{
     component::{Component, Linker},
     Store,
 };
-use wasmtime_wasi::ResourceTable;
+use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 
 use sources::plugins as pl;
 
 use crate::{
-    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError},
+    plugins_manager::RenderOptions,
+    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
     semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
     PluginGuestInitError, PluginHostInitError,
@@ -26,11 +27,26 @@ pub struct PluginByteSource {
 }
 
 impl PluginByteSource {
-    pub async fn create(
-        component: Component,
-        general_config: &pl::PluginByteSourceGeneralSettings,
-        plugin_configs: Vec<pl::ConfigItem>,
-    ) -> Result<Self, PluginHostInitError> {
+    /// Load wasm file temporally to retrieve the static plugin information defined by `wit` file
+    pub(crate) async fn get_info(component: Component) -> Result<PluginInfo, PluginError> {
+        let ctx = WasiCtxBuilder::new().build();
+        let mut source = Self::create(component, ctx).await?;
+
+        let version = source.plugin_version().await?;
+
+        let render_options = RenderOptions::ByteSource;
+
+        let config_schemas = source.get_config_schemas().await?;
+
+        Ok(PluginInfo {
+            version,
+            config_schemas,
+            render_options,
+        })
+    }
+
+    /// Creates a new byte-source instance without initializing it with custom configurations.
+    async fn create(component: Component, ctx: WasiCtx) -> Result<Self, PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
             .map_err(|err| err.to_owned())?;
@@ -40,30 +56,46 @@ impl PluginByteSource {
 
         BytesourcePlugin::add_to_linker(&mut linker, |state| state)?;
 
-        let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
+        let resource_table = ResourceTable::new();
 
-        let mut store = Store::new(
-            engine,
-            ByteSourcePluginState::new(ctx.build(), ResourceTable::new()),
-        );
+        let mut store = Store::new(engine, ByteSourcePluginState::new(ctx, resource_table));
 
         let (plugin_bindings, _instance) =
             BytesourcePlugin::instantiate_async(&mut store, &component, &linker).await?;
-
-        let plugin_configs: Vec<_> = plugin_configs.into_iter().map(|item| item.into()).collect();
-
-        plugin_bindings
-            .chipmunk_plugin_byte_source()
-            .call_init(&mut store, general_config.into(), &plugin_configs)
-            .await?
-            .map_err(|guest_err| {
-                PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
-            })?;
 
         Ok(Self {
             store,
             plugin_bindings,
         })
+    }
+
+    /// Initialize byte-source instance with the needed configuration to be used within sessions.
+    pub async fn initialize(
+        component: Component,
+        general_config: &pl::PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<pl::ConfigItem>,
+    ) -> Result<Self, PluginHostInitError> {
+        let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
+        let ctx = ctx.build();
+
+        let mut byte_source = Self::create(component, ctx).await?;
+
+        let plugin_configs: Vec<_> = plugin_configs.into_iter().map(|item| item.into()).collect();
+
+        byte_source
+            .plugin_bindings
+            .chipmunk_plugin_byte_source()
+            .call_init(
+                &mut byte_source.store,
+                general_config.into(),
+                &plugin_configs,
+            )
+            .await?
+            .map_err(|guest_err| {
+                PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
+            })?;
+
+        Ok(byte_source)
     }
 
     pub async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {

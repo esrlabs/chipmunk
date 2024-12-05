@@ -4,12 +4,9 @@ use sources::plugins as pl;
 use wasmtime::component::Component;
 
 use crate::{
-    plugins_manager::{RenderOptions, ValidPluginInfo},
-    plugins_shared::plugin_errors::PluginError,
-    semantic_version::SemanticVersion,
-    v0_1_0,
-    wasm_host::get_wasm_host,
-    PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
+    plugins_manager::ValidPluginInfo, plugins_shared::plugin_errors::PluginError,
+    semantic_version::SemanticVersion, v0_1_0, wasm_host::get_wasm_host, PluginHostInitError,
+    PluginParseMessage, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
@@ -65,7 +62,7 @@ impl PluginsParser {
             api_version: version,
             plugin_version: plug_info.version,
             config_schemas: plug_info.config_schemas,
-            render_options: RenderOptions::Parser(plug_info.render_options),
+            render_options: plug_info.render_options,
         };
 
         Ok(plugin_info)
@@ -116,8 +113,7 @@ impl PluginsParser {
         Ok((component, version))
     }
 
-    /// Initialize parser instance with the needed configuration to be used within a parsing
-    /// session.
+    /// Initialize parser instance with the needed configuration to be used within sessions.
     pub async fn initialize(
         plugin_path: impl AsRef<Path>,
         general_config: &pl::PluginParserGeneralSettings,

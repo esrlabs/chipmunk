@@ -1,6 +1,6 @@
 use std::{
     io::{self, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use wasmtime::component::Component;
@@ -8,8 +8,12 @@ use wasmtime::component::Component;
 use sources::plugins as pl;
 
 use crate::{
-    plugins_shared::plugin_errors::PluginError, semantic_version::SemanticVersion, v0_1_0,
-    wasm_host::get_wasm_host, PluginHostInitError, PluginType, WasmPlugin,
+    plugins_manager::{RenderOptions, ValidPluginInfo},
+    plugins_shared::plugin_errors::PluginError,
+    semantic_version::SemanticVersion,
+    v0_1_0,
+    wasm_host::get_wasm_host,
+    PluginHostInitError, PluginType, WasmPlugin,
 };
 
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:plugin/byte-source";
@@ -34,20 +38,49 @@ pub enum PlugVerByteSource {
 }
 
 impl PluginsByteSource {
-    pub async fn create(
+    /// Loads the plugin and extract the needed plugin info if valid.
+    pub async fn get_info(plugin_path: PathBuf) -> Result<ValidPluginInfo, PluginError> {
+        let (component, version) = Self::load(&plugin_path).await?;
+
+        let plug_info = match version {
+            SemanticVersion {
+                major: 0,
+                minor: 1,
+                patch: 0,
+            } => v0_1_0::bytesource::PluginByteSource::get_info(component).await?,
+            invalid_version => {
+                return Err(PluginHostInitError::PluginInvalid(format!(
+                    "Plugin version {invalid_version} is not supported"
+                ))
+                .into())
+            }
+        };
+
+        let plugin_info = ValidPluginInfo {
+            wasm_file_path: plugin_path,
+            api_version: version,
+            plugin_version: plug_info.version,
+            config_schemas: plug_info.config_schemas,
+            render_options: RenderOptions::ByteSource,
+        };
+
+        Ok(plugin_info)
+    }
+
+    /// Loads and validate a plugin returning the its [`Component`] and API [`SemanticVersion`]
+    async fn load(
         plugin_path: impl AsRef<Path>,
-        general_config: &pl::PluginByteSourceGeneralSettings,
-        plugin_configs: Vec<pl::ConfigItem>,
-    ) -> Result<Self, PluginHostInitError> {
+    ) -> Result<(Component, SemanticVersion), PluginHostInitError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
-            .map_err(|err| err.to_owned())?;
+            .map_err(|err| PluginHostInitError::from(err.to_owned()))?;
+        let plugin_path = plugin_path.as_ref();
 
-        if !plugin_path.as_ref().exists() {
+        if !plugin_path.exists() {
             return Err(PluginHostInitError::IO("Plugin path doesn't exist".into()));
         }
 
-        if !plugin_path.as_ref().is_file() {
+        if !plugin_path.is_file() {
             return Err(PluginHostInitError::IO("Plugin path is not a file".into()));
         }
 
@@ -76,13 +109,24 @@ impl PluginsByteSource {
             PluginHostInitError::PluginInvalid(format!("Plugin version parsing failed: {err}"))
         })?;
 
+        Ok((component, version))
+    }
+
+    /// Initialize byte-source instance with the needed configuration to be used within sessions.
+    pub async fn initialize(
+        plugin_path: impl AsRef<Path>,
+        general_config: &pl::PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<pl::ConfigItem>,
+    ) -> Result<Self, PluginHostInitError> {
+        let (component, version) = Self::load(&plugin_path).await?;
+
         match version {
             SemanticVersion {
                 major: 0,
                 minor: 1,
                 patch: 0,
             } => {
-                let source = v0_1_0::bytesource::PluginByteSource::create(
+                let source = v0_1_0::bytesource::PluginByteSource::initialize(
                     component,
                     general_config,
                     plugin_configs,

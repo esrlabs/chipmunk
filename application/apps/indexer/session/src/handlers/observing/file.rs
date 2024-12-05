@@ -55,7 +55,7 @@ pub async fn observe_file<'a>(
                 let setting =
                     pl::PluginByteSourceSettings::prototyping(path.into(), file_source_configs);
 
-                let plugin_source = PluginsByteSource::create(
+                let plugin_source = PluginsByteSource::initialize(
                     &setting.plugin_path,
                     &setting.general_settings,
                     setting.plugin_configs.clone(),

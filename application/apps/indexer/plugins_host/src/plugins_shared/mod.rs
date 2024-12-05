@@ -3,7 +3,9 @@ use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
 use sources::plugins as pl;
 
-use crate::PluginHostInitError;
+use crate::{
+    plugins_manager::RenderOptions, semantic_version::SemanticVersion, PluginHostInitError,
+};
 
 pub mod plugin_errors;
 
@@ -44,4 +46,11 @@ pub fn get_wasi_ctx_builder(
     }
 
     Ok(ctx)
+}
+
+// Represents the retrieved static information form parser WASM file.
+pub(crate) struct PluginInfo {
+    pub version: SemanticVersion,
+    pub config_schemas: Vec<pl::ConfigSchemaItem>,
+    pub render_options: RenderOptions,
 }
