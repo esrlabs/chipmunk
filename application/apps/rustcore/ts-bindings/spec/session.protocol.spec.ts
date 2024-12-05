@@ -88,6 +88,8 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     UDPTransportConfig: protocol.decodeUDPTransportConfig,
 };
 
+const OUTPUT_PATH_ENVVAR = 'CHIPMUNK_PROTOCOL_TEST_OUTPUT';
+
 describe('Protocol', function () {
     it(config.regular.list[1], function () {
         return runners.noSession(config.regular, 1, async (logger, done) => {
@@ -230,7 +232,7 @@ describe('Protocol', function () {
                 const decoded = protocol.decodeObserveOptions(bytes);
                 expect(deepEqualObj(decoded, origin)).toBe(true);
             }
-            const casesPath = process.env['PROTOCOL_TEST_CASES_PATH'];
+            const casesPath = process.env[OUTPUT_PATH_ENVVAR];
             if (typeof casesPath !== 'string' || casesPath.trim() === '') {
                 logger.info('Testing of all use-cases is skipped');
                 return finish(undefined, done);
