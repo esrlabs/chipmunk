@@ -35,7 +35,7 @@ fn plugin_parser_init(c: &mut Criterion) {
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter(|| async {
                 // Creating parser will load compile and validate the provided plugin
-                let parser = plugins_host::PluginsParser::create(
+                let parser = plugins_host::PluginsParser::initialize(
                     &settings.plugin_path,
                     &settings.general_settings,
                     settings.plugin_configs.clone(),

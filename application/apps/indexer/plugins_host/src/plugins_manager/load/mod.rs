@@ -3,11 +3,12 @@ mod paths;
 use std::{
     fs::{self, read_to_string},
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use crate::{
     plugins_manager::{InvalidPluginInfo, PluginState},
+    plugins_shared::plugin_errors::PluginError,
     PluginHostInitError, PluginType, PluginsParser,
 };
 
@@ -17,8 +18,8 @@ use super::{InitError, PluginEntity, PluginMetadata};
 pub async fn load_plugins() -> Result<Vec<PluginEntity>, InitError> {
     let plugins_dir = paths::plugins_dir()?;
     if !plugins_dir.exists() {
-        log::trace!("Plugins directory doens't exist");
-        return Ok(Vec::new());
+        log::trace!("Plugins directory doens't exist. Creating it...");
+        fs::create_dir_all(plugins_dir)?;
     }
 
     let mut plugins = load_all_parsers().await?;
@@ -36,7 +37,8 @@ async fn load_all_parsers() -> Result<Vec<PluginEntity>, InitError> {
 
     let parsers_dir = paths::parser_dir()?;
     if !parsers_dir.exists() {
-        log::trace!("Parsers directory deosn't exist");
+        log::trace!("Parsers directory deosn't exist. Creating it ...");
+        fs::create_dir_all(&parsers_dir)?;
 
         return Ok(parsers);
     }
@@ -52,7 +54,6 @@ async fn load_all_parsers() -> Result<Vec<PluginEntity>, InitError> {
 /// Retrieves all directory form the given directory path
 fn get_dirs(dir_path: &PathBuf) -> Result<impl Iterator<Item = PathBuf>, io::Error> {
     let dirs = fs::read_dir(dir_path)?
-        .into_iter()
         .filter_map(|entry| entry.ok().map(|e| e.path()))
         .filter(|path| path.is_dir());
 
@@ -121,7 +122,9 @@ async fn load_parser(dir: PathBuf) -> Result<PluginEntity, InitError> {
     let plugin_info = match PluginsParser::get_info(wasm_file).await {
         Ok(info) => info,
         // Stop the whole loading on engine errors
-        Err(PluginHostInitError::EngineError(err)) => return Err(err.into()),
+        Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
+            return Err(err.into())
+        }
         Err(err) => {
             let err_msg = format!("Loading plugin binray fail. Error: {err}");
             let invalid = PluginEntity {
@@ -173,7 +176,7 @@ fn parse_metadata(file: &PathBuf) -> Result<PluginMetadata, String> {
 }
 
 async fn load_all_bytesources() -> Result<Vec<PluginEntity>, InitError> {
-    return Ok(Vec::new());
+    Ok(Vec::new())
 
     // TODO AAZ: Activate when implementing byte source
     //
@@ -181,7 +184,8 @@ async fn load_all_bytesources() -> Result<Vec<PluginEntity>, InitError> {
     //
     // let bytesource_dir = paths::bytesource_dir()?;
     // if !bytesource_dir.exists() {
-    //     log::trace!("Bytesources directory doesn't exist");
+    //     log::trace!("Bytesources directory doesn't exist. Creating it ...");
+    //     fs::create_dir_all(&bytesource_dir)?;
     //     return Ok(bytesources);
     // }
     //
@@ -194,6 +198,6 @@ async fn load_all_bytesources() -> Result<Vec<PluginEntity>, InitError> {
 }
 
 #[allow(unused)]
-fn load_bytesource(dir: &PathBuf) -> Result<PluginEntity, InitError> {
+fn load_bytesource(dir: &Path) -> Result<PluginEntity, InitError> {
     todo!()
 }

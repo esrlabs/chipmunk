@@ -87,7 +87,7 @@ async fn run_source_intern<S: ByteSource>(
             println!("------------------------------------------------------");
             println!("-------------    WASM parser used    -----------------");
             println!("------------------------------------------------------");
-            let parser = PluginsParser::create(
+            let parser = PluginsParser::initialize(
                 &settings.plugin_path,
                 &settings.general_settings,
                 settings.plugin_configs.clone(),
@@ -131,7 +131,7 @@ async fn run_source_intern<S: ByteSource>(
                 pl::PluginParserSettings::prototyping(proto_plugin_path, string_parser_configs);
             let now = std::time::Instant::now();
 
-            let parser = PluginsParser::create(
+            let parser = PluginsParser::initialize(
                 &settings.plugin_path,
                 &settings.general_settings,
                 settings.plugin_configs.clone(),

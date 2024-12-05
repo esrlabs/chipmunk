@@ -23,6 +23,8 @@ pub enum PluginType {
     ByteSource,
 }
 
+// Trait is used with Chipmunk only.
+#[allow(async_fn_in_trait)]
 pub trait WasmPlugin {
     /// Provides the Type of the plugin.
     fn get_type() -> PluginType;
@@ -31,7 +33,7 @@ pub trait WasmPlugin {
     ///
     /// # Note
     /// This version is for the plugin only and is different from the plugin's API version.
-    fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError>;
+    async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError>;
 
     /// Provides the schemas for the configurations required by the plugin, which
     /// will be specified by the users.
@@ -39,5 +41,5 @@ pub trait WasmPlugin {
     /// These schemas define the expected structure, types, and constraints
     /// for plugin-specific configurations. The values of these configurations
     /// will be passed to the initializing method of the plugin.
-    fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError>;
+    async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError>;
 }

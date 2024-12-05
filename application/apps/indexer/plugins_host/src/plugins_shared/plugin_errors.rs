@@ -31,6 +31,8 @@ pub enum PluginGuestInitError {
 /// Represents general errors in communication with plugins
 #[derive(Debug, Error)]
 pub enum PluginError {
+    #[error("Error while initializing plugin host. {0}")]
+    HostInitError(#[from] PluginHostInitError),
     #[error(transparent)]
     WasmRunTimeError(#[from] anyhow::Error),
 }

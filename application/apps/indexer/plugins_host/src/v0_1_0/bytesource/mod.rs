@@ -5,7 +5,6 @@ use std::io;
 
 use bindings::BytesourcePlugin;
 use bytesource_plugin_state::ByteSourcePluginState;
-use futures::executor::block_on;
 use wasmtime::{
     component::{Component, Linker},
     Store,
@@ -67,22 +66,22 @@ impl PluginByteSource {
         })
     }
 
-    pub fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
-        let schemas = block_on(
-            self.plugin_bindings
-                .chipmunk_plugin_byte_source()
-                .call_get_config_schemas(&mut self.store),
-        )?;
+    pub async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+        let schemas = self
+            .plugin_bindings
+            .chipmunk_plugin_byte_source()
+            .call_get_config_schemas(&mut self.store)
+            .await?;
 
         Ok(schemas.into_iter().map(|item| item.into()).collect())
     }
 
-    pub fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
-        let version = block_on(
-            self.plugin_bindings
-                .chipmunk_plugin_byte_source()
-                .call_get_version(&mut self.store),
-        )?;
+    pub async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
+        let version = self
+            .plugin_bindings
+            .chipmunk_plugin_byte_source()
+            .call_get_version(&mut self.store)
+            .await?;
 
         Ok(version.into())
     }
