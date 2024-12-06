@@ -1,7 +1,14 @@
 use crate::*;
-// use proptest::string::string_regex;
-// string_regex(".{0,255}").unwrap()
+// Arbitrary implementations for Severity, NativeErrorKind, NativeError, and ComputationError.
+
 impl Arbitrary for Severity {
+    /// Implements the `Arbitrary` trait for `Severity` to generate random values
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates random variants of `Severity`:
+    ///   - `Severity::WARNING`
+    ///   - `Severity::ERROR`
     type Parameters = ();
 
     type Strategy = BoxedStrategy<Self>;
@@ -12,6 +19,21 @@ impl Arbitrary for Severity {
 }
 
 impl Arbitrary for NativeErrorKind {
+    /// Implements the `Arbitrary` trait for `NativeErrorKind` to generate random values
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates random variants of `NativeErrorKind`, including:
+    ///   - `FileNotFound`
+    ///   - `UnsupportedFileType`
+    ///   - `ComputationFailed`
+    ///   - `Configuration`
+    ///   - `Interrupted`
+    ///   - `OperationSearch`
+    ///   - `NotYetImplemented`
+    ///   - `ChannelError`
+    ///   - `Io`
+    ///   - `Grabber`
     type Parameters = ();
 
     type Strategy = BoxedStrategy<Self>;
@@ -34,6 +56,14 @@ impl Arbitrary for NativeErrorKind {
 }
 
 impl Arbitrary for NativeError {
+    /// Implements the `Arbitrary` trait for `NativeError` to generate random values
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates:
+    ///   - A random `Severity` value.
+    ///   - A random `NativeErrorKind` value.
+    ///   - An optional random `String` for the message.
     type Parameters = ();
 
     type Strategy = BoxedStrategy<Self>;
@@ -54,6 +84,14 @@ impl Arbitrary for NativeError {
 }
 
 impl Arbitrary for ComputationError {
+    /// Implements the `Arbitrary` trait for `ComputationError` to generate random values
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates random variants of `ComputationError`, including:
+    ///   - Fixed errors such as `DestinationPath`, `SessionCreatingFail`, etc.
+    ///   - Errors with random `String` values for fields like `Communication`, `IoOperation`, etc.
+    ///   - Nested errors, such as `NativeError`.
     type Parameters = ();
 
     type Strategy = BoxedStrategy<Self>;

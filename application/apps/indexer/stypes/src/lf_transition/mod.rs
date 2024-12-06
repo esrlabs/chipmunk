@@ -7,11 +7,25 @@ mod proptest;
 
 use crate::*;
 
+/// Describes the progress of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-// #[serde(tag = "type", content = "value")]
 #[extend::encode_decode]
 pub enum LifecycleTransition {
-    Started { uuid: Uuid, alias: String },
-    Ticks { uuid: Uuid, ticks: Ticks },
+    /// The operation has started.
+    Started {
+        /// The unique identifier of the operation.
+        uuid: Uuid,
+        /// A user-friendly name of the operation for display purposes.
+        alias: String,
+    },
+    /// The progress of the operation.
+    Ticks {
+        /// The unique identifier of the operation.
+        uuid: Uuid,
+        /// The progress data associated with the operation.
+        ticks: Ticks,
+    },
+    /// The operation has completed or was interrupted.
+    /// - `Uuid`: The unique identifier of the operation.
     Stopped(Uuid),
 }
