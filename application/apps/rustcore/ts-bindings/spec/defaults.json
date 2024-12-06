@@ -30,10 +30,11 @@
     },
     "protocol": {
       "regular": {
-          "execute_only": [],
+          "execute_only": [2,3],
           "list": {
               "1": "Test 1. CallbackEvent",
-              "2": "Test 2. Check all messages"
+              "2": "Test 2. Check all messages",
+              "3": "Test 3. Comparing JSON vs Protobuf"
           },
           "files": {
           }

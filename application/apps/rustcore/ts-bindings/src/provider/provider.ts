@@ -7,7 +7,9 @@ import { Subject, validateEventDesc } from 'platform/env/subscription';
 import { error } from 'platform/log/utils';
 import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
-import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
+import { TEventEmitter } from '../provider/provider.general';
+
+import * as protocol from 'protocol';
 
 export interface IOrderStat {
     type: 'E' | 'O';
@@ -225,54 +227,30 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
      * { [type: string]: string | undefined }
      * @param data {string}
      */
-    private _emitter(data: TEventData) {
-        function dataAsStr(data: TEventData): { debug: string; verb?: string } {
-            let message = '';
-            if (typeof data === 'string') {
-                message = `(defined as string): ${data}`;
-            } else {
-                message = `(defined as object): keys: ${Object.keys(data).join(
-                    ', ',
-                )} / values: ${Object.keys(data)
-                    .map((k) => JSON.stringify(data[k]))
-                    .join(', ')}`;
-            }
-            return {
-                debug: `${message.substring(0, 250)}${message.length > 250 ? '...' : ''}`,
-                verb: message.length > 250 ? message : undefined,
-            };
-        }
-        const logs = dataAsStr(data);
-        this.logger.verbose(`Event from rust:\n\t${logs.debug}`);
-        logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
-        let event: Required<IEventData>;
-        if (typeof data === 'string') {
-            try {
-                event = JSON.parse(data);
-            } catch (e) {
-                const msg: string = `Failed to parse rust event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }, got: ${data}`;
-                this.debug().emit.error(msg);
-                this.logger.error(msg);
-                return;
-            }
-        } else if (typeof data === 'object' && data !== null) {
-            event = data;
-        } else {
-            const msg: string = `Unsupported format of event data: ${typeof data} / ${data}.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
-            this.debug().emit.error(msg);
-            this.logger.error(msg);
+    private _emitter(buf: Uint8Array) {
+        let event: any;
+        try {
+            event = protocol.decodeCallbackEvent(buf);
+            console.log(event);
+        } catch (err) {
+            this.debug().emit.error(
+                this.logger.error(`Fail to decode CallbackEvent: ${error(err)}`),
+            );
             return;
         }
         if (typeof event === 'string') {
             this._emit(event, null);
         } else if (typeof event !== 'object' || event === null || Object.keys(event).length !== 1) {
-            const msg: string = `Has been gotten incorrect event data: ${data}. No any props field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
-            this.debug().emit.error(msg);
-            this.logger.error(msg);
+            this.debug().emit.error(
+                this.logger.error(
+                    `Has been gotten incorrect event data: ${JSON.stringify(
+                        event,
+                    )}. No any props field found.\nExpecting type: { [type: string]: string | undefined }`,
+                ),
+            );
         } else {
             const type: string = Object.keys(event)[0];
             const body: any = event[type];
-
             this._emit(type, body);
         }
     }
