@@ -21,13 +21,18 @@ export interface FilterStyle {
     background: string;
 }
 
+export interface FilterMatch {
+    index: number;
+    filters: number[];
+}
+
 export interface ISearchStats {
-    stats: { [key: string]: number };
+    stats: Map<string, number>;
 }
 
 export interface ISearchUpdated {
     found: number;
-    stat: { [key: string]: number };
+    stat: Map<string, number>;
 }
 
 export enum EFlag {
