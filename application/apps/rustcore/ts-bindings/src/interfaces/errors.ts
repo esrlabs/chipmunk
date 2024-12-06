@@ -32,6 +32,7 @@ export enum Source {
     SetDebug = 'SetDebug',
     SendIntoSde = 'SendIntoSde',
     GetAttachments = 'GetAttachments',
+    GetIndexedRanges = 'GetIndexedRanges',
     Concat = 'Concat',
     Merge = 'Merge',
     Extract = 'Extract',
