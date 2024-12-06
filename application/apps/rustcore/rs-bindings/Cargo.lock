@@ -1517,6 +1517,7 @@ dependencies = [
  "node-bindgen",
  "processor",
  "serde",
+ "serde_json",
  "session",
  "sources",
  "stypes",
