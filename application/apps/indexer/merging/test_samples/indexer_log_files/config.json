@@ -1,14 +1,14 @@
 [
-	{
-		"path": "a.log",
-		"offset": 0,
-		"format": "YYYY-MM-DDThh:mm:ss.s TZD",
-		"tag": "A-TAG"
-	},
-	{
-		"path": "b.log",
-		"offset": 0,
-		"tag": "B-TAG",
-		"format": "YYYY-MM-DDThh:mm:ss.s TZD"
-	}
+  {
+    "path": "a.log",
+    "offset": 0,
+    "format": "YYYY-MM-DDThh:mm:ss.s TZD",
+    "tag": "A-TAG"
+  },
+  {
+    "path": "b.log",
+    "offset": 0,
+    "tag": "B-TAG",
+    "format": "YYYY-MM-DDThh:mm:ss.s TZD"
+  }
 ]

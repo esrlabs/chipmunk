@@ -16,20 +16,12 @@
     "importHelpers": true,
     "target": "ESNext",
     "module": "CommonJS",
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "paths": {
-      "*": [
-          "./node_modules/*"
-      ]
+      "*": ["./node_modules/*"]
     },
     "types": ["node"]
   },
-  "include": [
-    "./*.spec.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["./*.spec.ts"],
+  "exclude": ["node_modules"]
 }

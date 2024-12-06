@@ -1,52 +1,52 @@
 {
-    "log_level": 1,
-    "tests": {
-        "benchmark": {
-            "test1": {
-                "alias": "Observe - grab content (text)",
-                "file": "test_files/temp_readings3.txt",
-                "expectation_ms": 20000
-            },
-            "test2": {
-                "alias": "Observe - grab content (dlt)",
-                "file": "test_files/FzgProg_SP21.dlt",
-                "expectation_ms": 1200000
-            },
-            "test3": {
-                "alias": "Observe - grab content (pcapng)",
-                "file": "test_files/someip.pcapng",
-                "expectation_ms": 20000
-            },
-            "test4": {
-                "alias": "Stream - startup measurement",
-                "file": "",
-                "expectation_ms": 20000
-            },
-            "test5": {
-                "alias": "Stream - shutdown measurement",
-                "file": "",
-                "expectation_ms": 200000
-            },
-            "test6": {
-                "alias": "Stream - Open 50 sessions",
-                "file": "",
-                "expectation_ms": 200000
-            },
-            "test7": {
-                "alias": "Indexes - Switch to breadcrumb mode",
-                "file": "test_files/indexing_access_huge.log",
-                "expectation_ms": 300000
-            },
-            "test8": {
-                "alias": "Assign & single search",
-                "file": "test_files/indexing_access_huge.log",
-                "expectation_ms": 30000
-            },
-            "test9": {
-                "alias": "Assign & multiple search",
-                "file": "test_files/indexing_access_huge.log",
-                "expectation_ms": 100000
-            }
-        }
+  "log_level": 1,
+  "tests": {
+    "benchmark": {
+      "test1": {
+        "alias": "Observe - grab content (text)",
+        "file": "test_files/temp_readings3.txt",
+        "expectation_ms": 20000
+      },
+      "test2": {
+        "alias": "Observe - grab content (dlt)",
+        "file": "test_files/FzgProg_SP21.dlt",
+        "expectation_ms": 1200000
+      },
+      "test3": {
+        "alias": "Observe - grab content (pcapng)",
+        "file": "test_files/someip.pcapng",
+        "expectation_ms": 20000
+      },
+      "test4": {
+        "alias": "Stream - startup measurement",
+        "file": "",
+        "expectation_ms": 20000
+      },
+      "test5": {
+        "alias": "Stream - shutdown measurement",
+        "file": "",
+        "expectation_ms": 200000
+      },
+      "test6": {
+        "alias": "Stream - Open 50 sessions",
+        "file": "",
+        "expectation_ms": 200000
+      },
+      "test7": {
+        "alias": "Indexes - Switch to breadcrumb mode",
+        "file": "test_files/indexing_access_huge.log",
+        "expectation_ms": 300000
+      },
+      "test8": {
+        "alias": "Assign & single search",
+        "file": "test_files/indexing_access_huge.log",
+        "expectation_ms": 30000
+      },
+      "test9": {
+        "alias": "Assign & multiple search",
+        "file": "test_files/indexing_access_huge.log",
+        "expectation_ms": 100000
+      }
     }
+  }
 }

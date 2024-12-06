@@ -20,15 +20,9 @@
     "module": "CommonJS",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "types": ["node"]
   },
-  "files": [
-    "./lib.ts",
-  ],
-  "include": [
-    "./types/"
-  ],
+  "files": ["./lib.ts"],
+  "include": ["./types/"]
 }

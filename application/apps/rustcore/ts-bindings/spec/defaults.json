@@ -1,270 +1,277 @@
 /* NOTE: in this JSON can be used comments placed between stars */
 {
-    "log_level": 1,
-    "tests": {
-        "observe": {
-            "regular": {
-                /* With numbers you can define, which tests should be executed. "execute_only": [1, 3] will run ONLY tests 1 and 3*/
-                /* If "execute_only" isn't empty, all performance tests will be ignored*/
-                "execute_only": [1, 4, 5, 6, 7, 8, 9, 10],
-                "list": {
-                    "1": "Test 1. Observe and grab content (text)",
-                    "2": "Test 2. Observe and grab content (pcapng)",
-                    "3": "Test 3. Observe and grab content (dlt)",
-                    "4": "Test 4. Observe and grab content (attachments)",
-                    "5": "Test 5. Observe and grab content (someip from pcapng)",
-                    "6": "Test 6. Observe and grab content (someip from pcapng with fibex)",
-                    "7": "Test 7. Observe and grab content (someip from pcap)",
-                    "8": "Test 8. Observe and grab content (someip from pcap with fibex)",
-                    "9": "Test 9. Observe and grab content (someip from dlt)",
-                    "10": "Test 10. Observe and grab content (someip from dlt with fibex)"
-                },
-                "files": {
-                    "attachments": "../../../../application/developing/resources/attachments.dlt",
-                    "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
-                    "someip-pcap": "../../../../application/developing/resources/someip.pcap",
-                    "someip-fibex": "../../../../application/developing/resources/someip.xml",
-                    "someip-dlt": "../../../../application/developing/resources/someip.dlt"
-                }
-            }
+  "log_level": 1,
+  "tests": {
+    "observe": {
+      "regular": {
+        /* With numbers you can define, which tests should be executed. "execute_only": [1, 3] will run ONLY tests 1 and 3*/
+        /* If "execute_only" isn't empty, all performance tests will be ignored*/
+        "execute_only": [1, 4, 5, 6, 7, 8, 9, 10],
+        "list": {
+          "1": "Test 1. Observe and grab content (text)",
+          "2": "Test 2. Observe and grab content (pcapng)",
+          "3": "Test 3. Observe and grab content (dlt)",
+          "4": "Test 4. Observe and grab content (attachments)",
+          "5": "Test 5. Observe and grab content (someip from pcapng)",
+          "6": "Test 6. Observe and grab content (someip from pcapng with fibex)",
+          "7": "Test 7. Observe and grab content (someip from pcap)",
+          "8": "Test 8. Observe and grab content (someip from pcap with fibex)",
+          "9": "Test 9. Observe and grab content (someip from dlt)",
+          "10": "Test 10. Observe and grab content (someip from dlt with fibex)"
         },
-        "stream": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Observe and grab",
-                    "2": "Test 2. Life cycle",
-                    "3": "Test 3. Invalid data source",
-                    "4": "Test 4. Updated stream",
-                    "5": "Test 5. Updated stream search",
-                    "6": "Test 6. Aborting stream",
-                    "7": "Test 7. Multiple stream & SDE test"
-                },
-                "files": {
-                }
-            }
-        },
-        "indexes": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Observe and grab"
-                },
-                "files": {
-                }
-            }
-        },
-        "jobs": {
-            "regular": {
-                "execute_only": [1,2,3,4,5,7,8],
-                "list": {
-                    "1": "Test 1. Cancelation testing",
-                    "2": "Test 2. Wrong sequence test",
-                    "3": "Test 3. Folder content listing",
-                    "4": "Test 4. Get profiles",
-                    "5": "Test 5. Get envvars",
-                    "6": "Test 6. Get Someip statistic",
-                    "7": "Test 7. Check if file is binary",
-                    "8": "Test 8. Closing session with running task"
-                },
-                "files": {
-                    "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
-                    "sample-txt": "../../../../application/developing/resources/sample_utf_8.txt"
-                }
-            }
-        },
-        "concat": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Concat and grab content (text)",
-                    "2": "Test 2. Concat and grab content (pcapng)",
-                    "3": "Test 3. Concat and grab content (dlt)"
-                },
-                "files": {
-                }
-            }
-        },
-        "ranges": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Assign & grab ranges"
-                }
-            }
-        },
-        "search": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Assign & single search",
-                    "2": "Test 2. Assign & multiple search",
-                    "3": "Test 3. Assign & zero search",
-                    "4": "Test 4. Assign & single not case sensitive search",
-                    "5": "Test 5. Assign & single word search",
-                    "6": "Test 6. Assign & single search with crossing terms",
-                    "7": "Test 7. Assign & repeated search"
-                }
-            }
-        },
-        "values": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Assign & single search",
-                    "2": "Test 2. Assign & single search, getting updates"
-                }
-            }
-        },
-        "extract": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Assign & extract data",
-                    "2": "Test 2. Assign & extract multiple data"
-                }
-            }
-        },
-        "exporting": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Assign & export",
-                    "2": "Test 2. Concat & export",
-                    "3": "Test 3. Assign & export search",
-                    "4": "Test 4. DLT: Assign & export",
-                    "5": "Test 5. DLT: Assign & export raw",
-                    "6": "Test 6. DLT: Concat & export",
-                    "7": "Test 7. DLT: Concat & export raw",
-                    "8": "Test 8. DLT: Concat & export raw (multiple ranges)",
-                    "9": "Test 9. DLT: Assign & export columns (from left)",
-                    "10": "Test 10. DLT: Assign & export columns (from right)",
-                    "11": "Test 11. DLT: Assign & export columns (single)",
-                    "12": "Test 12. DLT: Assign & export columns (stability)"
-                },
-                "files": {
-                    "dlt": ["./application/developing/resources/attachments.dlt","./application/developing/resources/someip.dlt"]    
-                }
-            }
-        },
-        "cancel": {
-            "regular": {
-                "execute_only": [1],
-                "list": {
-                    "1": "Test 1. Cancel operation before done",
-                    "2": "Test 2. Cancel operation after done",
-                    /* Required text file*/
-                    "3": "Test 3. Multiple search"
-                },
-                "files": {
-                },
-                "spec": {
-                    "cancel": {
-                        /* Specification for test #3*/
-                        "3": {
-                            "terms": ["a", "b", "c", "d", "e", "f", "g", "r", "h", "t"],
-                            "interval_ms": 250,
-                            "timeout_last_search_ms": 10000
-                        }
-                    }
-                }
-
-            }
-        },
-        "errors": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Error: search before observe",
-                    "2": "Test 2. Error: Assign fake file",
-                    "3": "Test 3. Error: Assign and grab invalid range",
-                    "4": "Test 4. Error: Assign & single and grab invalid range",
-                    "5": "Test 5. Error: Grab lines with negative length",
-                    "6": "Test 6. Error: Grab lines with negative start",
-                    "7": "Test 7. Error: Unexpected error on session state",
-                    "8": "Test 8. Error: Unexpected error on session tracker",
-                    "9": "Test 9. Destroy dead session",
-                    "10": "Test 10. Search with invalid filters"
-                }
-            }
-        },
-        "map": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Search map for file length < dataset length",
-                    "2": "Test 2. Search map for 10 line file with match on first line",
-                    "3": "Test 3. Search map for big file with multiple filters",
-                    "4": "Test 4. Search map for file containing '>>'",
-                    "5": "Test 5. Search map for file with ':'-match",
-                    "6": "Test 6. Search map for file with '0.0:1'-match",
-                    "7": "Test 7. Search map for file with 'word(0.0:1'-match"
-                },
-                "spec": {
-                    "map": {
-                        "1": {
-                            "filesize": 3000,
-                            "datasetLength": 6000
-                        },
-                        "2": {
-                            "filesize": 10,
-                            "datasetLength": 10
-                        },
-                        "3": {
-                            "filesize": 6000,
-                            "datasetLength": 6000
-                        },
-                        "4": {
-                            "filesize": 10,
-                            "datasetLength": 10
-                        },
-                        "5": {
-                            "filesize": 1000,
-                            "datasetLength": 1000
-                        },
-                        "6": {
-                            "filesize": 1000,
-                            "datasetLength": 1000
-                        },
-                        "7": {
-                            "filesize": 1000,
-                            "datasetLength": 1000
-                        }
-                    }
-                }
-            }
-        },
-        "promises": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Regular",
-                    "2": "Test 2. Cancellation",
-                    "3": "Test 3. Cancellation delegation",
-                    "4": "Test 4. Resolving bound",
-                    "5": "Test 5. Rejecting bound",
-                    "6": "Test 6. Cancel bound",
-                    "7": "Test 7. Bound cancellation delegation",
-                    "8": "Test 8. Events"
-                },
-                "files": {
-                }
-            }
-        },
-        "observing": {
-            "regular": {
-                "execute_only": [],
-                "list": {
-                    "1": "Test 1. Observer",
-                    "2": "Test 2. Observe configuration (streams)",
-                    "3": "Test 3. Observe configuration (origins)",
-                    "4": "Test 4. Observe configuration (parsers)",
-                    "5": "Test 5. Observe configuration updates (tracking)",
-                    "6": "Test 6. Observe configuration (overwriting)"
-                },
-                "files": {
-                }
-            }
+        "files": {
+          "attachments": "../../../../application/developing/resources/attachments.dlt",
+          "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
+          "someip-pcap": "../../../../application/developing/resources/someip.pcap",
+          "someip-fibex": "../../../../application/developing/resources/someip.xml",
+          "someip-dlt": "../../../../application/developing/resources/someip.dlt"
         }
+      }
+    },
+    "stream": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Observe and grab",
+          "2": "Test 2. Life cycle",
+          "3": "Test 3. Invalid data source",
+          "4": "Test 4. Updated stream",
+          "5": "Test 5. Updated stream search",
+          "6": "Test 6. Aborting stream",
+          "7": "Test 7. Multiple stream & SDE test"
+        },
+        "files": {}
+      }
+    },
+    "indexes": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Observe and grab"
+        },
+        "files": {}
+      }
+    },
+    "jobs": {
+      "regular": {
+        "execute_only": [1, 2, 3, 4, 5, 7, 8],
+        "list": {
+          "1": "Test 1. Cancelation testing",
+          "2": "Test 2. Wrong sequence test",
+          "3": "Test 3. Folder content listing",
+          "4": "Test 4. Get profiles",
+          "5": "Test 5. Get envvars",
+          "6": "Test 6. Get Someip statistic",
+          "7": "Test 7. Check if file is binary",
+          "8": "Test 8. Closing session with running task"
+        },
+        "files": {
+          "someip-pcapng": "../../../../application/developing/resources/someip.pcapng",
+          "sample-txt": "../../../../application/developing/resources/sample_utf_8.txt"
+        }
+      }
+    },
+    "concat": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Concat and grab content (text)",
+          "2": "Test 2. Concat and grab content (pcapng)",
+          "3": "Test 3. Concat and grab content (dlt)"
+        },
+        "files": {}
+      }
+    },
+    "ranges": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Assign & grab ranges"
+        }
+      }
+    },
+    "search": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Assign & single search",
+          "2": "Test 2. Assign & multiple search",
+          "3": "Test 3. Assign & zero search",
+          "4": "Test 4. Assign & single not case sensitive search",
+          "5": "Test 5. Assign & single word search",
+          "6": "Test 6. Assign & single search with crossing terms",
+          "7": "Test 7. Assign & repeated search"
+        }
+      }
+    },
+    "values": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Assign & single search",
+          "2": "Test 2. Assign & single search, getting updates"
+        }
+      }
+    },
+    "extract": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Assign & extract data",
+          "2": "Test 2. Assign & extract multiple data"
+        }
+      }
+    },
+    "exporting": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Assign & export",
+          "2": "Test 2. Concat & export",
+          "3": "Test 3. Assign & export search",
+          "4": "Test 4. DLT: Assign & export",
+          "5": "Test 5. DLT: Assign & export raw",
+          "6": "Test 6. DLT: Concat & export",
+          "7": "Test 7. DLT: Concat & export raw",
+          "8": "Test 8. DLT: Concat & export raw (multiple ranges)",
+          "9": "Test 9. DLT: Assign & export columns (from left)",
+          "10": "Test 10. DLT: Assign & export columns (from right)",
+          "11": "Test 11. DLT: Assign & export columns (single)",
+          "12": "Test 12. DLT: Assign & export columns (stability)"
+        },
+        "files": {
+          "dlt": [
+            "./application/developing/resources/attachments.dlt",
+            "./application/developing/resources/someip.dlt"
+          ]
+        }
+      }
+    },
+    "cancel": {
+      "regular": {
+        "execute_only": [1],
+        "list": {
+          "1": "Test 1. Cancel operation before done",
+          "2": "Test 2. Cancel operation after done",
+          /* Required text file*/
+          "3": "Test 3. Multiple search"
+        },
+        "files": {},
+        "spec": {
+          "cancel": {
+            /* Specification for test #3*/
+            "3": {
+              "terms": [
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "g",
+                "r",
+                "h",
+                "t"
+              ],
+              "interval_ms": 250,
+              "timeout_last_search_ms": 10000
+            }
+          }
+        }
+      }
+    },
+    "errors": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Error: search before observe",
+          "2": "Test 2. Error: Assign fake file",
+          "3": "Test 3. Error: Assign and grab invalid range",
+          "4": "Test 4. Error: Assign & single and grab invalid range",
+          "5": "Test 5. Error: Grab lines with negative length",
+          "6": "Test 6. Error: Grab lines with negative start",
+          "7": "Test 7. Error: Unexpected error on session state",
+          "8": "Test 8. Error: Unexpected error on session tracker",
+          "9": "Test 9. Destroy dead session",
+          "10": "Test 10. Search with invalid filters"
+        }
+      }
+    },
+    "map": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Search map for file length < dataset length",
+          "2": "Test 2. Search map for 10 line file with match on first line",
+          "3": "Test 3. Search map for big file with multiple filters",
+          "4": "Test 4. Search map for file containing '>>'",
+          "5": "Test 5. Search map for file with ':'-match",
+          "6": "Test 6. Search map for file with '0.0:1'-match",
+          "7": "Test 7. Search map for file with 'word(0.0:1'-match"
+        },
+        "spec": {
+          "map": {
+            "1": {
+              "filesize": 3000,
+              "datasetLength": 6000
+            },
+            "2": {
+              "filesize": 10,
+              "datasetLength": 10
+            },
+            "3": {
+              "filesize": 6000,
+              "datasetLength": 6000
+            },
+            "4": {
+              "filesize": 10,
+              "datasetLength": 10
+            },
+            "5": {
+              "filesize": 1000,
+              "datasetLength": 1000
+            },
+            "6": {
+              "filesize": 1000,
+              "datasetLength": 1000
+            },
+            "7": {
+              "filesize": 1000,
+              "datasetLength": 1000
+            }
+          }
+        }
+      }
+    },
+    "promises": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Regular",
+          "2": "Test 2. Cancellation",
+          "3": "Test 3. Cancellation delegation",
+          "4": "Test 4. Resolving bound",
+          "5": "Test 5. Rejecting bound",
+          "6": "Test 6. Cancel bound",
+          "7": "Test 7. Bound cancellation delegation",
+          "8": "Test 8. Events"
+        },
+        "files": {}
+      }
+    },
+    "observing": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Observer",
+          "2": "Test 2. Observe configuration (streams)",
+          "3": "Test 3. Observe configuration (origins)",
+          "4": "Test 4. Observe configuration (parsers)",
+          "5": "Test 5. Observe configuration updates (tracking)",
+          "6": "Test 6. Observe configuration (overwriting)"
+        },
+        "files": {}
+      }
     }
+  }
 }

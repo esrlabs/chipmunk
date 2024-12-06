@@ -1,33 +1,25 @@
 {
-    "asar": true,
-    "appId": "com.esrlabs.chipmunk",
-    "productName": "chipmunk",
-    "copyright": "Copyright © 2022 year ESR Labs",
-    "files": [
-        "./dist/**",
-        "./resources/**"
-    ],
-    "extraFiles": [
-        {
-            "from": "../apps/precompiled/updater/target/release",
-            "to": "Resources/bin",
-            "filter": [
-                "updater",
-                "updater.exe"
-            ]
-        }
-    ],
-    "directories": {
-        "output": "release",
-        "buildResources": "resources"
-    },
-    "asarUnpack": [
-        "resources"
-    ],
-    "npmRebuild": true,
-    "win": {
-        "icon": "resources/win/chipmunk.ico",
-        "target": [],
-        "publisherName": "ESR Labs"
+  "asar": true,
+  "appId": "com.esrlabs.chipmunk",
+  "productName": "chipmunk",
+  "copyright": "Copyright © 2022 year ESR Labs",
+  "files": ["./dist/**", "./resources/**"],
+  "extraFiles": [
+    {
+      "from": "../apps/precompiled/updater/target/release",
+      "to": "Resources/bin",
+      "filter": ["updater", "updater.exe"]
     }
+  ],
+  "directories": {
+    "output": "release",
+    "buildResources": "resources"
+  },
+  "asarUnpack": ["resources"],
+  "npmRebuild": true,
+  "win": {
+    "icon": "resources/win/chipmunk.ico",
+    "target": [],
+    "publisherName": "ESR Labs"
+  }
 }

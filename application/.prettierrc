@@ -3,5 +3,14 @@
   "trailingComma": "all",
   "tabWidth": 4,
   "printWidth": 100,
-  "singleQuote": true  
+  "singleQuote": true,
+  "overrides": [
+    {
+      "files": ["*.json", ".prettierrc"],
+      "options": {
+        "tabWidth": 2,
+        "printWidth": 60
+      }
+    }
+  ]
 }
