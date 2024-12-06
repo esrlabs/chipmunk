@@ -1,6 +1,11 @@
 use crate::*;
 
 impl Arbitrary for Ranges {
+    /// Implements the `Arbitrary` trait for `Ranges` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates a vector of random `RangeInclusive<u64>` instances, with up to 10 ranges.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -15,6 +20,10 @@ impl Arbitrary for Ranges {
 }
 
 impl Arbitrary for SourceDefinition {
+    /// Implements the `Arbitrary` trait for `SourceDefinition` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates random `id` (`u16`) and `alias` (`String`) values.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -26,6 +35,10 @@ impl Arbitrary for SourceDefinition {
 }
 
 impl Arbitrary for Sources {
+    /// Implements the `Arbitrary` trait for `Sources` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates a vector of up to 10 random `SourceDefinition` instances.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -37,6 +50,12 @@ impl Arbitrary for Sources {
 }
 
 impl Arbitrary for SdeRequest {
+    /// Implements the `Arbitrary` trait for `SdeRequest` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `WriteText` with a random `String`.
+    ///   - `WriteBytes` with a random vector of `u8` values (up to 100 bytes).
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -50,6 +69,10 @@ impl Arbitrary for SdeRequest {
 }
 
 impl Arbitrary for SdeResponse {
+    /// Implements the `Arbitrary` trait for `SdeResponse` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates a random `u32` for the `bytes` field.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -62,15 +85,23 @@ impl Arbitrary for SdeResponse {
 }
 
 impl Arbitrary for GrabbedElement {
+    /// Implements the `Arbitrary` trait for `GrabbedElement` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates:
+    ///   - A random `source_id` (`u16`).
+    ///   - A random `content` (`String`).
+    ///   - A random `pos` (`usize`).
+    ///   - A random `nature` (`u8`).
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<u16>(), any::<String>(), rnd_usize(), any::<u8>())
+        (any::<u16>(), any::<String>(), any::<u32>(), any::<u8>())
             .prop_map(|(source_id, content, pos, nature)| GrabbedElement {
                 source_id,
                 content,
-                pos,
+                pos: pos as usize,
                 nature,
             })
             .boxed()
@@ -78,6 +109,10 @@ impl Arbitrary for GrabbedElement {
 }
 
 impl Arbitrary for GrabbedElementList {
+    /// Implements the `Arbitrary` trait for `GrabbedElementList` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates a vector of up to 10 random `GrabbedElement` instances.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -89,6 +124,10 @@ impl Arbitrary for GrabbedElementList {
 }
 
 impl Arbitrary for AroundIndexes {
+    /// Implements the `Arbitrary` trait for `AroundIndexes` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates a tuple of two optional `u32` values, mapped to `u64`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -102,17 +141,30 @@ impl Arbitrary for AroundIndexes {
 }
 
 impl Arbitrary for FilterMatch {
+    /// Implements the `Arbitrary` trait for `FilterMatch` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates:
+    ///   - A random `index` (`u64`).
+    ///   - A random vector of `u8` filter IDs (up to 10 filters).
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (rnd_u64(), prop::collection::vec(any::<u8>(), 0..10))
-            .prop_map(|(index, filters)| FilterMatch { index, filters })
+        (any::<u32>(), prop::collection::vec(any::<u8>(), 0..10))
+            .prop_map(|(index, filters)| FilterMatch {
+                index: index as u64,
+                filters,
+            })
             .boxed()
     }
 }
 
 impl Arbitrary for FilterMatchList {
+    /// Implements the `Arbitrary` trait for `FilterMatchList` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates a vector of up to 10 random `FilterMatch` instances.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
