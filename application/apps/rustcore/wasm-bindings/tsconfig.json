@@ -14,13 +14,8 @@
     "importHelpers": true,
     "target": "ESNext",
     "module": "ESNext",
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "outDir": "./dist/out-tsc"
   },
-  "include": [
-    "spec/**/*"
-  ]
+  "include": ["spec/**/*"]
 }
