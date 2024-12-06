@@ -44,7 +44,7 @@ describe('Grab ranges', function () {
                 grabbing = true;
                 Promise.all([
                     comps.stream
-                        .grabRanges([{ from: 0, to: 99 }])
+                        .grabRanges([{ start: 0, end: 99 }])
                         .then((result: IGrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(
@@ -55,8 +55,8 @@ describe('Grab ranges', function () {
                         }),
                     comps.stream
                         .grabRanges([
-                            { from: 0, to: 0 },
-                            { from: 10, to: 10 },
+                            { start: 0, end: 0 },
+                            { start: 10, end: 10 },
                         ])
                         .then((result: IGrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
@@ -66,10 +66,10 @@ describe('Grab ranges', function () {
                         }),
                     comps.stream
                         .grabRanges([
-                            { from: 0, to: 10 },
-                            { from: 99, to: 200 },
-                            { from: 299, to: 300 },
-                            { from: 599, to: 600 },
+                            { start: 0, end: 10 },
+                            { start: 99, end: 200 },
+                            { start: 299, end: 300 },
+                            { start: 599, end: 600 },
                         ])
                         .then((result: IGrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));

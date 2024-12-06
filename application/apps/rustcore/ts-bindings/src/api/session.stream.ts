@@ -86,9 +86,9 @@ export class SessionStream {
     }
 
     public sde(operation: string, request: SdeRequest): Promise<SdeResponse> {
-        return this._session.sendIntoSde(operation, JSON.stringify(request)).then((result) => {
+        return this._session.sendIntoSde(operation, request).then((response) => {
             try {
-                return JSON.parse(result) as SdeResponse;
+                return response;
             } catch (e) {
                 return Promise.reject(new Error(`Fail to parse response`));
             }
