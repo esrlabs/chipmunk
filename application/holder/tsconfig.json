@@ -20,9 +20,7 @@
     "module": "CommonJS",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "types": ["node"],
     "paths": {
       "@register/*": ["src/register/*"],
@@ -32,13 +30,8 @@
       "@loader/*": ["src/loaders/*"],
       "@module/*": ["src/modules/*"],
       "@service/*": ["src/service/*"],
-      "*": [
-          "node_modules/*"
-      ]
+      "*": ["node_modules/*"]
     }
   },
-  "files": [
-    "./src/app.ts",
-    "./src/preload/preload.ts"
-  ]
+  "files": ["./src/app.ts", "./src/preload/preload.ts"]
 }

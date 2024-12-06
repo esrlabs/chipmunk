@@ -1,73 +1,73 @@
 {
-    "name": "chipmunk",
-    "version": "3.14.3",
-    "chipmunk": {
-        "versions": {}
-    },
-    "description": "LogViewer Tool",
-    "author": {
-        "name": "Oliver Mueller",
-        "email": "oliver.mueller@esrlabs.com",
-        "url": "https://www.esrlabs.com/"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/esrlabs/chipmunk.git"
-    },
-    "contributors": [
-        {
-            "name": "Dmitry Astafyev",
-            "email": "dmitry.astafyev@esrlabs.com",
-            "url": "https://www.esrlabs.com/"
-        }
-    ],
-    "main": "./dist/app.js",
-    "copyright": "Copyright © 2023 year ESR Labs",
-    "dependencies": {
-        "commander": "^12.0.0",
-        "glob": "9.3.5",
-        "http-proxy-agent": "^5.0.0",
-        "https-proxy-agent": "^5.0.1",
-        "module-alias": "^2.2.3",
-        "moment-timezone": "^0.5.45",
-        "platform": "link:../platform",
-        "rustcore": "link:../apps/rustcore/ts-bindings",
-        "semver": "^7.5.2",
-        "sudo-prompt": "^9.2.1",
-        "tslib": "^2.6.2",
-        "uuid": "^9.0.1"
-    },
-    "devDependencies": {
-        "@types/module-alias": "^2.0.2",
-        "@types/node": "^20.7.0",
-        "@types/request": "^2.48.8",
-        "@types/semver": "^7.5.3",
-        "@types/uuid": "^9.0.4",
-        "@typescript-eslint/eslint-plugin": "^7.2.0",
-        "@typescript-eslint/parser": "^7.2.0",
-        "dotenv": "^16.3.1",
-        "dotnet": "^1.1.4",
-        "electron": "^30.0.6",
-        "electron-builder": "^24.13.3",
-        "eslint": "^8.50.0",
-        "eslint-plugin-import": "^2.28.1",
-        "eslint-plugin-node": "^11.1.0",
-        "eslint-plugin-promise": "^6.1.1",
-        "typescript": "5.1.6"
-    },
-    "scripts": {
-        "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/app.js",
-        "electron-win": "node_modules/.bin/electron --inspect ./dist/app.js",
-        "build": "node_modules/.bin/tsc -p tsconfig.json",
-        "prod": "node_modules/.bin/tsc -p tsconfig.json",
-        "start": "npm run build-ts && npm run electron",
-        "postinstall": "electron-builder install-app-deps",
-        "build-darwin-arm64": "node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json",
-        "build-darwin-x86": "node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json",
-        "build-linux": "node_modules/.bin/electron-builder --linux --dir --config=./electron.config.linux.json",
-        "build-win": "node_modules/.bin/electron-builder --win --dir --config=./electron.config.win.json",
-        "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
-        "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
-    },
-    "packageManager": "yarn@4.2.2"
+  "name": "chipmunk",
+  "version": "3.14.3",
+  "chipmunk": {
+    "versions": {}
+  },
+  "description": "LogViewer Tool",
+  "author": {
+    "name": "Oliver Mueller",
+    "email": "oliver.mueller@esrlabs.com",
+    "url": "https://www.esrlabs.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/esrlabs/chipmunk.git"
+  },
+  "contributors": [
+    {
+      "name": "Dmitry Astafyev",
+      "email": "dmitry.astafyev@esrlabs.com",
+      "url": "https://www.esrlabs.com/"
+    }
+  ],
+  "main": "./dist/app.js",
+  "copyright": "Copyright © 2023 year ESR Labs",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "glob": "9.3.5",
+    "http-proxy-agent": "^5.0.0",
+    "https-proxy-agent": "^5.0.1",
+    "module-alias": "^2.2.3",
+    "moment-timezone": "^0.5.45",
+    "platform": "link:../platform",
+    "rustcore": "link:../apps/rustcore/ts-bindings",
+    "semver": "^7.5.2",
+    "sudo-prompt": "^9.2.1",
+    "tslib": "^2.6.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/module-alias": "^2.0.2",
+    "@types/node": "^20.7.0",
+    "@types/request": "^2.48.8",
+    "@types/semver": "^7.5.3",
+    "@types/uuid": "^9.0.4",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "dotenv": "^16.3.1",
+    "dotnet": "^1.1.4",
+    "electron": "^30.0.6",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.50.0",
+    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "typescript": "5.1.6"
+  },
+  "scripts": {
+    "electron": "npm run build && ./node_modules/.bin/electron --inspect ./dist/app.js",
+    "electron-win": "node_modules/.bin/electron --inspect ./dist/app.js",
+    "build": "node_modules/.bin/tsc -p tsconfig.json",
+    "prod": "node_modules/.bin/tsc -p tsconfig.json",
+    "start": "npm run build-ts && npm run electron",
+    "postinstall": "electron-builder install-app-deps",
+    "build-darwin-arm64": "node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.arm64.json",
+    "build-darwin-x86": "node_modules/.bin/electron-builder --mac --dir --config=./electron.config.darwin.x86.json",
+    "build-linux": "node_modules/.bin/electron-builder --linux --dir --config=./electron.config.linux.json",
+    "build-win": "node_modules/.bin/electron-builder --win --dir --config=./electron.config.win.json",
+    "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
+    "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
+  },
+  "packageManager": "yarn@4.2.2"
 }
