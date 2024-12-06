@@ -452,12 +452,11 @@ impl RustSession {
 
     #[node_bindgen]
     async fn get_sources_definitions(&self) -> Result<stypes::Sources, stypes::ComputationError> {
-        Ok(self
-            .session
+        self.session
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_sources()
-            .await?)
+            .await
     }
 
     #[node_bindgen]
@@ -681,5 +680,33 @@ impl RustSession {
             .ok_or(stypes::ComputationError::SessionUnavailable)?
             .trigger_tracker_error()
             .await
+    }
+
+    #[node_bindgen]
+    fn test_grab_els_as_json(&self) -> Result<String, stypes::ComputationError> {
+        let mut els = Vec::new();
+        for pos in 0..50 {
+            els.push(stypes::GrabbedElement {
+                source_id: 0,
+                nature: 0,
+                content: format!("{pos}Test line content:{}", " test ".repeat(pos + 1)),
+                pos,
+            })
+        }
+        serde_json::to_string(&els).map_err(|_| stypes::ComputationError::InvalidData)
+    }
+
+    #[node_bindgen]
+    fn test_grab_els_as_bin(&self) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
+        let mut els = Vec::new();
+        for pos in 0..50 {
+            els.push(stypes::GrabbedElement {
+                source_id: 0,
+                nature: 0,
+                content: format!("{pos}Test line content:{}", " test ".repeat(pos + 1)),
+                pos,
+            })
+        }
+        Ok(stypes::GrabbedElementList(els))
     }
 }
