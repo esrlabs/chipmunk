@@ -1,6 +1,14 @@
 use crate::*;
 
 impl Arbitrary for Notification {
+    /// Implements the `Arbitrary` trait for `Notification` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates:
+    ///   - `severity`: A random `Severity` value.
+    ///   - `content`: A random `String`.
+    ///   - `line`: An optional random `usize` value.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -16,13 +24,21 @@ impl Arbitrary for Notification {
 }
 
 impl Arbitrary for Ticks {
+    /// Implements the `Arbitrary` trait for `Ticks` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates:
+    ///   - `count`: A random `u64` value.
+    ///   - `state`: An optional random `String`.
+    ///   - `total`: An optional random `u64` value.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (rnd_u64(), any::<Option<String>>(), any::<Option<u32>>())
+        (any::<u32>(), any::<Option<String>>(), any::<Option<u32>>())
             .prop_map(|(count, state, total)| Ticks {
-                count,
+                count: count as u64,
                 state,
                 total: total.map(|n| n as u64),
             })
@@ -31,6 +47,14 @@ impl Arbitrary for Ticks {
 }
 
 impl Arbitrary for Progress {
+    /// Implements the `Arbitrary` trait for `Progress` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Randomly generates one of the following variants:
+    ///   - `Ticks` with a random `Ticks` value.
+    ///   - `Notification` with a random `Notification` value.
+    ///   - `Stopped` as a constant value.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 

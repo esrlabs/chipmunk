@@ -1,17 +1,19 @@
 use std::{env::temp_dir, path::PathBuf};
-
-use proptest::prelude::*;
-
+/// The number of test cases to generate for use in test scenarios.
 pub const TESTS_USECASE_COUNT: usize = 100;
+
+/// The default directory name for storing test data.
 pub const OUTPUT_PATH_DEFAULT: &str = "stypes_test";
+
+/// The name of the environment variable that specifies the path for storing test data.
+/// If this variable is not set, the default path will be used.
 pub const OUTPUT_PATH_ENVVAR: &str = "CHIPMUNK_PROTOCOL_TEST_OUTPUT";
 
-pub fn rnd_usize() -> BoxedStrategy<usize> {
-    any::<u32>().prop_map(|n| n as usize).boxed()
-}
-pub fn rnd_u64() -> BoxedStrategy<u64> {
-    any::<u32>().prop_map(|n| n as u64).boxed()
-}
+/// This function returns the path for writing test data (for testing in a different context).
+/// The function checks the value of the `CHIPMUNK_PROTOCOL_TEST_OUTPUT` environment variable.
+/// If the variable is defined, its value will be used as the path for writing test data.
+/// If the `CHIPMUNK_PROTOCOL_TEST_OUTPUT` environment variable is not defined, the default path
+/// `$TMP/stypes_test` will be used.
 pub fn get_output_path() -> PathBuf {
     std::env::var(OUTPUT_PATH_ENVVAR)
         .map_err(|err| err.to_string())
@@ -26,6 +28,21 @@ pub fn get_output_path() -> PathBuf {
         .unwrap_or_else(|_| temp_dir().join(OUTPUT_PATH_DEFAULT))
 }
 
+/// The `test_msg` macro creates a `proptest` for the specified data type. The macro also supports
+/// generic types. For example:
+/// ```ignore
+/// test_msg!(Progress, 10);
+/// test_msg!(CommandOutcome<()>, 10);
+/// test_msg!(CommandOutcome<bool>, 10);
+/// test_msg!(CommandOutcome<Option<String>>, 10);
+/// ```
+/// The second numeric argument specifies the number of variants to generate for each type.
+/// During testing, a separate directory is created for each type. For each variant of the type,
+/// a file with a sequential name (e.g., `1.bin`, `2.bin`, ...) will be created.
+///
+/// **WARNING**: When running tests, the folder specified in the `CHIPMUNK_PROTOCOL_TEST_OUTPUT`
+/// environment variable will be completely deleted. Be extremely cautious when setting the value
+/// of the `CHIPMUNK_PROTOCOL_TEST_OUTPUT` environment variable.
 #[macro_export]
 macro_rules! test_msg {
     ($type:ident, $exp_count:expr) => {
@@ -71,7 +88,6 @@ macro_rules! test_msg {
         }
     };
 
-    // Subtype returns void: gen_encode_decode_fns!(CommandOutcome<()>);
     ($type:ident<()>, $exp_count:expr) => {
         paste::item! {
 
@@ -115,7 +131,6 @@ macro_rules! test_msg {
         }
     };
 
-    // With subtypes: gen_encode_decode_fns!(CommandOutcome<String>);
     ($type:ident<$generic:ident>, $exp_count:expr) => {
         paste::item! {
 
@@ -156,7 +171,6 @@ macro_rules! test_msg {
         }
     };
 
-    // With nested subtypes: gen_encode_decode_fns!(CommandOutcome<Option<String>>);
     ($type:ident<$generic:ident<$nested:ident>>, $exp_count:expr) => {
         paste::item! {
 

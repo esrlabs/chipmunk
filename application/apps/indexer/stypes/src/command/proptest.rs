@@ -1,6 +1,13 @@
 use crate::*;
 
 impl Arbitrary for CommandOutcome<String> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<String>` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `String`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -14,6 +21,12 @@ impl Arbitrary for CommandOutcome<String> {
 }
 
 impl Arbitrary for CommandOutcome<FoldersScanningResult> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<FoldersScanningResult>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `FoldersScanningResult`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -27,6 +40,12 @@ impl Arbitrary for CommandOutcome<FoldersScanningResult> {
 }
 
 impl Arbitrary for CommandOutcome<SerialPortsList> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<SerialPortsList>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `SerialPortsList`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -40,6 +59,12 @@ impl Arbitrary for CommandOutcome<SerialPortsList> {
 }
 
 impl Arbitrary for CommandOutcome<()> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<()>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with `()`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -53,12 +78,18 @@ impl Arbitrary for CommandOutcome<()> {
 }
 
 impl Arbitrary for CommandOutcome<i64> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<i64>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `i64` value converted from `i32`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop_oneof![
-            any::<i64>().prop_map(CommandOutcome::Finished),
+            any::<i32>().prop_map(|v| CommandOutcome::Finished(v as i64)),
             Just(CommandOutcome::Cancelled),
         ]
         .boxed()
@@ -66,6 +97,12 @@ impl Arbitrary for CommandOutcome<i64> {
 }
 
 impl Arbitrary for CommandOutcome<Option<String>> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<Option<String>>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `Option<String>`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -79,6 +116,12 @@ impl Arbitrary for CommandOutcome<Option<String>> {
 }
 
 impl Arbitrary for CommandOutcome<bool> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<bool>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `bool`.
+    ///   - `CommandOutcome::Cancelled`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 

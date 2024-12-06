@@ -2,6 +2,12 @@ use crate::*;
 use uuid::Uuid;
 
 impl Arbitrary for OperationDone {
+    /// Implements the `Arbitrary` trait for `OperationDone` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Randomly generates a `Uuid` for the `uuid` field.
+    /// - Optionally generates a random `String` for the `result` field.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -13,26 +19,53 @@ impl Arbitrary for OperationDone {
 }
 
 impl Arbitrary for CallbackEvent {
+    /// Implements the `Arbitrary` trait for `CallbackEvent` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// This implementation supports the generation of all variants of `CallbackEvent`,
+    /// including:
+    /// - `StreamUpdated` with a random `u64` value.
+    /// - `FileRead` as a predefined constant.
+    /// - `SearchUpdated` with random values for `found` and a map of search conditions.
+    /// - `IndexedMapUpdated` with a random `u64` length.
+    /// - `SearchMapUpdated` with an optional `FilterMatchList`.
+    /// - `SearchValuesUpdated` with a map of random values, converting `f32` to `f64`.
+    /// - `AttachmentsUpdated` with random attachment information.
+    /// - `Progress` with a random `Uuid` and `Progress` instance.
+    /// - `SessionError` with a random `NativeError`.
+    /// - `OperationError` with random `Uuid` and `NativeError`.
+    /// - `OperationStarted` with a random `Uuid`.
+    /// - `OperationProcessing` with a random `Uuid`.
+    /// - `OperationDone` with a random `OperationDone` instance.
+    /// - `SessionDestroyed` as a predefined constant.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop_oneof![
-            rnd_u64().prop_map(CallbackEvent::StreamUpdated),
+            any::<u32>().prop_map(|n| CallbackEvent::StreamUpdated(n as u64)),
             Just(CallbackEvent::FileRead),
-            (rnd_u64(), any::<Vec<(String, u32)>>(),).prop_map(|(found, stat)| {
+            (any::<u32>(), any::<HashMap<String, u32>>(),).prop_map(|(found, stat)| {
                 CallbackEvent::SearchUpdated {
-                    found,
+                    found: found as u64,
                     stat: stat.into_iter().map(|(k, v)| (k, v as u64)).collect(),
                 }
             }),
-            rnd_u64().prop_map(|len| CallbackEvent::IndexedMapUpdated { len }),
+            any::<u32>().prop_map(|len| CallbackEvent::IndexedMapUpdated { len: len as u64 }),
             any::<Option<FilterMatchList>>().prop_map(CallbackEvent::SearchMapUpdated),
-            any::<Option<Vec<(u8, (f64, f64))>>>().prop_map(|ev| {
-                CallbackEvent::SearchValuesUpdated(ev.map(|ev| ev.into_iter().collect()))
+            any::<Option<HashMap<u8, (f32, f32)>>>().prop_map(|ev| {
+                CallbackEvent::SearchValuesUpdated(ev.map(|ev| {
+                    ev.into_iter()
+                        .map(|(k, (l, r))| (k, (l as f64, r as f64)))
+                        .collect()
+                }))
             }),
-            (rnd_u64(), any::<AttachmentInfo>(),).prop_map(|(len, attachment)| {
-                CallbackEvent::AttachmentsUpdated { len, attachment }
+            (any::<u32>(), any::<AttachmentInfo>(),).prop_map(|(len, attachment)| {
+                CallbackEvent::AttachmentsUpdated {
+                    len: len as u64,
+                    attachment,
+                }
             }),
             (Just(Uuid::new_v4()), any::<Progress>(),)
                 .prop_map(|(uuid, progress)| CallbackEvent::Progress { uuid, progress }),
