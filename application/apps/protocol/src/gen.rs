@@ -9,7 +9,7 @@ macro_rules! gen_encode_decode_fns {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
                     .serialize_maps_as_objects(false)
-                    .serialize_large_number_types_as_bigints(true);
+                    .serialize_large_number_types_as_bigints(false);
                 $type::decode(buf)
                     .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
@@ -35,7 +35,7 @@ macro_rules! gen_encode_decode_fns {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
                     .serialize_maps_as_objects(false)
-                    .serialize_large_number_types_as_bigints(true);
+                    .serialize_large_number_types_as_bigints(false);
                 $type::<()>::decode(buf)
                     .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
@@ -61,7 +61,7 @@ macro_rules! gen_encode_decode_fns {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
                     .serialize_maps_as_objects(false)
-                    .serialize_large_number_types_as_bigints(true);
+                    .serialize_large_number_types_as_bigints(false);
                 $type::<$generic>::decode(buf)
                     .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
@@ -87,7 +87,7 @@ macro_rules! gen_encode_decode_fns {
                 let serializer = Serializer::new()
                     .serialize_missing_as_null(true)
                     .serialize_maps_as_objects(false)
-                    .serialize_large_number_types_as_bigints(true);
+                    .serialize_large_number_types_as_bigints(false);
                 $type::<$generic<$nested>>::decode(buf)
                     .map_err(E::CodecDecodeError)?
                     .serialize(&serializer)
