@@ -1,15 +1,10 @@
 use crate::{
-    events::{NativeError, NativeErrorKind},
     operations::{OperationAPI, OperationResult},
-    progress::Severity,
     state::SessionStateAPI,
 };
-use sources::{
-    binary::{
-        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
-        raw::BinaryByteSource,
-    },
-    factory::{FileFormat, ParserType},
+use sources::binary::{
+    pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+    raw::BinaryByteSource,
 };
 use std::{fs::File, path::PathBuf};
 
@@ -17,8 +12,8 @@ use std::{fs::File, path::PathBuf};
 pub async fn concat_files(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    files: &[(String, FileFormat, PathBuf)],
-    parser: &ParserType,
+    files: &[(String, stypes::FileFormat, PathBuf)],
+    parser: &stypes::ParserType,
 ) -> OperationResult<()> {
     for file in files.iter() {
         let (uuid, _file_type, _filename) = file;
@@ -26,18 +21,18 @@ pub async fn concat_files(
     }
     for file in files.iter() {
         let (uuid, file_type, filename) = file;
-        let source_id = state.get_source(uuid).await?.ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
+        let source_id = state.get_source(uuid).await?.ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
             message: Some(format!(
                 "Cannot find source id for file {} with alias {}",
                 filename.to_string_lossy(),
                 uuid,
             )),
         })?;
-        let input_file = File::open(filename).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
+        let input_file = File::open(filename).map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
             message: Some(format!(
                 "Fail open file {}: {}",
                 filename.to_string_lossy(),
@@ -45,7 +40,7 @@ pub async fn concat_files(
             )),
         })?;
         match file_type {
-            FileFormat::Binary => {
+            stypes::FileFormat::Binary => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -57,7 +52,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            FileFormat::PcapLegacy => {
+            stypes::FileFormat::PcapLegacy => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -69,7 +64,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            FileFormat::PcapNG => {
+            stypes::FileFormat::PcapNG => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -81,7 +76,7 @@ pub async fn concat_files(
                 )
                 .await?
             }
-            FileFormat::Text => {
+            stypes::FileFormat::Text => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),

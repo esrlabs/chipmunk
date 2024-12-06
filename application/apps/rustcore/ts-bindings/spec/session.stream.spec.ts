@@ -458,7 +458,7 @@ if (process.platform === 'win32') {
                                     .map((i) => i.source_id)
                                     .reduce((partialSum, a) => partialSum + a, 0),
                             ).toBe(2);
-                            expect(result.map((i) => i.position)).toEqual([0, 1, 2, 3]);
+                            expect(result.map((i) => i.pos)).toEqual([0, 1, 2, 3]);
                             expect(result.filter((i) => i.content === TEST_LINES[0]).length).toBe(
                                 2,
                             );

@@ -14,7 +14,7 @@ export interface IGrabbedContent {
 export interface IGrabbedElement {
     source_id: number;
     content: string;
-    position: number;
+    pos: number;
     nature: number;
 }
 

@@ -36,11 +36,9 @@ fn dlt_producer(c: &mut Criterion) {
                 || {
                     let parser = DltParser::new(None, fibex.as_ref(), None, None, true);
                     let source = create_binary_bytesource(data);
-                    let producer = MessageProducer::new(parser, source, black_box(None));
-
-                    producer
+                    MessageProducer::new(parser, source, black_box(None))
                 },
-                |p| run_producer(p),
+                run_producer,
                 BatchSize::SmallInput,
             )
     });

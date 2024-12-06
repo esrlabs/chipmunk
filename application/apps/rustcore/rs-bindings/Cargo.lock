@@ -760,6 +760,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "extend"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1511,6 +1520,7 @@ dependencies = [
  "serde_json",
  "session",
  "sources",
+ "stypes",
  "thiserror 1.0.69",
  "tikv-jemallocator",
  "tokio",
@@ -1834,6 +1844,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "stypes",
  "thiserror 2.0.3",
  "tokio-util",
  "uuid",
@@ -2171,6 +2182,7 @@ dependencies = [
  "serde_json",
  "serialport",
  "sources",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "tokio-stream",
@@ -2303,6 +2315,7 @@ dependencies = [
  "regex",
  "serde",
  "shellexpand",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "tokio-serial",
@@ -2322,6 +2335,21 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "stypes"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "dlt-core",
+ "extend",
+ "node-bindgen",
+ "serde",
+ "thiserror 2.0.3",
+ "tokio",
+ "uuid",
+ "walkdir",
+]
 
 [[package]]
 name = "syn"
