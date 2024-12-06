@@ -1,6 +1,13 @@
 use crate::*;
 
 impl Arbitrary for SerialPortsList {
+    /// Implements the `Arbitrary` trait for `SerialPortsList` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates a vector of up to 10 random `String` values, where each string represents
+    ///   the name or identifier of a serial port.
+    /// - Wraps the generated vector into a `SerialPortsList`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 

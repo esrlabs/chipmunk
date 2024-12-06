@@ -1,6 +1,18 @@
 use crate::*;
 
 impl Arbitrary for FolderEntityType {
+    /// Implements the `Arbitrary` trait for `FolderEntityType` to generate random variants
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// This implementation generates random variants of `FolderEntityType`, including:
+    /// - `BlockDevice`
+    /// - `CharacterDevice`
+    /// - `Directory`
+    /// - `FIFO`
+    /// - `File`
+    /// - `Socket`
+    /// - `SymbolicLink`
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -19,6 +31,16 @@ impl Arbitrary for FolderEntityType {
 }
 
 impl Arbitrary for FolderEntityDetails {
+    /// Implements the `Arbitrary` trait for `FolderEntityDetails` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// Generates random values for all fields:
+    /// - `filename`: A random `String`.
+    /// - `full`: A random `String`.
+    /// - `path`: A random `String`.
+    /// - `basename`: A random `String`.
+    /// - `ext`: A random `String`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -44,6 +66,15 @@ impl Arbitrary for FolderEntityDetails {
 }
 
 impl Arbitrary for FolderEntity {
+    /// Implements the `Arbitrary` trait for `FolderEntity` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// Generates random values for all fields:
+    /// - `name`: A random `String`.
+    /// - `fullname`: A random `String`.
+    /// - `kind`: A random `FolderEntityType`.
+    /// - `details`: An optional random `FolderEntityDetails`.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -65,6 +96,12 @@ impl Arbitrary for FolderEntity {
 }
 
 impl Arbitrary for FoldersScanningResult {
+    /// Implements the `Arbitrary` trait for `FoldersScanningResult` to generate random instances
+    /// for property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates a random list of up to 10 `FolderEntity` instances.
+    /// - Generates a random `bool` to indicate whether the maximum length was reached.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 

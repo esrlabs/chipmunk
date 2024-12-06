@@ -1,6 +1,26 @@
 use crate::*;
 
 impl std::fmt::Display for CallbackEvent {
+    /// Implements the `Display` trait for `CallbackEvent`.
+    ///
+    /// This provides a human-readable string representation for each variant of the
+    /// `CallbackEvent` enum, making it easier to log or debug events.
+    ///
+    /// # Format
+    /// - `StreamUpdated(len)` - Displays the length of the updated stream.
+    /// - `FileRead` - Indicates that a file has been read.
+    /// - `SearchUpdated(found)` - Shows the number of search results found.
+    /// - `IndexedMapUpdated(len)` - Displays the number of indexed map entries.
+    /// - `SearchMapUpdated` - Indicates that the search map has been updated.
+    /// - `SearchValuesUpdated` - Indicates that search values have been updated.
+    /// - `AttachmentsUpdated: {len}` - Displays the size of the updated attachment.
+    /// - `Progress` - Indicates progress for an operation.
+    /// - `SessionError: {err:?}` - Displays details of a session error.
+    /// - `OperationError: {uuid}: {error:?}` - Displays the UUID of the operation and the error details.
+    /// - `OperationStarted: {uuid}` - Displays the UUID of a started operation.
+    /// - `OperationProcessing: {uuid}` - Displays the UUID of an operation in progress.
+    /// - `OperationDone: {info.uuid}` - Displays the UUID of a completed operation.
+    /// - `SessionDestroyed` - Indicates that the session has been destroyed.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::StreamUpdated(len) => write!(f, "StreamUpdated({len})"),

@@ -53,8 +53,8 @@ impl Arbitrary for DltFilterConfigWrapper {
             any::<Option<Vec<String>>>(),
             any::<Option<Vec<String>>>(),
             any::<Option<Vec<String>>>(),
-            any::<i64>(),
-            any::<i64>(),
+            any::<i32>(),
+            any::<i32>(),
         )
             .prop_map(
                 |(min_log_level, app_ids, ecu_ids, context_ids, app_id_count, context_id_count)| {
@@ -63,8 +63,8 @@ impl Arbitrary for DltFilterConfigWrapper {
                         app_ids,
                         ecu_ids,
                         context_ids,
-                        app_id_count,
-                        context_id_count,
+                        app_id_count: app_id_count as i64,
+                        context_id_count: context_id_count as i64,
                     })
                 },
             )
