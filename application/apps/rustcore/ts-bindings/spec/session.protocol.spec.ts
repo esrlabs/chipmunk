@@ -28,7 +28,15 @@ function deepEqualObj(a: any, b: any, depth = Infinity): boolean {
         if (a.length !== b.length) return false;
         return a.every((item, index) => deepEqualObj(item, b[index], depth - 1));
     }
-    if (typeof a === 'object' && typeof b === 'object') {
+    if (a instanceof Map && b instanceof Map) {
+        if (a.size !== b.size) {
+            return false;
+        }
+        for (let [key, value] of a) {
+            if (!b.has(key)) return false;
+            if (!deepEqualObj(b.get(key), value)) return false;
+        }
+    } else if (typeof a === 'object' && typeof b === 'object') {
         const keys1 = Object.keys(a);
         const keys2 = Object.keys(b);
 
@@ -227,14 +235,13 @@ describe('Protocol', function () {
     });
     it(config.regular.list[2], function () {
         return runners.noSession(config.regular, 2, async (logger, done) => {
-            function check(origin: $.IObserve) {
-                const bytes = protocol.encodeObserveOptions(origin);
-                const decoded = protocol.decodeObserveOptions(bytes);
-                expect(deepEqualObj(decoded, origin)).toBe(true);
-            }
             const casesPath = process.env[OUTPUT_PATH_ENVVAR];
             if (typeof casesPath !== 'string' || casesPath.trim() === '') {
-                logger.info('Testing of all use-cases is skipped');
+                console.log(
+                    `${'='.repeat(50)}\n${logger.warn(
+                        `Testing of all use-cases is skipped because ${OUTPUT_PATH_ENVVAR} isn't defined`,
+                    )}\n${'='.repeat(50)}`,
+                );
                 return finish(undefined, done);
             }
             if (!fs.existsSync(casesPath)) {
@@ -267,12 +274,36 @@ describe('Protocol', function () {
                             new Error(`Fail to find decoder for ${typeOfMessage}`),
                         );
                     }
-                    // console.log(`Decoding: ${typeOfMessage}`);
-                    const msg = decoder(Uint8Array.from(buffer));
-                    // console.log(msg);
+                    const _msg = decoder(Uint8Array.from(buffer));
                 }
             }
             finish(undefined, done);
+        });
+    });
+    it(config.regular.list[3], function () {
+        return runners.withSession(config.regular, 3, async (logger, done, comps) => {
+            const MESSAGES_COUNT = 100;
+            const meausere: { json: number; bin: number } = { json: 0, bin: 0 };
+            meausere.json = Date.now();
+            for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                const msg = comps.session.getNativeSession().testGrabElsAsJson();
+                expect(msg instanceof Array).toBe(true);
+            }
+            meausere.json = Date.now() - meausere.json;
+            meausere.bin = Date.now();
+            for (let i = MESSAGES_COUNT; i >= 0; i -= 1) {
+                const msg = comps.session.getNativeSession().testGrabElsAsBin();
+                expect(msg instanceof Array).toBe(true);
+            }
+            meausere.bin = Date.now() - meausere.bin;
+            console.log(
+                `Grabbing messages (with decoding) count: ${MESSAGES_COUNT}\nJSON: ${
+                    meausere.json
+                }ms (per msg ${(meausere.json / MESSAGES_COUNT).toFixed(4)});\nBIN: ${
+                    meausere.bin
+                }ms (per msg ${(meausere.bin / MESSAGES_COUNT).toFixed(4)})`,
+            );
+            finish(comps.session, done);
         });
     });
 });
