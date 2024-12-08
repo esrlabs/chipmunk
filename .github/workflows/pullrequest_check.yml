@@ -7,6 +7,8 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+      - labeled
+  workflow_dispatch:
 
 jobs:
   ts_and_rust_lint:
@@ -59,7 +61,6 @@ jobs:
         run: yarn run check
 
   integration_and_unit_tests:
-    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -67,7 +68,7 @@ jobs:
       - name: libudev-dev
         run: |
           sudo apt-get update
-          sudo apt-get install -y libudev-dev
+          sudo apt-get install -y libudev-dev python3
       - name: install node
         uses: actions/setup-node@master
         with:
@@ -102,3 +103,8 @@ jobs:
           # Environment variable is needed for snapshot testing in Rust via `insta` crate
           CI: true
         run: cargo chipmunk test -u immediate
+      - name: Execute cli tests
+        if: github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'test-cli')
+        timeout-minutes: 30
+        run: python3 integration_tests/run_all.py
+        working-directory: ./cli
