@@ -155,6 +155,7 @@ by executing following task
 ```
 rake test:all
 ```
+**Note -** If any changes are made to the build cli tool, make sure to add the label "build-cli" to the PR. This would ensure that all the integration tests for the cli tool are run, which are otherwise not required.
 
 ## Reporting Issues
 If you find scope for improvement or any bug in the processing, please log

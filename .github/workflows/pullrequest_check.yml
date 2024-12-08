@@ -7,6 +7,8 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+      - labeled
+  workflow_dispatch:
 
 jobs:
   ts_and_rust_lint:
@@ -102,3 +104,8 @@ jobs:
           # Environment variable is needed for snapshot testing in Rust via `insta` crate
           CI: true
         run: cargo chipmunk test -u immediate
+      - name: Execute cli tests
+        if: contains(github.event.pull_request.labels.*.name, 'build-cli')
+        timeout-minutes: 30
+        run: python3 integration_tests/run_all.py
+        working-directory: ./cli
