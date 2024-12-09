@@ -41,6 +41,9 @@ export abstract class JobsNative {
             is_word: boolean;
         },
     ): Promise<string | undefined | null>;
+    public abstract getAllPlugins(sequence: number): Promise<string>;
+    public abstract getActivePlugins(sequence: number): Promise<string>;
+    public abstract reloadPlugins(sequence: number): Promise<void>;
 }
 
 interface Job {

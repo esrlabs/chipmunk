@@ -4,9 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 use uuid::Uuid;
 
+use crate::plugins::PluginParserSettings;
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ParserType {
+    Plugin(PluginParserSettings),
     Dlt(DltParserSettings),
     SomeIp(SomeIpParserSettings),
     Text,

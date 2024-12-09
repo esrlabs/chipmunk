@@ -19,6 +19,10 @@ name = "text_producer"
 library = "sources"
 
 [[bench]]
+name = "plugin_praser_producer"
+library = "sources"
+
+[[bench]]
 name = "mocks_once_producer"
 library = "sources"
 
@@ -66,3 +70,6 @@ library = "sources"
 name = "mocks_multi_parallel_mimalloc"
 library = "sources"
 
+[[bench]]
+name = "plugin_parser_init"
+library = "plugins_host"
