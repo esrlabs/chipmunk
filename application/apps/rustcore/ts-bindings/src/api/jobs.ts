@@ -1,5 +1,5 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { Base, decode } from '../native/native.jobs';
+import { Base, Cancelled, decode } from '../native/native.jobs';
 import { error } from 'platform/log/utils';
 import { IFilter } from 'platform/types/filter';
 import { ShellProfile } from 'platform/types/shells';
@@ -7,6 +7,7 @@ import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import { StatisticInfo } from 'platform/types/observe/parser/dlt';
 
 import * as protocol from 'protocol';
+import * as types from 'platform/types';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {
@@ -40,12 +41,21 @@ export class Jobs extends Base {
         max: number;
         paths: string[];
         include: { files: boolean; folders: boolean };
-    }): CancelablePromise<string> {
+    }): CancelablePromise<types.files.Entity[]> {
         const sequence = this.sequence();
-        const job: CancelablePromise<string> = this.execute(
+        const job: CancelablePromise<types.files.Entity[]> = this.execute(
             (buf: Uint8Array): any | Error => {
-                // TODO: Add type declaration!
-                return decode(buf, protocol.decodeCommandOutcomeWithFoldersScanningResult);
+                const output = decode<types.files.Entity[]>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithFoldersScanningResult,
+                );
+                if (output instanceof Error || output instanceof Cancelled) {
+                    return output;
+                } else if ((output as any).list instanceof Array) {
+                    return (output as any).list;
+                } else {
+                    return output;
+                }
             },
             this.native.listFolderContent(
                 sequence,
@@ -64,8 +74,8 @@ export class Jobs extends Base {
     public isFileBinary(options: { filePath: string }): CancelablePromise<boolean> {
         const sequence = this.sequence();
         const job: CancelablePromise<boolean> = this.execute(
-            (buf: Uint8Array): any | Error => {
-                return decode(buf, protocol.decodeCommandOutcomeWithbool);
+            (buf: Uint8Array): boolean | Error => {
+                return decode<boolean>(buf, protocol.decodeCommandOutcomeWithbool);
             },
             this.native.isFileBinary(sequence, options.filePath),
             sequence,
@@ -77,7 +87,7 @@ export class Jobs extends Base {
     public spawnProcess(path: string, args: string[]): CancelablePromise<void> {
         const sequence = this.sequence();
         const job: CancelablePromise<void> = this.execute(
-            (buf: Uint8Array): any | Error => {
+            (buf: Uint8Array): void | Error => {
                 return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
             },
             this.native.spawnProcess(sequence, path, args),
@@ -90,7 +100,7 @@ export class Jobs extends Base {
     public getFileChecksum(path: string): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
-            (buf: Uint8Array): any | Error => {
+            (buf: Uint8Array): string | Error => {
                 return decode<string>(buf, protocol.decodeCommandOutcomeWithString);
             },
             this.native.getFileChecksum(sequence, path),
@@ -108,6 +118,7 @@ export class Jobs extends Base {
                 if (decoded instanceof Error) {
                     return decoded;
                 }
+                console.log(decoded);
                 try {
                     return JSON.parse(decoded) as StatisticInfo;
                 } catch (e) {
