@@ -5,6 +5,8 @@ import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity, IValuesMinMaxMap, FilterMatch } from 'platform/types/filter';
 import { IAttachment } from 'platform/types/content';
 
+import * as protocol from 'protocol';
+
 export interface IProgressState {
     total: number;
     count: number;
@@ -194,7 +196,7 @@ export class EventProvider extends Computation<
     private readonly _convertors: ISessionEventsConvertors = {};
 
     constructor(uuid: string) {
-        super(uuid);
+        super(uuid, protocol.decodeCallbackEvent);
     }
 
     public getName(): string {
