@@ -1,10 +1,12 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { Base } from '../native/native.jobs';
+import { Base, decode } from '../native/native.jobs';
 import { error } from 'platform/log/utils';
 import { IFilter } from 'platform/types/filter';
 import { ShellProfile } from 'platform/types/shells';
 import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import { StatisticInfo } from 'platform/types/observe/parser/dlt';
+
+import * as protocol from 'protocol';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {
@@ -20,10 +22,8 @@ export class Jobs extends Base {
             // We should define validation callback. As argument it takes result of job,
             // which should be checked for type. In case it type is correct, callback
             // should return true
-            (res: number): number | Error => {
-                return typeof res === 'number'
-                    ? res
-                    : new Error(`jobCancelTest should return number type`);
+            (buf: Uint8Array): number | Error => {
+                return decode<number>(buf, protocol.decodeCommandOutcomeWithi64);
             },
             // As second argument of executor we should provide native function of job.
             this.native.jobCancelTest(sequence, num_a, num_b),
@@ -43,13 +43,9 @@ export class Jobs extends Base {
     }): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
-            (res: string): any | Error => {
-                if (typeof res !== 'string') {
-                    return new Error(
-                        `[jobs.listContent] Expecting string, but gotten: ${typeof res}`,
-                    );
-                }
-                return res;
+            (buf: Uint8Array): any | Error => {
+                // TODO: Add type declaration!
+                return decode(buf, protocol.decodeCommandOutcomeWithFoldersScanningResult);
             },
             this.native.listFolderContent(
                 sequence,
@@ -65,23 +61,15 @@ export class Jobs extends Base {
         return job;
     }
 
-    public isFileBinary(options: {
-        filePath: string,
-    }): CancelablePromise<boolean> {
+    public isFileBinary(options: { filePath: string }): CancelablePromise<boolean> {
         const sequence = this.sequence();
         const job: CancelablePromise<boolean> = this.execute(
-            (res: boolean): any | Error => {
-                if (typeof res !== 'boolean') {
-                    return new Error(`[jobs.isFileBinary] Expecting boolean, but got: ${typeof res}`);
-                }
-                return res;
+            (buf: Uint8Array): any | Error => {
+                return decode(buf, protocol.decodeCommandOutcomeWithbool);
             },
-            this.native.isFileBinary(
-                sequence,
-                options.filePath
-            ),
+            this.native.isFileBinary(sequence, options.filePath),
             sequence,
-            'isFileBinary'
+            'isFileBinary',
         );
         return job;
     }
@@ -89,7 +77,9 @@ export class Jobs extends Base {
     public spawnProcess(path: string, args: string[]): CancelablePromise<void> {
         const sequence = this.sequence();
         const job: CancelablePromise<void> = this.execute(
-            undefined,
+            (buf: Uint8Array): any | Error => {
+                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
+            },
             this.native.spawnProcess(sequence, path, args),
             sequence,
             'spawnProcess',
@@ -100,10 +90,8 @@ export class Jobs extends Base {
     public getFileChecksum(path: string): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
-            (res: string): any | Error => {
-                return typeof res === 'string'
-                    ? res
-                    : new Error(`getFileChecksum should return string type`);
+            (buf: Uint8Array): any | Error => {
+                return decode<string>(buf, protocol.decodeCommandOutcomeWithString);
             },
             this.native.getFileChecksum(sequence, path),
             sequence,
@@ -115,9 +103,13 @@ export class Jobs extends Base {
     public getDltStats(paths: string[]): CancelablePromise<StatisticInfo> {
         const sequence = this.sequence();
         const job: CancelablePromise<StatisticInfo> = this.execute(
-            (res: string): StatisticInfo | Error => {
+            (buf: Uint8Array): any | Error => {
+                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
+                if (decoded instanceof Error) {
+                    return decoded;
+                }
                 try {
-                    return JSON.parse(res) as StatisticInfo;
+                    return JSON.parse(decoded) as StatisticInfo;
                 } catch (e) {
                     return new Error(error(e));
                 }
@@ -132,9 +124,13 @@ export class Jobs extends Base {
     public getSomeipStatistic(paths: string[]): CancelablePromise<SomeipStatistic> {
         const sequence = this.sequence();
         const job: CancelablePromise<SomeipStatistic> = this.execute(
-            (res: string): SomeipStatistic | Error => {
+            (buf: Uint8Array): any | Error => {
+                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
+                if (decoded instanceof Error) {
+                    return decoded;
+                }
                 try {
-                    return JSON.parse(res) as SomeipStatistic;
+                    return JSON.parse(decoded) as SomeipStatistic;
                 } catch (e) {
                     return new Error(error(e));
                 }
@@ -149,9 +145,13 @@ export class Jobs extends Base {
     public getShellProfiles(): CancelablePromise<ShellProfile[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<ShellProfile[]> = this.execute(
-            (res: string): ShellProfile[] | Error => {
+            (buf: Uint8Array): any | Error => {
+                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
+                if (decoded instanceof Error) {
+                    return decoded;
+                }
                 try {
-                    const unparsed: unknown[] = JSON.parse(res);
+                    const unparsed: unknown[] = JSON.parse(decoded);
                     const profiles: ShellProfile[] = [];
                     unparsed.forEach((unparsed: unknown) => {
                         const profile = ShellProfile.fromObj(unparsed);
@@ -174,9 +174,13 @@ export class Jobs extends Base {
     public getContextEnvvars(): CancelablePromise<Map<string, string>> {
         const sequence = this.sequence();
         const job: CancelablePromise<Map<string, string>> = this.execute(
-            (res: string): Map<string, string> | Error => {
+            (buf: Uint8Array): Map<string, string> | Error => {
+                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
+                if (decoded instanceof Error) {
+                    return decoded;
+                }
                 try {
-                    const unparsed: { [key: string]: string } = JSON.parse(res);
+                    const unparsed: { [key: string]: string } = JSON.parse(decoded);
                     const envvars: Map<string, string> = new Map();
                     if (
                         unparsed === undefined ||
@@ -203,10 +207,8 @@ export class Jobs extends Base {
     public getSerialPortsList(): CancelablePromise<string[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<string[]> = this.execute(
-            (res: string[]): any | Error => {
-                return res instanceof Array
-                    ? res
-                    : new Error(`getSerialPortsList should return string[] type`);
+            (buf: Uint8Array): string[] | Error => {
+                return decode<string[]>(buf, protocol.decodeCommandOutcomeWithSerialPortsList);
             },
             this.native.getSerialPortsList(sequence),
             sequence,
@@ -218,9 +220,15 @@ export class Jobs extends Base {
     public getRegexError(filter: IFilter): CancelablePromise<string | undefined> {
         const sequence = this.sequence();
         const job: CancelablePromise<string | undefined> = this.execute(
-            (res: string): any | Error => {
-                if (typeof res === 'string' && res.trim() !== '') {
-                    return res;
+            (buf: Uint8Array): any | Error => {
+                const decoded = decode<string | undefined>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithOptionString,
+                );
+                if (decoded instanceof Error) {
+                    return decoded;
+                } else if (typeof decoded === 'string' && decoded.trim() !== '') {
+                    return decoded;
                 } else {
                     return undefined;
                 }
@@ -240,8 +248,8 @@ export class Jobs extends Base {
     public sleep(ms: number): CancelablePromise<undefined> {
         const sequence = this.sequence();
         const job: CancelablePromise<undefined> = this.execute(
-            (_res: undefined): any | Error => {
-                return undefined;
+            (buf: Uint8Array): any | Error => {
+                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
             },
             this.native.sleep(sequence, ms),
             sequence,

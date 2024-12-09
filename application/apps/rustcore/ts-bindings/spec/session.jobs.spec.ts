@@ -101,7 +101,7 @@ describe('Jobs', function () {
                 include: { files: true, folders: true },
             })
                 .then((ls) => {
-                    expect(typeof ls).toEqual('string');
+                    expect(typeof ls).toEqual('object');
                     const job = jobs
                         .listContent({
                             depth: 10,
