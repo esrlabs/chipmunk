@@ -85,6 +85,7 @@ namespace :bindings do
       exporting
       map
       observe
+      observing
       indexes
       concat
       cancel

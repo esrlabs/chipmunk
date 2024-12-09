@@ -161,7 +161,7 @@
         },
         "cancel": {
             "regular": {
-                "execute_only": [1],
+                "execute_only": [1,2],
                 "list": {
                     "1": "Test 1. Cancel operation before done",
                     "2": "Test 2. Cancel operation after done",
