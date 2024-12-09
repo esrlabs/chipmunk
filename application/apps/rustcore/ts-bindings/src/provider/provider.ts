@@ -231,8 +231,6 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         let event: any;
         try {
             event = this.decoder(buf);
-            console.log(`>>>>>>>>>>>>>>>>>>>>> PARSED CallbackEvent`);
-            console.log(event);
         } catch (err) {
             this.debug().emit.error(
                 this.logger.error(`Fail to decode CallbackEvent: ${error(err)}`),

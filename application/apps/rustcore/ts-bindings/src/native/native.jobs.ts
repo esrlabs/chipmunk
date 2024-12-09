@@ -220,8 +220,6 @@ export class Base {
             });
             task.then((buf: Uint8Array) => {
                 const decoded = convert(buf);
-                console.log(`>>>>>>>>>>>>>>>>>>>>>> JOB DECODED RESULT`);
-                console.log(decoded);
                 if (decoded instanceof Cancelled || self.isCanceling()) {
                     cancel();
                 } else if (decoded instanceof Error) {

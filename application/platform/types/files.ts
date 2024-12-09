@@ -25,7 +25,7 @@ const EntityTypeRev: { [key: string]: EntityType } = {
 export interface Entity {
     name: string;
     fullname: string;
-    type: EntityType;
+    kind: EntityType;
     details?: {
         filename: string;
         full: string;
@@ -46,7 +46,7 @@ export function entityFromObj(smth: { [key: string]: unknown }): Entity {
     const entity: Entity = {
         name: obj.getAsNotEmptyString(smth, 'name'),
         fullname: obj.getAsNotEmptyString(smth, 'fullname'),
-        type: entityType,
+        kind: entityType,
         details: undefined,
     };
     if (smth['details'] !== null && typeof smth['details'] === 'object') {
