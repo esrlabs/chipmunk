@@ -78,7 +78,6 @@ describe('Search', function () {
                                                 400, // 9
                                                 500, // 10
                                             ]);
-                                            console.log(`>>>>>>>>>>>>>>>>>>>>>>> 0`);
                                             Promise.allSettled(
                                                 [
                                                     [10, 5, 5],
@@ -89,24 +88,17 @@ describe('Search', function () {
                                                     return comps.search
                                                         .getNearest(data[0])
                                                         .then((nearest) => {
-                                                            console.log(
-                                                                `>>>>>>>>>>>>>>>>>>>>>>> 1`,
+                                                            expect(typeof nearest).toEqual(
+                                                                'object',
                                                             );
-                                                            console.log(nearest);
-                                                            // expect(typeof nearest).toEqual(
-                                                            //     'object',
-                                                            // );
-                                                            // expect((nearest as any).index).toEqual(
-                                                            //     data[1],
-                                                            // );
-                                                            // expect(
-                                                            //     (nearest as any).position,
-                                                            // ).toEqual(data[2]);
+                                                            expect((nearest as any).index).toEqual(
+                                                                data[1],
+                                                            );
+                                                            expect(
+                                                                (nearest as any).position,
+                                                            ).toEqual(data[2]);
                                                         })
                                                         .catch((err: Error) => {
-                                                            console.log(
-                                                                `>>>>>>>>>>>>>>>>>>>>>>> 2`,
-                                                            );
                                                             fail(err);
                                                         });
                                                 }),
@@ -122,31 +114,27 @@ describe('Search', function () {
                                                             comps.stream
                                                                 .getIndexedRanges()
                                                                 .then((ranges) => {
-                                                                    console.log(
-                                                                        `>>>>>>>>>>>>>>>>>>>>>>> RANGES`,
+                                                                    expect(ranges[0].start).toEqual(
+                                                                        0,
                                                                     );
-                                                                    console.log(ranges);
-                                                                    // expect(ranges[0].start).toEqual(
-                                                                    //     0,
-                                                                    // );
-                                                                    // expect(ranges[0].end).toEqual(
-                                                                    //     5,
-                                                                    // );
-                                                                    // expect(ranges.length).toEqual(
-                                                                    //     50,
-                                                                    // );
-                                                                    // for (
-                                                                    //     let i = 1;
-                                                                    //     i < 50;
-                                                                    //     i += 1
-                                                                    // ) {
-                                                                    //     expect(
-                                                                    //         ranges[i].start,
-                                                                    //     ).toEqual(i * 100);
-                                                                    //     expect(
-                                                                    //         ranges[i].end,
-                                                                    //     ).toEqual(i * 100);
-                                                                    // }
+                                                                    expect(ranges[0].end).toEqual(
+                                                                        5,
+                                                                    );
+                                                                    expect(ranges.length).toEqual(
+                                                                        50,
+                                                                    );
+                                                                    for (
+                                                                        let i = 1;
+                                                                        i < 50;
+                                                                        i += 1
+                                                                    ) {
+                                                                        expect(
+                                                                            ranges[i].start,
+                                                                        ).toEqual(i * 100);
+                                                                        expect(
+                                                                            ranges[i].end,
+                                                                        ).toEqual(i * 100);
+                                                                    }
                                                                     finish(comps.session, done);
                                                                 })
                                                                 .catch((err: Error) => {
