@@ -36,25 +36,10 @@ const PERSIST_FILE_NAME: &str = ".build_last_state";
 /// the saved one.
 /// It also manages loading and clearing the saved checksum records as well.
 pub struct BuildStateRecords {
-    items: BuildStateItems,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct BuildStateItems {
     production: bool,
     states: BTreeMap<Target, TargetBuildState>,
     #[serde(skip)]
     involved_targets: BTreeSet<Target>,
-}
-
-impl BuildStateItems {
-    fn new(production: bool) -> Self {
-        Self {
-            production,
-            states: BTreeMap::default(),
-            involved_targets: BTreeSet::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,6 +73,14 @@ pub enum ChecksumCompareResult {
 }
 
 impl BuildStateRecords {
+    pub fn new(production: bool) -> Self {
+        Self {
+            production,
+            states: BTreeMap::default(),
+            involved_targets: BTreeSet::default(),
+        }
+    }
+
     /// Update checksum records for involved jobs depending on the job type.
     /// It will calculate new checksums if build tasks were involved.
     pub fn update_and_save(job_type: JobType) -> anyhow::Result<()> {
@@ -127,7 +120,7 @@ impl BuildStateRecords {
             OnceLock::new();
 
         CHECKSUM_RECORDS
-            .get_or_init(|| BuildStateRecords::load(production).map(|rec| Mutex::new(rec)))
+            .get_or_init(|| BuildStateRecords::load(production).map(Mutex::new))
             .as_ref()
             .map_err(|err| anyhow!("{err}"))
     }
@@ -138,7 +131,7 @@ impl BuildStateRecords {
     fn load(production: bool) -> anyhow::Result<Self> {
         let file_path = Self::persist_file_path();
 
-        let items = if file_path.exists() {
+        let records = if file_path.exists() {
             let file = File::open(&file_path).with_context(|| {
                 format!(
                     "Error while opening last build state records file. Path: {}",
@@ -146,22 +139,22 @@ impl BuildStateRecords {
                 )
             })?;
             let reader = BufReader::new(file);
-            let mut items: BuildStateItems = serde_json::from_reader(reader)?;
+            let mut records: Self = serde_json::from_reader(reader)?;
 
             // Production and development use the same artifacts which will lead to false
             // positives when the artifacts are modified via another build but the checksum of
             // source files still the same.
             // To solve this problem we will reset the states of the opposite build production
             // type when build is involved in the current process
-            if items.production != production {
-                items = BuildStateItems::new(production);
+            if records.production != production {
+                records = Self::new(production);
             }
-            items
+            records
         } else {
-            BuildStateItems::new(production)
+            Self::new(production)
         };
 
-        Ok(Self { items: items })
+        Ok(records)
     }
 
     /// Gets the path of the file where the build states are saved
@@ -209,7 +202,7 @@ impl BuildStateRecords {
 
     /// Marks the job is involved in the record tracker
     pub fn register_job(&mut self, target: Target) -> anyhow::Result<()> {
-        self.items.involved_targets.insert(target);
+        self.involved_targets.insert(target);
         Ok(())
     }
 
@@ -220,8 +213,8 @@ impl BuildStateRecords {
     ///
     /// This method panics if the provided target isn't registered
     pub fn compare_checksum(&self, target: Target) -> anyhow::Result<ChecksumCompareResult> {
-        assert!(self.items.involved_targets.contains(&target));
-        let saved_state = match self.items.states.get(&target) {
+        assert!(self.involved_targets.contains(&target));
+        let saved_state = match self.states.get(&target) {
             Some(state) => state,
             // If there is no existing checksum to compare with, then the checksums state has
             // changed.
@@ -268,9 +261,9 @@ impl BuildStateRecords {
 
     /// Remove the target from the states records
     pub fn remove_state_if_exist(&mut self, target: Target) -> anyhow::Result<()> {
-        self.items.involved_targets.insert(target);
+        self.involved_targets.insert(target);
 
-        self.items.states.remove(&target);
+        self.states.remove(&target);
 
         Ok(())
     }
@@ -278,7 +271,7 @@ impl BuildStateRecords {
     fn calculate_involved_states(&mut self) -> anyhow::Result<()> {
         let additional_features = JobsState::get().additional_features();
 
-        for target in self.items.involved_targets.clone() {
+        for target in self.involved_targets.clone() {
             let hash = Self::calc_hash_for_target(target)?;
             let mut target_state = TargetBuildState::new(hash);
             additional_features
@@ -288,7 +281,7 @@ impl BuildStateRecords {
                     target_state.add_feature(*f);
                 });
 
-            match self.items.states.entry(target) {
+            match self.states.entry(target) {
                 btree_map::Entry::Occupied(mut o) => *o.get_mut() = target_state,
                 btree_map::Entry::Vacant(e) => _ = e.insert(target_state),
             };
@@ -307,7 +300,7 @@ impl BuildStateRecords {
             )
         })?;
         let writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, &self.items)
+        serde_json::to_writer_pretty(writer, self)
             .context("Error while serializing build state to persist them")?;
         Ok(())
     }
