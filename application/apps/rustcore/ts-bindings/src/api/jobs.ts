@@ -65,23 +65,20 @@ export class Jobs extends Base {
         return job;
     }
 
-    public isFileBinary(options: {
-        filePath: string,
-    }): CancelablePromise<boolean> {
+    public isFileBinary(options: { filePath: string }): CancelablePromise<boolean> {
         const sequence = this.sequence();
         const job: CancelablePromise<boolean> = this.execute(
             (res: boolean): any | Error => {
                 if (typeof res !== 'boolean') {
-                    return new Error(`[jobs.isFileBinary] Expecting boolean, but got: ${typeof res}`);
+                    return new Error(
+                        `[jobs.isFileBinary] Expecting boolean, but got: ${typeof res}`,
+                    );
                 }
                 return res;
             },
-            this.native.isFileBinary(
-                sequence,
-                options.filePath
-            ),
+            this.native.isFileBinary(sequence, options.filePath),
             sequence,
-            'isFileBinary'
+            'isFileBinary',
         );
         return job;
     }
@@ -246,6 +243,50 @@ export class Jobs extends Base {
             this.native.sleep(sequence, ms),
             sequence,
             'sleep',
+        );
+        return job;
+    }
+
+    //TODO AAZ: There is no type conversion currently.
+    //This first prototype should deliver the json values as string to
+    //show them in the UI
+    public getAllPlugins(): CancelablePromise<string> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string> = this.execute(
+            (res: string): string | Error => {
+                return typeof res === 'string'
+                    ? res
+                    : new Error(`getAllPlugins should return string while prototyping`);
+            },
+            this.native.getAllPlugins(sequence),
+            sequence,
+            'getAllPlugins',
+        );
+        return job;
+    }
+
+    public getActivePlugins(): CancelablePromise<string> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string> = this.execute(
+            (res: string): string | Error => {
+                return typeof res === 'string'
+                    ? res
+                    : new Error(`getActivePlugins should return string while prototyping`);
+            },
+            this.native.getActivePlugins(sequence),
+            sequence,
+            'getActivePlugins',
+        );
+        return job;
+    }
+
+    public reloadPlugins(): CancelablePromise<void> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<void> = this.execute(
+            (res: void): void => {},
+            this.native.reloadPlugins(sequence),
+            sequence,
+            'reloadPlugins',
         );
         return job;
     }
