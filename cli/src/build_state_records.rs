@@ -9,7 +9,6 @@ use std::{
     collections::{btree_map, BTreeMap, BTreeSet},
     fs::File,
     io::{BufReader, BufWriter},
-    ops::Deref,
     path::PathBuf,
     sync::{Mutex, OnceLock},
 };
@@ -37,7 +36,7 @@ const PERSIST_FILE_NAME: &str = ".build_last_state";
 /// the saved one.
 /// It also manages loading and clearing the saved checksum records as well.
 pub struct BuildStateRecords {
-    items: Mutex<BuildStateItems>,
+    items: BuildStateItems,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -108,23 +107,27 @@ impl BuildStateRecords {
 
         let records = Self::get(prod)?;
 
+        let mut rec = records
+            .lock()
+            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
+
         if records_involved {
-            records.calculate_involved_states()?;
+            rec.calculate_involved_states()?;
         }
 
-        records
-            .persist_build_state()
+        rec.persist_build_state()
             .context("Error while saving the updated build states")?;
 
         Ok(())
     }
 
     /// Returns a reference to build states' records manager singleton
-    pub fn get(production: bool) -> anyhow::Result<&'static BuildStateRecords> {
-        static CHECKSUM_RECORDS: OnceLock<anyhow::Result<BuildStateRecords>> = OnceLock::new();
+    pub fn get(production: bool) -> anyhow::Result<&'static Mutex<BuildStateRecords>> {
+        static CHECKSUM_RECORDS: OnceLock<anyhow::Result<Mutex<BuildStateRecords>>> =
+            OnceLock::new();
 
         CHECKSUM_RECORDS
-            .get_or_init(|| BuildStateRecords::load(production))
+            .get_or_init(|| BuildStateRecords::load(production).map(|rec| Mutex::new(rec)))
             .as_ref()
             .map_err(|err| anyhow!("{err}"))
     }
@@ -158,9 +161,7 @@ impl BuildStateRecords {
             BuildStateItems::new(production)
         };
 
-        Ok(Self {
-            items: Mutex::new(items),
-        })
+        Ok(Self { items: items })
     }
 
     /// Gets the path of the file where the build states are saved
@@ -207,12 +208,8 @@ impl BuildStateRecords {
     }
 
     /// Marks the job is involved in the record tracker
-    pub fn register_job(&self, target: Target) -> anyhow::Result<()> {
-        let mut items = self
-            .items
-            .lock()
-            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
-        items.involved_targets.insert(target);
+    pub fn register_job(&mut self, target: Target) -> anyhow::Result<()> {
+        self.items.involved_targets.insert(target);
         Ok(())
     }
 
@@ -223,13 +220,8 @@ impl BuildStateRecords {
     ///
     /// This method panics if the provided target isn't registered
     pub fn compare_checksum(&self, target: Target) -> anyhow::Result<ChecksumCompareResult> {
-        let items = self
-            .items
-            .lock()
-            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
-
-        assert!(items.involved_targets.contains(&target));
-        let saved_state = match items.states.get(&target) {
+        assert!(self.items.involved_targets.contains(&target));
+        let saved_state = match self.items.states.get(&target) {
             Some(state) => state,
             // If there is no existing checksum to compare with, then the checksums state has
             // changed.
@@ -275,28 +267,18 @@ impl BuildStateRecords {
     }
 
     /// Remove the target from the states records
-    pub fn remove_state_if_exist(&self, target: Target) -> anyhow::Result<()> {
-        let mut items = self
-            .items
-            .lock()
-            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
+    pub fn remove_state_if_exist(&mut self, target: Target) -> anyhow::Result<()> {
+        self.items.involved_targets.insert(target);
 
-        items.involved_targets.insert(target);
-
-        items.states.remove(&target);
+        self.items.states.remove(&target);
 
         Ok(())
     }
 
-    fn calculate_involved_states(&self) -> anyhow::Result<()> {
-        let mut items = self
-            .items
-            .lock()
-            .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
-
+    fn calculate_involved_states(&mut self) -> anyhow::Result<()> {
         let additional_features = JobsState::get().additional_features();
 
-        for target in items.involved_targets.clone() {
+        for target in self.items.involved_targets.clone() {
             let hash = Self::calc_hash_for_target(target)?;
             let mut target_state = TargetBuildState::new(hash);
             additional_features
@@ -306,7 +288,7 @@ impl BuildStateRecords {
                     target_state.add_feature(*f);
                 });
 
-            match items.states.entry(target) {
+            match self.items.states.entry(target) {
                 btree_map::Entry::Occupied(mut o) => *o.get_mut() = target_state,
                 btree_map::Entry::Vacant(e) => _ = e.insert(target_state),
             };
@@ -325,11 +307,7 @@ impl BuildStateRecords {
             )
         })?;
         let writer = BufWriter::new(file);
-        let items = self
-            .items
-            .lock()
-            .map_err(|err| anyhow!("Error while acquiring items mutex. Error: {err:?}"))?;
-        serde_json::to_writer_pretty(writer, items.deref())
+        serde_json::to_writer_pretty(writer, &self.items)
             .context("Error while serializing build state to persist them")?;
         Ok(())
     }

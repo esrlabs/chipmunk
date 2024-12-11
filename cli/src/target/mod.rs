@@ -447,10 +447,14 @@ impl Target {
     pub async fn reset(&self) -> anyhow::Result<SpawnResult> {
         let job_def = JobDefinition::new(*self, JobType::Clean);
 
-        // Clean doesn't differentiate between development and production, and both of them will be
-        // cleaned from the files when the data are persisted.
-        let checksum = BuildStateRecords::get(false)?;
-        checksum.remove_state_if_exist(*self)?;
+        {
+            // Clean doesn't differentiate between development and production, and both of them will be
+            // cleaned from the files when the data are persisted.
+            let mut checksum = BuildStateRecords::get(false)?.lock().map_err(|err| {
+                anyhow::anyhow!("Error while acquiring items jobs mutex: Error {err}")
+            })?;
+            checksum.remove_state_if_exist(*self)?;
+        }
 
         let mut paths_to_remove = vec![self.cwd().join("dist")];
         let path = match self.kind() {
