@@ -12,6 +12,10 @@ use crate::*;
 /// Contains the results of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/callback.ts", module = "callback")
+)]
 pub struct OperationDone {
     /// The unique identifier of the operation.
     pub uuid: Uuid,
@@ -22,6 +26,10 @@ pub struct OperationDone {
 /// Represents events sent to the client.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/callback.ts", module = "callback")
+)]
 pub enum CallbackEvent {
     /// Triggered when the content of the current session is updated.
     /// - `u64`: The current number of log entries in the stream.

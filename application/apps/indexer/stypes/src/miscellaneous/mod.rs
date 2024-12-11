@@ -8,16 +8,34 @@ mod nodejs;
 mod proptest;
 
 use crate::*;
-use std::ops::RangeInclusive;
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
+pub struct Range {
+    start: u64,
+    end: u64,
+}
 
 /// A list of ranges to read.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-pub struct Ranges(pub Vec<RangeInclusive<u64>>);
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
+pub struct Ranges(pub Vec<Range>);
 
 /// Describes a data source.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct SourceDefinition {
     /// The unique identifier of the source.
     pub id: u16,
@@ -28,12 +46,20 @@ pub struct SourceDefinition {
 /// A list of data sources.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct Sources(pub Vec<SourceDefinition>);
 
 /// A request to a stream that supports feedback, such as a terminal command
 /// that accepts input through `stdin`.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub enum SdeRequest {
     /// Sends a text string.
     WriteText(String),
@@ -46,6 +72,10 @@ pub enum SdeRequest {
 /// on the source.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct SdeResponse {
     /// The number of bytes received.
     pub bytes: usize,
@@ -54,6 +84,10 @@ pub struct SdeResponse {
 /// Information about a log entry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct GrabbedElement {
     /// The unique identifier of the source.
     pub source_id: u16,
@@ -73,17 +107,29 @@ pub struct GrabbedElement {
 /// A list of log entries.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct GrabbedElementList(pub Vec<GrabbedElement>);
 
 /// Data about indices (log entry numbers). Used to provide information about
 /// the nearest search results relative to a specific log entry number.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct AroundIndexes(pub (Option<u64>, Option<u64>));
 
 /// Describes a match for a search condition.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct FilterMatch {
     /// The index (number) of the matching log entry.
     pub index: u64,
@@ -95,4 +141,8 @@ pub struct FilterMatch {
 /// A list of matches for a search condition.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/miscellaneous.ts", module = "miscellaneous")
+)]
 pub struct FilterMatchList(pub Vec<FilterMatch>);
