@@ -10,6 +10,10 @@ use crate::*;
 /// Describes the content of attached data found in the `payload` of a `dlt` message.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/attachment.ts", module = "attachment")
+)]
 pub struct AttachmentInfo {
     /// A unique identifier for the attachment.
     pub uuid: Uuid,
@@ -33,4 +37,8 @@ pub struct AttachmentInfo {
 /// A list of attachments.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/attachment.ts", module = "attachment")
+)]
 pub struct AttachmentList(pub Vec<AttachmentInfo>);
