@@ -179,7 +179,9 @@ fn spawn_jobs(
             } else {
                 // Calculate target checksums and compare it the persisted one
                 let prod = job_def.job_type.is_production().is_some_and(|prod| prod);
-                let checksum_rec = BuildStateRecords::get(prod)?;
+                let mut checksum_rec = BuildStateRecords::get(prod)?.lock().map_err(|err| {
+                    anyhow::anyhow!("Error while acquiring items jobs mutex: Error {err}")
+                })?;
                 checksum_rec.register_job(job_def.target)?;
 
                 // Check if all dependent jobs are skipped, then do the checksum calculations
