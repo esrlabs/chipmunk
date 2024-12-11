@@ -40,6 +40,20 @@ impl From<(Option<u64>, Option<u64>)> for AroundIndexes {
     }
 }
 
+impl From<RangeInclusive<u64>> for Range {
+    /// Converts a `RangeInclusive<u64>` into a `Range`.
+    ///
+    /// # Parameters
+    /// - `value`: `RangeInclusive<u64>` instance.
+    ///
+    /// # Returns
+    /// - A `Range` instance.
+    fn from(range: RangeInclusive<u64>) -> Self {
+        let (start, end) = range.into_inner();
+        Self { start, end }
+    }
+}
+
 impl From<Vec<RangeInclusive<u64>>> for Ranges {
     /// Converts a `Vec<RangeInclusive<u64>>` into a `Ranges`.
     ///
@@ -49,7 +63,7 @@ impl From<Vec<RangeInclusive<u64>>> for Ranges {
     /// # Returns
     /// - A `Ranges` instance containing the input ranges.
     fn from(value: Vec<RangeInclusive<u64>>) -> Self {
-        Self(value)
+        Self(value.into_iter().map(|r| r.into()).collect())
     }
 }
 

@@ -1,5 +1,24 @@
 use crate::*;
 
+impl Arbitrary for Range {
+    /// Implements the `Arbitrary` trait for `Ranges` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    ///
+    /// # Details
+    /// - Generates a vector of random `RangeInclusive<u64>` instances, with up to 10 ranges.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (any::<u32>(), any::<u32>())
+            .prop_map(|(start, end)| Range {
+                start: start as u64,
+                end: end as u64,
+            })
+            .boxed()
+    }
+}
+
 impl Arbitrary for Ranges {
     /// Implements the `Arbitrary` trait for `Ranges` to generate random values for
     /// property-based testing using the `proptest` framework.
@@ -10,12 +29,9 @@ impl Arbitrary for Ranges {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        prop::collection::vec(
-            (0u32.., 0u32..).prop_map(|(start, end)| start as u64..=end as u64),
-            0..10,
-        )
-        .prop_map(Ranges)
-        .boxed()
+        prop::collection::vec(Range::arbitrary(), 0..10)
+            .prop_map(Ranges)
+            .boxed()
     }
 }
 

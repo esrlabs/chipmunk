@@ -11,6 +11,10 @@ use crate::*;
 /// related to processing a specific log entry, if such data is available.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/progress.ts", module = "progress")
+)]
 pub struct Notification {
     /// The severity level of the event.
     pub severity: Severity,
@@ -23,6 +27,10 @@ pub struct Notification {
 /// Describes the progress of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/progress.ts", module = "progress")
+)]
 pub enum Progress {
     /// Represents the current progress status.
     Ticks(Ticks),
@@ -35,6 +43,10 @@ pub enum Progress {
 /// Provides detailed information about the progress of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/progress.ts", module = "progress")
+)]
 pub struct Ticks {
     /// The current progress count, typically representing `n` out of `100%`.
     pub count: u64,

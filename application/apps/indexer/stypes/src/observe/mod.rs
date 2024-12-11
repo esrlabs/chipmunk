@@ -17,6 +17,10 @@ use dlt_core::filtering::DltFilterConfig;
 ///   If set to `INADDR_ANY`, the system selects an appropriate interface.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct MulticastInfo {
     pub multiaddr: String,
     pub interface: Option<String>,
@@ -25,6 +29,10 @@ pub struct MulticastInfo {
 /// Configuration for UDP connections.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct UdpConnectionInfo {
     /// A list of multicast addresses to listen on.
     pub multicast_addr: Vec<MulticastInfo>,
@@ -34,6 +42,10 @@ pub struct UdpConnectionInfo {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub enum ParserType {
     /// DLT parser for files (including PCAP files) or streams (TCP/UDP).
     Dlt(DltParserSettings),
@@ -46,6 +58,10 @@ pub enum ParserType {
 /// Settings for the DLT parser.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct DltParserSettings {
     /// Configuration for filtering DLT messages.
     pub filter_config: Option<DltFilterConfig>,
@@ -63,6 +79,10 @@ pub struct DltParserSettings {
 /// Settings for the SomeIp parser.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct SomeIpParserSettings {
     /// Paths to FIBEX files for additional interpretation of `payload` content.
     pub fibex_file_paths: Option<Vec<String>>,
@@ -71,6 +91,10 @@ pub struct SomeIpParserSettings {
 /// Describes the transport source for a session.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub enum Transport {
     /// Terminal command execution.
     Process(ProcessTransportConfig),
@@ -85,6 +109,10 @@ pub enum Transport {
 /// Configuration for executing terminal commands.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct ProcessTransportConfig {
     /// The working directory for the command.
     pub cwd: PathBuf,
@@ -97,6 +125,10 @@ pub struct ProcessTransportConfig {
 /// Configuration for serial port connections.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct SerialTransportConfig {
     /// The path to the serial port.
     pub path: String,
@@ -119,6 +151,10 @@ pub struct SerialTransportConfig {
 /// Configuration for TCP connections.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct TCPTransportConfig {
     /// The address to bind the TCP connection to.
     pub bind_addr: String,
@@ -127,6 +163,10 @@ pub struct TCPTransportConfig {
 /// Configuration for UDP connections.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct UDPTransportConfig {
     /// The address to bind the UDP connection to.
     pub bind_addr: String,
@@ -137,6 +177,10 @@ pub struct UDPTransportConfig {
 /// Supported file formats for observation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub enum FileFormat {
     PcapNG,
     PcapLegacy,
@@ -147,6 +191,10 @@ pub enum FileFormat {
 /// Describes the source of data for observation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub enum ObserveOrigin {
     /// The source is a single file.
     File(String, FileFormat, PathBuf),
@@ -159,6 +207,10 @@ pub enum ObserveOrigin {
 /// Options for observing data within a session.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/observe.ts", module = "observe")
+)]
 pub struct ObserveOptions {
     /// The description of the data source.
     pub origin: ObserveOrigin,
