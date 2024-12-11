@@ -11,6 +11,10 @@ use crate::*;
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/folders.ts", module = "folders")
+)]
 pub enum FolderEntityType {
     /// A block device (e.g., a disk or partition).
     BlockDevice,
@@ -31,6 +35,10 @@ pub enum FolderEntityType {
 /// Contains detailed information about a folder entity.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/folders.ts", module = "folders")
+)]
 pub struct FolderEntityDetails {
     /// The name of the file or folder.
     filename: String,
@@ -47,6 +55,10 @@ pub struct FolderEntityDetails {
 /// Represents the result of scanning a folder.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/folders.ts", module = "folders")
+)]
 pub struct FoldersScanningResult {
     /// A list of folder entities found during the scan.
     pub list: Vec<FolderEntity>,
@@ -57,6 +69,10 @@ pub struct FoldersScanningResult {
 /// Represents a folder entity in the file system.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/folders.ts", module = "folders")
+)]
 pub struct FolderEntity {
     /// The name of the entity (file or folder).
     name: String,

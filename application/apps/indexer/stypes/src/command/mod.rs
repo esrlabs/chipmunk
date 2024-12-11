@@ -4,6 +4,8 @@ mod extending;
 mod nodejs;
 #[cfg(test)]
 mod proptest;
+#[cfg(test)]
+mod ts;
 
 mod folders;
 mod serial;

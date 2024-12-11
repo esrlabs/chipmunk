@@ -10,6 +10,10 @@ use crate::*;
 /// Describes the progress of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
+#[cfg_attr(
+    test,
+    tslink::tslink(target = "./stypes/output/lf_transition.ts", module = "lf_transition")
+)]
 pub enum LifecycleTransition {
     /// The operation has started.
     Started {
