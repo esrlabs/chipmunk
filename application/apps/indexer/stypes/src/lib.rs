@@ -112,6 +112,8 @@ pub use progress::*;
 
 pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};
 pub(crate) use std::{collections::HashMap, path::PathBuf};
+#[cfg(test)]
+pub(crate) use ts_rs::TS;
 pub(crate) use uuid::Uuid;
 
 #[cfg(feature = "nodejs")]
