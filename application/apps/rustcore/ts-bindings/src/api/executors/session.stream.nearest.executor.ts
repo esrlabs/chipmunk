@@ -3,6 +3,8 @@ import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 import { INearest } from 'platform/types/filter';
 
+import * as protocol from 'protocol';
+
 export interface IExecuteNearestOptions {
     positionInStream: number;
 }
@@ -26,15 +28,13 @@ export const executor: TExecutor<INearest | undefined, IExecuteNearestOptions> =
             return session.getNearestTo(operationUuid, options.positionInStream);
         },
         function (
-            data: any,
+            data: Uint8Array,
             resolve: (res: INearest | undefined) => void,
             reject: (err: Error) => void,
         ) {
-            if (typeof data === 'string' && data.trim().length === 0) {
-                return resolve(undefined);
-            }
             try {
-                const result: INearest | undefined | null = JSON.parse(data);
+                const result: INearest | undefined | null =
+                    protocol.decodeResultNearestPosition(data);
                 resolve(result === null ? undefined : result);
             } catch (e) {
                 return reject(
