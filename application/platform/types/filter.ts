@@ -43,7 +43,7 @@ export enum EFlag {
 
 export type ISearchMap = Array<[number, number][]>;
 
-export type IValuesMap = { [key: number]: [number, number, number, number][] };
+export type IValuesMap = Map<number, [number, number, number, number][]>;
 
 export type IValuesMinMaxMap = { [key: number]: [number, number] };
 
@@ -58,9 +58,8 @@ export interface IExtractedMatch {
 }
 
 export interface IExtractedValueSrc {
-    index: number; // row position in the stream
-    // [filter_index, [values]]
-    values: Array<Array<number | string[]>>;
+    index: number;
+    values: Array<[number, string[]]>;
 }
 export type TExtractedValuesSrc = IExtractedValueSrc[];
 

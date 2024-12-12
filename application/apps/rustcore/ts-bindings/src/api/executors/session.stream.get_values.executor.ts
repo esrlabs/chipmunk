@@ -4,6 +4,8 @@ import { EventProvider } from '../session.provider';
 import { IValuesMap } from 'platform/types/filter';
 import { error } from 'platform/log/utils';
 
+import * as protocol from 'protocol';
+
 export interface IOptions {
     datasetLength: number;
     from?: number;
@@ -43,18 +45,9 @@ export const executor: TExecutor<IValuesMap, IOptions> = (
                     .catch(reject);
             });
         },
-        function (data: any, resolve: (r: IValuesMap) => void, reject: (e: Error) => void) {
+        function (data: Uint8Array, resolve: (r: IValuesMap) => void, reject: (e: Error) => void) {
             try {
-                if (typeof data === 'string') {
-                    data = JSON.parse(data);
-                }
-                if (typeof data !== 'object') {
-                    return reject(
-                        new Error(
-                            `Fail to parse values object. Invalid format. Expecting IValuesMap.`,
-                        ),
-                    );
-                }
+                const map = protocol.decodeResultSearchValues(data);
                 resolve(data as IValuesMap);
             } catch (e) {
                 reject(new Error(error(e)));

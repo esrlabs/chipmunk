@@ -10,7 +10,7 @@ use log::error;
 use parsers;
 use processor::{
     grabber::LineRange,
-    map::{FiltersStats, NearestPosition, ScaledDistribution},
+    map::{FiltersStats, ScaledDistribution},
     search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
 };
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
@@ -144,7 +144,7 @@ pub enum Api {
         ),
     ),
     DropSearch(oneshot::Sender<bool>),
-    GetNearestPosition((u64, oneshot::Sender<Option<NearestPosition>>)),
+    GetNearestPosition((u64, oneshot::Sender<stypes::ResultNearestPosition>)),
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
     SetMatches(
         (
@@ -383,7 +383,7 @@ impl SessionStateAPI {
     pub async fn get_nearest_position(
         &self,
         position: u64,
-    ) -> Result<Option<NearestPosition>, stypes::NativeError> {
+    ) -> Result<stypes::ResultNearestPosition, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetNearestPosition((position, tx)), rx)
             .await

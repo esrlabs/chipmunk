@@ -9,6 +9,41 @@ mod proptest;
 
 use crate::*;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct NearestPosition {
+    pub index: u64,    // Position in search results
+    pub position: u64, // Position in original stream/file
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ResultNearestPosition(pub Option<NearestPosition>);
+
+///(row_number, min_value_in_range, max_value_in_range, value)
+/// value - can be last value in range or some kind of average
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct CandlePoint {
+    pub row: u64,
+    pub min_max_y: Option<(f64, f64)>,
+    pub y_value: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ResultSearchValues(pub HashMap<u8, Vec<CandlePoint>>);
+
+/// Scaled chart data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ResultScaledDistribution(pub Vec<Vec<(u8, u16)>>);
+
 /// Used to delivery results of extracting values. That's used in the scope
 /// of chart feature
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,7 +62,7 @@ pub struct ExtractedMatchValue {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
-pub struct ExtractedMatchValueList(pub Vec<ExtractedMatchValue>);
+pub struct ResultExtractedMatchValues(pub Vec<ExtractedMatchValue>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]

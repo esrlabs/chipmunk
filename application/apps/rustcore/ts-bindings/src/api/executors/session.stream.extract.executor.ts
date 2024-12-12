@@ -10,6 +10,8 @@ import {
     IExtractedValue,
 } from 'platform/types/filter';
 
+import * as protocol from 'protocol';
+
 export const executor: TExecutor<TExtractedValues, IFilter[]> = (
     session: RustSession,
     provider: EventProvider,
@@ -25,12 +27,12 @@ export const executor: TExecutor<TExtractedValues, IFilter[]> = (
             return session.extractMatchesValues(filters, operationUuid);
         },
         function (
-            data: any,
+            data: Uint8Array,
             resolve: (res: TExtractedValues) => void,
             reject: (err: Error) => void,
         ) {
             try {
-                const src: TExtractedValuesSrc = JSON.parse(data);
+                const src: TExtractedValuesSrc = protocol.decodeExtractedMatchValueList(data);
                 if (!(src instanceof Array)) {
                     return reject(
                         new Error(

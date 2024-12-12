@@ -1,5 +1,84 @@
 use crate::*;
 
+impl Arbitrary for NearestPosition {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<u32>().prop_map(|n| n as u64),
+            any::<u32>().prop_map(|n| n as u64),
+        )
+            .prop_map(|(index, position)| NearestPosition { index, position })
+            .boxed()
+    }
+}
+
+impl Arbitrary for ResultNearestPosition {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::option::of(NearestPosition::arbitrary())
+            .prop_map(|v| ResultNearestPosition(v))
+            .boxed()
+    }
+}
+
+impl Arbitrary for CandlePoint {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<u32>().prop_map(|n| n as u64),
+            prop::option::of(any::<(f32, f32)>().prop_map(|(a, b)| (a as f64, b as f64))),
+            any::<f32>().prop_map(|n| n as f64),
+        )
+            .prop_map(|(row, min_max_y, y_value)| CandlePoint {
+                row,
+                min_max_y,
+                y_value,
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for ResultSearchValues {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        any::<HashMap<u8, Vec<CandlePoint>>>()
+            .prop_map(|v| ResultSearchValues(v))
+            .boxed()
+    }
+}
+
+impl Arbitrary for ResultScaledDistribution {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(
+            prop::collection::vec((any::<u8>(), any::<u16>()), 0..10),
+            0..10,
+        )
+        .prop_map(|v| ResultScaledDistribution(v))
+        .boxed()
+    }
+}
+
 impl Arbitrary for ExtractedMatchValue {
     /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
     /// property-based testing using the `proptest` framework.
@@ -22,7 +101,7 @@ impl Arbitrary for ExtractedMatchValue {
     }
 }
 
-impl Arbitrary for ExtractedMatchValueList {
+impl Arbitrary for ResultExtractedMatchValues {
     /// Implements the `Arbitrary` trait for `ExtractedMatchValueList` to generate random values for
     /// property-based testing using the `proptest` framework.
     type Parameters = ();
@@ -30,7 +109,7 @@ impl Arbitrary for ExtractedMatchValueList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(ExtractedMatchValue::arbitrary(), 0..10)
-            .prop_map(|list| ExtractedMatchValueList(list))
+            .prop_map(|list| ResultExtractedMatchValues(list))
             .boxed()
     }
 }
@@ -251,8 +330,13 @@ impl Arbitrary for FilterMatchList {
     }
 }
 
+test_msg!(NearestPosition, TESTS_USECASE_COUNT);
+test_msg!(ResultNearestPosition, TESTS_USECASE_COUNT);
+test_msg!(CandlePoint, TESTS_USECASE_COUNT);
+test_msg!(ResultSearchValues, TESTS_USECASE_COUNT);
+test_msg!(ResultScaledDistribution, TESTS_USECASE_COUNT);
 test_msg!(ExtractedMatchValue, TESTS_USECASE_COUNT);
-test_msg!(ExtractedMatchValueList, TESTS_USECASE_COUNT);
+test_msg!(ResultExtractedMatchValues, TESTS_USECASE_COUNT);
 test_msg!(ResultU64, TESTS_USECASE_COUNT);
 test_msg!(ResultBool, TESTS_USECASE_COUNT);
 test_msg!(SourceDefinition, TESTS_USECASE_COUNT);
