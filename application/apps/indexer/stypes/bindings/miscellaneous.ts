@@ -7,6 +7,27 @@
 export type AroundIndexes = [bigint | null, bigint | null];
 
 /**
+ * Used to delivery results of extracting values. That's used in the scope
+ * of chart feature
+ */
+export type ExtractedMatchValue = { 
+/**
+ * The index of log entry (row number)
+ */
+index: bigint, 
+/**
+ * List of matches:
+ * `usize` - index of filter
+ * `Vec<String>` - list of extracted values
+ */
+values: Array<[number, Array<string>]>, };
+
+/**
+ * The list of `ExtractedMatchValue`
+ */
+export type ExtractedMatchValueList = Array<ExtractedMatchValue>;
+
+/**
  * Describes a match for a search condition.
  */
 export type FilterMatch = { 
@@ -56,12 +77,20 @@ nature: number, };
  */
 export type GrabbedElementList = Array<GrabbedElement>;
 
+/**
+ * Representation of ranges. We cannot use std ranges as soon as no way
+ * to derive Serialize, Deserialize
+ */
 export type Range = { start: bigint, end: bigint, };
 
 /**
  * A list of ranges to read.
  */
 export type Ranges = Array<Range>;
+
+export type ResultBool = boolean;
+
+export type ResultU64 = bigint;
 
 /**
  * A request to a stream that supports feedback, such as a terminal command
@@ -79,6 +108,11 @@ export type SdeResponse = {
  * The number of bytes received.
  */
 bytes: number, };
+
+/**
+ * Used only for debug session lifecycle
+ */
+export type SleepResult = { sleep_well: boolean, };
 
 /**
  * Describes a data source.

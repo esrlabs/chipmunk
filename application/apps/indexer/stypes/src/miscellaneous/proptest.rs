@@ -1,5 +1,65 @@
 use crate::*;
 
+impl Arbitrary for ExtractedMatchValue {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<u32>().prop_map(|n| n as u64),
+            prop::collection::vec(
+                (
+                    any::<u32>().prop_map(|n| n as usize),
+                    prop::collection::vec(any::<String>(), 0..10),
+                ),
+                0..10,
+            ),
+        )
+            .prop_map(|(index, values)| ExtractedMatchValue { index, values })
+            .boxed()
+    }
+}
+
+impl Arbitrary for ExtractedMatchValueList {
+    /// Implements the `Arbitrary` trait for `ExtractedMatchValueList` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(ExtractedMatchValue::arbitrary(), 0..10)
+            .prop_map(|list| ExtractedMatchValueList(list))
+            .boxed()
+    }
+}
+
+impl Arbitrary for ResultU64 {
+    /// Implements the `Arbitrary` trait for `ResultU64` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        any::<u32>()
+            .prop_map(|n| n as u64)
+            .prop_map(|n| ResultU64(n))
+            .boxed()
+    }
+}
+
+impl Arbitrary for ResultBool {
+    /// Implements the `Arbitrary` trait for `ResultBool` to generate random values for
+    /// property-based testing using the `proptest` framework.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        any::<bool>().prop_map(|n| ResultBool(n)).boxed()
+    }
+}
+
 impl Arbitrary for Range {
     /// Implements the `Arbitrary` trait for `Ranges` to generate random values for
     /// property-based testing using the `proptest` framework.
@@ -191,7 +251,10 @@ impl Arbitrary for FilterMatchList {
     }
 }
 
-test_msg!(Ranges, TESTS_USECASE_COUNT);
+test_msg!(ExtractedMatchValue, TESTS_USECASE_COUNT);
+test_msg!(ExtractedMatchValueList, TESTS_USECASE_COUNT);
+test_msg!(ResultU64, TESTS_USECASE_COUNT);
+test_msg!(ResultBool, TESTS_USECASE_COUNT);
 test_msg!(SourceDefinition, TESTS_USECASE_COUNT);
 test_msg!(Sources, TESTS_USECASE_COUNT);
 test_msg!(SdeRequest, TESTS_USECASE_COUNT);
