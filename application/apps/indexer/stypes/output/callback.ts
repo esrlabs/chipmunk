@@ -2,23 +2,46 @@ export interface OperationDone {
     uuid: string;
     result: string | null;
 }
-import { NativeError } from "./error";
 import { FilterMatchList } from "./miscellaneous";
 import { Progress } from "./progress";
+import { NativeError } from "./error";
 import { AttachmentInfo } from "./attachment";
-export interface CallbackEvent {
-    StreamUpdated?: number;
-    FileRead?: null;
-    SearchUpdated?: [number, Map<string, number>];
-    IndexedMapUpdated?: number;
-    SearchMapUpdated?: FilterMatchList | null;
-    SearchValuesUpdated?: Map<number, [number, number]> | null;
-    AttachmentsUpdated?: [number, AttachmentInfo];
-    Progress?: [string, Progress];
-    SessionError?: NativeError;
-    OperationError?: [string, NativeError];
-    OperationStarted?: string;
-    OperationProcessing?: string;
-    OperationDone?: OperationDone;
-    SessionDestroyed?: null;
-}
+export type CallbackEvent =
+    { StreamUpdated: number } |
+    "FileRead" |
+    {
+        SearchUpdated: {
+            found: number;
+            stat: Map<string, number>
+        }
+    } |
+    {
+        IndexedMapUpdated: {
+            len: number
+        }
+    } |
+    { SearchMapUpdated: FilterMatchList | null } |
+    { SearchValuesUpdated: Map<number, [number, number]> | null } |
+    {
+        AttachmentsUpdated: {
+            len: number;
+            attachment: AttachmentInfo
+        }
+    } |
+    {
+        Progress: {
+            uuid: string;
+            progress: Progress
+        }
+    } |
+    { SessionError: NativeError } |
+    {
+        OperationError: {
+            uuid: string;
+            error: NativeError
+        }
+    } |
+    { OperationStarted: string } |
+    { OperationProcessing: string } |
+    { OperationDone: OperationDone } |
+    "SessionDestroyed";

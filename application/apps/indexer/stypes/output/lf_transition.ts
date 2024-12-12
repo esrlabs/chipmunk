@@ -1,6 +1,15 @@
 import { Ticks } from "./progress";
-export interface LifecycleTransition {
-    Started?: [string, string];
-    Ticks?: [string, Ticks];
-    Stopped?: string;
-}
+export type LifecycleTransition =
+    {
+        Started: {
+            uuid: string;
+            alias: string
+        }
+    } |
+    {
+        Ticks: {
+            uuid: string;
+            ticks: Ticks
+        }
+    } |
+    { Stopped: string };
