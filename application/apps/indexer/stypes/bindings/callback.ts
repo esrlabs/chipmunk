@@ -58,4 +58,4 @@ uuid: string,
 /**
  * The results of the operation, if available.
  */
-result: string | null, };
+result: Array<number> | null, };
