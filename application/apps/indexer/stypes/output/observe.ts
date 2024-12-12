@@ -1,7 +1,14 @@
-export interface MulticastInfo {
-    multiaddr: string;
-    interface: string | null;
+export enum FileFormat {
+    PcapNG,
+    PcapLegacy,
+    Text,
+    Binary,
 }
+export type Transport =
+    { Process: ProcessTransportConfig } |
+    { TCP: TCPTransportConfig } |
+    { UDP: UDPTransportConfig } |
+    { Serial: SerialTransportConfig };
 export interface DltParserSettings {
     filter_config: DltFilterConfig | null;
     fibex_file_paths: string[] | null;
@@ -9,23 +16,12 @@ export interface DltParserSettings {
     tz: string | null;
     fibex_metadata: FibexMetadata | null;
 }
-export interface TCPTransportConfig {
-    bind_addr: string;
-}
-export interface ObserveOrigin {
-    File?: [string, FileFormat, string];
-    Concat?: [string, FileFormat, string][];
-    Stream?: [string, Transport];
-}
-export enum FileFormat {
-    PcapNG,
-    PcapLegacy,
-    Text,
-    Binary,
-}
 export interface ObserveOptions {
     origin: ObserveOrigin;
     parser: ParserType;
+}
+export interface UdpConnectionInfo {
+    multicast_addr: MulticastInfo[];
 }
 export interface SomeIpParserSettings {
     fibex_file_paths: string[] | null;
@@ -40,26 +36,27 @@ export interface SerialTransportConfig {
     send_data_delay: number;
     exclusive: boolean;
 }
+export interface MulticastInfo {
+    multiaddr: string;
+    interface: string | null;
+}
 export interface ProcessTransportConfig {
     cwd: string;
     command: string;
     envs: Map<string, string>;
 }
-export interface ParserType {
-    Dlt?: DltParserSettings;
-    SomeIp?: SomeIpParserSettings;
-    Text?: void;
-}
-export interface Transport {
-    Process?: ProcessTransportConfig;
-    TCP?: TCPTransportConfig;
-    UDP?: UDPTransportConfig;
-    Serial?: SerialTransportConfig;
-}
 export interface UDPTransportConfig {
     bind_addr: string;
     multicast: MulticastInfo[];
 }
-export interface UdpConnectionInfo {
-    multicast_addr: MulticastInfo[];
+export type ParserType =
+    { Dlt: DltParserSettings } |
+    { SomeIp: SomeIpParserSettings } |
+    { Text: void };
+export interface TCPTransportConfig {
+    bind_addr: string;
 }
+export type ObserveOrigin =
+    { File: [string,FileFormat,string] } |
+    { Concat: [string, FileFormat, string][] } |
+    { Stream: [string,Transport] };

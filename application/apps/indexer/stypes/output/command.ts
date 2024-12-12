@@ -1,30 +1,24 @@
+import { SerialPortsList } from "./serial";
+export type CommandOutcomeSerialPortsList =
+    { Finished: SerialPortsList } |
+    "Cancelled";
 export enum CommandOutcomeVoid {
     Finished,
     Cancelled,
 }
-import { SerialPortsList } from "./serial";
-export interface CommandOutcomeSerialPortsList {
-    Finished?: SerialPortsList;
-    Cancelled?: null;
-}
-export interface CommandOutcomeString {
-    Finished?: string;
-    Cancelled?: null;
-}
+export type CommandOutcomei64 =
+    { Finished: number } |
+    "Cancelled";
 import { FoldersScanningResult } from "./folders";
-export interface CommandOutcomeFoldersScanningResult {
-    Finished?: FoldersScanningResult;
-    Cancelled?: null;
-}
-export interface CommandOutcomeOptionalString {
-    Finished?: string | null;
-    Cancelled?: null;
-}
-export interface CommandOutcomei64 {
-    Finished?: number;
-    Cancelled?: null;
-}
-export interface CommandOutcomeBool {
-    Finished?: boolean;
-    Cancelled?: null;
-}
+export type CommandOutcomeFoldersScanningResult =
+    { Finished: FoldersScanningResult } |
+    "Cancelled";
+export type CommandOutcomeOptionalString =
+    { Finished: string | null } |
+    "Cancelled";
+export type CommandOutcomeBool =
+    { Finished: boolean } |
+    "Cancelled";
+export type CommandOutcomeString =
+    { Finished: string } |
+    "Cancelled";
