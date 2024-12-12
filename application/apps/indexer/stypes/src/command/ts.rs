@@ -4,10 +4,7 @@ use crate::*;
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeFoldersScanningResult {
     /// Indicates that the command was successfully completed.
     Finished(FoldersScanningResult),
@@ -19,10 +16,7 @@ pub enum CommandOutcomeFoldersScanningResult {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeSerialPortsList {
     /// Indicates that the command was successfully completed.
     Finished(SerialPortsList),
@@ -34,10 +28,7 @@ pub enum CommandOutcomeSerialPortsList {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeVoid {
     /// Indicates that the command was successfully completed.
     Finished,
@@ -49,10 +40,7 @@ pub enum CommandOutcomeVoid {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomei64 {
     /// Indicates that the command was successfully completed.
     Finished(i64),
@@ -64,10 +52,7 @@ pub enum CommandOutcomei64 {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeOptionalString {
     /// Indicates that the command was successfully completed.
     Finished(Option<String>),
@@ -79,10 +64,7 @@ pub enum CommandOutcomeOptionalString {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeString {
     /// Indicates that the command was successfully completed.
     Finished(String),
@@ -94,10 +76,7 @@ pub enum CommandOutcomeString {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/command.ts", module = "command")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeBool {
     /// Indicates that the command was successfully completed.
     Finished(bool),

@@ -12,10 +12,7 @@ use crate::*;
 /// Contains the results of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/callback.ts", module = "callback")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "callback.ts"))]
 pub struct OperationDone {
     /// The unique identifier of the operation.
     pub uuid: Uuid,
@@ -26,10 +23,7 @@ pub struct OperationDone {
 /// Represents events sent to the client.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
-#[cfg_attr(
-    test,
-    tslink::tslink(target = "./stypes/output/callback.ts", module = "callback")
-)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "callback.ts"))]
 pub enum CallbackEvent {
     /// Triggered when the content of the current session is updated.
     /// - `u64`: The current number of log entries in the stream.
@@ -49,6 +43,7 @@ pub enum CallbackEvent {
         /// A map of search conditions and their global match counts within the session.
         /// - `String`: The search condition.
         /// - `u64`: The count of matches.
+        #[cfg_attr(test, ts(type = "Map<string, number>"))]
         stat: HashMap<String, u64>,
     },
 
@@ -67,6 +62,7 @@ pub enum CallbackEvent {
     /// Triggered when the "value map" is updated. The "value map" is used to build charts
     /// from search results. Always triggered immediately after `SearchUpdated`.
     /// - `Option<HashMap<u8, (f64, f64)>>`: The value map.
+    #[cfg_attr(test, ts(type = "Map<number, [number, number]>"))]
     SearchValuesUpdated(Option<HashMap<u8, (f64, f64)>>),
 
     /// Triggered whenever a new attachment is detected in the logs.
