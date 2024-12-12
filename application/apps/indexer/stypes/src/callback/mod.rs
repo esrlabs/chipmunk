@@ -17,7 +17,7 @@ pub struct OperationDone {
     /// The unique identifier of the operation.
     pub uuid: Uuid,
     /// The results of the operation, if available.
-    pub result: Option<String>,
+    pub result: Option<Vec<u8>>,
 }
 
 /// Represents events sent to the client.

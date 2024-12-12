@@ -9,6 +9,22 @@ mod proptest;
 
 use crate::*;
 
+/// Used to delivery results of extracting values. That's used in the scope
+/// of chart feature
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ExtractedMatchValue {
+    /// The index of log entry (row number)
+    pub index: u64,
+    /// List of matches:
+    /// `usize` - index of filter
+    /// `Vec<String>` - list of extracted values
+    pub values: Vec<(usize, Vec<String>)>,
+}
+
+/// Representation of ranges. We cannot use std ranges as soon as no way
+/// to derive Serialize, Deserialize
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]

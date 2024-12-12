@@ -161,7 +161,10 @@ impl std::fmt::Display for OperationKind {
 #[derive(Debug, Serialize, Clone)]
 pub struct NoOperationResults;
 
-pub type OperationResult<T> = Result<Option<T>, stypes::NativeError>;
+pub type OperationResult<T>
+where
+    T: Serialize,
+= Result<Option<T>, stypes::NativeError>;
 
 #[derive(Clone)]
 pub struct OperationAPI {
@@ -223,13 +226,11 @@ impl OperationAPI {
         let event = match result {
             Ok(result) => {
                 if let Some(result) = result.as_ref() {
-                    match serde_json::to_string(result) {
-                        Ok(serialized) => {
-                            stypes::CallbackEvent::OperationDone(stypes::OperationDone {
-                                uuid: self.operation_id,
-                                result: Some(serialized),
-                            })
-                        }
+                    match stypes::serialize(result) {
+                        Ok(bytes) => stypes::CallbackEvent::OperationDone(stypes::OperationDone {
+                            uuid: self.operation_id,
+                            result: Some(bytes),
+                        }),
                         Err(err) => stypes::CallbackEvent::OperationError {
                             uuid: self.operation_id,
                             error: stypes::NativeError {

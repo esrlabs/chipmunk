@@ -126,3 +126,8 @@ pub(crate) use node_bindgen::{
 pub(crate) use proptest::prelude::*;
 #[cfg(test)]
 pub(crate) use tests::*;
+
+#[cfg(feature = "rustcore")]
+pub fn serialize<T: Serialize>(v: &T) -> Result<Vec<u8>, bincode::Error> {
+    bincode::serialize(v)
+}
