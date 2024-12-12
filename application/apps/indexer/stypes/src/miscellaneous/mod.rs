@@ -23,6 +23,30 @@ pub struct ExtractedMatchValue {
     pub values: Vec<(usize, Vec<String>)>,
 }
 
+/// The list of `ExtractedMatchValue`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ExtractedMatchValueList(pub Vec<ExtractedMatchValue>);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ResultU64(pub u64);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct ResultBool(pub bool);
+
+/// Used only for debug session lifecycle
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct SleepResult {
+    pub sleep_well: bool,
+}
+
 /// Representation of ranges. We cannot use std ranges as soon as no way
 /// to derive Serialize, Deserialize
 #[derive(Clone, Serialize, Deserialize, Debug)]
