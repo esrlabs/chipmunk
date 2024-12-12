@@ -38,3 +38,4 @@ tslink = {path = "../../../../../../private/tslink"}
 [tslink]
 
 type_map = { Uuid = "string", PathBuf = "string" }
+enum_representation = "collapsed"
