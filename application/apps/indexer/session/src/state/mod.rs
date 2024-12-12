@@ -616,7 +616,9 @@ pub async fn run(
             }
             Api::GetNearestPosition((position, tx_response)) => {
                 tx_response
-                    .send(state.search_map.nearest_to(position))
+                    .send(stypes::ResultNearestPosition(
+                        state.search_map.nearest_to(position),
+                    ))
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::GetNearestPosition")
                     })?;

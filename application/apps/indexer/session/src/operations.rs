@@ -318,7 +318,9 @@ impl OperationAPI {
                 }
                 OperationKind::Search { filters } => {
                     api.finish(
-                        handlers::search::execute_search(&api, filters, state).await,
+                        handlers::search::execute_search(&api, filters, state)
+                            .await
+                            .map(|v| v.map(stypes::ResultU64)),
                         operation_str,
                     )
                     .await;
@@ -348,6 +350,7 @@ impl OperationAPI {
                                 api.cancellation_token(),
                             )
                             .await
+                            .map(stypes::ResultBool)
                             .ok()),
                         operation_str,
                     )
@@ -361,7 +364,8 @@ impl OperationAPI {
                             out_path,
                             ranges,
                         )
-                        .await,
+                        .await
+                        .map(|v| v.map(stypes::ResultBool)),
                         operation_str,
                     )
                     .await;
@@ -374,7 +378,8 @@ impl OperationAPI {
                         return;
                     };
                     api.finish(
-                        handlers::extract::handle(&session_file, filters.iter()),
+                        handlers::extract::handle(&session_file, filters.iter())
+                            .map(|v| v.map(stypes::ResultExtractedMatchValues)),
                         operation_str,
                     )
                     .await;
@@ -382,7 +387,11 @@ impl OperationAPI {
                 OperationKind::Map { dataset_len, range } => {
                     match state.get_scaled_map(dataset_len, range).await {
                         Ok(map) => {
-                            api.finish(Ok(Some(map)), operation_str).await;
+                            api.finish(
+                                Ok(Some(stypes::ResultScaledDistribution(map))),
+                                operation_str,
+                            )
+                            .await;
                         }
                         Err(err) => {
                             api.finish::<OperationResult<()>>(Err(err), operation_str)
@@ -452,7 +461,7 @@ impl OperationAPI {
                 OperationKind::GetNearestPosition(position) => {
                     match state.get_nearest_position(position).await {
                         Ok(nearest) => {
-                            api.finish(Ok(nearest), operation_str).await;
+                            api.finish(Ok(Some(nearest)), operation_str).await;
                         }
                         Err(err) => {
                             api.finish::<OperationResult<()>>(Err(err), operation_str)

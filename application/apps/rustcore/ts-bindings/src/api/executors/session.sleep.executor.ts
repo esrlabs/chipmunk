@@ -2,6 +2,8 @@ import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './ex
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 
+import * as protocol from 'protocol';
+
 export interface IExecuteSleepOptions {
     duration: number;
     ignoreCancellation: boolean;
@@ -28,9 +30,13 @@ export const executor: TExecutor<ISleepResults, IExecuteSleepOptions> = (
         ): Promise<void> {
             return session.sleep(operationUuid, options.duration, options.ignoreCancellation);
         },
-        function (data: any, resolve: (res: ISleepResults) => void, reject: (err: Error) => void) {
+        function (
+            data: Uint8Array,
+            resolve: (res: ISleepResults) => void,
+            reject: (err: Error) => void,
+        ) {
             try {
-                const result: ISleepResults = JSON.parse(data);
+                const result: ISleepResults = protocol.decodeSleepResult(data);
                 resolve(result);
             } catch (e) {
                 return reject(

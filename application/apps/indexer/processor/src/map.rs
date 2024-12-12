@@ -32,12 +32,6 @@ impl Default for FiltersStats {
     }
 }
 
-#[derive(Default, Debug, Serialize)]
-pub struct NearestPosition {
-    pub index: u64,    // Position in search results
-    pub position: u64, // Position in original stream/file
-}
-
 #[derive(Error, Debug, Serialize)]
 pub enum MapError {
     #[error("Out of range ({0})")]
@@ -208,7 +202,7 @@ impl SearchMap {
     /// [10, 200, 300, 350]
     /// In that case nearest for 310 will be 300
     /// Returns None if there are no search results
-    pub fn nearest_to(&self, position_in_stream: u64) -> Option<NearestPosition> {
+    pub fn nearest_to(&self, position_in_stream: u64) -> Option<stypes::NearestPosition> {
         if self.matches.is_empty() {
             None
         } else {
@@ -226,7 +220,7 @@ impl SearchMap {
             if distance == i64::MAX {
                 None
             } else {
-                Some(NearestPosition { index, position })
+                Some(stypes::NearestPosition { index, position })
             }
         }
     }
