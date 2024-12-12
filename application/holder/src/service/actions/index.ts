@@ -6,3 +6,4 @@ export { handler as settings } from './settings';
 export { handler as updates } from './updates';
 export { handler as help } from './help';
 export { handler as jumpto } from './jumpto';
+export { handler as pluginsManager } from './plugins_manager';

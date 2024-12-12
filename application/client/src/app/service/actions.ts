@@ -270,6 +270,30 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.PluginsManager.Request,
+                    (
+                        _request: Requests.Actions.PluginsManager.Request,
+                    ): CancelablePromise<Requests.Actions.PluginsManager.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.PluginsManager.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call plugins manager action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.PluginsManager.Response());
+                                });
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 }

@@ -8,6 +8,7 @@ import { DialogsModule } from '@ui/views/dialogs/module';
 import { SettingsModule } from '@ui/tabs/settings/module';
 import { ChangelogModule } from '@ui/tabs/changelogs/module';
 import { HelpModule } from '@ui/tabs/help/module';
+import { PluginsManagerModule } from '@ui/tabs/plugins/module';
 
 @NgModule({
     imports: [CommonModule, TimezoneSelectorModule],
@@ -20,6 +21,7 @@ import { HelpModule } from '@ui/tabs/help/module';
         SettingsModule,
         ChangelogModule,
         HelpModule,
+        PluginsManagerModule,
     ],
     bootstrap: [
         TimezoneSelectorModule,
@@ -30,6 +32,7 @@ import { HelpModule } from '@ui/tabs/help/module';
         SettingsModule,
         ChangelogModule,
         HelpModule,
+        PluginsManagerModule,
     ],
 })
 export class TabsModule {}

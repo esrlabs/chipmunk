@@ -488,6 +488,22 @@ export class Service extends Implementation {
                 ],
             },
             {
+                label: 'Plugins',
+                submenu: [
+                    {
+                        label: 'Plugins Manager',
+                        click: async () => {
+                            this.log().info('Plugins manager clicked');
+                            Actions.pluginsManager().catch((err: Error) => {
+                                this.log().error(
+                                    `Fail call action Plugins Manager: ${err.message}`,
+                                );
+                            });
+                        },
+                    },
+                ],
+            },
+            {
                 label: 'Edit',
                 submenu: [
                     { role: 'undo' },
