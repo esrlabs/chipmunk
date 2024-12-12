@@ -33,9 +33,4 @@ proptest = "1.5"
 paste = "1.0"
 uuid = { workspace = true, features = ["serde", "v4"] }
 remove_dir_all = "1.0"
-tslink = {path = "../../../../../../private/tslink"}
-
-[tslink]
-
-type_map = { Uuid = "string", PathBuf = "string" }
-enum_representation = "collapsed"
+ts-rs = { version = "10.1", features = ["uuid-impl"] }
