@@ -12,7 +12,7 @@ impl Arbitrary for OperationDone {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (Just(Uuid::new_v4()), any::<Option<String>>())
+        (Just(Uuid::new_v4()), any::<Option<Vec<u8>>>())
             .prop_map(|(uuid, result)| OperationDone { uuid, result })
             .boxed()
     }

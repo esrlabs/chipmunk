@@ -2842,6 +2842,7 @@ dependencies = [
  "node-bindgen",
  "paste",
  "proptest",
+ "regex",
  "remove_dir_all",
  "serde",
  "thiserror 2.0.3",
