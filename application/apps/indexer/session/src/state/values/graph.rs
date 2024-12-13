@@ -13,6 +13,18 @@ pub struct CandlePoint {
     y_value: f64,
 }
 
+impl From<CandlePoint> for stypes::Point {
+    fn from(v: CandlePoint) -> Self {
+        let (min, max) = v.min_max_y.unwrap_or((v.y_value, v.y_value));
+        stypes::Point {
+            row: v.row,
+            min,
+            max,
+            y_value: v.y_value,
+        }
+    }
+}
+
 impl Serialize for CandlePoint {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
