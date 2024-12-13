@@ -16,3 +16,5 @@ export class Response extends SignatureRequirement {
         this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
     }
 }
+
+export interface Response extends Interface {}

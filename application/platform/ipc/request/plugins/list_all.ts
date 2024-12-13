@@ -8,7 +8,7 @@ export interface Request extends Interface {}
 
 @Define({ name: 'ListAllPluginsRespond' })
 export class Response extends SignatureRequirement {
-    public pluginsJson?: string;
+    public pluginsJson: string;
     public error?: string;
 
     constructor(input: { pluginsJson?: string; error?: string }) {

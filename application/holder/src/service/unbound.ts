@@ -83,6 +83,33 @@ export class Service extends Implementation {
                     RequestHandlers.Serial.Ports.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.ListAll.Request,
+                    RequestHandlers.Plugins.ListAll.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.ListActive.Request,
+                    RequestHandlers.Plugins.ListActive.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.Reload.Request,
+                    RequestHandlers.Plugins.Relaod.handler,
+                ),
+        );
         return Promise.resolve();
     }
 

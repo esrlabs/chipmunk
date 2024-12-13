@@ -8,7 +8,7 @@ export interface Request extends Interface {}
 
 @Define({ name: 'ListActivePluginsResponse' })
 export class Response extends SignatureRequirement {
-    public pluginsJson?: string;
+    public pluginsJson: string;
     public error?: string;
 
     constructor(input: { pluginsJson?: string; error?: string }) {
@@ -18,3 +18,5 @@ export class Response extends SignatureRequirement {
         this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
     }
 }
+
+export interface Response extends Interface {}
