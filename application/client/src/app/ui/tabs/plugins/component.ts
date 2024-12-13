@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, AfterContentInit } from '@angular/core';
+import { Component, ChangeDetectorRef, AfterContentInit, Input } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -13,33 +13,58 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 @Initial()
 @Ilc()
 export class PluginsManager extends ChangesDetector implements AfterContentInit {
+    @Input() public allPlugins!: string;
+    @Input() public activePlugins!: string;
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
-    public ngAfterContentInit(): void {
-        //TODO AAZ: Remove debug code once done.
-        this.log().debug(`After initial plugins manager`);
+    public onReloadClick(): void {
+        this.allPlugins = 'Loading ...';
+        this.activePlugins = 'Loading ...';
+        this.detectChanges();
+
+        this.ilc()
+            .services.system.plugins.reloadPlugins()
+
+            .then(() => {
+                this.loadPlugins();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Error while reloading: ${err}`);
+            });
+    }
+
+    loadPlugins(): void {
         this.ilc()
             .services.system.plugins.allPlugins()
             .then((pluginsJson) => {
-                this.log().debug(`All Plugins: ${pluginsJson}`);
-                return this.ilc().services.system.plugins.activePlugins();
-            })
-            .then((activePluginsJson) => {
-                this.log().debug(`Active Plugins: ${activePluginsJson}`);
-                return this.ilc().services.system.plugins.reloadPlugins();
-            })
-            .then(() => {
-                this.log().debug('Reload finished');
-                return this.ilc().services.system.plugins.allPlugins();
-            })
-            .then((pluginsJson) => {
-                this.log().debug(`All Plugins After Reload: ${pluginsJson}`);
+                const plugins = JSON.parse(pluginsJson);
+                const plugins_pretty = JSON.stringify(plugins, null, 2);
+
+                this.allPlugins = plugins_pretty;
+                this.detectChanges();
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get all plugins: ${err}`);
             });
+
+        this.ilc()
+            .services.system.plugins.activePlugins()
+            .then((activePluginsJson) => {
+                const plugins = JSON.parse(activePluginsJson);
+                const plugins_pretty = JSON.stringify(plugins, null, 2);
+                this.activePlugins = plugins_pretty;
+                this.detectChanges();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get active plugins: ${err}`);
+            });
+    }
+
+    public ngAfterContentInit(): void {
+        this.loadPlugins();
     }
 }
 
