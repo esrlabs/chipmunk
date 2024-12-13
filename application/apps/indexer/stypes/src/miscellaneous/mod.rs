@@ -27,16 +27,17 @@ pub struct ResultNearestPosition(pub Option<NearestPosition>);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
-pub struct CandlePoint {
+pub struct Point {
     pub row: u64,
-    pub min_max_y: Option<(f64, f64)>,
+    pub min: f64,
+    pub max: f64,
     pub y_value: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
-pub struct ResultSearchValues(pub HashMap<u8, Vec<CandlePoint>>);
+pub struct ResultSearchValues(pub HashMap<u8, Vec<Point>>);
 
 /// Scaled chart data
 #[derive(Debug, Clone, Serialize, Deserialize)]
