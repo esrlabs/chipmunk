@@ -1,12 +1,6 @@
 use crate::*;
 use std::ops::RangeInclusive;
 
-impl From<(u64, f64)> for CandlePoint {
-    fn from(point: (u64, f64)) -> Self {
-        CandlePoint::new(point.0, point.1)
-    }
-}
-
 impl From<Vec<GrabbedElement>> for GrabbedElementList {
     /// Converts a `Vec<GrabbedElement>` into a `GrabbedElementList`.
     ///

@@ -402,7 +402,17 @@ impl OperationAPI {
                 OperationKind::Values { dataset_len, range } => {
                     match state.get_search_values(range, dataset_len).await {
                         Ok(map) => {
-                            api.finish(Ok(Some(map)), operation_str).await;
+                            api.finish(
+                                Ok(Some(stypes::ResultSearchValues(
+                                    map.into_iter()
+                                        .map(|(k, v)| {
+                                            (k, v.into_iter().map(|v| v.into()).collect())
+                                        })
+                                        .collect(),
+                                ))),
+                                operation_str,
+                            )
+                            .await;
                         }
                         Err(err) => {
                             api.finish::<OperationResult<()>>(Err(err), operation_str)

@@ -29,7 +29,7 @@ impl Arbitrary for ResultNearestPosition {
     }
 }
 
-impl Arbitrary for CandlePoint {
+impl Arbitrary for Point {
     /// Implements the `Arbitrary` trait for `ExtractedMatchValue` to generate random values for
     /// property-based testing using the `proptest` framework.
     type Parameters = ();
@@ -38,12 +38,14 @@ impl Arbitrary for CandlePoint {
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         (
             any::<u32>().prop_map(|n| n as u64),
-            prop::option::of(any::<(f32, f32)>().prop_map(|(a, b)| (a as f64, b as f64))),
+            any::<f32>().prop_map(|n| n as f64),
+            any::<f32>().prop_map(|n| n as f64),
             any::<f32>().prop_map(|n| n as f64),
         )
-            .prop_map(|(row, min_max_y, y_value)| CandlePoint {
+            .prop_map(|(row, min, max, y_value)| Point {
                 row,
-                min_max_y,
+                min,
+                max,
                 y_value,
             })
             .boxed()
@@ -57,7 +59,7 @@ impl Arbitrary for ResultSearchValues {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        any::<HashMap<u8, Vec<CandlePoint>>>()
+        any::<HashMap<u8, Vec<Point>>>()
             .prop_map(|v| ResultSearchValues(v))
             .boxed()
     }
@@ -332,7 +334,7 @@ impl Arbitrary for FilterMatchList {
 
 test_msg!(NearestPosition, TESTS_USECASE_COUNT);
 test_msg!(ResultNearestPosition, TESTS_USECASE_COUNT);
-test_msg!(CandlePoint, TESTS_USECASE_COUNT);
+test_msg!(Point, TESTS_USECASE_COUNT);
 test_msg!(ResultSearchValues, TESTS_USECASE_COUNT);
 test_msg!(ResultScaledDistribution, TESTS_USECASE_COUNT);
 test_msg!(ExtractedMatchValue, TESTS_USECASE_COUNT);
