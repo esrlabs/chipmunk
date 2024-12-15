@@ -7,3 +7,4 @@ export * from './miscellaneous';
 export * from './observe';
 export * from './progress';
 export * from './dlt';
+export * from './operations';

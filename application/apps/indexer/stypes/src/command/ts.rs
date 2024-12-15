@@ -43,6 +43,7 @@ pub enum CommandOutcomeVoid {
 #[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomei64 {
     /// Indicates that the command was successfully completed.
+    #[cfg_attr(test, ts(type = "number"))]
     Finished(i64),
     /// Indicates that the command execution was interrupted.
     Cancelled,

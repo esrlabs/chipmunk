@@ -7,11 +7,11 @@ import type { Progress } from "./progress";
 /**
  * Represents events sent to the client.
  */
-export type CallbackEvent = { "StreamUpdated": bigint } | "FileRead" | { "SearchUpdated": { 
+export type CallbackEvent = { "StreamUpdated": number } | "FileRead" | { "SearchUpdated": { 
 /**
  * The number of logs with matches. Can be `0` if the search is reset on the client side.
  */
-found: bigint, 
+found: number, 
 /**
  * A map of search conditions and their global match counts within the session.
  * - `String`: The search condition.
@@ -21,11 +21,11 @@ stat: Map<string, number>, } } | { "IndexedMapUpdated": {
 /**
  * The number of log entries from search results available for reading.
  */
-len: bigint, } } | { "SearchMapUpdated": FilterMatchList | null } | { "SearchValuesUpdated": Map<number, [number, number]> } | { "AttachmentsUpdated": { 
+len: number, } } | { "SearchMapUpdated": FilterMatchList | null } | { "SearchValuesUpdated": Map<number, [number, number]> } | { "AttachmentsUpdated": { 
 /**
  * The size of the attachment in bytes.
  */
-len: bigint, 
+len: number, 
 /**
  * The description of the attachment.
  */

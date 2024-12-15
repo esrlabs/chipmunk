@@ -22,12 +22,14 @@ pub struct AttachmentInfo {
     /// The file extension, if available.
     pub ext: Option<String>,
     /// The size of the file in bytes.
+    #[cfg_attr(test, ts(type = "number"))]
     pub size: usize,
     /// The `mime` type of the file, if it could be determined.
     pub mime: Option<String>,
     /// The log entry numbers containing the application data. Note that the application
     /// data may be contained in a single log entry or split into parts distributed
     /// across sequential log entries.
+    #[cfg_attr(test, ts(type = "number[]"))]
     pub messages: Vec<usize>,
 }
 
