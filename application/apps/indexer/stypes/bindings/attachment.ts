@@ -34,7 +34,7 @@ mime: string | null,
  * data may be contained in a single log entry or split into parts distributed
  * across sequential log entries.
  */
-messages: Array<number>, };
+messages: number[], };
 
 /**
  * A list of attachments.
