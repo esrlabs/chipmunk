@@ -15,7 +15,9 @@ use crate::*;
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
 pub struct Range {
+    #[cfg_attr(test, ts(type = "number"))]
     pub start: u64,
+    #[cfg_attr(test, ts(type = "number"))]
     pub end: u64,
 }
 
@@ -62,6 +64,7 @@ pub enum SdeRequest {
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
 pub struct SdeResponse {
     /// The number of bytes received.
+    #[cfg_attr(test, ts(type = "number"))]
     pub bytes: usize,
 }
 
@@ -75,6 +78,7 @@ pub struct GrabbedElement {
     /// The textual content of the log entry.
     pub content: String,
     /// The position of the log entry in the overall stream.
+    #[cfg_attr(test, ts(type = "number"))]
     pub pos: usize,
     /// The nature of the log entry, represented as a bitmask. Possible values include:
     /// - `SEARCH`: Nature = Nature(1)
@@ -96,6 +100,10 @@ pub struct GrabbedElementList(pub Vec<GrabbedElement>);
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+#[cfg_attr(
+    test,
+    ts(type = "[number | undefined | null, number | undefined | null]")
+)]
 pub struct AroundIndexes(pub (Option<u64>, Option<u64>));
 
 /// Describes a match for a search condition.
@@ -104,6 +112,7 @@ pub struct AroundIndexes(pub (Option<u64>, Option<u64>));
 #[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
 pub struct FilterMatch {
     /// The index (number) of the matching log entry.
+    #[cfg_attr(test, ts(type = "number"))]
     pub index: u64,
     /// The identifiers of the filters (search conditions) that matched
     /// the specified log entry.

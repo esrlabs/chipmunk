@@ -31,7 +31,7 @@ export type Ticks = {
 /**
  * The current progress count, typically representing `n` out of `100%`.
  */
-count: bigint, 
+count: number, 
 /**
  * The name of the current progress stage, for user display purposes.
  */
@@ -40,4 +40,4 @@ state: string | null,
  * The total progress counter. Usually `100`, but for file operations,
  * it might represent the file size, where `count` indicates the number of bytes read.
  */
-total: bigint | null, };
+total: number | null | undefined, };

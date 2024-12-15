@@ -47,7 +47,7 @@ export type CommandOutcomeVoid = "Finished" | "Cancelled";
  * At the core level, this type is used for all commands invoked within an `UnboundSession`.
  * It is only used to indicate the successful completion or interruption of a command.
  */
-export type CommandOutcomei64 = { "Finished": bigint } | "Cancelled";
+export type CommandOutcomei64 = { "Finished": number } | "Cancelled";
 
 /**
  * Represents a folder entity in the file system.
