@@ -99,6 +99,7 @@ mod error;
 mod lf_transition;
 mod miscellaneous;
 mod observe;
+mod operations;
 mod progress;
 
 pub use attachment::*;
@@ -108,6 +109,7 @@ pub use error::*;
 pub use lf_transition::*;
 pub use miscellaneous::*;
 pub use observe::*;
+pub use operations::*;
 pub use progress::*;
 
 pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};
