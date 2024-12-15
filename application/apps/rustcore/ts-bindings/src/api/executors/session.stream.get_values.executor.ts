@@ -47,8 +47,8 @@ export const executor: TExecutor<IValuesMap, IOptions> = (
         },
         function (data: Uint8Array, resolve: (r: IValuesMap) => void, reject: (e: Error) => void) {
             try {
-                const map = protocol.decodeResultSearchValues(data);
-                resolve(data as IValuesMap);
+                const map: IValuesMap = protocol.decodeResultSearchValues(data);
+                resolve(map as IValuesMap);
             } catch (e) {
                 reject(new Error(error(e)));
             }

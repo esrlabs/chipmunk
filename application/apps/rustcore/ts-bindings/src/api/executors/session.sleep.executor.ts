@@ -36,7 +36,7 @@ export const executor: TExecutor<ISleepResults, IExecuteSleepOptions> = (
             reject: (err: Error) => void,
         ) {
             try {
-                const result: ISleepResults = protocol.decodeSleepResult(data);
+                const result: ISleepResults = protocol.decodeResultSleep(data);
                 resolve(result);
             } catch (e) {
                 return reject(

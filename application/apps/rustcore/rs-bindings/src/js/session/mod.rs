@@ -392,8 +392,8 @@ impl RustSession {
         options: JSArrayBuffer,
         operation_id: String,
     ) -> Result<(), stypes::ComputationError> {
-        let options = stypes::ObserveOptions::decode(&options.to_vec())
-            .map_err(stypes::ComputationError::Decoding)?;
+        let options =
+            stypes::ObserveOptions::decode(&options).map_err(stypes::ComputationError::Decoding)?;
         self.session
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
@@ -576,8 +576,8 @@ impl RustSession {
         target: String,
         request: JSArrayBuffer,
     ) -> Result<stypes::SdeResponse, stypes::ComputationError> {
-        let request = stypes::SdeRequest::decode(&request.to_vec())
-            .map_err(stypes::ComputationError::Decoding)?;
+        let request =
+            stypes::SdeRequest::decode(&request).map_err(stypes::ComputationError::Decoding)?;
         let session = self
             .session
             .as_ref()
@@ -622,7 +622,7 @@ impl RustSession {
                         stypes::ComputationError::NativeError(e),
                     )
                 })?;
-        Ok(stypes::Ranges(ranges))
+        Ok(ranges.into())
     }
 
     #[node_bindgen]
@@ -633,7 +633,7 @@ impl RustSession {
             .state
             .set_debug(debug)
             .await
-            .map_err(|e: stypes::NativeError| stypes::ComputationError::NativeError(e).into())
+            .map_err(|e: stypes::NativeError| stypes::ComputationError::NativeError(e))
     }
 
     #[node_bindgen]
@@ -644,7 +644,7 @@ impl RustSession {
             .tracker
             .get_operations_stat()
             .await
-            .map_err(|e: stypes::NativeError| stypes::ComputationError::NativeError(e).into())
+            .map_err(|e: stypes::NativeError| stypes::ComputationError::NativeError(e))
     }
 
     #[node_bindgen]

@@ -29,7 +29,7 @@ export const executor: TExecutor<boolean, Options> = (
             resolve: (done: boolean) => void,
             reject: (err: Error) => void,
         ) {
-            const result = protocol.decodeResultBool(data);
+            const result: boolean = protocol.decodeResultBool(data);
             if (typeof result !== 'boolean') {
                 return reject(
                     new Error(
