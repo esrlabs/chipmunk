@@ -43,7 +43,14 @@ export enum EFlag {
 
 export type ISearchMap = Array<[number, number][]>;
 
-export type IValuesMap = Map<number, [number, number, number, number][]>;
+export interface Point {
+    row: number;
+    min: number;
+    max: number;
+    y_value: number;
+}
+
+export type IValuesMap = [number, Point[]][];
 
 export type IValuesMinMaxMap = { [key: number]: [number, number] };
 

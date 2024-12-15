@@ -2344,6 +2344,7 @@ dependencies = [
  "dlt-core",
  "extend",
  "node-bindgen",
+ "regex",
  "serde",
  "thiserror 2.0.3",
  "tokio",

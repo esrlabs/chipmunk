@@ -32,7 +32,7 @@ export const executor: TExecutor<TExtractedValues, IFilter[]> = (
             reject: (err: Error) => void,
         ) {
             try {
-                const src: TExtractedValuesSrc = protocol.decodeExtractedMatchValueList(data);
+                const src: TExtractedValuesSrc = protocol.decodeResultExtractedMatchValues(data);
                 if (!(src instanceof Array)) {
                     return reject(
                         new Error(

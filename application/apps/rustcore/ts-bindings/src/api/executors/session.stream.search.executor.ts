@@ -24,7 +24,7 @@ export const executor: TExecutor<number, IFilter[]> = (
             resolve: (found: number) => void,
             reject: (err: Error) => void,
         ) {
-            const found = protocol.decodeResultU64(data);
+            const found: number = protocol.decodeResultU64(data);
             if (typeof found !== 'number' || isNaN(found) || !isFinite(found)) {
                 return reject(
                     new Error(

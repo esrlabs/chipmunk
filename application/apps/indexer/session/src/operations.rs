@@ -161,10 +161,7 @@ impl std::fmt::Display for OperationKind {
 #[derive(Debug, Serialize, Clone)]
 pub struct NoOperationResults;
 
-pub type OperationResult<T>
-where
-    T: Serialize,
-= Result<Option<T>, stypes::NativeError>;
+pub type OperationResult<T> = Result<Option<T>, stypes::NativeError>;
 
 #[derive(Clone)]
 pub struct OperationAPI {
