@@ -39,8 +39,7 @@ export class PluginsManager extends ChangesDetector implements AfterContentInit 
     loadPlugins(): void {
         this.ilc()
             .services.system.plugins.allPlugins()
-            .then((pluginsJson) => {
-                const plugins = JSON.parse(pluginsJson);
+            .then((plugins) => {
                 const plugins_pretty = JSON.stringify(plugins, null, 2);
 
                 this.allPlugins = plugins_pretty;
@@ -52,9 +51,8 @@ export class PluginsManager extends ChangesDetector implements AfterContentInit 
 
         this.ilc()
             .services.system.plugins.activePlugins()
-            .then((activePluginsJson) => {
-                const plugins = JSON.parse(activePluginsJson);
-                const plugins_pretty = JSON.stringify(plugins, null, 2);
+            .then((activePlugins) => {
+                const plugins_pretty = JSON.stringify(activePlugins, null, 2);
                 this.activePlugins = plugins_pretty;
                 this.detectChanges();
             })

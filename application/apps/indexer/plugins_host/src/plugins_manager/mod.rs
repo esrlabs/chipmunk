@@ -36,7 +36,7 @@ pub enum PluginState {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RenderOptions {
-    Parser(ParserRenderOptions),
+    Parser(Box<ParserRenderOptions>),
     ByteSource,
 }
 

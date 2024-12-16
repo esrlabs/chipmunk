@@ -42,7 +42,7 @@ impl PluginParser {
         Ok(PluginInfo {
             version,
             config_schemas,
-            render_options: RenderOptions::Parser(render_options),
+            render_options: RenderOptions::Parser(Box::new(render_options)),
         })
     }
 

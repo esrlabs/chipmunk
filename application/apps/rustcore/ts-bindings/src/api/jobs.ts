@@ -5,6 +5,7 @@ import { IFilter } from 'platform/types/filter';
 import { ShellProfile } from 'platform/types/shells';
 import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import { StatisticInfo } from 'platform/types/observe/parser/dlt';
+import { PluginEntity } from 'platform/types/plugins';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {
@@ -247,16 +248,15 @@ export class Jobs extends Base {
         return job;
     }
 
-    //TODO AAZ: There is no type conversion currently.
-    //This first prototype should deliver the json values as string to
-    //show them in the UI
-    public getAllPlugins(): CancelablePromise<string> {
+    public getAllPlugins(): CancelablePromise<PluginEntity[]> {
         const sequence = this.sequence();
-        const job: CancelablePromise<string> = this.execute(
-            (res: string): string | Error => {
-                return typeof res === 'string'
-                    ? res
-                    : new Error(`getAllPlugins should return string while prototyping`);
+        const job: CancelablePromise<PluginEntity[]> = this.execute(
+            (pluginsJson: string): PluginEntity[] | Error => {
+                try {
+                    return JSON.parse(pluginsJson);
+                } catch (e) {
+                    return new Error(error(e));
+                }
             },
             this.native.getAllPlugins(sequence),
             sequence,
@@ -265,13 +265,15 @@ export class Jobs extends Base {
         return job;
     }
 
-    public getActivePlugins(): CancelablePromise<string> {
+    public getActivePlugins(): CancelablePromise<PluginEntity[]> {
         const sequence = this.sequence();
-        const job: CancelablePromise<string> = this.execute(
-            (res: string): string | Error => {
-                return typeof res === 'string'
-                    ? res
-                    : new Error(`getActivePlugins should return string while prototyping`);
+        const job: CancelablePromise<PluginEntity[]> = this.execute(
+            (pluginsJson: string): PluginEntity[] | Error => {
+                try {
+                    return JSON.parse(pluginsJson);
+                } catch (e) {
+                    return new Error(error(e));
+                }
             },
             this.native.getActivePlugins(sequence),
             sequence,
@@ -283,7 +285,7 @@ export class Jobs extends Base {
     public reloadPlugins(): CancelablePromise<void> {
         const sequence = this.sequence();
         const job: CancelablePromise<void> = this.execute(
-            (res: void): void => {},
+            (): void => {},
             this.native.reloadPlugins(sequence),
             sequence,
             'reloadPlugins',

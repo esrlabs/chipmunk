@@ -2,20 +2,20 @@ import { Define, Interface, SignatureRequirement } from '../declarations';
 
 import * as validator from '../../../env/obj';
 
+import { PluginEntity } from '../../../types/plugins';
+
 @Define({ name: 'ListActivePluginsRequest' })
 export class Request extends SignatureRequirement {}
 export interface Request extends Interface {}
 
 @Define({ name: 'ListActivePluginsResponse' })
 export class Response extends SignatureRequirement {
-    public pluginsJson: string;
-    public error?: string;
+    public plugins: PluginEntity[];
 
-    constructor(input: { pluginsJson?: string; error?: string }) {
+    constructor(input: { plugins: PluginEntity[] }) {
         super();
         validator.isObject(input);
-        this.pluginsJson = validator.getAsNotEmptyStringOrAsUndefined(input, 'pluginsJson');
-        this.error = validator.getAsNotEmptyStringOrAsUndefined(input, 'error');
+        this.plugins = validator.getAsArray(input, 'plugins');
     }
 }
 

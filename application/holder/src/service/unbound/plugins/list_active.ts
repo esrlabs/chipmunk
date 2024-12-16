@@ -15,8 +15,8 @@ export const handler = Requests.InjectLogger<
         return new CancelablePromise((reslove, reject) => {
             unbound.jobs
                 .getActivePlugins()
-                .then((pluginsJson) => {
-                    reslove(new Requests.Plugins.ListActive.Response({ pluginsJson }));
+                .then((plugins) => {
+                    reslove(new Requests.Plugins.ListActive.Response({ plugins }));
                 })
                 .catch(reject);
         });
