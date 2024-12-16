@@ -59,7 +59,7 @@ impl Arbitrary for ResultSearchValues {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        any::<Vec<(u8, Vec<Point>)>>()
+        any::<HashMap<u8, Vec<Point>>>()
             .prop_map(ResultSearchValues)
             .boxed()
     }

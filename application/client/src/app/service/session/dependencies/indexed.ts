@@ -93,15 +93,15 @@ export class Indexed extends Subscriber {
             Requests.Stream.Indexed.Response,
             new Requests.Stream.Indexed.Request({
                 session: this._uuid,
-                from: range.from,
-                to: range.to,
+                from: range.start,
+                to: range.end,
             }),
         )
             .then((response: Requests.Stream.Indexed.Response) => {
                 return response.rows;
             })
             .catch((error: Error) => {
-                if (range.to >= this.len()) {
+                if (range.end >= this.len()) {
                     // It might be, during request search map has been changed already
                     // For example we requested range, but right after it, a new search
                     // was created and length of stream became 0

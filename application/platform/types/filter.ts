@@ -50,7 +50,7 @@ export interface Point {
     y_value: number;
 }
 
-export type IValuesMap = [number, Point[]][];
+export type IValuesMap = Map<number, Point[]>;
 
 export type IValuesMinMaxMap = { [key: number]: [number, number] };
 

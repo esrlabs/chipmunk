@@ -1,4 +1,4 @@
-import { IValuesMap, IValuesMinMaxMap } from '@platform/types/filter';
+import { IValuesMap, IValuesMinMaxMap, Point } from '@platform/types/filter';
 import { scheme_color_0, scheme_color_5_75, shadeColor } from '@styles/colors';
 import { Base } from './render';
 import { ChartRequest, ChartType } from '@service/session/dependencies/search/charts/request';
@@ -8,7 +8,7 @@ import { IRange } from '@platform/types/range';
 const GRID_LINES_COUNT = 5;
 
 export class Render extends Base {
-    protected values: IValuesMap = {};
+    protected values: IValuesMap = new Map<number, Point[]>();
     protected peaks: IValuesMinMaxMap = {};
     protected charts: ChartRequest[] = [];
     protected points: boolean = true;
@@ -18,7 +18,7 @@ export class Render extends Base {
         if (this.selected === undefined) {
             return;
         }
-        const selected = this.values[this.selected];
+        const selected = this.values.get(this.selected);
         const peaks = this.peaks[this.selected];
         if (selected === undefined || peaks === undefined) {
             return;
@@ -94,12 +94,12 @@ export class Render extends Base {
         if (frame === undefined) {
             return;
         }
-        if (frame.to - frame.from <= 0) {
+        if (frame.end - frame.start <= 0) {
             return;
         }
         this.coors.drop();
         const size = this.size();
-        (Object.keys(this.values) as unknown as number[]).forEach((k: number) => {
+        this.values.forEach((points: Point[], k: number) => {
             const peaks = this.peaks[k];
             if (peaks === undefined) {
                 console.error(`No peaks for chart #${k}`);
@@ -107,7 +107,7 @@ export class Render extends Base {
             }
             const chart = this.charts[k];
             const type = chart === undefined ? ChartType.Linear : chart.definition.type;
-            const render = this.modes(frame, peaks, this.values[k], size, chart);
+            const render = this.modes(frame, peaks, points, size, chart);
             switch (type) {
                 case ChartType.Linear:
                     render.linear();
@@ -126,7 +126,7 @@ export class Render extends Base {
     protected modes(
         frame: IRange,
         peaks: [number, number],
-        values: [number, number, number, number][],
+        values: Point[],
         size: {
             width: number;
             height: number;
@@ -138,17 +138,17 @@ export class Render extends Base {
         temperature(): void;
     } {
         const rate = {
-            byX: size.width / (frame.to - frame.from),
+            byX: size.width / (frame.end - frame.start),
             byY: size.height / (peaks[1] - peaks[0]),
         };
         return {
             linear: (): void => {
                 this.context.beginPath();
                 const coors: [number, number][] = [];
-                values.forEach((pair: [number, number, number, number], i: number) => {
-                    const position = pair[0];
-                    const value = pair[3];
-                    const x = Math.round((position - frame.from) * rate.byX);
+                values.forEach((point: Point, i: number) => {
+                    const position = point.row;
+                    const value = point.y_value;
+                    const x = Math.round((position - frame.start) * rate.byX);
                     const y = size.height - Math.round((value - peaks[0]) * rate.byY);
                     if (i === 0) {
                         this.context.moveTo(x, y);
@@ -156,7 +156,7 @@ export class Render extends Base {
                         this.context.lineTo(x, y);
                     }
                     coors.push([x, y]);
-                    this.coors.add(x, value, position, pair[1], pair[2], chart);
+                    this.coors.add(x, value, position, point.min, point.max, chart);
                 });
                 const color = chart === undefined ? scheme_color_0 : chart.definition.color;
                 const lineWidth =
@@ -186,10 +186,10 @@ export class Render extends Base {
                 this.context.beginPath();
                 const coors: [number, number][] = [];
                 let prevY = 0;
-                values.forEach((pair: [number, number, number, number], i: number) => {
-                    const position = pair[0];
-                    const value = pair[3];
-                    const x = Math.round((position - frame.from) * rate.byX);
+                values.forEach((point: Point, i: number) => {
+                    const position = point.row;
+                    const value = point.y_value;
+                    const x = Math.round((position - frame.start) * rate.byX);
                     const y = size.height - Math.round((value - peaks[0]) * rate.byY);
                     if (i === 0) {
                         this.context.moveTo(x, y);
@@ -199,7 +199,7 @@ export class Render extends Base {
                     }
                     prevY = y;
                     coors.push([x, y]);
-                    this.coors.add(x, value, position, pair[1], pair[2], chart);
+                    this.coors.add(x, value, position, point.min, point.max, chart);
                 });
                 const color = chart === undefined ? scheme_color_0 : chart.definition.color;
                 const lineWidth =
@@ -230,10 +230,10 @@ export class Render extends Base {
                 const coors: [number, number][] = [];
                 const start = { x: 0, y: 0 };
                 const end = { x: 0, y: 0 };
-                values.forEach((pair: [number, number, number, number], i: number) => {
-                    const position = pair[0];
-                    const value = pair[3];
-                    const x = Math.round((position - frame.from) * rate.byX);
+                values.forEach((point: Point, i: number) => {
+                    const position = point.row;
+                    const value = point.y_value;
+                    const x = Math.round((position - frame.start) * rate.byX);
                     const y = size.height - Math.round((value - peaks[0]) * rate.byY);
                     if (i === 0) {
                         this.context.moveTo(x, y);
@@ -247,7 +247,7 @@ export class Render extends Base {
                         end.y = y;
                     }
                     coors.push([x, y]);
-                    this.coors.add(x, value, position, pair[1], pair[2], chart);
+                    this.coors.add(x, value, position, point.min, point.max, chart);
                 });
                 const color = chart === undefined ? scheme_color_0 : chart.definition.color;
                 const lineWidth =

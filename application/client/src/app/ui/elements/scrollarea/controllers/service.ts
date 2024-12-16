@@ -49,7 +49,7 @@ export class Service implements Destroy {
     }) {
         this.setFrame = (range: SafeRange) => {
             api.setFrame(range);
-            this._cursor = range.from;
+            this._cursor = range.start;
         };
         this.getLen = api.getLen;
         this.getItemHeight = api.getItemHeight;

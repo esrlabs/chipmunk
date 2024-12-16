@@ -102,7 +102,7 @@ export class Row extends Subscriber {
         return {
             grabbed: (): IGrabbedElement => {
                 return {
-                    position: this.position,
+                    pos: this.position,
                     source_id: this.source,
                     content: this.content,
                     nature: 0,

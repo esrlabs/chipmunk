@@ -94,7 +94,7 @@ export class Charts extends Subscriber {
                     })
                     .catch((err: Error) => {
                         this.log().error(
-                            `Fail load output frame ${frame.from}-${frame.to}: ${err.message}`,
+                            `Fail load output frame ${frame.start}-${frame.end}: ${err.message}`,
                         );
                     })
                     .finally(() => {
@@ -120,7 +120,7 @@ export class Charts extends Subscriber {
                 if (this.progress.summary !== undefined) {
                     return;
                 }
-                const frame = { from: 0, to: this.lengths.stream - 1 };
+                const frame = { start: 0, end: this.lengths.stream - 1 };
                 this.progress.summary = hash();
                 this.reload()
                     .load(frame)
@@ -130,7 +130,7 @@ export class Charts extends Subscriber {
                     })
                     .catch((err: Error) => {
                         this.log().error(
-                            `Fail load summary frame ${frame.from}-${frame.to}: ${err.message}`,
+                            `Fail load summary frame ${frame.start}-${frame.end}: ${err.message}`,
                         );
                     })
                     .finally(() => {
@@ -193,19 +193,19 @@ export class Charts extends Subscriber {
                 return isDevMode() ? this.reload().validation(output) : output;
             },
             validation: (output: Output): Output => {
-                let invalid: [number, number, number, number][] = [];
-                Object.keys(output.values).forEach((k: string) => {
-                    invalid = invalid.concat(
-                        output.values[parseInt(k, 10)].filter((d) => typeof d[3] !== 'number'),
-                    );
-                });
-                if (invalid.length !== 0) {
-                    this.log().error(
-                        `Invalid data for charts; found NONE number values on (rows): ${invalid
-                            .map((d) => d[0])
-                            .join(', ')}`,
-                    );
-                }
+                // let invalid: [number, number, number, number][] = [];
+                // Object.keys(output.values).forEach((k: string) => {
+                //     invalid = invalid.concat(
+                //         output.values[parseInt(k, 10)].filter((d) => typeof d[3] !== 'number'),
+                //     );
+                // });
+                // if (invalid.length !== 0) {
+                //     this.log().error(
+                //         `Invalid data for charts; found NONE number values on (rows): ${invalid
+                //             .map((d) => d[0])
+                //             .join(', ')}`,
+                //     );
+                // }
                 return output;
             },
             requests: (): { filters: FilterRequest[]; charts: ChartRequest[]; active: boolean } => {
@@ -244,8 +244,8 @@ export class Charts extends Subscriber {
                     new Requests.Values.Frame.Request({
                         session: this.uuid,
                         width: datasetLength,
-                        from: range !== undefined ? range.from : undefined,
-                        to: range !== undefined ? range.to : undefined,
+                        from: range !== undefined ? range.start : undefined,
+                        to: range !== undefined ? range.end : undefined,
                     }),
                 ).then((response) => {
                     if (typeof response.error === 'string' && response.error.trim().length > 0) {
@@ -262,8 +262,8 @@ export class Charts extends Subscriber {
                     new Requests.Search.Map.Request({
                         session: this.uuid,
                         len: datasetLength,
-                        from: range ? range.from : undefined,
-                        to: range ? range.to : undefined,
+                        from: range ? range.start : undefined,
+                        to: range ? range.end : undefined,
                     }),
                 ).then((response) => {
                     return response.map;
