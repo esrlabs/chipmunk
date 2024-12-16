@@ -5,6 +5,7 @@ import { IFilter } from 'platform/types/filter';
 import { ShellProfile } from 'platform/types/shells';
 import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import { StatisticInfo } from 'platform/types/observe/parser/dlt';
+import { FoldersScanningResult } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
 import * as types from 'platform/types';
@@ -41,18 +42,16 @@ export class Jobs extends Base {
         max: number;
         paths: string[];
         include: { files: boolean; folders: boolean };
-    }): CancelablePromise<types.files.Entity[]> {
+    }): CancelablePromise<FoldersScanningResult> {
         const sequence = this.sequence();
-        const job: CancelablePromise<types.files.Entity[]> = this.execute(
+        const job: CancelablePromise<FoldersScanningResult> = this.execute(
             (buf: Uint8Array): any | Error => {
-                const output = decode<types.files.Entity[]>(
+                const output = decode<FoldersScanningResult>(
                     buf,
                     protocol.decodeCommandOutcomeWithFoldersScanningResult,
                 );
                 if (output instanceof Error || output instanceof Cancelled) {
                     return output;
-                } else if ((output as any).list instanceof Array) {
-                    return (output as any).list;
                 } else {
                     return output;
                 }

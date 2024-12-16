@@ -178,7 +178,7 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
     }
 
     public getFrameStart(): number {
-        return this.frame.get().from;
+        return this.frame.get().start;
     }
 
     public isSourceSwitched(i: number): boolean {

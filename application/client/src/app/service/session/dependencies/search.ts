@@ -136,8 +136,8 @@ export class Search extends Subscriber {
                 new Requests.Search.Map.Request({
                     session: this._uuid,
                     len,
-                    from: range ? range.from : undefined,
-                    to: range ? range.to : undefined,
+                    from: range ? range.start : undefined,
+                    to: range ? range.end : undefined,
                 }),
             )
                 .then((response) => {

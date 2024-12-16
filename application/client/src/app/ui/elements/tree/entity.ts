@@ -1,14 +1,14 @@
-import { Entity as IEntity, EntityType } from '@platform/types/files';
 import { Filter } from '@elements/filter/filter';
 import { getDomSanitizer } from '@ui/env/globals';
 import { SafeHtml } from '@angular/platform-browser';
 import { fromStr, serialize } from '@platform/env/regex';
 import { getFileExtention } from '@platform/types/files';
+import { FolderEntity, FolderEntityType } from '@platform/types/bindings';
 
 const EXTENTION_PATTERN = /^\*\.|^\./gi;
 
 export class Entity {
-    public readonly entity: IEntity;
+    public readonly entity: FolderEntity;
     public readonly parent: string;
     public ext: string | undefined;
     public selected: boolean = false;
@@ -19,7 +19,7 @@ export class Entity {
     protected readonly filter: Filter;
 
     constructor(
-        entity: IEntity,
+        entity: FolderEntity,
         parent: string,
         favourite: boolean,
         exists: boolean,
@@ -30,7 +30,7 @@ export class Entity {
         this.favourite = favourite;
         this.exists = exists;
         this.filter = filter;
-        if (entity.details !== undefined) {
+        if (entity.details) {
             this.ext = entity.details.ext.toUpperCase().replace('.', '');
         }
     }
@@ -40,7 +40,7 @@ export class Entity {
     }
 
     public isFolder(): boolean {
-        return this.entity.type === EntityType.Directory;
+        return this.entity.kind === FolderEntityType.Directory;
     }
 
     public getName(): string {
