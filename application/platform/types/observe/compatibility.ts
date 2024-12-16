@@ -47,6 +47,7 @@ export const SDESupport: {
 } = {
     [Origin.Context.File]: false,
     [Origin.Context.Concat]: false,
+    [Origin.Context.Plugin]: false,
     [Stream.Source.Process]: true,
     [Stream.Source.Serial]: true,
     [Stream.Source.TCP]: false,
@@ -66,6 +67,7 @@ export const Configurable: {
         [Parser.Protocol.SomeIp]: true,
     },
     [Origin.Context.Concat]: true,
+    [Origin.Context.Plugin]: true,
     [Stream.Source.Process]: true,
     [Stream.Source.Serial]: true,
     [Stream.Source.TCP]: true,

@@ -491,9 +491,21 @@ export class Service extends Implementation {
                 label: 'Plugins',
                 submenu: [
                     {
+                        label: 'Parser & Source Session',
+                        click: async () => {
+                            this.log().info('Plugins Parser & Source Session clicked');
+                            //TODO AAZ: We need Another action similar to stream
+                            // Actions.stream($.Parser.Protocol.Plugins, $.Origin.).catch((err: Error) => {
+                            //     this.log().error(
+                            //         `Fail call action Plugins Manager: ${err.message}`,
+                            //     );
+                            // });
+                        },
+                    },
+                    { type: 'separator' },
+                    {
                         label: 'Plugins Manager',
                         click: async () => {
-                            this.log().info('Plugins manager clicked');
                             Actions.pluginsManager().catch((err: Error) => {
                                 this.log().error(
                                     `Fail call action Plugins Manager: ${err.message}`,

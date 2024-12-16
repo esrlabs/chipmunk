@@ -7,10 +7,12 @@ import { OriginDetails, IOriginDetails, Job, IJob } from '../description';
 export * as File from './file';
 export * as Concat from './concat';
 export * as Stream from './stream';
+export * as Plugin from './plugin';
 
 import * as File from './file';
 import * as Concat from './concat';
 import * as Stream from './stream';
+import * as Plugin from './plugin';
 import * as Parser from '../parser';
 import * as Sde from '../sde';
 
@@ -18,6 +20,7 @@ export enum Context {
     File = 'File',
     Concat = 'Concat',
     Stream = 'Stream',
+    Plugin = 'Plugin',
 }
 
 export type SourceUuid = string;
@@ -30,19 +33,29 @@ export interface IConfiguration {
     [Context.File]?: File.IConfiguration;
     [Context.Concat]?: Concat.IConfiguration;
     [Context.Stream]?: Stream.IConfiguration;
+    [Context.Plugin]?: Plugin.IConfiguration;
 }
 
 export const REGISTER = {
     [Context.File]: File.Configuration,
     [Context.Concat]: Concat.Configuration,
     [Context.Stream]: Stream.Configuration,
+    [Context.Plugin]: Plugin.Configuration,
 };
 
 export const DEFAULT = File.Configuration;
 
-export type Declaration = File.Configuration | Concat.Configuration | Stream.Configuration;
+export type Declaration =
+    | File.Configuration
+    | Concat.Configuration
+    | Stream.Configuration
+    | Plugin.Configuration;
 
-export type OriginNature = File.Configuration | Concat.Configuration | Stream.Stream.Declaration;
+export type OriginNature =
+    | File.Configuration
+    | Concat.Configuration
+    | Stream.Stream.Declaration
+    | Plugin.Configuration;
 
 @Statics<ConfigurationStatic<IConfiguration, undefined>>()
 export class Configuration
