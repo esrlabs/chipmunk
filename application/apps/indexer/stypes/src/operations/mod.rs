@@ -36,7 +36,8 @@ pub struct Point {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "operations.ts"))]
-pub struct ResultSearchValues(pub Vec<(u8, Vec<Point>)>);
+#[cfg_attr(test, ts(type = "Map<number, Point[]>"))]
+pub struct ResultSearchValues(pub HashMap<u8, Vec<Point>>);
 
 /// Scaled chart data
 #[derive(Debug, Clone, Serialize, Deserialize)]

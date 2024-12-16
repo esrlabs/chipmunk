@@ -6,9 +6,9 @@ import * as validator from '../../../env/obj';
 export class Event extends SignatureRequirement {
     public session: string;
     public rows: number;
-    public stat: { [key: string]: number };
+    public stat: Map<string, number>;
 
-    constructor(input: { session: string; rows: number; stat: { [key: string]: number } }) {
+    constructor(input: { session: string; rows: number; stat: Map<string, number> }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');

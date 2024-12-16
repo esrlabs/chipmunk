@@ -27,10 +27,11 @@ export class ProviderFilters extends Provider<FilterRequest> {
             this.session.search.subjects.get().updated.subscribe((event) => {
                 this._entities.forEach((entity) => {
                     const alias = entity.extract().alias();
+                    const stat = event.stat.get(alias);
                     entity
                         .extract()
                         .set()
-                        .found(event.stat[alias] === undefined ? 0 : event.stat[alias]);
+                        .found(stat === undefined ? 0 : stat);
                 });
             }),
         );

@@ -2,8 +2,9 @@ import { IFileDescription } from './entity';
 import { Provider as Base, INoContentActions, IStatistics } from './provider';
 import { favorites } from '@service/favorites';
 import { bridge } from '@service/bridge';
-import { EntityType, getFileName } from '@platform/types/files';
+import { getFileName } from '@platform/types/files';
 import { notifications, Notification } from '@ui/service/notifications';
+import { FolderEntityType } from '@platform/types/bindings';
 
 import * as Factory from '@platform/types/observe/factory';
 import { IMenuItem } from '@ui/service/contextmenu';
@@ -46,7 +47,7 @@ export class Provider extends Base<IFileDescription> {
             if (this.isAborted()) {
                 return;
             }
-            if (entity.type === EntityType.File && entity.details !== undefined) {
+            if (entity.kind === FolderEntityType.File && entity.details) {
                 items.push({
                     filename: entity.fullname,
                     name: entity.name,
@@ -138,11 +139,13 @@ export class Provider extends Base<IFileDescription> {
                     });
             },
             auto: (): void => {
-                bridge.files().getByPath([item.filename])
+                bridge
+                    .files()
+                    .getByPath([item.filename])
                     .then((files) => {
                         if (files.length > 1) {
-                            this.ilc.log().info("More than one file detected");
-                            return
+                            this.ilc.log().info('More than one file detected');
+                            return;
                         }
                         const filetype = files[0].type;
                         if (filetype === Factory.FileType.Text) {
@@ -150,10 +153,16 @@ export class Provider extends Base<IFileDescription> {
                                 .ilc()
                                 .services.system.session.initialize()
                                 .observe(
-                                    new Factory.File().asText().type(filetype).file(item.filename).get(),
+                                    new Factory.File()
+                                        .asText()
+                                        .type(filetype)
+                                        .file(item.filename)
+                                        .get(),
                                 )
                                 .catch((err: Error) => {
-                                    this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                                    this.ilc
+                                        .log()
+                                        .error(`Fail to open text file; error: ${err.message}`);
                                 });
                         } else {
                             this.ilc
@@ -167,14 +176,15 @@ export class Provider extends Base<IFileDescription> {
                                         .get(),
                                 )
                                 .catch((err: Error) => {
-                                    this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                                    this.ilc
+                                        .log()
+                                        .error(`Fail to open text file; error: ${err.message}`);
                                 });
                         }
                     })
                     .catch((error) => {
                         this.ilc.log().error(error);
                     });
-
             },
         };
     }

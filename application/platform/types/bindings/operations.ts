@@ -38,7 +38,7 @@ export type ResultNearestPosition = NearestPosition | null;
  */
 export type ResultScaledDistribution = Array<Array<[number, number]>>;
 
-export type ResultSearchValues = Array<[number, Array<Point>]>;
+export type ResultSearchValues = Map<number, Point[]>;
 
 /**
  * Used only for debug session lifecycle

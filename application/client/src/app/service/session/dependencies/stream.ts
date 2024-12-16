@@ -299,8 +299,8 @@ export class Stream extends Subscriber {
                 Requests.Stream.Chunk.Response,
                 new Requests.Stream.Chunk.Request({
                     session: this._uuid,
-                    from: range.from,
-                    to: range.to,
+                    from: range.start,
+                    to: range.end,
                 }),
             )
                 .then((response: Requests.Stream.Chunk.Response) => {

@@ -1,6 +1,7 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, Entity } from '@platform/types/files';
+import { FolderEntity } from '@platform/types/bindings';
 import { FileType } from '@platform/types/observe/types/file';
 import { ShellProfile } from '@platform/types/shells';
 import { StatisticInfo } from '@platform/types/observe/parser/dlt';
@@ -49,7 +50,7 @@ export class Service extends Implementation {
             depth: number;
             max: number;
             include?: { files: boolean; folders: boolean };
-        }): Promise<{ entities: Entity[]; max: boolean }>;
+        }): Promise<{ entities: FolderEntity[]; max: boolean }>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
         isBinary(file: string): Promise<boolean>;
@@ -137,7 +138,7 @@ export class Service extends Implementation {
                 depth: number;
                 max: number;
                 include?: { files: boolean; folders: boolean };
-            }): Promise<{ entities: Entity[]; max: boolean }> {
+            }): Promise<{ entities: FolderEntity[]; max: boolean }> {
                 return Requests.IpcRequest.send(
                     Requests.Os.List.Response,
                     new Requests.Os.List.Request(

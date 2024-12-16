@@ -12,7 +12,7 @@ function getRows(session: Session, range: Range): Promise<IRowsPacket> {
             .then((rows) => {
                 const converted = rows.map((row) => {
                     return new Row({
-                        position: row.position,
+                        position: row.pos,
                         content: row.content,
                         session,
                         owner: Owner.Output,

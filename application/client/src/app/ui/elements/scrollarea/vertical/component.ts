@@ -99,7 +99,7 @@ export class ScrollAreaVerticalComponent
                     return;
                 }
                 this.detectChanges();
-                const position = event.range.from / this._count;
+                const position = event.range.start / this._count;
                 this.elRef.nativeElement.scrollTop =
                     this.elRef.nativeElement.scrollHeight * position;
             }),
