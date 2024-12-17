@@ -50,8 +50,8 @@ describe('Values', function () {
                     .getValues(MAX_DATASET_LEN)
                     .then((data) => {
                         let control = 0;
-                        data.forEach((point) => {
-                            point[1].forEach((p) => {
+                        data.forEach((points, _k) => {
+                            points.forEach((p) => {
                                 control += p.y_value;
                             });
                         });
@@ -99,8 +99,8 @@ describe('Values', function () {
                         .getValues(MAX_DATASET_LEN)
                         .then((data) => {
                             let control = 0;
-                            data.forEach((point) => {
-                                point[1].forEach((p) => {
+                            data.forEach((points, _k) => {
+                                points.forEach((p) => {
                                     control += p.y_value;
                                 });
                             });
@@ -122,8 +122,8 @@ describe('Values', function () {
                         .getValues(MAX_DATASET_LEN)
                         .then((data) => {
                             let control = 0;
-                            data.forEach((point) => {
-                                point[1].forEach((p) => {
+                            data.forEach((points, _k) => {
+                                points.forEach((p) => {
                                     control += p.y_value;
                                 });
                             });
