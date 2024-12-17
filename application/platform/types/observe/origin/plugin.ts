@@ -85,11 +85,6 @@ export class Configuration
         return this.configuration[1];
     }
 
-    //TODO AAZ: Check if this is needed
-    // public override isSdeSupported(): boolean {
-    //     return false;
-    // }
-
     public getSupportedParsers(): Parser.Reference[] {
         // Returns all
         return [

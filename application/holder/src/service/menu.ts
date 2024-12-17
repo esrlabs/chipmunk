@@ -491,15 +491,26 @@ export class Service extends Implementation {
                 label: 'Plugins',
                 submenu: [
                     {
-                        label: 'Parser & Source Session',
+                        label: 'File with plugin parser',
                         click: async () => {
-                            this.log().info('Plugins Parser & Source Session clicked');
-                            //TODO AAZ: We need Another action similar to stream
-                            // Actions.stream($.Parser.Protocol.Plugins, $.Origin.).catch((err: Error) => {
-                            //     this.log().error(
-                            //         `Fail call action Plugins Manager: ${err.message}`,
-                            //     );
-                            // });
+                            this.log().info('Fie with plugin parser clicked');
+                            Actions.openFile(undefined).catch((err: Error) => {
+                                this.log().error(
+                                    `Fail call action OpenFile with Plugin: ${err.message}`,
+                                );
+                            });
+                        },
+                    },
+                    {
+                        label: 'Stream source for plugin parser',
+                        click: async () => {
+                            this.log().info('Stream source for plugin parser clicked');
+                            Actions.stream(
+                                $.Parser.Protocol.Plugin,
+                                $.Origin.Stream.Stream.Source.Process,
+                            ).catch((err: Error) => {
+                                this.log().error(`Fail call action Open : ${err.message}`);
+                            });
                         },
                     },
                     { type: 'separator' },

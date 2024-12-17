@@ -134,6 +134,30 @@ export class Service extends Implementation {
                                                     ),
                                                 );
                                         }
+                                    case Protocol.Plugin: {
+                                        switch (request.source) {
+                                            case undefined:
+                                            case Source.Process:
+                                                return new handlers.StdoutPlugin.Action().apply();
+                                            case Source.Serial:
+                                            case Source.UDP:
+                                            case Source.TCP:
+                                                //TODO AAZ: Provide handlers for all sources.
+                                                //Note: It should be possible to use one handler for all sources,
+                                                //with internal enum to decide which method to call.
+                                                return Promise.reject(
+                                                    new Error(
+                                                        `TODO: Source still not impelmented for plguins: ${request.source}`,
+                                                    ),
+                                                );
+                                            default:
+                                                return Promise.reject(
+                                                    new Error(
+                                                        `Unsupported transport for Plugins: ${request.source}`,
+                                                    ),
+                                                );
+                                        }
+                                    }
                                     default:
                                         return Promise.reject(
                                             new Error(`Unsupported format: ${request.protocol}`),
