@@ -1,3 +1,83 @@
+/// The `protocol` crate is a WebAssembly-wrapped version of the `stypes` crate, designed for encoding  
+/// and decoding message types used both on the Rust side and the Node.js side (including client-side code).
+///
+/// Code generation for `wasm_bindgen` is handled by the `gen_encode_decode_fns` macro, which sets up  
+/// the necessary encode/decode functions. For example:
+///
+/// ```
+///     gen_encode_decode_fns!(ObserveOptions);
+/// ```
+///
+/// This will generate:
+///
+/// ```ignore
+/// #[wasm_bindgen]
+/// #[allow(non_snake_case)]
+/// pub fn decodeObserveOptions(buf: &[u8]) -> Result<JsValue, E> {
+///     let serializer = Serializer::new()
+///         .serialize_missing_as_null(true)
+///         .serialize_maps_as_objects(false)
+///         .serialize_large_number_types_as_bigints(false);
+///
+///     ObserveOptions::decode(buf)
+///         .map_err(E::CodecDecodeError)?
+///         .serialize(&serializer)
+///         .map_err(|e| E::DecodeError(e.to_string()))
+/// }
+///
+/// #[wasm_bindgen]
+/// #[allow(non_snake_case)]
+/// pub fn encodeObserveOptions(val: JsValue) -> Result<Vec<u8>, E> {
+///     from_value::<ObserveOptions>(val)?
+///         .encode()
+///         .map_err(E::DecodeError)
+/// }
+/// ```
+///
+/// As a result, on the Node.js side you can directly decode and encode `ObserveOptions`:
+///
+/// ```ignore
+/// import * as protocol from "protocol";
+///
+/// // Decoding
+/// const bytes: Uint8Array = get_bytes();
+/// const msg = protocol.decodeObserveOptions(bytes);
+///
+/// // Encoding
+/// const obj: ObserveOptions = ...;
+/// cosnt bytes = protocol.encodeObserveOptions(obj);
+/// ```
+///
+/// It's important to note that `wasm_bindgen` does not generate type definitions (`.d.ts` files),  
+/// so the decoding function will return `any`, and the encoding function will accept `any`.  
+/// Ensuring that the correct types are passed is therefore beyond the scope of this crate.  
+/// While supplying an invalid byte sequence (one that doesn't match the expected data type)  
+/// will cause an error to be thrown, it is theoretically possible (though unlikely)  
+/// that an incorrect byte sequence could decode into a valid but unexpected type.  
+/// Therefore, when using this crate, ensure that the expected data type aligns with the chosen
+/// decode function.
+///
+/// ## Adding New Types
+/// To add new types, follow the steps below.
+///
+/// ### Updating `stypes`
+/// - Add your new type to the `stypes` crate.
+/// - **Important:** Ensure that `proptest` tests are implemented in `stypes` for the new type.
+/// This is a mandatory requirement when introducing any new type.
+///
+/// ### Updating `protocol`
+/// Once the type is added to `stypes`, simply reference it in `protocol`:
+/// ```ignore
+/// gen_encode_decode_fns!(MyRecentlyAddedType);
+/// ```
+///
+/// ### Verification
+/// To verify your changes, run the `test.sh` script. This test uses `proptest` in `stypes` to
+/// randomly generate values for all types, then serialize them as bytes to temporary files. Next,
+/// it uses `proptest` within `ts-bindings` to decode all these messages.  
+///
+/// - If the process fails, `test.sh` will report an error.  
+/// - If it succeeds, you can consider the new type successfully integrated.
 mod err;
 mod gen;
 
