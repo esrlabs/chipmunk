@@ -63,7 +63,7 @@
 /// ### Updating `stypes`
 /// - Add your new type to the `stypes` crate.
 /// - **Important:** Ensure that `proptest` tests are implemented in `stypes` for the new type.
-/// This is a mandatory requirement when introducing any new type.
+///   This is a mandatory requirement when introducing any new type.
 ///
 /// ### Updating `protocol`
 /// Once the type is added to `stypes`, simply reference it in `protocol`:

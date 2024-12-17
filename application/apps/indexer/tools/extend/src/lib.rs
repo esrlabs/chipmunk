@@ -1,3 +1,38 @@
+/// The `extend` crate is designed to simplify the generation of `encode` and `decode` methods
+/// for every public type in the `stypes` crate.
+///
+/// For example, the following code:
+///
+/// ```ignore
+/// #[derive(Debug, Serialize, Deserialize, Clone)]
+/// #[extend::encode_decode]
+/// pub struct Notification {
+///     pub severity: Severity,
+///     pub content: String,
+///     pub line: Option<usize>,
+/// }
+/// ```
+///
+/// Is transformed into:
+///
+/// ```ignore
+/// #[derive(Debug, Serialize, Deserialize, Clone)]
+/// pub struct Notification {
+///     pub severity: Severity,
+///     pub content: String,
+///     pub line: Option<usize>,
+/// }
+///
+/// impl Notification {
+///     pub fn encode(&self) -> Result<Vec<u8>, String> {
+///         bincode::serialize(self).map_err(|e| e.to_string())
+///     }
+///     
+///     pub fn decode(buf: &[u8]) -> Result<Self, String> {
+///         bincode::deserialize(buf).map_err(|e| e.to_string())
+///     }
+/// }
+/// ```
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, Item};
