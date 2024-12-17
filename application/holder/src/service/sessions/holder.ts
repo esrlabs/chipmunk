@@ -99,7 +99,7 @@ export class Holder {
                 return new Promise((resolve, reject) => {
                     const observer = this.session
                         .getStream()
-                        .observe(observe.configuration)
+                        .observe(cfg)
                         .on('confirmed', () => {
                             Events.IpcEvent.emit(
                                 new Events.Observe.Started.Event({
