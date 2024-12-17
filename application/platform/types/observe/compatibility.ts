@@ -20,6 +20,13 @@ export const Streams: {
         Stream.Serial.Configuration,
         Stream.Process.Configuration,
     ],
+    // Make sure we support all kinds of stream
+    [Parser.Protocol.Plugin]: [
+        Stream.TCP.Configuration,
+        Stream.UDP.Configuration,
+        Stream.Serial.Configuration,
+        Stream.Process.Configuration,
+    ],
 };
 
 export const Files: {
@@ -39,6 +46,13 @@ export const Files: {
     [Parser.Protocol.Text]: [
         // Supported file types
         File.FileType.Text,
+    ],
+    // Plugins support all file types.
+    [Parser.Protocol.Plugin]: [
+        File.FileType.Text,
+        File.FileType.Binary,
+        File.FileType.PcapNG,
+        File.FileType.PcapLegacy,
     ],
 };
 

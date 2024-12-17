@@ -136,11 +136,23 @@ export class Configuration
     public getSupportedParsers(): Parser.Reference[] {
         switch (this.configuration[1]) {
             case Types.File.FileType.Binary:
-                return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
+                return [
+                    Parser.Dlt.Configuration,
+                    Parser.SomeIp.Configuration,
+                    Parser.Plugin.Configuration,
+                ];
             case Types.File.FileType.PcapNG:
-                return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
+                return [
+                    Parser.Dlt.Configuration,
+                    Parser.SomeIp.Configuration,
+                    Parser.Plugin.Configuration,
+                ];
             case Types.File.FileType.PcapLegacy:
-                return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
+                return [
+                    Parser.Dlt.Configuration,
+                    Parser.SomeIp.Configuration,
+                    Parser.Plugin.Configuration,
+                ];
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
         }

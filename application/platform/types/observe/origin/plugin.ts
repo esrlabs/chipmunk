@@ -92,8 +92,12 @@ export class Configuration
 
     public getSupportedParsers(): Parser.Reference[] {
         // Returns all
-        // TODO: Add Parser plugin here.
-        return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration, Parser.Text.Configuration];
+        return [
+            Parser.Dlt.Configuration,
+            Parser.SomeIp.Configuration,
+            Parser.Text.Configuration,
+            Parser.Plugin.Configuration,
+        ];
     }
     public asJob(): IJob {
         return {
