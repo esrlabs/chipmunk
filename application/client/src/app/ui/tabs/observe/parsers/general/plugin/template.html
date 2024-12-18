@@ -1,6 +1,14 @@
 <mat-card>
-    <mat-card-title>Plugin Parser</mat-card-title>
+    <mat-card-title>Select Plugin</mat-card-title>
     <mat-card-content>
+        <mat-form-field>
+            <mat-label> Select parser plugin </mat-label>
+            <mat-select [(ngModel)]="state.selectedParser" (ngModelChange)="state.update()">
+                <mat-option *ngFor="let parser of state.parsers" [value]="parser">
+                    {{state.getPluginName(parser)}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
         <p>Placeholder for Plugin Parser</p>
     </mat-card-content>
 </mat-card>

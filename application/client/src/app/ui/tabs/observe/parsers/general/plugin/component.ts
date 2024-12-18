@@ -1,7 +1,15 @@
-import { Component, Input } from '@angular/core';
+import {
+    Component,
+    Input,
+    ChangeDetectorRef,
+    AfterContentInit,
+    AfterViewInit,
+} from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
+import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Observe } from '@platform/types/observe';
+import { State } from './state';
 
 @Component({
     selector: 'app-el-parser-plugin-general',
@@ -10,8 +18,35 @@ import { Observe } from '@platform/types/observe';
 })
 @Initial()
 @Ilc()
-export class ParserPluginGeneralConfiguration {
+export class ParserPluginGeneralConfiguration
+    extends ChangesDetector
+    implements AfterContentInit, AfterViewInit
+{
     @Input() observe!: Observe;
+
+    protected state!: State;
+
+    constructor(cdRef: ChangeDetectorRef) {
+        super(cdRef);
+    }
+
+    ngAfterContentInit(): void {
+        this.state = new State(this.observe);
+        this.state.bind(this);
+    }
+
+    ngAfterViewInit(): void {
+        this.state
+            .load()
+            .then(() => {
+                this.detectChanges();
+            })
+            .catch((err: Error) => {
+                this.log().error(
+                    `Fail to restore plugin parser configuration with: ${err.message}`,
+                );
+            });
+    }
 }
 
 export interface ParserPluginGeneralConfiguration extends IlcInterface {}
