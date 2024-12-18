@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { createSampleFile, finish } from './common';
 import { readConfigurationFile } from './config';
 
@@ -45,7 +45,7 @@ describe('Grab ranges', function () {
                 Promise.all([
                     comps.stream
                         .grabRanges([{ start: 0, end: 99 }])
-                        .then((result: IGrabbedElement[]) => {
+                        .then((result: GrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(
                                 result
@@ -58,7 +58,7 @@ describe('Grab ranges', function () {
                             { start: 0, end: 0 },
                             { start: 10, end: 10 },
                         ])
-                        .then((result: IGrabbedElement[]) => {
+                        .then((result: GrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(result.length).toEqual(2);
                             expect(parseInt(result[0].content, 10)).toEqual(0);
@@ -71,7 +71,7 @@ describe('Grab ranges', function () {
                             { start: 299, end: 300 },
                             { start: 599, end: 600 },
                         ])
-                        .then((result: IGrabbedElement[]) => {
+                        .then((result: GrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(
                                 result

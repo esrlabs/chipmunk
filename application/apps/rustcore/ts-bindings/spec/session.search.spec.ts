@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { finish, createSampleFile } from './common';
 import { readConfigurationFile } from './config';
 
@@ -49,7 +49,7 @@ describe('Search', function () {
                                     logger.verbose(map);
                                     comps.search
                                         .grab(0, 11)
-                                        .then((result: IGrabbedElement[]) => {
+                                        .then((result: GrabbedElement[]) => {
                                             expect(result.map((i) => i.content)).toEqual([
                                                 '[0]:: some match line data',
                                                 '[1]:: some match line data',
@@ -221,7 +221,7 @@ describe('Search', function () {
                         .then((result) => {
                             comps.search
                                 .grab(0, 11)
-                                .then((result: IGrabbedElement[]) => {
+                                .then((result: GrabbedElement[]) => {
                                     expect(result.map((i) => i.content)).toEqual([
                                         '[0]:: some match A line data',
                                         '[1]:: some match A line data',
@@ -370,7 +370,7 @@ describe('Search', function () {
                                 .then((map) => {
                                     comps.search
                                         .grab(0, 11)
-                                        .then((result: IGrabbedElement[]) => {
+                                        .then((result: GrabbedElement[]) => {
                                             expect(result.map((i) => i.content)).toEqual([
                                                 '[0]:: some mAtCh line data',
                                                 '[1]:: some mAtCh line data',
@@ -493,7 +493,7 @@ describe('Search', function () {
                                 .then((map) => {
                                     comps.search
                                         .grab(0, 11)
-                                        .then((result: IGrabbedElement[]) => {
+                                        .then((result: GrabbedElement[]) => {
                                             expect(result.map((i) => i.content)).toEqual([
                                                 '[0]:: some match line data',
                                                 '[1]:: some match line data',
@@ -625,7 +625,7 @@ describe('Search', function () {
                                     logger.verbose(map);
                                     comps.search
                                         .grab(0, 11)
-                                        .then((result: IGrabbedElement[]) => {
+                                        .then((result: GrabbedElement[]) => {
                                             expect(result.map((i) => i.content)).toEqual([
                                                 '[0]:: some match A B line data',
                                                 '[1]:: some match A  line data',
@@ -725,7 +725,7 @@ describe('Search', function () {
                                 expect(canceled).toEqual(3);
                                 comps.search
                                     .grab(0, 16)
-                                    .then((result: IGrabbedElement[]) => {
+                                    .then((result: GrabbedElement[]) => {
                                         expect(result.map((i) => i.content)).toEqual([
                                             '[0]:: some match B line data',
                                             '[300]:: some match B line data',

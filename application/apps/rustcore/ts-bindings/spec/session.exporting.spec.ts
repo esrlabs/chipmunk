@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { createSampleFile, finish, relativePath, rootPath } from './common';
 import { readConfigurationFile } from './config';
 import { fromIndexes } from 'platform/types/range';
@@ -232,7 +232,7 @@ describe('Exporting', function () {
                             const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                             comps.search
                                 .grab(range.from, range.to)
-                                .then((grabbed: IGrabbedElement[]) => {
+                                .then((grabbed: GrabbedElement[]) => {
                                     comps.stream
                                         .export(output, fromIndexes(grabbed.map((el) => el.pos)), {
                                             columns: [],
@@ -813,7 +813,7 @@ describe('Exporting', function () {
                 gotten = true;
                 Promise.all(ranges.map((r) => comps.stream.grab(r.start, r.end - r.start)))
                     .then((results) => {
-                        let grabbed: IGrabbedElement[] = [];
+                        let grabbed: GrabbedElement[] = [];
                         results.forEach((g) => (grabbed = grabbed.concat(g)));
                         grabbed.sort((a, b) => (a.pos > b.pos ? 1 : -1));
                         const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
