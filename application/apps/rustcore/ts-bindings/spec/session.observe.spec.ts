@@ -6,9 +6,8 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement, AttachmentInfo } from 'platform/types/bindings';
 import { IAttachmentsUpdatedUpdated } from '../src/api/session.provider';
-import { IAttachment } from 'platform/types/content';
 import { createSampleFile, finish } from './common';
 import { readConfigurationFile } from './config';
 
@@ -40,7 +39,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(500, 7)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         logger.debug('result of grab was: ' + JSON.stringify(result));
                         expect(result.map((i) => i.content)).toEqual([
                             'some line data: 500',
@@ -105,7 +104,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(1, 10)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(10);
                         logger.debug('result of grab was: ' + JSON.stringify(result));
                         finish(comps.session, done);
@@ -162,7 +161,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(1, 10)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(10);
                         logger.debug('result of grab was: ' + JSON.stringify(result));
                         finish(comps.session, done);
@@ -217,7 +216,7 @@ describe('Observe', function () {
                     expect(updates[1].len).toEqual(2);
                     expect(updates[2].len).toEqual(3);
                     {
-                        let attachment: IAttachment = updates[0].attachment;
+                        let attachment: AttachmentInfo = updates[0].attachment;
                         expect(attachment.name).toEqual('test1.txt');
                         expect(attachment.size).toEqual(5);
                         expect(attachment.ext).toEqual('txt');
@@ -226,7 +225,7 @@ describe('Observe', function () {
                         expect(fs.readFileSync(attachment.filepath, 'utf8')).toEqual('test1');
                     }
                     {
-                        let attachment: IAttachment = updates[1].attachment;
+                        let attachment: AttachmentInfo = updates[1].attachment;
                         expect(attachment.name).toEqual('test2.txt');
                         expect(attachment.size).toEqual(6);
                         expect(attachment.ext).toEqual('txt');
@@ -235,7 +234,7 @@ describe('Observe', function () {
                         expect(fs.readFileSync(attachment.filepath, 'utf8')).toEqual('test22');
                     }
                     {
-                        let attachment: IAttachment = updates[2].attachment;
+                        let attachment: AttachmentInfo = updates[2].attachment;
                         expect(attachment.name).toEqual('test3.txt');
                         expect(attachment.size).toEqual(7);
                         expect(attachment.ext).toEqual('txt');
@@ -283,7 +282,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(0, 4)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(4);
                         expect(result[0].content.split('\u0004')).toEqual([
                             'SD',
@@ -365,7 +364,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(0, 4)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(4);
                         expect(result[0].content.split('\u0004')).toEqual([
                             'SD',
@@ -447,7 +446,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(0, 4)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(4);
                         expect(result[0].content.split('\u0004')).toEqual([
                             'SD',
@@ -529,7 +528,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(0, 4)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(4);
                         expect(result[0].content.split('\u0004')).toEqual([
                             'SD',
@@ -614,7 +613,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(0, 6)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(6);
                         expect(result[0].content.split('\u0004')).toEqual([
                             '2024-02-20T13:17:26.713537000Z',
@@ -697,7 +696,7 @@ describe('Observe', function () {
                 grabbing = true;
                 comps.stream
                     .grab(0, 6)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         expect(result.length).toEqual(6);
                         expect(result[0].content.split('\u0004')).toEqual([
                             '2024-02-20T13:17:26.713537000Z',
