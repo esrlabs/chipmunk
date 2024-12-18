@@ -1,5 +1,6 @@
 import { error } from '../log/utils';
 import { Mutable } from './unity/mutable';
+import { AttachmentInfo } from './bindings/attachment';
 
 import * as obj from '../env/obj';
 
@@ -73,16 +74,6 @@ export class Nature {
     }
 }
 
-export interface IAttachment {
-    uuid: string;
-    filepath: string;
-    name: string;
-    ext: string | undefined;
-    size: number;
-    mime: string | undefined;
-    messages: number[];
-}
-
 export class Attachment {
     public readonly uuid: string;
     public readonly filepath: string;
@@ -112,13 +103,13 @@ export class Attachment {
         }
     }
 
-    constructor(attachment: IAttachment) {
+    constructor(attachment: AttachmentInfo) {
         this.uuid = attachment.uuid;
         this.filepath = attachment.filepath;
         this.name = attachment.name;
-        this.ext = attachment.ext;
+        this.ext = attachment.ext ? attachment.ext : undefined;
         this.size = attachment.size;
-        this.mime = attachment.mime;
+        this.mime = attachment.mime ? attachment.mime : undefined;
         this.messages = attachment.messages;
     }
 

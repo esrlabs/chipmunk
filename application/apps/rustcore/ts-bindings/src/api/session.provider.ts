@@ -3,7 +3,7 @@ import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity, IValuesMinMaxMap, FilterMatch } from 'platform/types/filter';
-import { IAttachment } from 'platform/types/content';
+import { AttachmentInfo } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
 
@@ -47,7 +47,7 @@ export interface IEventMatchesUpdated {
 
 export interface IAttachmentsUpdatedUpdated {
     len: number;
-    attachment: IAttachment;
+    attachment: AttachmentInfo;
 }
 
 export interface ISessionEvents {
