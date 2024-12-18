@@ -1,7 +1,7 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subject, Subjects, Subscriber } from '@platform/env/subscription';
 import { isDevMode } from '@angular/core';
-import { IValuesMap, IValuesMinMaxMap, ISearchMap } from '@platform/types/filter';
+import { IValuesMinMaxMap, ISearchMap } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IRange } from '@platform/types/range';
 import { Cursor } from './cursor';
@@ -9,13 +9,14 @@ import { Stream } from '../stream';
 import { Search } from '../search';
 import { FilterRequest } from '../search/filters/request';
 import { ChartRequest } from '../search/charts/request';
+import { ResultSearchValues } from '@platform/types/bindings';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 
 export interface Output {
     peaks: IValuesMinMaxMap;
-    values: IValuesMap;
+    values: ResultSearchValues;
     map: ISearchMap;
     frame: IRange;
     filters: FilterRequest[];
@@ -167,7 +168,7 @@ export class Charts extends Subscriber {
                         this.scaled(width, frame).values(),
                         this.scaled(Math.floor(width / 2), frame).matches(),
                     ])
-                        .then((results: [IValuesMap, ISearchMap]) => {
+                        .then((results: [ResultSearchValues, ISearchMap]) => {
                             resolve(
                                 this.reload().defs({
                                     peaks: this.peaks,
@@ -234,11 +235,11 @@ export class Charts extends Subscriber {
         datasetLength: number,
         range?: IRange,
     ): {
-        values(): Promise<IValuesMap>;
+        values(): Promise<ResultSearchValues>;
         matches(): Promise<ISearchMap>;
     } {
         return {
-            values: (): Promise<IValuesMap> => {
+            values: (): Promise<ResultSearchValues> => {
                 return Requests.IpcRequest.send(
                     Requests.Values.Frame.Response,
                     new Requests.Values.Frame.Request({

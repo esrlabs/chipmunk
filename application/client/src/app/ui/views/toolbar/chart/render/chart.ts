@@ -1,4 +1,5 @@
-import { IValuesMap, IValuesMinMaxMap, Point } from '@platform/types/filter';
+import { IValuesMinMaxMap } from '@platform/types/filter';
+import { ResultSearchValues, Point } from '@platform/types/bindings';
 import { scheme_color_0, scheme_color_5_75, shadeColor } from '@styles/colors';
 import { Base } from './render';
 import { ChartRequest, ChartType } from '@service/session/dependencies/search/charts/request';
@@ -8,7 +9,7 @@ import { IRange } from '@platform/types/range';
 const GRID_LINES_COUNT = 5;
 
 export class Render extends Base {
-    protected values: IValuesMap = new Map<number, Point[]>();
+    protected values: ResultSearchValues = new Map<number, Point[]>();
     protected peaks: IValuesMinMaxMap = {};
     protected charts: ChartRequest[] = [];
     protected points: boolean = true;
@@ -74,7 +75,7 @@ export class Render extends Base {
         return this;
     }
 
-    public setValues(values: IValuesMap): Render {
+    public setValues(values: ResultSearchValues): Render {
         this.values = values;
         return this;
     }

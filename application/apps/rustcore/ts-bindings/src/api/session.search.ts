@@ -3,8 +3,9 @@ import { scope } from 'platform/env/scope';
 import { RustSession } from '../native/native.session';
 import { ICancelablePromise } from 'platform/env/promise';
 import { EventProvider } from '../api/session.provider';
-import { IGrabbedElement } from 'platform/types/content';
-import { IFilter, ISearchMap, TExtractedValues, INearest, IValuesMap } from 'platform/types/filter';
+import { GrabbedElement } from 'platform/types/bindings/miscellaneous';
+import { IFilter, ISearchMap, TExtractedValues } from 'platform/types/filter';
+import { ResultSearchValues, NearestPosition } from 'platform/types/bindings';
 import { Executors } from './executors/session.stream.executors';
 import { SearchTaskManager } from './executors/single.task.search';
 import { ValuesTaskManager } from './executors/single.task.values';
@@ -48,7 +49,7 @@ export class SessionSearch {
      * @param start { number } - first row number in search result
      * @param len { number } - count of rows, which should be included into chank from @param start
      */
-    public grab(start: number, len: number): Promise<IGrabbedElement[]> {
+    public grab(start: number, len: number): Promise<GrabbedElement[]> {
         return this.session.grabSearchChunk(start, len);
     }
 
@@ -97,7 +98,7 @@ export class SessionSearch {
         datasetLength: number,
         from?: number,
         to?: number,
-    ): ICancelablePromise<IValuesMap> {
+    ): ICancelablePromise<ResultSearchValues> {
         return Executors.values_getter(this.session, this.provider, this.logger, {
             datasetLength,
             from,
@@ -105,7 +106,7 @@ export class SessionSearch {
         });
     }
 
-    public getNearest(positionInStream: number): ICancelablePromise<INearest | undefined> {
+    public getNearest(positionInStream: number): ICancelablePromise<NearestPosition | undefined> {
         return Executors.nearest(this.session, this.provider, this.logger, {
             positionInStream,
         });
