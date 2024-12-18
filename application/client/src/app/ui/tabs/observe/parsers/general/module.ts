@@ -5,16 +5,25 @@ import { ErrorStateModule } from '../../error/module';
 import { DltGeneralConfigurationModule } from './dlt/module';
 import { SomeIpGeneralConfigurationModule } from './someip/module';
 import { TextGeneralConfigurationModule } from './text/module';
+import { ParserPluginGeneralConfigurationModule } from './plugin/module';
 import { ParserGeneralConfiguration } from './component';
 
 @NgModule({
-    imports: [CommonModule, DltGeneralConfigurationModule, SomeIpGeneralConfigurationModule, TextGeneralConfigurationModule, ErrorStateModule],
+    imports: [
+        CommonModule,
+        DltGeneralConfigurationModule,
+        SomeIpGeneralConfigurationModule,
+        TextGeneralConfigurationModule,
+        ParserPluginGeneralConfigurationModule,
+        ErrorStateModule,
+    ],
     declarations: [ParserGeneralConfiguration],
     exports: [
         ParserGeneralConfiguration,
         DltGeneralConfigurationModule,
         SomeIpGeneralConfigurationModule,
         TextGeneralConfigurationModule,
+        ParserPluginGeneralConfigurationModule,
         ErrorStateModule,
     ],
     bootstrap: [
@@ -22,6 +31,7 @@ import { ParserGeneralConfiguration } from './component';
         DltGeneralConfigurationModule,
         SomeIpGeneralConfigurationModule,
         TextGeneralConfigurationModule,
+        ParserPluginGeneralConfigurationModule,
         ErrorStateModule,
     ],
 })
