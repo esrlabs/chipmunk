@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IValuesMap } from '../../../types/filter';
+import { ResultSearchValues } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
@@ -25,11 +25,16 @@ export interface Request extends Interface {}
 @Define({ name: 'SearchValuesGettingResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public values: IValuesMap;
+    public values: ResultSearchValues;
     public canceled: boolean;
     public error?: string;
 
-    constructor(input: { session: string; values: IValuesMap; canceled: boolean; error?: string }) {
+    constructor(input: {
+        session: string;
+        values: ResultSearchValues;
+        canceled: boolean;
+        error?: string;
+    }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');

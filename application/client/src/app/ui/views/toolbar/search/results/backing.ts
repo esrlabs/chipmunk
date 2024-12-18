@@ -2,14 +2,14 @@ import { Session } from '@service/session';
 import { IRowsPacket, Service } from '@elements/scrollarea/controllers/service';
 import { Range, IRange } from '@platform/types/range';
 import { Row, Owner } from '@schema/content/row';
-import { IGrabbedElement } from '@platform/types/content';
+import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 
 const SCROLLAREA_SERVICE = 'search_scroll_area_service';
 
 async function getRowFrom(
     session: Session,
-    element: IGrabbedElement,
-    elements: IGrabbedElement[],
+    element: GrabbedElement,
+    elements: GrabbedElement[],
     index: number,
 ): Promise<Row> {
     const row = new Row({

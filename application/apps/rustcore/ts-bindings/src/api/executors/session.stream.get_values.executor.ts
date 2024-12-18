@@ -1,9 +1,8 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../session.provider';
-import { IValuesMap } from 'platform/types/filter';
-import { ResultSearchValues } from 'platform/types/bindings';
 import { error } from 'platform/log/utils';
+import { ResultSearchValues } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
 
@@ -13,13 +12,13 @@ export interface IOptions {
     to?: number;
 }
 
-export const executor: TExecutor<IValuesMap, IOptions> = (
+export const executor: TExecutor<ResultSearchValues, IOptions> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: IOptions,
-): CancelablePromise<IValuesMap> => {
-    return AsyncResultsExecutor<IValuesMap, IOptions>(
+): CancelablePromise<ResultSearchValues> => {
+    return AsyncResultsExecutor<ResultSearchValues, IOptions>(
         session,
         provider,
         logger,
@@ -46,7 +45,11 @@ export const executor: TExecutor<IValuesMap, IOptions> = (
                     .catch(reject);
             });
         },
-        function (data: Uint8Array, resolve: (r: IValuesMap) => void, reject: (e: Error) => void) {
+        function (
+            data: Uint8Array,
+            resolve: (r: ResultSearchValues) => void,
+            reject: (e: Error) => void,
+        ) {
             try {
                 const map: ResultSearchValues = protocol.decodeResultSearchValues(data);
                 resolve(map);

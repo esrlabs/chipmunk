@@ -1,8 +1,9 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
-import { IGrabbedElement, IndexingMode } from '@platform/types/content';
+import { IndexingMode } from '@platform/types/content';
 import { Range, IRange } from '@platform/types/range';
+import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -84,7 +85,7 @@ export class Indexed extends Subscriber {
         };
     }
 
-    public grab(range: Range | IRange): Promise<IGrabbedElement[]> {
+    public grab(range: Range | IRange): Promise<GrabbedElement[]> {
         if (this._len === 0) {
             // TODO: Grabber is crash session in this case... should be prevented on grabber level
             return Promise.resolve([]);
