@@ -1,7 +1,7 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
-import { INearest } from 'platform/types/filter';
+import { NearestPosition, ResultNearestPosition } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
 
@@ -9,13 +9,13 @@ export interface IExecuteNearestOptions {
     positionInStream: number;
 }
 
-export const executor: TExecutor<INearest | undefined, IExecuteNearestOptions> = (
+export const executor: TExecutor<NearestPosition | undefined, IExecuteNearestOptions> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: IExecuteNearestOptions,
-): CancelablePromise<INearest | undefined> => {
-    return AsyncResultsExecutor<INearest | undefined, IExecuteNearestOptions>(
+): CancelablePromise<NearestPosition | undefined> => {
+    return AsyncResultsExecutor<NearestPosition | undefined, IExecuteNearestOptions>(
         session,
         provider,
         logger,
@@ -29,12 +29,11 @@ export const executor: TExecutor<INearest | undefined, IExecuteNearestOptions> =
         },
         function (
             data: Uint8Array,
-            resolve: (res: INearest | undefined) => void,
+            resolve: (res: NearestPosition | undefined) => void,
             reject: (err: Error) => void,
         ) {
             try {
-                const result: INearest | undefined | null =
-                    protocol.decodeResultNearestPosition(data);
+                const result: ResultNearestPosition = protocol.decodeResultNearestPosition(data);
                 resolve(result === null ? undefined : result);
             } catch (e) {
                 return reject(

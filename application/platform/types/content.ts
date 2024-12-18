@@ -3,21 +3,6 @@ import { Mutable } from './unity/mutable';
 
 import * as obj from '../env/obj';
 
-export interface IGrabbedContent {
-    grabbed_elements: IGrabbedElement[];
-}
-
-/**
- * Output for @grabStreamChunk method of session
- * (application/apps/rustcore/ts/src/native/native.session.ts)
- */
-export interface IGrabbedElement {
-    source_id: number;
-    content: string;
-    pos: number;
-    nature: number;
-}
-
 export enum IndexingMode {
     Regular = 0,
     Breadcrumbs = 1,

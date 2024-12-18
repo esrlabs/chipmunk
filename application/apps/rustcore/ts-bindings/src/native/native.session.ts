@@ -3,7 +3,7 @@ import { RustSessionRequiered } from '../native/native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
 import { IFilter } from 'platform/types/filter';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings/miscellaneous';
 import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
@@ -43,11 +43,11 @@ export abstract class RustSession extends RustSessionRequiered {
      *
      * @error In case of incorrect range should return { NativeError }
      */
-    public abstract grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]>;
+    public abstract grabStreamChunk(start: number, len: number): Promise<GrabbedElement[]>;
 
-    public abstract grabStreamRanges(ranges: IRange[]): Promise<IGrabbedElement[]>;
+    public abstract grabStreamRanges(ranges: IRange[]): Promise<GrabbedElement[]>;
 
-    public abstract grabIndexed(start: number, len: number): Promise<IGrabbedElement[]>;
+    public abstract grabIndexed(start: number, len: number): Promise<GrabbedElement[]>;
 
     public abstract setIndexingMode(mode: IndexingMode): Promise<void>;
 
@@ -76,7 +76,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * @returns { string }
      * @error In case of incorrect range should return { NativeError }
      */
-    public abstract grabSearchChunk(start: number, len: number): Promise<IGrabbedElement[]>;
+    public abstract grabSearchChunk(start: number, len: number): Promise<GrabbedElement[]>;
 
     /**
      * TODO: @return needs interface. It should not be a string
@@ -206,10 +206,10 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract triggerTrackerError(): Promise<void>;
 
     // Used only for testing and debug
-    public abstract testGrabElsAsJson(): IGrabbedElement[] | NativeError;
+    public abstract testGrabElsAsJson(): GrabbedElement[] | NativeError;
 
     // Used only for testing and debug
-    public abstract testGrabElsAsBin(): IGrabbedElement[] | NativeError;
+    public abstract testGrabElsAsBin(): GrabbedElement[] | NativeError;
 }
 
 export abstract class RustSessionNative {
@@ -474,7 +474,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public grabStreamChunk(start: number, len: number): Promise<IGrabbedElement[]> {
+    public grabStreamChunk(start: number, len: number): Promise<GrabbedElement[]> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('grab');
             this._native
@@ -502,7 +502,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public grabIndexed(start: number, len: number): Promise<IGrabbedElement[]> {
+    public grabIndexed(start: number, len: number): Promise<GrabbedElement[]> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('grabIndexed');
             this._native
@@ -621,7 +621,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public grabStreamRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
+    public grabStreamRanges(ranges: IRange[]): Promise<GrabbedElement[]> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('grabRanges');
@@ -655,7 +655,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public grabSearchChunk(start: number, len: number): Promise<IGrabbedElement[]> {
+    public grabSearchChunk(start: number, len: number): Promise<GrabbedElement[]> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('grabSearch');
             this._native
@@ -1109,7 +1109,7 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public testGrabElsAsJson(): IGrabbedElement[] | NativeError {
+    public testGrabElsAsJson(): GrabbedElement[] | NativeError {
         try {
             const lines: Array<{
                 content: string;
@@ -1141,7 +1141,7 @@ export class RustSessionWrapper extends RustSession {
         }
     }
 
-    public testGrabElsAsBin(): IGrabbedElement[] | NativeError {
+    public testGrabElsAsBin(): GrabbedElement[] | NativeError {
         try {
             const received = this._native.testGrabElsAsBin();
             const elements = protocol.decodeGrabbedElementList(Uint8Array.from(received));
