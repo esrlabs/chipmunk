@@ -32,13 +32,14 @@ export interface Version {
     patch: number;
 }
 
-export type ConfigSchemaType =
-    | { type: 'Boolean' }
-    | { type: 'Number' }
-    | { type: 'Float' }
-    | { type: 'Text' }
-    | { type: 'Path' }
-    | { type: 'Dropdown'; options: string[] };
+export enum ConfigSchemaType {
+    Boolean = 'Boolean',
+    Number = 'Number',
+    Float = 'Float',
+    Text = 'Text',
+    Path = 'Path',
+    //TODO AAZ: DropDown is ignored for now.
+}
 
 export interface ConfigSchema {
     id: string;
