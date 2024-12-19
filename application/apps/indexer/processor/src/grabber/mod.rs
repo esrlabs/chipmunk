@@ -29,6 +29,48 @@ pub enum GrabError {
     Unsupported(String),
 }
 
+impl From<GrabError> for stypes::NativeError {
+    fn from(val: GrabError) -> Self {
+        match val {
+            GrabError::IoOperation(e) => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::ComputationFailed,
+                message: Some(e),
+            },
+            GrabError::Config(msg) => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(msg),
+            },
+            GrabError::Interrupted => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Interrupted,
+                message: None,
+            },
+            GrabError::InvalidRange { .. } => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::ComputationFailed,
+                message: Some("Invalid Range".to_string()),
+            },
+            GrabError::Communication(s) => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::ComputationFailed,
+                message: Some(s),
+            },
+            GrabError::NotInitialize => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::ComputationFailed,
+                message: Some("Grabbing failed, not initialized".to_owned()),
+            },
+            GrabError::Unsupported(s) => stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::ComputationFailed,
+                message: Some(format!("File type is not supported: {s}")),
+            },
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ComputationResult<T> {
     Item(T),

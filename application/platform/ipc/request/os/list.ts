@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Entity } from '../../../types/files';
+import { FolderEntity } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
@@ -30,10 +30,10 @@ export interface Request extends Interface {}
 
 @Define({ name: 'ListFilesAndFoldersResponse' })
 export class Response extends SignatureRequirement {
-    public entities: Entity[];
+    public entities: FolderEntity[];
     public max: boolean;
 
-    constructor(input: { entities: Entity[]; max: boolean }) {
+    constructor(input: { entities: FolderEntity[]; max: boolean }) {
         super();
         validator.isObject(input);
         this.entities = validator.getAsArray(input, 'entities');

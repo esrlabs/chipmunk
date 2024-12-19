@@ -30,7 +30,7 @@ export class Render extends Base {
         if (frame === undefined) {
             return;
         }
-        const frameLength = frame.to - frame.from;
+        const frameLength = frame.end - frame.start;
         if (frameLength <= 0) {
             return;
         }

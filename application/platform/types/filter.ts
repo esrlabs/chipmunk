@@ -21,13 +21,18 @@ export interface FilterStyle {
     background: string;
 }
 
+export interface FilterMatch {
+    index: number;
+    filters: number[];
+}
+
 export interface ISearchStats {
-    stats: { [key: string]: number };
+    stats: Map<string, number>;
 }
 
 export interface ISearchUpdated {
     found: number;
-    stat: { [key: string]: number };
+    stat: Map<string, number>;
 }
 
 export enum EFlag {
@@ -38,14 +43,7 @@ export enum EFlag {
 
 export type ISearchMap = Array<[number, number][]>;
 
-export type IValuesMap = { [key: number]: [number, number, number, number][] };
-
 export type IValuesMinMaxMap = { [key: number]: [number, number] };
-
-export interface INearest {
-    index: number;
-    position: number;
-}
 
 export interface IExtractedMatch {
     filter: IFilter;
@@ -53,9 +51,8 @@ export interface IExtractedMatch {
 }
 
 export interface IExtractedValueSrc {
-    index: number; // row position in the stream
-    // [filter_index, [values]]
-    values: Array<Array<number | string[]>>;
+    index: number;
+    values: Array<[number, string[]]>;
 }
 export type TExtractedValuesSrc = IExtractedValueSrc[];
 

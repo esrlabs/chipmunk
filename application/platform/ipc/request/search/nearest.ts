@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { INearest } from '../../../types/filter';
+import { NearestPosition } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
@@ -21,9 +21,9 @@ export interface Request extends Interface {}
 @Define({ name: 'NearestResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public nearest: INearest | undefined;
+    public nearest: NearestPosition | undefined;
 
-    constructor(input: { session: string; nearest: INearest | undefined }) {
+    constructor(input: { session: string; nearest: NearestPosition | undefined }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
