@@ -1,6 +1,12 @@
 use crate::*;
 use std::ops::RangeInclusive;
 
+impl From<HashMap<String, String>> for MapKeyValue {
+    fn from(map: HashMap<String, String>) -> Self {
+        MapKeyValue(map)
+    }
+}
+
 impl From<Vec<GrabbedElement>> for GrabbedElementList {
     /// Converts a `Vec<GrabbedElement>` into a `GrabbedElementList`.
     ///

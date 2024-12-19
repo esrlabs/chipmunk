@@ -166,7 +166,7 @@ impl UnboundSessionAPI {
     pub async fn get_shell_profiles(
         &self,
         id: u64,
-    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetShellProfiles(tx_results))
             .await
@@ -175,7 +175,7 @@ impl UnboundSessionAPI {
     pub async fn get_context_envvars(
         &self,
         id: u64,
-    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetContextEnvvars(tx_results))
             .await
