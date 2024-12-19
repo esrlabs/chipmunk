@@ -2,10 +2,14 @@ import { CancelablePromise } from 'platform/env/promise';
 import { Base, Cancelled, decode } from '../native/native.jobs';
 import { error } from 'platform/log/utils';
 import { IFilter } from 'platform/types/filter';
-import { ShellProfile } from 'platform/types/shells';
 import { SomeipStatistic } from 'platform/types/observe/parser/someip';
-import { StatisticInfo } from 'platform/types/observe/parser/dlt';
-import { FoldersScanningResult } from 'platform/types/bindings';
+import {
+    FoldersScanningResult,
+    DltStatisticInfo,
+    Profile,
+    ProfileList,
+    MapKeyValue,
+} from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
 import * as types from 'platform/types';
@@ -109,20 +113,18 @@ export class Jobs extends Base {
         return job;
     }
 
-    public getDltStats(paths: string[]): CancelablePromise<StatisticInfo> {
+    public getDltStats(paths: string[]): CancelablePromise<DltStatisticInfo> {
         const sequence = this.sequence();
-        const job: CancelablePromise<StatisticInfo> = this.execute(
+        const job: CancelablePromise<DltStatisticInfo> = this.execute(
             (buf: Uint8Array): any | Error => {
-                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
+                const decoded = decode<DltStatisticInfo>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithDltStatisticInfo,
+                );
                 if (decoded instanceof Error) {
                     return decoded;
                 }
-                console.log(decoded);
-                try {
-                    return JSON.parse(decoded) as StatisticInfo;
-                } catch (e) {
-                    return new Error(error(e));
-                }
+                return decoded;
             },
             this.native.getDltStats(sequence, paths),
             sequence,
@@ -152,27 +154,12 @@ export class Jobs extends Base {
         return job;
     }
 
-    public getShellProfiles(): CancelablePromise<ShellProfile[]> {
+    public getShellProfiles(): CancelablePromise<Profile[]> {
         const sequence = this.sequence();
-        const job: CancelablePromise<ShellProfile[]> = this.execute(
+        const job: CancelablePromise<Profile[]> = this.execute(
             (buf: Uint8Array): any | Error => {
-                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
-                if (decoded instanceof Error) {
-                    return decoded;
-                }
-                try {
-                    const unparsed: unknown[] = JSON.parse(decoded);
-                    const profiles: ShellProfile[] = [];
-                    unparsed.forEach((unparsed: unknown) => {
-                        const profile = ShellProfile.fromObj(unparsed);
-                        if (!(profile instanceof Error)) {
-                            profiles.push(profile);
-                        }
-                    });
-                    return profiles;
-                } catch (e) {
-                    return new Error(error(e));
-                }
+                const decoded = decode<ProfileList>(buf, protocol.decodeCommandOutcomeWithString);
+                return decoded;
             },
             this.native.getShellProfiles(sequence),
             sequence,
@@ -185,27 +172,11 @@ export class Jobs extends Base {
         const sequence = this.sequence();
         const job: CancelablePromise<Map<string, string>> = this.execute(
             (buf: Uint8Array): Map<string, string> | Error => {
-                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
-                if (decoded instanceof Error) {
-                    return decoded;
-                }
-                try {
-                    const unparsed: { [key: string]: string } = JSON.parse(decoded);
-                    const envvars: Map<string, string> = new Map();
-                    if (
-                        unparsed === undefined ||
-                        unparsed === null ||
-                        typeof unparsed !== 'object'
-                    ) {
-                        return new Error(`Fail to parse envvars string: ${unparsed}`);
-                    }
-                    Object.keys(unparsed).forEach((key) => {
-                        envvars.set(key, unparsed[key]);
-                    });
-                    return envvars;
-                } catch (e) {
-                    return new Error(error(e));
-                }
+                const decoded = decode<MapKeyValue>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithMapKeyValue,
+                );
+                return decoded;
             },
             this.native.getContextEnvvars(sequence),
             sequence,

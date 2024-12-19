@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { StatisticInfo } from '../../../types/observe/parser/dlt';
+import { DltStatisticInfo } from '../../../types/bindings';
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'DltStatRequest' })
@@ -16,9 +16,9 @@ export interface Request extends Interface {}
 
 @Define({ name: 'DltStatResponse' })
 export class Response extends SignatureRequirement {
-    public stat: StatisticInfo;
+    public stat: DltStatisticInfo;
 
-    constructor(input: { stat: StatisticInfo }) {
+    constructor(input: { stat: DltStatisticInfo }) {
         super();
         validator.isObject(input);
         this.stat = validator.getAsObj(input, 'stat');

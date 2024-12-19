@@ -2,7 +2,7 @@ import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { jobs } from '@service/jobs';
 import { unbound } from '@service/unbound';
-import { StatisticInfo } from 'platform/types/observe/parser/dlt';
+import { DltStatisticInfo } from 'platform/types/bindings';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -26,7 +26,7 @@ export const handler = Requests.InjectLogger<
                 .start();
             unbound.jobs
                 .getDltStats(request.files)
-                .then((stat: StatisticInfo) => {
+                .then((stat: DltStatisticInfo) => {
                     resolve(
                         new Requests.Dlt.Stat.Response({
                             stat,
