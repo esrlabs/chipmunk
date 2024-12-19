@@ -3,6 +3,7 @@ import { Section } from './structure/section';
 import { Summary } from './summary';
 import { StatEntity } from './structure/statentity';
 import { getTypedProp } from '@platform/env/obj';
+import { DltStatisticInfo, DltLevelDistribution } from '@platform/types/bindings';
 
 import * as Dlt from '@platform/types/observe/parser/dlt';
 
@@ -19,7 +20,7 @@ export const NAMES: { [key: string]: string } = {
 };
 export class State extends Base {
     public structure: Section[] = [];
-    public stat: Dlt.StatisticInfo | undefined;
+    public stat: DltStatisticInfo | undefined;
     public summary: {
         total: Summary;
         selected: Summary;
@@ -101,9 +102,9 @@ export class State extends Base {
                 const stat = this.stat;
                 const structure: Section[] = [];
                 ['app_ids', 'context_ids', 'ecu_ids'].forEach((key: string) => {
-                    const content: Array<[string, Dlt.LevelDistribution]> = getTypedProp<
-                        Dlt.StatisticInfo,
-                        Array<[string, Dlt.LevelDistribution]>
+                    const content: Array<[string, DltLevelDistribution]> = getTypedProp<
+                        DltStatisticInfo,
+                        Array<[string, DltLevelDistribution]>
                     >(stat, key);
                     const entities: StatEntity[] = content.map((record) => {
                         const entity = new StatEntity(record[0], key, record[1], this.matcher);
