@@ -143,7 +143,7 @@ impl UnboundSessionAPI {
         &self,
         id: u64,
         files: Vec<String>,
-    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetDltStats(files, tx_results))
             .await

@@ -49,7 +49,9 @@ pub enum Command {
     ),
     GetDltStats(
         Vec<String>,
-        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError>,
+        >,
     ),
     GetSomeipStatistic(
         Vec<String>,

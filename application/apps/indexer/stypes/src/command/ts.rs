@@ -5,6 +5,18 @@ use crate::*;
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+pub enum CommandOutcomeDltStatisticInfoResult {
+    /// Indicates that the command was successfully completed.
+    Finished(DltStatisticInfo),
+    /// Indicates that the command execution was interrupted.
+    Cancelled,
+}
+
+/// Represents the result of a command execution.
+/// At the core level, this type is used for all commands invoked within an `UnboundSession`.
+/// It is only used to indicate the successful completion or interruption of a command.
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
 pub enum CommandOutcomeProfilesResult {
     /// Indicates that the command was successfully completed.
     Finished(ProfileList),

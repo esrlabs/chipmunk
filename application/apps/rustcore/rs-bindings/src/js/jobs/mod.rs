@@ -150,7 +150,7 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError> {
         self.api
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?

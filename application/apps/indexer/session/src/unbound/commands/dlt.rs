@@ -5,7 +5,7 @@ use std::path::Path;
 pub fn stats(
     files: Vec<String>,
     _signal: Signal,
-) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+) -> Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError> {
     let mut stat = StatisticInfo::new();
     let mut error: Option<String> = None;
     files.iter().for_each(|file| {
@@ -24,8 +24,5 @@ pub fn stats(
     if let Some(err) = error {
         return Err(stypes::ComputationError::IoOperation(err));
     }
-    Ok(stypes::CommandOutcome::Finished(
-        serde_json::to_string(&stat)
-            .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?,
-    ))
+    Ok(stypes::CommandOutcome::Finished(stat.into()))
 }
