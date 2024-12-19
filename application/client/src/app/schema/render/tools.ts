@@ -1,6 +1,7 @@
 import { Implementation as Dlt } from './dlt';
 import { Implementation as SomeIp } from './someip';
 import { Implementation as Text } from './text';
+import { Implementation as Plugin } from './plugin';
 import { Render, RenderReference } from './index';
 import { Session } from '@service/session/session';
 import { Observe } from '@platform/types/observe';
@@ -13,6 +14,7 @@ const RENDERS: {
     [Parsers.Protocol.Dlt]: Dlt,
     [Parsers.Protocol.SomeIp]: SomeIp,
     [Parsers.Protocol.Text]: Text,
+    [Parsers.Protocol.Plugin]: Plugin,
 };
 
 export function getRender(observe: Observe): Render<unknown> | Error {
