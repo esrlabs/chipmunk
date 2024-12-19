@@ -26,6 +26,7 @@ import { cli } from '@service/cli';
 import { actions } from '@service/actions';
 import { favorites } from '@service/favorites';
 import { sys } from '@service/sys';
+import { plugins } from './plugins';
 
 import { Subscriber } from '@platform/env/subscription';
 
@@ -69,6 +70,7 @@ export interface IlcInterface {
 @DependOn(actions)
 @DependOn(favorites)
 @DependOn(sys)
+@DependOn(plugins)
 // UI services
 @DependOn(sidebar)
 @DependOn(toolbar)

@@ -5,6 +5,7 @@ import { IFilter } from 'platform/types/filter';
 import { ShellProfile } from 'platform/types/shells';
 import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import { StatisticInfo } from 'platform/types/observe/parser/dlt';
+import { PluginEntity } from 'platform/types/plugins';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {
@@ -65,23 +66,20 @@ export class Jobs extends Base {
         return job;
     }
 
-    public isFileBinary(options: {
-        filePath: string,
-    }): CancelablePromise<boolean> {
+    public isFileBinary(options: { filePath: string }): CancelablePromise<boolean> {
         const sequence = this.sequence();
         const job: CancelablePromise<boolean> = this.execute(
             (res: boolean): any | Error => {
                 if (typeof res !== 'boolean') {
-                    return new Error(`[jobs.isFileBinary] Expecting boolean, but got: ${typeof res}`);
+                    return new Error(
+                        `[jobs.isFileBinary] Expecting boolean, but got: ${typeof res}`,
+                    );
                 }
                 return res;
             },
-            this.native.isFileBinary(
-                sequence,
-                options.filePath
-            ),
+            this.native.isFileBinary(sequence, options.filePath),
             sequence,
-            'isFileBinary'
+            'isFileBinary',
         );
         return job;
     }
@@ -246,6 +244,51 @@ export class Jobs extends Base {
             this.native.sleep(sequence, ms),
             sequence,
             'sleep',
+        );
+        return job;
+    }
+
+    public getAllPlugins(): CancelablePromise<PluginEntity[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<PluginEntity[]> = this.execute(
+            (pluginsJson: string): PluginEntity[] | Error => {
+                try {
+                    return JSON.parse(pluginsJson);
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getAllPlugins(sequence),
+            sequence,
+            'getAllPlugins',
+        );
+        return job;
+    }
+
+    public getActivePlugins(): CancelablePromise<PluginEntity[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<PluginEntity[]> = this.execute(
+            (pluginsJson: string): PluginEntity[] | Error => {
+                try {
+                    return JSON.parse(pluginsJson);
+                } catch (e) {
+                    return new Error(error(e));
+                }
+            },
+            this.native.getActivePlugins(sequence),
+            sequence,
+            'getActivePlugins',
+        );
+        return job;
+    }
+
+    public reloadPlugins(): CancelablePromise<void> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<void> = this.execute(
+            (): void => {},
+            this.native.reloadPlugins(sequence),
+            sequence,
+            'reloadPlugins',
         );
         return job;
     }

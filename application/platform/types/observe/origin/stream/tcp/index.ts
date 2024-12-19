@@ -67,7 +67,7 @@ export class Configuration
     }
 
     public getSupportedParsers(): Parser.Reference[] {
-        return [Parser.Dlt.Configuration];
+        return [Parser.Dlt.Configuration, Parser.Plugin.Configuration];
     }
 
     public override hash(): number {
