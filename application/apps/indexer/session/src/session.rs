@@ -1,16 +1,14 @@
 use crate::{
-    events::{CallbackEvent, ComputationError},
     operations,
     operations::Operation,
     state,
-    state::{AttachmentInfo, GrabbedElement, IndexesMode, SessionStateAPI, SourceDefinition},
+    state::{IndexesMode, SessionStateAPI},
     tracker,
     tracker::OperationTrackerAPI,
 };
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
-use sources::{factory::ObserveOptions, sde};
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
@@ -48,13 +46,13 @@ impl Session {
     ///
     pub async fn new(
         uuid: Uuid,
-    ) -> Result<(Self, UnboundedReceiver<CallbackEvent>), ComputationError> {
+    ) -> Result<(Self, UnboundedReceiver<stypes::CallbackEvent>), stypes::ComputationError> {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
         let (state_api, rx_state_api) = SessionStateAPI::new(tracker_api.clone());
         let (tx_callback_events, rx_callback_events): (
-            UnboundedSender<CallbackEvent>,
-            UnboundedReceiver<CallbackEvent>,
+            UnboundedSender<stypes::CallbackEvent>,
+            UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
         let session = Self {
             uuid,
@@ -123,7 +121,7 @@ impl Session {
             debug!("Session task is finished");
         });
         if tx.send(handle).is_err() {
-            Err(ComputationError::SessionCreatingFail)
+            Err(stypes::ComputationError::SessionCreatingFail)
         } else {
             Ok((session, rx_callback_events))
         }
@@ -133,7 +131,7 @@ impl Session {
         tx_operations: &UnboundedSender<Operation>,
         destroying: &CancellationToken,
         name: &str,
-        f: impl Future<Output = Result<(), crate::events::NativeError>> + Send + 'static,
+        f: impl Future<Output = Result<(), stypes::NativeError>> + Send + 'static,
     ) {
         if let Err(err) = f.await {
             error!("State loop exits with error:: {:?}", err);
@@ -152,70 +150,76 @@ impl Session {
         self.state.clone()
     }
 
-    pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, ComputationError> {
+    pub async fn grab(
+        &self,
+        range: LineRange,
+    ) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
         self.state
             .grab(range)
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|els| els.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub async fn grab_indexed(
         &self,
         range: RangeInclusive<u64>,
-    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+    ) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
         self.state
             .grab_indexed(range)
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|els| els.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn set_indexing_mode(&self, mode: u8) -> Result<(), ComputationError> {
+    pub async fn set_indexing_mode(&self, mode: u8) -> Result<(), stypes::ComputationError> {
         self.state
             .set_indexing_mode(match mode {
                 0u8 => IndexesMode::Regular,
                 1u8 => IndexesMode::Breadcrumbs,
-                _ => return Err(ComputationError::InvalidData),
+                _ => return Err(stypes::ComputationError::InvalidData),
             })
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn get_indexed_len(&self) -> Result<usize, ComputationError> {
+    pub async fn get_indexed_len(&self) -> Result<usize, stypes::ComputationError> {
         self.state
             .get_indexed_len()
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub async fn get_around_indexes(
         &self,
         position: u64,
-    ) -> Result<(Option<u64>, Option<u64>), ComputationError> {
+    ) -> Result<stypes::AroundIndexes, stypes::ComputationError> {
         self.state
             .get_around_indexes(position)
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|v| v.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn add_bookmark(&self, row: u64) -> Result<(), ComputationError> {
+    pub async fn add_bookmark(&self, row: u64) -> Result<(), stypes::ComputationError> {
         self.state
             .add_bookmark(row)
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), ComputationError> {
+    pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), stypes::ComputationError> {
         self.state
             .set_bookmarks(rows)
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn remove_bookmark(&self, row: u64) -> Result<(), ComputationError> {
+    pub async fn remove_bookmark(&self, row: u64) -> Result<(), stypes::ComputationError> {
         self.state
             .remove_bookmark(row)
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub async fn expand_breadcrumbs(
@@ -223,69 +227,71 @@ impl Session {
         seporator: u64,
         offset: u64,
         above: bool,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.state
             .expand_breadcrumbs(seporator, offset, above)
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub async fn grab_search(
         &self,
         range: LineRange,
-    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+    ) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
         self.state
             .grab_search(range)
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|els| els.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub async fn grab_ranges(
         &self,
         ranges: Vec<RangeInclusive<u64>>,
-    ) -> Result<Vec<GrabbedElement>, ComputationError> {
+    ) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
         self.state
             .grab_ranges(ranges)
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|els| els.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), ComputationError> {
+    pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Cancel { target },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub async fn send_into_sde(
         &self,
         target: Uuid,
-        msg: sde::SdeRequest,
-    ) -> Result<sde::SdeResponse, ComputationError> {
+        msg: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, stypes::ComputationError> {
         let (tx_response, rx_response) = oneshot::channel();
         if let Some(tx_sde) = self
             .tracker
             .get_sde_sender(target)
             .await
-            .map_err(|e| ComputationError::IoOperation(format!("{e:?}")))?
+            .map_err(|e| stypes::ComputationError::IoOperation(format!("{e:?}")))?
         {
             tx_sde.send((msg, tx_response)).map_err(|_| {
-                ComputationError::Communication(String::from(
+                stypes::ComputationError::Communication(String::from(
                     "Fail to send message into SDE channel",
                 ))
             })?;
             rx_response
                 .await
                 .map_err(|_| {
-                    ComputationError::Communication(String::from(
+                    stypes::ComputationError::Communication(String::from(
                         "Fail to get response from SDE channel",
                     ))
                 })?
-                .map_err(ComputationError::Sde)
+                .map_err(stypes::ComputationError::Sde)
         } else {
-            Err(ComputationError::IoOperation(String::from(
+            Err(stypes::ComputationError::IoOperation(String::from(
                 "No SDE channel",
             )))
         }
@@ -296,18 +302,18 @@ impl Session {
         tx_operations: &UnboundedSender<Operation>,
         destroyed: Option<&CancellationToken>,
         destroying: &CancellationToken,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         destroying.cancel();
         tx_operations
             .send(Operation::new(operation_id, operations::OperationKind::End))
-            .map_err(|e| ComputationError::Communication(e.to_string()))?;
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))?;
         if let Some(destroyed) = destroyed {
             destroyed.cancelled().await;
         }
         Ok(())
     }
 
-    pub async fn stop(&self, operation_id: Uuid) -> Result<(), ComputationError> {
+    pub async fn stop(&self, operation_id: Uuid) -> Result<(), stypes::ComputationError> {
         Session::send_stop_signal(
             operation_id,
             &self.tx_operations,
@@ -317,39 +323,40 @@ impl Session {
         .await
     }
 
-    pub async fn get_stream_len(&self) -> Result<usize, ComputationError> {
+    pub async fn get_stream_len(&self) -> Result<usize, stypes::ComputationError> {
         self.state
             .get_stream_len()
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
             .map(|(rows, _bytes)| rows as usize)
     }
 
-    pub async fn get_search_result_len(&self) -> Result<usize, ComputationError> {
+    pub async fn get_search_result_len(&self) -> Result<usize, stypes::ComputationError> {
         self.state
             .get_search_result_len()
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub fn observe(
         &self,
         operation_id: Uuid,
-        options: ObserveOptions,
-    ) -> Result<(), ComputationError> {
+        options: stypes::ObserveOptions,
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Observe(options),
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn get_sources(&self) -> Result<Vec<SourceDefinition>, ComputationError> {
+    pub async fn get_sources(&self) -> Result<stypes::Sources, stypes::ComputationError> {
         self.state
             .get_sources_definitions()
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|v| v.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     /// Exports data to the specified output path with the given parameters. This method is used to export
@@ -366,9 +373,9 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `Result<(), ComputationError>`:
+    /// * `Result<(), stypes::ComputationError>`:
     ///     - `Ok(())` if the export is successful.
-    ///     - `Err(ComputationError)` if an error occurs during the export process.
+    ///     - `Err(stypes::ComputationError)` if an error occurs during the export process.
     ///
     pub fn export(
         &self,
@@ -378,7 +385,7 @@ impl Session {
         columns: Vec<usize>,
         spliter: Option<String>,
         delimiter: Option<String>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
@@ -390,7 +397,7 @@ impl Session {
                     delimiter,
                 },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub fn export_raw(
@@ -398,66 +405,66 @@ impl Session {
         operation_id: Uuid,
         out_path: PathBuf,
         ranges: Vec<RangeInclusive<u64>>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::ExportRaw { out_path, ranges },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn is_raw_export_available(&self) -> Result<bool, ComputationError> {
+    pub async fn is_raw_export_available(&self) -> Result<bool, stypes::ComputationError> {
         self.state
             .is_raw_export_available()
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub fn apply_search_filters(
         &self,
         operation_id: Uuid,
         filters: Vec<SearchFilter>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Search { filters },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub fn apply_search_values_filters(
         &self,
         operation_id: Uuid,
         filters: Vec<String>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::SearchValues { filters },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn drop_search(&self) -> Result<bool, ComputationError> {
+    pub async fn drop_search(&self) -> Result<bool, stypes::ComputationError> {
         self.state
             .drop_search()
             .await
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     pub fn extract_matches(
         &self,
         operation_id: Uuid,
         filters: Vec<SearchFilter>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Extract { filters },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub fn get_map(
@@ -465,13 +472,13 @@ impl Session {
         operation_id: Uuid,
         dataset_len: u16,
         range: Option<(u64, u64)>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Map { dataset_len, range },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub fn get_values(
@@ -479,40 +486,44 @@ impl Session {
         operation_id: Uuid,
         dataset_len: u16,
         range: Option<RangeInclusive<u64>>,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Values { dataset_len, range },
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub fn get_nearest_to(
         &self,
         operation_id: Uuid,
         position_in_stream: u64,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::GetNearestPosition(position_in_stream),
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
-    pub async fn get_attachments(&self) -> Result<Vec<AttachmentInfo>, ComputationError> {
+    pub async fn get_attachments(
+        &self,
+    ) -> Result<stypes::AttachmentList, stypes::ComputationError> {
         self.state
             .get_attachments()
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|v| v.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn get_indexed_ranges(&self) -> Result<Vec<RangeInclusive<u64>>, ComputationError> {
+    pub async fn get_indexed_ranges(&self) -> Result<stypes::Ranges, stypes::ComputationError> {
         self.state
             .get_indexed_ranges()
             .await
-            .map_err(ComputationError::NativeError)
+            .map(|v| v.into())
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     /// Used for debug goals
@@ -521,26 +532,26 @@ impl Session {
         operation_id: Uuid,
         ms: u64,
         ignore_cancellation: bool,
-    ) -> Result<(), ComputationError> {
+    ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Sleep(ms, ignore_cancellation),
             ))
-            .map_err(|e| ComputationError::Communication(e.to_string()))
+            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     /// Used for debug goals
-    pub async fn trigger_state_error(&self) -> Result<(), ComputationError> {
+    pub async fn trigger_state_error(&self) -> Result<(), stypes::ComputationError> {
         self.state
             .shutdown_with_error()
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 
     /// Used for debug goals
-    pub async fn trigger_tracker_error(&self) -> Result<(), ComputationError> {
+    pub async fn trigger_tracker_error(&self) -> Result<(), stypes::ComputationError> {
         self.tracker
             .shutdown_with_error()
-            .map_err(ComputationError::NativeError)
+            .map_err(stypes::ComputationError::NativeError)
     }
 }

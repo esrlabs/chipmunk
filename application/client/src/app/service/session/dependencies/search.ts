@@ -1,6 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
-import { ISearchMap, INearest } from '@platform/types/filter';
+import { ISearchMap } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IFilter, ISearchUpdated } from '@platform/types/filter';
 import { IRange } from '@platform/types/range';
@@ -8,6 +8,7 @@ import { FilterRequest, FiltersStore } from './search/filters/store';
 import { DisableStore } from './search/disabled/store';
 import { ChartsStore } from './search/charts/store';
 import { State } from './search/state';
+import { NearestPosition } from '@platform/types/bindings';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -136,8 +137,8 @@ export class Search extends Subscriber {
                 new Requests.Search.Map.Request({
                     session: this._uuid,
                     len,
-                    from: range ? range.from : undefined,
-                    to: range ? range.to : undefined,
+                    from: range ? range.start : undefined,
+                    to: range ? range.end : undefined,
                 }),
             )
                 .then((response) => {
@@ -162,7 +163,7 @@ export class Search extends Subscriber {
         });
     }
 
-    public nearest(stream: number): Promise<INearest | undefined> {
+    public nearest(stream: number): Promise<NearestPosition | undefined> {
         return new Promise((resolve) => {
             Requests.IpcRequest.send(
                 Requests.Search.Nearest.Response,

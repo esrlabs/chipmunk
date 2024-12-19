@@ -3,12 +3,12 @@ import { FlatTreeControl } from '@angular/cdk/tree';
 import { BehaviorSubject, merge, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Entity } from './entity';
-import { EntityType } from '@platform/types/files';
 import { Services } from '@service/ilc/services';
 import { Filter } from '@elements/filter/filter';
 import { FavoritePlace } from '@service/favorites';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
+import { FolderEntityType } from '@platform/types/bindings';
 
 export { Entity };
 
@@ -74,8 +74,8 @@ export class DynamicDatabase {
                         {
                             name: root.path,
                             fullname: root.path,
-                            type: EntityType.Directory,
-                            details: undefined,
+                            kind: FolderEntityType.Directory,
+                            details: null,
                         },
                         '',
                         true,

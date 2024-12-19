@@ -3,7 +3,7 @@ import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { Range, IRange } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
-import { IGrabbedElement } from '@platform/types/content';
+import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 import { Observe } from '@platform/types/observe';
 import { ObserveOperation } from './observing/operation';
 import { ObserveSource } from './observing/source';
@@ -289,7 +289,7 @@ export class Stream extends Subscriber {
         };
     }
 
-    public chunk(range: Range): Promise<IGrabbedElement[]> {
+    public chunk(range: Range): Promise<GrabbedElement[]> {
         if (this._len === 0) {
             // TODO: Grabber is crash session in this case... should be prevented on grabber level
             return Promise.resolve([]);
@@ -299,8 +299,8 @@ export class Stream extends Subscriber {
                 Requests.Stream.Chunk.Response,
                 new Requests.Stream.Chunk.Request({
                     session: this._uuid,
-                    from: range.from,
-                    to: range.to,
+                    from: range.start,
+                    to: range.end,
                 }),
             )
                 .then((response: Requests.Stream.Chunk.Response) => {
@@ -312,7 +312,7 @@ export class Stream extends Subscriber {
         });
     }
 
-    public grab(ranges: IRange[]): Promise<IGrabbedElement[]> {
+    public grab(ranges: IRange[]): Promise<GrabbedElement[]> {
         if (this._len === 0) {
             // TODO: Grabber is crash session in this case... should be prevented on grabber level
             return Promise.resolve([]);

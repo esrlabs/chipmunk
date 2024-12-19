@@ -213,8 +213,8 @@ export class Comments extends Subscriber {
         const stored = remember();
         const origin = (
             await this.session.stream.grab([
-                { from: selection.rows.start, to: selection.rows.start },
-                { from: selection.rows.end, to: selection.rows.end },
+                { start: selection.rows.start, end: selection.rows.start },
+                { start: selection.rows.end, end: selection.rows.end },
             ])
         ).map((el) => {
             el.content = safeEscapeAnsi(el.content);

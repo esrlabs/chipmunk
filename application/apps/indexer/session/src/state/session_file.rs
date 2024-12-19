@@ -1,44 +1,22 @@
 use super::source_ids::SourceIDs;
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    paths,
-    progress::Severity,
-};
+use crate::paths;
 use log::debug;
 use processor::{
     grabber::{Grabber, LineRange},
     text_source::TextFileSource,
 };
-use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
     time::Instant,
 };
+use stypes::GrabbedElement;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub const FLUSH_DATA_IN_MS: u128 = 500;
 pub const SESSION_FILE_EXTENSION: &str = "session";
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GrabbedElement {
-    #[serde(rename = "id")]
-    pub source_id: u16,
-    #[serde(rename = "c")]
-    pub content: String,
-    #[serde(rename = "p")]
-    pub pos: usize,
-    #[serde(rename = "n")]
-    pub nature: u8,
-}
-
-impl GrabbedElement {
-    pub fn set_nature(&mut self, nature: u8) {
-        self.nature = nature;
-    }
-}
 
 #[derive(Debug)]
 pub enum SessionFileState {
@@ -87,7 +65,7 @@ impl SessionFile {
         }
     }
 
-    pub fn init(&mut self, mut filename: Option<PathBuf>) -> Result<(), NativeError> {
+    pub fn init(&mut self, mut filename: Option<PathBuf>) -> Result<(), stypes::NativeError> {
         if self.grabber.is_none() {
             let filename = if let Some(filename) = filename.take() {
                 self.filename = Some(SessionFileOrigin::Linked(filename.clone()));
@@ -97,9 +75,9 @@ impl SessionFile {
                 let filename = streams.join(format!("{}.{SESSION_FILE_EXTENSION}", Uuid::new_v4()));
                 debug!("Session file setup: {}", filename.to_string_lossy());
                 self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
-                    NativeError {
-                        severity: Severity::ERROR,
-                        kind: NativeErrorKind::Io,
+                    stypes::NativeError {
+                        severity: stypes::Severity::ERROR,
+                        kind: stypes::NativeErrorKind::Io,
                         message: Some(format!(
                             "Fail to create session writer for {}: {}",
                             filename.to_string_lossy(),
@@ -152,7 +130,7 @@ impl SessionFile {
         source_id: u16,
         state_cancellation_token: CancellationToken,
         msg: String,
-    ) -> Result<SessionFileState, NativeError> {
+    ) -> Result<SessionFileState, stypes::NativeError> {
         if !self.sources.is_source_same(source_id) {
             self.flush(state_cancellation_token.clone(), false)?;
         }
@@ -165,9 +143,9 @@ impl SessionFile {
                 Ok(SessionFileState::MaybeChanged)
             }
         } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(String::from(
                     "Session file isn't assigned yet, cannot flush",
                 )),
@@ -179,7 +157,7 @@ impl SessionFile {
         &mut self,
         state_cancellation_token: CancellationToken,
         drop_timestamp: bool,
-    ) -> Result<SessionFileState, NativeError> {
+    ) -> Result<SessionFileState, stypes::NativeError> {
         if drop_timestamp {
             self.last_message_timestamp = Instant::now();
         }
@@ -190,9 +168,9 @@ impl SessionFile {
                 state_cancellation_token,
             )
         } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(String::from(
                     "Session file isn't assigned yet, cannot flush",
                 )),
@@ -204,10 +182,10 @@ impl SessionFile {
         &mut self,
         source_id: u16,
         state_cancellation_token: CancellationToken,
-    ) -> Result<SessionFileState, NativeError> {
-        let grabber = &mut (self.grabber.as_mut().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+    ) -> Result<SessionFileState, stypes::NativeError> {
+        let grabber = &mut (self.grabber.as_mut().ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(String::from("Grabber isn't inited")),
         })?);
         let prev = grabber.log_entry_count().unwrap_or(0) as u64;
@@ -222,17 +200,19 @@ impl SessionFile {
         })
     }
 
-    pub fn grab(&self, range: &LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
-        let grabber = &mut (self.grabber.as_ref().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+    pub fn grab(&self, range: &LineRange) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
+        let grabber = &mut (self.grabber.as_ref().ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(String::from("Grabber isn't inited")),
         })?);
-        let rows = grabber.grab_content(range).map_err(|e| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
-            message: Some(format!("{e}")),
-        })?;
+        let rows = grabber
+            .grab_content(range)
+            .map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
+                message: Some(format!("{e}")),
+            })?;
         let mapped_ranges = self.sources.get_mapped_ranges(&range.range);
         let from = *range.range.start() as usize;
         Ok(rows
@@ -250,13 +230,13 @@ impl SessionFile {
             .collect())
     }
 
-    pub fn filename(&self) -> Result<PathBuf, NativeError> {
+    pub fn filename(&self) -> Result<PathBuf, stypes::NativeError> {
         if let Some(origin) = self.filename.as_ref() {
             Ok(origin.filename())
         } else {
-            Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(String::from("Session file isn't created yet")),
             })
         }
@@ -278,33 +258,33 @@ impl SessionFile {
     ///
     /// # Returns
     ///
-    /// * `Result<(), NativeError>`:
+    /// * `Result<(), stypes::NativeError>`:
     ///     * `Ok(())` if the content is copied successfully.
-    ///     * `Err(NativeError)` if an error occurs during the copying process.
+    ///     * `Err(stypes::NativeError)` if an error occurs during the copying process.
     ///
     pub fn copy_content<W: std::io::Write>(
         &mut self,
         writer: &mut W,
         line_range: &LineRange,
         modifier: Option<impl Fn(String) -> String>,
-    ) -> Result<(), NativeError> {
-        let grabber = &mut (self.grabber.as_ref().ok_or(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Grabber,
+    ) -> Result<(), stypes::NativeError> {
+        let grabber = &mut (self.grabber.as_ref().ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
             message: Some(String::from("Grabber isn't inited")),
         })?);
         grabber
             .copy_content(writer, line_range, modifier)
-            .map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            .map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!("{e}")),
             })
     }
 
     /// Cleans up the temporary generated files and for the session on its attachments if exist
     /// for none-linked sessions.
-    pub fn cleanup(&mut self) -> Result<(), NativeError> {
+    pub fn cleanup(&mut self) -> Result<(), stypes::NativeError> {
         if self.writer.is_none() {
             // Session is linked. No temporary files has been generated.
             return Ok(());
@@ -314,9 +294,9 @@ impl SessionFile {
         let filename = self.filename()?;
         debug!("cleaning up files: {:?}", filename);
         if filename.exists() {
-            std::fs::remove_file(&filename).map_err(|e| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Io,
+            std::fs::remove_file(&filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
                 message: Some(format!(
                     "Removing session main file fialed. Error: {e}. Path: {}",
                     filename.display()
@@ -329,9 +309,9 @@ impl SessionFile {
             .to_str()
             .and_then(|file| file.strip_suffix(&format!(".{SESSION_FILE_EXTENSION}")))
             .map(PathBuf::from)
-            .ok_or_else(|| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Io,
+            .ok_or_else(|| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
                 message: Some("Session file name isn't UTF-8 valid".into()),
             })?;
 
@@ -341,9 +321,9 @@ impl SessionFile {
                 attachments_dir.display()
             );
 
-            std::fs::remove_dir_all(&attachments_dir).map_err(|err| NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Io,
+            std::fs::remove_dir_all(&attachments_dir).map_err(|err| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
                 message: Some(format!(
                     "Removing attachments directory failed. Error: {err}, Path: {}",
                     attachments_dir.display()

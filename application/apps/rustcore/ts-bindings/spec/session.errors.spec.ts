@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { finish, createSampleFile } from './common';
 import { readConfigurationFile } from './config';
 import { error } from 'platform/log/utils';
@@ -82,7 +82,7 @@ describe('Errors', () => {
                 // While we do not have operation id
                 comps.stream
                     .grab(6000, 1000)
-                    .then((_result: IGrabbedElement[]) => {
+                    .then((_result: GrabbedElement[]) => {
                         finish(comps.session, done, new Error(`grabber should not return results`));
                     })
                     .catch((err: Error) => {
@@ -127,7 +127,7 @@ describe('Errors', () => {
                                     expect(len).toEqual(55);
                                     comps.search
                                         .grab(6000, 1000)
-                                        .then((result: IGrabbedElement[]) => {
+                                        .then((result: GrabbedElement[]) => {
                                             finish(
                                                 comps.session,
                                                 done,
@@ -176,7 +176,7 @@ describe('Errors', () => {
                 }
                 comps.stream
                     .grab(1, -2)
-                    .then((_result: IGrabbedElement[]) => {
+                    .then((_result: GrabbedElement[]) => {
                         finish(
                             comps.session,
                             done,
@@ -217,7 +217,7 @@ describe('Errors', () => {
                 grabbing = true;
                 comps.stream
                     .grab(-1, 2)
-                    .then((_result: IGrabbedElement[]) =>
+                    .then((_result: GrabbedElement[]) =>
                         finish(comps.session, done, new Error('Grab from invalid start worked')),
                     )
                     .catch((err: Error) => {

@@ -1,9 +1,9 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
 import { File, Entity } from '@platform/types/files';
+import { FolderEntity } from '@platform/types/bindings';
 import { FileType } from '@platform/types/observe/types/file';
-import { ShellProfile } from '@platform/types/shells';
-import { StatisticInfo } from '@platform/types/observe/parser/dlt';
+import { DltStatisticInfo, Profile } from '@platform/types/bindings';
 import { Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 
@@ -12,7 +12,7 @@ import * as Requests from '@platform/ipc/request/index';
 @SetupService(services['bridge'])
 export class Service extends Implementation {
     protected cache: {
-        shells: ShellProfile[] | undefined;
+        shells: Profile[] | undefined;
         files: Map<string, File>;
         checksums: Map<string, string>;
     } = {
@@ -22,7 +22,7 @@ export class Service extends Implementation {
     };
     protected queue: {
         shells: Array<{
-            resolve: (profiles: ShellProfile[]) => void;
+            resolve: (profiles: Profile[]) => void;
             reject: (err: Error) => void;
         }>;
     } = {
@@ -49,7 +49,7 @@ export class Service extends Implementation {
             depth: number;
             max: number;
             include?: { files: boolean; folders: boolean };
-        }): Promise<{ entities: Entity[]; max: boolean }>;
+        }): Promise<{ entities: FolderEntity[]; max: boolean }>;
         stat(path: string): Promise<Entity>;
         checksum(filename: string): Promise<string>;
         isBinary(file: string): Promise<boolean>;
@@ -137,7 +137,7 @@ export class Service extends Implementation {
                 depth: number;
                 max: number;
                 include?: { files: boolean; folders: boolean };
-            }): Promise<{ entities: Entity[]; max: boolean }> {
+            }): Promise<{ entities: FolderEntity[]; max: boolean }> {
                 return Requests.IpcRequest.send(
                     Requests.Os.List.Response,
                     new Requests.Os.List.Request(
@@ -399,10 +399,10 @@ export class Service extends Implementation {
     }
 
     public dlt(): {
-        stat(files: string[]): Promise<StatisticInfo>;
+        stat(files: string[]): Promise<DltStatisticInfo>;
     } {
         return {
-            stat: (files: string[]): Promise<StatisticInfo> => {
+            stat: (files: string[]): Promise<DltStatisticInfo> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Dlt.Stat.Response,
@@ -536,7 +536,7 @@ export class Service extends Implementation {
 
     public os(): {
         homedir(): Promise<string>;
-        shells(): Promise<ShellProfile[]>;
+        shells(): Promise<Profile[]>;
         envvars(): Promise<Map<string, string>>;
     } {
         return {
@@ -552,7 +552,7 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            shells: (): Promise<ShellProfile[]> => {
+            shells: (): Promise<Profile[]> => {
                 return new Promise((resolve, reject) => {
                     if (this.cache.shells !== undefined) {
                         resolve(this.cache.shells);
@@ -564,12 +564,10 @@ export class Service extends Implementation {
                                 new Requests.Os.Shells.Request(),
                             )
                                 .then((response) => {
-                                    this.cache.shells = response.profiles
-                                        .map((p) => ShellProfile.fromObj(p))
-                                        .filter((p) => p instanceof ShellProfile) as ShellProfile[];
+                                    this.cache.shells = response.profiles;
                                     this.queue.shells
                                         .map((h) => h.resolve)
-                                        .forEach((r) => r(this.cache.shells as ShellProfile[]));
+                                        .forEach((r) => r(this.cache.shells as Profile[]));
                                 })
                                 .catch((err: Error) => {
                                     this.queue.shells.map((h) => h.reject).forEach((r) => r(err));

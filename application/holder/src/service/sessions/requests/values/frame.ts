@@ -40,7 +40,7 @@ export const handler = Requests.InjectLogger<
                             new Requests.Values.Frame.Response({
                                 session: session_uuid,
                                 canceled: true,
-                                values: {},
+                                values: new Map(),
                             }),
                         );
                     })
@@ -50,7 +50,7 @@ export const handler = Requests.InjectLogger<
                             new Requests.Values.Frame.Response({
                                 session: session_uuid,
                                 canceled: false,
-                                values: {},
+                                values: new Map(),
                                 error: err.message,
                             }),
                         );

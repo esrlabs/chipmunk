@@ -1,4 +1,4 @@
-import { LevelDistribution } from '@platform/types/observe/parser/dlt';
+import { DltLevelDistribution } from '@platform/types/bindings';
 import { Matchee } from '@module/matcher';
 
 import * as wasm from '@loader/wasm';
@@ -16,7 +16,7 @@ export class StatEntity extends Matchee {
     public log_verbose: number;
     public log_invalid: number;
 
-    constructor(id: string, parent: string, from: LevelDistribution, matcher: wasm.Matcher) {
+    constructor(id: string, parent: string, from: DltLevelDistribution, matcher: wasm.Matcher) {
         super(matcher, { id: id });
         this.id = id;
         this.parent = parent;

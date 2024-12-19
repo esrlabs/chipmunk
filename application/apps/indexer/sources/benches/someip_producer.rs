@@ -32,11 +32,9 @@ fn someip_producer(c: &mut Criterion) {
                 || {
                     let parser = create_someip_parser(fibex_path.as_ref());
                     let source = PcapngByteSource::new(Cursor::new(data)).unwrap();
-                    let producer = MessageProducer::new(parser, source, black_box(None));
-
-                    producer
+                    MessageProducer::new(parser, source, black_box(None))
                 },
-                |p| run_producer(p),
+                run_producer,
                 BatchSize::SmallInput,
             )
     });
