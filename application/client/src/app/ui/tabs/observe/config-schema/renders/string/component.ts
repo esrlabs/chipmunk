@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, AfterContentInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -11,7 +11,7 @@ import { ConfigSchema } from '@platform/types/plugins';
 })
 @Initial()
 @Ilc()
-export class ConfigSchemaString extends ChangesDetector implements AfterContentInit, OnDestroy {
+export class ConfigSchemaString extends ChangesDetector implements OnDestroy {
     @Input() public config!: ConfigSchema;
     //TODO AAZ: Check if this is needed. On String too!.
     @Input() public save!: (config: ConfigSchema) => void;
@@ -19,13 +19,8 @@ export class ConfigSchemaString extends ChangesDetector implements AfterContentI
     public value?: string;
 
     //TODO AAZ: Check if constructor is called. On boolean component too!.
-    constructor(cdRef: ChangeDetectorRef, defaultValue?: string) {
+    constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
-        this.value = defaultValue;
-    }
-
-    ngAfterContentInit(): void {
-        //TODO AAZ: Check if assigning values will be done here.
     }
 
     ngOnDestroy(): void {

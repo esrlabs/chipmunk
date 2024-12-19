@@ -10,9 +10,10 @@ export enum PluginType {
     ByteSource = 'ByteSource',
 }
 
-export type PluginState =
-    | { type: 'Active'; state: ActiveState }
-    | { type: 'Invalid'; state: InvalidState };
+export interface PluginState {
+    Active?: ActiveState;
+    Invalid?: InvalidState;
+}
 
 export interface ActiveState {
     wasm_file_path: string;

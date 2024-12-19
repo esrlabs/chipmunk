@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, AfterContentInit } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -12,20 +12,19 @@ import { ConfigSchema } from '@platform/types/plugins';
 })
 @Initial()
 @Ilc()
-export class ConfigSchemas extends ChangesDetector implements AfterContentInit {
+export class ConfigSchemas extends ChangesDetector implements OnChanges {
+    @Input() schemas!: ConfigSchema[];
+
     public readonly state: State = new State();
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
-    ngAfterContentInit(): void {
-        //TODO AAZ: Check if this is needed.
-    }
-
-    public reload(schemas: ConfigSchema[]) {
-        this.state.reload(schemas);
-        this.detectChanges();
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['schemas']) {
+            this.state.reload(this.schemas);
+        }
     }
 }
 

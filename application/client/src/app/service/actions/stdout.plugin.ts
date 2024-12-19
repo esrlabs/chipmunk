@@ -18,7 +18,6 @@ export class Action extends Base {
         return 'Execute command with plugins';
     }
     public override apply(): Promise<void> {
-        //TODO AAZ: create asPlugin() method
         session.initialize().configure(new Factory.Stream().process().asPlugin().get());
         return Promise.resolve();
     }

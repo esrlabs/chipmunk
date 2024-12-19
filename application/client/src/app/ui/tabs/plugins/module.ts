@@ -12,7 +12,7 @@ import { PluginsManager } from './component';
 
 const components = [PluginsManager];
 
-//TODO AAZ: Check if all those imports are needed.
+//TODO AAZ: Check if imports on all created components are needed.
 @NgModule({
     imports: [
         CommonModule,

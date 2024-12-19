@@ -4,12 +4,14 @@ import {
     ChangeDetectorRef,
     AfterContentInit,
     AfterViewInit,
+    ViewChild,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Observe } from '@platform/types/observe';
 import { State } from './state';
+import { ConfigSchemas } from '@ui/tabs/observe/config-schema/component';
 
 @Component({
     selector: 'app-el-parser-plugin-general',
@@ -23,6 +25,9 @@ export class ParserPluginGeneralConfiguration
     implements AfterContentInit, AfterViewInit
 {
     @Input() observe!: Observe;
+
+    //TODO AAZ: Delete if there is no need for it.
+    @ViewChild('cschema') child!: ConfigSchemas;
 
     protected state!: State;
 

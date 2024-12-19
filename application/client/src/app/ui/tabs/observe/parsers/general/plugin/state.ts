@@ -4,7 +4,7 @@ import { plugins as plugService } from '@service/plugins';
 import { getSafeFileName } from '@platform/types/files';
 
 import * as Plugin from '@platform/types/observe/parser/plugin';
-import { PluginEntity, PluginType } from '@platform/types/plugins';
+import { PluginEntity, PluginType, ConfigSchema } from '@platform/types/plugins';
 
 export class State extends Base {
     public parsers: PluginEntity[] = [];
@@ -25,9 +25,14 @@ export class State extends Base {
             return plugins.filter((p) => p.plugin_type == PluginType.Parser);
         });
 
-        this.selectedParser = this.parsers[0];
+        if (this.parsers.length > 0) {
+            this.selectedParser = this.parsers[0];
+        }
     }
 
+    /**
+     * Updates the configuration data for the parser in the current tab
+     */
     public update(): State {
         let conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
@@ -42,5 +47,9 @@ export class State extends Base {
 
     public getPluginName(parser: PluginEntity): string {
         return parser.metadata?.name ?? getSafeFileName(parser.dir_path);
+    }
+
+    public getPluginConfigs(parser?: PluginEntity): ConfigSchema[] {
+        return parser?.state.Active?.config_schemas ?? [];
     }
 }
