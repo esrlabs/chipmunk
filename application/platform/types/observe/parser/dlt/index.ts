@@ -10,27 +10,9 @@ import * as obj from '../../../../env/obj';
 import * as Origin from '../../origin/index';
 import * as str from '../../../../env/str';
 
-export interface LevelDistribution {
-    non_log: number;
-    log_fatal: number;
-    log_error: number;
-    log_warning: number;
-    log_info: number;
-    log_debug: number;
-    log_verbose: number;
-    log_invalid: number;
-}
-
 export function getLogLevelName(level: number): string {
     const name = (DltLogLevelNames as Record<string, string>)[level];
     return name === undefined ? 'unknown' : name;
-}
-
-export interface StatisticInfo {
-    app_ids: [string, LevelDistribution][];
-    context_ids: [string, LevelDistribution][];
-    ecu_ids: [string, LevelDistribution][];
-    contained_non_verbose: boolean;
 }
 
 export const DltLogLevelNames = {

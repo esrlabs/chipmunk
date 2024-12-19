@@ -1,11 +1,11 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
-import { ShellProfile } from 'platform/types/shells';
+import { Profile } from 'platform/types/bindings';
 import { unbound } from '@service/unbound';
 
 import * as Requests from 'platform/ipc/request';
 
-let cached: ShellProfile[] | undefined = undefined;
+let cached: Profile[] | undefined = undefined;
 
 export const handler = Requests.InjectLogger<
     Requests.Os.Shells.Request,

@@ -16,7 +16,7 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { State } from '../../states/process';
 import { components } from '@env/decorators/initial';
-import { ShellProfile } from '@platform/types/shells';
+import { Profile } from '@platform/types/bindings';
 import { Action } from '@ui/tabs/observe/action';
 import { Session } from '@service/session';
 
@@ -196,7 +196,7 @@ export class SetupBase
         });
     }
 
-    public importEnvVars(profile: ShellProfile | undefined) {
+    public importEnvVars(profile: Profile | undefined) {
         this.state.importEnvvarsFromShell(profile).catch((err: Error) => {
             this.log().error(`Fail to save selected profile: ${err.message}`);
         });
