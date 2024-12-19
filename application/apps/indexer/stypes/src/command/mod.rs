@@ -7,10 +7,12 @@ mod proptest;
 #[cfg(test)]
 mod ts;
 
+mod dltstat;
 mod folders;
 mod profiles;
 mod serial;
 
+pub use dltstat::*;
 pub use folders::*;
 pub use profiles::*;
 pub use serial::*;
