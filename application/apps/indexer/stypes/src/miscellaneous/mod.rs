@@ -9,6 +9,11 @@ mod proptest;
 
 use crate::*;
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(test, derive(TS), ts(export, export_to = "miscellaneous.ts"))]
+pub struct MapKeyValue(pub HashMap<String, String>);
+
 /// Representation of ranges. We cannot use std ranges as soon as no way
 /// to derive Serialize, Deserialize
 #[derive(Clone, Serialize, Deserialize, Debug)]

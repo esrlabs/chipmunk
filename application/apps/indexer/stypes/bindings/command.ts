@@ -26,6 +26,13 @@ export type CommandOutcomeOptionalString = { "Finished": string | null } | "Canc
  * At the core level, this type is used for all commands invoked within an `UnboundSession`.
  * It is only used to indicate the successful completion or interruption of a command.
  */
+export type CommandOutcomeProfilesResult = { "Finished": ProfileList } | "Cancelled";
+
+/**
+ * Represents the result of a command execution.
+ * At the core level, this type is used for all commands invoked within an `UnboundSession`.
+ * It is only used to indicate the successful completion or interruption of a command.
+ */
 export type CommandOutcomeSerialPortsList = { "Finished": SerialPortsList } | "Cancelled";
 
 /**
@@ -112,6 +119,36 @@ list: Array<FolderEntity>,
  * Indicates whether the maximum length of results was reached.
  */
 max_len_reached: boolean, };
+
+export type Profile = { 
+/**
+ * Suggested name of shell. For unix based systems it will be name of executable file,
+ * like "bash", "fish" etc. For windows it will be names like "GitBash", "PowerShell"
+ * etc.
+ */
+name: string, 
+/**
+ * Path to executable file of shell
+ */
+path: string, 
+/**
+ * List of environment variables. Because extracting operation could take some time
+ * by default `envvars = None`. To load data should be used method `load`, which will
+ * make attempt to detect environment variables.
+ */
+envvars: Map<string, string>, 
+/**
+ * true - if path to executable file of shell is symlink to another location.
+ */
+symlink: boolean, };
+
+/**
+ * Represents a list of serial ports.
+ *
+ * This structure contains a vector of strings, where each string represents the name
+ * or identifier of a serial port available on the system.
+ */
+export type ProfileList = Array<Profile>;
 
 /**
  * Represents a list of serial ports.
