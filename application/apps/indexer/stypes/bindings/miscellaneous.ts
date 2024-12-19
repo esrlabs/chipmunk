@@ -9,16 +9,17 @@ export type AroundIndexes = [number | undefined | null, number | undefined | nul
 /**
  * Describes a match for a search condition.
  */
-export type FilterMatch = { 
-/**
- * The index (number) of the matching log entry.
- */
-index: number, 
-/**
- * The identifiers of the filters (search conditions) that matched
- * the specified log entry.
- */
-filters: Array<number>, };
+export type FilterMatch = {
+    /**
+     * The index (number) of the matching log entry.
+     */
+    index: number;
+    /**
+     * The identifiers of the filters (search conditions) that matched
+     * the specified log entry.
+     */
+    filters: Array<number>;
+};
 
 /**
  * A list of matches for a search condition.
@@ -28,41 +29,42 @@ export type FilterMatchList = Array<FilterMatch>;
 /**
  * Information about a log entry.
  */
-export type GrabbedElement = { 
-/**
- * The unique identifier of the source.
- */
-source_id: number, 
-/**
- * The textual content of the log entry.
- */
-content: string, 
-/**
- * The position of the log entry in the overall stream.
- */
-pos: number, 
-/**
- * The nature of the log entry, represented as a bitmask. Possible values include:
- * - `SEARCH`: Nature = Nature(1)
- * - `BOOKMARK`: Nature = Nature(1 << 1)
- * - `EXPANDED`: Nature = Nature(1 << 5)
- * - `BREADCRUMB`: Nature = Nature(1 << 6)
- * - `BREADCRUMB_SEPARATOR`: Nature = Nature(1 << 7)
- */
-nature: number, };
+export type GrabbedElement = {
+    /**
+     * The unique identifier of the source.
+     */
+    source_id: number;
+    /**
+     * The textual content of the log entry.
+     */
+    content: string;
+    /**
+     * The position of the log entry in the overall stream.
+     */
+    pos: number;
+    /**
+     * The nature of the log entry, represented as a bitmask. Possible values include:
+     * - `SEARCH`: Nature = Nature(1)
+     * - `BOOKMARK`: Nature = Nature(1 << 1)
+     * - `EXPANDED`: Nature = Nature(1 << 5)
+     * - `BREADCRUMB`: Nature = Nature(1 << 6)
+     * - `BREADCRUMB_SEPARATOR`: Nature = Nature(1 << 7)
+     */
+    nature: number;
+};
 
 /**
  * A list of log entries.
  */
 export type GrabbedElementList = Array<GrabbedElement>;
 
-export type MapKeyValue = { [key in string]?: string };
+export type MapKeyValue = Map<string, string>;
 
 /**
  * Representation of ranges. We cannot use std ranges as soon as no way
  * to derive Serialize, Deserialize
  */
-export type Range = { start: number, end: number, };
+export type Range = { start: number; end: number };
 
 /**
  * A list of ranges to read.
@@ -73,31 +75,33 @@ export type Ranges = Array<Range>;
  * A request to a stream that supports feedback, such as a terminal command
  * that accepts input through `stdin`.
  */
-export type SdeRequest = { "WriteText": string } | { "WriteBytes": Array<number> };
+export type SdeRequest = { WriteText: string } | { WriteBytes: Array<number> };
 
 /**
  * The response from a source to a sent `SdeRequest`. Note that sending data
  * with `SdeRequest` does not guarantee a response, as the behavior depends
  * on the source.
  */
-export type SdeResponse = { 
-/**
- * The number of bytes received.
- */
-bytes: number, };
+export type SdeResponse = {
+    /**
+     * The number of bytes received.
+     */
+    bytes: number;
+};
 
 /**
  * Describes a data source.
  */
-export type SourceDefinition = { 
-/**
- * The unique identifier of the source.
- */
-id: number, 
-/**
- * The user-friendly name of the source for display purposes.
- */
-alias: string, };
+export type SourceDefinition = {
+    /**
+     * The unique identifier of the source.
+     */
+    id: number;
+    /**
+     * The user-friendly name of the source for display purposes.
+     */
+    alias: string;
+};
 
 /**
  * A list of data sources.
