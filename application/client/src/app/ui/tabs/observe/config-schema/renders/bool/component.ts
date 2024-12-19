@@ -1,20 +1,23 @@
-import { Component, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    SimpleChange,
+    AfterContentInit,
+    OnDestroy,
+} from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Initial } from '@env/decorators/initial';
-import { Ilc, IlcInterface } from '@env/decorators/component';
-import { ConfigSchema, ConfigSchemaType } from '@platform/types/plugins';
+import { ConfigSchema } from '@platform/types/plugins';
+import { State } from '../../state';
 
 @Component({
     selector: 'app-tabs-config-schema-bool',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-@Initial()
-@Ilc()
-export class ConfigSchemaBool extends ChangesDetector implements OnDestroy {
+export class ConfigSchemaBool extends ChangesDetector implements AfterContentInit, OnDestroy {
     @Input() public config!: ConfigSchema;
-    //TODO AAZ: Check if this is needed. On String too!.
-    @Input() public save!: (config: ConfigSchema) => void;
+    @Input() public state!: State;
 
     public value?: boolean;
 
@@ -22,10 +25,18 @@ export class ConfigSchemaBool extends ChangesDetector implements OnDestroy {
         super(cdRef);
     }
 
+    //TODO AAZ: Check if all this saving is needed (Init + OnChange + OnDestroy)
     ngOnDestroy(): void {
-        //TODO AAZ: Save the value to the entry
-        this.save(this.config);
+        this.state.saveConfig(this.config.id, { Boolean: this.value });
+    }
+
+    ngAfterContentInit(): void {
+        this.value = false;
+        this.state.saveConfig(this.config.id, { Boolean: this.value });
+    }
+
+    public ngOnCheckboxChange(event: SimpleChange): void {
+        let val = event as unknown as boolean;
+        this.state.saveConfig(this.config.id, { Boolean: val });
     }
 }
-
-export interface ConfigSchemaBool extends IlcInterface {}

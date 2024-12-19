@@ -1,30 +1,50 @@
-import { Component, ChangeDetectorRef, Input, OnDestroy } from '@angular/core';
-import { Ilc, IlcInterface } from '@env/decorators/component';
-import { Initial } from '@env/decorators/initial';
+import {
+    Component,
+    ChangeDetectorRef,
+    Input,
+    AfterContentInit,
+    OnDestroy,
+    OnChanges,
+    SimpleChanges,
+} from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ConfigSchema } from '@platform/types/plugins';
+import { State } from '../../state';
 
 @Component({
     selector: 'app-tabs-config-schema-string',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-@Initial()
-@Ilc()
-export class ConfigSchemaString extends ChangesDetector implements OnDestroy {
+export class ConfigSchemaString
+    extends ChangesDetector
+    implements AfterContentInit, OnChanges, OnDestroy
+{
     @Input() public config!: ConfigSchema;
-    //TODO AAZ: Check if this is needed. On String too!.
-    @Input() public save!: (config: ConfigSchema) => void;
+    @Input() public state!: State;
 
     public value?: string;
 
-    //TODO AAZ: Check if constructor is called. On boolean component too!.
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['value']) {
+            this.state.saveConfig(this.config.id, { Text: changes['value'].currentValue });
+        }
+    }
+
     ngOnDestroy(): void {
-        //TODO AAZ: Check if assigning to given value is needed.
-        this.save(this.config);
+        this.state.saveConfig(this.config.id, { Text: this.value });
+    }
+
+    ngAfterContentInit(): void {
+        this.value = '';
+        this.state.saveConfig(this.config.id, { Text: this.value });
+    }
+
+    public ngOnInputChange(event: string): void {
+        this.state.saveConfig(this.config.id, { Text: event });
     }
 }

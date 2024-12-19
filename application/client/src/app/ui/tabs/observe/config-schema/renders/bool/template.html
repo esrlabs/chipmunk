@@ -1,4 +1,9 @@
-<mat-checkbox class="material-mofication-outline" [disableRipple]="true" [(ngModel)]="value">
+<mat-checkbox
+    class="material-mofication-outline"
+    [disableRipple]="true"
+    [(ngModel)]="value"
+    (ngModelChange)="ngOnCheckboxChange($event)"
+>
     {{config.title}}
 </mat-checkbox>
 <p class="t-small">{{config.description}}</p>

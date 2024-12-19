@@ -42,6 +42,20 @@ export enum ConfigSchemaType {
     //TODO AAZ: DropDown is ignored for now.
 }
 
+export interface ConfigItem {
+    id: string;
+    value: ConfigValue;
+}
+
+export interface ConfigValue {
+    Boolean?: boolean;
+    Number?: number;
+    Float?: number;
+    Text?: string;
+    Path?: string;
+    DropDown?: string;
+}
+
 export interface ConfigSchema {
     id: string;
     title: string;

@@ -3,7 +3,7 @@
     <mat-card-content>
         <mat-form-field>
             <mat-label> Select parser plugin </mat-label>
-            <mat-select [(ngModel)]="state.selectedParser">
+            <mat-select [(ngModel)]="state.selectedParser" (ngModelChange)="update()">
                 <mat-option *ngFor="let parser of state.parsers" [value]="parser">
                     {{state.getPluginName(parser)}}
                 </mat-option>
@@ -14,9 +14,6 @@
 <mat-card class="fill sticky">
     <mat-card-title>Configurations</mat-card-title>
     <mat-card-content>
-        <app-tab-config-schemas
-            #cschema
-            [schemas]="state.getPluginConfigs(state.selectedParser)"
-        ></app-tab-config-schemas>
+        <app-tab-config-schemas #cschema [parserState]="state"></app-tab-config-schemas>
     </mat-card-content>
 </mat-card>

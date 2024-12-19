@@ -26,8 +26,7 @@ export class ParserPluginGeneralConfiguration
 {
     @Input() observe!: Observe;
 
-    //TODO AAZ: Delete if there is no need for it.
-    @ViewChild('cschema') child!: ConfigSchemas;
+    @ViewChild('cschema') configsComponent!: ConfigSchemas;
 
     protected state!: State;
 
@@ -40,10 +39,16 @@ export class ParserPluginGeneralConfiguration
         this.state.bind(this);
     }
 
+    public update(): void {
+        this.state.update();
+        this.configsComponent.reload();
+    }
+
     ngAfterViewInit(): void {
         this.state
             .load()
             .then(() => {
+                this.configsComponent.reload();
                 this.detectChanges();
             })
             .catch((err: Error) => {

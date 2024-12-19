@@ -10,8 +10,11 @@ import * as Stream from '../../origin/stream/index';
 import * as obj from '../../../../env/obj';
 import * as Files from '../../types/file';
 
+import { ConfigItem, ConfigValue } from '../../../../types/plugins';
+
 export interface IConfiguration {
     pluginDirPath: string;
+    pluginConfigs: ConfigItem[];
 }
 
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
@@ -21,7 +24,7 @@ export class Configuration
 {
     static desc(): IList {
         return {
-            major: 'Plugin parser static major TODO',
+            major: 'Plugins',
             minor: 'Plugin parser static minor TODO',
             icon: undefined,
         };
@@ -33,7 +36,11 @@ export class Configuration
 
     static validate(configuration: IConfiguration): Error | IConfiguration {
         try {
-            obj.getAsString(configuration, 'pluginDirPath');
+            const dirPath = obj.getAsString(configuration, 'pluginDirPath');
+            if (dirPath.length == 0) {
+                return Error('No Plugin Parser is selected.');
+            }
+            const arr = obj.getAsArray(configuration, 'pluginConfigs');
             return configuration;
         } catch (e) {
             return new Error(error(e));
@@ -44,6 +51,7 @@ export class Configuration
     static initial(): IConfiguration {
         return {
             pluginDirPath: '',
+            pluginConfigs: [],
         };
     }
 
@@ -56,10 +64,25 @@ export class Configuration
     }
 
     public onOriginChange(_origin: Origin.Configuration): void {
-        //TODO:
+        // Plugin parsers don't need to react on changing source at the current implementation.
+    }
+
+    //TODO AAZ: Remove temp function after better types.
+    getConfigVal(value: ConfigValue): any {
+        return (
+            value.Boolean ??
+            value.Text ??
+            value.Number ??
+            value.Float ??
+            value.Path ??
+            value.DropDown
+        );
     }
 
     public override hash(): number {
-        return str.hash(this.configuration.pluginDirPath);
+        const configs = this.configuration.pluginConfigs.map(
+            (item) => `${item.id}:${this.getConfigVal(item.value)}`,
+        );
+        return str.hash(`${this.configuration.pluginDirPath}; ${configs.join(';')}`);
     }
 }
