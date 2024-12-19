@@ -38,6 +38,7 @@ grep-searcher = "0.1"
 tempfile = "3.14"
 env_logger = "0.11"
 walkdir = "2.5"
+envvars = "0.1"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.

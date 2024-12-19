@@ -9,7 +9,7 @@ blake3 = "1.5"
 crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics"] }
-envvars = "0.1"
+envvars = { workspace = true }
 file-tools = { path = "../addons/file-tools" }
 futures.workspace = true
 indexer_base = { path = "../indexer_base" }

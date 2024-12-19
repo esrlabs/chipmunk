@@ -8,9 +8,11 @@ mod proptest;
 mod ts;
 
 mod folders;
+mod profiles;
 mod serial;
 
 pub use folders::*;
+pub use profiles::*;
 pub use serial::*;
 
 use crate::*;

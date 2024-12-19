@@ -103,6 +103,8 @@ gen_encode_decode_fns!(ObserveOrigin);
 gen_encode_decode_fns!(FoldersScanningResult);
 gen_encode_decode_fns!(CommandOutcome<FoldersScanningResult>);
 gen_encode_decode_fns!(CommandOutcome<SerialPortsList>);
+gen_encode_decode_fns!(CommandOutcome<ProfileList>);
+gen_encode_decode_fns!(CommandOutcome<MapKeyValue>);
 gen_encode_decode_fns!(CommandOutcome<()>);
 gen_encode_decode_fns!(CommandOutcome<i64>);
 gen_encode_decode_fns!(CommandOutcome<Option<String>>);

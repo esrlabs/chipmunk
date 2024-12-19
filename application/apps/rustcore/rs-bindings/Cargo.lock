@@ -2342,6 +2342,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "dlt-core",
+ "envvars",
  "extend",
  "node-bindgen",
  "regex",

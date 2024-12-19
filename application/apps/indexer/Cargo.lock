@@ -1001,9 +1001,9 @@ dependencies = [
 
 [[package]]
 name = "envvars"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f62cb1fd7910188b23784a60e0738f3e85925e863617d61d1d9c9d7c59d99289"
+checksum = "7e09f83a3152f7c37f9dd3d423c0c96cbe8fc6f671731bcd60cf09e57370d4ec"
 dependencies = [
  "blake3",
  "fs_extra",
@@ -2838,6 +2838,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "dlt-core",
+ "envvars",
  "extend",
  "node-bindgen",
  "paste",

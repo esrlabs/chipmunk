@@ -56,10 +56,14 @@ pub enum Command {
         oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
     ),
     GetShellProfiles(
-        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError>,
+        >,
     ),
     GetContextEnvvars(
-        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError>,
+        >,
     ),
     SerialPortsList(
         oneshot::Sender<

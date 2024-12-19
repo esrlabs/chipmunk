@@ -175,7 +175,7 @@ impl UnboundJobs {
     async fn get_shell_profiles(
         &self,
         id: i64,
-    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError> {
         self.api
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
@@ -187,7 +187,7 @@ impl UnboundJobs {
     async fn get_context_envvars(
         &self,
         id: i64,
-    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
         self.api
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
