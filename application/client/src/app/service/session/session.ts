@@ -386,6 +386,11 @@ export class Session extends Base {
                             switch (current.parser.alias()) {
                                 case Parsers.Protocol.Text:
                                     return Types.File.FileType.Text;
+                                //TODO AAZ: Plugin added here temporally to make it compile
+                                case Parsers.Protocol.Plugin:
+                                    throw new Error(
+                                        `TODO: Exporting from plugin streams isn't configured while in prototyping yet`,
+                                    );
                                 case Parsers.Protocol.Dlt:
                                 case Parsers.Protocol.SomeIp:
                                     throw new Error(

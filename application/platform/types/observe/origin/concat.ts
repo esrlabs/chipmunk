@@ -146,6 +146,7 @@ export class Configuration
                 Parser.Dlt.Configuration,
                 Parser.SomeIp.Configuration,
                 Parser.Text.Configuration,
+                Parser.Plugin.Configuration,
             ];
         }
         switch (this.configuration[0][1]) {

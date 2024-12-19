@@ -2,6 +2,7 @@ export abstract class Support {
     public abstract getSupportedFileType(): FileName[];
 }
 
+//TODO AAZ: Check if we need a file type for the plugins.
 export enum FileType {
     PcapNG = 'PcapNG',
     PcapLegacy = 'PcapLegacy',
