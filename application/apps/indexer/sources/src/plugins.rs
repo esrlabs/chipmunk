@@ -5,11 +5,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PluginParserSettings {
     pub plugin_path: PathBuf,
+    //TODO AAZ: Temp solution.
+    //Check if Default implementation should be removed on General Setting once this temp is done.
+    #[serde(default)]
     pub general_settings: PluginParserGeneralSettings,
     pub plugin_configs: Vec<ConfigItem>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 /// General settings for all parsers as plugins
 pub struct PluginParserGeneralSettings {
     pub placeholder: String,

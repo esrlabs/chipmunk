@@ -43,11 +43,11 @@ export class State extends Base {
             return;
         }
 
-        const item = conf.configuration.pluginConfigs.find((item) => item.id === id);
+        const item = conf.configuration.plugin_configs.find((item) => item.id === id);
         if (item !== undefined) {
             item.value = value;
         } else {
-            conf.configuration.pluginConfigs.push({ id, value });
+            conf.configuration.plugin_configs.push({ id, value });
         }
     }
 
@@ -61,10 +61,12 @@ export class State extends Base {
             return;
         }
 
-        if (conf.configuration.pluginDirPath !== this.selectedParser?.dir_path) {
-            conf.configuration.pluginDirPath = this.selectedParser?.dir_path ?? '';
+        const pluginPath = this.selectedParser?.state.Active?.wasm_file_path ?? '';
+
+        if (conf.configuration.plugin_path !== pluginPath) {
+            conf.configuration.plugin_path = pluginPath;
             // Clear configurations on plugin change.
-            conf.configuration.pluginConfigs = [];
+            conf.configuration.plugin_configs = [];
         }
     }
 

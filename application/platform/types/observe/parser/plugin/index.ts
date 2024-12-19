@@ -13,8 +13,8 @@ import * as Files from '../../types/file';
 import { ConfigItem, ConfigValue } from '../../../../types/plugins';
 
 export interface IConfiguration {
-    pluginDirPath: string;
-    pluginConfigs: ConfigItem[];
+    plugin_path: string;
+    plugin_configs: ConfigItem[];
 }
 
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
@@ -36,11 +36,13 @@ export class Configuration
 
     static validate(configuration: IConfiguration): Error | IConfiguration {
         try {
-            const dirPath = obj.getAsString(configuration, 'pluginDirPath');
-            if (dirPath.length == 0) {
-                return Error('No Plugin Parser is selected.');
+            const pluginPath = obj.getAsString(configuration, 'plugin_path');
+            if (pluginPath.length == 0) {
+                return Error('No Valid Plugin Parser is selected.');
             }
-            const arr = obj.getAsArray(configuration, 'pluginConfigs');
+
+            obj.getAsArray(configuration, 'plugin_configs');
+
             return configuration;
         } catch (e) {
             return new Error(error(e));
@@ -50,8 +52,8 @@ export class Configuration
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {
-            pluginDirPath: '',
-            pluginConfigs: [],
+            plugin_path: '',
+            plugin_configs: [],
         };
     }
 
@@ -80,9 +82,9 @@ export class Configuration
     }
 
     public override hash(): number {
-        const configs = this.configuration.pluginConfigs.map(
+        const configs = this.configuration.plugin_configs.map(
             (item) => `${item.id}:${this.getConfigVal(item.value)}`,
         );
-        return str.hash(`${this.configuration.pluginDirPath}; ${configs.join(';')}`);
+        return str.hash(`${this.configuration.plugin_path}; ${configs.join(';')}`);
     }
 }
