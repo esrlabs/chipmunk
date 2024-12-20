@@ -64,6 +64,7 @@ module Paths
   JASMINE = './node_modules/.bin/electron ./node_modules/jasmine/bin/jasmine.js'
   PLATFORM = "#{ROOT}/application/platform"
   PLATFORM_DIST = "#{PLATFORM}/dist"
+  PROTOCOL = "#{ROOT}/application/apps/protocol"
   RELEASE = "#{ELECTRON}/release"
   RELEASE_BIN = "#{RELEASE}/#{Paths.release_bin_folder}"
   RELEASE_BUILD = "#{RELEASE}/#{Paths.release_build_folder}"

@@ -27,6 +27,7 @@ mod binding;
 mod cli;
 mod client;
 mod core;
+mod protocol;
 mod target_kind;
 mod updater;
 mod wasm;
@@ -45,6 +46,8 @@ pub enum Target {
     Core,
     /// Represents the path `application/platform`
     Shared,
+    /// Represents the path `application/apps/protocol`
+    Protocol,
     /// Represents the path `application/apps/rustcore/rs-bindings`
     Binding,
     /// Represents the path `application/apps/rustcore/ts-bindings`
@@ -114,6 +117,7 @@ impl std::fmt::Display for Target {
             match self {
                 Target::Core => "Core",
                 Target::Wrapper => "Wrapper",
+                Target::Protocol => "Protocol",
                 Target::Binding => "Binding",
                 Target::Cli => "Cli",
                 Target::Client => "Client",
@@ -136,6 +140,7 @@ impl FromStr for Target {
             // This check to remember to add the newly added enums to this function
             match T::App {
                 T::Core => (),
+                T::Protocol => (),
                 T::Binding => (),
                 T::Wrapper => (),
                 T::Client => (),
@@ -150,6 +155,7 @@ impl FromStr for Target {
         match input {
             "Core" => Ok(T::Core),
             "Wrapper" => Ok(T::Wrapper),
+            "Protocol" => Ok(T::Protocol),
             "Binding" => Ok(T::Binding),
             "Cli" => Ok(T::Cli),
             "Client" => Ok(T::Client),
@@ -169,6 +175,7 @@ impl Target {
             // This check to remember to add the newly added enums to this function
             match Target::App {
                 Target::Core => (),
+                Target::Protocol => (),
                 Target::Binding => (),
                 Target::Wrapper => (),
                 Target::Client => (),
@@ -182,6 +189,7 @@ impl Target {
 
         [
             Target::Binding,
+            Target::Protocol,
             Target::Cli,
             Target::App,
             Target::Core,
@@ -206,6 +214,7 @@ impl Target {
     pub fn relative_cwd(self) -> PathBuf {
         let sub_parts = match self {
             Target::Core => ["application", "apps", "indexer"].iter(),
+            Target::Protocol => ["application", "apps", "protocol"].iter(),
             Target::Binding => ["application", "apps", "rustcore", "rs-bindings"].iter(),
             Target::Wrapper => ["application", "apps", "rustcore", "ts-bindings"].iter(),
             Target::Client => ["application", "client"].iter(),
@@ -222,9 +231,12 @@ impl Target {
     /// Provide the kind of the target between Rust or Type-Script
     pub fn kind(self) -> TargetKind {
         match self {
-            Target::Binding | Target::Core | Target::Cli | Target::Wasm | Target::Updater => {
-                TargetKind::Rs
-            }
+            Target::Protocol
+            | Target::Binding
+            | Target::Core
+            | Target::Cli
+            | Target::Wasm
+            | Target::Updater => TargetKind::Rs,
             Target::Client | Target::Wrapper | Target::Shared | Target::App => TargetKind::Ts,
         }
     }
@@ -232,12 +244,15 @@ impl Target {
     /// Provides the target which this target depend on
     pub fn deps(self) -> Vec<Target> {
         match self {
-            Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
-                Vec::new()
-            }
+            Target::Core
+            | Target::Cli
+            | Target::Shared
+            | Target::Wasm
+            | Target::Updater
+            | Target::Protocol => Vec::new(),
             Target::Binding => vec![Target::Shared],
-            Target::Wrapper => vec![Target::Binding, Target::Shared],
-            Target::Client => vec![Target::Shared, Target::Wasm],
+            Target::Wrapper => vec![Target::Binding, Target::Shared, Target::Protocol],
+            Target::Client => vec![Target::Shared, Target::Wasm, Target::Protocol],
             Target::App => vec![Target::Wrapper, Target::Client, Target::Updater],
         }
     }
@@ -251,7 +266,11 @@ impl Target {
                 Target::Binding | Target::Client | Target::Shared | Target::App | Target::Wasm => {
                     true
                 }
-                Target::Core | Target::Wrapper | Target::Updater | Target::Cli => false,
+                Target::Core
+                | Target::Wrapper
+                | Target::Updater
+                | Target::Cli
+                | Target::Protocol => false,
             },
 
             JobType::AfterBuild { .. } => match self {
@@ -261,7 +280,8 @@ impl Target {
                 | Target::Wrapper
                 | Target::Wasm
                 | Target::Updater
-                | Target::Cli => false,
+                | Target::Cli
+                | Target::Protocol => false,
             },
             JobType::Test { .. } => match self {
                 Target::Wrapper | Target::Core | Target::Cli | Target::Wasm => true,
@@ -269,7 +289,8 @@ impl Target {
                 | Target::Binding
                 | Target::Client
                 | Target::Updater
-                | Target::App => false,
+                | Target::App
+                | Target::Protocol => false,
             },
             JobType::Run { .. } => false,
         }
@@ -280,6 +301,7 @@ impl Target {
         let build_cmd = match self {
             Target::Binding => binding::get_build_cmd(prod)?,
             Target::Wasm => wasm::get_build_cmd(prod),
+            Target::Protocol => protocol::get_build_cmd(prod),
             Target::Updater => updater::get_build_cmd(),
             rest_targets => rest_targets.kind().build_cmd(prod),
         };
@@ -345,6 +367,7 @@ impl Target {
             | Target::Wrapper
             | Target::Client
             | Target::Updater
+            | Target::Protocol
             | Target::App => None,
         }
     }
@@ -466,6 +489,9 @@ impl Target {
                 paths_to_remove.push(self.cwd().join("test_output"));
                 paths_to_remove.push(self.cwd().join("node_modules"));
             }
+            Target::Protocol => {
+                paths_to_remove.push(self.cwd().join("pkg"));
+            }
             Target::Wrapper => {
                 paths_to_remove.push(self.cwd().join("spec").join("build"));
                 let index_node_path = self.cwd().join("src").join("native").join("index.node");
@@ -575,6 +601,7 @@ impl Target {
             | Target::Wrapper
             | Target::Wasm
             | Target::Updater
+            | Target::Protocol
             | Target::Cli => return None,
         };
 

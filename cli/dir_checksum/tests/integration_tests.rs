@@ -146,7 +146,7 @@ fn hash_individual_sub_directory() -> anyhow::Result<()> {
 
     // Create empty file
     let empty_file_path = &sub_dir.join("empty.txt");
-    let empty_file = File::create(&empty_file_path)?;
+    let empty_file = File::create(empty_file_path)?;
     drop(empty_file);
 
     let items = calc_individual_checksum(tmp_dir.path())?;

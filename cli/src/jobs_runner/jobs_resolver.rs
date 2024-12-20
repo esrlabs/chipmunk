@@ -142,6 +142,7 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 | Target::Binding
                 | Target::Wrapper
                 | Target::Wasm
+                | Target::Protocol
                 | Target::Client
                 | Target::App => true,
             },
@@ -168,10 +169,10 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
 
                 // Client and App doesn't have tests and they are not dependencies other TS and WASM
                 // targets.
-                Target::Client | Target::App => {
+                Target::Client | Target::App | Target::Protocol => {
                     assert!(
                         !matches!(current_job, JobType::Test { .. }),
-                        "Client and App targets don't have test jobs currently"
+                        "Client, App and Protocol targets don't have test jobs currently"
                     );
                     false
                 }
@@ -272,7 +273,7 @@ mod tests {
     #[test]
     fn flatten_all_target() {
         let expected = BTreeSet::from_iter(Target::all().to_owned());
-        assert_eq!(flatten_targets_for_build(&Target::all()), expected);
+        assert_eq!(flatten_targets_for_build(Target::all()), expected);
     }
 
     #[test]
@@ -363,7 +364,7 @@ mod tests {
     fn resolve_build_all_fuzzy() {
         let production = false;
 
-        let tree = resolve(&Target::all(), JobType::Build { production });
+        let tree = resolve(Target::all(), JobType::Build { production });
 
         assert!(
             tree.get(&JobDefinition::new(

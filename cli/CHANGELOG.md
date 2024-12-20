@@ -1,3 +1,9 @@
+# 0.3.0
+
+## Changes:
+
+* Include protocol related functionality
+
 # 0.2.14
 
 ## Changes:
