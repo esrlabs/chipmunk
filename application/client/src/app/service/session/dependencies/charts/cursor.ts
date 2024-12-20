@@ -39,11 +39,11 @@ export class Cursor {
     }
 
     public setFrame(frame: IRange) {
-        if (frame.from < 0 || frame.to < 0 || frame.from > frame.to) {
+        if (frame.start < 0 || frame.end < 0 || frame.start > frame.end) {
             throw new Error(`Invalid cursor`);
         }
-        this.from = frame.from;
-        this.to = frame.to;
+        this.from = frame.start;
+        this.to = frame.end;
         this.subjects.get().position.emit();
     }
 
@@ -65,7 +65,7 @@ export class Cursor {
         if (this.from < 0 || this.to < 0 || this.from > this.to) {
             return undefined;
         }
-        return { from: this.from, to: this.to };
+        return { start: this.from, end: this.to };
     }
 
     public getWidth(): number {

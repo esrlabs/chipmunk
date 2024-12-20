@@ -7,7 +7,7 @@ import { Subject, validateEventDesc } from 'platform/env/subscription';
 import { error } from 'platform/log/utils';
 import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
-import { TEventData, TEventEmitter, IEventData } from '../provider/provider.general';
+import { TEventEmitter } from '../provider/provider.general';
 
 export interface IOrderStat {
     type: 'E' | 'O';
@@ -18,8 +18,8 @@ export interface IOrderStat {
 }
 export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
     private _destroyed: boolean = false;
-    private readonly _uuid: string;
-    private readonly _tracking: {
+    protected readonly uuid: string;
+    protected readonly tracking: {
         subjects: {
             unsupported: Subject<string>;
             error: Subject<string>;
@@ -52,17 +52,19 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         store: false,
         count: false,
     };
+    protected readonly decoder: (buf: Uint8Array) => any;
     public readonly logger: Logger;
 
-    constructor(uuid: string) {
-        this._uuid = uuid;
+    constructor(uuid: string, decoder: (buf: Uint8Array) => any) {
+        this.uuid = uuid;
+        this.decoder = decoder;
         this._emitter = this._emitter.bind(this);
         this.logger = scope.getLogger(`${this.getName()}: ${uuid}`);
     }
 
     public destroy(): Promise<void> {
         if (this._destroyed) {
-            this.logger.warn(`Computation (${this._uuid}) is already destroying or destroyed`);
+            this.logger.warn(`Computation (${this.uuid}) is already destroying or destroyed`);
         } else {
             this._destroy();
         }
@@ -109,79 +111,79 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         return {
             getEvents() {
                 return {
-                    unsupported: self._tracking.subjects.unsupported,
-                    error: self._tracking.subjects.error,
+                    unsupported: self.tracking.subjects.unsupported,
+                    error: self.tracking.subjects.error,
                 };
             },
             isTracking(): boolean {
-                return self._tracking.track;
+                return self.tracking.track;
             },
             isStored(): boolean {
-                return self._tracking.store;
+                return self.tracking.store;
             },
             setTracking(value: boolean): void {
-                self._tracking.track = value;
+                self.tracking.track = value;
             },
             setStoring(value: boolean): void {
-                self._tracking.store = value;
+                self.tracking.store = value;
             },
             setCount(value: boolean): void {
-                self._tracking.count = value;
+                self.tracking.count = value;
             },
             setAlias(value: string): void {
-                self._tracking.stat.alias = value;
+                self.tracking.stat.alias = value;
             },
             getAlias(): string | undefined {
-                return self._tracking.stat.alias;
+                return self.tracking.stat.alias;
             },
             stat: {
                 unsupported(): string[] {
-                    return self._tracking.stat.unsupported;
+                    return self.tracking.stat.unsupported;
                 },
                 error(): string[] {
-                    return self._tracking.stat.error;
+                    return self.tracking.stat.error;
                 },
                 counter(): { [key: string]: number } {
-                    return self._tracking.stat.counter;
+                    return self.tracking.stat.counter;
                 },
                 order(): IOrderStat[] {
-                    return self._tracking.stat.order;
+                    return self.tracking.stat.order;
                 },
                 operations(): { [key: string]: number } {
-                    return self._tracking.stat.operations;
+                    return self.tracking.stat.operations;
                 },
             },
             emit: {
                 unsupported(msg: string): void {
-                    if (self._tracking.track) {
-                        self._tracking.subjects.unsupported.emit(msg);
+                    if (self.tracking.track) {
+                        self.tracking.subjects.unsupported.emit(msg);
                     }
-                    if (self._tracking.store) {
-                        self._tracking.stat.unsupported.push(msg);
+                    if (self.tracking.store) {
+                        self.tracking.stat.unsupported.push(msg);
                     }
                 },
                 error(msg: string): void {
-                    if (self._tracking.track) {
-                        self._tracking.subjects.error.emit(msg);
+                    if (self.tracking.track) {
+                        self.tracking.subjects.error.emit(msg);
                     }
-                    if (self._tracking.store) {
-                        self._tracking.stat.error.push(msg);
+                    if (self.tracking.store) {
+                        self.tracking.stat.error.push(msg);
                     }
                 },
                 event(event: string, id?: string): void {
-                    if (!self._tracking.count) {
+                    if (!self.tracking.count) {
                         return;
                     }
-                    if (self._tracking.stat.counter[event] === undefined) {
-                        self._tracking.stat.counter[event] = 0;
+                    if (self.tracking.stat.counter[event] === undefined) {
+                        self.tracking.stat.counter[event] = 0;
                     }
-                    self._tracking.stat.counter[event] += 1;
+                    self.tracking.stat.counter[event] += 1;
                     const operation =
                         id === undefined
                             ? undefined
-                            : self._tracking.stat.order.find((s) => s.id === id);
+                            : self.tracking.stat.order.find((s) => s.id === id);
                     if (operation === undefined) {
-                        self._tracking.stat.order.push({
+                        self.tracking.stat.order.push({
                             type: 'E',
                             name: event,
                             id,
@@ -190,7 +192,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                         });
                     } else {
                         const emitted = Date.now();
-                        self._tracking.stat.order.push({
+                        self.tracking.stat.order.push({
                             type: 'E',
                             name: event,
                             id,
@@ -201,14 +203,14 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                     }
                 },
                 operation(operation: string, id?: string): void {
-                    if (!self._tracking.count) {
+                    if (!self.tracking.count) {
                         return;
                     }
-                    if (self._tracking.stat.operations[operation] === undefined) {
-                        self._tracking.stat.operations[operation] = 0;
+                    if (self.tracking.stat.operations[operation] === undefined) {
+                        self.tracking.stat.operations[operation] = 0;
                     }
-                    self._tracking.stat.operations[operation] += 1;
-                    self._tracking.stat.order.push({
+                    self.tracking.stat.operations[operation] += 1;
+                    self.tracking.stat.order.push({
                         type: 'O',
                         name: operation,
                         id,
@@ -225,54 +227,29 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
      * { [type: string]: string | undefined }
      * @param data {string}
      */
-    private _emitter(data: TEventData) {
-        function dataAsStr(data: TEventData): { debug: string; verb?: string } {
-            let message = '';
-            if (typeof data === 'string') {
-                message = `(defined as string): ${data}`;
-            } else {
-                message = `(defined as object): keys: ${Object.keys(data).join(
-                    ', ',
-                )} / values: ${Object.keys(data)
-                    .map((k) => JSON.stringify(data[k]))
-                    .join(', ')}`;
-            }
-            return {
-                debug: `${message.substring(0, 250)}${message.length > 250 ? '...' : ''}`,
-                verb: message.length > 250 ? message : undefined,
-            };
-        }
-        const logs = dataAsStr(data);
-        this.logger.verbose(`Event from rust:\n\t${logs.debug}`);
-        logs.verb !== undefined && this.logger.verbose(`Event from rust:\n\t${logs.verb}`);
-        let event: Required<IEventData>;
-        if (typeof data === 'string') {
-            try {
-                event = JSON.parse(data);
-            } catch (e) {
-                const msg: string = `Failed to parse rust event data due error: ${e}.\nExpecting type (JSON string): { [type: string]: string | undefined }, got: ${data}`;
-                this.debug().emit.error(msg);
-                this.logger.error(msg);
-                return;
-            }
-        } else if (typeof data === 'object' && data !== null) {
-            event = data;
-        } else {
-            const msg: string = `Unsupported format of event data: ${typeof data} / ${data}.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
-            this.debug().emit.error(msg);
-            this.logger.error(msg);
+    private _emitter(buf: Uint8Array) {
+        let event: any;
+        try {
+            event = this.decoder(buf);
+        } catch (err) {
+            this.debug().emit.error(
+                this.logger.error(`Fail to decode CallbackEvent: ${error(err)}`),
+            );
             return;
         }
         if (typeof event === 'string') {
             this._emit(event, null);
         } else if (typeof event !== 'object' || event === null || Object.keys(event).length !== 1) {
-            const msg: string = `Has been gotten incorrect event data: ${data}. No any props field found.\nExpecting type (JSON string): { [type: string]: string | undefined }`;
-            this.debug().emit.error(msg);
-            this.logger.error(msg);
+            this.debug().emit.error(
+                this.logger.error(
+                    `Has been gotten incorrect event data: ${JSON.stringify(
+                        event,
+                    )}. No any props field found.\nExpecting type: { [type: string]: string | undefined }`,
+                ),
+            );
         } else {
             const type: string = Object.keys(event)[0];
             const body: any = event[type];
-
             this._emit(type, body);
         }
     }
@@ -283,8 +260,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
         Object.keys(this.getEvents() as unknown as object).forEach((key: string) => {
             (this.getEvents() as any)[key].destroy();
         });
-        Object.keys(this._tracking.subjects).forEach((key: string) => {
-            (this._tracking.subjects as any)[key].destroy();
+        Object.keys(this.tracking.subjects).forEach((key: string) => {
+            (this.tracking.subjects as any)[key].destroy();
         });
         this.logger.debug(`Provider has been destroyed.`);
     }

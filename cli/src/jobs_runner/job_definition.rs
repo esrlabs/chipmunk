@@ -89,7 +89,7 @@ mod tests {
         for target in Target::all() {
             for job_type in JobType::all() {
                 if !target.has_job(*job_type) {
-                    let job_def = JobDefinition::new(*target, job_type.clone());
+                    let job_def = JobDefinition::new(*target, *job_type);
                     assert!(
                         job_def.run_intern(false).await.is_none(),
                         "'{}' has no job for '{}' but it returns Some when calling run",

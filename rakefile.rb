@@ -10,6 +10,7 @@ require './scripts/elements/client'
 require './scripts/elements/electron'
 require './scripts/elements/release'
 require './scripts/elements/updater'
+require './scripts/elements/protocol'
 require './scripts/tools/change_checker'
 
 CLOBBER.include("#{Paths::CLIENT}/.angular")
@@ -19,6 +20,7 @@ task clean: 'clean:all'
 
 namespace :clean do
   task all: [
+    'protocol:clean',
     'bindings:clean',
     'electron:clean',
     'client:clean',

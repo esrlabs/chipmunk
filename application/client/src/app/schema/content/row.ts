@@ -1,7 +1,8 @@
 import { Session } from '@service/session/session';
 import { Subject, Subscriber } from '@platform/env/subscription';
-import { IGrabbedElement, Nature } from '@platform/types/content';
+import { Nature } from '@platform/types/content';
 import { EAlias } from '@service/session/dependencies/search/highlights/modifier';
+import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 
 export enum Owner {
     Output = 'Output',
@@ -97,12 +98,12 @@ export class Row extends Subscriber {
     }
 
     public as(): {
-        grabbed(): IGrabbedElement;
+        grabbed(): GrabbedElement;
     } {
         return {
-            grabbed: (): IGrabbedElement => {
+            grabbed: (): GrabbedElement => {
                 return {
-                    position: this.position,
+                    pos: this.position,
                     source_id: this.source,
                     content: this.content,
                     nature: 0,

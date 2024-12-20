@@ -1,9 +1,4 @@
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    operations::OperationResult,
-    progress::Severity,
-    state::SessionStateAPI,
-};
+use crate::{operations::OperationResult, state::SessionStateAPI};
 use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
@@ -18,7 +13,6 @@ use sources::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
         raw::BinaryByteSource,
     },
-    factory::{FileFormat, ParserType},
     producer::MessageProducer,
     ByteSource,
 };
@@ -37,9 +31,9 @@ pub async fn execute_export(
     debug!("RUST: ExportRaw operation is requested");
     let observed = state.get_executed_holder().await?;
     if !observed.is_file_based_export_possible() {
-        return Err(NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Configuration,
+        return Err(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Configuration,
             message: Some(String::from(
                 "For current collection of observing operation raw export isn't possible.",
             )),
@@ -81,19 +75,19 @@ pub async fn execute_export(
 async fn assing_source(
     src: &PathBuf,
     dest: &Path,
-    parser: &ParserType,
-    file_format: &FileFormat,
+    parser: &stypes::ParserType,
+    file_format: &stypes::FileFormat,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
     cancel: &CancellationToken,
-) -> Result<Option<usize>, NativeError> {
-    let reader = File::open(src).map_err(|e| NativeError {
-        severity: Severity::ERROR,
-        kind: NativeErrorKind::Io,
+) -> Result<Option<usize>, stypes::NativeError> {
+    let reader = File::open(src).map_err(|e| stypes::NativeError {
+        severity: stypes::Severity::ERROR,
+        kind: stypes::NativeErrorKind::Io,
         message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
     })?;
     match file_format {
-        FileFormat::Binary | FileFormat::Text => {
+        stypes::FileFormat::Binary | stypes::FileFormat::Text => {
             export(
                 dest,
                 parser,
@@ -104,7 +98,7 @@ async fn assing_source(
             )
             .await
         }
-        FileFormat::PcapNG => {
+        stypes::FileFormat::PcapNG => {
             export(
                 dest,
                 parser,
@@ -115,7 +109,7 @@ async fn assing_source(
             )
             .await
         }
-        FileFormat::PcapLegacy => {
+        stypes::FileFormat::PcapLegacy => {
             export(
                 dest,
                 parser,
@@ -131,14 +125,14 @@ async fn assing_source(
 
 async fn export<S: ByteSource>(
     dest: &Path,
-    parser: &ParserType,
+    parser: &stypes::ParserType,
     source: S,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
     cancel: &CancellationToken,
-) -> Result<Option<usize>, NativeError> {
+) -> Result<Option<usize>, stypes::NativeError> {
     match parser {
-        ParserType::SomeIp(settings) => {
+        stypes::ParserType::SomeIp(settings) => {
             let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
                 SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
             } else {
@@ -155,7 +149,7 @@ async fn export<S: ByteSource>(
             )
             .await
         }
-        ParserType::Dlt(settings) => {
+        stypes::ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
@@ -175,7 +169,7 @@ async fn export<S: ByteSource>(
             )
             .await
         }
-        ParserType::Text => {
+        stypes::ParserType::Text(()) => {
             let mut producer = MessageProducer::new(StringTokenizer {}, source, None);
             export_runner(
                 Box::pin(producer.as_stream()),
@@ -197,7 +191,7 @@ pub async fn export_runner<S, T>(
     read_to_end: bool,
     text_file: bool,
     cancel: &CancellationToken,
-) -> Result<Option<usize>, NativeError>
+) -> Result<Option<usize>, stypes::NativeError>
 where
     T: LogMessage + Sized,
     S: futures::Stream<Item = Box<[(usize, MessageStreamItem<T>)]>> + Unpin,
@@ -207,9 +201,9 @@ where
         .map_or_else(
             |err| match err {
                 ExportError::Cancelled => Ok(None),
-                _ => Err(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::UnsupportedFileType,
+                _ => Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::UnsupportedFileType,
                     message: Some(format!("{err}")),
                 }),
             },

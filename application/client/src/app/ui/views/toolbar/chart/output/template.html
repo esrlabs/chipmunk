@@ -1,10 +1,10 @@
 <canvas #canvas [attr.width]="rect.width" [attr.height]="rect.height"></canvas>
 <span class="pointer" *ngIf="x !== undefined" [ngStyle]="{'left': x}">
-    <span class="label range" *ngIf="((range !== undefined) && (range.from !== range.to))"
-        >{{range.from}} - {{range.to}}</span
+    <span class="label range" *ngIf="((range !== undefined) && (range.start !== range.end))"
+        >{{range.start}} - {{range.end}}</span
     >
-    <span class="label range" *ngIf="((range !== undefined) && (range.from === range.to))"
-        >{{range.from}}</span
+    <span class="label range" *ngIf="((range !== undefined) && (range.start === range.end))"
+        >{{range.start}}</span
     >
     <span class="label" [ngStyle]="{'background': label.color}" *ngFor="let label of labels">
         <span class="wrapped" *ngIf="!label.candle">

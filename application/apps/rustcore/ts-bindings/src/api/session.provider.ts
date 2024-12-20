@@ -2,8 +2,10 @@ import { Subject } from 'platform/env/subscription';
 import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
-import { IMapEntity, IMatchEntity, IValuesMinMaxMap } from 'platform/types/filter';
-import { IAttachment } from 'platform/types/content';
+import { IMapEntity, IMatchEntity, IValuesMinMaxMap, FilterMatch } from 'platform/types/filter';
+import { AttachmentInfo } from 'platform/types/bindings';
+
+import * as protocol from 'protocol';
 
 export interface IProgressState {
     total: number;
@@ -45,7 +47,7 @@ export interface IEventMatchesUpdated {
 
 export interface IAttachmentsUpdatedUpdated {
     len: number;
-    attachment: IAttachment;
+    attachment: AttachmentInfo;
 }
 
 export interface ISessionEvents {
@@ -53,7 +55,7 @@ export interface ISessionEvents {
     FileRead: Subject<void>;
     SearchUpdated: Subject<ISearchUpdated>;
     SearchValuesUpdated: Subject<IValuesMinMaxMap | null>;
-    SearchMapUpdated: Subject<string>;
+    SearchMapUpdated: Subject<FilterMatch[]>;
     MapUpdated: Subject<IEventMapUpdated>;
     IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
     MatchesUpdated: Subject<IEventMatchesUpdated>;
@@ -110,9 +112,9 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
 interface ISessionEventsInterfaces {
     StreamUpdated: { self: 'number' };
     FileRead: { self: null };
-    SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Object };
+    SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Map };
     SearchValuesUpdated: { self: ['object', null] };
-    SearchMapUpdated: { self: ['string', null] };
+    SearchMapUpdated: { self: [typeof Array, null] };
     MapUpdated: { self: 'object'; map: typeof Array };
     IndexedMapUpdated: { self: 'object'; len: 'number' };
     MatchesUpdated: { self: 'object'; matches: typeof Array };
@@ -140,9 +142,9 @@ interface ISessionEventsInterfaces {
 const SessionEventsInterfaces: ISessionEventsInterfaces = {
     StreamUpdated: { self: 'number' },
     FileRead: { self: null },
-    SearchUpdated: { self: 'object', found: 'number', stat: Object },
+    SearchUpdated: { self: 'object', found: 'number', stat: Map },
     SearchValuesUpdated: { self: ['object', null] },
-    SearchMapUpdated: { self: ['string', null] },
+    SearchMapUpdated: { self: [Array, null] },
     MapUpdated: { self: 'object', map: Array },
     IndexedMapUpdated: { self: 'object', len: 'number' },
     MatchesUpdated: { self: 'object', matches: Array },
@@ -177,7 +179,7 @@ export class EventProvider extends Computation<
         FileRead: new Subject<void>(),
         SearchUpdated: new Subject<ISearchUpdated>(),
         SearchValuesUpdated: new Subject<IValuesMinMaxMap | null>(),
-        SearchMapUpdated: new Subject<string>(),
+        SearchMapUpdated: new Subject<FilterMatch[]>(),
         MapUpdated: new Subject<IEventMapUpdated>(),
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),
         MatchesUpdated: new Subject<IEventMatchesUpdated>(), // dummy
@@ -194,7 +196,7 @@ export class EventProvider extends Computation<
     private readonly _convertors: ISessionEventsConvertors = {};
 
     constructor(uuid: string) {
-        super(uuid);
+        super(uuid, protocol.decodeCallbackEvent);
     }
 
     public getName(): string {

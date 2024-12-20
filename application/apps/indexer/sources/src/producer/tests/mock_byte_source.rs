@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
-use crate::sde;
 use crate::ByteSource;
 use crate::Error;
 use crate::ReloadInfo;
@@ -101,13 +100,13 @@ impl ByteSource for MockByteSource {
         Ok(Some(reload_info))
     }
 
-    async fn income(&mut self, msg: sde::SdeRequest) -> Result<sde::SdeResponse, Error> {
+    async fn income(&mut self, msg: stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
         // Read the input for now and return it's length
         let bytes = match &msg {
-            sde::SdeRequest::WriteText(text) => text.as_bytes(),
-            sde::SdeRequest::WriteBytes(bytes) => bytes,
+            stypes::SdeRequest::WriteText(text) => text.as_bytes(),
+            stypes::SdeRequest::WriteBytes(bytes) => bytes,
         };
-        Ok(sde::SdeResponse { bytes: bytes.len() })
+        Ok(stypes::SdeResponse { bytes: bytes.len() })
     }
 }
 
@@ -189,26 +188,26 @@ async fn test_mock_byte_source_income() {
 
     const BYTES_LEN: usize = 5;
 
-    let byte_msg = sde::SdeRequest::WriteBytes(vec![b'a'; BYTES_LEN]);
+    let byte_msg = stypes::SdeRequest::WriteBytes(vec![b'a'; BYTES_LEN]);
 
     let byte_income_res = source.income(byte_msg).await;
     // Byte income should succeed producing a response with the length of the provided bytes.
     assert!(matches!(
         byte_income_res,
-        Ok(sde::SdeResponse { bytes: BYTES_LEN })
+        Ok(stypes::SdeResponse { bytes: BYTES_LEN })
     ));
 
     // *** Text Tests ***
     const TEXT: &str = "income text";
     const TEXT_LEN: usize = TEXT.len();
 
-    let text_msg = sde::SdeRequest::WriteText(TEXT.into());
+    let text_msg = stypes::SdeRequest::WriteText(TEXT.into());
 
     let text_income_res = source.income(text_msg).await;
 
     // Text income should succeed producing a response wit the length of the provided text bytes.
     assert!(matches!(
         text_income_res,
-        Ok(sde::SdeResponse { bytes: TEXT_LEN })
+        Ok(stypes::SdeResponse { bytes: TEXT_LEN })
     ));
 }
