@@ -3,7 +3,6 @@ import {
     ChangeDetectorRef,
     Input,
     AfterContentInit,
-    OnDestroy,
     OnChanges,
     SimpleChanges,
 } from '@angular/core';
@@ -16,10 +15,7 @@ import { State } from '../../state';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-export class ConfigSchemaString
-    extends ChangesDetector
-    implements AfterContentInit, OnChanges, OnDestroy
-{
+export class ConfigSchemaString extends ChangesDetector implements AfterContentInit, OnChanges {
     @Input() public config!: ConfigSchema;
     @Input() public state!: State;
 
@@ -35,16 +31,13 @@ export class ConfigSchemaString
         }
     }
 
-    ngOnDestroy(): void {
-        this.state.saveConfig(this.config.id, { Text: this.value });
-    }
-
     ngAfterContentInit(): void {
         this.value = '';
         this.state.saveConfig(this.config.id, { Text: this.value });
     }
 
-    public ngOnInputChange(event: string): void {
-        this.state.saveConfig(this.config.id, { Text: event });
+    public ngOnInputChange(event: Event): void {
+        const target = event.target as HTMLInputElement;
+        this.state.saveConfig(this.config.id, { Text: target?.value ?? '' });
     }
 }

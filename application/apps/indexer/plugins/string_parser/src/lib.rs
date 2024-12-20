@@ -12,13 +12,17 @@ use plugins_api::{
 };
 
 const LOSSY_ID: &str = "lossy";
+const PREFIX_ID: &str = "prefix";
 
 /// Simple struct that converts the given bytes into UTF-8 Strings line by line.
 ///
 /// This parser will ignore invalid characters if [`Self::lossy`] is set to true, otherwise
 /// it'll return a parsing error.
+///
+/// I can add an optional [`Self::prefix`] for each parsed item.
 pub struct StringTokenizer {
     lossy: bool,
+    prefix: Option<String>,
 }
 
 impl StringTokenizer {
@@ -33,7 +37,7 @@ impl StringTokenizer {
         let end_idx = memchr(b'\n', data).unwrap_or_else(|| data.len() - 1);
         let slice = &data[..end_idx];
 
-        let line = if self.lossy {
+        let mut line = if self.lossy {
             String::from_utf8_lossy(slice).to_string()
         } else {
             std::str::from_utf8(slice)
@@ -42,6 +46,10 @@ impl StringTokenizer {
                     ParseError::Parse(format!("Converting to UTF-8 failed. Error {err}"))
                 })?
         };
+
+        if let Some(prefix) = self.prefix.as_ref() {
+            line = format!("{prefix} {line}");
+        }
         let msg = ParsedMessage::Line(line);
         let yld = ParseYield::Message(msg);
 
@@ -56,12 +64,20 @@ impl Parser for StringTokenizer {
     }
 
     fn get_config_schemas() -> Vec<ConfigSchemaItem> {
-        vec![ConfigSchemaItem::new(
-            LOSSY_ID,
-            "Parse Lossy",
-            Some("Parse UTF-8 including invalid characters"),
-            ConfigSchemaType::Boolean,
-        )]
+        vec![
+            ConfigSchemaItem::new(
+                LOSSY_ID,
+                "Parse Lossy",
+                Some("Parse UTF-8 including invalid characters"),
+                ConfigSchemaType::Boolean,
+            ),
+            ConfigSchemaItem::new(
+                PREFIX_ID,
+                "Custom Prefix",
+                Some("Specify custom prefix for each line"),
+                ConfigSchemaType::Text,
+            ),
+        ]
     }
 
     fn get_render_options() -> RenderOptions {
@@ -76,17 +92,29 @@ impl Parser for StringTokenizer {
     where
         Self: Sized,
     {
-        // Demonstrates log functionality
+        // *** Demonstrates log functionality ***
         log::debug!(
             "Plugin initialize called with the general settings: {:?}",
             general_configs
         );
 
-        log::debug!(
+        log::info!(
             "Plugin initialize called with the custom configs: {:?}",
             plugins_configs
         );
 
+        // *** Demonstrates writing to std console ***
+        println!(
+            "From Plugin to Stdout: Initialize called with the {} custom configs.",
+            plugins_configs.len()
+        );
+
+        eprintln!(
+            "From Plugin to Stderr: Log level is {:?}",
+            general_configs.log_level
+        );
+
+        // *** Configurations validation ***
         let lossy_config_item = plugins_configs
             .iter()
             .find(|item| item.id == LOSSY_ID)
@@ -107,8 +135,28 @@ impl Parser for StringTokenizer {
             }
         };
 
-        // Plugin initialization.
-        Ok(Self { lossy })
+        let prefix_config_item = plugins_configs
+            .iter()
+            .find(|item| item.id == PREFIX_ID)
+            .ok_or_else(|| {
+                InitError::Config(format!(
+                    "No configuration value for id '{PREFIX_ID}' is provided"
+                ))
+            })?;
+
+        let prefix = match &prefix_config_item.value {
+            ConfigValue::Text(txt) if txt.is_empty() => None,
+            ConfigValue::Text(txt) => Some(txt.to_owned()),
+            invalid => {
+                let err_msg = format!(
+                    "Invalid config value for '{PREFIX_ID}' is provided. Value: {invalid:?}"
+                );
+                return Err(InitError::Config(err_msg));
+            }
+        };
+
+        // *** Plugin initialization ***
+        Ok(Self { lossy, prefix })
     }
 
     fn parse(

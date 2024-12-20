@@ -87,6 +87,7 @@ async fn run_source_intern<S: ByteSource>(
             println!("------------------------------------------------------");
             println!("-------------    WASM parser used    -----------------");
             println!("------------------------------------------------------");
+            println!("DEBUG: Plugin Path: {}", settings.plugin_path.display());
             let parser = PluginsParser::initialize(
                 &settings.plugin_path,
                 &settings.general_settings,
