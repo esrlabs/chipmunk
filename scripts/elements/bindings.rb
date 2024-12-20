@@ -155,6 +155,7 @@ namespace :bindings do
 
   desc 'Build bindings'
   task build: [
+    'protocol:build',
     'platform:build',
     'bindings:install',
     'environment:check',
