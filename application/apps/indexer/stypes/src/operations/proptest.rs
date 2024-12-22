@@ -104,7 +104,7 @@ impl Arbitrary for ExtractedMatchValue {
 }
 
 impl Arbitrary for ResultExtractedMatchValues {
-    /// Implements the `Arbitrary` trait for `ExtractedMatchValueList` to generate random values for
+    /// Implements the `Arbitrary` trait for `ResultExtractedMatchValues` to generate random values for
     /// property-based testing using the `proptest` framework.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;

@@ -55,6 +55,9 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     CallbackEvent: protocol.decodeCallbackEvent,
     CommandOutcome_bool: protocol.decodeCommandOutcomeWithbool,
     CommandOutcome_FoldersScanningResult: protocol.decodeCommandOutcomeWithFoldersScanningResult,
+    CommandOutcome_DltStatisticInfo: protocol.decodeCommandOutcomeWithDltStatisticInfo,
+    CommandOutcome_ProfileList: protocol.decodeCommandOutcomeWithProfileList,
+    CommandOutcome_MapKeyValue: protocol.decodeCommandOutcomeWithMapKeyValue,
     CommandOutcome_i64: protocol.decodeCommandOutcomeWithi64,
     CommandOutcome_Option_String: protocol.decodeCommandOutcomeWithOptionString,
     CommandOutcome_SerialPortsList: protocol.decodeCommandOutcomeWithSerialPortsList,
@@ -94,6 +97,20 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     Transport: protocol.decodeTransport,
     UdpConnectionInfo: protocol.decodeUdpConnectionInfo,
     UDPTransportConfig: protocol.decodeUDPTransportConfig,
+    DltStatisticInfo: protocol.decodeDltStatisticInfo,
+    Profile: protocol.decodeProfile,
+    ProfileList: protocol.decodeProfileList,
+    ExtractedMatchValue: protocol.decodeExtractedMatchValue,
+    ResultExtractedMatchValues: protocol.decodeResultExtractedMatchValues,
+    ResultU64: protocol.decodeResultU64,
+    ResultBool: protocol.decodeResultBool,
+    ResultSleep: protocol.decodeResultSleep,
+    NearestPosition: protocol.decodeNearestPosition,
+    ResultNearestPosition: protocol.decodeResultNearestPosition,
+    Point: protocol.decodePoint,
+    ResultSearchValues: protocol.decodeResultSearchValues,
+    ResultScaledDistribution: protocol.decodeResultScaledDistribution,
+    DltLevelDistribution: protocol.decodeDltLevelDistribution,
 };
 
 const OUTPUT_PATH_ENVVAR = 'CHIPMUNK_PROTOCOL_TEST_OUTPUT';
@@ -276,6 +293,7 @@ describe('Protocol', function () {
                     }
                     const _msg = decoder(Uint8Array.from(buffer));
                 }
+                console.log(`[OK]: ${typeOfMessage}`);
             }
             finish(undefined, done);
         });

@@ -150,3 +150,4 @@ gen_encode_decode_fns!(ResultNearestPosition);
 gen_encode_decode_fns!(Point);
 gen_encode_decode_fns!(ResultSearchValues);
 gen_encode_decode_fns!(ResultScaledDistribution);
+gen_encode_decode_fns!(DltLevelDistribution);
