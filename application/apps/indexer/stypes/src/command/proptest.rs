@@ -58,6 +58,43 @@ impl Arbitrary for CommandOutcome<SerialPortsList> {
     }
 }
 
+impl Arbitrary for CommandOutcome<ProfileList> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<ProfileList>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `ProfileList`.
+    ///   - `CommandOutcome::Cancelled`.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop_oneof![
+            any::<ProfileList>().prop_map(CommandOutcome::Finished),
+            Just(CommandOutcome::Cancelled),
+        ]
+        .boxed()
+    }
+}
+
+impl Arbitrary for CommandOutcome<DltStatisticInfo> {
+    /// Implements the `Arbitrary` trait for `CommandOutcome<DltStatisticInfo>` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates either:
+    ///   - `CommandOutcome::Finished` with a random `DltStatisticInfo`.
+    ///   - `CommandOutcome::Cancelled`.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop_oneof![
+            any::<DltStatisticInfo>().prop_map(CommandOutcome::Finished),
+            Just(CommandOutcome::Cancelled),
+        ]
+        .boxed()
+    }
+}
 impl Arbitrary for CommandOutcome<()> {
     /// Implements the `Arbitrary` trait for `CommandOutcome<()>` to generate random instances.
     ///
@@ -141,3 +178,5 @@ test_msg!(CommandOutcome<i64>, TESTS_USECASE_COUNT);
 test_msg!(CommandOutcome<SerialPortsList>, TESTS_USECASE_COUNT);
 test_msg!(CommandOutcome<String>, TESTS_USECASE_COUNT);
 test_msg!(CommandOutcome<FoldersScanningResult>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<DltStatisticInfo>, TESTS_USECASE_COUNT);
+test_msg!(CommandOutcome<ProfileList>, TESTS_USECASE_COUNT);
