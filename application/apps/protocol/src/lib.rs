@@ -64,11 +64,35 @@
 /// - Add your new type to the `stypes` crate.
 /// - **Important:** Ensure that `proptest` tests are implemented in `stypes` for the new type.
 ///   This is a mandatory requirement when introducing any new type.
+/// - If the type is directly used in `rs-bindings`, add an implementation of the trait `TryIntoJs`. This can
+///   be easily done by using the macro `try_into_js`.
+/// - Add TypeScript definitions. This step can also be done mostly automatically by adding
+///   `#[cfg_attr(test, derive(TS), ts(export, export_to = "module_name.ts"))]` above the
+///   definition of your type. Make sure you are using the correct `module_name`. The TypeScript type
+///   definition will be placed into `application/apps/indexer/stypes/bindings/module_name.ts`.
+///   Writing of types happens by executing tests (`cargo test`).
+///   As soon as a new TypeScript definition has been created, you have to manually copy it into
+///   `application/platform/types/bindings`.
+///   **Important:** Do not remove `application/apps/indexer/stypes/bindings/index.ts`. This file
+///   isn't generated and is created manually. If you are introducing a new
+///   module along with your type, please add a reference to it in the `index.ts` file.
 ///
 /// ### Updating `protocol`
 /// Once the type is added to `stypes`, simply reference it in `protocol`:
 /// ```ignore
 /// gen_encode_decode_fns!(MyRecentlyAddedType);
+/// ```
+///
+/// ### Updating test in `ts-bindings`
+/// As soon as type was added, you have to update map in `application/apps/rustcore/ts-bindings/spec/session.protocol.spec.ts`.
+/// Add name of your type and link it to related decode function
+///
+/// ```
+/// const MAP: { [key: string]: (buf: Uint8Array) => any } = {
+///     AroundIndexes: protocol.decodeAroundIndexes,
+///     ...
+///     AttachmentList: protocol.decodeAttachmentList,
+/// }
 /// ```
 ///
 /// ### Verification
