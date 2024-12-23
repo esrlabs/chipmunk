@@ -5,6 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+test_and_gen = []
 rustcore = [
     "tokio",
     "walkdir",
