@@ -25,7 +25,7 @@ wasm-pack build --target nodejs
 echo "Create test use-cases"
 cd ../indexer/stypes
 export CHIPMUNK_PROTOCOL_TEST_OUTPUT="/tmp/stypes_test/"
-cargo test --release -- --nocapture
+cargo test --release --features "test_and_gen" -- --nocapture
 
 echo "Run tests"
 export JASMIN_TEST_BLOCKS_LOGS=on
