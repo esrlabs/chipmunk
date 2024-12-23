@@ -1,12 +1,10 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { error } from 'platform/log/utils';
-import { Entity } from 'platform/types/files';
 import { unbound } from '@service/unbound';
 import { FoldersScanningResult } from 'platform/types/bindings';
 
 import * as Requests from 'platform/ipc/request';
-import * as obj from 'platform/env/obj';
 
 export const handler = Requests.InjectLogger<
     Requests.Os.List.Request,

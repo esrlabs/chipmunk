@@ -12,7 +12,6 @@ import {
 } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
-import * as types from 'platform/types';
 
 export class Jobs extends Base {
     public static async create(): Promise<Jobs> {

@@ -1,4 +1,3 @@
-import { IValuesMinMaxMap } from '@platform/types/filter';
 import { ResultSearchValues, Point } from '@platform/types/bindings';
 import { scheme_color_0, scheme_color_5_75, shadeColor } from '@styles/colors';
 import { Base } from './render';
@@ -10,7 +9,7 @@ const GRID_LINES_COUNT = 5;
 
 export class Render extends Base {
     protected values: ResultSearchValues = new Map<number, Point[]>();
-    protected peaks: IValuesMinMaxMap = {};
+    protected peaks: Map<number, [number, number]> = new Map();
     protected charts: ChartRequest[] = [];
     protected points: boolean = true;
     protected selected: number | undefined;
@@ -20,7 +19,7 @@ export class Render extends Base {
             return;
         }
         const selected = this.values.get(this.selected);
-        const peaks = this.peaks[this.selected];
+        const peaks = this.peaks.get(this.selected);
         if (selected === undefined || peaks === undefined) {
             return;
         }
@@ -80,7 +79,7 @@ export class Render extends Base {
         return this;
     }
 
-    public setPeaks(peaks: IValuesMinMaxMap): Render {
+    public setPeaks(peaks: Map<number, [number, number]>): Render {
         this.peaks = peaks;
         return this;
     }
@@ -101,7 +100,7 @@ export class Render extends Base {
         this.coors.drop();
         const size = this.size();
         this.values.forEach((points: Point[], k: number) => {
-            const peaks = this.peaks[k];
+            const peaks = this.peaks.get(k);
             if (peaks === undefined) {
                 console.error(`No peaks for chart #${k}`);
                 return;

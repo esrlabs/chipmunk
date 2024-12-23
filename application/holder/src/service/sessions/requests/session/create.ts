@@ -64,7 +64,7 @@ export const handler = Requests.InjectLogger<
                         }),
                     );
                     subscriber.register(
-                        session.getEvents().SearchMapUpdated.subscribe((map: FilterMatch[]) => {
+                        session.getEvents().SearchMapUpdated.subscribe((_map: FilterMatch[]) => {
                             if (!sessions.exists(uuid)) {
                                 return;
                             }

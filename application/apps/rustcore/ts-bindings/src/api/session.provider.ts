@@ -2,7 +2,7 @@ import { Subject } from 'platform/env/subscription';
 import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
-import { IMapEntity, IMatchEntity, IValuesMinMaxMap, FilterMatch } from 'platform/types/filter';
+import { IMapEntity, IMatchEntity, FilterMatch } from 'platform/types/filter';
 import { AttachmentInfo } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
@@ -54,7 +54,7 @@ export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
     SearchUpdated: Subject<ISearchUpdated>;
-    SearchValuesUpdated: Subject<IValuesMinMaxMap | null>;
+    SearchValuesUpdated: Subject<Map<number, [number, number]> | null>;
     SearchMapUpdated: Subject<FilterMatch[]>;
     MapUpdated: Subject<IEventMapUpdated>;
     IndexedMapUpdated: Subject<IEventIndexedMapUpdated>;
@@ -178,7 +178,7 @@ export class EventProvider extends Computation<
         StreamUpdated: new Subject<number>(),
         FileRead: new Subject<void>(),
         SearchUpdated: new Subject<ISearchUpdated>(),
-        SearchValuesUpdated: new Subject<IValuesMinMaxMap | null>(),
+        SearchValuesUpdated: new Subject<Map<number, [number, number]> | null>(),
         SearchMapUpdated: new Subject<FilterMatch[]>(),
         MapUpdated: new Subject<IEventMapUpdated>(),
         IndexedMapUpdated: new Subject<IEventIndexedMapUpdated>(),

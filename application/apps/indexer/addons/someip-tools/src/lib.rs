@@ -7,8 +7,7 @@ use nom::{
     combinator::map,
     number::streaming::{be_u16, be_u32, be_u8},
     sequence::tuple,
-    IResult,
-    Finish,
+    Finish, IResult,
 };
 
 use thiserror::Error;
@@ -60,7 +59,8 @@ pub fn parse_prefix(input: &[u8]) -> Result<(&[u8], std::string::String), Error>
                     .map_or_else(String::default, |s| format!(" {}", s))
             )
         },
-    )(input).finish()
+    )(input)
+    .finish()
 }
 
 fn parse_instance(input: &[u8]) -> IResult<&[u8], usize, Error> {
