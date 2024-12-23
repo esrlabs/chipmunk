@@ -252,7 +252,12 @@ mod tests {
 
     #[test]
     fn flatten_wrapper_target() {
-        let expected = BTreeSet::from([Target::Shared, Target::Binding, Target::Wrapper]);
+        let expected = BTreeSet::from([
+            Target::Shared,
+            Target::Binding,
+            Target::Protocol,
+            Target::Wrapper,
+        ]);
         assert_eq!(flatten_targets_for_build(&[Target::Wrapper]), expected);
     }
 
@@ -260,6 +265,7 @@ mod tests {
     fn flatten_app_target() {
         let expected = BTreeSet::from([
             Target::Shared,
+            Target::Protocol,
             Target::Binding,
             Target::Wrapper,
             Target::Client,
@@ -278,8 +284,13 @@ mod tests {
 
     #[test]
     fn flatten_core_client_target() {
-        let expected =
-            BTreeSet::from_iter([Target::Core, Target::Shared, Target::Wasm, Target::Client]);
+        let expected = BTreeSet::from_iter([
+            Target::Core,
+            Target::Protocol,
+            Target::Shared,
+            Target::Wasm,
+            Target::Client,
+        ]);
         assert_eq!(
             flatten_targets_for_build(&[Target::Core, Target::Client]),
             expected
@@ -322,6 +333,10 @@ mod tests {
                 vec![],
             ),
             (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![],
+            ),
+            (
                 JobDefinition::new(Target::Shared, JobType::Build { production }),
                 vec![JobDefinition::new(
                     Target::Shared,
@@ -333,6 +348,7 @@ mod tests {
                 vec![
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
                 ],
             ),
             (
@@ -340,6 +356,7 @@ mod tests {
                 vec![
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
                     JobDefinition::new(Target::Binding, JobType::Install { production }),
                 ],
             ),
