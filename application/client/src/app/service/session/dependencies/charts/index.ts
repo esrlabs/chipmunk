@@ -1,7 +1,7 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subject, Subjects, Subscriber } from '@platform/env/subscription';
 import { isDevMode } from '@angular/core';
-import { IValuesMinMaxMap, ISearchMap } from '@platform/types/filter';
+import { ISearchMap } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IRange } from '@platform/types/range';
 import { Cursor } from './cursor';
@@ -15,7 +15,7 @@ import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 
 export interface Output {
-    peaks: IValuesMinMaxMap;
+    peaks: Map<number, [number, number]>;
     values: ResultSearchValues;
     map: ISearchMap;
     frame: IRange;
@@ -31,11 +31,11 @@ export interface Output {
 export class Charts extends Subscriber {
     public cursor: Cursor = new Cursor();
     public subjects: Subjects<{
-        peaks: Subject<IValuesMinMaxMap>;
+        peaks: Subject<Map<number, [number, number]>>;
         output: Subject<Output>;
         summary: Subject<Output>;
     }> = new Subjects({
-        peaks: new Subject<IValuesMinMaxMap>(),
+        peaks: new Subject<Map<number, [number, number]>>(),
         output: new Subject<Output>(),
         summary: new Subject<Output>(),
     });
@@ -43,7 +43,7 @@ export class Charts extends Subscriber {
     protected stream!: Stream;
     protected search!: Search;
     protected uuid!: string;
-    protected peaks: IValuesMinMaxMap = {};
+    protected peaks: Map<number, [number, number]> = new Map();
     protected lengths: {
         stream: number;
         search: number;
@@ -283,7 +283,7 @@ export class Charts extends Subscriber {
                 if (event.session !== this.uuid) {
                     return;
                 }
-                this.peaks = event.map === null ? {} : event.map;
+                this.peaks = event.map === null ? new Map() : event.map;
                 this.subjects.get().peaks.emit(this.peaks);
                 this.reload().both();
             }),
@@ -329,7 +329,7 @@ export class Charts extends Subscriber {
         this.unsubscribe();
     }
 
-    public getPeaks(): IValuesMinMaxMap {
+    public getPeaks(): Map<number, [number, number]> {
         return this.peaks;
     }
 
