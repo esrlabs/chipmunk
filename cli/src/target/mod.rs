@@ -235,15 +235,10 @@ impl Target {
             Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
                 Vec::new()
             }
-            Target::Binding => vec![Target::Core, Target::Shared],
-            Target::Wrapper => vec![Target::Core, Target::Binding, Target::Shared],
+            Target::Binding => vec![Target::Shared],
+            Target::Wrapper => vec![Target::Binding, Target::Shared],
             Target::Client => vec![Target::Shared, Target::Wasm],
-            Target::App => vec![
-                Target::Wrapper,
-                Target::Client,
-                Target::Core,
-                Target::Updater,
-            ],
+            Target::App => vec![Target::Wrapper, Target::Client, Target::Updater],
         }
     }
 
