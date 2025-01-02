@@ -117,6 +117,7 @@ fn version_in_repo() -> anyhow::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
     use Version as V;
 
     #[test]
