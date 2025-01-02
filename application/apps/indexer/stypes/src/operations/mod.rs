@@ -1,5 +1,3 @@
-#[cfg(feature = "rustcore")]
-mod extending;
 #[cfg(feature = "nodejs")]
 mod nodejs;
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use crate::*;
-use std::{ffi::OsStr, fs::Metadata};
+use std::fs::Metadata;
 use walkdir::DirEntry;
 
 impl FolderEntityDetails {
@@ -20,7 +20,7 @@ impl FolderEntityDetails {
             ext: entity
                 .path()
                 .extension()
-                .unwrap_or(OsStr::new(""))
+                .unwrap_or_default()
                 .to_string_lossy()
                 .to_string(),
         })

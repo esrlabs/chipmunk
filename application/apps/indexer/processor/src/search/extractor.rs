@@ -7,6 +7,27 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
+
+fn get_extracted_value(index: u64, input: &str, filters: &[Regex]) -> stypes::ExtractedMatchValue {
+    let mut values: Vec<(usize, Vec<String>)> = vec![];
+    for (filter_index, filter) in filters.iter().enumerate() {
+        for caps in filter.captures_iter(input) {
+            // Element on 0 always is the whole match. Here we don't need it
+            let matches: Vec<String> = caps
+                .iter()
+                .flatten()
+                .map(|m| m.as_str().to_owned())
+                .skip(1)
+                .collect();
+            if matches.is_empty() {
+                warn!("Filter doesn't give matches on matches extracting")
+            } else {
+                values.push((filter_index, matches));
+            }
+        }
+    }
+    stypes::ExtractedMatchValue { index, values }
+}
 pub struct MatchesExtractor {
     pub file_path: PathBuf,
     filters: Vec<SearchFilter>,
@@ -27,7 +48,6 @@ impl MatchesExtractor {
         }
     }
 
-    /// TODO: add description
     pub fn extract_matches(&self) -> Result<Vec<stypes::ExtractedMatchValue>, SearchError> {
         if self.filters.is_empty() {
             return Err(SearchError::Input(
@@ -56,7 +76,7 @@ impl MatchesExtractor {
                 &regex_matcher,
                 &self.file_path,
                 UTF8(|lnum, line| {
-                    values.push(stypes::ExtractedMatchValue::new(lnum - 1, line, &regexs));
+                    values.push(get_extracted_value(lnum - 1, line, &regexs));
                     Ok(true)
                 }),
             )
