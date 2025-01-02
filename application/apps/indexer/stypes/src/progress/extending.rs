@@ -10,9 +10,6 @@ impl Ticks {
     /// # Details
     /// - If `total` is `None`, the operation is considered incomplete.
     pub fn done(&self) -> bool {
-        match self.total {
-            Some(total) => self.count == total,
-            None => false,
-        }
+        self.total.is_some_and(|total| self.count == total)
     }
 }

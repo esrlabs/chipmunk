@@ -1,3 +1,9 @@
+/**
+ * ATTENTION:
+ * THIS FILE IS MANUALLY CREATED BECAUSE `ts_rs` CANNOT BE APPLIED
+ * TO FOREIGN TYPES (`DltFilterConfig` comes from the `dlt-core` crate).
+ * DO NOT REMOVE THIS FILE.
+ */
 export interface DltFilterConfig {
     /// only select log entries with level MIN_LEVEL and more severe
     ///
