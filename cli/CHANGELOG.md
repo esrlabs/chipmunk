@@ -1,3 +1,10 @@
+# 0.2.14
+
+## Changes:
+
+* Remove rust core target from build dependencies, because it's not being build directly, instead it'll be build from rs-bindings.
+* Last build states keeps track of the targets involved in the last build only.
+
 # 0.2.13
 
 ## Changes:
