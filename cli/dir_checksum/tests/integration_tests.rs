@@ -6,6 +6,7 @@ use std::{
 };
 
 use dir_checksum::*;
+use pretty_assertions::{assert_eq, assert_ne};
 use tempdir::TempDir;
 
 fn create_tmp_dir_with_file(dir_name: &'static str) -> anyhow::Result<(TempDir, PathBuf)> {
