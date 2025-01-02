@@ -50,8 +50,10 @@ BUILD_COMMAND = [
     "--",
     "chipmunk",
     "build",
-    # Provide app target only and it should pull all other targets expect for build CLI, which isn't
-    # possible to build on Windows because it's not allowed to replace a binary while it's running.
+    # Provide app and core targets only and it should pull all other targets expect for build CLI,
+    # which isn't possible to build on Windows because it's not allowed to replace a binary while
+    # it's running.
+    "core",
     "app",
 ]
 
