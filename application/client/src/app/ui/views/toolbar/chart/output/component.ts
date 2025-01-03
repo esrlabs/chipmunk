@@ -47,7 +47,7 @@ export class ViewChartOutput extends OutputBase implements AfterViewInit {
         const labels: Label[] = this.renders.charts.coors.get(event.offsetX);
         if (labels.length === 0) {
             this.session.cursor.select(
-                this.state.cursor.rowsRangeByX(event.offsetX).from,
+                this.state.cursor.rowsRangeByX(event.offsetX).start,
                 Owner.Chart,
                 undefined,
                 undefined,

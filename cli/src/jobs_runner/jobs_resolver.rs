@@ -142,6 +142,7 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 | Target::Binding
                 | Target::Wrapper
                 | Target::Wasm
+                | Target::Protocol
                 | Target::Client
                 | Target::App => true,
             },
@@ -156,12 +157,12 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 // before running the actual tests.
                 Target::Wrapper | Target::Wasm => true,
 
-                // Shared and Bindings don't have tests but they should be built for Wrapper and Wasm
+                // Shared, Bindings and Protocol don't have tests but they should be built for Wrapper and Wasm
                 // tests
-                Target::Shared | Target::Binding => {
+                Target::Shared | Target::Binding | Target::Protocol => {
                     assert!(
                         !matches!(current_job, JobType::Test { .. }),
-                        "Shared and Bindings targets don't have test jobs currently"
+                        "Shared, Bindings and Protocol targets don't have test jobs currently"
                     );
                     true
                 }
@@ -171,7 +172,7 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 Target::Client | Target::App => {
                     assert!(
                         !matches!(current_job, JobType::Test { .. }),
-                        "Client and App targets don't have test jobs currently"
+                        "Client, App and Protocol targets don't have test jobs currently"
                     );
                     false
                 }
@@ -251,7 +252,12 @@ mod tests {
 
     #[test]
     fn flatten_wrapper_target() {
-        let expected = BTreeSet::from([Target::Shared, Target::Binding, Target::Wrapper]);
+        let expected = BTreeSet::from([
+            Target::Shared,
+            Target::Binding,
+            Target::Protocol,
+            Target::Wrapper,
+        ]);
         assert_eq!(flatten_targets_for_build(&[Target::Wrapper]), expected);
     }
 
@@ -259,6 +265,7 @@ mod tests {
     fn flatten_app_target() {
         let expected = BTreeSet::from([
             Target::Shared,
+            Target::Protocol,
             Target::Binding,
             Target::Wrapper,
             Target::Client,
@@ -272,13 +279,18 @@ mod tests {
     #[test]
     fn flatten_all_target() {
         let expected = BTreeSet::from_iter(Target::all().to_owned());
-        assert_eq!(flatten_targets_for_build(&Target::all()), expected);
+        assert_eq!(flatten_targets_for_build(Target::all()), expected);
     }
 
     #[test]
     fn flatten_core_client_target() {
-        let expected =
-            BTreeSet::from_iter([Target::Core, Target::Shared, Target::Wasm, Target::Client]);
+        let expected = BTreeSet::from_iter([
+            Target::Core,
+            Target::Protocol,
+            Target::Shared,
+            Target::Wasm,
+            Target::Client,
+        ]);
         assert_eq!(
             flatten_targets_for_build(&[Target::Core, Target::Client]),
             expected
@@ -321,6 +333,10 @@ mod tests {
                 vec![],
             ),
             (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![],
+            ),
+            (
                 JobDefinition::new(Target::Shared, JobType::Build { production }),
                 vec![JobDefinition::new(
                     Target::Shared,
@@ -332,6 +348,7 @@ mod tests {
                 vec![
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
                 ],
             ),
             (
@@ -339,6 +356,7 @@ mod tests {
                 vec![
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
                     JobDefinition::new(Target::Binding, JobType::Install { production }),
                 ],
             ),
@@ -358,12 +376,82 @@ mod tests {
     }
 
     #[test]
+    /// Ensure testing ts targets will invoke all building targets involved in the dependencies tree.
+    fn resolve_test_wrapper() {
+        let production = false;
+        let expected = BTreeMap::from([
+            (
+                JobDefinition::new(Target::Shared, JobType::Install { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Shared, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Shared,
+                    JobType::Install { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Install { production }),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                vec![
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Test { production }),
+                vec![JobDefinition::new(
+                    Target::Wrapper,
+                    JobType::Build { production },
+                )],
+            ),
+        ]);
+
+        assert_eq!(
+            expected,
+            resolve(&[Target::Wrapper], JobType::Test { production })
+        );
+    }
+
+    #[test]
     /// Resolves build for all targets and checks some cases in the dependencies-tree since the
     /// tree is too huge to be tested one by one.
     fn resolve_build_all_fuzzy() {
         let production = false;
 
-        let tree = resolve(&Target::all(), JobType::Build { production });
+        let tree = resolve(Target::all(), JobType::Build { production });
 
         assert!(
             tree.get(&JobDefinition::new(

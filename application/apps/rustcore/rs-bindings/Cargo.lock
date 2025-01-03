@@ -646,9 +646,9 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa52d43b97a134644192c66296e5d3e7ed8b3d409b117c62203047bb42c6b9f1"
+checksum = "0b304e32f1164b8c2ef1dc746b32d321f25f88a32672f0f5bcba2df0f70a3b70"
 dependencies = [
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder",
@@ -757,6 +757,15 @@ checksum = "3c3e4e0dd3673c1139bf041f3008816d9cf2946bbfac2945c09e523b8d7b05b2"
 dependencies = [
  "event-listener 5.3.1",
  "pin-project-lite",
+]
+
+[[package]]
+name = "extend"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
 ]
 
 [[package]]
@@ -1511,6 +1520,7 @@ dependencies = [
  "serde_json",
  "session",
  "sources",
+ "stypes",
  "thiserror 1.0.69",
  "tikv-jemallocator",
  "tokio",
@@ -1834,6 +1844,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "stypes",
  "thiserror 2.0.3",
  "tokio-util",
  "uuid",
@@ -2171,6 +2182,7 @@ dependencies = [
  "serde_json",
  "serialport",
  "sources",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "tokio-stream",
@@ -2303,6 +2315,7 @@ dependencies = [
  "regex",
  "serde",
  "shellexpand",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "tokio-serial",
@@ -2322,6 +2335,23 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
+
+[[package]]
+name = "stypes"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "dlt-core",
+ "envvars",
+ "extend",
+ "node-bindgen",
+ "regex",
+ "serde",
+ "thiserror 2.0.3",
+ "tokio",
+ "uuid",
+ "walkdir",
+]
 
 [[package]]
 name = "syn"

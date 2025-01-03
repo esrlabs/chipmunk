@@ -1,6 +1,8 @@
 import { Subject } from 'platform/env/subscription';
 import { Computation } from '../provider/provider';
 
+import * as protocol from 'protocol';
+
 export interface Job {
     alias: string;
     uuid: string;
@@ -74,7 +76,7 @@ export class EventProvider extends Computation<
     private readonly _convertors = {};
 
     constructor(uuid: string) {
-        super(uuid);
+        super(uuid, protocol.decodeLifecycleTransition);
     }
 
     public getName(): string {

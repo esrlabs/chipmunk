@@ -127,8 +127,8 @@ export class Selecting {
             return;
         }
         if (
-            (focus.row < frame.from && anchor.row < frame.from) ||
-            (focus.row > frame.to && anchor.row > frame.to)
+            (focus.row < frame.start && anchor.row < frame.start) ||
+            (focus.row > frame.end && anchor.row > frame.end)
         ) {
             if (selection !== null) {
                 selection.removeAllRanges();
@@ -146,19 +146,19 @@ export class Selecting {
             focusPath = focus.path;
         } else if (focus.row > anchor.row) {
             // Direction: down
-            anchorOffset = anchor.row < frame.from ? 0 : anchor.offset;
-            focusOffset = focus.row > frame.to ? Infinity : focus.offset;
+            anchorOffset = anchor.row < frame.start ? 0 : anchor.offset;
+            focusOffset = focus.row > frame.end ? Infinity : focus.offset;
             anchorPath =
-                anchor.row < frame.from ? `li[${ROW_INDEX_ATTR}="${frame.from}"]` : anchor.path;
-            focusPath = focus.row > frame.to ? `li[${ROW_INDEX_ATTR}="${frame.to}"]` : focus.path;
+                anchor.row < frame.start ? `li[${ROW_INDEX_ATTR}="${frame.start}"]` : anchor.path;
+            focusPath = focus.row > frame.end ? `li[${ROW_INDEX_ATTR}="${frame.end}"]` : focus.path;
         } else if (focus.row < anchor.row) {
             // Direction: up
-            anchorOffset = anchor.row > frame.to ? Infinity : anchor.offset;
-            focusOffset = focus.row < frame.from ? 0 : focus.offset;
+            anchorOffset = anchor.row > frame.end ? Infinity : anchor.offset;
+            focusOffset = focus.row < frame.start ? 0 : focus.offset;
             anchorPath =
-                anchor.row > frame.to ? `li[${ROW_INDEX_ATTR}="${frame.to}"]` : anchor.path;
+                anchor.row > frame.end ? `li[${ROW_INDEX_ATTR}="${frame.end}"]` : anchor.path;
             focusPath =
-                focus.row < frame.from ? `li[${ROW_INDEX_ATTR}="${frame.from}"]` : focus.path;
+                focus.row < frame.start ? `li[${ROW_INDEX_ATTR}="${frame.start}"]` : focus.path;
         }
         if (selection === null) {
             return;
@@ -237,11 +237,11 @@ export class Selecting {
                 switch (this._directed.direction) {
                     case SelectionDirection.Top:
                         this._frame.offsetToByRows(-1, ChangesInitiator.Selecting);
-                        this._selection.focus.setToRow(this._frame.get().from);
+                        this._selection.focus.setToRow(this._frame.get().start);
                         break;
                     case SelectionDirection.Bottom:
                         this._frame.offsetToByRows(1, ChangesInitiator.Selecting);
-                        this._selection.focus.setToRow(this._frame.get().to);
+                        this._selection.focus.setToRow(this._frame.get().end);
                         break;
                 }
                 this._holder.focus();
@@ -346,7 +346,7 @@ export class Selecting {
             return Promise.resolve();
         }
         const rows = (
-            await this._service.getRows({ from: selection.rows.start, to: selection.rows.end })
+            await this._service.getRows({ start: selection.rows.start, end: selection.rows.end })
         ).rows.map((r) => {
             if (this._delimiter === undefined) {
                 const escaped = escapeAnsi(r.content);

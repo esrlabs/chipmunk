@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { createSampleFile, finish } from './common';
 import { readConfigurationFile } from './config';
 
@@ -45,7 +45,7 @@ describe('Concat', function () {
                 grabbing = true;
                 comps.stream
                     .grab(98, 4)
-                    .then((result: IGrabbedElement[]) => {
+                    .then((result: GrabbedElement[]) => {
                         logger.debug('result of grab was: ' + JSON.stringify(result));
                         expect(result.map((i) => i.content)).toEqual([
                             'file a: some line data: 98',
@@ -117,7 +117,7 @@ describe('Concat', function () {
     //                     grabbing = true;
     //                     stream
     //                         .grab(1, 10)
-    //                         .then((result: IGrabbedElement[]) => {
+    //                         .then((result: GrabbedElement[]) => {
     //                             expect(result.length).toEqual(10);
     //                             logger.debug('result of grab was: ' + JSON.stringify(result));
     //                             finish(session, done);
@@ -194,7 +194,7 @@ describe('Concat', function () {
     //                     grabbing = true;
     //                     stream
     //                         .grab(1, 10)
-    //                         .then((result: IGrabbedElement[]) => {
+    //                         .then((result: GrabbedElement[]) => {
     //                             expect(result.length).toEqual(10);
     //                             logger.debug('result of grab was: ' + JSON.stringify(result));
     //                             finish(session, done);

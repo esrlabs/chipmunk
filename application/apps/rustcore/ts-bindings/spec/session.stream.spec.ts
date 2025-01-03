@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { createSampleFile, finish } from './common';
 import { readConfigurationFile } from './config';
 import { utils } from 'platform/log';
@@ -58,7 +58,7 @@ if (process.platform === 'win32') {
                     }
                     comps.stream
                         .grab(500, 7)
-                        .then((result: IGrabbedElement[]) => {
+                        .then((result: GrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(result.map((i) => i.content)).toEqual([
                                 'some line data: 500',
@@ -224,7 +224,7 @@ if (process.platform === 'win32') {
                     }
                     comps.stream
                         .grab(500, 7)
-                        .then((result: IGrabbedElement[]) => {
+                        .then((result: GrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(result.map((i) => i.content)).toEqual([
                                 'some line data: 500',
@@ -451,14 +451,14 @@ if (process.platform === 'win32') {
                     }
                     comps.stream
                         .grab(0, 4)
-                        .then((result: IGrabbedElement[]) => {
+                        .then((result: GrabbedElement[]) => {
                             logger.debug('result of grab was: ' + JSON.stringify(result));
                             expect(
                                 result
                                     .map((i) => i.source_id)
                                     .reduce((partialSum, a) => partialSum + a, 0),
                             ).toBe(2);
-                            expect(result.map((i) => i.position)).toEqual([0, 1, 2, 3]);
+                            expect(result.map((i) => i.pos)).toEqual([0, 1, 2, 3]);
                             expect(result.filter((i) => i.content === TEST_LINES[0]).length).toBe(
                                 2,
                             );

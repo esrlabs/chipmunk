@@ -98,7 +98,7 @@ export class Service extends Implementation {
                 const accepted: string[] = [];
                 for (const path of paths) {
                     const stat = await bridge.files().stat(path);
-                    if (stat.type === EntityType.Directory) {
+                    if (stat.kind === EntityType.Directory) {
                         accepted.push(path);
                     }
                 }

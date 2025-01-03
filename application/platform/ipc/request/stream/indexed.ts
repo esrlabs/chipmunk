@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IGrabbedElement } from '../../../types/content';
+import { GrabbedElement } from '../../../types/bindings/miscellaneous';
 
 import * as validator from '../../../env/obj';
 
@@ -23,16 +23,16 @@ export interface Request extends Interface {}
 @Define({ name: 'IndexedChunkResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public rows: IGrabbedElement[];
+    public rows: GrabbedElement[];
     public from: number;
     public to: number;
-    constructor(input: { session: string; from: number; to: number; rows: IGrabbedElement[] }) {
+    constructor(input: { session: string; from: number; to: number; rows: GrabbedElement[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
         this.from = validator.getAsValidNumber(input, 'from');
         this.to = validator.getAsValidNumber(input, 'to');
-        this.rows = validator.getAsArray<IGrabbedElement>(input, 'rows');
+        this.rows = validator.getAsArray<GrabbedElement>(input, 'rows');
     }
 }
 

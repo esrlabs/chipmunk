@@ -1,7 +1,7 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subject, Subjects, Subscriber } from '@platform/env/subscription';
 import { isDevMode } from '@angular/core';
-import { IValuesMap, IValuesMinMaxMap, ISearchMap } from '@platform/types/filter';
+import { ISearchMap } from '@platform/types/filter';
 import { cutUuid } from '@log/index';
 import { IRange } from '@platform/types/range';
 import { Cursor } from './cursor';
@@ -9,13 +9,14 @@ import { Stream } from '../stream';
 import { Search } from '../search';
 import { FilterRequest } from '../search/filters/request';
 import { ChartRequest } from '../search/charts/request';
+import { ResultSearchValues } from '@platform/types/bindings';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 
 export interface Output {
-    peaks: IValuesMinMaxMap;
-    values: IValuesMap;
+    peaks: Map<number, [number, number]>;
+    values: ResultSearchValues;
     map: ISearchMap;
     frame: IRange;
     filters: FilterRequest[];
@@ -30,11 +31,11 @@ export interface Output {
 export class Charts extends Subscriber {
     public cursor: Cursor = new Cursor();
     public subjects: Subjects<{
-        peaks: Subject<IValuesMinMaxMap>;
+        peaks: Subject<Map<number, [number, number]>>;
         output: Subject<Output>;
         summary: Subject<Output>;
     }> = new Subjects({
-        peaks: new Subject<IValuesMinMaxMap>(),
+        peaks: new Subject<Map<number, [number, number]>>(),
         output: new Subject<Output>(),
         summary: new Subject<Output>(),
     });
@@ -42,7 +43,7 @@ export class Charts extends Subscriber {
     protected stream!: Stream;
     protected search!: Search;
     protected uuid!: string;
-    protected peaks: IValuesMinMaxMap = {};
+    protected peaks: Map<number, [number, number]> = new Map();
     protected lengths: {
         stream: number;
         search: number;
@@ -94,7 +95,7 @@ export class Charts extends Subscriber {
                     })
                     .catch((err: Error) => {
                         this.log().error(
-                            `Fail load output frame ${frame.from}-${frame.to}: ${err.message}`,
+                            `Fail load output frame ${frame.start}-${frame.end}: ${err.message}`,
                         );
                     })
                     .finally(() => {
@@ -120,7 +121,7 @@ export class Charts extends Subscriber {
                 if (this.progress.summary !== undefined) {
                     return;
                 }
-                const frame = { from: 0, to: this.lengths.stream - 1 };
+                const frame = { start: 0, end: this.lengths.stream - 1 };
                 this.progress.summary = hash();
                 this.reload()
                     .load(frame)
@@ -130,7 +131,7 @@ export class Charts extends Subscriber {
                     })
                     .catch((err: Error) => {
                         this.log().error(
-                            `Fail load summary frame ${frame.from}-${frame.to}: ${err.message}`,
+                            `Fail load summary frame ${frame.start}-${frame.end}: ${err.message}`,
                         );
                     })
                     .finally(() => {
@@ -167,7 +168,7 @@ export class Charts extends Subscriber {
                         this.scaled(width, frame).values(),
                         this.scaled(Math.floor(width / 2), frame).matches(),
                     ])
-                        .then((results: [IValuesMap, ISearchMap]) => {
+                        .then((results: [ResultSearchValues, ISearchMap]) => {
                             resolve(
                                 this.reload().defs({
                                     peaks: this.peaks,
@@ -193,19 +194,19 @@ export class Charts extends Subscriber {
                 return isDevMode() ? this.reload().validation(output) : output;
             },
             validation: (output: Output): Output => {
-                let invalid: [number, number, number, number][] = [];
-                Object.keys(output.values).forEach((k: string) => {
-                    invalid = invalid.concat(
-                        output.values[parseInt(k, 10)].filter((d) => typeof d[3] !== 'number'),
-                    );
-                });
-                if (invalid.length !== 0) {
-                    this.log().error(
-                        `Invalid data for charts; found NONE number values on (rows): ${invalid
-                            .map((d) => d[0])
-                            .join(', ')}`,
-                    );
-                }
+                // let invalid: [number, number, number, number][] = [];
+                // Object.keys(output.values).forEach((k: string) => {
+                //     invalid = invalid.concat(
+                //         output.values[parseInt(k, 10)].filter((d) => typeof d[3] !== 'number'),
+                //     );
+                // });
+                // if (invalid.length !== 0) {
+                //     this.log().error(
+                //         `Invalid data for charts; found NONE number values on (rows): ${invalid
+                //             .map((d) => d[0])
+                //             .join(', ')}`,
+                //     );
+                // }
                 return output;
             },
             requests: (): { filters: FilterRequest[]; charts: ChartRequest[]; active: boolean } => {
@@ -234,18 +235,18 @@ export class Charts extends Subscriber {
         datasetLength: number,
         range?: IRange,
     ): {
-        values(): Promise<IValuesMap>;
+        values(): Promise<ResultSearchValues>;
         matches(): Promise<ISearchMap>;
     } {
         return {
-            values: (): Promise<IValuesMap> => {
+            values: (): Promise<ResultSearchValues> => {
                 return Requests.IpcRequest.send(
                     Requests.Values.Frame.Response,
                     new Requests.Values.Frame.Request({
                         session: this.uuid,
                         width: datasetLength,
-                        from: range !== undefined ? range.from : undefined,
-                        to: range !== undefined ? range.to : undefined,
+                        from: range !== undefined ? range.start : undefined,
+                        to: range !== undefined ? range.end : undefined,
                     }),
                 ).then((response) => {
                     if (typeof response.error === 'string' && response.error.trim().length > 0) {
@@ -262,8 +263,8 @@ export class Charts extends Subscriber {
                     new Requests.Search.Map.Request({
                         session: this.uuid,
                         len: datasetLength,
-                        from: range ? range.from : undefined,
-                        to: range ? range.to : undefined,
+                        from: range ? range.start : undefined,
+                        to: range ? range.end : undefined,
                     }),
                 ).then((response) => {
                     return response.map;
@@ -282,7 +283,7 @@ export class Charts extends Subscriber {
                 if (event.session !== this.uuid) {
                     return;
                 }
-                this.peaks = event.map === null ? {} : event.map;
+                this.peaks = event.map === null ? new Map() : event.map;
                 this.subjects.get().peaks.emit(this.peaks);
                 this.reload().both();
             }),
@@ -328,7 +329,7 @@ export class Charts extends Subscriber {
         this.unsubscribe();
     }
 
-    public getPeaks(): IValuesMinMaxMap {
+    public getPeaks(): Map<number, [number, number]> {
         return this.peaks;
     }
 

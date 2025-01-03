@@ -1,6 +1,5 @@
 use mime_guess;
 use parsers::{self};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs::{create_dir, File},
@@ -21,17 +20,14 @@ pub enum AttachmentsError {
     SessionNotCreated,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AttachmentInfo {
-    pub uuid: Uuid,
-    // This entity will be propagated into JS world side, to avoid unusual naming file_path,
-    // would be used filepath instead
-    pub filepath: PathBuf,
-    pub name: String,
-    pub ext: Option<String>,
-    pub size: usize,
-    pub mime: Option<String>,
-    pub messages: Vec<usize>,
+impl From<AttachmentsError> for stypes::NativeError {
+    fn from(err: AttachmentsError) -> Self {
+        stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
+            message: Some(err.to_string()),
+        }
+    }
 }
 
 const FILE_NAME_INDEXES_LIMIT: usize = 1000;
@@ -94,11 +90,24 @@ fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> 
     }
 }
 
-impl AttachmentInfo {
-    pub fn from(
+#[derive(Debug)]
+pub struct Attachments {
+    attachments: HashMap<Uuid, stypes::AttachmentInfo>,
+    dest: Option<PathBuf>,
+}
+
+impl Attachments {
+    pub fn new() -> Self {
+        Attachments {
+            attachments: HashMap::new(),
+            dest: None,
+        }
+    }
+
+    pub fn get_attch_from(
         origin: parsers::Attachment,
         store_folder: &PathBuf,
-    ) -> Result<AttachmentInfo, AttachmentsError> {
+    ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
         if !store_folder.exists() {
             create_dir(store_folder).map_err(AttachmentsError::Io)?;
         }
@@ -107,7 +116,7 @@ impl AttachmentInfo {
             get_valid_file_path(store_folder, &origin.name).map_err(AttachmentsError::Io)?;
         let mut attachment_file = File::create(&attachment_path)?;
         attachment_file.write_all(&origin.data)?;
-        Ok(AttachmentInfo {
+        Ok(stypes::AttachmentInfo {
             uuid,
             filepath: attachment_path,
             name: origin.name.clone(),
@@ -120,21 +129,6 @@ impl AttachmentInfo {
                 .map(|guess| guess.to_string()),
             messages: origin.messages,
         })
-    }
-}
-
-#[derive(Debug)]
-pub struct Attachments {
-    attachments: HashMap<Uuid, AttachmentInfo>,
-    dest: Option<PathBuf>,
-}
-
-impl Attachments {
-    pub fn new() -> Self {
-        Attachments {
-            attachments: HashMap::new(),
-            dest: None,
-        }
     }
 
     pub fn set_dest_path(&mut self, dest: PathBuf) -> bool {
@@ -159,10 +153,10 @@ impl Attachments {
     pub fn add(
         &mut self,
         attachment: parsers::Attachment,
-    ) -> Result<AttachmentInfo, AttachmentsError> {
+    ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
         if let Some(dest) = self.dest.as_ref() {
             let uuid = Uuid::new_v4();
-            let a = AttachmentInfo::from(attachment, dest)?;
+            let a = Self::get_attch_from(attachment, dest)?;
             self.attachments.insert(uuid, a.clone());
             Ok(a)
         } else {
@@ -170,11 +164,11 @@ impl Attachments {
         }
     }
 
-    pub fn get(&self) -> Vec<AttachmentInfo> {
+    pub fn get(&self) -> Vec<stypes::AttachmentInfo> {
         self.attachments
             .values()
             .cloned()
-            .collect::<Vec<AttachmentInfo>>()
+            .collect::<Vec<stypes::AttachmentInfo>>()
     }
 }
 

@@ -32,7 +32,7 @@ export class Cursor {
         if (!this.visible) {
             return undefined;
         }
-        return { from: this.from, to: this.to };
+        return { start: this.from, end: this.to };
     }
 
     public setStreamLen(len: number): void {
@@ -128,11 +128,11 @@ export class Cursor {
     public rowsRangeByX(x: number): IRange {
         const frame = this.to - this.from;
         const rate = this.width / frame;
-        const from = Math.floor(x / rate) + this.from;
+        const start = Math.floor(x / rate) + this.from;
         if (rate < 1) {
-            return { from, to: from + Math.floor(frame / this.width) };
+            return { start, end: start + Math.floor(frame / this.width) };
         } else {
-            return { from, to: from };
+            return { start, end: start };
         }
     }
 

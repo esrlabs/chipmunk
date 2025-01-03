@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IGrabbedElement } from '../../../types/content';
+import { GrabbedElement } from '../../../types/bindings/miscellaneous';
 import { IRange } from '../../../types/range';
 
 import * as validator from '../../../env/obj';
@@ -22,12 +22,12 @@ export interface Request extends Interface {}
 @Define({ name: 'StreamRangesChunkResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public rows: IGrabbedElement[];
-    constructor(input: { session: string; rows: IGrabbedElement[] }) {
+    public rows: GrabbedElement[];
+    constructor(input: { session: string; rows: GrabbedElement[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.rows = validator.getAsArray<IGrabbedElement>(input, 'rows');
+        this.rows = validator.getAsArray<GrabbedElement>(input, 'rows');
     }
 }
 

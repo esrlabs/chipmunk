@@ -16,7 +16,7 @@ export const executor: TExecutor<void, string[]> = (
         function (session: RustSession, filters: string[], operationUuid: string): Promise<void> {
             return session.searchValues(filters, operationUuid);
         },
-        function (_data: any, resolve: () => void, _reject: (err: Error) => void) {
+        function (_data: Uint8Array, resolve: () => void, _reject: (err: Error) => void) {
             resolve();
         },
         'search_values',

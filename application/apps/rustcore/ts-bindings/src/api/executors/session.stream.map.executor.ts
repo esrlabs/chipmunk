@@ -3,6 +3,8 @@ import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 import { ISearchMap } from 'platform/types/filter';
 
+import * as protocol from 'protocol';
+
 export interface IOptions {
     datasetLength: number;
     from?: number;
@@ -42,9 +44,13 @@ export const executor: TExecutor<ISearchMap, IOptions> = (
                     .catch(reject);
             });
         },
-        function (data: any, resolve: (res: ISearchMap) => void, reject: (err: Error) => void) {
+        function (
+            data: Uint8Array,
+            resolve: (res: ISearchMap) => void,
+            reject: (err: Error) => void,
+        ) {
             try {
-                const result: ISearchMap = JSON.parse(data);
+                const result: ISearchMap = protocol.decodeResultScaledDistribution(data);
                 if (!(result instanceof Array)) {
                     return reject(
                         new Error(

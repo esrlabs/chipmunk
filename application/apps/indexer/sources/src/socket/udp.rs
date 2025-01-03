@@ -1,6 +1,5 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use buf_redux::Buffer;
-use indexer_base::config::MulticastInfo;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
 use thiserror::Error;
@@ -17,7 +16,7 @@ pub enum UdpSourceError {
     #[error("Invalid number: {0}")]
     ParseNum(std::num::ParseIntError),
     #[error("Config: {0}")]
-    Config(indexer_base::config::Error),
+    Config(stypes::NetError),
 }
 
 pub struct UdpSource {
@@ -31,7 +30,7 @@ const MAX_DATAGRAM_SIZE: usize = 65_507;
 impl UdpSource {
     pub async fn new<A: ToSocketAddrs>(
         addr: A,
-        multicast: Vec<MulticastInfo>,
+        multicast: Vec<stypes::MulticastInfo>,
     ) -> Result<Self, UdpSourceError> {
         let socket = UdpSocket::bind(addr).await.map_err(UdpSourceError::Io)?;
         for multicast_info in &multicast {

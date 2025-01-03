@@ -88,7 +88,6 @@
     "./modules/system": "./dist/modules/system.js",
     "./types": "./dist/types/index.js",
     "./types/sde/index": "./dist/types/sde/index.js",
-    "./types/shells": "./dist/types/shells.js",
     "./types/files": "./dist/types/files.js",
     "./types/content": "./dist/types/content.js",
     "./types/filter": "./dist/types/filter.js",
@@ -143,6 +142,7 @@
     "./types/github/chart": "./dist/types/github/chart.js",
     "./types/github/filemetadata": "./dist/types/github/filemetadata.js",
     "./types/github/filter": "./dist/types/github/filter.js",
+    "./types/bindings": "./dist/types/bindings/index.js",
     "./package.json": "./package.json"
   },
   "packageManager": "yarn@4.2.2"
