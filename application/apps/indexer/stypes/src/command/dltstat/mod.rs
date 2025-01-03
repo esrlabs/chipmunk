@@ -9,7 +9,11 @@ use crate::*;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub struct DltLevelDistribution {
     pub non_log: usize,
     pub log_fatal: usize,
@@ -23,7 +27,11 @@ pub struct DltLevelDistribution {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub struct DltStatisticInfo {
     pub app_ids: Vec<(String, DltLevelDistribution)>,
     pub context_ids: Vec<(String, DltLevelDistribution)>,
