@@ -4,7 +4,11 @@ use crate::*;
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeDltStatisticInfoResult {
     /// Indicates that the command was successfully completed.
     Finished(DltStatisticInfo),
@@ -16,7 +20,11 @@ pub enum CommandOutcomeDltStatisticInfoResult {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeProfilesResult {
     /// Indicates that the command was successfully completed.
     Finished(ProfileList),
@@ -28,7 +36,11 @@ pub enum CommandOutcomeProfilesResult {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeFoldersScanningResult {
     /// Indicates that the command was successfully completed.
     Finished(FoldersScanningResult),
@@ -40,7 +52,11 @@ pub enum CommandOutcomeFoldersScanningResult {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeSerialPortsList {
     /// Indicates that the command was successfully completed.
     Finished(SerialPortsList),
@@ -52,7 +68,11 @@ pub enum CommandOutcomeSerialPortsList {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeVoid {
     /// Indicates that the command was successfully completed.
     Finished,
@@ -64,10 +84,14 @@ pub enum CommandOutcomeVoid {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomei64 {
     /// Indicates that the command was successfully completed.
-    #[cfg_attr(test, ts(type = "number"))]
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
     Finished(i64),
     /// Indicates that the command execution was interrupted.
     Cancelled,
@@ -77,7 +101,11 @@ pub enum CommandOutcomei64 {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeOptionalString {
     /// Indicates that the command was successfully completed.
     Finished(Option<String>),
@@ -89,7 +117,11 @@ pub enum CommandOutcomeOptionalString {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeString {
     /// Indicates that the command was successfully completed.
     Finished(String),
@@ -101,7 +133,11 @@ pub enum CommandOutcomeString {
 /// At the core level, this type is used for all commands invoked within an `UnboundSession`.
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[cfg_attr(test, derive(TS), ts(export, export_to = "command.ts"))]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
 pub enum CommandOutcomeBool {
     /// Indicates that the command was successfully completed.
     Finished(bool),
