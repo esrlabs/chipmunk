@@ -19,6 +19,7 @@ CLEAN_COMMAND = [
     # binaries to avoid failing on Windows when CLI tool tries to remove it's own binary.
     "core",
     "shared",
+    "protocol",
     "binding",
     "wrapper",
     "wasm",
@@ -38,6 +39,8 @@ PATHS_TO_CHECK = [
     # Shared
     "platform/dist",
     "platform/node_modules",
+    # Protocol
+    "apps/protocol/pkg",
     # Binding
     "apps/rustcore/rs-bindings/dist",
     "apps/rustcore/rs-bindings/target",

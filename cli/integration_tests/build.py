@@ -65,6 +65,8 @@ APP_PATHS_FOR_BUILD_CHECK = [
     # Shared
     "platform/dist",
     "platform/node_modules",
+    # Protocol
+    "apps/protocol/pkg",
     # Binding
     "apps/rustcore/rs-bindings/dist",
     "apps/rustcore/rs-bindings/target",
