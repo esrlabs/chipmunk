@@ -157,19 +157,19 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 // before running the actual tests.
                 Target::Wrapper | Target::Wasm => true,
 
-                // Shared and Bindings don't have tests but they should be built for Wrapper and Wasm
+                // Shared, Bindings and Protocol don't have tests but they should be built for Wrapper and Wasm
                 // tests
-                Target::Shared | Target::Binding => {
+                Target::Shared | Target::Binding | Target::Protocol => {
                     assert!(
                         !matches!(current_job, JobType::Test { .. }),
-                        "Shared and Bindings targets don't have test jobs currently"
+                        "Shared, Bindings and Protocol targets don't have test jobs currently"
                     );
                     true
                 }
 
                 // Client and App doesn't have tests and they are not dependencies other TS and WASM
                 // targets.
-                Target::Client | Target::App | Target::Protocol => {
+                Target::Client | Target::App => {
                     assert!(
                         !matches!(current_job, JobType::Test { .. }),
                         "Client, App and Protocol targets don't have test jobs currently"
@@ -372,6 +372,76 @@ mod tests {
         assert_eq!(
             expected,
             resolve(&[Target::Binding], JobType::Build { production })
+        );
+    }
+
+    #[test]
+    /// Ensure testing ts targets will invoke all building targets involved in the dependencies tree.
+    fn resolve_test_wrapper() {
+        let production = false;
+        let expected = BTreeMap::from([
+            (
+                JobDefinition::new(Target::Shared, JobType::Install { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Shared, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Shared,
+                    JobType::Install { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Install { production }),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                vec![
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Test { production }),
+                vec![JobDefinition::new(
+                    Target::Wrapper,
+                    JobType::Build { production },
+                )],
+            ),
+        ]);
+
+        assert_eq!(
+            expected,
+            resolve(&[Target::Wrapper], JobType::Test { production })
         );
     }
 
