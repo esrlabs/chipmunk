@@ -98,8 +98,6 @@ jobs:
         run: cargo install --path=cli
       - name: install wasm-pack
         run: cargo install wasm-pack
-      - name: Build
-        run: cargo chipmunk build wrapper -u immediate
       - name: Execute tests
         timeout-minutes: 30
         env:
