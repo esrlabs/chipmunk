@@ -51,6 +51,7 @@ macro_rules! test_msg {
 
                 #[allow(non_snake_case)]
                 #[test]
+                #[ignore]
                 fn [< write_test_data_for_ $type >](cases in proptest::collection::vec($type::arbitrary(), $exp_count)) {
                     let Ok(output_path) = get_output_path() else {
                         return Ok(());
@@ -98,6 +99,7 @@ macro_rules! test_msg {
 
                 #[allow(non_snake_case)]
                 #[test]
+                #[ignore]
                 fn [< write_test_data_for_ $type Void >](cases in proptest::collection::vec($type::<()>::arbitrary(), $exp_count)) {
                     let Ok(output_path) = get_output_path() else {
                         return Ok(());
@@ -145,6 +147,7 @@ macro_rules! test_msg {
 
                 #[allow(non_snake_case)]
                 #[test]
+                #[ignore]
                 fn [< write_test_data_for_ $type $generic >](cases in proptest::collection::vec($type::<$generic>::arbitrary(), $exp_count)) {
                     let Ok(output_path) = get_output_path() else {
                         return Ok(());
@@ -189,6 +192,7 @@ macro_rules! test_msg {
 
                 #[allow(non_snake_case)]
                 #[test]
+                #[ignore]
                 fn [< write_test_data_for_ $type $generic $nested>](cases in proptest::collection::vec($type::<$generic<$nested>>::arbitrary(), $exp_count)) {
                     let Ok(output_path) = get_output_path() else {
                         return Ok(());
