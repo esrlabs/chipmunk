@@ -266,7 +266,7 @@ describe('Protocol', function () {
                     undefined,
                     done,
                     new Error(
-                        `Fail to find data passed due PROTOCOL_TEST_CASES_PATH: ${casesPath} doesn't exist`,
+                        `Fail to find data passed due ${OUTPUT_PATH_ENVVAR}: ${casesPath} doesn't exist`,
                     ),
                 );
             }
