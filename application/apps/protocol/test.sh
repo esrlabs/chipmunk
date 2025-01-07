@@ -22,7 +22,7 @@ echo "Build wasm module"
 cargo clean
 wasm-pack build --target nodejs
 
-echo "Create test use-cases"
+echo "Create test use-cases & Run Proptests"
 cd ../indexer/stypes
 export CHIPMUNK_PROTOCOL_TEST_OUTPUT="/tmp/stypes_test/"
 cargo test --release --features "test_and_gen" -- --nocapture --ignored
@@ -32,5 +32,4 @@ export JASMIN_TEST_BLOCKS_LOGS=on
 cd ../../rustcore/ts-bindings
 rm -rf ./node_modules
 rm -rf ./spec/build
-rake bindings:test:protocol
- 
+cargo chipmunk test wrapper -u print -s spec/build/spec/session.protocol.spec.js
