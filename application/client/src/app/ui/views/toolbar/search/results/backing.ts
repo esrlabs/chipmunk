@@ -2,18 +2,18 @@ import { Session } from '@service/session';
 import { IRowsPacket, Service } from '@elements/scrollarea/controllers/service';
 import { Range, IRange } from '@platform/types/range';
 import { Row, Owner } from '@schema/content/row';
-import { IGrabbedElement } from '@platform/types/content';
+import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 
 const SCROLLAREA_SERVICE = 'search_scroll_area_service';
 
 async function getRowFrom(
     session: Session,
-    element: IGrabbedElement,
-    elements: IGrabbedElement[],
+    element: GrabbedElement,
+    elements: GrabbedElement[],
     index: number,
 ): Promise<Row> {
     const row = new Row({
-        position: element.position,
+        position: element.pos,
         content: element.content,
         session: session,
         owner: Owner.Search,
@@ -27,18 +27,18 @@ async function getRowFrom(
         return row;
     }
     if (index > 0 && index < elements.length - 1) {
-        row.nature.hidden = elements[index + 1].position - elements[index - 1].position;
+        row.nature.hidden = elements[index + 1].pos - elements[index - 1].pos;
         return row;
     }
-    const around = await session.indexed.getIndexesAround(element.position);
+    const around = await session.indexed.getIndexesAround(element.pos);
     if (around.before !== undefined && around.after !== undefined) {
         row.nature.hidden = around.after - around.before;
     } else {
         row.nature.hidden =
             around.before !== undefined
-                ? element.position - around.before
+                ? element.pos - around.before
                 : around.after !== undefined
-                ? around.after - element.position
+                ? around.after - element.pos
                 : 0;
     }
     return row;

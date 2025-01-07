@@ -20,11 +20,9 @@ fn text_producer(c: &mut Criterion) {
                 || {
                     let parser = StringTokenizer {};
                     let source = create_binary_bytesource(data);
-                    let producer = MessageProducer::new(parser, source, black_box(None));
-
-                    producer
+                    MessageProducer::new(parser, source, black_box(None))
                 },
-                |p| run_producer(p),
+                run_producer,
                 BatchSize::SmallInput,
             )
     });

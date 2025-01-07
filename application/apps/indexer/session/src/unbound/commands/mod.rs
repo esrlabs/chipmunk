@@ -11,44 +11,21 @@ mod shells;
 mod sleep;
 mod someip;
 
-use crate::{events::ComputationError, unbound::commands::someip::get_someip_statistic};
-
-use log::{debug, error};
+use crate::unbound::commands::someip::get_someip_statistic;
 use plugins_host::plugins_manager::PluginsManager;
-use processor::search::filter::SearchFilter;
-use serde::{Deserialize, Serialize};
 use tokio::sync::{oneshot, RwLock};
-use uuid::Uuid;
 
 use super::signal::Signal;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum CommandOutcome<T> {
-    Finished(T),
-    Cancelled,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum UuidCommandOutcome<T: Serialize> {
-    Finished((Uuid, T)),
-    Cancelled(Uuid),
-}
-
-impl<T: Serialize> CommandOutcome<T> {
-    pub fn as_command_result(self, uuid: Uuid) -> UuidCommandOutcome<T> {
-        match self {
-            CommandOutcome::Cancelled => UuidCommandOutcome::Cancelled(uuid),
-            CommandOutcome::Finished(c) => UuidCommandOutcome::Finished((uuid, c)),
-        }
-    }
-}
+use log::{debug, error};
+use processor::search::filter::SearchFilter;
+use tokio::sync::oneshot;
 
 #[derive(Debug)]
 pub enum Command {
     // This command is used only for testing/debug goals
     Sleep(
         u64,
-        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
     ),
     FolderContent(
         Vec<String>,
@@ -56,40 +33,56 @@ pub enum Command {
         usize,
         bool,
         bool,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::FoldersScanningResult>, stypes::ComputationError>,
+        >,
     ),
     SpawnProcess(
         String,
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
     ),
     GetRegexError(
         SearchFilter,
-        oneshot::Sender<Result<CommandOutcome<Option<String>>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<Option<String>>, stypes::ComputationError>>,
     ),
     Checksum(
         String,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
     ),
     GetDltStats(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError>,
+        >,
     ),
     GetSomeipStatistic(
         Vec<String>,
-        oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
     ),
-    GetShellProfiles(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    GetContextEnvvars(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    SerialPortsList(oneshot::Sender<Result<CommandOutcome<Vec<String>>, ComputationError>>),
+    GetShellProfiles(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError>,
+        >,
+    ),
+    GetContextEnvvars(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError>,
+        >,
+    ),
+    SerialPortsList(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::SerialPortsList>, stypes::ComputationError>,
+        >,
+    ),
     IsFileBinary(
         String,
-        oneshot::Sender<Result<CommandOutcome<bool>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<bool>, stypes::ComputationError>>,
     ),
     CancelTest(
         i64,
         i64,
-        oneshot::Sender<Result<CommandOutcome<i64>, ComputationError>>,
+        oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
     GetAllPlugins(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
     GetActivePlugins(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
@@ -169,7 +162,7 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
     }
 }
 
-pub fn err(command: Command, err: ComputationError) {
+pub fn err(command: Command, err: stypes::ComputationError) {
     let cmd = command.to_string();
     if match command {
         Command::Sleep(_, tx) => tx.send(Err(err)).is_err(),

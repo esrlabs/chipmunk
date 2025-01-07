@@ -1,9 +1,4 @@
 use super::nature::Nature;
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    progress::Severity,
-    state::GrabbedElement,
-};
 use std::ops::RangeInclusive;
 
 #[derive(Debug, Default)]
@@ -54,11 +49,14 @@ impl Frame {
         ranges
     }
 
-    pub fn naturalize(&self, elements: &mut [GrabbedElement]) -> Result<(), NativeError> {
+    pub fn naturalize(
+        &self,
+        elements: &mut [stypes::GrabbedElement],
+    ) -> Result<(), stypes::NativeError> {
         if elements.len() != self.indexes.len() {
-            return Err(NativeError {
-                severity: Severity::ERROR,
-                kind: NativeErrorKind::Grabber,
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
                 message: Some(format!(
                     "Fail to naturalize range. Indexes len: {}; elements len: {}.",
                     self.indexes.len(),

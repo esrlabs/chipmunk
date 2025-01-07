@@ -9,12 +9,7 @@ use std::{
 const BYTES_TO_READ: u64 = 10240;
 
 pub fn is_binary(file_path: String) -> Result<bool> {
-    let chunks = fetch_starting_chunk(Path::new(&file_path));
-    let buffer = match chunks {
-        Ok(buffer) => buffer,
-        Err(err) => return Err(err),
-    };
-
+    let buffer = fetch_starting_chunk(Path::new(&file_path))?;
     Ok(from_utf8(&buffer).map_or(true, |_file_content| false))
 }
 

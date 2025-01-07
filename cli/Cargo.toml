@@ -1,6 +1,6 @@
 [package]
 name = "cargo-chipmunk"
-version = "0.2.13"
+version = "0.3.0"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2021"
 description = "CLI Tool for chipmunk application development"
@@ -15,6 +15,7 @@ members = ["dir_checksum"]
 [workspace.dependencies]
 tempdir = "0.3"
 anyhow = "1"
+pretty_assertions = "1.4"
 
 [dependencies]
 anyhow.workspace = true
@@ -37,6 +38,7 @@ dirs = "5"
 
 [dev-dependencies]
 tempdir.workspace = true
+pretty_assertions.workspace = true
 
 [[test]]
 name = "dir_checksum"

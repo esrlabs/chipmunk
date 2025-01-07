@@ -135,7 +135,7 @@ mod tests {
         match scan_dlt_ft(input, None, true, cancel).await {
             Ok(files) => {
                 assert_eq!(files.len(), 3);
-                assert_eq!("test1.txt", files.get(0).unwrap().name);
+                assert_eq!("test1.txt", files.first().unwrap().name);
                 assert_eq!("test2.txt", files.get(1).unwrap().name);
                 assert_eq!("test3.txt", files.get(2).unwrap().name);
             }
@@ -179,7 +179,7 @@ mod tests {
         match scan_dlt_ft(input, Some(filter), true, cancel).await {
             Ok(files) => {
                 assert_eq!(files.len(), 1);
-                assert_eq!("test2.txt", files.get(0).unwrap().name);
+                assert_eq!("test2.txt", files.first().unwrap().name);
             }
             Err(error) => {
                 panic!("{}", format!("{error}"));

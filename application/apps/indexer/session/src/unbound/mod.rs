@@ -4,7 +4,6 @@ pub mod commands;
 mod signal;
 
 use crate::{
-    events::ComputationError,
     progress::ProgressProviderAPI,
     unbound::{
         api::{UnboundSessionAPI, API},
@@ -46,7 +45,7 @@ impl UnboundSession {
         )
     }
 
-    pub async fn init(&mut self) -> Result<(), ComputationError> {
+    pub async fn init(&mut self) -> Result<(), stypes::ComputationError> {
         // TODO AAZ: Plugins manager is used temporally here in prototyping phase and will be moved
         // to its own module. Reasons:
         // * It doesn't need parallelism for most of task.
@@ -55,7 +54,10 @@ impl UnboundSession {
         let plugins_manager = commands::plugins::load_manager().await?;
         let plugins_manager = Arc::new(RwLock::new(plugins_manager));
         let finished = self.finished.clone();
-        let mut rx = self.rx.take().ok_or(ComputationError::SessionUnavailable)?; // Error: session already running
+        let mut rx = self
+            .rx
+            .take()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?; // Error: session already running
         let progress = ProgressProviderAPI::new()?;
         let session_api = self.session_api.clone();
         tokio::spawn(async move {
@@ -75,7 +77,7 @@ impl UnboundSession {
                         if jobs.contains_key(&id) {
                             commands::err(
                                 job,
-                                ComputationError::InvalidArgs(String::from(
+                                stypes::ComputationError::InvalidArgs(String::from(
                                     "Job has invalid id. Id already exists.",
                                 )),
                             );

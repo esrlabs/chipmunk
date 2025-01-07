@@ -1,8 +1,8 @@
 import * as num from '../env/num';
 
 export interface IRange {
-    from: number;
-    to: number;
+    start: number;
+    end: number;
 }
 
 export function fromTuple(
@@ -17,7 +17,7 @@ export function fromTuple(
         if (!num.isValidU32(range[1])) {
             return new Error(`End of range isn't valid: ${range[1]}; ${JSON.stringify(range)}`);
         }
-        return { from: range[0], to: range[1] };
+        return { start: range[0], end: range[1] };
     } else if (typeof range === 'object' && range !== undefined && range !== null) {
         const asObj = range as { start: number; end: number };
         if (!num.isValidU32(asObj.start)) {
@@ -28,23 +28,23 @@ export function fromTuple(
         if (!num.isValidU32(asObj.end)) {
             return new Error(`End of range isn't valid: ${asObj.end}; ${JSON.stringify(range)}`);
         }
-        return { from: asObj.start, to: asObj.end };
+        return { start: asObj.start, end: asObj.end };
     } else {
         return new Error(`Expecting tuple: [number, number]: ${JSON.stringify(range)}`);
     }
 }
 
 export class Range {
-    public readonly from: number;
-    public readonly to: number;
+    public readonly start: number;
+    public readonly end: number;
     public readonly spec: {
-        // true - will use i >= from; false - i > from
+        // true - will use i >= start; false - i > start
         left: boolean;
-        // true - will use i <= to; false - i > to
+        // true - will use i <= end; false - i > end
         right: boolean;
-        // true - range in this case will be valid for i < from
+        // true - range in this case will be valid for i < start
         before: boolean;
-        // true - range in this case will be valid for i > to
+        // true - range in this case will be valid for i > end
         after: boolean;
     } = {
         left: true,
@@ -57,34 +57,34 @@ export class Range {
         return src.filter((r) => range.in(index(r)));
     }
 
-    constructor(from: number, to: number) {
+    constructor(start: number, end: number) {
         if (
-            from > to ||
-            from < 0 ||
-            to < 0 ||
-            isNaN(from) ||
-            isNaN(to) ||
-            !isFinite(from) ||
-            !isFinite(to)
+            start > end ||
+            start < 0 ||
+            end < 0 ||
+            isNaN(start) ||
+            isNaN(end) ||
+            !isFinite(start) ||
+            !isFinite(end)
         ) {
-            throw new Error(`Invalid range: [${from} - ${to}]`);
+            throw new Error(`Invalid range: [${start} - ${end}]`);
         }
-        this.from = from;
-        this.to = to;
+        this.start = start;
+        this.end = end;
     }
 
     public asObj(): IRange {
-        return { from: this.from, to: this.to };
+        return { start: this.start, end: this.end };
     }
 
     public len(): number {
-        return this.to - this.from;
+        return this.end - this.start;
     }
 
     public get(): IRange {
         return {
-            from: this.from,
-            to: this.to,
+            start: this.start,
+            end: this.end,
         };
     }
 
@@ -109,38 +109,38 @@ export class Range {
     }
 
     public in(int: number): boolean {
-        if (this.spec.before && this.spec.left && int <= this.from) {
+        if (this.spec.before && this.spec.left && int <= this.start) {
             return true;
         }
-        if (this.spec.before && !this.spec.left && int < this.from) {
+        if (this.spec.before && !this.spec.left && int < this.start) {
             return true;
         }
-        if (this.spec.after && this.spec.right && int >= this.to) {
+        if (this.spec.after && this.spec.right && int >= this.end) {
             return true;
         }
-        if (this.spec.after && !this.spec.right && int > this.to) {
+        if (this.spec.after && !this.spec.right && int > this.end) {
             return true;
         }
         if (this.spec.after || this.spec.before) {
             return false;
         }
-        if (this.spec.left && this.spec.right && int >= this.from && int <= this.to) {
+        if (this.spec.left && this.spec.right && int >= this.start && int <= this.end) {
             return true;
         }
-        if (!this.spec.left && this.spec.right && int > this.from && int <= this.to) {
+        if (!this.spec.left && this.spec.right && int > this.start && int <= this.end) {
             return true;
         }
-        if (this.spec.left && !this.spec.right && int >= this.from && int < this.to) {
+        if (this.spec.left && !this.spec.right && int >= this.start && int < this.end) {
             return true;
         }
-        if (!this.spec.left && !this.spec.right && int > this.from && int < this.to) {
+        if (!this.spec.left && !this.spec.right && int > this.start && int < this.end) {
             return true;
         }
         return false;
     }
 
     public equal(range: Range): boolean {
-        if (this.from !== range.from || this.to !== range.to) {
+        if (this.start !== range.start || this.end !== range.end) {
             return false;
         }
         if (
@@ -161,27 +161,27 @@ export function fromIndexes(indexes: number[]): IRange[] {
     }
     const ranges: IRange[] = [];
     indexes.sort((a, b) => (a >= b ? 1 : -1));
-    let from: number = -1;
-    let to = -1;
+    let start: number = -1;
+    let end = -1;
     indexes.forEach((i) => {
         if (i < 0 || isNaN(i) || !isFinite(i)) {
             throw new Error(`Invalid index: ${i}`);
         }
-        if (to === -1) {
-            to = i;
+        if (end === -1) {
+            end = i;
         }
-        if (from === -1) {
-            from = i;
+        if (start === -1) {
+            start = i;
             return;
         }
-        if (i === to + 1) {
-            to = i;
+        if (i === end + 1) {
+            end = i;
             return;
         }
-        ranges.push({ from, to });
-        from = i;
-        to = i;
+        ranges.push({ start, end });
+        start = i;
+        end = i;
     });
-    from !== -1 && ranges.push({ from, to: indexes[indexes.length - 1] });
+    start !== -1 && ranges.push({ start, end: indexes[indexes.length - 1] });
     return ranges;
 }

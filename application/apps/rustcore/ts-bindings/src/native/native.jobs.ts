@@ -3,6 +3,7 @@ import { scope } from 'platform/env/scope';
 import { CancelablePromise } from 'platform/env/promise';
 import { error } from 'platform/log/utils';
 import { getNativeModule } from '../native/native';
+import { NativeError } from '../interfaces/errors';
 
 export abstract class JobsNative {
     public abstract abort(sequence: number): Promise<void>;
@@ -11,9 +12,13 @@ export abstract class JobsNative {
 
     public abstract destroy(): Promise<void>;
 
-    public abstract isFileBinary(sequence: number, filePath: string): Promise<boolean>;
+    public abstract isFileBinary(sequence: number, filePath: string): Promise<Uint8Array>;
 
-    public abstract jobCancelTest(sequence: number, num_a: number, num_b: number): Promise<string>;
+    public abstract jobCancelTest(
+        sequence: number,
+        num_a: number,
+        num_b: number,
+    ): Promise<Uint8Array>;
 
     public abstract listFolderContent(
         sequence: number,
@@ -22,16 +27,20 @@ export abstract class JobsNative {
         paths: string[],
         includeFiles: boolean,
         includeFolders: boolean,
-    ): Promise<string>;
+    ): Promise<Uint8Array>;
 
-    public abstract spawnProcess(sequence: number, path: string, args: string[]): Promise<void>;
-    public abstract getFileChecksum(sequence: number, path: string): Promise<string>;
-    public abstract getDltStats(sequence: number, files: string[]): Promise<string>;
-    public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<string>;
-    public abstract getShellProfiles(sequence: number): Promise<string>;
-    public abstract getContextEnvvars(sequence: number): Promise<string>;
-    public abstract getSerialPortsList(sequence: number): Promise<string[]>;
-    public abstract sleep(sequence: number, ms: number): Promise<undefined>;
+    public abstract spawnProcess(
+        sequence: number,
+        path: string,
+        args: string[],
+    ): Promise<Uint8Array>;
+    public abstract getFileChecksum(sequence: number, path: string): Promise<Uint8Array>;
+    public abstract getDltStats(sequence: number, files: string[]): Promise<Uint8Array>;
+    public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<Uint8Array>;
+    public abstract getShellProfiles(sequence: number): Promise<Uint8Array>;
+    public abstract getContextEnvvars(sequence: number): Promise<Uint8Array>;
+    public abstract getSerialPortsList(sequence: number): Promise<Uint8Array>;
+    public abstract sleep(sequence: number, ms: number): Promise<Uint8Array>;
     public abstract getRegexError(
         sequence: number,
         filter: {
@@ -40,7 +49,7 @@ export abstract class JobsNative {
             ignore_case: boolean;
             is_word: boolean;
         },
-    ): Promise<string | undefined | null>;
+    ): Promise<Uint8Array>;
     public abstract getAllPlugins(sequence: number): Promise<string>;
     public abstract getActivePlugins(sequence: number): Promise<string>;
     public abstract reloadPlugins(sequence: number): Promise<void>;
@@ -73,13 +82,33 @@ export class Queue {
 
 export type JobResult<T> = { Finished: T } | 'Cancelled';
 
-export type ConvertCallback<Input, Output> = (input: Input) => Output | Error;
+export type ConvertCallback<Output> = (input: Uint8Array) => Output | Error | Cancelled;
 
 enum State {
     destroyed,
     destroying,
     inited,
     created,
+}
+
+export class Cancelled extends Error {}
+
+export function decode<Output>(
+    buf: Uint8Array,
+    decoder: (buf: Uint8Array) => any,
+): Output | Error | Cancelled {
+    try {
+        const output = decoder(buf);
+        if (output === 'Cancelled') {
+            return new Cancelled(`Job has been cancelled`);
+        } else if ('Finished' in output) {
+            return output.Finished as Output;
+        } else {
+            return new Error(`Fail to detect job status.`);
+        }
+    } catch (err) {
+        return new Error(`Fail to decode job's results: ${error(err)}`);
+    }
 }
 
 const DESTROY_TIMEOUT = 5000;
@@ -172,9 +201,9 @@ export class Base {
         return this.queue.sequence();
     }
 
-    protected execute<Input, Output>(
-        convert: undefined | ConvertCallback<Input, Output>,
-        task: Promise<any>,
+    protected execute<Output>(
+        convert: ConvertCallback<Output>,
+        task: Promise<Uint8Array>,
         sequence: number,
         alias: string,
     ): CancelablePromise<Output> {
@@ -192,31 +221,20 @@ export class Base {
                     this.logger.error(`Fail to cancel ${error(err)}`);
                 });
             });
-            task.then((nativeOutput: string) => {
-                try {
-                    const result: JobResult<Input> = JSON.parse(nativeOutput);
-                    if (result === 'Cancelled' || self.isCanceling()) {
-                        if (result !== 'Cancelled' && self.isCanceling()) {
-                            this.logger.warn('Job result dropped due canceling');
-                        }
-                        cancel();
-                    } else if (convert === undefined) {
-                        resolve(result.Finished as unknown as Output);
-                    } else {
-                        const converted: Output | Error = convert(result.Finished);
-                        if (converted instanceof Error) {
-                            reject(converted);
-                        } else {
-                            resolve(converted);
-                        }
-                    }
-                } catch (e) {
-                    reject(new Error(`Fail to parse results (${nativeOutput}): ${error(e)}`));
+            task.then((buf: Uint8Array) => {
+                const decoded = convert(buf);
+                if (decoded instanceof Cancelled || self.isCanceling()) {
+                    cancel();
+                } else if (decoded instanceof Error) {
+                    reject(decoded);
+                } else {
+                    resolve(decoded);
                 }
             })
-                .catch((err: Error) => {
-                    this.logger.error(`Fail to do "${alias}" operation due error: ${error(err)}`);
-                    reject(new Error(error(err)));
+                .catch((err: Error | Uint8Array) => {
+                    const nerr = NativeError.from(err);
+                    this.logger.error(`Fail to do "${alias}" operation due error: ${error(nerr)}`);
+                    reject(nerr);
                 })
                 .finally(() => {
                     this.queue.remove(sequence);

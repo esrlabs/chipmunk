@@ -1,4 +1,4 @@
-import { ShellProfile } from '@platform/types/shells';
+import { Profile } from '@platform/types/bindings';
 import { bridge } from '@service/bridge';
 import { Destroy } from '@platform/types/env/types';
 import { Action } from '../../../../../action';
@@ -11,15 +11,15 @@ const ENTRY_KEY = 'selected_profile_path';
 
 export class State implements Destroy {
     public profiles: {
-        all: ShellProfile[] | undefined;
-        valid: ShellProfile[] | undefined;
+        all: Profile[] | undefined;
+        valid: Profile[] | undefined;
     } = {
         all: undefined,
         valid: undefined,
     };
     // No context envvars
     public envvars: Map<string, string> = new Map();
-    public current: ShellProfile | undefined;
+    public current: Profile | undefined;
 
     constructor(
         public readonly action: Action,
@@ -30,8 +30,8 @@ export class State implements Destroy {
         // Having method "destroy()" is requirement of session's storage
     }
 
-    public setProfiles(profiles: ShellProfile[]): Promise<void> {
-        const valid: ShellProfile[] = [];
+    public setProfiles(profiles: Profile[]): Promise<void> {
+        const valid: Profile[] = [];
         profiles.forEach((profile) => {
             valid.find((p) => p.path === profile.path) === undefined &&
                 profile.envvars !== undefined &&
@@ -53,7 +53,7 @@ export class State implements Destroy {
         return this.profiles.all !== undefined;
     }
 
-    public importEnvvarsFromShell(profile: ShellProfile | undefined): Promise<void> {
+    public importEnvvarsFromShell(profile: Profile | undefined): Promise<void> {
         if (profile === undefined) {
             this.current = undefined;
             this.configuration.configuration.envs = obj.mapToObj(this.envvars);
@@ -72,7 +72,7 @@ export class State implements Destroy {
         return obj.objToStringMap(this.configuration.configuration.envs);
     }
 
-    public isShellSelected(profile: ShellProfile): boolean {
+    public isShellSelected(profile: Profile): boolean {
         return this.current ? profile.path === this.current.path : false;
     }
 

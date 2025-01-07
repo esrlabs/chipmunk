@@ -3,49 +3,31 @@ use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher};
 use itertools::Itertools;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractedMatchValue {
-    pub index: u64,
-    /// (filter index, extracted value)
-    pub values: Vec<(usize, Vec<String>)>,
-}
-
-impl ExtractedMatchValue {
-    pub fn new(index: u64, input: &str, filters: &[Regex]) -> Self {
-        Self {
-            index,
-            values: ExtractedMatchValue::extract(input, filters),
-        }
-    }
-
-    pub fn extract(input: &str, filters: &[Regex]) -> Vec<(usize, Vec<String>)> {
-        let mut values: Vec<(usize, Vec<String>)> = vec![];
-        for (filter_index, filter) in filters.iter().enumerate() {
-            for caps in filter.captures_iter(input) {
-                let mut matches: Vec<String> = caps
-                    .iter()
-                    .flatten()
-                    .map(|m| m.as_str().to_owned())
-                    .collect();
-                if matches.len() <= 1 {
-                    // warn here
-                } else {
-                    // 0 always - whole match
-                    matches.remove(0);
-                    values.push((filter_index, matches));
-                }
+fn get_extracted_value(index: u64, input: &str, filters: &[Regex]) -> stypes::ExtractedMatchValue {
+    let mut values: Vec<(usize, Vec<String>)> = vec![];
+    for (filter_index, filter) in filters.iter().enumerate() {
+        for caps in filter.captures_iter(input) {
+            // Element on 0 always is the whole match. Here we don't need it
+            let matches: Vec<String> = caps
+                .iter()
+                .flatten()
+                .map(|m| m.as_str().to_owned())
+                .skip(1)
+                .collect();
+            if matches.is_empty() {
+                warn!("Filter doesn't give matches on matches extracting")
+            } else {
+                values.push((filter_index, matches));
             }
         }
-        values
     }
+    stypes::ExtractedMatchValue { index, values }
 }
-
 pub struct MatchesExtractor {
     pub file_path: PathBuf,
     filters: Vec<SearchFilter>,
@@ -66,8 +48,7 @@ impl MatchesExtractor {
         }
     }
 
-    /// TODO: add description
-    pub fn extract_matches(&self) -> Result<Vec<ExtractedMatchValue>, SearchError> {
+    pub fn extract_matches(&self) -> Result<Vec<stypes::ExtractedMatchValue>, SearchError> {
         if self.filters.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
@@ -75,7 +56,7 @@ impl MatchesExtractor {
         }
         let combined_regex: String =
             format!("({})", self.filters.iter().map(filter::as_regex).join("|"));
-        let mut values: Vec<ExtractedMatchValue> = vec![];
+        let mut values: Vec<stypes::ExtractedMatchValue> = vec![];
         let mut regexs: Vec<Regex> = vec![];
         for filter in self.filters.iter() {
             regexs.push(
@@ -95,7 +76,7 @@ impl MatchesExtractor {
                 &regex_matcher,
                 &self.file_path,
                 UTF8(|lnum, line| {
-                    values.push(ExtractedMatchValue::new(lnum - 1, line, &regexs));
+                    values.push(get_extracted_value(lnum - 1, line, &regexs));
                     Ok(true)
                 }),
             )

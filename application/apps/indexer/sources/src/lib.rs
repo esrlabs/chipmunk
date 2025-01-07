@@ -79,6 +79,16 @@ pub enum Error {
     NotSupported,
 }
 
+impl From<Error> for stypes::NativeError {
+    fn from(err: Error) -> Self {
+        stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::ComputationFailed,
+            message: Some(format!("Fail create source: {err}")),
+        }
+    }
+}
+
 pub(crate) const DEFAULT_READER_CAPACITY: usize = 10 * 1024 * 1024;
 pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
@@ -122,7 +132,7 @@ pub trait ByteSource: Send {
     ///
     /// # Note:
     ///
-    /// This function must be **Cancel-Safe** if for structs which support [`sde::SdeRequest`] by
+    /// This function must be **Cancel-Safe** if for structs which support [`stypes::SdeRequest`] by
     /// implementing the method [`ByteSource::income()`].
     async fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
@@ -139,7 +149,7 @@ pub trait ByteSource: Send {
     ///
     /// The method [`ByteSource::reload()`] must be **Cancel-Safe** for structs that support this
     /// method
-    async fn income(&mut self, _msg: sde::SdeRequest) -> Result<sde::SdeResponse, Error> {
+    async fn income(&mut self, _msg: stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
         Err(Error::NotSupported)
     }
 }

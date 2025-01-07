@@ -1,9 +1,5 @@
-use crate::{
-    events::{ComputationError, LifecycleTransition},
-    TRACKER_CHANNEL,
-};
+use crate::TRACKER_CHANNEL;
 use log::{error, info};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::{
     select,
@@ -14,77 +10,25 @@ use tokio::{
 };
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Notification {
-    pub severity: Severity,
-    pub content: String,
-    pub line: Option<usize>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum Progress {
-    Ticks(Ticks),
-    Notification(Notification),
-    Stopped,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct Ticks {
-    pub count: u64,
-    pub state: Option<String>,
-    pub total: Option<u64>,
-}
-impl Ticks {
-    pub fn done(&self) -> bool {
-        match self.total {
-            Some(total) => self.count == total,
-            None => false,
-        }
-    }
-
-    pub fn new() -> Self {
-        Ticks {
-            count: 0,
-            state: None,
-            total: None,
-        }
-    }
-}
-
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub enum Severity {
-    WARNING,
-    ERROR,
-}
-
-impl Severity {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Severity::WARNING => "WARNING",
-            Severity::ERROR => "ERROR",
-        }
-    }
-}
-
 /// Commands used to control/query the progress tracking
 #[derive(Debug)]
 pub enum ProgressCommand {
-    Content(oneshot::Sender<Result<String, ComputationError>>),
-    Abort(oneshot::Sender<Result<(), ComputationError>>),
+    Content(oneshot::Sender<Result<String, stypes::ComputationError>>),
+    Abort(oneshot::Sender<Result<(), stypes::ComputationError>>),
 }
 
 #[derive(Clone, Debug)]
 pub struct ProgressProviderAPI {
-    tx: UnboundedSender<LifecycleTransition>,
+    tx: UnboundedSender<stypes::LifecycleTransition>,
 }
 
 impl ProgressProviderAPI {
-    pub fn new() -> Result<Self, ComputationError> {
+    pub fn new() -> Result<Self, stypes::ComputationError> {
         let tx = {
             let tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
-                ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+                stypes::ComputationError::Communication(format!(
+                    "Cannot init channels from mutex: {e}"
+                ))
             })?;
             tx_rx.0.clone()
             // scope will release Mutex lock
@@ -95,7 +39,7 @@ impl ProgressProviderAPI {
     pub fn started(&self, alias: &str, uuid: &Uuid) {
         if self
             .tx
-            .send(LifecycleTransition::started(uuid, alias))
+            .send(stypes::LifecycleTransition::started(uuid, alias))
             .is_err()
         {
             error!("Fail to report LifecycleTransition::Started. Channel is closed");
@@ -103,15 +47,19 @@ impl ProgressProviderAPI {
     }
 
     pub fn stopped(&self, uuid: &Uuid) {
-        if self.tx.send(LifecycleTransition::stopped(uuid)).is_err() {
+        if self
+            .tx
+            .send(stypes::LifecycleTransition::stopped(uuid))
+            .is_err()
+        {
             error!("Fail to report LifecycleTransition::Stopped. Channel is closed");
         }
     }
 
-    pub fn progress(&self, uuid: &Uuid, ticks: Ticks) {
+    pub fn progress(&self, uuid: &Uuid, ticks: stypes::Ticks) {
         if self
             .tx
-            .send(LifecycleTransition::ticks(uuid, ticks))
+            .send(stypes::LifecycleTransition::ticks(uuid, ticks))
             .is_err()
         {
             error!("Fail to report LifecycleTransition::Ticks. Channel is closed");
@@ -138,29 +86,33 @@ impl ProgressTrackerAPI {
         &self,
         command: ProgressCommand,
         rx_response: oneshot::Receiver<T>,
-    ) -> Result<T, ComputationError> {
+    ) -> Result<T, stypes::ComputationError> {
         let api_str = format!("{command:?}");
         self.tx_api.send(command).map_err(|e| {
-            ComputationError::Communication(format!("Failed to send to Api::{api_str}; error: {e}"))
+            stypes::ComputationError::Communication(format!(
+                "Failed to send to Api::{api_str}; error: {e}"
+            ))
         })?;
         rx_response.await.map_err(|_| {
-            ComputationError::Communication(format!("Failed to get response from Api::{api_str}"))
+            stypes::ComputationError::Communication(format!(
+                "Failed to get response from Api::{api_str}"
+            ))
         })
     }
 
-    pub async fn content(&self) -> Result<String, ComputationError> {
+    pub async fn content(&self) -> Result<String, stypes::ComputationError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(ProgressCommand::Content(tx), rx)
             .await?
     }
 
-    pub async fn abort(&self) -> Result<(), ComputationError> {
+    pub async fn abort(&self) -> Result<(), stypes::ComputationError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(ProgressCommand::Abort(tx), rx).await?
     }
 }
 
-fn log_if_err(res: Result<(), SendError<LifecycleTransition>>) {
+fn log_if_err(res: Result<(), SendError<stypes::LifecycleTransition>>) {
     if res.is_err() {
         error!("Fail to send event into lifecycle_events_channel. Channel is closed");
     }
@@ -172,17 +124,20 @@ fn log_if_err(res: Result<(), SendError<LifecycleTransition>>) {
 /// At any time, we can then track the progress of everything that is going on
 pub async fn run_tracking(
     mut command_rx: UnboundedReceiver<ProgressCommand>,
-) -> Result<mpsc::Receiver<LifecycleTransition>, ComputationError> {
-    let mut ongoing_operations: HashMap<Uuid, Ticks> = HashMap::new();
+) -> Result<mpsc::Receiver<stypes::LifecycleTransition>, stypes::ComputationError> {
+    let mut ongoing_operations: HashMap<Uuid, stypes::Ticks> = HashMap::new();
     let lifecycle_events_channel = mpsc::channel(1);
 
     let mut lifecycle_events = {
         let mut tx_rx = TRACKER_CHANNEL.lock().map_err(|e| {
-            ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
+            stypes::ComputationError::Communication(format!("Cannot init channels from mutex: {e}"))
         })?;
-        tx_rx.1.take().ok_or(ComputationError::Communication(
-            "ProgressTracker channel already taken".to_string(),
-        ))?
+        tx_rx
+            .1
+            .take()
+            .ok_or(stypes::ComputationError::Communication(
+                "ProgressTracker channel already taken".to_string(),
+            ))?
     };
 
     tokio::spawn(async move {
@@ -192,7 +147,7 @@ pub async fn run_tracking(
                     match command {
                         Some(ProgressCommand::Content(result_channel)) => {
                             let res = serde_json::to_string(&ongoing_operations)
-                                .map_err(|e| ComputationError::Process(format!("{e}")));
+                                .map_err(|e| stypes::ComputationError::Process(format!("{e}")));
                             let _ = result_channel.send(res);
                         }
                         Some(ProgressCommand::Abort(result_channel)) => {
@@ -204,20 +159,20 @@ pub async fn run_tracking(
                 }
                 lifecycle_event = lifecycle_events.recv() => {
                     match lifecycle_event {
-                        Some(LifecycleTransition::Started { uuid, alias }) => {
+                        Some(stypes::LifecycleTransition::Started { uuid, alias }) => {
                             info!("job {alias} ({uuid}) started");
-                            ongoing_operations.insert(uuid, Ticks::new());
-                            log_if_err(lifecycle_events_channel.0.send(LifecycleTransition::started(&uuid, &alias)).await);
+                            ongoing_operations.insert(uuid, stypes::Ticks::default());
+                            log_if_err(lifecycle_events_channel.0.send(stypes::LifecycleTransition::started(&uuid, &alias)).await);
                         }
-                        Some(LifecycleTransition::Stopped(uuid)) => {
+                        Some(stypes::LifecycleTransition::Stopped(uuid)) => {
                             info!("job {uuid} stopped");
                             ongoing_operations.remove(&uuid);
-                            log_if_err(lifecycle_events_channel.0.send(LifecycleTransition::Stopped(uuid)).await);
+                            log_if_err(lifecycle_events_channel.0.send(stypes::LifecycleTransition::Stopped(uuid)).await);
                         }
-                        Some(LifecycleTransition::Ticks {uuid, ticks}) => {
+                        Some(stypes::LifecycleTransition::Ticks {uuid, ticks}) => {
                             info!("job {uuid} reported progress: {ticks:?}");
                             ongoing_operations.insert(uuid, ticks.clone());
-                            log_if_err(lifecycle_events_channel.0.send(LifecycleTransition::ticks(&uuid, ticks)).await);
+                            log_if_err(lifecycle_events_channel.0.send(stypes::LifecycleTransition::ticks(&uuid, ticks)).await);
                         }
                         None => break,
 

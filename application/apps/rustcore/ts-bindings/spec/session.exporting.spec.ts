@@ -6,7 +6,7 @@
 import { initLogger } from './logger';
 initLogger();
 import { Factory } from '../src/api/session';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings';
 import { createSampleFile, finish, relativePath, rootPath } from './common';
 import { readConfigurationFile } from './config';
 import { fromIndexes } from 'platform/types/range';
@@ -25,17 +25,17 @@ describe('Exporting', function () {
             let controlSum = 0;
             const ranges = [
                 {
-                    from: 50,
-                    to: 100,
+                    start: 50,
+                    end: 100,
                 },
                 {
-                    from: 200,
-                    to: 300,
+                    start: 200,
+                    end: 300,
                 },
             ];
             const tmpobj = createSampleFile(1000, logger, (i: number) => {
                 ranges.forEach((r) => {
-                    if (i >= r.from && i <= r.to) {
+                    if (i >= r.start && i <= r.end) {
                         controlSum += i;
                     }
                 });
@@ -109,23 +109,23 @@ describe('Exporting', function () {
         return runners.withSession(config.regular, 2, async (logger, done, comps) => {
             const ranges = [
                 {
-                    from: 50,
-                    to: 90,
+                    start: 50,
+                    end: 90,
                 },
                 {
-                    from: 101,
-                    to: 150,
+                    start: 101,
+                    end: 150,
                 },
             ];
             let controlSum = 0;
             const tmpobj_a = createSampleFile(100, logger, (i: number) => {
-                if (i >= ranges[0].from && i <= ranges[0].to) {
+                if (i >= ranges[0].start && i <= ranges[0].end) {
                     controlSum += i;
                 }
                 return `____${i}____\n`;
             });
             const tmpobj_b = createSampleFile(100, logger, (i: number) => {
-                if (i >= ranges[1].from - 100 && i <= ranges[1].to - 100) {
+                if (i >= ranges[1].start - 100 && i <= ranges[1].end - 100) {
                     controlSum += i * 1000;
                 }
                 return `____${i * 1000}____\n`;
@@ -232,17 +232,13 @@ describe('Exporting', function () {
                             const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                             comps.search
                                 .grab(range.from, range.to)
-                                .then((grabbed: IGrabbedElement[]) => {
+                                .then((grabbed: GrabbedElement[]) => {
                                     comps.stream
-                                        .export(
-                                            output,
-                                            fromIndexes(grabbed.map((el) => el.position)),
-                                            {
-                                                columns: [],
-                                                spliter: undefined,
-                                                delimiter: undefined,
-                                            },
-                                        )
+                                        .export(output, fromIndexes(grabbed.map((el) => el.pos)), {
+                                            columns: [],
+                                            spliter: undefined,
+                                            delimiter: undefined,
+                                        })
                                         .then((_done) => {
                                             fs.promises
                                                 .readFile(output, { encoding: 'utf-8' })
@@ -336,7 +332,7 @@ describe('Exporting', function () {
                     .then((grabbed) => {
                         const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                         comps.stream
-                            .export(output, [{ from: 0, to: 8 }], {
+                            .export(output, [{ start: 0, end: 8 }], {
                                 columns: [],
                                 spliter: undefined,
                                 delimiter: undefined,
@@ -354,7 +350,7 @@ describe('Exporting', function () {
                                                     comps.session,
                                                     done,
                                                     new Error(
-                                                        `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                        `Rows are dismatch. Stream position ${grabbed[i].pos}.`,
                                                     ),
                                                 );
                                             }
@@ -432,7 +428,7 @@ describe('Exporting', function () {
                     .then((grabbed) => {
                         const output = path.resolve(os.tmpdir(), `${v4()}.dlt`);
                         comps.stream
-                            .exportRaw(output, [{ from: 0, to: 8 }])
+                            .exportRaw(output, [{ start: 0, end: 8 }])
                             .then(async () => {
                                 comps.session
                                     .destroy()
@@ -476,7 +472,7 @@ describe('Exporting', function () {
                                                                 session,
                                                                 done,
                                                                 new Error(
-                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                    `Rows are dismatch. Stream position ${grabbed[i].pos}.`,
                                                                 ),
                                                             );
                                                         }
@@ -569,7 +565,7 @@ describe('Exporting', function () {
                         expect(grabbed[10].source_id).toEqual(1);
                         const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                         comps.stream
-                            .export(output, [{ from: 0, to: 14 }], {
+                            .export(output, [{ start: 0, end: 14 }], {
                                 columns: [],
                                 spliter: undefined,
                                 delimiter: undefined,
@@ -587,7 +583,7 @@ describe('Exporting', function () {
                                                     comps.session,
                                                     done,
                                                     new Error(
-                                                        `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                        `Rows are dismatch. Stream position ${grabbed[i].pos}.`,
                                                     ),
                                                 );
                                             }
@@ -668,7 +664,7 @@ describe('Exporting', function () {
                         expect(grabbed[10].source_id).toEqual(1);
                         const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                         comps.stream
-                            .exportRaw(output, [{ from: 0, to: 14 }])
+                            .exportRaw(output, [{ start: 0, end: 14 }])
                             .then(() => {
                                 comps.session
                                     .destroy()
@@ -719,7 +715,7 @@ describe('Exporting', function () {
                                                                 session,
                                                                 done,
                                                                 new Error(
-                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                    `Rows are dismatch. Stream position ${grabbed[i].pos}.`,
                                                                 ),
                                                             );
                                                         }
@@ -806,26 +802,26 @@ describe('Exporting', function () {
                 }
                 const ranges = [
                     {
-                        from: 0,
-                        to: 5,
+                        start: 0,
+                        end: 5,
                     },
                     {
-                        from: 9,
-                        to: 14,
+                        start: 9,
+                        end: 14,
                     },
                 ];
                 gotten = true;
-                Promise.all(ranges.map((r) => comps.stream.grab(r.from, r.to - r.from)))
+                Promise.all(ranges.map((r) => comps.stream.grab(r.start, r.end - r.start)))
                     .then((results) => {
-                        let grabbed: IGrabbedElement[] = [];
+                        let grabbed: GrabbedElement[] = [];
                         results.forEach((g) => (grabbed = grabbed.concat(g)));
-                        grabbed.sort((a, b) => (a.position > b.position ? 1 : -1));
+                        grabbed.sort((a, b) => (a.pos > b.pos ? 1 : -1));
                         const output = path.resolve(os.tmpdir(), `${v4()}.logs`);
                         comps.stream
                             .exportRaw(
                                 output,
                                 ranges.map((r) => {
-                                    return { from: r.from, to: r.to - 1 };
+                                    return { start: r.start, end: r.end - 1 };
                                 }),
                             )
                             .then(() => {
@@ -870,7 +866,7 @@ describe('Exporting', function () {
                                                                 session,
                                                                 done,
                                                                 new Error(
-                                                                    `Rows are dismatch. Stream position ${grabbed[i].position}.`,
+                                                                    `Rows are dismatch. Stream position ${grabbed[i].pos}.`,
                                                                 ),
                                                             );
                                                         }
@@ -960,7 +956,7 @@ describe('Exporting', function () {
                     .then((grabbed) => {
                         const output = path.resolve(os.tmpdir(), `${v4()}.txt`);
                         comps.stream
-                            .export(output, [{ from: 0, to: 8 }], {
+                            .export(output, [{ start: 0, end: 8 }], {
                                 columns: [0, 1],
                                 spliter: '\u0004',
                                 delimiter: ';',
@@ -1053,7 +1049,7 @@ describe('Exporting', function () {
                     .then((grabbed) => {
                         const output = path.resolve(os.tmpdir(), `${v4()}.txt`);
                         comps.stream
-                            .export(output, [{ from: 0, to: 8 }], {
+                            .export(output, [{ start: 0, end: 8 }], {
                                 columns: [9, 10],
                                 spliter: '\u0004',
                                 delimiter: ';',
@@ -1145,7 +1141,7 @@ describe('Exporting', function () {
                     .then((grabbed) => {
                         const output = path.resolve(os.tmpdir(), `${v4()}.txt`);
                         comps.stream
-                            .export(output, [{ from: 0, to: 8 }], {
+                            .export(output, [{ start: 0, end: 8 }], {
                                 columns: [10],
                                 spliter: '\u0004',
                                 delimiter: ';',
@@ -1279,7 +1275,7 @@ describe('Exporting', function () {
                     cases.map((usecase) => {
                         const output = usecase.output;
                         return comps.stream
-                            .export(output, [{ from: 0, to: 8 }], usecase.options)
+                            .export(output, [{ start: 0, end: 8 }], usecase.options)
                             .then(async () => {
                                 fs.promises
                                     .readFile(output, { encoding: 'utf-8' })

@@ -16,3 +16,4 @@ log = "0.4"
 [dev-dependencies]
 tempdir.workspace = true
 anyhow.workspace = true
+pretty_assertions.workspace = true

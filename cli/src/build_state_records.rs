@@ -6,7 +6,7 @@
 //! This module manages saving the loading the state records as well.
 
 use std::{
-    collections::{btree_map, BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet},
     fs::File,
     io::{BufReader, BufWriter},
     path::PathBuf,
@@ -105,7 +105,7 @@ impl BuildStateRecords {
             .map_err(|err| anyhow!("Error while acquiring items jobs mutex: Error {err}"))?;
 
         if records_involved {
-            rec.calculate_involved_states()?;
+            rec.update_records()?;
         }
 
         rec.persist_build_state()
@@ -268,9 +268,11 @@ impl BuildStateRecords {
         Ok(())
     }
 
-    fn calculate_involved_states(&mut self) -> anyhow::Result<()> {
-        let additional_features = JobsState::get().additional_features();
+    /// Clears the states from previous build then calculates the states for the involved targets.
+    fn update_records(&mut self) -> anyhow::Result<()> {
+        self.states.clear();
 
+        let additional_features = JobsState::get().additional_features();
         for target in self.involved_targets.clone() {
             let hash = Self::calc_hash_for_target(target)?;
             let mut target_state = TargetBuildState::new(hash);
@@ -280,11 +282,7 @@ impl BuildStateRecords {
                 .for_each(|f| {
                     target_state.add_feature(*f);
                 });
-
-            match self.states.entry(target) {
-                btree_map::Entry::Occupied(mut o) => *o.get_mut() = target_state,
-                btree_map::Entry::Vacant(e) => _ = e.insert(target_state),
-            };
+            self.states.insert(target, target_state);
         }
 
         Ok(())

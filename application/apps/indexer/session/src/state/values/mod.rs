@@ -1,4 +1,3 @@
-use crate::events::CallbackEvent;
 use log::{debug, error};
 use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
@@ -14,17 +13,27 @@ pub enum ValuesError {
     InvalidFrame(String),
 }
 
+impl From<ValuesError> for stypes::NativeError {
+    fn from(err: ValuesError) -> Self {
+        stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
+            message: Some(err.to_string()),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Values {
     #[allow(clippy::type_complexity)]
     /// maps the dataset id to (min_y, max_y, list of data-points)
     values: HashMap<u8, (f64, f64, Vec<CandlePoint>)>,
     errors: HashMap<u64, Vec<(u8, String)>>,
-    tx_callback_events: Option<UnboundedSender<CallbackEvent>>,
+    tx_callback_events: Option<UnboundedSender<stypes::CallbackEvent>>,
 }
 
 impl Values {
-    pub fn new(tx_callback_events: Option<UnboundedSender<CallbackEvent>>) -> Self {
+    pub fn new(tx_callback_events: Option<UnboundedSender<stypes::CallbackEvent>>) -> Self {
         Values {
             values: HashMap::new(),
             errors: HashMap::new(),
@@ -204,7 +213,10 @@ impl Values {
                 });
                 Some(map)
             };
-            if tx.send(CallbackEvent::SearchValuesUpdated(map)).is_err() {
+            if tx
+                .send(stypes::CallbackEvent::SearchValuesUpdated(map))
+                .is_err()
+            {
                 error!("Fail to emit event CallbackEvent::SearchValuesUpdated");
             }
         }

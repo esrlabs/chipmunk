@@ -1,8 +1,9 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
-import { IGrabbedElement, IndexingMode } from '@platform/types/content';
+import { IndexingMode } from '@platform/types/content';
 import { Range, IRange } from '@platform/types/range';
+import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -84,7 +85,7 @@ export class Indexed extends Subscriber {
         };
     }
 
-    public grab(range: Range | IRange): Promise<IGrabbedElement[]> {
+    public grab(range: Range | IRange): Promise<GrabbedElement[]> {
         if (this._len === 0) {
             // TODO: Grabber is crash session in this case... should be prevented on grabber level
             return Promise.resolve([]);
@@ -93,15 +94,15 @@ export class Indexed extends Subscriber {
             Requests.Stream.Indexed.Response,
             new Requests.Stream.Indexed.Request({
                 session: this._uuid,
-                from: range.from,
-                to: range.to,
+                from: range.start,
+                to: range.end,
             }),
         )
             .then((response: Requests.Stream.Indexed.Response) => {
                 return response.rows;
             })
             .catch((error: Error) => {
-                if (range.to >= this.len()) {
+                if (range.end >= this.len()) {
                     // It might be, during request search map has been changed already
                     // For example we requested range, but right after it, a new search
                     // was created and length of stream became 0

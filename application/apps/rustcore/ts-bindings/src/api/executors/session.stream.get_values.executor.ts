@@ -1,8 +1,10 @@
 import { TExecutor, Logger, CancelablePromise, AsyncResultsExecutor } from './executor';
 import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../session.provider';
-import { IValuesMap } from 'platform/types/filter';
 import { error } from 'platform/log/utils';
+import { ResultSearchValues } from 'platform/types/bindings';
+
+import * as protocol from 'protocol';
 
 export interface IOptions {
     datasetLength: number;
@@ -10,13 +12,13 @@ export interface IOptions {
     to?: number;
 }
 
-export const executor: TExecutor<IValuesMap, IOptions> = (
+export const executor: TExecutor<ResultSearchValues, IOptions> = (
     session: RustSession,
     provider: EventProvider,
     logger: Logger,
     options: IOptions,
-): CancelablePromise<IValuesMap> => {
-    return AsyncResultsExecutor<IValuesMap, IOptions>(
+): CancelablePromise<ResultSearchValues> => {
+    return AsyncResultsExecutor<ResultSearchValues, IOptions>(
         session,
         provider,
         logger,
@@ -43,19 +45,14 @@ export const executor: TExecutor<IValuesMap, IOptions> = (
                     .catch(reject);
             });
         },
-        function (data: any, resolve: (r: IValuesMap) => void, reject: (e: Error) => void) {
+        function (
+            data: Uint8Array,
+            resolve: (r: ResultSearchValues) => void,
+            reject: (e: Error) => void,
+        ) {
             try {
-                if (typeof data === 'string') {
-                    data = JSON.parse(data);
-                }
-                if (typeof data !== 'object') {
-                    return reject(
-                        new Error(
-                            `Fail to parse values object. Invalid format. Expecting IValuesMap.`,
-                        ),
-                    );
-                }
-                resolve(data as IValuesMap);
+                const map: ResultSearchValues = protocol.decodeResultSearchValues(data);
+                resolve(map);
             } catch (e) {
                 reject(new Error(error(e)));
             }

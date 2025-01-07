@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use session::{events::CallbackEvent, session::Session};
-use sources::factory::{FileFormat, ObserveOptions, ParserType};
+use session::session::Session;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
@@ -92,8 +91,8 @@ fn session_dir_form_file(session_file: &Path) -> PathBuf {
 /// This function it made for test purposes with snapshots.
 pub async fn run_observe_session<P: Into<PathBuf>>(
     input: P,
-    file_format: FileFormat,
-    parser_type: ParserType,
+    file_format: stypes::FileFormat,
+    parser_type: stypes::ParserType,
 ) -> PathBuf {
     let input: PathBuf = input.into();
 
@@ -109,15 +108,15 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
     session
         .observe(
             uuid,
-            ObserveOptions::file(input.clone(), file_format, parser_type),
+            stypes::ObserveOptions::file(input.clone(), file_format, parser_type),
         )
         .unwrap();
 
     while let Some(feedback) = receiver.recv().await {
         match feedback {
-            CallbackEvent::FileRead | CallbackEvent::SessionDestroyed => break,
-            CallbackEvent::SessionError(err) => panic!("Received session error: {err:#?}"),
-            CallbackEvent::OperationError { error, .. } => {
+            stypes::CallbackEvent::FileRead | stypes::CallbackEvent::SessionDestroyed => break,
+            stypes::CallbackEvent::SessionError(err) => panic!("Received session error: {err:#?}"),
+            stypes::CallbackEvent::OperationError { error, .. } => {
                 panic!("Received operation error: {error:#?}")
             }
             _ => {}

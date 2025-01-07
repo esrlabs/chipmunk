@@ -14,6 +14,7 @@ members = [
     "processor",
     "session",
     "sources",
+    "stypes"
 ]
 
 [workspace.dependencies]
@@ -24,7 +25,7 @@ thiserror = "2.0"
 lazy_static = "1.5"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
-dlt-core = "0.17"
+dlt-core = "0.18.0"
 crossbeam-channel = "0.5"
 futures = "0.3"
 tokio-util = "0.7"
@@ -37,6 +38,8 @@ uuid = "1.3"
 grep-searcher = "0.1"
 tempfile = "3.14"
 env_logger = "0.11"
+walkdir = "2.5"
+envvars = "0.1"
 anyhow = "1.0"
 toml = "0.8"
 

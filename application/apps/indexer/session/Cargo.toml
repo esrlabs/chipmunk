@@ -8,8 +8,8 @@ edition = "2021"
 blake3 = "1.5"
 crossbeam-channel.workspace = true
 dirs.workspace = true
-dlt-core = { workspace = true, features = ["statistics"] }
-envvars = "0.1"
+dlt-core = { workspace = true, features = ["statistics", "serde-support"] }
+envvars = { workspace = true }
 file-tools = { path = "../addons/file-tools" }
 futures.workspace = true
 indexer_base = { path = "../indexer_base" }
@@ -20,6 +20,7 @@ mime_guess = "2.0"
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }
 rustc-hash = "2.1"
+stypes = { path = "../stypes", features=["rustcore"] }
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
 serialport = "4.6"
@@ -29,7 +30,7 @@ tokio = { workspace = true , features = ["full"] }
 tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
-walkdir = "2.5"
+walkdir.workspace = true
 plugins_host = {path = "../plugins_host/"}
 
 [dev-dependencies]

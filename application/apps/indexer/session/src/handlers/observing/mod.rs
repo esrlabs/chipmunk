@@ -14,7 +14,6 @@ use parsers::{
 };
 use plugins_host::PluginsParser;
 use sources::{
-    factory::ParserType,
     producer::{MessageProducer, SdeReceiver},
     ByteSource,
 };
@@ -42,7 +41,7 @@ pub async fn run_source<S: ByteSource>(
     state: SessionStateAPI,
     source: S,
     source_id: u16,
-    parser: &ParserType,
+    parser: &stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -74,7 +73,7 @@ async fn run_source_intern<S: ByteSource>(
     state: SessionStateAPI,
     source: S,
     source_id: u16,
-    parser: &ParserType,
+    parser: &stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -83,7 +82,7 @@ async fn run_source_intern<S: ByteSource>(
     const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
 
     match parser {
-        ParserType::Plugin(settings) => {
+        stypes::ParserType::Plugin(settings) => {
             println!("------------------------------------------------------");
             println!("-------------    WASM parser used    -----------------");
             println!("------------------------------------------------------");
@@ -97,7 +96,7 @@ async fn run_source_intern<S: ByteSource>(
             let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
-        ParserType::SomeIp(settings) => {
+        stypes::ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
                 Some(paths) => {
                     SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
@@ -108,7 +107,9 @@ async fn run_source_intern<S: ByteSource>(
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         //TODO AAZ: Remove the whole block when done.
-        ParserType::Dlt(_) | ParserType::Text if std::env::var(FORCE_PLUGIN_ENV).is_ok() => {
+        stypes::ParserType::Dlt(_) | ParserType::Text
+            if std::env::var(FORCE_PLUGIN_ENV).is_ok() =>
+        {
             println!("------------------------------------------------------");
             println!("-------------   WASM parser forced   -----------------");
             println!("------------------------------------------------------");
@@ -147,11 +148,11 @@ async fn run_source_intern<S: ByteSource>(
             let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
-        ParserType::Text => {
+        stypes::ParserType::Text => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
-        ParserType::Dlt(settings) => {
+        stypes::ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let someip_metadata = settings.fibex_file_paths.as_ref().and_then(|paths| {
                 FibexSomeipMetadata::from_fibex_files(paths.iter().map(PathBuf::from).collect())

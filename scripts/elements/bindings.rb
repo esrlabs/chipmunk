@@ -85,6 +85,7 @@ namespace :bindings do
       exporting
       map
       observe
+      observing
       indexes
       concat
       cancel
@@ -92,6 +93,7 @@ namespace :bindings do
       stream
       promises
       benchmark
+      protocol
     ]
     test_specs.each do |spec|
       desc "run jasmine #{spec}-spec"
@@ -153,6 +155,7 @@ namespace :bindings do
 
   desc 'Build bindings'
   task build: [
+    'protocol:build',
     'platform:build',
     'bindings:install',
     'environment:check',

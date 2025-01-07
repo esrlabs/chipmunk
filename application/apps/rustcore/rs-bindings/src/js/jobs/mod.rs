@@ -1,17 +1,8 @@
-use crate::js::{
-    converting::filter::WrappedSearchFilter, session::events::ComputationErrorWrapper,
-};
+use crate::js::converting::filter::WrappedSearchFilter;
 use log::{debug, error};
-use node_bindgen::{
-    core::{val::JsEnv, NjError, TryIntoJs},
-    derive::node_bindgen,
-    sys::napi_value,
-};
-use serde::Serialize;
-use session::{
-    events::ComputationError,
-    unbound::{api::UnboundSessionAPI, commands::CommandOutcome, UnboundSession},
-};
+use node_bindgen::derive::node_bindgen;
+
+use session::unbound::{api::UnboundSessionAPI, UnboundSession};
 use std::{convert::TryFrom, thread};
 use tokio::runtime::Runtime;
 use tokio_util::sync::CancellationToken;
@@ -21,33 +12,14 @@ struct UnboundJobs {
     finished: CancellationToken,
 }
 
-pub(crate) struct CommandOutcomeWrapper<T: Serialize>(pub CommandOutcome<T>);
-
-impl<T: Serialize> TryIntoJs for CommandOutcomeWrapper<T> {
-    /// serialize into json object
-    fn try_to_js(self, js_env: &JsEnv) -> Result<napi_value, NjError> {
-        match serde_json::to_string(&self.0) {
-            Ok(s) => js_env.create_string_utf8(&s),
-            Err(e) => Err(NjError::Other(format!(
-                "Could not convert Callback event to json: {e}"
-            ))),
-        }
-    }
+fn u64_from_i64(id: i64) -> Result<u64, stypes::ComputationError> {
+    u64::try_from(id)
+        .map_err(|_| stypes::ComputationError::InvalidArgs(String::from("ID of job is invalid")))
 }
 
-fn u64_from_i64(id: i64) -> Result<u64, ComputationErrorWrapper> {
-    u64::try_from(id).map_err(|_| {
-        ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
-            "ID of job is invalid",
-        )))
-    })
-}
-
-fn usize_from_i64(id: i64) -> Result<usize, ComputationErrorWrapper> {
+fn usize_from_i64(id: i64) -> Result<usize, stypes::ComputationError> {
     usize::try_from(id).map_err(|_| {
-        ComputationErrorWrapper(ComputationError::InvalidArgs(String::from(
-            "Fail to conver i64 to usize",
-        )))
+        stypes::ComputationError::InvalidArgs(String::from("Fail to conver i64 to usize"))
     })
 }
 
@@ -63,9 +35,9 @@ impl UnboundJobs {
     }
 
     #[node_bindgen(mt)]
-    async fn init(&mut self) -> Result<(), ComputationErrorWrapper> {
+    async fn init(&mut self) -> Result<(), stypes::ComputationError> {
         let rt = Runtime::new().map_err(|e| {
-            ComputationError::Process(format!("Could not start tokio runtime: {e}"))
+            stypes::ComputationError::Process(format!("Could not start tokio runtime: {e}"))
         })?;
 
         let (mut session, api) = UnboundSession::new();
@@ -87,10 +59,10 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
-    async fn destroy(&self) -> Result<(), ComputationErrorWrapper> {
+    async fn destroy(&self) -> Result<(), stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .shutdown()
             .await?;
         self.finished.cancelled().await;
@@ -99,13 +71,12 @@ impl UnboundJobs {
 
     /// Cancel given operation/task
     #[node_bindgen]
-    async fn abort(&self, id: i64) -> Result<(), ComputationErrorWrapper> {
+    async fn abort(&self, id: i64) -> Result<(), stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .cancel_job(&u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
     }
 
     // Custom methods (jobs)
@@ -118,10 +89,11 @@ impl UnboundJobs {
         paths: Vec<String>,
         include_files: bool,
         include_folders: bool,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::FoldersScanningResult>, stypes::ComputationError>
+    {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .list_folder_content(
                 u64_from_i64(id)?,
                 usize_from_i64(depth)?,
@@ -131,8 +103,6 @@ impl UnboundJobs {
                 include_folders,
             )
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -140,14 +110,12 @@ impl UnboundJobs {
         &self,
         id: i64,
         file_path: String,
-    ) -> Result<CommandOutcomeWrapper<bool>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<bool>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .is_file_binary(u64_from_i64(id)?, file_path)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -156,14 +124,12 @@ impl UnboundJobs {
         id: i64,
         path: String,
         args: Vec<String>,
-    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .spawn_process(u64_from_i64(id)?, path, args)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -171,14 +137,12 @@ impl UnboundJobs {
         &self,
         id: i64,
         path: String,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_file_checksum(u64_from_i64(id)?, path)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -186,14 +150,12 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_dlt_stats(u64_from_i64(id)?, files)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -201,56 +163,48 @@ impl UnboundJobs {
         &self,
         id: i64,
         files: Vec<String>,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_someip_statistic(u64_from_i64(id)?, files)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
     async fn get_shell_profiles(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_shell_profiles(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
     async fn get_context_envvars(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_context_envvars(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
     async fn get_serial_ports_list(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<Vec<String>>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::SerialPortsList>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_serial_ports_list(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -258,14 +212,12 @@ impl UnboundJobs {
         &self,
         id: i64,
         filter: WrappedSearchFilter,
-    ) -> Result<CommandOutcomeWrapper<Option<String>>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<Option<String>>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_regex_error(u64_from_i64(id)?, filter.as_filter())
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -316,14 +268,12 @@ impl UnboundJobs {
         id: i64,
         custom_arg_a: i64,
         custom_arg_b: i64,
-    ) -> Result<CommandOutcomeWrapper<i64>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<i64>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .cancel_test(u64_from_i64(id)?, custom_arg_a, custom_arg_b)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
@@ -331,13 +281,11 @@ impl UnboundJobs {
         &self,
         id: i64,
         ms: i64,
-    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .sleep(u64_from_i64(id)?, u64_from_i64(ms)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 }

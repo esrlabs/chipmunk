@@ -18,18 +18,16 @@
 mod utls;
 
 use std::path::PathBuf;
-
-use sources::factory::{DltParserSettings, FileFormat, ParserType, SomeIpParserSettings};
 use utls::*;
 
 #[tokio::test]
 async fn observe_dlt_session() {
     let input = "../../../developing/resources/attachments.dlt";
-    let parser_settings = DltParserSettings::default();
+    let parser_settings = stypes::DltParserSettings::default();
     let session_main_file = run_observe_session(
         input,
-        FileFormat::Binary,
-        ParserType::Dlt(parser_settings.clone()),
+        stypes::FileFormat::Binary,
+        stypes::ParserType::Dlt(parser_settings.clone()),
     )
     .await;
 
@@ -55,15 +53,15 @@ async fn observe_dlt_with_someip_session() {
         "Fibex file path doesn't exist. Path: {fibex_file}"
     );
 
-    let parser_settings = DltParserSettings {
+    let parser_settings = stypes::DltParserSettings {
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
         ..Default::default()
     };
 
     let session_main_file = run_observe_session(
         input,
-        FileFormat::Binary,
-        ParserType::Dlt(parser_settings.clone()),
+        stypes::FileFormat::Binary,
+        stypes::ParserType::Dlt(parser_settings.clone()),
     )
     .await;
 
@@ -89,14 +87,14 @@ async fn observe_someip_bcapng_session() {
         "Fibex file path doesn't exist. Path: {fibex_file}"
     );
 
-    let parser_settings = SomeIpParserSettings {
+    let parser_settings = stypes::SomeIpParserSettings {
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
     };
 
     let session_main_file = run_observe_session(
         input,
-        FileFormat::PcapNG,
-        ParserType::SomeIp(parser_settings.clone()),
+        stypes::FileFormat::PcapNG,
+        stypes::ParserType::SomeIp(parser_settings.clone()),
     )
     .await;
 
@@ -122,14 +120,14 @@ async fn observe_someip_legacy_session() {
         "Fibex file path doesn't exist. Path: {fibex_file}"
     );
 
-    let parser_settings = SomeIpParserSettings {
+    let parser_settings = stypes::SomeIpParserSettings {
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
     };
 
     let session_main_file = run_observe_session(
         input,
-        FileFormat::PcapLegacy,
-        ParserType::SomeIp(parser_settings.clone()),
+        stypes::FileFormat::PcapLegacy,
+        stypes::ParserType::SomeIp(parser_settings.clone()),
     )
     .await;
 

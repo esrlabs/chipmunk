@@ -4,23 +4,19 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::{
-    events::{NativeError, NativeErrorKind},
-    paths::get_streams_dir,
-    progress::Severity,
-};
+use crate::paths::get_streams_dir;
 
 /// Iterates through chipmunk temporary directory and remove the entries which is older
 /// than two months.
-pub fn cleanup_temp_dir() -> Result<(), NativeError> {
+pub fn cleanup_temp_dir() -> Result<(), stypes::NativeError> {
     let tmp_dir = get_streams_dir()?;
 
     const TWO_MONTHS_SECONDS: u64 = 60 * 60 * 24 * 60;
     let modified_limit = SystemTime::now()
         .checked_sub(Duration::from_secs(TWO_MONTHS_SECONDS))
-        .ok_or_else(|| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
+        .ok_or_else(|| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Io,
             message: Some(String::from(
                 "Error while calculating modification time limit",
             )),
@@ -88,13 +84,13 @@ mod tests {
         let past = SystemTime::now()
             .checked_sub(Duration::from_secs(3600))
             .unwrap();
-        cleanup_dir(&temp_path, past).unwrap();
+        cleanup_dir(temp_path, past).unwrap();
         for entry in &entries {
             assert!(entry.exists());
         }
 
         // Cleaning up with now must remove all files and directories.
-        cleanup_dir(&temp_path, SystemTime::now()).unwrap();
+        cleanup_dir(temp_path, SystemTime::now()).unwrap();
 
         // Temp directory itself shouldn't be removed.
         assert!(temp_path.exists());

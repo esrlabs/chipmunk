@@ -3,6 +3,8 @@ import { RustSession } from '../../native/native.session';
 import { EventProvider } from '../../api/session.provider';
 import { IFilter } from 'platform/types/filter';
 
+import * as protocol from 'protocol';
+
 export const executor: TExecutor<number, IFilter[]> = (
     session: RustSession,
     provider: EventProvider,
@@ -17,8 +19,12 @@ export const executor: TExecutor<number, IFilter[]> = (
         function (session: RustSession, filters: IFilter[], operationUuid: string): Promise<void> {
             return session.search(filters, operationUuid);
         },
-        function (data: any, resolve: (found: number) => void, reject: (err: Error) => void) {
-            const found = parseInt(data, 10);
+        function (
+            data: Uint8Array,
+            resolve: (found: number) => void,
+            reject: (err: Error) => void,
+        ) {
+            const found: number = protocol.decodeResultU64(data);
             if (typeof found !== 'number' || isNaN(found) || !isFinite(found)) {
                 return reject(
                     new Error(

@@ -19,9 +19,9 @@ export class Range {
                 .max(true)
                 .$(defaults.len)
                 .len()
-                .$(defaults.range.from)
+                .$(defaults.range.start)
                 .from()
-                .$(defaults.range.to)
+                .$(defaults.range.end)
                 .to();
         }
     }
@@ -90,7 +90,7 @@ export class Range {
     }
 
     public equal(range: IRange): boolean {
-        return this.range.from === range.from && this.range.to === range.to;
+        return this.range.from === range.start && this.range.to === range.end;
     }
 
     public onChange(handler: (ci: ChangesInitiator) => void): Subscription {
@@ -98,6 +98,6 @@ export class Range {
     }
 
     public hash(): string {
-        return `${this.getTotal()}:${this.get().from}-${this.get().to}`;
+        return `${this.getTotal()}:${this.get().start}-${this.get().end}`;
     }
 }

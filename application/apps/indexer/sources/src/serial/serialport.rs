@@ -1,6 +1,4 @@
-use crate::{
-    factory::SerialTransportConfig, sde, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use buf_redux::Buffer;
 use bytes::{BufMut, BytesMut};
 use futures::{
@@ -94,7 +92,7 @@ pub struct SerialSource {
 // }
 
 impl SerialSource {
-    pub fn new(config: &SerialTransportConfig) -> Result<Self, SourceError> {
+    pub fn new(config: &stypes::SerialTransportConfig) -> Result<Self, SourceError> {
         match tokio_serial::new(config.path.as_str(), config.baud_rate)
             .data_bits(data_bits(&config.data_bits))
             .flow_control(flow_control(&config.flow_control))
@@ -176,9 +174,12 @@ impl ByteSource for SerialSource {
         self.len() == 0
     }
 
-    async fn income(&mut self, request: sde::SdeRequest) -> Result<sde::SdeResponse, SourceError> {
+    async fn income(
+        &mut self,
+        request: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, SourceError> {
         Ok(match request {
-            sde::SdeRequest::WriteText(mut str) => {
+            stypes::SdeRequest::WriteText(mut str) => {
                 let len = str.len();
                 if self.send_data_delay == 0 {
                     self.write_stream
@@ -194,9 +195,9 @@ impl ByteSource for SerialSource {
                         sleep(Duration::from_millis(self.send_data_delay as u64)).await;
                     }
                 }
-                sde::SdeResponse { bytes: len }
+                stypes::SdeResponse { bytes: len }
             }
-            sde::SdeRequest::WriteBytes(mut bytes) => {
+            stypes::SdeRequest::WriteBytes(mut bytes) => {
                 let len = bytes.len();
                 if self.send_data_delay == 0 {
                     self.write_stream
@@ -212,7 +213,7 @@ impl ByteSource for SerialSource {
                         sleep(Duration::from_millis(self.send_data_delay as u64)).await;
                     }
                 }
-                sde::SdeResponse { bytes: len }
+                stypes::SdeResponse { bytes: len }
             }
         })
     }

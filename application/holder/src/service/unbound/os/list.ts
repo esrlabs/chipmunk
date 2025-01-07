@@ -1,11 +1,10 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { error } from 'platform/log/utils';
-import { Entity, entityFromObj } from 'platform/types/files';
 import { unbound } from '@service/unbound';
+import { FoldersScanningResult } from 'platform/types/bindings';
 
 import * as Requests from 'platform/ipc/request';
-import * as obj from 'platform/env/obj';
 
 export const handler = Requests.InjectLogger<
     Requests.Os.List.Request,
@@ -18,26 +17,12 @@ export const handler = Requests.InjectLogger<
         return new CancelablePromise((resolve, reject) => {
             unbound.jobs
                 .listContent(request)
-                .then((content: string) => {
+                .then((res: FoldersScanningResult) => {
                     try {
-                        const data = typeof content === 'string' ? JSON.parse(content) : content;
-                        const list = obj.getAsArray(data, 'list') as { [key: string]: unknown }[];
-                        const max = obj.getAsBool(data, 'max_len_reached');
                         resolve(
                             new Requests.Os.List.Response({
-                                entities: list
-                                    .map((smth: { [key: string]: unknown }) => {
-                                        try {
-                                            return entityFromObj(smth);
-                                        } catch (e) {
-                                            log.warn(
-                                                `Fail to parse listContent entity: ${error(e)}`,
-                                            );
-                                            return undefined;
-                                        }
-                                    })
-                                    .filter((e) => e !== undefined) as Entity[],
-                                max,
+                                entities: res.list,
+                                max: res.max_len_reached,
                             }),
                         );
                     } catch (e) {

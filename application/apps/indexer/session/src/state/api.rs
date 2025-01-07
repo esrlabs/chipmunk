@@ -1,12 +1,8 @@
+use super::values::graph::CandlePoint;
 use crate::{
-    events::NativeError,
     state::{
-        indexes::controller::Mode as IndexesMode,
-        observed::Observed,
-        session_file::{GrabbedElement, SessionFileOrigin},
-        source_ids::SourceDefinition,
-        values::ValuesError,
-        AttachmentInfo,
+        indexes::controller::Mode as IndexesMode, observed::Observed,
+        session_file::SessionFileOrigin, values::ValuesError,
     },
     tracker::OperationTrackerAPI,
 };
@@ -14,11 +10,11 @@ use log::error;
 use parsers;
 use processor::{
     grabber::LineRange,
-    map::{FilterMatch, FiltersStats, NearestPosition, ScaledDistribution},
+    map::{FiltersStats, ScaledDistribution},
     search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
 };
-use sources::factory::ObserveOptions;
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
+use stypes::GrabbedElement;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot,
@@ -26,20 +22,29 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::values::graph::CandlePoint;
-
 pub enum Api {
-    SetSessionFile((Option<PathBuf>, oneshot::Sender<Result<(), NativeError>>)),
-    GetSessionFile(oneshot::Sender<Result<PathBuf, NativeError>>),
-    WriteSessionFile((u16, String, oneshot::Sender<Result<(), NativeError>>)),
-    FlushSessionFile(oneshot::Sender<Result<(), NativeError>>),
-    GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, NativeError>>),
-    UpdateSession((u16, oneshot::Sender<Result<bool, NativeError>>)),
+    SetSessionFile(
+        (
+            Option<PathBuf>,
+            oneshot::Sender<Result<(), stypes::NativeError>>,
+        ),
+    ),
+    GetSessionFile(oneshot::Sender<Result<PathBuf, stypes::NativeError>>),
+    WriteSessionFile(
+        (
+            u16,
+            String,
+            oneshot::Sender<Result<(), stypes::NativeError>>,
+        ),
+    ),
+    FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
+    GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
+    UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
     AddSource((String, oneshot::Sender<u16>)),
     GetSource((String, oneshot::Sender<Option<u16>>)),
-    GetSourcesDefinitions(oneshot::Sender<Vec<SourceDefinition>>),
+    GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
-    AddExecutedObserve((ObserveOptions, oneshot::Sender<()>)),
+    AddExecutedObserve((stypes::ObserveOptions, oneshot::Sender<()>)),
     GetExecutedHolder(oneshot::Sender<Observed>),
     IsRawExportAvailable(oneshot::Sender<bool>),
     /// Export operation containing parameters for exporting data.
@@ -72,50 +77,55 @@ pub enum Api {
         /// Used to stop export operation
         cancel: CancellationToken,
         /// Used to send operation status result
-        tx_response: oneshot::Sender<Result<bool, NativeError>>,
+        tx_response: oneshot::Sender<Result<bool, stypes::NativeError>>,
     },
     FileRead(oneshot::Sender<()>),
     Grab(
         (
             LineRange,
-            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
     GrabIndexed(
         (
             RangeInclusive<u64>,
-            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
-    SetIndexingMode((IndexesMode, oneshot::Sender<Result<(), NativeError>>)),
+    SetIndexingMode(
+        (
+            IndexesMode,
+            oneshot::Sender<Result<(), stypes::NativeError>>,
+        ),
+    ),
     GetIndexedMapLen(oneshot::Sender<usize>),
     #[allow(clippy::type_complexity)]
     GetDistancesAroundIndex(
         (
             u64,
-            oneshot::Sender<Result<(Option<u64>, Option<u64>), NativeError>>,
+            oneshot::Sender<Result<(Option<u64>, Option<u64>), stypes::NativeError>>,
         ),
     ),
-    AddBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
-    SetBookmarks((Vec<u64>, oneshot::Sender<Result<(), NativeError>>)),
-    RemoveBookmark((u64, oneshot::Sender<Result<(), NativeError>>)),
+    AddBookmark((u64, oneshot::Sender<Result<(), stypes::NativeError>>)),
+    SetBookmarks((Vec<u64>, oneshot::Sender<Result<(), stypes::NativeError>>)),
+    RemoveBookmark((u64, oneshot::Sender<Result<(), stypes::NativeError>>)),
     ExpandBreadcrumbs {
         seporator: u64,
         offset: u64,
         above: bool,
-        tx_response: oneshot::Sender<Result<(), NativeError>>,
+        tx_response: oneshot::Sender<Result<(), stypes::NativeError>>,
     },
     GrabSearch(
         (
             LineRange,
-            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
     #[allow(clippy::type_complexity)]
     GrabRanges(
         (
             Vec<RangeInclusive<u64>>,
-            oneshot::Sender<Result<Vec<GrabbedElement>, NativeError>>,
+            oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
     GetStreamLen(oneshot::Sender<(u64, u64)>),
@@ -123,22 +133,22 @@ pub enum Api {
     GetSearchHolder(
         (
             Uuid,
-            oneshot::Sender<Result<RegularSearchHolder, NativeError>>,
+            oneshot::Sender<Result<RegularSearchHolder, stypes::NativeError>>,
         ),
     ),
     SetSearchHolder(
         (
             Option<RegularSearchHolder>,
             Uuid,
-            oneshot::Sender<Result<(), NativeError>>,
+            oneshot::Sender<Result<(), stypes::NativeError>>,
         ),
     ),
     DropSearch(oneshot::Sender<bool>),
-    GetNearestPosition((u64, oneshot::Sender<Option<NearestPosition>>)),
+    GetNearestPosition((u64, oneshot::Sender<stypes::ResultNearestPosition>)),
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
     SetMatches(
         (
-            Option<Vec<FilterMatch>>,
+            Option<Vec<stypes::FilterMatch>>,
             Option<FiltersStats>,
             oneshot::Sender<()>,
         ),
@@ -146,14 +156,14 @@ pub enum Api {
     GetSearchValuesHolder(
         (
             Uuid,
-            oneshot::Sender<Result<ValueSearchHolder, NativeError>>,
+            oneshot::Sender<Result<ValueSearchHolder, stypes::NativeError>>,
         ),
     ),
     SetSearchValuesHolder(
         (
             Option<ValueSearchHolder>,
             Uuid,
-            oneshot::Sender<Result<(), NativeError>>,
+            oneshot::Sender<Result<(), stypes::NativeError>>,
         ),
     ),
     SetSearchValues(HashMap<u8, Vec<(u64, f64)>>, oneshot::Sender<()>),
@@ -172,7 +182,7 @@ pub enum Api {
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
     AddAttachment(parsers::Attachment),
-    GetAttachments(oneshot::Sender<Vec<AttachmentInfo>>),
+    GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
     // Used for tests of error handeling
     ShutdownWithError,
     Shutdown,
@@ -261,17 +271,17 @@ impl SessionStateAPI {
         &self,
         api: Api,
         rx_response: oneshot::Receiver<T>,
-    ) -> Result<T, NativeError> {
+    ) -> Result<T, stypes::NativeError> {
         let api_str = api.to_string();
         self.tx_api.send(api).map_err(|e| {
-            NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
+            stypes::NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })?;
         rx_response.await.map_err(|_| {
-            NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
+            stypes::NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
         })
     }
 
-    pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
+    pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::Grab((range.clone(), tx)), rx)
             .await?
@@ -280,19 +290,19 @@ impl SessionStateAPI {
     pub async fn grab_indexed(
         &self,
         range: RangeInclusive<u64>,
-    ) -> Result<Vec<GrabbedElement>, NativeError> {
+    ) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GrabIndexed((range, tx)), rx)
             .await?
     }
 
-    pub async fn set_indexing_mode(&self, mode: IndexesMode) -> Result<(), NativeError> {
+    pub async fn set_indexing_mode(&self, mode: IndexesMode) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetIndexingMode((mode, tx)), rx)
             .await?
     }
 
-    pub async fn get_indexed_len(&self) -> Result<usize, NativeError> {
+    pub async fn get_indexed_len(&self) -> Result<usize, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetIndexedMapLen(tx), rx).await
     }
@@ -300,24 +310,24 @@ impl SessionStateAPI {
     pub async fn get_around_indexes(
         &self,
         position: u64,
-    ) -> Result<(Option<u64>, Option<u64>), NativeError> {
+    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetDistancesAroundIndex((position, tx)), rx)
             .await?
     }
 
-    pub async fn add_bookmark(&self, row: u64) -> Result<(), NativeError> {
+    pub async fn add_bookmark(&self, row: u64) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddBookmark((row, tx)), rx).await?
     }
 
-    pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), NativeError> {
+    pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetBookmarks((rows, tx)), rx)
             .await?
     }
 
-    pub async fn remove_bookmark(&self, row: u64) -> Result<(), NativeError> {
+    pub async fn remove_bookmark(&self, row: u64) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::RemoveBookmark((row, tx)), rx)
             .await?
@@ -328,7 +338,7 @@ impl SessionStateAPI {
         seporator: u64,
         offset: u64,
         above: bool,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(
             Api::ExpandBreadcrumbs {
@@ -342,7 +352,10 @@ impl SessionStateAPI {
         .await?
     }
 
-    pub async fn grab_search(&self, range: LineRange) -> Result<Vec<GrabbedElement>, NativeError> {
+    pub async fn grab_search(
+        &self,
+        range: LineRange,
+    ) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GrabSearch((range, tx)), rx)
             .await?
@@ -351,18 +364,18 @@ impl SessionStateAPI {
     pub async fn grab_ranges(
         &self,
         ranges: Vec<RangeInclusive<u64>>,
-    ) -> Result<Vec<GrabbedElement>, NativeError> {
+    ) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GrabRanges((ranges, tx)), rx)
             .await?
     }
 
-    pub async fn get_stream_len(&self) -> Result<(u64, u64), NativeError> {
+    pub async fn get_stream_len(&self) -> Result<(u64, u64), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetStreamLen(tx), rx).await
     }
 
-    pub async fn get_search_result_len(&self) -> Result<usize, NativeError> {
+    pub async fn get_search_result_len(&self) -> Result<usize, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchResultLen(tx), rx).await
     }
@@ -370,7 +383,7 @@ impl SessionStateAPI {
     pub async fn get_nearest_position(
         &self,
         position: u64,
-    ) -> Result<Option<NearestPosition>, NativeError> {
+    ) -> Result<stypes::ResultNearestPosition, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetNearestPosition((position, tx)), rx)
             .await
@@ -380,76 +393,90 @@ impl SessionStateAPI {
         &self,
         dataset_len: u16,
         range: Option<(u64, u64)>,
-    ) -> Result<ScaledDistribution, NativeError> {
+    ) -> Result<ScaledDistribution, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetScaledMap((dataset_len, range, tx)), rx)
             .await
     }
 
-    pub async fn set_session_file(&self, filename: Option<PathBuf>) -> Result<(), NativeError> {
+    pub async fn set_session_file(
+        &self,
+        filename: Option<PathBuf>,
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetSessionFile((filename, tx)), rx)
             .await?
     }
 
-    pub async fn get_session_file(&self) -> Result<PathBuf, NativeError> {
+    pub async fn get_session_file(&self) -> Result<PathBuf, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSessionFile(tx), rx).await?
     }
 
-    pub async fn write_session_file(&self, source_id: u16, msg: String) -> Result<(), NativeError> {
+    pub async fn write_session_file(
+        &self,
+        source_id: u16,
+        msg: String,
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::WriteSessionFile((source_id, msg, tx)), rx)
             .await?
     }
 
-    pub async fn flush_session_file(&self) -> Result<(), NativeError> {
+    pub async fn flush_session_file(&self) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::FlushSessionFile(tx), rx).await?
     }
 
-    pub async fn get_session_file_origin(&self) -> Result<Option<SessionFileOrigin>, NativeError> {
+    pub async fn get_session_file_origin(
+        &self,
+    ) -> Result<Option<SessionFileOrigin>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSessionFileOrigin(tx), rx)
             .await?
     }
 
-    pub async fn update_session(&self, source_id: u16) -> Result<bool, NativeError> {
+    pub async fn update_session(&self, source_id: u16) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::UpdateSession((source_id, tx)), rx)
             .await?
     }
 
-    pub async fn add_source(&self, uuid: &str) -> Result<u16, NativeError> {
+    pub async fn add_source(&self, uuid: &str) -> Result<u16, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddSource((uuid.to_owned(), tx)), rx)
             .await
     }
 
-    pub async fn get_source(&self, uuid: &str) -> Result<Option<u16>, NativeError> {
+    pub async fn get_source(&self, uuid: &str) -> Result<Option<u16>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSource((uuid.to_owned(), tx)), rx)
             .await
     }
 
-    pub async fn get_sources_definitions(&self) -> Result<Vec<SourceDefinition>, NativeError> {
+    pub async fn get_sources_definitions(
+        &self,
+    ) -> Result<Vec<stypes::SourceDefinition>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSourcesDefinitions(tx), rx)
             .await
     }
 
-    pub async fn add_executed_observe(&self, options: ObserveOptions) -> Result<(), NativeError> {
+    pub async fn add_executed_observe(
+        &self,
+        options: stypes::ObserveOptions,
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::AddExecutedObserve((options, tx)), rx)
             .await
     }
 
-    pub async fn get_executed_holder(&self) -> Result<Observed, NativeError> {
+    pub async fn get_executed_holder(&self) -> Result<Observed, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetExecutedHolder(tx), rx).await
     }
 
-    pub async fn is_raw_export_available(&self) -> Result<bool, NativeError> {
+    pub async fn is_raw_export_available(&self) -> Result<bool, stypes::NativeError> {
         let (tx_response, rx) = oneshot::channel();
         self.exec_operation(Api::IsRawExportAvailable(tx_response), rx)
             .await
@@ -481,7 +508,7 @@ impl SessionStateAPI {
         spliter: Option<String>,
         delimiter: Option<String>,
         cancel: CancellationToken,
-    ) -> Result<bool, NativeError> {
+    ) -> Result<bool, stypes::NativeError> {
         let (tx_response, rx) = oneshot::channel();
         self.exec_operation(
             Api::ExportSession {
@@ -498,12 +525,15 @@ impl SessionStateAPI {
         .await?
     }
 
-    pub async fn file_read(&self) -> Result<(), NativeError> {
+    pub async fn file_read(&self) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::FileRead(tx), rx).await
     }
 
-    pub async fn get_search_holder(&self, uuid: Uuid) -> Result<RegularSearchHolder, NativeError> {
+    pub async fn get_search_holder(
+        &self,
+        uuid: Uuid,
+    ) -> Result<RegularSearchHolder, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchHolder((uuid, tx)), rx)
             .await?
@@ -513,42 +543,42 @@ impl SessionStateAPI {
         &self,
         holder: Option<RegularSearchHolder>,
         uuid: Uuid,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetSearchHolder((holder, uuid, tx)), rx)
             .await?
     }
 
-    pub async fn drop_search(&self) -> Result<bool, NativeError> {
+    pub async fn drop_search(&self) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::DropSearch(tx), rx).await
     }
 
     pub async fn set_matches(
         &self,
-        matches: Option<Vec<FilterMatch>>,
+        matches: Option<Vec<stypes::FilterMatch>>,
         stats: Option<FiltersStats>,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetMatches((matches, stats, tx)), rx)
             .await
     }
 
-    pub async fn canceling_operation(&self, uuid: Uuid) -> Result<(), NativeError> {
+    pub async fn canceling_operation(&self, uuid: Uuid) -> Result<(), stypes::NativeError> {
         self.tx_api
             .send(Api::NotifyCancelingOperation(uuid))
             .map_err(|e| {
-                NativeError::channel(&format!(
+                stypes::NativeError::channel(&format!(
                     "fail to send to Api::NotifyCancelingOperation; error: {e}",
                 ))
             })
     }
 
-    pub async fn canceled_operation(&self, uuid: Uuid) -> Result<(), NativeError> {
+    pub async fn canceled_operation(&self, uuid: Uuid) -> Result<(), stypes::NativeError> {
         self.tx_api
             .send(Api::NotifyCanceledOperation(uuid))
             .map_err(|e| {
-                NativeError::channel(&format!(
+                stypes::NativeError::channel(&format!(
                     "Failed to send to Api::NotifyCanceledOperation; error: {e}",
                 ))
             })
@@ -557,7 +587,7 @@ impl SessionStateAPI {
     pub async fn get_search_values_holder(
         &self,
         uuid: Uuid,
-    ) -> Result<ValueSearchHolder, NativeError> {
+    ) -> Result<ValueSearchHolder, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchValuesHolder((uuid, tx)), rx)
             .await?
@@ -567,7 +597,7 @@ impl SessionStateAPI {
         &self,
         holder: Option<ValueSearchHolder>,
         uuid: Uuid,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetSearchValuesHolder((holder, uuid, tx)), rx)
             .await?
@@ -576,7 +606,7 @@ impl SessionStateAPI {
     pub async fn set_search_values(
         &self,
         values: HashMap<u8, Vec<(u64, f64)>>,
-    ) -> Result<(), NativeError> {
+    ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetSearchValues(values, tx), rx)
             .await
@@ -586,24 +616,26 @@ impl SessionStateAPI {
         &self,
         frame: Option<RangeInclusive<u64>>,
         width: u16,
-    ) -> Result<HashMap<u8, Vec<CandlePoint>>, NativeError> {
+    ) -> Result<HashMap<u8, Vec<CandlePoint>>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchValues((frame, width, tx)), rx)
             .await?
             .map_err(|e| e.into())
     }
 
-    pub async fn drop_search_values(&self) -> Result<bool, NativeError> {
+    pub async fn drop_search_values(&self) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::DropSearchValues(tx), rx).await
     }
 
-    pub async fn get_indexed_ranges(&self) -> Result<Vec<RangeInclusive<u64>>, NativeError> {
+    pub async fn get_indexed_ranges(
+        &self,
+    ) -> Result<Vec<RangeInclusive<u64>>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetIndexedRanges(tx), rx).await
     }
 
-    pub async fn close_session(&self) -> Result<(), NativeError> {
+    pub async fn close_session(&self) -> Result<(), stypes::NativeError> {
         self.closing_token.cancel();
         if let Err(err) = self.tracker.cancel_all().await {
             error!("Fail to correctly stop tracker: {err:?}");
@@ -612,33 +644,37 @@ impl SessionStateAPI {
         self.exec_operation(Api::CloseSession(tx), rx).await
     }
 
-    pub async fn set_debug(&self, debug: bool) -> Result<(), NativeError> {
+    pub async fn set_debug(&self, debug: bool) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetDebugMode((debug, tx)), rx)
             .await
     }
 
-    pub fn shutdown(&self) -> Result<(), NativeError> {
+    pub fn shutdown(&self) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
+            stypes::NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
     }
 
-    pub fn shutdown_with_error(&self) -> Result<(), NativeError> {
+    pub fn shutdown_with_error(&self) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::ShutdownWithError).map_err(|e| {
-            NativeError::channel(&format!(
+            stypes::NativeError::channel(&format!(
                 "fail to send to Api::ShutdownWithError; error: {e}",
             ))
         })
     }
 
-    pub fn add_attachment(&self, origin: parsers::Attachment) -> Result<(), NativeError> {
+    pub fn add_attachment(&self, origin: parsers::Attachment) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
-            NativeError::channel(&format!("fail to send to Api::AddAttachment; error: {e}",))
+            stypes::NativeError::channel(
+                &format!("fail to send to Api::AddAttachment; error: {e}",),
+            )
         })
     }
 
-    pub async fn get_attachments(&self) -> Result<Vec<AttachmentInfo>, NativeError> {
+    pub async fn get_attachments(
+        &self,
+    ) -> Result<Vec<stypes::AttachmentInfo>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetAttachments(tx), rx).await
     }

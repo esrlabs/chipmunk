@@ -6,7 +6,7 @@ import { SdeRequest, SdeResponse } from 'platform/types/sde';
 import { EventProvider } from '../api/session.provider';
 import { Executors } from './executors/session.stream.executors';
 import { EFileOptionsRequirements } from './executors/session.stream.observe.executor';
-import { IGrabbedElement } from 'platform/types/content';
+import { GrabbedElement } from 'platform/types/bindings/miscellaneous';
 import { IRange } from 'platform/types/range';
 import { ISourceLink } from 'platform/types/observe/types';
 import { Attachment, IndexingMode } from 'platform/types/content';
@@ -30,11 +30,11 @@ export class SessionStream {
         return Promise.resolve(undefined);
     }
 
-    public grab(start: number, len: number): Promise<IGrabbedElement[]> {
+    public grab(start: number, len: number): Promise<GrabbedElement[]> {
         return this._session.grabStreamChunk(start, len);
     }
 
-    public grabIndexed(start: number, len: number): Promise<IGrabbedElement[]> {
+    public grabIndexed(start: number, len: number): Promise<GrabbedElement[]> {
         return this._session.grabIndexed(start, len);
     }
 
@@ -69,7 +69,7 @@ export class SessionStream {
         return this._session.expandBreadcrumbs(seporator, offset, above);
     }
 
-    public grabRanges(ranges: IRange[]): Promise<IGrabbedElement[]> {
+    public grabRanges(ranges: IRange[]): Promise<GrabbedElement[]> {
         return this._session.grabStreamRanges(ranges);
     }
 
@@ -86,9 +86,9 @@ export class SessionStream {
     }
 
     public sde(operation: string, request: SdeRequest): Promise<SdeResponse> {
-        return this._session.sendIntoSde(operation, JSON.stringify(request)).then((result) => {
+        return this._session.sendIntoSde(operation, request).then((response) => {
             try {
-                return JSON.parse(result) as SdeResponse;
+                return response;
             } catch (e) {
                 return Promise.reject(new Error(`Fail to parse response`));
             }

@@ -27,10 +27,6 @@ export class Dialogs extends Implementation {
 
     public saveFile(ext?: string, defaultFileName?: string): Promise<string | undefined> {
         this.fixFocusAndMouse();
-        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`);
-        console.log(`EXT: ${ext}`);
-        console.log(`defaultFileName: ${defaultFileName}`);
-        console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n`);
         return dialog
             .showSaveDialog(this._window, {
                 title: 'Select file to save',

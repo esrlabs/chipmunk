@@ -2,14 +2,14 @@ extern crate criterion;
 extern crate processor;
 
 use criterion::{Criterion, *};
-use processor::map::{FilterMatch, SearchMap};
+use processor::map::SearchMap;
 
 fn scaled_benchmark(c: &mut Criterion) {
     let mut example_map: SearchMap = SearchMap::new();
     let mut v = vec![];
     for i in (1..1_000_000).step_by(50) {
-        v.push(FilterMatch::new(i, vec![0]));
-        v.push(FilterMatch::new(i + 22, vec![0, 1]));
+        v.push(stypes::FilterMatch::new(i, vec![0]));
+        v.push(stypes::FilterMatch::new(i + 22, vec![0, 1]));
     }
     example_map.set(Some(v), None);
 

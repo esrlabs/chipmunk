@@ -21,7 +21,7 @@ export const handler = Requests.InjectLogger<
                     const entity: Entity = {
                         name: request.path,
                         fullname: path.normalize(request.path),
-                        type: (() => {
+                        kind: (() => {
                             if (stats.isBlockDevice()) {
                                 return EntityType.BlockDevice;
                             } else if (stats.isCharacterDevice()) {

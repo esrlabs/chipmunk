@@ -6,6 +6,7 @@ use std::{
 };
 
 use dir_checksum::*;
+use pretty_assertions::{assert_eq, assert_ne};
 use tempdir::TempDir;
 
 fn create_tmp_dir_with_file(dir_name: &'static str) -> anyhow::Result<(TempDir, PathBuf)> {
@@ -145,7 +146,7 @@ fn hash_individual_sub_directory() -> anyhow::Result<()> {
 
     // Create empty file
     let empty_file_path = &sub_dir.join("empty.txt");
-    let empty_file = File::create(&empty_file_path)?;
+    let empty_file = File::create(empty_file_path)?;
     drop(empty_file);
 
     let items = calc_individual_checksum(tmp_dir.path())?;
