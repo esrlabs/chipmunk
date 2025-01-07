@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 
-use sources::plugins as pl;
 use wasmtime::component::Component;
 
 use crate::{
@@ -116,8 +115,8 @@ impl PluginsParser {
     /// Initialize parser instance with the needed configuration to be used within sessions.
     pub async fn initialize(
         plugin_path: impl AsRef<Path>,
-        general_config: &pl::PluginParserGeneralSettings,
-        plugin_configs: Vec<pl::ConfigItem>,
+        general_config: &stypes::PluginParserGeneralSettings,
+        plugin_configs: Vec<stypes::PluginConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let (component, version) = Self::load(&plugin_path).await?;
 
@@ -162,7 +161,9 @@ impl WasmPlugin for PluginsParser {
         }
     }
 
-    async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+    async fn get_config_schemas(
+        &mut self,
+    ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
         match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.get_config_schemas().await,
         }

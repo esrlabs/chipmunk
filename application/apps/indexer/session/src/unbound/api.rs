@@ -210,10 +210,11 @@ impl UnboundSessionAPI {
             .await
     }
 
+    //TODO AAZ: Remove json serialization.
     pub async fn get_all_plugins(
         &self,
         id: u64,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetAllPlugins(tx_results))
             .await
@@ -222,13 +223,16 @@ impl UnboundSessionAPI {
     pub async fn get_active_plugins(
         &self,
         id: u64,
-    ) -> Result<CommandOutcome<String>, ComputationError> {
+    ) -> Result<stypes::CommandOutcome<String>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetActivePlugins(tx_results))
             .await
     }
 
-    pub async fn reload_plugins(&self, id: u64) -> Result<CommandOutcome<()>, ComputationError> {
+    pub async fn reload_plugins(
+        &self,
+        id: u64,
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::ReloadPlugins(tx_results))
             .await

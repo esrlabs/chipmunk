@@ -34,6 +34,7 @@ impl Arbitrary for NativeErrorKind {
     ///   - `ChannelError`
     ///   - `Io`
     ///   - `Grabber`
+    ///   - `Plugins`
     type Parameters = ();
 
     type Strategy = BoxedStrategy<Self>;
@@ -49,7 +50,8 @@ impl Arbitrary for NativeErrorKind {
             Just(NativeErrorKind::NotYetImplemented),
             Just(NativeErrorKind::ChannelError),
             Just(NativeErrorKind::Io),
-            Just(NativeErrorKind::Grabber)
+            Just(NativeErrorKind::Grabber),
+            Just(NativeErrorKind::Plugins)
         ]
         .boxed()
     }

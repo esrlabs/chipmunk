@@ -1,3 +1,4 @@
+use stypes::{NativeError, NativeErrorKind, Severity};
 use thiserror::Error;
 
 use crate::wasm_host::WasmHostInitError;
@@ -14,6 +15,16 @@ pub enum PluginHostInitError {
     IO(String),
     #[error(transparent)]
     WasmRunTimeError(#[from] anyhow::Error),
+}
+
+impl From<PluginHostInitError> for NativeError {
+    fn from(err: PluginHostInitError) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Plugins,
+            message: Some(format!("Plugin initializations failed. Error: {err}")),
+        }
+    }
 }
 
 #[derive(Debug, Error)]

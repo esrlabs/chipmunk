@@ -5,7 +5,7 @@ use std::{hint::black_box, path::PathBuf};
 use bench_utls::{
     bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,
 };
-use sources::{plugins::PluginParserSettings, producer::MessageProducer};
+use sources::producer::MessageProducer;
 
 mod bench_utls;
 
@@ -23,7 +23,7 @@ fn plugin_parser_producer(c: &mut Criterion) {
     //TODO AAZ: Deliver plugin configurations for benchmarks
     let plugin_configs = Vec::new();
 
-    let settings = PluginParserSettings::prototyping(plugin_path, plugin_configs);
+    let settings = stypes::PluginParserSettings::prototyping(plugin_path, plugin_configs);
 
     c.bench_function("plugin_parser_producer", |bencher| {
         bencher

@@ -2877,6 +2877,7 @@ dependencies = [
  "parsers",
  "serde",
  "sources",
+ "stypes",
  "thiserror 2.0.3",
  "tokio",
  "toml",

@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 pub use errors::InitError;
 use serde::{Deserialize, Serialize};
-use sources::plugins as pl;
 
 use crate::{parser_shared::ParserRenderOptions, semantic_version::SemanticVersion, PluginType};
 
@@ -45,7 +44,7 @@ pub struct ValidPluginInfo {
     pub wasm_file_path: PathBuf,
     pub api_version: SemanticVersion,
     pub plugin_version: SemanticVersion,
-    pub config_schemas: Vec<pl::ConfigSchemaItem>,
+    pub config_schemas: Vec<stypes::PluginConfigSchemaItem>,
     pub render_options: RenderOptions,
 }
 

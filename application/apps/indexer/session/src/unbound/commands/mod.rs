@@ -18,7 +18,6 @@ use tokio::sync::{oneshot, RwLock};
 use super::signal::Signal;
 use log::{debug, error};
 use processor::search::filter::SearchFilter;
-use tokio::sync::oneshot;
 
 #[derive(Debug)]
 pub enum Command {
@@ -84,9 +83,14 @@ pub enum Command {
         i64,
         oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
-    GetAllPlugins(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    GetActivePlugins(oneshot::Sender<Result<CommandOutcome<String>, ComputationError>>),
-    ReloadPlugins(oneshot::Sender<Result<CommandOutcome<()>, ComputationError>>),
+    //TODO AAZ: Remove json serialization here.
+    GetAllPlugins(
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+    ),
+    GetActivePlugins(
+        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+    ),
+    ReloadPlugins(oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>),
 }
 
 impl std::fmt::Display for Command {

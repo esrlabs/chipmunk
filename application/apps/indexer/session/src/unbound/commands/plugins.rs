@@ -1,12 +1,7 @@
-use crate::{
-    events::{ComputationError, NativeError, NativeErrorKind},
-    progress::Severity,
-    unbound::signal::Signal,
-};
-use plugins_host::plugins_manager::{self, PluginsManager};
+use crate::unbound::signal::Signal;
+use plugins_host::plugins_manager::PluginsManager;
+use stypes::{CommandOutcome, ComputationError};
 use tokio::sync::RwLock;
-
-use super::CommandOutcome;
 
 /// Initialize the plugin manager loading all the plugins from their directory.
 pub async fn load_manager() -> Result<PluginsManager, ComputationError> {
@@ -58,14 +53,4 @@ pub async fn reload_plugins(
         .map_err(|err| ComputationError::NativeError(err.into()))?;
 
     Ok(CommandOutcome::Finished(()))
-}
-
-impl From<plugins_manager::InitError> for NativeError {
-    fn from(err: plugins_manager::InitError) -> Self {
-        Self {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Plugins,
-            message: Some(err.to_string()),
-        }
-    }
 }

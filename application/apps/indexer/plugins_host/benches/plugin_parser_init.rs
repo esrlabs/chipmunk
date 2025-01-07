@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use sources::plugins::PluginParserSettings;
 use std::{hint::black_box, path::PathBuf};
 
 // Use the same environment variable for input source from other benchmarks
@@ -25,7 +24,7 @@ fn plugin_parser_init(c: &mut Criterion) {
     //TODO AAZ: Deliver plugin configurations for benchmarks
     let plugin_configs = Vec::new();
 
-    let settings = black_box(PluginParserSettings::prototyping(
+    let settings = black_box(stypes::PluginParserSettings::prototyping(
         plugin_file,
         plugin_configs,
     ));

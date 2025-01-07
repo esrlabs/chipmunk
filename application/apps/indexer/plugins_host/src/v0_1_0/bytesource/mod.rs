@@ -11,8 +11,6 @@ use wasmtime::{
 };
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 
-use sources::plugins as pl;
-
 use crate::{
     plugins_manager::RenderOptions,
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
@@ -72,8 +70,8 @@ impl PluginByteSource {
     /// Initialize byte-source instance with the needed configuration to be used within sessions.
     pub async fn initialize(
         component: Component,
-        general_config: &pl::PluginByteSourceGeneralSettings,
-        plugin_configs: Vec<pl::ConfigItem>,
+        general_config: &stypes::PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<stypes::PluginConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
         let ctx = ctx.build();
@@ -98,7 +96,9 @@ impl PluginByteSource {
         Ok(byte_source)
     }
 
-    pub async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+    pub async fn get_config_schemas(
+        &mut self,
+    ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
         let schemas = self
             .plugin_bindings
             .chipmunk_plugin_byte_source()

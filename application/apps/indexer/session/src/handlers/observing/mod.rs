@@ -107,14 +107,13 @@ async fn run_source_intern<S: ByteSource>(
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         //TODO AAZ: Remove the whole block when done.
-        stypes::ParserType::Dlt(_) | ParserType::Text
+        stypes::ParserType::Dlt(_) | stypes::ParserType::Text(())
             if std::env::var(FORCE_PLUGIN_ENV).is_ok() =>
         {
             println!("------------------------------------------------------");
             println!("-------------   WASM parser forced   -----------------");
             println!("------------------------------------------------------");
 
-            use sources::plugins as pl;
             //TODO AAZ: Find a better way to deliver plugin path than environment variables
             let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
                 Ok(path) => path,
@@ -124,13 +123,13 @@ async fn run_source_intern<S: ByteSource>(
 
             // Hard-coded configurations for string parser for now.
             const LOSSY_ID: &str = "lossy";
-            let string_parser_configs = vec![pl::ConfigItem::new(
+            let string_parser_configs = vec![stypes::PluginConfigItem::new(
                 LOSSY_ID,
-                pl::ConfigValue::Boolean(true),
+                stypes::PluginConfigValue::Boolean(true),
             )];
 
             let settings =
-                pl::PluginParserSettings::prototyping(proto_plugin_path, string_parser_configs);
+                stypes::PluginParserSettings::prototyping(proto_plugin_path, string_parser_configs);
             let now = std::time::Instant::now();
 
             let parser = PluginsParser::initialize(
@@ -148,7 +147,7 @@ async fn run_source_intern<S: ByteSource>(
             let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
-        stypes::ParserType::Text => {
+        stypes::ParserType::Text(()) => {
             let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }

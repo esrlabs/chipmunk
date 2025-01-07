@@ -1,8 +1,6 @@
 mod bindings;
 mod parser_plugin_state;
 
-use sources::plugins as pl;
-
 use futures::executor::block_on;
 use wasmtime::{
     component::{Component, Linker},
@@ -74,8 +72,8 @@ impl PluginParser {
     /// session.
     pub async fn initialize(
         component: Component,
-        general_config: &pl::PluginParserGeneralSettings,
-        plugin_configs: Vec<pl::ConfigItem>,
+        general_config: &stypes::PluginParserGeneralSettings,
+        plugin_configs: Vec<stypes::PluginConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
         let ctx = ctx.build();
@@ -96,7 +94,9 @@ impl PluginParser {
         Ok(parser)
     }
 
-    pub async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError> {
+    pub async fn get_config_schemas(
+        &mut self,
+    ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
         let schemas = self
             .plugin_bindings
             .chipmunk_plugin_parser()

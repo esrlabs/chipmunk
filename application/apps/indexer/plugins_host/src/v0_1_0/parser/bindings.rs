@@ -3,10 +3,11 @@ use crate::{
     parser_shared::COLUMN_SEP, semantic_version::SemanticVersion, PluginGuestInitError,
     PluginParseMessage,
 };
-use sources::plugins as pl;
-use sources::plugins::PluginParserGeneralSettings;
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
+
+use stypes::PluginConfigValue as HostConfValue;
+
 wasmtime::component::bindgen!({
     path: "../plugins_api/wit/v_0.1.0/",
     world: "parse-plugin",
@@ -15,8 +16,8 @@ wasmtime::component::bindgen!({
     },
 });
 
-impl From<&PluginParserGeneralSettings> for ParserConfig {
-    fn from(_value: &PluginParserGeneralSettings) -> Self {
+impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
+    fn from(_value: &stypes::PluginParserGeneralSettings) -> Self {
         // We must use the current log level form chipmunk because we are using the same log
         // functionality to log the message from the plugins.
         let current_log_level = log::max_level().to_level().unwrap_or(log::Level::Error);
@@ -95,21 +96,21 @@ impl From<ParsedMessage> for PluginParseMessage {
     }
 }
 
-impl From<pl::ConfigValue> for ConfigValue {
-    fn from(value: pl::ConfigValue) -> Self {
+impl From<HostConfValue> for ConfigValue {
+    fn from(value: HostConfValue) -> Self {
         match value {
-            pl::ConfigValue::Boolean(val) => ConfigValue::Boolean(val),
-            pl::ConfigValue::Number(val) => ConfigValue::Number(val),
-            pl::ConfigValue::Float(val) => ConfigValue::Float(val),
-            pl::ConfigValue::Text(val) => ConfigValue::Text(val),
-            pl::ConfigValue::Path(val) => ConfigValue::Path(val.to_string_lossy().to_string()),
-            pl::ConfigValue::Dropdown(val) => ConfigValue::Dropdown(val),
+            HostConfValue::Boolean(val) => ConfigValue::Boolean(val),
+            HostConfValue::Number(val) => ConfigValue::Number(val),
+            HostConfValue::Float(val) => ConfigValue::Float(val),
+            HostConfValue::Text(val) => ConfigValue::Text(val),
+            HostConfValue::Path(val) => ConfigValue::Path(val.to_string_lossy().to_string()),
+            HostConfValue::Dropdown(val) => ConfigValue::Dropdown(val),
         }
     }
 }
 
-impl From<pl::ConfigItem> for ConfigItem {
-    fn from(item: pl::ConfigItem) -> Self {
+impl From<stypes::PluginConfigItem> for ConfigItem {
+    fn from(item: stypes::PluginConfigItem) -> Self {
         Self {
             id: item.id,
             value: item.value.into(),
@@ -117,20 +118,21 @@ impl From<pl::ConfigItem> for ConfigItem {
     }
 }
 
-impl From<ConfigSchemaType> for pl::ConfigSchemaType {
+use stypes::PluginConfigSchemaType as HostSchemaType;
+impl From<ConfigSchemaType> for HostSchemaType {
     fn from(value: ConfigSchemaType) -> Self {
         match value {
-            ConfigSchemaType::Boolean => pl::ConfigSchemaType::Boolean,
-            ConfigSchemaType::Number => pl::ConfigSchemaType::Number,
-            ConfigSchemaType::Float => pl::ConfigSchemaType::Float,
-            ConfigSchemaType::Text => pl::ConfigSchemaType::Text,
-            ConfigSchemaType::Path => pl::ConfigSchemaType::Path,
-            ConfigSchemaType::Dropdown(items) => pl::ConfigSchemaType::Dropdown(items),
+            ConfigSchemaType::Boolean => HostSchemaType::Boolean,
+            ConfigSchemaType::Number => HostSchemaType::Number,
+            ConfigSchemaType::Float => HostSchemaType::Float,
+            ConfigSchemaType::Text => HostSchemaType::Text,
+            ConfigSchemaType::Path => HostSchemaType::Path,
+            ConfigSchemaType::Dropdown(items) => HostSchemaType::Dropdown(items),
         }
     }
 }
 
-impl From<ConfigSchemaItem> for pl::ConfigSchemaItem {
+impl From<ConfigSchemaItem> for stypes::PluginConfigSchemaItem {
     fn from(item: ConfigSchemaItem) -> Self {
         Self {
             id: item.id,

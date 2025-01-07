@@ -1,5 +1,6 @@
 use std::io;
 
+use stypes::{NativeError, NativeErrorKind, Severity};
 use thiserror::Error;
 
 use crate::wasm_host::WasmHostInitError;
@@ -14,4 +15,14 @@ pub enum InitError {
     IO(#[from] io::Error),
     #[error("Error during initialization. {0}")]
     Other(String),
+}
+
+impl From<InitError> for NativeError {
+    fn from(err: InitError) -> Self {
+        Self {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Plugins,
+            message: Some(err.to_string()),
+        }
+    }
 }

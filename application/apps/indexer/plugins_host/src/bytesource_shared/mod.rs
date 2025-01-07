@@ -5,8 +5,6 @@ use std::{
 
 use wasmtime::component::Component;
 
-use sources::plugins as pl;
-
 use crate::{
     plugins_manager::{RenderOptions, ValidPluginInfo},
     plugins_shared::plugin_errors::PluginError,
@@ -115,8 +113,8 @@ impl PluginsByteSource {
     /// Initialize byte-source instance with the needed configuration to be used within sessions.
     pub async fn initialize(
         plugin_path: impl AsRef<Path>,
-        general_config: &pl::PluginByteSourceGeneralSettings,
-        plugin_configs: Vec<pl::ConfigItem>,
+        general_config: &stypes::PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<stypes::PluginConfigItem>,
     ) -> Result<Self, PluginHostInitError> {
         let (component, version) = Self::load(&plugin_path).await?;
 
@@ -181,7 +179,7 @@ impl WasmPlugin for PluginsByteSource {
 
     async fn get_config_schemas(
         &mut self,
-    ) -> Result<Vec<sources::plugins::ConfigSchemaItem>, PluginError> {
+    ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
         match &mut self.source {
             PlugVerByteSource::Ver010(source) => source.get_config_schemas().await,
         }

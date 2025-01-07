@@ -35,6 +35,7 @@ impl Arbitrary for ParserType {
             any::<DltParserSettings>().prop_map(ParserType::Dlt),
             any::<SomeIpParserSettings>().prop_map(ParserType::SomeIp),
             Just(ParserType::Text(())),
+            any::<PluginParserSettings>().prop_map(ParserType::Plugin)
         ]
         .boxed()
     }

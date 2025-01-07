@@ -9,7 +9,6 @@ mod wasm_host;
 use plugins_shared::plugin_errors::PluginError;
 use semantic_version::SemanticVersion;
 use serde::{Deserialize, Serialize};
-use sources::plugins as pl;
 
 pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginsParser};
 
@@ -41,5 +40,7 @@ pub trait WasmPlugin {
     /// These schemas define the expected structure, types, and constraints
     /// for plugin-specific configurations. The values of these configurations
     /// will be passed to the initializing method of the plugin.
-    async fn get_config_schemas(&mut self) -> Result<Vec<pl::ConfigSchemaItem>, PluginError>;
+    async fn get_config_schemas(
+        &mut self,
+    ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError>;
 }

@@ -40,3 +40,9 @@ paste = "1.0"
 uuid = { workspace = true, features = ["serde", "v4"] }
 remove_dir_all = "1.0"
 ts-rs = { version = "10.1", features = ["uuid-impl"] }
+
+[profile.test.package.proptest]
+opt-level = 3
+
+[profile.test.package.rand_chacha]
+opt-level = 3

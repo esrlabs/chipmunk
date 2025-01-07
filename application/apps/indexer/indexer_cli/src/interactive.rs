@@ -4,7 +4,7 @@ use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, DefaultEditor};
 use session::session::Session;
-use sources::{plugins::PluginParserSettings, producer::MessageProducer, socket::udp::UdpSource};
+use sources::{producer::MessageProducer, socket::udp::UdpSource};
 use std::path::PathBuf;
 use tokio_util::sync::CancellationToken;
 
@@ -111,8 +111,8 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
 
                         //TODO AAZ: plugins configuration aren't delivered here.
                         let plugin_configs = Vec::new();
-                        let plugin_parser_settings = PluginParserSettings::prototyping(proto_plugin_path, plugin_configs);
-                        session.observe(uuid, ObserveOptions::file(file_path, FileFormat::Binary, ParserType::Plugin(plugin_parser_settings))).expect("observe failed");
+                        let plugin_parser_settings = stypes::PluginParserSettings::prototyping(proto_plugin_path, plugin_configs);
+                        session.observe(uuid, stypes::ObserveOptions::file(file_path, stypes::FileFormat::Binary, stypes::ParserType::Plugin(plugin_parser_settings))).expect("observe failed");
                     }
                     Some(Command::Grab) => {
                         println!("grab command received");

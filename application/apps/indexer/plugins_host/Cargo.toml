@@ -16,8 +16,9 @@ toml.workspace = true
 wasmtime = "21.0.1"
 wasmtime-wasi = "21.0.1"
 
-parsers = {path = "../parsers"}
-sources = {path = "../sources"}
+parsers = { path = "../parsers" }
+sources = { path = "../sources" }
+stypes = { path = "../stypes" }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
