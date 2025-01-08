@@ -1,9 +1,8 @@
 use anyhow::Context;
+use stypes::{RenderOptions, SemanticVersion};
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
-use crate::{
-    plugins_manager::RenderOptions, semantic_version::SemanticVersion, PluginHostInitError,
-};
+use crate::PluginHostInitError;
 
 pub mod plugin_errors;
 

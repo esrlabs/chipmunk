@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use crate::*;
 
 impl PluginParserSettings {
@@ -53,5 +55,28 @@ impl PluginConfigItem {
             id: id.into(),
             value,
         }
+    }
+}
+
+impl SemanticVersion {
+    /// Creates a new [`SemanticVersion`]
+    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
+        Self {
+            major,
+            minor,
+            patch,
+        }
+    }
+}
+
+impl Display for SemanticVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+impl InvalidPluginInfo {
+    pub fn new(error_msg: String) -> Self {
+        Self { error_msg }
     }
 }

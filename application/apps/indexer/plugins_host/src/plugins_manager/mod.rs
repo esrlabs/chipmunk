@@ -1,62 +1,12 @@
 mod errors;
 mod load;
 
-use std::path::PathBuf;
-
 pub use errors::InitError;
-use serde::{Deserialize, Serialize};
-
-use crate::{parser_shared::ParserRenderOptions, semantic_version::SemanticVersion, PluginType};
+use stypes::{PluginEntity, PluginState};
 
 #[derive(Debug)]
 pub struct PluginsManager {
     plugins: Vec<PluginEntity>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PluginEntity {
-    pub dir_path: PathBuf,
-    pub plugin_type: PluginType,
-    pub state: PluginState,
-    pub metadata: Option<PluginMetadata>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PluginMetadata {
-    pub name: String,
-    pub description: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PluginState {
-    Active(Box<ValidPluginInfo>),
-    Invalid(Box<InvalidPluginInfo>),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum RenderOptions {
-    Parser(Box<ParserRenderOptions>),
-    ByteSource,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ValidPluginInfo {
-    pub wasm_file_path: PathBuf,
-    pub api_version: SemanticVersion,
-    pub plugin_version: SemanticVersion,
-    pub config_schemas: Vec<stypes::PluginConfigSchemaItem>,
-    pub render_options: RenderOptions,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InvalidPluginInfo {
-    pub error_msg: String,
-}
-
-impl InvalidPluginInfo {
-    pub fn new(error_msg: String) -> Self {
-        Self { error_msg }
-    }
 }
 
 impl PluginsManager {

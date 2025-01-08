@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::{semantic_version::SemanticVersion, PluginGuestInitError};
+use crate::PluginGuestInitError;
 
 pub use self::chipmunk::plugin::{bytesource_types, shared_types};
 use self::shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, Version};
@@ -82,6 +82,7 @@ impl From<stypes::PluginConfigItem> for ConfigItem {
 }
 
 use stypes::PluginConfigSchemaType as HostSchemaType;
+use stypes::SemanticVersion;
 impl From<ConfigSchemaType> for HostSchemaType {
     fn from(value: ConfigSchemaType) -> Self {
         match value {

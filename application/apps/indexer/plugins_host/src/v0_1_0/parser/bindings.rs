@@ -1,12 +1,8 @@
-use crate::parser_shared as shared;
-use crate::{
-    parser_shared::COLUMN_SEP, semantic_version::SemanticVersion, PluginGuestInitError,
-    PluginParseMessage,
-};
+use crate::{parser_shared::COLUMN_SEP, PluginGuestInitError, PluginParseMessage};
 
 pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
 
-use stypes::PluginConfigValue as HostConfValue;
+use stypes::{ParserRenderOptions, PluginConfigValue as HostConfValue, SemanticVersion};
 
 wasmtime::component::bindgen!({
     path: "../plugins_api/wit/v_0.1.0/",
@@ -149,7 +145,7 @@ impl From<Version> for SemanticVersion {
     }
 }
 
-impl From<RenderOptions> for shared::ParserRenderOptions {
+impl From<RenderOptions> for ParserRenderOptions {
     fn from(value: RenderOptions) -> Self {
         Self {
             headers: value.headers,

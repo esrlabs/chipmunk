@@ -8,13 +8,14 @@ use std::{
     path::PathBuf,
 };
 
+use stypes::{InvalidPluginInfo, PluginMetadata};
+
 use crate::{
-    plugins_manager::{InvalidPluginInfo, PluginState},
-    plugins_shared::plugin_errors::PluginError,
-    PluginHostInitError, PluginType, PluginsByteSource, PluginsParser,
+    plugins_manager::PluginState, plugins_shared::plugin_errors::PluginError, PluginHostInitError,
+    PluginType, PluginsByteSource, PluginsParser,
 };
 
-use super::{InitError, PluginEntity, PluginMetadata};
+use super::{InitError, PluginEntity};
 
 /// Loads all the plugins from the plugin directory
 pub async fn load_plugins() -> Result<Vec<PluginEntity>, InitError> {

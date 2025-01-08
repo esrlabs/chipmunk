@@ -2,6 +2,7 @@ mod bindings;
 mod parser_plugin_state;
 
 use futures::executor::block_on;
+use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use wasmtime::{
     component::{Component, Linker},
     Store,
@@ -9,14 +10,10 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 
 use crate::{
-    plugins_manager::RenderOptions,
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
-    semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
     PluginGuestInitError, PluginHostInitError, PluginParseMessage,
 };
-
-use crate::parser_shared as shared;
 
 use self::{bindings::ParsePlugin, parser_plugin_state::ParserPluginState};
 
@@ -116,7 +113,7 @@ impl PluginParser {
         Ok(version.into())
     }
 
-    pub async fn get_render_options(&mut self) -> Result<shared::ParserRenderOptions, PluginError> {
+    pub async fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
         let options = self
             .plugin_bindings
             .chipmunk_plugin_parser()

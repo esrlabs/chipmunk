@@ -3,15 +3,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use stypes::{PluginType, RenderOptions, SemanticVersion, ValidPluginInfo};
 use wasmtime::component::Component;
 
 use crate::{
-    plugins_manager::{RenderOptions, ValidPluginInfo},
-    plugins_shared::plugin_errors::PluginError,
-    semantic_version::SemanticVersion,
-    v0_1_0,
-    wasm_host::get_wasm_host,
-    PluginHostInitError, PluginType, WasmPlugin,
+    plugins_shared::plugin_errors::PluginError, v0_1_0, wasm_host::get_wasm_host,
+    PluginHostInitError, WasmPlugin,
 };
 
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:plugin/byte-source";

@@ -1,17 +1,14 @@
 use std::path::{Path, PathBuf};
 
+use stypes::{ParserRenderOptions, SemanticVersion, ValidPluginInfo};
 use wasmtime::component::Component;
 
 use crate::{
-    plugins_manager::ValidPluginInfo, plugins_shared::plugin_errors::PluginError,
-    semantic_version::SemanticVersion, v0_1_0, wasm_host::get_wasm_host, PluginHostInitError,
-    PluginParseMessage, PluginType, WasmPlugin,
+    plugins_shared::plugin_errors::PluginError, v0_1_0, wasm_host::get_wasm_host,
+    PluginHostInitError, PluginParseMessage, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
-mod render_options;
-
-pub use render_options::ParserRenderOptions;
 
 const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
 

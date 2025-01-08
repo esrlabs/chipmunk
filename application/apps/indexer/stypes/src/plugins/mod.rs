@@ -1,4 +1,6 @@
 #[cfg(feature = "rustcore")]
+mod converting;
+#[cfg(feature = "rustcore")]
 mod extending;
 #[cfg(feature = "nodejs")]
 mod nodejs;
@@ -132,4 +134,132 @@ pub struct PluginConfigSchemaItem {
     pub title: String,
     pub description: Option<String>,
     pub input_type: PluginConfigSchemaType,
+}
+
+/// Represents a plugin entity informations and configurations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct PluginEntity {
+    pub dir_path: PathBuf,
+    pub plugin_type: PluginType,
+    pub state: PluginState,
+    pub metadata: Option<PluginMetadata>,
+}
+
+/// Represents the plugins metadata like name, description...
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct PluginMetadata {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+/// Represents plugins main types
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub enum PluginType {
+    Parser,
+    ByteSource,
+}
+
+/// Represents the plugins states and their corresponding informations.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub enum PluginState {
+    Active(Box<ValidPluginInfo>),
+    Invalid(Box<InvalidPluginInfo>),
+}
+
+/// Contains the infos and options for a valid plugin.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct ValidPluginInfo {
+    pub wasm_file_path: PathBuf,
+    pub api_version: SemanticVersion,
+    pub plugin_version: SemanticVersion,
+    pub config_schemas: Vec<PluginConfigSchemaItem>,
+    pub render_options: RenderOptions,
+}
+
+/// Represents the semantic version used in the plugins system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct SemanticVersion {
+    pub major: u16,
+    pub minor: u16,
+    pub patch: u16,
+}
+
+/// Represents the render options (columns headers, etc.) for the plugins.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub enum RenderOptions {
+    Parser(Box<ParserRenderOptions>),
+    ByteSource,
+}
+
+/// Provides additional information to be rendered in the log view.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct ParserRenderOptions {
+    /// List of strings representing the header names to be rendered at the top of log messages.
+    /// This list allows users to specify which columns are visible as well.
+    ///
+    /// # Note
+    /// Headers should be provided only if the log messages have multiple columns, and their
+    /// count must match the count of the columns of the log message as well.
+    pub headers: Option<Vec<String>>,
+}
+
+/// Contains the informations for an invalid plugin.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct InvalidPluginInfo {
+    /// Error message describing why the plugin is invalid.
+    pub error_msg: String,
 }

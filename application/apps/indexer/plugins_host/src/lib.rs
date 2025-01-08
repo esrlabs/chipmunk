@@ -2,25 +2,17 @@ mod bytesource_shared;
 mod parser_shared;
 pub mod plugins_manager;
 mod plugins_shared;
-mod semantic_version;
 mod v0_1_0;
 mod wasm_host;
 
 use plugins_shared::plugin_errors::PluginError;
-use semantic_version::SemanticVersion;
-use serde::{Deserialize, Serialize};
 
 pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginsParser};
 
 pub use bytesource_shared::PluginsByteSource;
 
 pub use plugins_shared::plugin_errors::{PluginGuestInitError, PluginHostInitError};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PluginType {
-    Parser,
-    ByteSource,
-}
+use stypes::{PluginType, SemanticVersion};
 
 // Trait is used with Chipmunk only.
 #[allow(async_fn_in_trait)]

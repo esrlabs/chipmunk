@@ -5,6 +5,7 @@ use std::io;
 
 use bindings::BytesourcePlugin;
 use bytesource_plugin_state::ByteSourcePluginState;
+use stypes::{RenderOptions, SemanticVersion};
 use wasmtime::{
     component::{Component, Linker},
     Store,
@@ -12,9 +13,7 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 
 use crate::{
-    plugins_manager::RenderOptions,
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
-    semantic_version::SemanticVersion,
     wasm_host::get_wasm_host,
     PluginGuestInitError, PluginHostInitError,
 };

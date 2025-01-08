@@ -153,6 +153,156 @@ impl Arbitrary for PluginConfigSchemaItem {
     }
 }
 
+impl Arbitrary for PluginEntity {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<PathBuf>(),
+            any::<PluginType>(),
+            any::<PluginState>(),
+            any::<Option<PluginMetadata>>(),
+        )
+            .prop_map(|(dir_path, plugin_type, state, metadata)| Self {
+                dir_path,
+                plugin_type,
+                state,
+                metadata,
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for PluginMetadata {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (any::<String>(), any::<Option<String>>())
+            .prop_map(|(name, description)| Self { name, description })
+            .boxed()
+    }
+}
+
+impl Arbitrary for PluginType {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        // Reminder to add new fields here.
+        _ = match Self::ByteSource {
+            PluginType::Parser => (),
+            PluginType::ByteSource => (),
+        };
+
+        prop_oneof![Just(Self::Parser), Just(Self::ByteSource)].boxed()
+    }
+}
+
+impl Arbitrary for PluginState {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop_oneof![
+            any::<Box<ValidPluginInfo>>().prop_map(Self::Active),
+            any::<Box<InvalidPluginInfo>>().prop_map(Self::Invalid),
+        ]
+        .boxed()
+    }
+}
+
+impl Arbitrary for ValidPluginInfo {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<PathBuf>(),
+            any::<SemanticVersion>(),
+            any::<SemanticVersion>(),
+            any::<Vec<PluginConfigSchemaItem>>(),
+            any::<RenderOptions>(),
+        )
+            .prop_map(
+                |(wasm_file_path, api_version, plugin_version, config_schemas, render_options)| {
+                    Self {
+                        wasm_file_path,
+                        api_version,
+                        plugin_version,
+                        config_schemas,
+                        render_options,
+                    }
+                },
+            )
+            .boxed()
+    }
+}
+
+impl Arbitrary for SemanticVersion {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            prop::num::u16::ANY,
+            prop::num::u16::ANY,
+            prop::num::u16::ANY,
+        )
+            .prop_map(|(major, minor, patch)| Self {
+                major,
+                minor,
+                patch,
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for RenderOptions {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        // Reminder to update here on newly added items.
+        _ = match Self::ByteSource {
+            RenderOptions::Parser(_) => (),
+            RenderOptions::ByteSource => (),
+        };
+
+        prop_oneof![
+            any::<Box<ParserRenderOptions>>().prop_map(Self::Parser),
+            Just(Self::ByteSource),
+        ]
+        .boxed()
+    }
+}
+
+impl Arbitrary for ParserRenderOptions {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        any::<Option<Vec<String>>>()
+            .prop_map(|headers| Self { headers })
+            .boxed()
+    }
+}
+
+impl Arbitrary for InvalidPluginInfo {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        any::<String>()
+            .prop_map(|error_msg| Self { error_msg })
+            .boxed()
+    }
+}
+
+// Some tests are taking longer and it would better to reduce use-case counts on them.
+const REDUCED_TESTS_USECASE_COUNT: usize = 70;
+
 test_msg!(PluginParserSettings, TESTS_USECASE_COUNT);
 test_msg!(PluginParserGeneralSettings, TESTS_USECASE_COUNT);
 test_msg!(PluginByteSourceSettings, TESTS_USECASE_COUNT);
@@ -161,3 +311,12 @@ test_msg!(PluginConfigItem, TESTS_USECASE_COUNT);
 test_msg!(PluginConfigValue, TESTS_USECASE_COUNT);
 test_msg!(PluginConfigSchemaType, TESTS_USECASE_COUNT);
 test_msg!(PluginConfigSchemaItem, TESTS_USECASE_COUNT);
+test_msg!(PluginEntity, REDUCED_TESTS_USECASE_COUNT);
+test_msg!(PluginMetadata, TESTS_USECASE_COUNT);
+test_msg!(PluginType, TESTS_USECASE_COUNT);
+test_msg!(PluginState, TESTS_USECASE_COUNT);
+test_msg!(ValidPluginInfo, REDUCED_TESTS_USECASE_COUNT);
+test_msg!(SemanticVersion, TESTS_USECASE_COUNT);
+test_msg!(RenderOptions, TESTS_USECASE_COUNT);
+test_msg!(ParserRenderOptions, TESTS_USECASE_COUNT);
+test_msg!(InvalidPluginInfo, TESTS_USECASE_COUNT);
