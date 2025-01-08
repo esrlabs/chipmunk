@@ -17,3 +17,4 @@ try_into_js!(SemanticVersion);
 try_into_js!(RenderOptions);
 try_into_js!(ParserRenderOptions);
 try_into_js!(InvalidPluginInfo);
+try_into_js!(PluginsList);

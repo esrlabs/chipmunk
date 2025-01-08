@@ -83,12 +83,15 @@ pub enum Command {
         i64,
         oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
-    //TODO AAZ: Remove json serialization here.
     GetAllPlugins(
-        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
+        >,
     ),
     GetActivePlugins(
-        oneshot::Sender<Result<stypes::CommandOutcome<String>, stypes::ComputationError>>,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
+        >,
     ),
     ReloadPlugins(oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>),
 }

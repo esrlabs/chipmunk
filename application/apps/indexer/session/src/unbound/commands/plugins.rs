@@ -1,6 +1,6 @@
 use crate::unbound::signal::Signal;
 use plugins_host::plugins_manager::PluginsManager;
-use stypes::{CommandOutcome, ComputationError};
+use stypes::{CommandOutcome, ComputationError, PluginsList};
 use tokio::sync::RwLock;
 
 /// Initialize the plugin manager loading all the plugins from their directory.
@@ -14,12 +14,10 @@ pub async fn load_manager() -> Result<PluginsManager, ComputationError> {
 pub async fn get_all_plugins(
     plugins_manager: &RwLock<PluginsManager>,
     _signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+) -> Result<CommandOutcome<PluginsList>, ComputationError> {
     let manager = plugins_manager.read().await;
 
-    let plugins = serde_json::to_string(manager.all_plugins()).map_err(|err| {
-        ComputationError::Process(format!("Serializing data to json failed. Error: {err}"))
-    })?;
+    let plugins = PluginsList(manager.all_plugins().to_vec());
 
     Ok(CommandOutcome::Finished(plugins))
 }
@@ -28,14 +26,12 @@ pub async fn get_all_plugins(
 pub async fn get_active_plugins(
     plugins_manager: &RwLock<PluginsManager>,
     _signal: Signal,
-) -> Result<CommandOutcome<String>, ComputationError> {
+) -> Result<CommandOutcome<PluginsList>, ComputationError> {
     let manager = plugins_manager.read().await;
 
-    let active_plugins: Vec<_> = manager.active_plugins().collect();
+    let active_plugins: Vec<_> = manager.active_plugins().cloned().collect();
 
-    let plugins = serde_json::to_string(&active_plugins).map_err(|err| {
-        ComputationError::Process(format!("Serializing data to json failed. Error: {err}"))
-    })?;
+    let plugins = PluginsList(active_plugins);
 
     Ok(CommandOutcome::Finished(plugins))
 }

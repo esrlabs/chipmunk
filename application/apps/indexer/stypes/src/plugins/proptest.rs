@@ -8,7 +8,7 @@ impl Arbitrary for PluginParserSettings {
         (
             any::<PathBuf>(),
             any::<PluginParserGeneralSettings>(),
-            any::<Vec<PluginConfigItem>>(),
+            prop::collection::vec(any::<PluginConfigItem>(), 0..10),
         )
             .prop_map(
                 |(plugin_path, general_settings, plugin_configs)| PluginParserSettings {
@@ -40,7 +40,7 @@ impl Arbitrary for PluginByteSourceSettings {
         (
             any::<PathBuf>(),
             any::<PluginByteSourceGeneralSettings>(),
-            any::<Vec<PluginConfigItem>>(),
+            prop::collection::vec(any::<PluginConfigItem>(), 0..10),
         )
             .prop_map(
                 |(plugin_path, general_settings, plugin_configs)| PluginByteSourceSettings {
@@ -124,7 +124,7 @@ impl Arbitrary for PluginConfigSchemaType {
             Just(T::Float),
             Just(T::Text),
             Just(T::Path),
-            any::<Vec<String>>().prop_map(T::Dropdown),
+            prop::collection::vec(any::<String>(), 0..10).prop_map(T::Dropdown),
         ]
         .boxed()
     }
@@ -138,7 +138,7 @@ impl Arbitrary for PluginConfigSchemaItem {
         (
             any::<String>(),
             any::<String>(),
-            any::<Option<String>>(),
+            prop::option::of(any::<String>()),
             any::<PluginConfigSchemaType>(),
         )
             .prop_map(
@@ -162,7 +162,7 @@ impl Arbitrary for PluginEntity {
             any::<PathBuf>(),
             any::<PluginType>(),
             any::<PluginState>(),
-            any::<Option<PluginMetadata>>(),
+            prop::option::of(any::<PluginMetadata>()),
         )
             .prop_map(|(dir_path, plugin_type, state, metadata)| Self {
                 dir_path,
@@ -179,7 +179,7 @@ impl Arbitrary for PluginMetadata {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<String>(), any::<Option<String>>())
+        (any::<String>(), prop::option::of(any::<String>()))
             .prop_map(|(name, description)| Self { name, description })
             .boxed()
     }
@@ -222,7 +222,7 @@ impl Arbitrary for ValidPluginInfo {
             any::<PathBuf>(),
             any::<SemanticVersion>(),
             any::<SemanticVersion>(),
-            any::<Vec<PluginConfigSchemaItem>>(),
+            prop::collection::vec(any::<PluginConfigSchemaItem>(), 0..10),
             any::<RenderOptions>(),
         )
             .prop_map(
@@ -283,7 +283,7 @@ impl Arbitrary for ParserRenderOptions {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        any::<Option<Vec<String>>>()
+        prop::option::of(prop::collection::vec(any::<String>(), 0..10))
             .prop_map(|headers| Self { headers })
             .boxed()
     }
@@ -300,8 +300,16 @@ impl Arbitrary for InvalidPluginInfo {
     }
 }
 
-// Some tests are taking longer and it would better to reduce use-case counts on them.
-const REDUCED_TESTS_USECASE_COUNT: usize = 70;
+impl Arbitrary for PluginsList {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(any::<PluginEntity>(), 0..7)
+            .prop_map(|plugins| Self(plugins))
+            .boxed()
+    }
+}
 
 test_msg!(PluginParserSettings, TESTS_USECASE_COUNT);
 test_msg!(PluginParserGeneralSettings, TESTS_USECASE_COUNT);
@@ -311,12 +319,13 @@ test_msg!(PluginConfigItem, TESTS_USECASE_COUNT);
 test_msg!(PluginConfigValue, TESTS_USECASE_COUNT);
 test_msg!(PluginConfigSchemaType, TESTS_USECASE_COUNT);
 test_msg!(PluginConfigSchemaItem, TESTS_USECASE_COUNT);
-test_msg!(PluginEntity, REDUCED_TESTS_USECASE_COUNT);
+test_msg!(PluginEntity, TESTS_USECASE_COUNT);
 test_msg!(PluginMetadata, TESTS_USECASE_COUNT);
 test_msg!(PluginType, TESTS_USECASE_COUNT);
 test_msg!(PluginState, TESTS_USECASE_COUNT);
-test_msg!(ValidPluginInfo, REDUCED_TESTS_USECASE_COUNT);
+test_msg!(ValidPluginInfo, TESTS_USECASE_COUNT);
 test_msg!(SemanticVersion, TESTS_USECASE_COUNT);
 test_msg!(RenderOptions, TESTS_USECASE_COUNT);
 test_msg!(ParserRenderOptions, TESTS_USECASE_COUNT);
 test_msg!(InvalidPluginInfo, TESTS_USECASE_COUNT);
+test_msg!(PluginsList, TESTS_USECASE_COUNT);

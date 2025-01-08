@@ -263,3 +263,13 @@ pub struct InvalidPluginInfo {
     /// Error message describing why the plugin is invalid.
     pub error_msg: String,
 }
+
+/// Represents a list of [`PluginEntity`].
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct PluginsList(pub Vec<PluginEntity>);
