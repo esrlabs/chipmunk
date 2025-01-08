@@ -1,3 +1,8 @@
+# 3.14.4 (08.01.2025)
+
+## Changes
+- Using binary format for messaging instead of JSON strings
+
 # 3.14.3 (15.11.2024)
 
 ## Corrections
