@@ -184,6 +184,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Search.NextNested.Request,
+                    RequestHandlers.Search.NextNested.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Search.Drop.Request,
                     RequestHandlers.Search.Drop.handler,
                 ),

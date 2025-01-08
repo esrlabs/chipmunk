@@ -1,0 +1,82 @@
+@import '../../../../styles/variables.less';
+
+app-views-search-nested {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    height: 32px;
+    width: 250px;
+    background: @scheme-color-5;
+    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+    div.input {
+        display: block;
+        flex: auto;
+        height: 24px;
+        overflow: hidden;
+        align-items: center;
+        padding-left: 6px;
+    }
+    div.flags,
+    div.extantions {
+        display: flex;
+        padding: 0px 8px 0 8px;
+        & span {
+            display: inline-block;
+            height: 24px;
+            width: 24px;
+            color: @scheme-color-0;
+            text-align: center;
+            padding-top: 4px;
+            box-sizing: border-box;
+            &:hover{
+                background: @scheme-color-4;
+            }
+            &.active{
+                background: @scheme-color-active;
+            }
+            &.invalid {
+                color: @scheme-color-error;
+            }
+        }
+    }
+    div.summary {
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0 6px 0 0;
+        margin-right: 12px;
+        white-space: nowrap;
+        & mat-spinner {
+            margin-left: 6px;
+        }
+        & span.error {
+            display: flex;
+            align-items: center;
+            padding-right: 6px;
+            & span.message {
+                color: @scheme-color-error;
+                max-width: 150px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;    
+            }
+            & mat-icon {
+                color: @scheme-color-error;
+                height: 16px;
+                width: 16px;
+                font-size: 16px;
+                margin: 0 6px 0 1px;
+                line-height: 16px;
+            }
+        }
+    }
+    & span.small-icon-button.occupied {
+        font-size: 13px;
+        line-height: 13px;
+        padding-top: 6px;
+    }
+    
+}

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ViewSearch } from './component';
 import { ViewSearchInput } from './input/component';
 import { ViewSearchResults } from './results/component';
+import { ViewSearchNested } from './nested/component';
 import { ScrollAreaModule } from '@elements/scrollarea/module';
 import { ContainersModule } from '@elements/containers/module';
 import { AppDirectiviesModule } from '@directives/module';
@@ -16,7 +17,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [ViewSearch, ViewSearchInput, ViewSearchResults];
+const entryComponents = [ViewSearch, ViewSearchInput, ViewSearchNested, ViewSearchResults];
 const components = [ViewSearch, ...entryComponents];
 
 @NgModule({
@@ -36,6 +37,6 @@ const components = [ViewSearch, ...entryComponents];
         ReactiveFormsModule,
     ],
     declarations: [...components],
-    exports: [...components, ScrollAreaModule]
+    exports: [...components, ScrollAreaModule],
 })
 export class SearchModule {}
