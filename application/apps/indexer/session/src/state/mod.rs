@@ -3,7 +3,12 @@ use parsers;
 use processor::{
     grabber::LineRange,
     map::SearchMap,
-    search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
+    search::{
+        filter::SearchFilter,
+        searchers::{
+            linear::LineSearcher, regular::RegularSearchHolder, values::ValueSearchHolder,
+        },
+    },
 };
 use std::{
     collections::HashMap,
@@ -36,7 +41,7 @@ pub use indexes::{
 use observed::Observed;
 use searchers::{SearcherState, Searchers};
 pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
-use stypes::GrabbedElement;
+use stypes::{FilterMatch, GrabbedElement};
 pub use values::{Values, ValuesError};
 
 #[derive(Debug)]
@@ -101,6 +106,27 @@ impl SessionState {
         Ok(elements)
     }
 
+    fn transform_indexes(&self, search_indexes: &[FilterMatch]) -> Vec<RangeInclusive<u64>> {
+        let mut ranges = vec![];
+        let mut from_pos: u64 = 0;
+        let mut to_pos: u64 = 0;
+        for (i, el) in search_indexes.iter().enumerate() {
+            if i == 0 {
+                from_pos = el.index;
+            } else if to_pos + 1 != el.index {
+                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                from_pos = el.index;
+            }
+            to_pos = el.index;
+        }
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+            || (ranges.is_empty() && !search_indexes.is_empty())
+        {
+            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+        }
+        ranges
+    }
+
     fn handle_grab_search(
         &mut self,
         range: LineRange,
@@ -114,29 +140,43 @@ impl SessionState {
                 message: Some(format!("{e}")),
             })?;
         let mut elements: Vec<GrabbedElement> = vec![];
-        let mut ranges = vec![];
-        let mut from_pos: u64 = 0;
-        let mut to_pos: u64 = 0;
-        for (i, el) in indexes.iter().enumerate() {
-            if i == 0 {
-                from_pos = el.index;
-            } else if to_pos + 1 != el.index {
-                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-                from_pos = el.index;
-            }
-            to_pos = el.index;
-        }
-        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
-            || (ranges.is_empty() && !indexes.is_empty())
-        {
-            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-        }
-        for range in ranges.iter() {
+        for range in self.transform_indexes(indexes).iter() {
             let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
             elements.append(&mut session_elements);
         }
         self.indexes.naturalize(&mut elements);
         Ok(elements)
+    }
+
+    fn handle_search_nested_match(
+        &mut self,
+        filter: SearchFilter,
+        from: u64,
+    ) -> Result<Option<u64>, stypes::NativeError> {
+        let indexes = self
+            .search_map
+            .indexes_from(from)
+            .map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
+                message: Some(format!("{e}")),
+            })?;
+        let searcher = LineSearcher::new(&filter).map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::OperationSearch,
+            message: Some(format!("{e}")),
+        })?;
+        for range in self.transform_indexes(indexes).iter() {
+            if let Some(ln) = self
+                .session_file
+                .grab(&LineRange::from(range.clone()))?
+                .iter()
+                .find(|ln| searcher.is_match(&ln.content))
+            {
+                return Ok(Some(ln.pos as u64));
+            };
+        }
+        Ok(None)
     }
 
     fn handle_grab_ranges(
@@ -605,6 +645,13 @@ pub async fn run(
                     .send(state.handle_grab_search(range))
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
+                    })?;
+            }
+            Api::SearchNestedMatch((filter, from, tx_response)) => {
+                tx_response
+                    .send(state.handle_search_nested_match(filter, from))
+                    .map_err(|_| {
+                        stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
                     })?;
             }
             Api::GrabRanges((ranges, tx_response)) => {

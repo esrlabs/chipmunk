@@ -11,7 +11,10 @@ use parsers;
 use processor::{
     grabber::LineRange,
     map::{FiltersStats, ScaledDistribution},
-    search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
+    search::{
+        filter::SearchFilter,
+        searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
+    },
 };
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
 use stypes::GrabbedElement;
@@ -121,6 +124,13 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
+    SearchNestedMatch(
+        (
+            SearchFilter,
+            u64,
+            oneshot::Sender<Result<Option<u64>, stypes::NativeError>>,
+        ),
+    ),
     #[allow(clippy::type_complexity)]
     GrabRanges(
         (
@@ -215,6 +225,7 @@ impl Display for Api {
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
                 Self::GrabSearch(_) => "GrabSearch",
+                Self::SearchNestedMatch(_) => "SearchNestedMatch",
                 Self::GrabIndexed(_) => "GrabIndexed",
                 Self::SetIndexingMode(_) => "SetIndexingMode",
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
@@ -358,6 +369,16 @@ impl SessionStateAPI {
     ) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GrabSearch((range, tx)), rx)
+            .await?
+    }
+
+    pub async fn search_nested_match(
+        &self,
+        filter: SearchFilter,
+        from: u64,
+    ) -> Result<Option<u64>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(Api::SearchNestedMatch((filter, from, tx)), rx)
             .await?
     }
 

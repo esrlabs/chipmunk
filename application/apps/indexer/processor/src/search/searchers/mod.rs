@@ -17,12 +17,14 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+pub mod linear;
 pub mod regular;
 #[cfg(test)]
 pub mod tests_regular;
 #[cfg(test)]
 pub mod tests_values;
 pub mod values;
+
 #[derive(Debug)]
 pub struct BaseSearcher<State: SearchState> {
     pub file_path: PathBuf,

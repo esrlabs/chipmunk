@@ -234,6 +234,17 @@ impl Session {
             .map_err(stypes::ComputationError::NativeError)
     }
 
+    pub async fn search_nested_match(
+        &self,
+        filter: SearchFilter,
+        from: u64,
+    ) -> Result<Option<u64>, stypes::ComputationError> {
+        self.state
+            .search_nested_match(filter, from)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
     pub async fn grab_search(
         &self,
         range: LineRange,
