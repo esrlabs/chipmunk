@@ -30,23 +30,21 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Cache Rust dependencies and CLI tool
-        id: cache-cargo
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
-          cache-targets: true
-          cache-all-crates: "true"
-          workspaces: cli
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.9.0
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
       - name: Install nj-cli
-        run: cargo install nj-cli
+        run: cargo binstall nj-cli
       - name: enable corepack for yarnpkg upgrade
         run: corepack enable
       - name: Install Build CLI tool
-        if: steps.cache-cargo.outputs.cache-hit != 'true'
-        run: cargo install --path=cli
+        run: cargo install --path=cli --locked
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+          RUSTC_WRAPPER: "sccache"
       - name: install wasm-pack
-        run: cargo install wasm-pack
+        run: cargo binstall wasm-pack
       - name: JS/TS linting
         timeout-minutes: 30
         run: cargo chipmunk lint -u immediate
@@ -79,25 +77,23 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Cache Rust dependencies and CLI tool
-        id: cache-cargo
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml', 'Cargo.lock') }}
-          cache-targets: true
-          cache-all-crates: "true"
-          workspaces: cli
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.9.0
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
       - name: Install nj-cli
-        run: cargo install nj-cli
+        run: cargo binstall nj-cli
       - name: enable corepack for yarnpkg upgrade
         run: |
           npm install tslib
           corepack enable
       - name: Install Build CLI tool
-        if: steps.cache-cargo.outputs.cache-hit != 'true'
-        run: cargo install --path=cli
+        run: cargo install --path=cli --locked
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+          RUSTC_WRAPPER: "sccache"
       - name: install wasm-pack
-        run: cargo install wasm-pack
+        run: cargo binstall wasm-pack
       - name: Execute tests
         timeout-minutes: 30
         env:
