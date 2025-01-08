@@ -10,7 +10,7 @@ import {
     ProfileList,
     MapKeyValue,
 } from 'platform/types/bindings';
-import { PluginEntity } from 'platform/types/plugins';
+import { PluginEntity, PluginsList } from 'platform/types/bindings/plugins';
 
 import * as protocol from 'protocol';
 
@@ -242,12 +242,9 @@ export class Jobs extends Base {
     public getAllPlugins(): CancelablePromise<PluginEntity[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<PluginEntity[]> = this.execute(
-            (pluginsJson: string): PluginEntity[] | Error => {
-                try {
-                    return JSON.parse(pluginsJson);
-                } catch (e) {
-                    return new Error(error(e));
-                }
+            (buf: Uint8Array): any | Error => {
+                const decoded = decode<PluginsList>(buf, protocol.decodeCommandOutcomeWithString);
+                return decoded;
             },
             this.native.getAllPlugins(sequence),
             sequence,
@@ -259,12 +256,9 @@ export class Jobs extends Base {
     public getActivePlugins(): CancelablePromise<PluginEntity[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<PluginEntity[]> = this.execute(
-            (pluginsJson: string): PluginEntity[] | Error => {
-                try {
-                    return JSON.parse(pluginsJson);
-                } catch (e) {
-                    return new Error(error(e));
-                }
+            (buf: Uint8Array): PluginEntity[] | Error => {
+                const decoded = decode<PluginsList>(buf, protocol.decodeCommandOutcomeWithString);
+                return decoded;
             },
             this.native.getActivePlugins(sequence),
             sequence,
@@ -276,7 +270,9 @@ export class Jobs extends Base {
     public reloadPlugins(): CancelablePromise<void> {
         const sequence = this.sequence();
         const job: CancelablePromise<void> = this.execute(
-            (): void => {},
+            (buf: Uint8Array): any | Error => {
+                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
+            },
             this.native.reloadPlugins(sequence),
             sequence,
             'reloadPlugins',

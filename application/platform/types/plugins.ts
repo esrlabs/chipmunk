@@ -1,3 +1,4 @@
+//TODO AAZ: The whole file should be deleted here and replaced with the auto generated.
 export interface PluginEntity {
     dir_path: string;
     plugin_type: PluginType;
