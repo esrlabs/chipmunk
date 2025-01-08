@@ -196,6 +196,16 @@ impl SearchMap {
         Ok(&self.matches[*range.start() as usize..=*range.end() as usize])
     }
 
+    pub fn indexes_from(&self, from: u64) -> Result<&[stypes::FilterMatch], MapError> {
+        if from >= self.len() as u64 {
+            return Err(MapError::OutOfRange(format!(
+                "Search has: {} matches. Requested from: {from}",
+                self.len(),
+            )));
+        }
+        Ok(&self.matches[from as usize..])
+    }
+
     /// Takes position of row in main stream/file and try to find
     /// relevant nearest position in search results.
     /// For example, search results are (indexes or rows):

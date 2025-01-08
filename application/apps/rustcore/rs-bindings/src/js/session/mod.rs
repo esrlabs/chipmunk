@@ -387,6 +387,28 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn search_nested_match(
+        &self,
+        filter: WrappedSearchFilter,
+        from: i64,
+    ) -> Result<Option<i64>, stypes::ComputationError> {
+        let from = u64::try_from(from).map_err(|_| stypes::ComputationError::InvalidData)?;
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .search_nested_match(filter.as_filter(), from)
+            .await
+            .and_then(|v| {
+                v.map(|v| {
+                    i64::try_from(v).map_err(|e| {
+                        stypes::ComputationError::SearchError(format!("fail convert index: {e}"))
+                    })
+                })
+                .transpose()
+            })
+    }
+
+    #[node_bindgen]
     async fn observe(
         &self,
         options: JSArrayBuffer,
