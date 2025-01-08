@@ -171,6 +171,19 @@ impl Arbitrary for CommandOutcome<bool> {
     }
 }
 
+impl Arbitrary for CommandOutcome<PluginsList> {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop_oneof![
+            any::<PluginsList>().prop_map(CommandOutcome::Finished),
+            Just(CommandOutcome::Cancelled),
+        ]
+        .boxed()
+    }
+}
+
 test_msg!(CommandOutcome<()>, TESTS_USECASE_COUNT);
 test_msg!(CommandOutcome<bool>, TESTS_USECASE_COUNT);
 test_msg!(CommandOutcome<Option<String>>, TESTS_USECASE_COUNT);

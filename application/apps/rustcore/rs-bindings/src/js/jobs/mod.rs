@@ -224,42 +224,36 @@ impl UnboundJobs {
     async fn get_all_plugins(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_all_plugins(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
     async fn get_active_plugins(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<String>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_active_plugins(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
     async fn reload_plugins(
         &self,
         id: i64,
-    ) -> Result<CommandOutcomeWrapper<()>, ComputationErrorWrapper> {
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
         self.api
             .as_ref()
-            .ok_or(ComputationError::SessionUnavailable)?
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
             .reload_plugins(u64_from_i64(id)?)
             .await
-            .map_err(ComputationErrorWrapper)
-            .map(CommandOutcomeWrapper)
     }
 
     #[node_bindgen]
