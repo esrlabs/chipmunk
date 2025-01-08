@@ -38,6 +38,7 @@ export enum Type {
 export enum Source {
     Assign = 'Assign',
     Search = 'Search',
+    SearchNested = 'SearchNested',
     SearchValues = 'SearchValues',
     GetMap = 'GetMap',
     ExtractMatchesValues = 'ExtractMatchesValues',
@@ -90,7 +91,9 @@ export class NativeError extends Error {
         }
         if (smth instanceof Buffer || smth instanceof Uint8Array) {
             try {
-                const err = protocol.decodeComputationError(smth);
+                const err = protocol.decodeComputationError(
+                    smth instanceof Buffer ? Uint8Array.from(smth) : smth,
+                );
                 if (err === null) {
                     return new NativeError(
                         new Error(`Fail decode error`),

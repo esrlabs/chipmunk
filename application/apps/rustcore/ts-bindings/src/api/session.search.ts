@@ -66,6 +66,10 @@ export class SessionSearch {
         return this.managers.search.run(filters);
     }
 
+    public searchNestedMatch(filter: IFilter, from: number): Promise<number | undefined> {
+        return this.session.searchNestedMatch(filter, from);
+    }
+
     public values(filters: string[]): ICancelablePromise<void> {
         return this.managers.values.run(filters);
     }

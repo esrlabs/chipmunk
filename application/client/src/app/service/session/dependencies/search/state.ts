@@ -39,6 +39,7 @@ export class State {
 
     private _controller: Search;
     private _active: IFilter | undefined;
+    private _nested: { filter: IFilter | undefined; from: number } = { filter: undefined, from: 0 };
     private _hash: {
         search: string | undefined;
         charts: string | undefined;
@@ -111,6 +112,28 @@ export class State {
                     reject(err);
                 });
         });
+    }
+
+    public setNested(filter: IFilter): void {
+        this._nested.filter = obj.clone(filter);
+        this._nested.from = 0;
+    }
+
+    public setNestedPos(pos: number): void {
+        this._nested.from = pos;
+    }
+
+    public getNested(): IFilter | undefined {
+        return this._nested.filter;
+    }
+
+    public getNestedPos(): number {
+        return this._nested.from;
+    }
+
+    public dropNested(): void {
+        this._nested.filter = undefined;
+        this._nested.from = 0;
     }
 
     public filters(): Promise<void> {

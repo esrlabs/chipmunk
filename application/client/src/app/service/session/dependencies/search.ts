@@ -110,6 +110,28 @@ export class Search extends Subscriber {
         });
     }
 
+    public searchNextNested(): Promise<number | undefined> {
+        const filter = this.state().getNested();
+        if (filter === undefined) {
+            return Promise.resolve(undefined);
+        }
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Search.NextNested.Response,
+                new Requests.Search.NextNested.Request({
+                    session: this._uuid,
+                    filter,
+                    from: this.state().getNestedPos(),
+                }),
+            )
+                .then((response) => {
+                    this.state().setNestedPos(response.pos === undefined ? 0 : response.pos);
+                    resolve(response.pos);
+                })
+                .catch(reject);
+        });
+    }
+
     public extract(filters: string[]): Promise<void> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send(
