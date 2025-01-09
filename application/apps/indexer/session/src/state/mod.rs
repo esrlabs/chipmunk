@@ -152,27 +152,40 @@ impl SessionState {
         &mut self,
         filter: SearchFilter,
         from: u64,
+        rev: bool,
     ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
-        let indexes = self
-            .search_map
-            .indexes_from(from)
-            .map_err(|e| stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Grabber,
-                message: Some(format!("{e}")),
-            })?;
+        let indexes = if !rev {
+            self.search_map.indexes_from(from)
+        } else {
+            self.search_map.indexes_to_rev(from)
+        }
+        .map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
+            message: Some(format!("{e}")),
+        })?;
         let searcher = LineSearcher::new(&filter).map_err(|e| stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::OperationSearch,
             message: Some(e.to_string()),
         })?;
-        for range in self.transform_indexes(indexes).iter() {
-            if let Some(ln) = self
-                .session_file
-                .grab(&LineRange::from(range.clone()))?
-                .iter()
-                .find(|ln| searcher.is_match(&ln.content))
-            {
+        let mut indexes: std::vec::IntoIter<RangeInclusive<u64>> =
+            self.transform_indexes(indexes).into_iter();
+        while let Some(range) = if !rev {
+            indexes.next()
+        } else {
+            indexes.next_back()
+        } {
+            let grabbed = self.session_file.grab(&LineRange::from(range.clone()))?;
+            let found = if !rev {
+                grabbed.iter().find(|ln| searcher.is_match(&ln.content))
+            } else {
+                grabbed
+                    .iter()
+                    .rev()
+                    .find(|ln| searcher.is_match(&ln.content))
+            };
+            if let Some(ln) = found {
                 let Some(srch_pos) = self.search_map.get_match_index(ln.pos as u64) else {
                     return Err(stypes::NativeError {
                         severity: stypes::Severity::ERROR,
@@ -657,9 +670,9 @@ pub async fn run(
                         stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
                     })?;
             }
-            Api::SearchNestedMatch((filter, from, tx_response)) => {
+            Api::SearchNestedMatch((filter, from, rev, tx_response)) => {
                 tx_response
-                    .send(state.handle_search_nested_match(filter, from))
+                    .send(state.handle_search_nested_match(filter, from, rev))
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
                     })?;

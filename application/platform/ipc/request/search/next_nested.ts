@@ -8,13 +8,15 @@ export class Request extends SignatureRequirement {
     public session: string;
     public filter: IFilter;
     public from: number;
+    public rev: boolean;
 
-    constructor(input: { session: string; filter: IFilter; from: number }) {
+    constructor(input: { session: string; filter: IFilter; from: number; rev: boolean }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
         this.filter = validator.getAsObj(input, 'filter');
         this.from = validator.getAsValidNumber(input, 'from');
+        this.rev = validator.getAsBool(input, 'rev');
     }
 }
 

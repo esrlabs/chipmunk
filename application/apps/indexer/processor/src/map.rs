@@ -206,6 +206,16 @@ impl SearchMap {
         Ok(&self.matches[from as usize..])
     }
 
+    pub fn indexes_to_rev(&self, to: u64) -> Result<&[stypes::FilterMatch], MapError> {
+        if to >= self.len() as u64 {
+            return Err(MapError::OutOfRange(format!(
+                "Search has: {} matches. Requested from: {to}",
+                self.len(),
+            )));
+        }
+        Ok(&self.matches[..to as usize])
+    }
+
     pub fn get_match_index(&self, pos: u64) -> Option<u64> {
         self.matches.iter().enumerate().find_map(|(index, m)| {
             if m.index == pos {

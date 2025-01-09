@@ -238,9 +238,10 @@ impl Session {
         &self,
         filter: SearchFilter,
         from: u64,
+        rev: bool,
     ) -> Result<Option<(u64, u64)>, stypes::ComputationError> {
         self.state
-            .search_nested_match(filter, from)
+            .search_nested_match(filter, from, rev)
             .await
             .map_err(stypes::ComputationError::NativeError)
     }

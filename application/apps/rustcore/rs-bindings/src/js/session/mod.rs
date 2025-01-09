@@ -391,6 +391,7 @@ impl RustSession {
         &self,
         filter: WrappedSearchFilter,
         from: i64,
+        rev: bool,
     ) -> Result<Option<(i64, i64)>, stypes::ComputationError> {
         let res = self
             .session
@@ -399,6 +400,7 @@ impl RustSession {
             .search_nested_match(
                 filter.as_filter(),
                 u64::try_from(from).map_err(|_| stypes::ComputationError::InvalidData)?,
+                rev,
             )
             .await?;
         Ok(if let Some((pos, srch_pos)) = res {

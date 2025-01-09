@@ -4,7 +4,6 @@ import { Search } from '@service/session/dependencies/search';
 import { unique } from '@platform/env/sequence';
 
 import * as obj from '@platform/env/obj';
-import { FilterRequest } from './filters/request';
 
 export interface ISearchFinishEvent {
     found: number;
@@ -119,18 +118,21 @@ export class State {
     }
 
     public nested(): {
+        accept(action: Promise<[number, number] | undefined>): Promise<number | undefined>;
         next(): Promise<number | undefined>;
         prev(): Promise<number | undefined>;
         set(filter: IFilter): Promise<number | undefined>;
         nextPos(): number;
+        prevPos(): number;
         get(): IFilter | undefined;
         drop(): void;
     } {
         return {
-            next: (): Promise<number | undefined> => {
+            accept: (
+                action: Promise<[number, number] | undefined>,
+            ): Promise<number | undefined> => {
                 return new Promise((resolve, reject) => {
-                    this._controller
-                        .searchNestedMatch()
+                    action
                         .then((pos: [number, number] | undefined) => {
                             if (pos === undefined) {
                                 this._nested.from = -1;
@@ -148,8 +150,11 @@ export class State {
                         });
                 });
             },
+            next: (): Promise<number | undefined> => {
+                return this.nested().accept(this._controller.searchNestedMatch(false));
+            },
             prev: (): Promise<number | undefined> => {
-                return Promise.resolve(0);
+                return this.nested().accept(this._controller.searchNestedMatch(true));
             },
             set: (filter: IFilter): Promise<number | undefined> => {
                 this._nested.filter = obj.clone(filter);
@@ -161,6 +166,13 @@ export class State {
                     return 0;
                 } else {
                     return this._nested.from + 1;
+                }
+            },
+            prevPos: (): number => {
+                if (this._nested.from <= 0) {
+                    return this._controller.len() - 1;
+                } else {
+                    return this._nested.from - 1;
                 }
             },
             get: (): IFilter | undefined => {
