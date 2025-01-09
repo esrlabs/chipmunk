@@ -18,6 +18,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ISearchFinishEvent } from '@service/session/dependencies/search/state';
 import { Notification } from '@ui/service/notifications';
 import { IFilter } from '@platform/types/filter';
+import { Owner } from '@schema/content/row';
 
 @Component({
     selector: 'app-views-search-nested',
@@ -50,8 +51,8 @@ export class ViewSearchNested
     }
 
     public ngAfterContentInit(): void {
-        const filter = this.session.search.state().getNested();
-        this.input.set().value(filter ? filter : '');
+        const filter = this.session.search.state().nested().get();
+        this.input.set().value(filter ? filter.filter : '');
     }
 
     public ngAfterViewInit(): void {
@@ -60,14 +61,16 @@ export class ViewSearchNested
             if (this.input.value.trim() !== '') {
                 const filter = this.input.asFilter();
                 this.recent.update(filter.filter);
-                this.session.search.state().setNested(filter);
                 this.session.search
-                    .searchNextNested()
+                    .state()
+                    .nested()
+                    .set(filter)
                     .then((pos: number | undefined) => {
-                        console.log(`>>>>>>>>>>>>>>>>>>>>> next: ${pos}`);
-                    })
-                    .catch((err: Error) => {
-                        this.log().error(`Fail apply nested search: ${err.message}`);
+                        if (pos === undefined) {
+                            return;
+                        }
+                        this.session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
+                        this.session.highlights.subjects.get().update.emit();
                     });
             } else {
                 this.drop();
@@ -77,7 +80,6 @@ export class ViewSearchNested
             this.drop();
         });
         this.input.actions.edit.subscribe(() => {
-            console.log('>>>>>>>>>>>>>>>> Edit');
             // this.input.set().value(this.active.filter);
             // this.drop();
             this.detectChanges();
@@ -88,8 +90,34 @@ export class ViewSearchNested
         this.input.focus();
     }
 
+    public next() {
+        this.session.search
+            .state()
+            .nested()
+            .next()
+            .then((pos: number | undefined) => {
+                if (pos === undefined) {
+                    return;
+                }
+                this.session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
+            });
+    }
+
+    public prev() {
+        this.session.search
+            .state()
+            .nested()
+            .prev()
+            .then((pos: number | undefined) => {
+                if (pos === undefined) {
+                    return;
+                }
+                this.session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
+            });
+    }
+
     public drop() {
-        this.session.search.state().dropNested();
+        this.session.search.state().nested().drop();
     }
 }
 export interface ViewSearchNested extends IlcInterface {}

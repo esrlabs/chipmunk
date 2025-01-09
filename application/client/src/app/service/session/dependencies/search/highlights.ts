@@ -90,6 +90,7 @@ export class Highlights extends Subscriber {
             escaped,
         );
         const active = this.session.search.state().getActive();
+        const nested = this.session.search.state().nested().get();
         const processor = new ModifierProcessor([
             filtres,
             new Modifiers.ChartsModifier(this.session.search.store().charts().get(), escaped),
@@ -98,6 +99,14 @@ export class Highlights extends Subscriber {
                 ? [
                       new Modifiers.ActiveFilterModifier(
                           [new FilterRequest({ filter: active })],
+                          escaped,
+                      ),
+                  ]
+                : []),
+            ...(nested !== undefined
+                ? [
+                      new Modifiers.NestedSearchModifier(
+                          [new FilterRequest({ filter: nested })],
                           escaped,
                       ),
                   ]

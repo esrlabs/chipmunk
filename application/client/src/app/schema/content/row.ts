@@ -11,6 +11,7 @@ export enum Owner {
     Chart = 'Chart',
     Attachment = 'Attachment',
     Comment = 'Comment',
+    NestedSearch = 'NestedSearch',
 }
 
 export interface RowInputs {

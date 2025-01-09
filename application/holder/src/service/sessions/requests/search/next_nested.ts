@@ -25,7 +25,7 @@ export const handler = Requests.InjectLogger<
             stored.session
                 .getSearch()
                 .searchNestedMatch(request.filter, request.from)
-                .then((pos: number | undefined) => {
+                .then((pos: [number, number] | undefined) => {
                     resolve(
                         new Requests.Search.NextNested.Response({
                             session: session_uuid,
