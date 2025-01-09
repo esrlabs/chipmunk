@@ -243,7 +243,10 @@ export class Jobs extends Base {
         const sequence = this.sequence();
         const job: CancelablePromise<PluginEntity[]> = this.execute(
             (buf: Uint8Array): any | Error => {
-                const decoded = decode<PluginsList>(buf, protocol.decodeCommandOutcomeWithString);
+                const decoded = decode<PluginsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithPluginsList,
+                );
                 return decoded;
             },
             this.native.getAllPlugins(sequence),
@@ -257,7 +260,10 @@ export class Jobs extends Base {
         const sequence = this.sequence();
         const job: CancelablePromise<PluginEntity[]> = this.execute(
             (buf: Uint8Array): PluginEntity[] | Error => {
-                const decoded = decode<PluginsList>(buf, protocol.decodeCommandOutcomeWithString);
+                const decoded = decode<PluginsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithPluginsList,
+                );
                 return decoded;
             },
             this.native.getActivePlugins(sequence),

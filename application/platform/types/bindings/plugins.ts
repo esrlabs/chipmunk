@@ -70,7 +70,7 @@ export type PluginConfigSchemaType =
  */
 export type PluginConfigValue =
     | { type: 'Boolean'; value: boolean }
-    | { type: 'Number'; value: bigint }
+    | { type: 'Number'; value: number }
     | { type: 'Float'; value: number }
     | { type: 'Text'; value: string }
     | { type: 'Path'; value: string }

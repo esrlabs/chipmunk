@@ -1,4 +1,3 @@
-// TODO AAZ: Extend the tests with plugins types.
 // tslint:disable
 
 // We need to provide path to TypeScript types definitions
@@ -112,6 +111,25 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     ResultSearchValues: protocol.decodeResultSearchValues,
     ResultScaledDistribution: protocol.decodeResultScaledDistribution,
     DltLevelDistribution: protocol.decodeDltLevelDistribution,
+    PluginParserSettings: protocol.decodePluginParserSettings,
+    PluginParserGeneralSettings: protocol.decodePluginParserGeneralSettings,
+    PluginByteSourceSettings: protocol.decodePluginByteSourceSettings,
+    PluginByteSourceGeneralSettings: protocol.decodePluginByteSourceGeneralSettings,
+    PluginConfigItem: protocol.decodePluginConfigItem,
+    PluginConfigValue: protocol.decodePluginConfigValue,
+    PluginConfigSchemaType: protocol.decodePluginConfigSchemaType,
+    PluginConfigSchemaItem: protocol.decodePluginConfigSchemaItem,
+    PluginEntity: protocol.decodePluginEntity,
+    PluginMetadata: protocol.decodePluginMetadata,
+    PluginType: protocol.decodePluginType,
+    PluginState: protocol.decodePluginState,
+    ValidPluginInfo: protocol.decodeValidPluginInfo,
+    SemanticVersion: protocol.decodeSemanticVersion,
+    RenderOptions: protocol.decodeRenderOptions,
+    ParserRenderOptions: protocol.decodeParserRenderOptions,
+    InvalidPluginInfo: protocol.decodeInvalidPluginInfo,
+    PluginsList: protocol.decodePluginsList,
+    CommandOutcome_PluginsList: protocol.decodeCommandOutcomeWithPluginsList,
 };
 
 const OUTPUT_PATH_ENVVAR = 'CHIPMUNK_PROTOCOL_TEST_OUTPUT';

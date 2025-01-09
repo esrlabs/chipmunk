@@ -10,7 +10,7 @@ import * as Stream from '../../origin/stream/index';
 import * as obj from '../../../../env/obj';
 import * as Files from '../../types/file';
 
-import { PluginConfigItem, PluginConfigValue } from '../../../bindings/plugins';
+import { PluginConfigItem } from '../../../bindings/plugins';
 
 export interface IConfiguration {
     plugin_path: string;

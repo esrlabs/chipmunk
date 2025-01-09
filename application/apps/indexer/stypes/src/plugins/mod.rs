@@ -94,8 +94,8 @@ pub struct PluginConfigItem {
 )]
 pub enum PluginConfigValue {
     Boolean(bool),
-    Number(i64),
-    Float(f64),
+    Number(i32),
+    Float(f32),
     Text(String),
     /// A string representing a file or directory path.
     Path(PathBuf),

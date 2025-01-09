@@ -92,8 +92,8 @@ impl Arbitrary for PluginConfigValue {
 
         prop_oneof![
             any::<bool>().prop_map(PluginConfigValue::Boolean),
-            any::<i64>().prop_map(PluginConfigValue::Number),
-            any::<f64>().prop_map(PluginConfigValue::Float),
+            any::<i32>().prop_map(PluginConfigValue::Number),
+            any::<f32>().prop_map(PluginConfigValue::Float),
             any::<String>().prop_map(PluginConfigValue::Text),
             any::<PathBuf>().prop_map(PluginConfigValue::Path),
             any::<String>().prop_map(PluginConfigValue::Dropdown),
