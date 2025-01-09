@@ -3,7 +3,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
-import { ConfigSchema, ConfigValue } from '@platform/types/plugins';
 import { State as ParserState } from '../parsers/general/plugin/state';
 
 @Component({

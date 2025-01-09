@@ -2,7 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 
 import * as Requests from '@platform/ipc/request/index';
-import { PluginEntity } from '@platform/types/plugins';
+import { PluginEntity } from '@platform/types/bindings/plugins';
 
 @SetupService(services['plugins'])
 export class Service extends Implementation {

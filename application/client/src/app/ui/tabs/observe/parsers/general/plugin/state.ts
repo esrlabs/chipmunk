@@ -4,7 +4,11 @@ import { plugins as plugService } from '@service/plugins';
 import { getSafeFileName } from '@platform/types/files';
 
 import * as Plugin from '@platform/types/observe/parser/plugin';
-import { PluginEntity, PluginType, ConfigSchema, ConfigValue } from '@platform/types/plugins';
+import {
+    PluginEntity,
+    PluginConfigSchemaItem,
+    PluginConfigValue,
+} from '@platform/types/bindings/plugins';
 
 export class State extends Base {
     public parsers: PluginEntity[] = [];
@@ -22,7 +26,7 @@ export class State extends Base {
         }
 
         this.parsers = await plugService.activePlugins().then((plugins) => {
-            return plugins.filter((p) => p.plugin_type == PluginType.Parser);
+            return plugins.filter((p) => p.plugin_type === 'Parser');
         });
 
         if (this.parsers.length > 0) {
@@ -36,7 +40,7 @@ export class State extends Base {
      * @param id - ID of the configuration entry
      * @param value - Value of the configuration
      */
-    public saveConfig(id: string, value: ConfigValue) {
+    public saveConfig(id: string, value: PluginConfigValue) {
         let conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
             this.ref.log().error(`Currnet parser configuration must match plugin parser`);
@@ -61,7 +65,10 @@ export class State extends Base {
             return;
         }
 
-        const pluginPath = this.selectedParser?.state.Active?.wasm_file_path ?? '';
+        const pluginPath =
+            this.selectedParser?.state.state === 'Active'
+                ? this.selectedParser.state.info.wasm_file_path
+                : '';
 
         if (conf.configuration.plugin_path !== pluginPath) {
             conf.configuration.plugin_path = pluginPath;
@@ -74,7 +81,7 @@ export class State extends Base {
         return parser.metadata?.name ?? getSafeFileName(parser.dir_path);
     }
 
-    public getPluginConfigs(parser?: PluginEntity): ConfigSchema[] {
-        return parser?.state.Active?.config_schemas ?? [];
+    public getPluginConfigs(parser?: PluginEntity): PluginConfigSchemaItem[] {
+        return parser?.state.state === 'Active' ? parser.state.info.config_schemas : [];
     }
 }

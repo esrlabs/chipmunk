@@ -1,6 +1,6 @@
 import { Component, ChangeDetectorRef, Input } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { ConfigSchema, ConfigSchemaType } from '@platform/types/plugins';
+import { PluginConfigSchemaItem, PluginConfigSchemaType } from '@platform/types/bindings/plugins';
 import { State } from '../state';
 
 @Component({
@@ -9,10 +9,11 @@ import { State } from '../state';
     styleUrls: ['./styles.less'],
 })
 export class ConfgiSchemaEntry extends ChangesDetector {
-    @Input() public config!: ConfigSchema;
+    @Input() public config!: PluginConfigSchemaItem;
     @Input() public state!: State;
 
-    public readonly ConfigSchemaType = ConfigSchemaType;
+    //TODO AAZ: Check if this is needed.
+    // public readonly ConfigSchemaType = ConfigSchemaType;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
