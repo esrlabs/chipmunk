@@ -238,7 +238,7 @@ impl Session {
         &self,
         filter: SearchFilter,
         from: u64,
-    ) -> Result<Option<u64>, stypes::ComputationError> {
+    ) -> Result<Option<(u64, u64)>, stypes::ComputationError> {
         self.state
             .search_nested_match(filter, from)
             .await
