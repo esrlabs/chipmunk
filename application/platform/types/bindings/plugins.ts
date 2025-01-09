@@ -58,23 +58,23 @@ export type PluginConfigSchemaItem = {
  * Defines the possible input types for configuration schemas.
  */
 export type PluginConfigSchemaType =
-    | 'Boolean'
-    | 'Number'
-    | 'Float'
-    | 'Text'
-    | 'Path'
-    | { Dropdown: Array<string> };
+    | { type: 'Boolean' }
+    | { type: 'Number' }
+    | { type: 'Float' }
+    | { type: 'Text' }
+    | { type: 'Path' }
+    | { type: 'Dropdown'; value: Array<string> };
 
 /**
  * Represents the value of a configuration item.
  */
 export type PluginConfigValue =
-    | { Boolean: boolean }
-    | { Number: bigint }
-    | { Float: number }
-    | { Text: string }
-    | { Path: string }
-    | { Dropdown: string };
+    | { type: 'Boolean'; value: boolean }
+    | { type: 'Number'; value: bigint }
+    | { type: 'Float'; value: number }
+    | { type: 'Text'; value: string }
+    | { type: 'Path'; value: string }
+    | { type: 'Dropdown'; value: string };
 
 /**
  * Represents a plugin entity informations and configurations.
@@ -108,7 +108,9 @@ export type PluginParserSettings = {
 /**
  * Represents the plugins states and their corresponding informations.
  */
-export type PluginState = { Active: ValidPluginInfo } | { Invalid: InvalidPluginInfo };
+export type PluginState =
+    | { state: 'Active'; info: ValidPluginInfo }
+    | { state: 'Invalid'; info: InvalidPluginInfo };
 
 /**
  * Represents plugins main types
@@ -123,7 +125,9 @@ export type PluginsList = Array<PluginEntity>;
 /**
  * Represents the render options (columns headers, etc.) for the plugins.
  */
-export type RenderOptions = { Parser: ParserRenderOptions } | 'ByteSource';
+export type RenderOptions =
+    | { type: 'Parser'; options: ParserRenderOptions }
+    | { type: 'ByteSource' };
 
 /**
  * Represents the semantic version used in the plugins system.

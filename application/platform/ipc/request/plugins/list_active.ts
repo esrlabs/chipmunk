@@ -2,7 +2,7 @@ import { Define, Interface, SignatureRequirement } from '../declarations';
 
 import * as validator from '../../../env/obj';
 
-import { PluginEntity } from '../../../types/plugins';
+import { PluginEntity } from '../../../types/bindings/plugins';
 
 @Define({ name: 'ListActivePluginsRequest' })
 export class Request extends SignatureRequirement {}

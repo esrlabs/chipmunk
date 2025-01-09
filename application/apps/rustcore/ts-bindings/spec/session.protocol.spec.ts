@@ -1,3 +1,4 @@
+// TODO AAZ: Extend the tests with plugins types.
 // tslint:disable
 
 // We need to provide path to TypeScript types definitions

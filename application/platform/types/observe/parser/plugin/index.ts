@@ -10,11 +10,11 @@ import * as Stream from '../../origin/stream/index';
 import * as obj from '../../../../env/obj';
 import * as Files from '../../types/file';
 
-import { ConfigItem, ConfigValue } from '../../../../types/plugins';
+import { PluginConfigItem, PluginConfigValue } from '../../../bindings/plugins';
 
 export interface IConfiguration {
     plugin_path: string;
-    plugin_configs: ConfigItem[];
+    plugin_configs: PluginConfigItem[];
 }
 
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
@@ -69,21 +69,9 @@ export class Configuration
         // Plugin parsers don't need to react on changing source at the current implementation.
     }
 
-    //TODO AAZ: Remove temp function after better types.
-    getConfigVal(value: ConfigValue): any {
-        return (
-            value.Boolean ??
-            value.Text ??
-            value.Number ??
-            value.Float ??
-            value.Path ??
-            value.DropDown
-        );
-    }
-
     public override hash(): number {
         const configs = this.configuration.plugin_configs.map(
-            (item) => `${item.id}:${this.getConfigVal(item.value)}`,
+            (item) => `${item.id}:${item.value.value}`,
         );
         return str.hash(`${this.configuration.plugin_path}; ${configs.join(';')}`);
     }

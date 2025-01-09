@@ -90,7 +90,7 @@ pub struct PluginConfigItem {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts")
+    ts(export, export_to = "plugins.ts", tag = "type", content = "value")
 )]
 pub enum PluginConfigValue {
     Boolean(bool),
@@ -109,7 +109,7 @@ pub enum PluginConfigValue {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts")
+    ts(export, export_to = "plugins.ts", tag = "type", content = "value")
 )]
 pub enum PluginConfigSchemaType {
     Boolean,
@@ -183,7 +183,7 @@ pub enum PluginType {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts")
+    ts(export, export_to = "plugins.ts", tag = "state", content = "info")
 )]
 pub enum PluginState {
     Active(Box<ValidPluginInfo>),
@@ -226,7 +226,7 @@ pub struct SemanticVersion {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts")
+    ts(export, export_to = "plugins.ts", tag = "type", content = "options")
 )]
 pub enum RenderOptions {
     Parser(Box<ParserRenderOptions>),
