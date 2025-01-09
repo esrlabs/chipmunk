@@ -152,7 +152,7 @@ impl SessionState {
         &mut self,
         filter: SearchFilter,
         from: u64,
-    ) -> Result<Option<u64>, stypes::NativeError> {
+    ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
         let indexes = self
             .search_map
             .indexes_from(from)
@@ -164,7 +164,7 @@ impl SessionState {
         let searcher = LineSearcher::new(&filter).map_err(|e| stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::OperationSearch,
-            message: Some(format!("{e}")),
+            message: Some(e.to_string()),
         })?;
         for range in self.transform_indexes(indexes).iter() {
             if let Some(ln) = self
@@ -173,7 +173,17 @@ impl SessionState {
                 .iter()
                 .find(|ln| searcher.is_match(&ln.content))
             {
-                return Ok(Some(ln.pos as u64));
+                let Some(srch_pos) = self.search_map.get_match_index(ln.pos as u64) else {
+                    return Err(stypes::NativeError {
+                        severity: stypes::Severity::ERROR,
+                        kind: stypes::NativeErrorKind::OperationSearch,
+                        message: Some(format!(
+                            "Fail to find search index of stream position {}",
+                            ln.pos
+                        )),
+                    });
+                };
+                return Ok(Some((ln.pos as u64, srch_pos)));
             };
         }
         Ok(None)

@@ -206,6 +206,16 @@ impl SearchMap {
         Ok(&self.matches[from as usize..])
     }
 
+    pub fn get_match_index(&self, pos: u64) -> Option<u64> {
+        self.matches.iter().enumerate().find_map(|(index, m)| {
+            if m.index == pos {
+                Some(index as u64)
+            } else {
+                None
+            }
+        })
+    }
+
     /// Takes position of row in main stream/file and try to find
     /// relevant nearest position in search results.
     /// For example, search results are (indexes or rows):

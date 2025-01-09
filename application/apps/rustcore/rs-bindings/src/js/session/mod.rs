@@ -391,21 +391,28 @@ impl RustSession {
         &self,
         filter: WrappedSearchFilter,
         from: i64,
-    ) -> Result<Option<i64>, stypes::ComputationError> {
-        let from = u64::try_from(from).map_err(|_| stypes::ComputationError::InvalidData)?;
-        self.session
+    ) -> Result<Option<(i64, i64)>, stypes::ComputationError> {
+        let res = self
+            .session
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
-            .search_nested_match(filter.as_filter(), from)
-            .await
-            .and_then(|v| {
-                v.map(|v| {
-                    i64::try_from(v).map_err(|e| {
-                        stypes::ComputationError::SearchError(format!("fail convert index: {e}"))
-                    })
-                })
-                .transpose()
-            })
+            .search_nested_match(
+                filter.as_filter(),
+                u64::try_from(from).map_err(|_| stypes::ComputationError::InvalidData)?,
+            )
+            .await?;
+        Ok(if let Some((pos, srch_pos)) = res {
+            Some((
+                i64::try_from(pos).map_err(|e| {
+                    stypes::ComputationError::SearchError(format!("fail convert index: {e}"))
+                })?,
+                i64::try_from(srch_pos).map_err(|e| {
+                    stypes::ComputationError::SearchError(format!("fail convert index: {e}"))
+                })?,
+            ))
+        } else {
+            None
+        })
     }
 
     #[node_bindgen]

@@ -128,7 +128,7 @@ pub enum Api {
         (
             SearchFilter,
             u64,
-            oneshot::Sender<Result<Option<u64>, stypes::NativeError>>,
+            oneshot::Sender<Result<Option<(u64, u64)>, stypes::NativeError>>,
         ),
     ),
     #[allow(clippy::type_complexity)]
@@ -376,7 +376,7 @@ impl SessionStateAPI {
         &self,
         filter: SearchFilter,
         from: u64,
-    ) -> Result<Option<u64>, stypes::NativeError> {
+    ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SearchNestedMatch((filter, from, tx)), rx)
             .await?
