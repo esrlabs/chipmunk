@@ -15,9 +15,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { SearchInput } from '../input/input';
 import { List } from '@env/storages/recent/list';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { ISearchFinishEvent } from '@service/session/dependencies/search/state';
-import { Notification } from '@ui/service/notifications';
-import { IFilter } from '@platform/types/filter';
 import { Owner } from '@schema/content/row';
 
 @Component({

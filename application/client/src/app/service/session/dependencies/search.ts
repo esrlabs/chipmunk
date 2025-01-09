@@ -110,7 +110,7 @@ export class Search extends Subscriber {
         });
     }
 
-    public searchNestedMatch(): Promise<[number, number] | undefined> {
+    public searchNestedMatch(rev: boolean): Promise<[number, number] | undefined> {
         const filter = this.state().nested().get();
         if (filter === undefined) {
             return Promise.resolve(undefined);
@@ -121,7 +121,8 @@ export class Search extends Subscriber {
                 new Requests.Search.NextNested.Request({
                     session: this._uuid,
                     filter,
-                    from: this.state().nested().nextPos(),
+                    from: rev ? this.state().nested().prevPos() : this.state().nested().nextPos(),
+                    rev,
                 }),
             )
                 .then((response) => {

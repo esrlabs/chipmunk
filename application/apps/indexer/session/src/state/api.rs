@@ -124,10 +124,12 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
+    #[allow(clippy::type_complexity)]
     SearchNestedMatch(
         (
             SearchFilter,
             u64,
+            bool,
             oneshot::Sender<Result<Option<(u64, u64)>, stypes::NativeError>>,
         ),
     ),
@@ -376,9 +378,10 @@ impl SessionStateAPI {
         &self,
         filter: SearchFilter,
         from: u64,
+        rev: bool,
     ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SearchNestedMatch((filter, from, tx)), rx)
+        self.exec_operation(Api::SearchNestedMatch((filter, from, rev, tx)), rx)
             .await?
     }
 

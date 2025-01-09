@@ -1,5 +1,5 @@
 import { CancelablePromise } from 'platform/env/promise';
-import { sessions, Jobs } from '@service/sessions';
+import { sessions } from '@service/sessions';
 import { Logger } from 'platform/log';
 import { ICancelablePromise } from 'platform/env/promise';
 
@@ -24,7 +24,7 @@ export const handler = Requests.InjectLogger<
             }
             stored.session
                 .getSearch()
-                .searchNestedMatch(request.filter, request.from)
+                .searchNestedMatch(request.filter, request.from, request.rev)
                 .then((pos: [number, number] | undefined) => {
                     resolve(
                         new Requests.Search.NextNested.Response({

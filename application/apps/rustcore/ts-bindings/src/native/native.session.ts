@@ -151,6 +151,7 @@ export abstract class RustSession extends RustSessionRequiered {
     public abstract searchNestedMatch(
         filter: IFilter,
         from: number,
+        rev: boolean,
     ): Promise<[number, number] | undefined>;
 
     public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
@@ -295,6 +296,7 @@ export abstract class RustSessionNative {
             is_word: boolean;
         },
         from: number,
+        rev: boolean,
     ): Promise<[number, number] | undefined>;
 
     public abstract applySearchValuesFilters(
@@ -841,7 +843,11 @@ export class RustSessionWrapper extends RustSession {
         });
     }
 
-    public searchNestedMatch(filter: IFilter, from: number): Promise<[number, number] | undefined> {
+    public searchNestedMatch(
+        filter: IFilter,
+        from: number,
+        rev: boolean,
+    ): Promise<[number, number] | undefined> {
         return new Promise((resolve, reject) => {
             try {
                 this._native
@@ -853,6 +859,7 @@ export class RustSessionWrapper extends RustSession {
                             is_word: filter.flags.word,
                         },
                         from,
+                        rev,
                     )
                     .then(resolve)
                     .catch((err: Error) => {
