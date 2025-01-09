@@ -6,7 +6,7 @@
     >
         <input
             #searchinput
-            tabindex="1000"
+            tabindex="2000"
             type="text"
             [placeholder]="input.isEmpty() ? 'Type a Search Request' : 'Override the search request'"
             aria-label="Filter"
@@ -38,22 +38,36 @@
 </div>
 <div class="flags">
     <span
-        tabindex="11"
+        tabindex="21"
         title="Match Case"
         [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (input.flags.cases ? 'active' : 'inactive')"
         (click)="input.set().caseSensitive()"
     ></span>
     <span
-        tabindex="12"
+        tabindex="22"
         title="Match Whole Word"
         [attr.class]="'small-icon-button codicon codicon-whole-word ' + (input.flags.word ? 'active' : 'inactive')"
         (click)="input.set().wholeWord()"
     ></span>
     <span
-        tabindex="13"
+        tabindex="23"
         title="Use Regular Expression"
         [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : input.error.isValidRegex() ? 'inactive' : 'invalid')"
         (click)="input.set().regex()"
+    ></span>
+</div>
+<div class="arrows">
+    <span
+        tabindex="24"
+        title="Previos"
+        class="small-icon-button codicon codicon-arrow-up"
+        (click)="prev()"
+    ></span>
+    <span
+        tabindex="25"
+        title="Next"
+        class="small-icon-button codicon codicon-arrow-down"
+        (click)="next()"
     ></span>
 </div>
 <div class="summary">

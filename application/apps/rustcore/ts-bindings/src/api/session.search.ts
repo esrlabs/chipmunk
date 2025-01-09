@@ -66,7 +66,7 @@ export class SessionSearch {
         return this.managers.search.run(filters);
     }
 
-    public searchNestedMatch(filter: IFilter, from: number): Promise<number | undefined> {
+    public searchNestedMatch(filter: IFilter, from: number): Promise<[number, number] | undefined> {
         return this.session.searchNestedMatch(filter, from);
     }
 

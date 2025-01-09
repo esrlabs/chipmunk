@@ -4,6 +4,7 @@ import { Search } from '@service/session/dependencies/search';
 import { unique } from '@platform/env/sequence';
 
 import * as obj from '@platform/env/obj';
+import { FilterRequest } from './filters/request';
 
 export interface ISearchFinishEvent {
     found: number;
@@ -39,7 +40,10 @@ export class State {
 
     private _controller: Search;
     private _active: IFilter | undefined;
-    private _nested: { filter: IFilter | undefined; from: number } = { filter: undefined, from: 0 };
+    private _nested: { filter: IFilter | undefined; from: number } = {
+        filter: undefined,
+        from: -1,
+    };
     private _hash: {
         search: string | undefined;
         charts: string | undefined;
@@ -114,26 +118,59 @@ export class State {
         });
     }
 
-    public setNested(filter: IFilter): void {
-        this._nested.filter = obj.clone(filter);
-        this._nested.from = 0;
-    }
-
-    public setNestedPos(pos: number): void {
-        this._nested.from = pos;
-    }
-
-    public getNested(): IFilter | undefined {
-        return this._nested.filter;
-    }
-
-    public getNestedPos(): number {
-        return this._nested.from;
-    }
-
-    public dropNested(): void {
-        this._nested.filter = undefined;
-        this._nested.from = 0;
+    public nested(): {
+        next(): Promise<number | undefined>;
+        prev(): Promise<number | undefined>;
+        set(filter: IFilter): Promise<number | undefined>;
+        nextPos(): number;
+        get(): IFilter | undefined;
+        drop(): void;
+    } {
+        return {
+            next: (): Promise<number | undefined> => {
+                return new Promise((resolve, reject) => {
+                    this._controller
+                        .searchNestedMatch()
+                        .then((pos: [number, number] | undefined) => {
+                            if (pos === undefined) {
+                                this._nested.from = -1;
+                                return resolve(undefined);
+                            } else {
+                                this._nested.from = pos[1];
+                                return resolve(pos[0]);
+                            }
+                        })
+                        .catch((err: Error) => {
+                            this._controller
+                                .log()
+                                .error(`Fail apply nested search: ${err.message}`);
+                            reject(err);
+                        });
+                });
+            },
+            prev: (): Promise<number | undefined> => {
+                return Promise.resolve(0);
+            },
+            set: (filter: IFilter): Promise<number | undefined> => {
+                this._nested.filter = obj.clone(filter);
+                this._nested.from = -1;
+                return this.nested().next();
+            },
+            nextPos: (): number => {
+                if (this._nested.from >= this._controller.len()) {
+                    return 0;
+                } else {
+                    return this._nested.from + 1;
+                }
+            },
+            get: (): IFilter | undefined => {
+                return this._nested.filter;
+            },
+            drop: (): void => {
+                this._nested.filter = undefined;
+                this._nested.from = -1;
+            },
+        };
     }
 
     public filters(): Promise<void> {

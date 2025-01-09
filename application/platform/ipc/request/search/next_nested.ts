@@ -23,13 +23,13 @@ export interface Request extends Interface {}
 @Define({ name: 'SearchNextNestedResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public pos: number | undefined;
+    public pos: [number, number] | undefined;
 
-    constructor(input: { session: string; pos: number | undefined }) {
+    constructor(input: { session: string; pos: [number, number] | undefined }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.pos = validator.getAsValidNumberOrUndefined(input, 'pos');
+        this.pos = validator.getAsArrayOrUndefined(input, 'pos') as [number, number];
     }
 }
 
