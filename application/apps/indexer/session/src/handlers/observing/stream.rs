@@ -10,12 +10,12 @@ use sources::{
     socket::{tcp::TcpSource, udp::UdpSource},
 };
 
-pub async fn observe_stream<'a>(
+pub async fn observe_stream(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     uuid: &str,
     transport: &stypes::Transport,
-    parser: &'a stypes::ParserType,
+    parser: &stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     let source_id = state.add_source(uuid).await?;
