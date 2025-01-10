@@ -36,14 +36,16 @@ pub fn resolve(
                 // Install jobs are involved here too because copying the files in the after build
                 // process could delete the current files.
                 JobType::Build { .. } | JobType::Install { .. } => {
-                    let deps = flatten_targets_for_build(target.direct_deps().as_slice());
+                    let deps = target.flatten_deps();
 
                     // Jobs of the dependencies are already included in the jobs tree because we
                     // are iterating through targets and jobs in the matching order of their
                     // dependencies relations.
                     jobs_tree
                         .keys()
-                        .filter(|job_def| deps.contains(&job_def.target))
+                        .filter(|job_def| {
+                            job_def.job_type.is_build_related() && deps.contains(&job_def.target)
+                        })
                         .cloned()
                         .collect()
                 }
@@ -403,6 +405,106 @@ mod tests {
             expected,
             resolve(&[Target::Binding], JobType::Build { production })
         );
+    }
+
+    #[test]
+    /// Ensure linting ts targets will invoke all building targets involved in the dependencies tree.
+    /// And on build should wait for a lint job to start.
+    fn resolve_lint_wrapper() {
+        let production = false;
+        let expected = BTreeMap::from([
+            (
+                JobDefinition::new(Target::Shared, JobType::Install { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Core, JobType::Build { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Core,
+                    JobType::Build { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Lint),
+                vec![JobDefinition::new(
+                    Target::Protocol,
+                    JobType::Build { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Shared, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Shared,
+                    JobType::Install { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Shared, JobType::Lint),
+                vec![
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Install { production }),
+                vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                vec![
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Lint),
+                vec![
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Lint),
+                vec![JobDefinition::new(
+                    Target::Wrapper,
+                    JobType::Build { production },
+                )],
+            ),
+        ]);
+
+        assert_eq!(expected, resolve(&[Target::Wrapper], JobType::Lint));
     }
 
     #[test]
