@@ -12,6 +12,7 @@ import { NearestPosition } from '@platform/types/bindings';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
+import { Session } from '@service/session';
 
 @SetupLogger()
 export class Search extends Subscriber {
@@ -31,9 +32,9 @@ export class Search extends Subscriber {
     };
     private _state!: State;
 
-    public init(uuid: string) {
-        this.setLoggerName(`Search: ${cutUuid(uuid)}`);
-        this._uuid = uuid;
+    public init(session: Session) {
+        this.setLoggerName(`Search: ${cutUuid(session.uuid())}`);
+        this._uuid = session.uuid();
         this.register(
             Events.IpcEvent.subscribe(Events.Search.Updated.Event, (event) => {
                 if (event.session !== this._uuid) {
@@ -52,9 +53,9 @@ export class Search extends Subscriber {
             }),
         );
         this._store = {
-            filters: new FiltersStore(uuid),
-            charts: new ChartsStore(uuid),
-            disabled: new DisableStore(uuid),
+            filters: new FiltersStore(session.uuid()),
+            charts: new ChartsStore(session.uuid()),
+            disabled: new DisableStore(session.uuid()),
         };
         this.register(
             this._store.filters.subjects.get().value.subscribe(() => {
@@ -74,7 +75,7 @@ export class Search extends Subscriber {
                     });
             }),
         );
-        this._state = new State(this);
+        this._state = new State(session);
     }
 
     public destroy() {
