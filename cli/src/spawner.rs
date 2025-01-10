@@ -24,7 +24,7 @@ pub struct SpawnResult {
     pub status: ExitStatus,
     pub job: String,
     pub cmd: String,
-    pub skipped: Option<bool>,
+    pub skipped: bool,
 }
 
 impl SpawnResult {
@@ -35,7 +35,7 @@ impl SpawnResult {
             job,
             status: ExitStatus::default(),
             cmd: "Multiple file system commands".into(),
-            skipped: None,
+            skipped: false,
         }
     }
 
@@ -46,7 +46,7 @@ impl SpawnResult {
             job,
             status: ExitStatus::default(),
             cmd,
-            skipped: Some(true),
+            skipped: true,
         }
     }
 
@@ -70,11 +70,7 @@ impl SpawnResult {
         };
 
         self.cmd = format!("{} \n {}", self.cmd, other.cmd);
-        self.skipped = match (self.skipped, other.skipped) {
-            (Some(false), _) | (_, Some(false)) => Some(false),
-            (Some(true), _) | (_, Some(true)) => Some(true),
-            _ => None,
-        };
+        self.skipped = self.skipped && other.skipped;
     }
 }
 
@@ -82,8 +78,6 @@ impl SpawnResult {
 pub(crate) struct SpawnOptions {
     /// Indicates that log messages should be not shown on UI.
     pub suppress_ui: bool,
-    /// Indicates if the job is a part of build process and can be skipped.
-    pub has_skip_info: bool,
 }
 
 /// Spawns and runs a job asynchronously, updating the bar when job infos are available
@@ -93,7 +87,7 @@ pub async fn spawn(
     cwd: Option<PathBuf>,
     environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
-) -> Result<SpawnResult, anyhow::Error> {
+) -> anyhow::Result<SpawnResult> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
@@ -174,12 +168,6 @@ pub async fn spawn(
 
     let status = child.wait().await?;
 
-    let skipped = if opts.has_skip_info {
-        Some(false)
-    } else {
-        None
-    };
-
     let report_lines = tracker.get_logs(job_def).await?.unwrap_or_default();
 
     Ok(SpawnResult {
@@ -187,7 +175,7 @@ pub async fn spawn(
         status,
         job: job_def.job_title(),
         cmd: command.to_string(),
-        skipped,
+        skipped: false,
     })
 }
 
@@ -224,7 +212,7 @@ pub async fn spawn_blocking(
         status,
         job: job_def.job_title(),
         cmd: command.to_string(),
-        skipped: None,
+        skipped: false,
     })
 }
 

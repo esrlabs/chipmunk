@@ -34,7 +34,7 @@ impl JobDefinition {
         match res.as_ref() {
             Some(Ok(res)) => {
                 if res.status.success() {
-                    if res.skipped.is_some_and(|skipped| skipped) {
+                    if res.skipped {
                         tracker.success(self, "skipped".into());
                     } else {
                         tracker.success(self, String::default());
@@ -69,7 +69,7 @@ impl JobDefinition {
                 return self.target.after_build(production, skip).await
             }
             JobType::Clean => self.target.reset().await,
-            JobType::Test { production } => return self.target.test(production).await,
+            JobType::Test { production } => return self.target.test(production, skip).await,
             JobType::Run { .. } => return None,
         };
 

@@ -46,7 +46,6 @@ pub fn get_test_cmds() -> Vec<TestSpawnCommand> {
             Some(SpawnOptions {
                 // The output of this command causes a weird behavior on the progress bars.
                 suppress_ui: true,
-                ..Default::default()
             }),
         ),
     ]
