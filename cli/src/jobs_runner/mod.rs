@@ -180,7 +180,6 @@ fn spawn_jobs(
         // Skip on dependencies failing, no matter what the job is.
         let skip = if deps_fail {
             true
-            // Skip
         } else if job_def.job_type.is_build_related() && !jobs_state.is_release_build() {
             // Check if target is already registered and checked
             if let Some(&chksm_compare) = checksum_compare_map.get(&job_def.target) {

@@ -267,7 +267,9 @@ impl Target {
         }
 
         let mut resolved_targets = BTreeSet::new();
-        flatten_rec(self, &mut resolved_targets);
+        for target in self.direct_deps() {
+            flatten_rec(target, &mut resolved_targets);
+        }
 
         resolved_targets
     }

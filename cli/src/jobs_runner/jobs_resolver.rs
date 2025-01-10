@@ -99,7 +99,7 @@ fn flatten_jobs(main_job: JobType) -> BTreeSet<JobType> {
 
 /// Returns all involved targets for the given target for build tasks
 fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
-    let mut resolved_targets = BTreeSet::new();
+    let mut resolved_targets = BTreeSet::from_iter(targets.iter().copied());
 
     for target in targets {
         resolved_targets.extend(target.flatten_deps());
@@ -139,7 +139,7 @@ fn is_job_involved(
                     // build the core since it's needed for their linting jobs.
                     _ => original_targets
                         .iter()
-                        .any(|t| t.direct_deps().contains(&Target::Core)),
+                        .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
                 Target::Cli | Target::Updater => matches!(current_job, JobType::Lint),
@@ -168,7 +168,7 @@ fn is_job_involved(
                     // build the core since it's needed for their testing jobs.
                     _ => original_targets
                         .iter()
-                        .any(|t| t.direct_deps().contains(&Target::Core)),
+                        .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
                 Target::Cli | Target::Updater => matches!(current_job, JobType::Test { .. }),
@@ -415,8 +415,15 @@ mod tests {
                 vec![],
             ),
             (
-                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                JobDefinition::new(Target::Core, JobType::Build { production }),
                 vec![],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Core,
+                    JobType::Build { production },
+                )],
             ),
             (
                 JobDefinition::new(Target::Shared, JobType::Build { production }),
@@ -428,6 +435,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Binding, JobType::Install { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
@@ -436,6 +444,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Binding, JobType::Build { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
@@ -452,6 +461,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Wrapper, JobType::Build { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
