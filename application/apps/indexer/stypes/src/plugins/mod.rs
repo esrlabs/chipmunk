@@ -26,7 +26,7 @@ pub struct PluginParserSettings {
     pub plugin_path: PathBuf,
     //Check if Default implementation should be removed on General Setting once this temp is done.
     //TODO AAZ: Temp solution.
-    #[cfg_attr(feature = "rustcore", serde(default))]
+    #[serde(default)]
     pub general_settings: PluginParserGeneralSettings,
     pub plugin_configs: Vec<PluginConfigItem>,
 }
@@ -90,7 +90,7 @@ pub struct PluginConfigItem {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts", tag = "type", content = "value")
+    ts(export, export_to = "plugins.ts")
 )]
 pub enum PluginConfigValue {
     Boolean(bool),
@@ -109,7 +109,7 @@ pub enum PluginConfigValue {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts", tag = "type", content = "value")
+    ts(export, export_to = "plugins.ts")
 )]
 pub enum PluginConfigSchemaType {
     Boolean,
@@ -183,7 +183,7 @@ pub enum PluginType {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts", tag = "state", content = "info")
+    ts(export, export_to = "plugins.ts")
 )]
 pub enum PluginState {
     Active(Box<ValidPluginInfo>),
@@ -226,7 +226,7 @@ pub struct SemanticVersion {
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "plugins.ts", tag = "type", content = "options")
+    ts(export, export_to = "plugins.ts")
 )]
 pub enum RenderOptions {
     Parser(Box<ParserRenderOptions>),

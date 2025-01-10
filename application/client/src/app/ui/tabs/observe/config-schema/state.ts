@@ -8,10 +8,8 @@ export class State {
     public schemas: PluginConfigSchemaItem[] = [];
 
     public reload(parent: ParserState) {
-        this.schemas =
-            parent.selectedParser?.state.state === 'Active'
-                ? parent.selectedParser.state.info.config_schemas
-                : [];
+        const state = parent.selectedParser?.state;
+        this.schemas = state && 'Active' in state ? state.Active.config_schemas : [];
         this._parserState = parent;
     }
 

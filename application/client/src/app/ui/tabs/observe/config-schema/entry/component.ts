@@ -12,9 +12,6 @@ export class ConfgiSchemaEntry extends ChangesDetector {
     @Input() public config!: PluginConfigSchemaItem;
     @Input() public state!: State;
 
-    //TODO AAZ: Check if this is needed.
-    // public readonly ConfigSchemaType = ConfigSchemaType;
-
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }

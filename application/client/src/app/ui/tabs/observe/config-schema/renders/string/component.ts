@@ -28,19 +28,18 @@ export class ConfigSchemaString extends ChangesDetector implements AfterContentI
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['value']) {
             this.state.saveConfig(this.config.id, {
-                type: 'Text',
-                value: changes['value'].currentValue,
+                Text: changes['value'].currentValue,
             });
         }
     }
 
     ngAfterContentInit(): void {
         this.value = '';
-        this.state.saveConfig(this.config.id, { type: 'Text', value: this.value });
+        this.state.saveConfig(this.config.id, { Text: this.value });
     }
 
     public ngOnInputChange(event: Event): void {
         const target = event.target as HTMLInputElement;
-        this.state.saveConfig(this.config.id, { type: 'Text', value: target?.value ?? '' });
+        this.state.saveConfig(this.config.id, { Text: target?.value ?? '' });
     }
 }

@@ -69,10 +69,50 @@ export class Configuration
         // Plugin parsers don't need to react on changing source at the current implementation.
     }
 
+    /**
+     * Extract the value from the configuration value item depending on its kind.
+     */
+    getConfigValue(value: PluginConfigValue): string | number | boolean {
+        if ('Boolean' in value) {
+            return value.Boolean;
+        }
+
+        if ('Number' in value) {
+            return value.Number;
+        }
+
+        if ('Float' in value) {
+            return value.Float;
+        }
+
+        if ('Text' in value) {
+            return value.Text;
+        }
+
+        if ('Path' in value) {
+            return value.Path;
+        }
+
+        if ('Dropdown' in value) {
+            return value.Dropdown;
+        }
+
+        assertNever(value);
+    }
+
     public override hash(): number {
         const configs = this.configuration.plugin_configs.map(
-            (item) => `${item.id}:${item.value.value}`,
+            (item) => `${item.id}:${this.getConfigValue(item.value)}`,
         );
         return str.hash(`${this.configuration.plugin_path}; ${configs.join(';')}`);
     }
+}
+
+//TODO AAZ: Move to central position.
+/**
+ * Helper function to ensure the remaining item is never for exhausting matching at compile time,
+ * and throwing an unhandled error at runtime.
+ */
+function assertNever(nev: never): never {
+    throw new Error(`Unhandled case: ${JSON.stringify(nev)}`);
 }

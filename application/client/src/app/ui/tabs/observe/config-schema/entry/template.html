@@ -1,12 +1,12 @@
 <app-tabs-config-schema-bool
-    *ngIf="config.input_type.type === 'Boolean'"
+    *ngIf="config.input_type === 'Boolean'"
     [config]="config"
     [state]="state"
 ></app-tabs-config-schema-bool>
 
 <!-- TODO AAZ: For now we are rendering everything expect boolean as string -->
 <app-tabs-config-schema-string
-    *ngIf="config.input_type.type !== 'Boolean'"
+    *ngIf="config.input_type !== 'Boolean'"
     [config]="config"
     [state]="state"
 ></app-tabs-config-schema-string>

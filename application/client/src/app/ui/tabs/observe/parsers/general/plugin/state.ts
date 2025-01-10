@@ -65,10 +65,8 @@ export class State extends Base {
             return;
         }
 
-        const pluginPath =
-            this.selectedParser?.state.state === 'Active'
-                ? this.selectedParser.state.info.wasm_file_path
-                : '';
+        const state = this.selectedParser?.state;
+        const pluginPath = state && 'Active' in state ? state.Active.wasm_file_path : '';
 
         if (conf.configuration.plugin_path !== pluginPath) {
             conf.configuration.plugin_path = pluginPath;
@@ -82,6 +80,7 @@ export class State extends Base {
     }
 
     public getPluginConfigs(parser?: PluginEntity): PluginConfigSchemaItem[] {
-        return parser?.state.state === 'Active' ? parser.state.info.config_schemas : [];
+        const state = this.selectedParser?.state;
+        return state && 'Active' in state ? state.Active.config_schemas : [];
     }
 }
