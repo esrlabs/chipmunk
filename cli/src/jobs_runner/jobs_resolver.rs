@@ -36,7 +36,7 @@ pub fn resolve(
                 // Install jobs are involved here too because copying the files in the after build
                 // process could delete the current files.
                 JobType::Build { .. } | JobType::Install { .. } => {
-                    let deps = flatten_targets_for_build(target.deps().as_slice());
+                    let deps = flatten_targets_for_build(target.direct_deps().as_slice());
 
                     // Jobs of the dependencies are already included in the jobs tree because we
                     // are iterating through targets and jobs in the matching order of their
@@ -99,19 +99,10 @@ fn flatten_jobs(main_job: JobType) -> BTreeSet<JobType> {
 
 /// Returns all involved targets for the given target for build tasks
 fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
-    fn flatten_rec(target: Target, involved_targets: &mut BTreeSet<Target>) {
-        if !involved_targets.insert(target) {
-            return;
-        }
-        for involved_target in target.deps() {
-            flatten_rec(involved_target, involved_targets);
-        }
-    }
-
     let mut resolved_targets = BTreeSet::new();
 
     for target in targets {
-        flatten_rec(*target, &mut resolved_targets);
+        resolved_targets.extend(target.flatten_deps());
     }
 
     resolved_targets
@@ -148,7 +139,7 @@ fn is_job_involved(
                     // build the core since it's needed for their linting jobs.
                     _ => original_targets
                         .iter()
-                        .any(|t| t.deps().contains(&Target::Core)),
+                        .any(|t| t.direct_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
                 Target::Cli | Target::Updater => matches!(current_job, JobType::Lint),
@@ -177,7 +168,7 @@ fn is_job_involved(
                     // build the core since it's needed for their testing jobs.
                     _ => original_targets
                         .iter()
-                        .any(|t| t.deps().contains(&Target::Core)),
+                        .any(|t| t.direct_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
                 Target::Cli | Target::Updater => matches!(current_job, JobType::Test { .. }),

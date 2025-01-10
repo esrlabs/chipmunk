@@ -12,7 +12,7 @@ pub fn print_dependencies_targets() {
     println!("digraph dependencies {{");
 
     for target in Target::all() {
-        for dep in target.deps() {
+        for dep in target.direct_deps() {
             println!(r#"  "{target}"  -> "{dep}""#);
         }
     }
