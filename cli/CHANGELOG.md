@@ -1,3 +1,12 @@
+# 0.3.1
+
+## Changes:
+
+* Add rust core as dependency for protocol and rs-bindings to ensure they will be rebuilt on changes in rust core.
+* Skip build, test, lint job if any of the build related jobs of their all dependencies failed.
+* Build related jobs for linting and testing can be skipped if possible.
+* Update dependencies
+
 # 0.3.0
 
 ## Changes:
