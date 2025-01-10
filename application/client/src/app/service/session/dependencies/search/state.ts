@@ -1,7 +1,8 @@
 import { IFilter } from '@platform/types/filter';
 import { Subjects, Subject } from '@platform/env/subscription';
-import { Search } from '@service/session/dependencies/search';
 import { unique } from '@platform/env/sequence';
+import { Session } from '@service/session';
+import { Owner } from '@schema/content/row';
 
 import * as obj from '@platform/env/obj';
 
@@ -25,6 +26,7 @@ export class State {
             start: Subject<void>;
             finish: Subject<IChartsFinishEvent>;
         }>;
+        nested: Subject<boolean>;
     } = {
         search: new Subjects({
             active: new Subject<IFilter | undefined>(),
@@ -35,13 +37,15 @@ export class State {
             start: new Subject<void>(),
             finish: new Subject<IChartsFinishEvent>(),
         }),
+        nested: new Subject<boolean>(),
     };
 
-    private _controller: Search;
+    private _session: Session;
     private _active: IFilter | undefined;
-    private _nested: { filter: IFilter | undefined; from: number } = {
+    private _nested: { filter: IFilter | undefined; from: number; visible: boolean } = {
         filter: undefined,
         from: -1,
+        visible: false,
     };
     private _hash: {
         search: string | undefined;
@@ -66,8 +70,8 @@ export class State {
         },
     };
 
-    constructor(search: Search) {
-        this._controller = search;
+    constructor(session: Session) {
+        this._session = session;
     }
 
     public destroy() {
@@ -92,11 +96,11 @@ export class State {
             this._active = obj.clone(filter);
             this._hash.search = undefined;
             const finish = this.lifecycle().search();
-            this._controller
+            this._session.search
                 .drop()
                 .then(() => {
                     this.subjects.search.get().active.emit(obj.clone(filter));
-                    this._controller
+                    this._session.search
                         .search([filter])
                         .then((found: number) => {
                             finish({ found });
@@ -126,6 +130,9 @@ export class State {
         prevPos(): number;
         get(): IFilter | undefined;
         drop(): void;
+        update(pos: number | undefined): void;
+        toggle(): void;
+        visible(): boolean;
     } {
         return {
             accept: (
@@ -136,14 +143,16 @@ export class State {
                         .then((pos: [number, number] | undefined) => {
                             if (pos === undefined) {
                                 this._nested.from = -1;
+                                this.nested().update(undefined);
                                 return resolve(undefined);
                             } else {
                                 this._nested.from = pos[1];
+                                this.nested().update(pos[0]);
                                 return resolve(pos[0]);
                             }
                         })
                         .catch((err: Error) => {
-                            this._controller
+                            this._session.search
                                 .log()
                                 .error(`Fail apply nested search: ${err.message}`);
                             reject(err);
@@ -151,10 +160,10 @@ export class State {
                 });
             },
             next: (): Promise<number | undefined> => {
-                return this.nested().accept(this._controller.searchNestedMatch(false));
+                return this.nested().accept(this._session.search.searchNestedMatch(false));
             },
             prev: (): Promise<number | undefined> => {
-                return this.nested().accept(this._controller.searchNestedMatch(true));
+                return this.nested().accept(this._session.search.searchNestedMatch(true));
             },
             set: (filter: IFilter): Promise<number | undefined> => {
                 this._nested.filter = obj.clone(filter);
@@ -162,7 +171,7 @@ export class State {
                 return this.nested().next();
             },
             nextPos: (): number => {
-                if (this._nested.from >= this._controller.len()) {
+                if (this._nested.from >= this._session.search.len()) {
                     return 0;
                 } else {
                     return this._nested.from + 1;
@@ -170,7 +179,7 @@ export class State {
             },
             prevPos: (): number => {
                 if (this._nested.from <= 0) {
-                    return this._controller.len() - 1;
+                    return this._session.search.len() - 1;
                 } else {
                     return this._nested.from - 1;
                 }
@@ -181,6 +190,22 @@ export class State {
             drop: (): void => {
                 this._nested.filter = undefined;
                 this._nested.from = -1;
+                this.nested().update(undefined);
+            },
+            toggle: (): void => {
+                this._nested.visible = !this._nested.visible;
+                this.subjects.nested.emit(this._nested.visible);
+                if (!this._nested.visible) {
+                    this.nested().drop();
+                }
+            },
+            update: (pos: number | undefined): void => {
+                this._session.highlights.subjects.get().update.emit();
+                pos !== undefined &&
+                    this._session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
+            },
+            visible: (): boolean => {
+                return this._nested.visible;
             },
         };
     }
@@ -194,10 +219,10 @@ export class State {
         }
         return new Promise((resolve, reject) => {
             const finish = this.lifecycle().search();
-            this._controller
+            this._session.search
                 .drop()
                 .then(() => {
-                    const filters = this._controller
+                    const filters = this._session.search
                         .store()
                         .filters()
                         .get()
@@ -208,7 +233,7 @@ export class State {
                         finish({ found: 0 });
                         return resolve();
                     }
-                    this._controller
+                    this._session.search
                         .search(filters)
                         .then((found: number) => {
                             finish({ found: found });
@@ -232,7 +257,7 @@ export class State {
         }
         return new Promise((resolve, reject) => {
             const finish = this.lifecycle().charts();
-            const charts = this._controller
+            const charts = this._session.search
                 .store()
                 .charts()
                 .get()
@@ -243,7 +268,7 @@ export class State {
             //     finish({});
             //     return resolve();
             // }
-            this._controller
+            this._session.search
                 .extract(charts)
                 .then(() => {
                     finish({});
@@ -337,7 +362,7 @@ export class State {
         return {
             search: {
                 get: (): string => {
-                    return this._controller
+                    return this._session.search
                         .store()
                         .filters()
                         .get()
@@ -354,7 +379,7 @@ export class State {
             },
             charts: {
                 get: (): string => {
-                    return this._controller
+                    return this._session.search
                         .store()
                         .charts()
                         .get()

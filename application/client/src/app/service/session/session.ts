@@ -194,7 +194,7 @@ export class Session extends Base {
                     this.indexed.init(this._uuid);
                     this.bookmarks.init(this._uuid, this.stream, this.cursor);
                     this.comments.init(this);
-                    this.search.init(this._uuid);
+                    this.search.init(this);
                     this.exporter.init(this._uuid, this.stream, this.indexed);
                     this.observed.init(this);
                     this.attachments.init(this._uuid);

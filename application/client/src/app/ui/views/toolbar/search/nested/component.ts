@@ -15,7 +15,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { SearchInput } from '../input/input';
 import { List } from '@env/storages/recent/list';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Owner } from '@schema/content/row';
 
 @Component({
     selector: 'app-views-search-nested',
@@ -66,8 +65,6 @@ export class ViewSearchNested
                         if (pos === undefined) {
                             return;
                         }
-                        this.session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
-                        this.session.highlights.subjects.get().update.emit();
                     });
             } else {
                 this.drop();
@@ -77,8 +74,6 @@ export class ViewSearchNested
             this.drop();
         });
         this.input.actions.edit.subscribe(() => {
-            // this.input.set().value(this.active.filter);
-            // this.drop();
             this.detectChanges();
         });
         this.input.actions.recent.subscribe(() => {
@@ -92,11 +87,8 @@ export class ViewSearchNested
             .state()
             .nested()
             .next()
-            .then((pos: number | undefined) => {
-                if (pos === undefined) {
-                    return;
-                }
-                this.session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
+            .catch((err: Error) => {
+                this.log().error(`Fail go to next nested match: ${err.message}`);
             });
     }
 
@@ -105,16 +97,17 @@ export class ViewSearchNested
             .state()
             .nested()
             .prev()
-            .then((pos: number | undefined) => {
-                if (pos === undefined) {
-                    return;
-                }
-                this.session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
+            .catch((err: Error) => {
+                this.log().error(`Fail go to prev nested match: ${err.message}`);
             });
     }
 
     public drop() {
         this.session.search.state().nested().drop();
+    }
+
+    public close() {
+        this.session.search.state().nested().toggle();
     }
 }
 export interface ViewSearchNested extends IlcInterface {}
