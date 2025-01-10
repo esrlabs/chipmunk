@@ -148,6 +148,37 @@ impl SessionState {
         Ok(elements)
     }
 
+    /// Handles "nested" search functionality.
+    /// A "nested" search refers to filtering matches within the primary search results.
+    ///
+    /// # Parameters
+    ///
+    /// * `filter` - The search filter used to specify the criteria for the nested search.
+    /// * `from` - The starting position (within the primary search results) for the nested search.
+    /// * `rev` - Specifies the direction of the search:
+    ///     * `true` - Perform the search in reverse.
+    ///     * `false` - Perform the search in forward order.
+    ///
+    /// # Process
+    ///
+    /// 1. Starting from the `from` position, determine the ranges of lines in the original session file
+    ///    that correspond to the primary search results.
+    /// 2. Create a line-based search utility (`LineSearcher`) using the provided `filter`.
+    /// 3. Iterate through each range, reading and checking lines for matches.
+    /// 4. Stop the search as soon as a match is found and return the result.
+    ///
+    /// # Returns
+    ///
+    /// If a match is found:
+    /// * `Some((search_result_line_index, session_file_line_index))` - A tuple containing:
+    ///     - The line index within the search results.
+    ///     - The corresponding line index in the session file.
+    ///
+    /// If no match is found:
+    /// * `None`
+    ///
+    /// On error:
+    /// * `Err(stypes::NativeError)` - Describes the error encountered during the process.
     fn handle_search_nested_match(
         &mut self,
         filter: SearchFilter,
