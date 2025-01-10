@@ -57,7 +57,7 @@ impl PluginByteSource {
 
         let mut store = Store::new(engine, ByteSourcePluginState::new(ctx, resource_table));
 
-        let (plugin_bindings, _instance) =
+        let plugin_bindings =
             BytesourcePlugin::instantiate_async(&mut store, &component, &linker).await?;
 
         Ok(Self {

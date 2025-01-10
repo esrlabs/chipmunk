@@ -56,7 +56,7 @@ impl PluginParser {
 
         let mut store = Store::new(engine, ParserPluginState::new(ctx, resource_table));
 
-        let (plugin_bindings, _instance) =
+        let plugin_bindings =
             ParsePlugin::instantiate_async(&mut store, &component, &linker).await?;
 
         Ok(Self {
