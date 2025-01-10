@@ -169,8 +169,14 @@ fn spawn_jobs(
         }
 
         let skip = if job_def.job_type.can_be_skipped() && !jobs_state.is_release_build() {
-            // Skip if any prequel job of this target has failed
-            if failed_jobs.contains(&job_def.target) {
+            // Skip if any prequel job of this target and its dependencies has failed
+            if job_def
+                .target
+                .deps()
+                .into_iter()
+                .chain(std::iter::once(job_def.target))
+                .any(|t| failed_jobs.contains(&t))
+            {
                 true
             }
             // Check if target is already registered and checked
