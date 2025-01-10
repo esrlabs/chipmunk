@@ -106,6 +106,18 @@ impl SessionState {
         Ok(elements)
     }
 
+    /// Transforms search match data into ranges of line numbers in the original session file.
+    ///
+    /// This function is used to retrieve the line number ranges in the session file based on the
+    /// search results. These ranges are necessary for reading data related to the search results.
+    ///
+    /// # Parameters
+    ///
+    /// * `search_indexes` - A slice of `FilterMatch` instances containing information about search matches.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<RangeInclusive<u64>>` - A vector of inclusive ranges representing line numbers in the session file.
     fn transform_indexes(&self, search_indexes: &[FilterMatch]) -> Vec<RangeInclusive<u64>> {
         let mut ranges = vec![];
         let mut from_pos: u64 = 0;
