@@ -112,7 +112,8 @@
           "4": "Test 4. Assign & single not case sensitive search",
           "5": "Test 5. Assign & single word search",
           "6": "Test 6. Assign & single search with crossing terms",
-          "7": "Test 7. Assign & repeated search"
+          "7": "Test 7. Assign & repeated search",
+          "8": "Test 8. Assign & search and nested search"
         }
       }
     },
