@@ -244,13 +244,11 @@ impl Target {
     /// Provides the target which this target depend on
     pub fn deps(self) -> Vec<Target> {
         match self {
-            Target::Core
-            | Target::Cli
-            | Target::Shared
-            | Target::Wasm
-            | Target::Updater
-            | Target::Protocol => Vec::new(),
-            Target::Binding => vec![Target::Shared, Target::Protocol],
+            Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
+                Vec::new()
+            }
+            Target::Protocol => vec![Target::Core],
+            Target::Binding => vec![Target::Shared, Target::Core, Target::Protocol],
             Target::Wrapper => vec![Target::Binding, Target::Shared, Target::Protocol],
             Target::Client => vec![Target::Shared, Target::Wasm, Target::Protocol],
             Target::App => vec![Target::Wrapper, Target::Client, Target::Updater],
