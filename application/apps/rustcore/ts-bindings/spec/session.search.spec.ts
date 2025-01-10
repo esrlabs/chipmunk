@@ -786,4 +786,60 @@ describe('Search', function () {
             });
         });
     });
+
+    it(config.regular.list[8], function () {
+        return runners.withSession(config.regular, 8, async (logger, done, comps) => {
+            const tmpobj = createSampleFile(
+                5000,
+                logger,
+                (i: number) =>
+                    `[${i}]:: ${
+                        i % 100 === 0 || i <= 5
+                            ? `some match line ${i % 500 === 0 ? 'Nested' : ''} data\n`
+                            : `some line ${i % 500 === 0 ? 'Nested' : ''} data\n`
+                    }`,
+            );
+            comps.stream
+                .observe(
+                    new Factory.File()
+                        .asText()
+                        .type(Factory.FileType.Text)
+                        .file(tmpobj.name)
+                        .get()
+                        .sterilized(),
+                )
+                .on('processing', () => {
+                    comps.search
+                        .search([
+                            {
+                                filter: 'match',
+                                flags: { reg: true, word: false, cases: false },
+                            },
+                        ])
+                        .then((_) => {
+                            comps.search
+                                .searchNestedMatch(
+                                    {
+                                        filter: 'Nested',
+                                        flags: { reg: true, cases: false, word: false },
+                                    },
+                                    10,
+                                    false,
+                                )
+                                .then((pos: [number, number] | undefined) => {
+                                    expect((pos as [number, number])[0]).toBe(500);
+                                    expect((pos as [number, number])[1]).toBe(10);
+                                    finish(comps.session, done);
+                                })
+                                .catch(finish.bind(null, comps.session, done));
+                        })
+                        .catch(finish.bind(null, comps.session, done));
+                })
+                .catch(finish.bind(null, comps.session, done));
+            let searchStreamUpdated = false;
+            comps.events.SearchUpdated.subscribe((event) => {
+                searchStreamUpdated = true;
+            });
+        });
+    });
 });
