@@ -13,6 +13,11 @@ use plugins_api::{
 
 const LOSSY_ID: &str = "lossy";
 const PREFIX_ID: &str = "prefix";
+// TODO AAZ: Remove after debugging.
+const NUMBER_ID: &str = "num_idx";
+const FLOAT_ID: &str = "float_idx";
+const PATH_ID: &str = "path_idx";
+const DROPDOWN_ID: &str = "dropdown_idx";
 
 /// Simple struct that converts the given bytes into UTF-8 Strings line by line.
 ///
@@ -76,6 +81,35 @@ impl Parser for StringTokenizer {
                 "Custom Prefix",
                 Some("Specify custom prefix for each line"),
                 ConfigSchemaType::Text,
+            ),
+            ConfigSchemaItem::new(
+                NUMBER_ID,
+                "Example Number",
+                Some("Demonstrate configuration item with integer"),
+                ConfigSchemaType::Number,
+            ),
+            ConfigSchemaItem::new(
+                FLOAT_ID,
+                "Example Float",
+                Some("Demonstrate configuration item with flaoting number"),
+                ConfigSchemaType::Float,
+            ),
+            ConfigSchemaItem::new(
+                PATH_ID,
+                "Example Path",
+                Some("Demonstrate configuration item with one path"),
+                ConfigSchemaType::Path,
+            ),
+            ConfigSchemaItem::new(
+                DROPDOWN_ID,
+                "Example Drop-Down",
+                Some("Demonstrate configuration item with drop-down"),
+                ConfigSchemaType::Dropdown(vec![
+                    String::from("Option 1"),
+                    String::from("Option 2"),
+                    String::from("Option 3"),
+                    String::from("Option 4"),
+                ]),
             ),
         ]
     }
@@ -155,6 +189,22 @@ impl Parser for StringTokenizer {
                 return Err(InitError::Config(err_msg));
             }
         };
+
+        for item in plugins_configs.iter() {
+            match item.id.as_str() {
+                NUMBER_ID => println!("Number config value is: {:?}", item.value),
+                FLOAT_ID => println!("Float config value is: {:?}", item.value),
+                PATH_ID => println!("Path config value is: {:?}", item.value),
+                DROPDOWN_ID => println!("Drop-Down config value is: {:?}", item.value),
+                LOSSY_ID | PREFIX_ID => {
+                    // Already handled above.
+                }
+                unknown => {
+                    let error_msg = format!("Unknow configuration ID: {unknown}");
+                    return Err(InitError::Config(error_msg));
+                }
+            }
+        }
 
         // *** Plugin initialization ***
         Ok(Self { lossy, prefix })
