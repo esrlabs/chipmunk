@@ -7,6 +7,7 @@ import { SetupBase } from '../../bases/serial/component';
     selector: 'app-transport-serial',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Setup extends SetupBase implements AfterContentInit, OnDestroy {

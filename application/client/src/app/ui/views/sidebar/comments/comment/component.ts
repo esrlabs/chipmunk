@@ -29,6 +29,7 @@ import * as obj from '@platform/env/obj';
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Initial()
 @Ilc()

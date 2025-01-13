@@ -7,6 +7,7 @@ import { SetupBase } from '../../bases/udp/component';
     selector: 'app-transport-udp',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Setup extends SetupBase implements OnDestroy, AfterContentInit {

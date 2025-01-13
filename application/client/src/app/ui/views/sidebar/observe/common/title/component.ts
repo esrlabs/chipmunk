@@ -10,6 +10,7 @@ export interface IButton {
     selector: 'app-views-observed-list-title',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Title {

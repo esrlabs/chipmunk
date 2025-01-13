@@ -9,12 +9,9 @@ import { TabContentComponent } from './content/component';
 
 export { TabsComponent, TabsListComponent, TabContentComponent };
 
-const entryComponents = [TabsListComponent, TabContentComponent, TabsComponent];
-const components = [TabsComponent, ...entryComponents];
-
 @NgModule({
     imports: [CommonModule, ContainersModule, MatIconModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [TabsListComponent, TabContentComponent, TabsComponent],
+    exports: [TabsComponent],
 })
 export class TabsModule {}

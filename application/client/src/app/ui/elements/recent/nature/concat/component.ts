@@ -9,6 +9,7 @@ import * as $ from '@platform/types/observe';
     selector: 'app-recent-nature-concat',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

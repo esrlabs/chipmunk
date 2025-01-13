@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, AfterContentInit, } from '@angular/core';
+import { Component, ChangeDetectorRef, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { SetupBase } from '../../bases/tcp/component';
 
@@ -6,10 +6,10 @@ import { SetupBase } from '../../bases/tcp/component';
     selector: 'app-tcp-quicksetup',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class QuickSetup extends SetupBase implements AfterContentInit {
-
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }

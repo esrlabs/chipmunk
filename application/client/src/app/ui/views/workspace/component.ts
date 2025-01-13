@@ -14,6 +14,7 @@ import { Notification } from '@ui/service/notifications';
     selector: 'app-views-workspace',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

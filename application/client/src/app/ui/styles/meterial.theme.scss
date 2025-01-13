@@ -1,17 +1,46 @@
 @use '@angular/material' as mat;
 
-@include mat.core();
+// @include mat.core();
 
-$my-primary: mat.define-palette(mat.$gray-palette, 500);
-$my-accent: mat.define-palette(mat.$gray-palette, A200, A100, A400);
+// $my-primary: mat.define-color-palette((
+//   50: #e3f2fd,
+//   100: #bbdefb,
+//   200: #90caf9,
+//   300: #64b5f6,
+//   400: #42a5f5,
+//   500: #2196f3,
+//   600: #1e88e5,
+//   700: #1976d2,
+//   800: #1565c0,
+//   900: #0d47a1,
+//   A100: #82b1ff,
+//   A200: #448aff,
+//   A400: #2979ff,
+//   A700: #2962ff,
+// ));
 
-$my-theme: mat.define-dark-theme((
- color: (
-   primary: $my-primary,
-   accent: $my-accent,
- ),
- typography: mat.define-typography-config(),
- density: 0,
-));
+// // Создайте тему с цветами
+// $my-theme: mat.define-theme((
+//   color: (
+//     primary: $my-primary,
+//     secondary: mat.define-color-palette((
+//       50: #fce4ec,
+//       100: #f8bbd0,
+//       200: #f48fb1,
+//       300: #f06292,
+//       400: #ec407a,
+//       500: #e91e63,
+//       600: #d81b60,
+//       700: #c2185b,
+//       800: #ad1457,
+//       900: #880e4f,
+//       A100: #ff80ab,
+//       A200: #ff4081,
+//       A400: #f50057,
+//       A700: #c51162,
+//     )),
+//   ),
+//   typography: mat.define-typography-config(),
+// ));
 
-@include mat.all-component-themes($my-theme);
+// @include mat.all-component-themes($my-theme);

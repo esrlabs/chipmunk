@@ -14,6 +14,7 @@ import * as dom from '@ui/env/dom';
     selector: 'app-views-history',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

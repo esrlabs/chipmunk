@@ -8,6 +8,7 @@ import { setDomSanitizer, setNgZone } from '@ui/env/globals';
     selector: 'app-root',
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.less'],
+    standalone: false,
 })
 @Ilc()
 export class AppComponent extends ChangesDetector implements AfterViewInit {

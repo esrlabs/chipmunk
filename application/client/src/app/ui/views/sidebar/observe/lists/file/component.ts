@@ -15,6 +15,7 @@ import * as Factory from '@platform/types/observe/factory';
     selector: 'app-views-observed-list-file',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class List extends ListBase<State, Provider> implements AfterContentInit {

@@ -191,7 +191,8 @@ export class TabsService {
         if (tab.active && this._tabs.size > 0) {
             const last: string | undefined = this._history.getLast();
             if (last === undefined) {
-                this.setActive(this._tabs.values().next().value.uuid);
+                const next = this._tabs.values().next().value;
+                next !== undefined && this.setActive(next.uuid);
             } else {
                 this.setActive(last);
             }

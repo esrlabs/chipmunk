@@ -10,6 +10,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-views-search',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

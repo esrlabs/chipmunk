@@ -5,10 +5,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { Field } from './component';
 
-const components = [Field];
 @NgModule({
     imports: [CommonModule, MatInputModule, FormsModule, ReactiveFormsModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [Field],
+    exports: [Field],
 })
 export class EditableModule {}

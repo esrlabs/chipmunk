@@ -17,6 +17,7 @@ import * as ids from '@schema/ids';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class LayoutWorkspace extends ChangesDetector implements AfterViewInit {

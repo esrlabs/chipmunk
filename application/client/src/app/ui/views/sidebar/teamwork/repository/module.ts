@@ -5,12 +5,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AppDirectiviesModule } from '@directives/module';
 
-const entryComponents = [Repository];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [CommonModule, MatButtonModule, MatIconModule, AppDirectiviesModule],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [Repository],
+    exports: [Repository],
 })
 export class RepositoryModule {}

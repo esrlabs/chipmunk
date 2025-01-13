@@ -12,6 +12,7 @@ import * as $ from '@platform/types/observe';
     selector: 'app-transport-review',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Transport extends ChangesDetector implements AfterContentInit {

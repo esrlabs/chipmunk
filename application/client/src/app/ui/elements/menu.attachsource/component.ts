@@ -18,6 +18,7 @@ import * as Factory from '@platform/types/observe/factory';
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class AttachSourceMenu extends ChangesDetector {

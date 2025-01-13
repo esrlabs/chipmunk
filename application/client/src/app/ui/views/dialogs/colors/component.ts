@@ -8,6 +8,7 @@ import { CColors } from '@styles/colors';
     selector: 'app-dialogs-color-selector',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

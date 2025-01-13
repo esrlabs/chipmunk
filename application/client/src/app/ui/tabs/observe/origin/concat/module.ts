@@ -6,8 +6,6 @@ import { ParserExtraConfigurationModule } from '@ui/tabs/observe/parsers/extra/m
 
 import { TabObserveConcat } from './component';
 
-const components = [TabObserveConcat];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -15,8 +13,8 @@ const components = [TabObserveConcat];
         ParserGeneralConfigurationModule,
         ParserExtraConfigurationModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [TabObserveConcat],
+    exports: [TabObserveConcat],
+    bootstrap: [TabObserveConcat],
 })
 export class ConcatModule {}

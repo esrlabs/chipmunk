@@ -16,6 +16,7 @@ export interface ChangeEvent {
 }
 @Directive({
     selector: '[appDragging]',
+    standalone: false,
 })
 export class DraggingDirective implements AfterViewInit, OnDestroy {
     @Input() public min: {

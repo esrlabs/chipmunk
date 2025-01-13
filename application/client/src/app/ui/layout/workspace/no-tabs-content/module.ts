@@ -12,8 +12,6 @@ import { AppDirectiviesModule } from '@directives/module';
 import { LayoutHome } from './component';
 import { ActionComponent } from './action/component';
 
-const entryComponents = [LayoutHome, ActionComponent];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -26,8 +24,8 @@ const entryComponents = [LayoutHome, ActionComponent];
         RecentActionsModule,
         AppDirectiviesModule,
     ],
-    declarations: [...entryComponents],
-    exports: [...entryComponents],
-    bootstrap: [...entryComponents]
+    declarations: [LayoutHome, ActionComponent],
+    exports: [LayoutHome],
+    bootstrap: [LayoutHome, ActionComponent],
 })
 export class LayoutHomeModule {}

@@ -9,6 +9,7 @@ import { Popup } from '@ui/service/popup';
     selector: 'app-dialogs-locker-message',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

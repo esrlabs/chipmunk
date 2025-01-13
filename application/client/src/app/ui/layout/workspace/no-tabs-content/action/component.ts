@@ -9,6 +9,7 @@ import { stop } from '@ui/env/dom';
     selector: 'app-home-action',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class ActionComponent extends ChangesDetector implements AfterViewInit {

@@ -15,6 +15,7 @@ import { EntityItem } from '../../base/entity';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     hostDirectives: EntityItem.HOST_DIRECTIVES,
+    standalone: false,
 })
 @Ilc()
 export class Chart extends EntityItem<ProviderCharts, ChartRequest> implements AfterContentInit {

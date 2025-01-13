@@ -6,6 +6,7 @@ import { SetupBase } from '../../bases/udp/component';
     selector: 'app-udp-quicksetup',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class QuickSetup extends SetupBase implements OnDestroy, AfterContentInit {

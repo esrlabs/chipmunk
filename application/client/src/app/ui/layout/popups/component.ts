@@ -15,6 +15,7 @@ import { Popup } from '@ui/service/popup';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class LayoutPopups extends ChangesDetector implements AfterContentInit {

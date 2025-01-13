@@ -15,6 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 @Component({
     selector: 'app-views-chart-base',
     template: '',
+    standalone: false,
 })
 @Ilc()
 export class OutputBase extends ChangesDetector implements AfterViewInit, OnDestroy {

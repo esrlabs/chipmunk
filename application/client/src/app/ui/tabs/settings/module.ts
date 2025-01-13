@@ -15,15 +15,6 @@ import { SettingsEntryString } from './renders/string/component';
 import { SettingsEntryBool } from './renders/bool/component';
 import { SettingsEntryColor } from './renders/color/component';
 
-const components = [
-    Settings,
-    SettingsNode,
-    SettingsEntry,
-    SettingsEntryString,
-    SettingsEntryBool,
-    SettingsEntryColor,
-];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -36,8 +27,22 @@ const components = [
         MatInputModule,
         MatButtonModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [
+        Settings,
+        SettingsNode,
+        SettingsEntry,
+        SettingsEntryString,
+        SettingsEntryBool,
+        SettingsEntryColor,
+    ],
+    exports: [Settings],
+    bootstrap: [
+        Settings,
+        SettingsNode,
+        SettingsEntry,
+        SettingsEntryString,
+        SettingsEntryBool,
+        SettingsEntryColor,
+    ],
 })
 export class SettingsModule {}

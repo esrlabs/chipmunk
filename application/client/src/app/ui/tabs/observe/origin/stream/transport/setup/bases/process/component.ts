@@ -25,6 +25,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
 @Component({
     selector: 'app-process-setup-base',
     template: '',
+    standalone: false,
 })
 @Ilc()
 export class SetupBase

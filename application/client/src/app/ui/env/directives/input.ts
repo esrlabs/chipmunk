@@ -5,6 +5,7 @@ import { scope } from '@platform/env/scope';
 @Directive({
     selector: '[appInputListener]',
     exportAs: 'appInputListener',
+    standalone: false,
 })
 export class InputListenerDirective {
     private _emitter: Emitter;

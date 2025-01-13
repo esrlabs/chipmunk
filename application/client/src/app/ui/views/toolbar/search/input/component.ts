@@ -27,6 +27,7 @@ import { IFilter } from '@platform/types/filter';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class ViewSearchInput

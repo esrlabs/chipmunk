@@ -19,6 +19,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     template: '',
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class Standard extends ChangesDetector implements AfterContentInit {

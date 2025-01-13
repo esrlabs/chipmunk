@@ -8,6 +8,7 @@ import { ISettingsEntry } from '@platform/types/settings/entry';
     selector: 'app-tabs-settings-entry-bool',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

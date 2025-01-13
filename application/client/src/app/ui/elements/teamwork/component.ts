@@ -11,6 +11,7 @@ import { MatSelectChange } from '@angular/material/select';
     selector: 'app-views-teamwork-applet',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

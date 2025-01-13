@@ -20,6 +20,7 @@ const STATE_ID_REF = unique();
     selector: 'app-views-chart',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

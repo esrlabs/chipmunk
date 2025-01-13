@@ -8,6 +8,7 @@ import { Node } from '../node';
     selector: 'app-tabs-settings-node',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

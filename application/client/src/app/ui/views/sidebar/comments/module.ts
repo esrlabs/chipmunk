@@ -19,10 +19,6 @@ import { MatDividerModule } from '@angular/material/divider';
 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [Comments, Comment, Editor, Reply];
-
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -39,8 +35,8 @@ const components = [...entryComponents];
         MatDividerModule,
         TeamworkAppletModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [Comments, Comment, Editor, Reply],
+    exports: [Comments],
 })
 export class CommentsModule {
     constructor() {}

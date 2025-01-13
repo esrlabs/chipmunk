@@ -18,6 +18,7 @@ export type CloseHandler = () => void;
     selector: 'app-dialogs-jumpto',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

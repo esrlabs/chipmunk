@@ -18,6 +18,7 @@ import { FilterInput } from './input';
     selector: 'app-filter-input',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

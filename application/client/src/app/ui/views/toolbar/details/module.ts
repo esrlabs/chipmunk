@@ -2,12 +2,9 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Details } from './component';
 
-const entryComponents = [Details];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [CommonModule],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [Details],
+    exports: [Details],
 })
 export class DetailsModule {}

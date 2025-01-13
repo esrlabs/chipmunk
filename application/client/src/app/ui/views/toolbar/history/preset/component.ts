@@ -20,6 +20,7 @@ enum Target {
     selector: 'app-toolbar-history-preset',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Preset extends ChangesDetector implements AfterContentInit {

@@ -35,6 +35,7 @@ const UNTYPED = 'untyped';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Initial()
 @Ilc()

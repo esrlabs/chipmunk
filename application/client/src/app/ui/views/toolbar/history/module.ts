@@ -15,9 +15,6 @@ import { History } from './component';
 import { FilterPreview } from './preview/filter/component';
 import { ChartPreview } from './preview/chart/component';
 
-const entryComponents = [Preset, History, FilterPreview, ChartPreview];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -30,7 +27,7 @@ const components = [...entryComponents];
         ReactiveFormsModule,
         EditableModule,
     ],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [Preset, History, FilterPreview, ChartPreview],
+    exports: [History],
 })
 export class HistoryModule {}

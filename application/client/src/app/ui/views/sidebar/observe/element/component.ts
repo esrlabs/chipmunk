@@ -8,6 +8,7 @@ import * as $ from '@platform/types/observe';
     selector: 'app-views-observed-list-item',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Item {

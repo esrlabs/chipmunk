@@ -17,6 +17,7 @@ import * as actions from '@service/actions/index';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class LayoutHome extends ChangesDetector implements AfterViewInit, OnDestroy {

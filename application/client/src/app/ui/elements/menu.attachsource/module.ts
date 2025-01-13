@@ -7,9 +7,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
-const entryComponents = [AttachSourceMenu];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -19,7 +16,7 @@ const components = [...entryComponents];
         MatIconModule,
         MatDividerModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [AttachSourceMenu],
+    exports: [AttachSourceMenu],
 })
 export class AttachSourceMenuModule {}

@@ -10,6 +10,7 @@ import { EntitiesList, ListId } from '../../base/list';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     hostDirectives: [EntitiesList.HOST_DIRECTIVE],
+    standalone: false,
 })
 @Initial()
 @Ilc()

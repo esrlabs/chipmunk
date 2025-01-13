@@ -15,9 +15,6 @@ import { ListModule as SerialListModule } from './lists/serial/module';
 import { ListModule as TcpListModule } from './lists/tcp/module';
 import { ListModule as UdpListModule } from './lists/udp/module';
 
-const entryComponents = [Observed];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -35,7 +32,7 @@ const components = [...entryComponents];
         MatDividerModule,
         AttachSourceMenuModule,
     ],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [Observed],
+    exports: [Observed],
 })
 export class ObservedModule {}

@@ -14,6 +14,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class LayoutToolbar extends ChangesDetector implements AfterViewInit {

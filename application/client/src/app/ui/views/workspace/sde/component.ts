@@ -27,6 +27,7 @@ const SDE_STATE = unique();
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class ViewSdeComponent extends ChangesDetector implements AfterContentInit, OnDestroy {

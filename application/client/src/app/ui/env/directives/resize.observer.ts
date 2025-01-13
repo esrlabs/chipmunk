@@ -12,6 +12,7 @@ const UPDATE_DELAY_MS = 20;
 
 @Directive({
     selector: '[appResizeObserver]',
+    standalone: false,
 })
 export class ResizeObserverDirective implements AfterViewInit, OnDestroy {
     @Output() changesize = new EventEmitter<DOMRect>();

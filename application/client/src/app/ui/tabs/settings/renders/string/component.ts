@@ -10,6 +10,7 @@ import { Validator } from '../validator';
     selector: 'app-tabs-settings-entry-string',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

@@ -23,6 +23,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
 @Component({
     selector: 'app-serial-setup-base',
     template: '',
+    standalone: false,
 })
 @Ilc()
 export class SetupBase extends ChangesDetector implements AfterContentInit, OnDestroy {

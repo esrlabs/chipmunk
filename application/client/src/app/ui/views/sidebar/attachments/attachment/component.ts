@@ -8,6 +8,7 @@ import { bytesToStr } from '@env/str';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Item implements AfterContentInit {

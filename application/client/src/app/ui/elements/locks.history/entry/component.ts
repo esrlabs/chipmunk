@@ -6,6 +6,7 @@ import { Locker, Level } from '@ui/service/lockers';
     selector: 'app-elements-locks-history-entry',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class LocksHistoryEntry {

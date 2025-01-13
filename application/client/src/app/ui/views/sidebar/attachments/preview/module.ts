@@ -10,19 +10,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AppDirectiviesModule } from '@directives/module';
 
-const entryComponents = [
-    Preview,
-    ImagePreview,
-    VideoPreview,
-    AudioPreview,
-    TextPreview,
-    UnknownPreview,
-];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [CommonModule, MatButtonModule, MatIconModule, AppDirectiviesModule],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [Preview, ImagePreview, VideoPreview, AudioPreview, TextPreview, UnknownPreview],
+    exports: [Preview],
 })
 export class PreviewModule {}

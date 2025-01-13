@@ -11,6 +11,7 @@ import { getContrastColor } from '@styles/colors';
     selector: 'app-tabs-settings-entry-color',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

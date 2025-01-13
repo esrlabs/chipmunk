@@ -25,6 +25,7 @@ export enum ECommentsOrdering {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Initial()
 @Ilc()

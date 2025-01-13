@@ -17,6 +17,7 @@ const MAX_LABELS_COUNT = 5;
     selector: 'app-views-chart-output',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

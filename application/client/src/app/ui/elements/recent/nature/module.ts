@@ -9,18 +9,17 @@ import { RecentNatureTcp } from './tcp/component';
 import { RecentNatureSerial } from './serial/component';
 import { RecentNatureProcess } from './process/component';
 
-const components = [
-    RecentNature,
-    RecentNatureConcat,
-    RecentNatureFile,
-    RecentNatureUdp,
-    RecentNatureTcp,
-    RecentNatureSerial,
-    RecentNatureProcess,
-];
 @NgModule({
     imports: [CommonModule],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [
+        RecentNature,
+        RecentNatureConcat,
+        RecentNatureFile,
+        RecentNatureUdp,
+        RecentNatureTcp,
+        RecentNatureSerial,
+        RecentNatureProcess,
+    ],
+    exports: [RecentNature],
 })
 export class RecentNatureModule {}

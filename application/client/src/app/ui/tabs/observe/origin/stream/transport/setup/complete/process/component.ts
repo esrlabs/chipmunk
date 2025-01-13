@@ -20,6 +20,7 @@ import { Profile } from '@platform/types/bindings';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class Setup extends SetupBase implements AfterContentInit, AfterViewInit, OnDestroy {

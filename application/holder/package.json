@@ -69,5 +69,5 @@
     "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
     "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
   },
-  "packageManager": "yarn@4.2.2"
+  "packageManager": "yarn@4.6.0"
 }

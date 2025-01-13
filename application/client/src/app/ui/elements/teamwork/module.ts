@@ -8,9 +8,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Teamwork } from './component';
 
-const entryComponents = [Teamwork];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -22,7 +19,7 @@ const components = [...entryComponents];
         FormsModule,
         ReactiveFormsModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [Teamwork],
+    exports: [Teamwork],
 })
 export class TeamworkAppletModule {}

@@ -5,6 +5,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
     selector: 'app-layout-sidebar-controls',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class LayoutSidebarControls {
