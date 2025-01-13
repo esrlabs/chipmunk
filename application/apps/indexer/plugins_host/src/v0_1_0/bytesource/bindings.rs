@@ -63,10 +63,14 @@ impl From<HostConfValue> for ConfigValue {
     fn from(value: HostConfValue) -> Self {
         match value {
             HostConfValue::Boolean(val) => ConfigValue::Boolean(val),
-            HostConfValue::Number(val) => ConfigValue::Number(val),
+            HostConfValue::Integer(val) => ConfigValue::Integer(val),
             HostConfValue::Float(val) => ConfigValue::Float(val),
             HostConfValue::Text(val) => ConfigValue::Text(val),
-            HostConfValue::Path(val) => ConfigValue::Path(val.to_string_lossy().to_string()),
+            HostConfValue::Paths(val) => ConfigValue::Paths(
+                val.into_iter()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .collect(),
+            ),
             HostConfValue::Dropdown(val) => ConfigValue::Dropdown(val),
         }
     }
@@ -87,10 +91,10 @@ impl From<ConfigSchemaType> for HostSchemaType {
     fn from(value: ConfigSchemaType) -> Self {
         match value {
             ConfigSchemaType::Boolean => HostSchemaType::Boolean,
-            ConfigSchemaType::Number => HostSchemaType::Number,
+            ConfigSchemaType::Integer => HostSchemaType::Integer,
             ConfigSchemaType::Float => HostSchemaType::Float,
             ConfigSchemaType::Text => HostSchemaType::Text,
-            ConfigSchemaType::Path => HostSchemaType::Path,
+            ConfigSchemaType::Paths => HostSchemaType::Paths,
             ConfigSchemaType::Dropdown(items) => HostSchemaType::Dropdown(items),
         }
     }

@@ -5,7 +5,7 @@
 />
 
 <app-tabs-config-schema-integer
-    *ngIf="config.input_type === 'Number'"
+    *ngIf="config.input_type === 'Integer'"
     [config]="config"
     [state]="state"
 />
@@ -28,4 +28,8 @@
     [state]="state"
 />
 
-<!-- TODO AAZ: Path control is not implemented yet. -->
+<app-tabs-config-schema-paths
+    *ngIf="config.input_type === 'Paths'"
+    [config]="config"
+    [state]="state"
+/>

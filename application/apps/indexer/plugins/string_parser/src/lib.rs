@@ -14,9 +14,9 @@ use plugins_api::{
 const LOSSY_ID: &str = "lossy";
 const PREFIX_ID: &str = "prefix";
 // TODO AAZ: Remove after debugging.
-const NUMBER_ID: &str = "num_idx";
+const INTEGER_ID: &str = "integer_idx";
 const FLOAT_ID: &str = "float_idx";
-const PATH_ID: &str = "path_idx";
+const PATHS_ID: &str = "paths_idx";
 const DROPDOWN_ID: &str = "dropdown_idx";
 
 /// Simple struct that converts the given bytes into UTF-8 Strings line by line.
@@ -83,27 +83,27 @@ impl Parser for StringTokenizer {
                 ConfigSchemaType::Text,
             ),
             ConfigSchemaItem::new(
-                NUMBER_ID,
+                INTEGER_ID,
                 "Example Number",
-                Some("Demonstrate configuration item with integer"),
-                ConfigSchemaType::Number,
+                Some("Configuration item with integer"),
+                ConfigSchemaType::Integer,
             ),
             ConfigSchemaItem::new(
                 FLOAT_ID,
                 "Example Float",
-                Some("Demonstrate configuration item with flaoting number"),
+                Some("Configuration item with flaoting number"),
                 ConfigSchemaType::Float,
             ),
             ConfigSchemaItem::new(
-                PATH_ID,
+                PATHS_ID,
                 "Example Path",
-                Some("Demonstrate configuration item with one path"),
-                ConfigSchemaType::Path,
+                Some("Configuration item with paths"),
+                ConfigSchemaType::Paths,
             ),
             ConfigSchemaItem::new(
                 DROPDOWN_ID,
                 "Example Drop-Down",
-                Some("Demonstrate configuration item with drop-down"),
+                Some("Configuration item with drop-down"),
                 ConfigSchemaType::Dropdown(vec![
                     String::from("Option 1"),
                     String::from("Option 2"),
@@ -192,9 +192,9 @@ impl Parser for StringTokenizer {
 
         for item in plugins_configs.iter() {
             match item.id.as_str() {
-                NUMBER_ID => println!("Number config value is: {:?}", item.value),
+                INTEGER_ID => println!("Number config value is: {:?}", item.value),
                 FLOAT_ID => println!("Float config value is: {:?}", item.value),
-                PATH_ID => println!("Path config value is: {:?}", item.value),
+                PATHS_ID => println!("Path config value is: {:?}", item.value),
                 DROPDOWN_ID => println!("Drop-Down config value is: {:?}", item.value),
                 LOSSY_ID | PREFIX_ID => {
                     // Already handled above.

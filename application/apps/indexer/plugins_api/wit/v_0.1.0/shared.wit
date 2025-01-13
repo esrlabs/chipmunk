@@ -25,11 +25,11 @@ interface shared-types {
   /// Represents the value of a configuration item.
   variant config-value {
     boolean(bool),
-    number(s32),
+    integer(s32),
     float(f32),
     text(string),
-    /// A string representing a file or directory path.
-    path(string),
+    /// List of strings representing file or directory path.
+    paths(list<string>),
     /// A string representing a selected option from a drop-down menu
     dropdown(string)
   }
@@ -45,10 +45,10 @@ interface shared-types {
   /// Defines the possible input types for configuration schemas.
   variant config-schema-type {
     boolean,
-    number,
+    integer,
     float,
     text,
-    path,
+    paths,
     /// Drop-down input type with a list of selectable options.
     dropdown(list<string>)
   }

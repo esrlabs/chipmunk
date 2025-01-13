@@ -59,10 +59,10 @@ export type PluginConfigSchemaItem = {
  */
 export type PluginConfigSchemaType =
     | 'Boolean'
-    | 'Number'
+    | 'Integer'
     | 'Float'
     | 'Text'
-    | 'Path'
+    | 'Paths'
     | { Dropdown: Array<string> };
 
 /**
@@ -70,10 +70,10 @@ export type PluginConfigSchemaType =
  */
 export type PluginConfigValue =
     | { Boolean: boolean }
-    | { Number: number }
+    | { Integer: number }
     | { Float: number }
     | { Text: string }
-    | { Path: string }
+    | { Paths: Array<string> }
     | { Dropdown: string };
 
 /**

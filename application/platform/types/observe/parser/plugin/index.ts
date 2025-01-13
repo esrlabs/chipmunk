@@ -77,8 +77,8 @@ export class Configuration
             return value.Boolean;
         }
 
-        if ('Number' in value) {
-            return value.Number;
+        if ('Integer' in value) {
+            return value.Integer;
         }
 
         if ('Float' in value) {
@@ -89,8 +89,8 @@ export class Configuration
             return value.Text;
         }
 
-        if ('Path' in value) {
-            return value.Path;
+        if ('Paths' in value) {
+            return value.Paths.join(',');
         }
 
         if ('Dropdown' in value) {

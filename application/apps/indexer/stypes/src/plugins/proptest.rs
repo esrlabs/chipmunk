@@ -83,19 +83,19 @@ impl Arbitrary for PluginConfigValue {
         // Reminder to add new items to proptests here.
         _ = match PluginConfigValue::Boolean(true) {
             PluginConfigValue::Boolean(_) => (),
-            PluginConfigValue::Number(_) => (),
+            PluginConfigValue::Integer(_) => (),
             PluginConfigValue::Float(_) => (),
             PluginConfigValue::Text(_) => (),
-            PluginConfigValue::Path(_) => (),
+            PluginConfigValue::Paths(_) => (),
             PluginConfigValue::Dropdown(_) => (),
         };
 
         prop_oneof![
             any::<bool>().prop_map(PluginConfigValue::Boolean),
-            any::<i32>().prop_map(PluginConfigValue::Number),
+            any::<i32>().prop_map(PluginConfigValue::Integer),
             any::<f32>().prop_map(PluginConfigValue::Float),
             any::<String>().prop_map(PluginConfigValue::Text),
-            any::<PathBuf>().prop_map(PluginConfigValue::Path),
+            prop::collection::vec(any::<PathBuf>(), 0..10).prop_map(PluginConfigValue::Paths),
             any::<String>().prop_map(PluginConfigValue::Dropdown),
         ]
         .boxed()
@@ -111,19 +111,19 @@ impl Arbitrary for PluginConfigSchemaType {
         // Reminder to add new items to proptests here.
         _ = match T::Boolean {
             T::Boolean => (),
-            T::Number => (),
+            T::Integer => (),
             T::Float => (),
             T::Text => (),
-            T::Path => (),
+            T::Paths => (),
             T::Dropdown(_) => (),
         };
 
         prop_oneof![
             Just(T::Boolean),
-            Just(T::Number),
+            Just(T::Integer),
             Just(T::Float),
             Just(T::Text),
-            Just(T::Path),
+            Just(T::Paths),
             prop::collection::vec(any::<String>(), 0..10).prop_map(T::Dropdown),
         ]
         .boxed()

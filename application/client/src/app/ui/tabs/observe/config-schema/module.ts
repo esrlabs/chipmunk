@@ -7,6 +7,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { ConfigSchemas } from './component';
 import { ConfgiSchemaEntry } from './entry/component';
@@ -15,6 +18,7 @@ import { ConfigSchemaInteger } from './renders/integer/component';
 import { ConfigSchemaFloat } from './renders/float/component';
 import { ConfigSchemaString } from './renders/string/component';
 import { ConfigSchemaDropdown } from './renders/dropdown/component';
+import { ConfigSchemaPaths } from './renders/paths/component';
 
 const components = [
     ConfigSchemas,
@@ -24,6 +28,7 @@ const components = [
     ConfigSchemaFloat,
     ConfigSchemaString,
     ConfigSchemaDropdown,
+    ConfigSchemaPaths,
 ];
 
 @NgModule({
@@ -37,6 +42,9 @@ const components = [
         MatInputModule,
         MatButtonModule,
         MatSelectModule,
+        MatChipsModule,
+        MatIconModule,
+        MatDividerModule,
     ],
     declarations: [...components],
     exports: [...components],

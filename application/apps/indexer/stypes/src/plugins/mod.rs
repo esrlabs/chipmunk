@@ -94,11 +94,11 @@ pub struct PluginConfigItem {
 )]
 pub enum PluginConfigValue {
     Boolean(bool),
-    Number(i32),
+    Integer(i32),
     Float(f32),
     Text(String),
     /// A string representing a file or directory path.
-    Path(PathBuf),
+    Paths(Vec<PathBuf>),
     /// A string representing a selected option from a drop-down menu
     Dropdown(String),
 }
@@ -113,10 +113,10 @@ pub enum PluginConfigValue {
 )]
 pub enum PluginConfigSchemaType {
     Boolean,
-    Number,
+    Integer,
     Float,
     Text,
-    Path,
+    Paths,
     /// Drop-down input type with a list of selectable options.
     Dropdown(Vec<String>),
 }

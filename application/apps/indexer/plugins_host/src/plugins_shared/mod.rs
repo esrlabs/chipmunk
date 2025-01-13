@@ -16,14 +16,18 @@ pub fn get_wasi_ctx_builder(
     ctx.inherit_stdout().inherit_stderr().inherit_env();
 
     // Gives read access to parent directories of the plugin configuration files.
-    for config_path in plugin_configs.iter().filter_map(|item| match &item.value {
-        ConfValue::Path(path) => Some(path),
-        ConfValue::Boolean(_)
-        | ConfValue::Number(_)
-        | ConfValue::Float(_)
-        | ConfValue::Text(_)
-        | ConfValue::Dropdown(_) => None,
-    }) {
+    for config_path in plugin_configs
+        .iter()
+        .filter_map(|item| match &item.value {
+            ConfValue::Paths(paths) => Some(paths),
+            ConfValue::Boolean(_)
+            | ConfValue::Integer(_)
+            | ConfValue::Float(_)
+            | ConfValue::Text(_)
+            | ConfValue::Dropdown(_) => None,
+        })
+        .flatten()
+    {
         let config_dir = config_path.parent().ok_or(PluginHostInitError::IO(format!(
             "Resolve config file parent failed. File path: {}",
             config_path.display()

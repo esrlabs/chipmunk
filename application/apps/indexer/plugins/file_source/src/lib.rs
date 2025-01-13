@@ -68,7 +68,13 @@ impl ByteSource for FileSource {
             })?;
 
         let file_path = match &file_path_config.value {
-            ConfigValue::Path(path) => PathBuf::from(path),
+            ConfigValue::Paths(paths) => {
+                if paths.len() != 1 {
+                    let err_msg = format!("Pluign expects one path only but got: {:?}", paths);
+                    return Err(InitError::Config(err_msg));
+                }
+                PathBuf::from(&paths[0])
+            }
             invalid => {
                 let err_msg = format!(
                     "Invalid config value for '{INPUT_PATH_ID}' was provided. Value: {:?}",

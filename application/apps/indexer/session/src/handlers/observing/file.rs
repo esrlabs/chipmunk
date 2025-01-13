@@ -43,7 +43,7 @@ pub async fn observe_file<'a>(
                 const INPUT_PATH_ID: &str = "input-path";
                 let file_source_configs = vec![stypes::PluginConfigItem::new(
                     INPUT_PATH_ID,
-                    stypes::PluginConfigValue::Path(filename.into()),
+                    stypes::PluginConfigValue::Paths(vec![filename.into()]),
                 )];
 
                 let setting =

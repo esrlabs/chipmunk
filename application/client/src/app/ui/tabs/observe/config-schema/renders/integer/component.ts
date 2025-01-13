@@ -28,21 +28,20 @@ export class ConfigSchemaInteger extends ChangesDetector implements AfterContent
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['value']) {
             this.state.saveConfig(this.config.id, {
-                Number: parseInt(changes['value'].currentValue, 10),
+                Integer: parseInt(changes['value'].currentValue, 10),
             });
         }
     }
 
     ngAfterContentInit(): void {
         this.value = 0;
-        this.state.saveConfig(this.config.id, { Number: this.value });
+        this.state.saveConfig(this.config.id, { Integer: this.value });
     }
 
     public ngOnInputChange(event: Event): void {
         const target = event.target as HTMLInputElement;
         if (target) {
-            //TODO AAZ: Maybe some validation here?
-            this.state.saveConfig(this.config.id, { Number: parseInt(target.value, 10) });
+            this.state.saveConfig(this.config.id, { Integer: parseInt(target.value, 10) });
         }
     }
 }
