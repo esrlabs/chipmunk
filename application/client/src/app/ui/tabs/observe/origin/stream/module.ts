@@ -7,8 +7,6 @@ import { StreamsModule } from './transport/setup/module';
 import { ParserGeneralConfigurationModule } from '@ui/tabs/observe/parsers/general/module';
 import { RecentActionsModule } from '@elements/recent/module';
 
-const components = [];
-
 @NgModule({
     imports: [
         CommonModule,

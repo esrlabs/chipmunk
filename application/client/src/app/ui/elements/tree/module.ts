@@ -12,8 +12,6 @@ import { ElementsTreeSelector } from './component';
 
 import { InputListenerDirective } from '@ui/env/directives/input';
 
-const components = [];
-
 @NgModule({
     imports: [
         CommonModule,

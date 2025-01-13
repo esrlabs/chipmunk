@@ -27,7 +27,6 @@ const MAX_ROW_LENGTH_LIMIT = 10000;
 
 export class Row extends Subscriber {
     static removeMarkerSymbols(str: string): string {
-        // eslint-disable-next-line no-control-regex
         return str.replaceAll(/\u0004/gi, '').replaceAll(/\u0005/gi, '');
     }
     public content: string;

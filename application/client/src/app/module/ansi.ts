@@ -43,7 +43,7 @@ export function escapeAnsi(input: string): string | Error {
 export function safeEscapeAnsi(input: string): string {
     try {
         return wasm.getBindings().escape(input);
-    } catch (e) {
+    } catch (_e) {
         return input;
     }
 }
