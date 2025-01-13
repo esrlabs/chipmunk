@@ -1,6 +1,7 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use plugins_host::PluginsParser;
 use std::{hint::black_box, path::PathBuf};
+use stypes::{PluginConfigItem, PluginConfigValue};
 
 use bench_utls::{
     bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,
@@ -20,8 +21,9 @@ fn plugin_parser_producer(c: &mut Criterion) {
         .map(PathBuf::from)
         .expect("Path to plugin must be provided as additional config");
 
-    //TODO AAZ: Deliver plugin configurations for benchmarks
-    let plugin_configs = Vec::new();
+    //TODO AAZ: Deliver plugin configurations for benchmarks.
+    //For now we are delivering the configurations of string parser plugin hard-coded.
+    let plugin_configs = get_string_parser_configs();
 
     let settings = stypes::PluginParserSettings::prototyping(plugin_path, plugin_configs);
 
@@ -46,6 +48,16 @@ fn plugin_parser_producer(c: &mut Criterion) {
                 BatchSize::SmallInput,
             )
     });
+}
+
+/// TODO: Temporally solution until developing handling.
+fn get_string_parser_configs() -> Vec<PluginConfigItem> {
+    const LOSSY_ID: &str = "lossy";
+    const PREFIX_ID: &str = "prefix";
+    vec![
+        PluginConfigItem::new(LOSSY_ID, PluginConfigValue::Boolean(false)),
+        PluginConfigItem::new(PREFIX_ID, PluginConfigValue::Text(String::default())),
+    ]
 }
 
 criterion_group! {

@@ -103,16 +103,17 @@ impl Parser for StringTokenizer {
             plugins_configs
         );
 
-        // *** Demonstrates writing to std console ***
-        println!(
-            "From Plugin to Stdout: Initialize called with the {} custom configs.",
-            plugins_configs.len()
-        );
+        //TODO AAZ: Disabled for now since this plugin is used in benchmarks.
+        // // *** Demonstrates writing to std console ***
+        // println!(
+        //     "From Plugin to Stdout: Initialize called with the {} custom configs.",
+        //     plugins_configs.len()
+        // );
 
-        eprintln!(
-            "From Plugin to Stderr: Log level is {:?}",
-            general_configs.log_level
-        );
+        // eprintln!(
+        //     "From Plugin to Stderr: Log level is {:?}",
+        //     general_configs.log_level
+        // );
 
         // *** Configurations validation ***
         let lossy_config_item = plugins_configs
