@@ -4,9 +4,22 @@
     [state]="state"
 ></app-tabs-config-schema-bool>
 
-<!-- TODO AAZ: For now we are rendering everything expect boolean as string -->
+<app-tabs-config-schema-integer
+    *ngIf="config.input_type === 'Number'"
+    [config]="config"
+    [state]="state"
+></app-tabs-config-schema-integer>
+
+<app-tabs-config-schema-float
+    *ngIf="config.input_type === 'Float'"
+    [config]="config"
+    [state]="state"
+></app-tabs-config-schema-float>
+
 <app-tabs-config-schema-string
-    *ngIf="config.input_type !== 'Boolean'"
+    *ngIf="config.input_type === 'Text'"
     [config]="config"
     [state]="state"
 ></app-tabs-config-schema-string>
+
+<!-- TODO AAZ: Path and drop-down controls are not implemented yet. -->

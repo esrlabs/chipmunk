@@ -10,9 +10,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { ConfigSchemas } from './component';
 import { ConfgiSchemaEntry } from './entry/component';
 import { ConfigSchemaBool } from './renders/bool/component';
+import { ConfigSchemaInteger } from './renders/integer/component';
+import { ConfigSchemaFloat } from './renders/float/component';
 import { ConfigSchemaString } from './renders/string/component';
 
-const components = [ConfigSchemas, ConfgiSchemaEntry, ConfigSchemaBool, ConfigSchemaString];
+const components = [
+    ConfigSchemas,
+    ConfgiSchemaEntry,
+    ConfigSchemaBool,
+    ConfigSchemaInteger,
+    ConfigSchemaFloat,
+    ConfigSchemaString,
+];
 
 @NgModule({
     imports: [
