@@ -1,0 +1,7 @@
+<mat-form-field class="material-mofication-normal stretch">
+    <mat-label>{{config.title}}</mat-label>
+    <mat-select matInput [(ngModel)]="selectedOption" (ngModelChange)="ngOnSelectionChange($event)">
+        <mat-option *ngFor="let option of allOptions" [value]="option">{{option}}</mat-option>
+    </mat-select>
+    <mat-hint>{{config.description}}</mat-hint>
+</mat-form-field>

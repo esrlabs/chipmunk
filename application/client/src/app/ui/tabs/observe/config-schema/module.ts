@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
 
 import { ConfigSchemas } from './component';
 import { ConfgiSchemaEntry } from './entry/component';
@@ -13,6 +14,7 @@ import { ConfigSchemaBool } from './renders/bool/component';
 import { ConfigSchemaInteger } from './renders/integer/component';
 import { ConfigSchemaFloat } from './renders/float/component';
 import { ConfigSchemaString } from './renders/string/component';
+import { ConfigSchemaDropdown } from './renders/dropdown/component';
 
 const components = [
     ConfigSchemas,
@@ -21,6 +23,7 @@ const components = [
     ConfigSchemaInteger,
     ConfigSchemaFloat,
     ConfigSchemaString,
+    ConfigSchemaDropdown,
 ];
 
 @NgModule({
@@ -33,6 +36,7 @@ const components = [
         MatFormFieldModule,
         MatInputModule,
         MatButtonModule,
+        MatSelectModule,
     ],
     declarations: [...components],
     exports: [...components],

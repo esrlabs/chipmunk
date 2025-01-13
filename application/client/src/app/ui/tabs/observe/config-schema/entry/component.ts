@@ -15,4 +15,8 @@ export class ConfgiSchemaEntry extends ChangesDetector {
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
+
+    isDropdownItem(schema: PluginConfigSchemaType): schema is { Dropdown: Array<string> } {
+        return typeof schema === 'object' && 'Dropdown' in schema;
+    }
 }

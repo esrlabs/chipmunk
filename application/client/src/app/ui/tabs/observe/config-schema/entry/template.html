@@ -2,24 +2,30 @@
     *ngIf="config.input_type === 'Boolean'"
     [config]="config"
     [state]="state"
-></app-tabs-config-schema-bool>
+/>
 
 <app-tabs-config-schema-integer
     *ngIf="config.input_type === 'Number'"
     [config]="config"
     [state]="state"
-></app-tabs-config-schema-integer>
+/>
 
 <app-tabs-config-schema-float
     *ngIf="config.input_type === 'Float'"
     [config]="config"
     [state]="state"
-></app-tabs-config-schema-float>
+/>
 
 <app-tabs-config-schema-string
     *ngIf="config.input_type === 'Text'"
     [config]="config"
     [state]="state"
-></app-tabs-config-schema-string>
+/>
 
-<!-- TODO AAZ: Path and drop-down controls are not implemented yet. -->
+<app-tabs-config-schema-dropdown
+    *ngIf="isDropdownItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<!-- TODO AAZ: Path control is not implemented yet. -->

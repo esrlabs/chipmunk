@@ -24,7 +24,7 @@ export class ConfigSchemaBool extends ChangesDetector implements AfterContentIni
     }
 
     public ngOnCheckboxChange(event: SimpleChange): void {
-        let val = event as unknown as boolean;
+        const val = event as unknown as boolean;
         this.state.saveConfig(this.config.id, { Boolean: val });
     }
 }
