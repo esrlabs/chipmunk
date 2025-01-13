@@ -32,6 +32,10 @@ jobs:
           override: true
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
+      - name: set sccache env var
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.7
       - name: Install nj-cli
@@ -79,6 +83,10 @@ jobs:
           override: true
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
+      - name: set sccache env var
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.7
       - name: Install nj-cli
