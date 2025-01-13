@@ -11,7 +11,6 @@ import { RecentIcon } from './icon/component';
 import { RecentNatureModule } from './nature/module';
 import { RecentParserModule } from './parser/module';
 
-const components = [RecentActions, RecentIcon];
 @NgModule({
     imports: [
         CommonModule,
@@ -23,7 +22,7 @@ const components = [RecentActions, RecentIcon];
         RecentNatureModule,
         RecentParserModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [RecentActions, RecentIcon],
+    exports: [RecentActions],
 })
 export class RecentActionsModule {}

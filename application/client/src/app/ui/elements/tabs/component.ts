@@ -17,6 +17,7 @@ import { Subscriber } from '@platform/env/subscription';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 export class TabsComponent extends ChangesDetector implements OnDestroy, AfterViewInit, OnChanges {
     @Input() public service: TabsService | undefined;

@@ -41,6 +41,7 @@ export { ErrorState, Options };
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class AutocompleteInput

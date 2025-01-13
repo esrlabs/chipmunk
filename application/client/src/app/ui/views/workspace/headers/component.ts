@@ -49,6 +49,7 @@ class RenderedHeader {
     styleUrls: ['./styles.less'],
     templateUrl: './template.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class ColumnsHeaders extends ChangesDetector implements AfterContentInit {

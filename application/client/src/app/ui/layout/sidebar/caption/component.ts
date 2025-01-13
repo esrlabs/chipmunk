@@ -6,6 +6,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
     selector: 'app-layout-sidebar-caption',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class LayoutSidebarCaption implements AfterViewInit {

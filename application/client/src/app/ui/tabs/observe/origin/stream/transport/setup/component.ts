@@ -9,6 +9,7 @@ import * as Stream from '@platform/types/observe/origin/stream';
     selector: 'app-transport',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Transport extends ChangesDetector implements AfterContentInit {

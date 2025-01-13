@@ -14,6 +14,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 @Component({
     selector: 'app-observe-list-base',
     template: '',
+    standalone: false,
 })
 export class ListBase<State extends Base, Provider extends ProviderBase>
     extends ChangesDetector

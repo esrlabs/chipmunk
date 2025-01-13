@@ -19,6 +19,7 @@ const MAX_LINES_COUNT = 1000;
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Preview extends ChangesDetector implements AfterContentInit {

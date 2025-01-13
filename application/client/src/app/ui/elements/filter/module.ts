@@ -6,10 +6,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { InputFilter } from './component';
 
-const components = [InputFilter];
 @NgModule({
     imports: [CommonModule, MatFormFieldModule, MatInputModule, FormsModule, ReactiveFormsModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [InputFilter],
+    exports: [InputFilter],
 })
 export class FilterInputModule {}

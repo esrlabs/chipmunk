@@ -31,22 +31,6 @@ import { DisabledList } from './disabled/list/component';
 import { TeamworkAppletModule } from '@elements/teamwork/module';
 import { Bin } from './bin/component';
 
-const entryComponents = [
-    Filters,
-    FilterDetails,
-    Filter,
-    FiltersList,
-    FiltersPlaceholder,
-    ChartrDetails,
-    Chart,
-    ChartsList,
-    ChartsPlaceholder,
-    Disabled,
-    DisabledList,
-    Bin,
-];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -70,7 +54,20 @@ const components = [...entryComponents];
         ColorSelectorModule,
         TeamworkAppletModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [
+        Filters,
+        FilterDetails,
+        Filter,
+        FiltersList,
+        FiltersPlaceholder,
+        ChartrDetails,
+        Chart,
+        ChartsList,
+        ChartsPlaceholder,
+        Disabled,
+        DisabledList,
+        Bin,
+    ],
+    exports: [Filters],
 })
 export class FiltersModule {}

@@ -14,6 +14,7 @@ import { Locker } from '@ui/service/lockers';
     selector: 'app-elements-locks-history',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

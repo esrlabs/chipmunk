@@ -8,6 +8,7 @@ import * as Stream from '@platform/types/observe/origin/stream/index';
     selector: 'app-transport-udp-multicast',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Multicast {

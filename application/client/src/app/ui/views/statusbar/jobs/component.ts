@@ -15,6 +15,7 @@ import { Job } from '@service/jobs';
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Jobs extends ChangesDetector implements AfterViewInit {

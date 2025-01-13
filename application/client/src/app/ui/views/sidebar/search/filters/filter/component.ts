@@ -22,6 +22,7 @@ import { EntityItem } from '../../base/entity';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     hostDirectives: EntityItem.HOST_DIRECTIVES,
+    standalone: false,
 })
 @Ilc()
 export class Filter extends EntityItem<ProviderFilters, FilterRequest> implements AfterContentInit {

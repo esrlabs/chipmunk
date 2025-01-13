@@ -14,6 +14,7 @@ export { IComponentDesc };
     selector: 'lib-containers-frame',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class FrameComponent implements AfterViewInit {
     @Input() public content!: IComponentDesc;

@@ -9,8 +9,6 @@ import { ViewChartOutput } from './output/component';
 import { ViewChartSummary } from './summary/component';
 import { ViewChartCursor } from './cursor/component';
 
-const components = [ViewChart, ViewChartOutput, ViewChartSummary, ViewChartCursor];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -19,8 +17,8 @@ const components = [ViewChart, ViewChartOutput, ViewChartSummary, ViewChartCurso
         MatIconModule,
         MatProgressSpinnerModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [ViewChart, ViewChartOutput, ViewChartSummary, ViewChartCursor],
+    exports: [ViewChart],
+    bootstrap: [ViewChart, ViewChartOutput, ViewChartSummary, ViewChartCursor],
 })
 export class ChartModule {}

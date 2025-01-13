@@ -5,10 +5,9 @@ import { RecentParser } from './component';
 import { RecentParserDlt } from './dlt/component';
 import { RecentParserSomeIp } from './someip/component';
 
-const components = [RecentParser, RecentParserDlt, RecentParserSomeIp];
 @NgModule({
     imports: [CommonModule],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [RecentParser, RecentParserDlt, RecentParserSomeIp],
+    exports: [RecentParser],
 })
 export class RecentParserModule {}

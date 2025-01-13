@@ -18,6 +18,7 @@ interface IGroup {
     selector: 'app-dialogs-hotkeys',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

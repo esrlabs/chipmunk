@@ -9,6 +9,7 @@ import * as $ from '@platform/types/observe';
     selector: 'app-recent-parser-someip',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

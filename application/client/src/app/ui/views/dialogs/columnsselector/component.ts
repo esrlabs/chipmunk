@@ -10,6 +10,7 @@ import { getContrastColor } from '@ui/styles/colors';
     selector: 'app-dialogs-columns-selector',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

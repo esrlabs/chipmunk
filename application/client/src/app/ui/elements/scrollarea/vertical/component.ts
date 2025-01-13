@@ -23,6 +23,7 @@ const MAX_SCROLL_THUMB_HEIGHT: number = 20;
     selector: 'app-scrollarea-vertical',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class ScrollAreaVerticalComponent

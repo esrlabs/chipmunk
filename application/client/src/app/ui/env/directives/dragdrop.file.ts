@@ -10,6 +10,7 @@ export interface GlobalFileDef extends File {
 
 @Directive({
     selector: '[appMatDragDropFileFeature]',
+    standalone: false,
 })
 export class MatDragDropFileFeatureDirective implements OnDestroy {
     @Output() dropped: EventEmitter<OwnFileDef[]> = new EventEmitter();

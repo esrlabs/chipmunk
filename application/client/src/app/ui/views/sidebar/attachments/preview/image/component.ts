@@ -24,6 +24,7 @@ import { URLFileReader } from '@env/urlfilereader';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Preview extends ChangesDetector implements AfterViewInit, AfterContentInit {

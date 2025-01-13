@@ -8,6 +8,7 @@ import { State } from '../state';
     selector: 'app-el-parser-general',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

@@ -6,6 +6,7 @@ import { SetupBase } from '../../bases/serial/component';
     selector: 'app-serial-quicksetup',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class QuickSetup extends SetupBase implements AfterContentInit, OnDestroy {

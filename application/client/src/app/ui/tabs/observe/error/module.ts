@@ -4,12 +4,10 @@ import { MatCardModule } from '@angular/material/card';
 
 import { TabObserveErrorState } from './component';
 
-const components = [TabObserveErrorState];
-
 @NgModule({
     imports: [CommonModule, MatCardModule],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [TabObserveErrorState],
+    exports: [TabObserveErrorState],
+    bootstrap: [TabObserveErrorState],
 })
 export class ErrorStateModule {}

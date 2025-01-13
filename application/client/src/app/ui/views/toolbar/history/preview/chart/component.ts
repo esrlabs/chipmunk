@@ -7,6 +7,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-toolbar-history-chart-preview',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class ChartPreview extends ChangesDetector {

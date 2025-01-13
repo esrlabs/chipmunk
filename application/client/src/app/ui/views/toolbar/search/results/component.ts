@@ -11,6 +11,7 @@ import { getScrollAreaService, setScrollAreaService } from './backing';
     selector: 'app-views-search-results',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class ViewSearchResults implements AfterContentInit, OnDestroy {

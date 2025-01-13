@@ -17,9 +17,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [ViewSearch, ViewSearchInput, ViewSearchNested, ViewSearchResults];
-const components = [ViewSearch, ...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -36,7 +33,7 @@ const components = [ViewSearch, ...entryComponents];
         FormsModule,
         ReactiveFormsModule,
     ],
-    declarations: [...components],
-    exports: [...components, ScrollAreaModule],
+    declarations: [ViewSearch, ViewSearchInput, ViewSearchNested, ViewSearchResults],
+    exports: [ViewSearch],
 })
 export class SearchModule {}

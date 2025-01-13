@@ -9,6 +9,7 @@ import { stop } from '@ui/env/dom';
     selector: 'app-layout-toolbar-controls',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class LayoutToolbarControls implements AfterContentInit, OnDestroy {

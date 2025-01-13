@@ -26,6 +26,7 @@ import * as $ from '@platform/types/observe';
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Initial()
 @Ilc()

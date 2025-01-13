@@ -10,6 +10,7 @@ import { FilterRequest } from '@service/session/dependencies/search/filters/requ
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     hostDirectives: [EntitiesList.HOST_DIRECTIVE],
+    standalone: false,
 })
 @Initial()
 @Ilc()

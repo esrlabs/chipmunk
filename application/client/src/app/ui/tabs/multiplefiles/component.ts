@@ -19,6 +19,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-tabs-source-multiple-files',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

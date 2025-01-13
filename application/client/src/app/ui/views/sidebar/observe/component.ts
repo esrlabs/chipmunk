@@ -9,6 +9,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Initial()
 @Ilc()

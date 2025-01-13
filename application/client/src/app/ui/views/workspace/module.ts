@@ -20,16 +20,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [
-    ViewWorkspace,
-    ViewContentMapComponent,
-    ColumnsHeaders,
-    ViewSdeComponent,
-    ViewWorkspaceHeadersMenuComponent,
-    ViewWorkspaceTitleComponent,
-];
-const components = [ViewWorkspace, ...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -48,7 +38,14 @@ const components = [ViewWorkspace, ...entryComponents];
         FormsModule,
         ReactiveFormsModule,
     ],
-    declarations: [...components],
-    exports: [...components, ScrollAreaModule],
+    declarations: [
+        ViewWorkspace,
+        ViewContentMapComponent,
+        ColumnsHeaders,
+        ViewSdeComponent,
+        ViewWorkspaceHeadersMenuComponent,
+        ViewWorkspaceTitleComponent,
+    ],
+    exports: [ViewWorkspace, ScrollAreaModule],
 })
 export class WorkspaceModule {}

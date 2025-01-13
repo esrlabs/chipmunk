@@ -9,6 +9,7 @@ import { Render } from '@platform/types/settings/entry.description';
     selector: 'app-tabs-settings-entry',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

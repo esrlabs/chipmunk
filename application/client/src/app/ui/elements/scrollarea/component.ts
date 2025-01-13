@@ -30,6 +30,7 @@ import { unique } from '@platform/env/sequence';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, AfterViewInit {

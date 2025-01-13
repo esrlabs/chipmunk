@@ -6,12 +6,10 @@ import { MatButtonModule } from '@angular/material/button';
 
 import { Help } from './component';
 
-const components = [Help];
-
 @NgModule({
     imports: [CommonModule, MatCardModule, MatDividerModule, MatButtonModule],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [Help],
+    exports: [Help],
+    bootstrap: [Help],
 })
 export class HelpModule {}

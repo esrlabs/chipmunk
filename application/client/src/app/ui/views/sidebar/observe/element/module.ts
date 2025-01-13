@@ -8,12 +8,9 @@ import { Item as TCPItem } from './tcp/component';
 import { Item as UDPItem } from './udp/component';
 import { Signature } from './signature/component';
 
-const entryComponents = [Item, FileItem, ProcessItem, SerialItem, TCPItem, UDPItem, Signature];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [CommonModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [Item, FileItem, ProcessItem, SerialItem, TCPItem, UDPItem, Signature],
+    exports: [Item],
 })
 export class ElementModule {}

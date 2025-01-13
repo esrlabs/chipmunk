@@ -8,7 +8,6 @@ import { FilterInputModule } from '@elements/filter/module';
 
 import { Navigator } from './component';
 
-const components = [Navigator];
 @NgModule({
     imports: [
         CommonModule,
@@ -18,8 +17,8 @@ const components = [Navigator];
         FilterInputModule,
         MatProgressBarModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [Navigator],
+    exports: [Navigator],
+    bootstrap: [Navigator],
 })
 export class NavigatorModule {}

@@ -15,6 +15,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     selector: 'app-views-content-map',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class ViewContentMapComponent extends ChangesDetector implements AfterViewInit {

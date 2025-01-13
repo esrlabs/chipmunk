@@ -11,8 +11,6 @@ import { StreamModule } from './origin/stream/module';
 
 import { TabObserve } from './component';
 
-const components = [TabObserve];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -25,8 +23,8 @@ const components = [TabObserve];
         ConcatModule,
         StreamModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components, FileModule, ConcatModule, StreamModule],
+    declarations: [TabObserve],
+    exports: [TabObserve],
+    bootstrap: [TabObserve, FileModule, ConcatModule, StreamModule],
 })
 export class ObserveModule {}

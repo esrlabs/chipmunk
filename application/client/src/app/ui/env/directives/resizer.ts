@@ -22,6 +22,7 @@ const UPDATE_DELAY_MS = 20;
 
 @Directive({
     selector: '[appResizer]',
+    standalone: false,
 })
 export class ResizerDirective implements AfterViewInit, OnDestroy {
     @Input() public direction!: Direction;

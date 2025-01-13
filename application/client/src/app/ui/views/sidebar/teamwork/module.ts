@@ -14,9 +14,6 @@ import { RepositoryModule } from './repository/module';
 import { MatInputModule } from '@angular/material/input';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-const entryComponents = [TeamWork];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -34,7 +31,7 @@ const components = [...entryComponents];
         FormsModule,
         ReactiveFormsModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [TeamWork],
+    exports: [TeamWork],
 })
 export class TeamWorkModule {}

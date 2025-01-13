@@ -5,6 +5,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
     selector: 'app-layout-focus',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class LayoutFocus implements AfterViewInit {

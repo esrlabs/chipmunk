@@ -7,6 +7,7 @@ import { Initial } from '@env/decorators/initial';
     selector: 'app-dialogs-about',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

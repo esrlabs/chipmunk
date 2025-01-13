@@ -7,6 +7,7 @@ import { stop } from '@ui/env/dom';
     selector: 'app-scrollarea-rows-separator',
     styleUrls: ['./styles.less'],
     templateUrl: './template.html',
+    standalone: false,
 })
 @Ilc()
 export class Separator {

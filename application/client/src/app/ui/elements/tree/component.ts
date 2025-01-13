@@ -22,6 +22,7 @@ import * as Factory from '@platform/types/observe/factory';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Initial()
 @Ilc()

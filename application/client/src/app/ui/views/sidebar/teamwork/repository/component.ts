@@ -6,6 +6,7 @@ import { GitHubRepo } from '@platform/types/github';
     selector: 'app-views-teamwork-repository',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Repository {

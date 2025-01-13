@@ -5,17 +5,21 @@ import { ResizeObserverDirective } from './resize.observer';
 import { MatDragDropResetFeatureDirective } from './material.dragdrop';
 import { MatDragDropFileFeatureDirective } from './dragdrop.file';
 
-const components = [
-    ResizerDirective,
-    ResizeObserverDirective,
-    DraggingDirective,
-    MatDragDropResetFeatureDirective,
-    MatDragDropFileFeatureDirective,
-];
-
 @NgModule({
-    declarations: [...components],
-    exports: [...components],
+    declarations: [
+        ResizerDirective,
+        ResizeObserverDirective,
+        DraggingDirective,
+        MatDragDropResetFeatureDirective,
+        MatDragDropFileFeatureDirective,
+    ],
+    exports: [
+        ResizerDirective,
+        ResizeObserverDirective,
+        DraggingDirective,
+        MatDragDropResetFeatureDirective,
+        MatDragDropFileFeatureDirective,
+    ],
     imports: [],
 })
 export class AppDirectiviesModule {}

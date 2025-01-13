@@ -18,6 +18,7 @@ import { Profile } from '@platform/types/bindings';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class QuickSetup extends SetupBase implements AfterContentInit, OnDestroy {

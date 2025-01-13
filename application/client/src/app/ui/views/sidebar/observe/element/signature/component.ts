@@ -8,6 +8,7 @@ import { Element } from '../element';
     selector: 'app-views-observed-list-item-signature',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Signature extends ChangesDetector implements AfterContentInit {

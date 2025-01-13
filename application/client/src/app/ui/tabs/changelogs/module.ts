@@ -5,12 +5,10 @@ import { MatDividerModule } from '@angular/material/divider';
 
 import { Changelog } from './component';
 
-const components = [Changelog];
-
 @NgModule({
     imports: [CommonModule, MatCardModule, MatDividerModule],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [Changelog],
+    exports: [Changelog],
+    bootstrap: [Changelog],
 })
 export class ChangelogModule {}

@@ -11,6 +11,7 @@ import {
     selector: 'app-com-tooltip',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ComTooltipComponent implements OnDestroy, AfterViewInit {
     @Input() public appTooltipText!: string;
