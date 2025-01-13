@@ -12,8 +12,6 @@ import { Separator } from './separator/component';
 
 import { ContainersModule } from '@elements/containers/module';
 
-const components = [];
-
 @NgModule({
     imports: [
         CommonModule,

@@ -28,6 +28,7 @@ fn filter_as_regex(filter: String, case_sensitive: bool, whole_word: bool, regex
     format!("{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}",)
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn plain_string_regex_on() {
     let filter = String::from("Some random filter");
@@ -40,6 +41,7 @@ fn plain_string_regex_on() {
     );
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn plain_string_regex_off() {
     let filter = String::from("Some random filter");
@@ -52,6 +54,7 @@ fn plain_string_regex_off() {
     );
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn valid_regex() {
     let filter = String::from(r"\[Warn\]");
@@ -64,6 +67,7 @@ fn valid_regex() {
     );
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn invalid_regex() {
     let filter = String::from(r"\[Warn(\]");

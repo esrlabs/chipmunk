@@ -57,7 +57,6 @@ export class State extends Base {
         }
         if (this.logLevel !== Dlt.LogLevel.Verbose) {
             conf.setDefaultsFilterConfig();
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             conf.configuration.filter_config!.min_log_level = this.logLevel;
         }
         conf.configuration.tz = this.timezone === undefined ? undefined : this.timezone.name;

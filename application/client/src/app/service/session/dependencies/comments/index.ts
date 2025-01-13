@@ -257,7 +257,6 @@ export class Comments extends Subscriber {
             } else {
                 const rows = selected
                     .split(/[\n\r]/gi)
-                    // eslint-disable-next-line no-control-regex
                     .filter((r) => r.replace(/\d*\u0006$/gi, '').trim() !== '');
                 const stored = remember();
                 if (stored === undefined) {
