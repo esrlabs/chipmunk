@@ -28,8 +28,14 @@
     [state]="state"
 />
 
-<app-tabs-config-schema-paths
-    *ngIf="config.input_type === 'Paths'"
+<app-tabs-config-schema-files
+    *ngIf="isFilesPicker(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-dirs
+    *ngIf="config.input_type === 'Directories'"
     [config]="config"
     [state]="state"
 />

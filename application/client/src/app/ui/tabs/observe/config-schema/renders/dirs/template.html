@@ -1,8 +1,12 @@
 <p class="t-medium">{{config.title}}</p>
 <div *ngIf="paths.length > 0">
-    <mat-chip-listbox aria-label="Files">
-        <mat-chip-option *ngFor="let path of paths" (removed)="ngOnRemovePath(path)">
-            {{path.name}}
+    <mat-chip-listbox aria-label="Directories" class="chip-listbox">
+        <mat-chip-option
+            *ngFor="let path of paths"
+            (removed)="ngOnRemovePath(path)"
+            class="chip-item"
+        >
+            <p [title]="path" class="chip-path">{{ path }}</p>
             <button matChipRemove>
                 <mat-icon>cancel</mat-icon>
             </button>

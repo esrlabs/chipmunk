@@ -97,8 +97,10 @@ pub enum PluginConfigValue {
     Integer(i32),
     Float(f32),
     Text(String),
-    /// A string representing a file or directory path.
-    Paths(Vec<PathBuf>),
+    /// List of strings representing directory paths.
+    Directories(Vec<PathBuf>),
+    /// List of strings representing file paths.
+    Files(Vec<PathBuf>),
     /// A string representing a selected option from a drop-down menu
     Dropdown(String),
 }
@@ -116,7 +118,10 @@ pub enum PluginConfigSchemaType {
     Integer,
     Float,
     Text,
-    Paths,
+    /// A list of directories.
+    Directories,
+    /// A list of types with the given allowed extensions.
+    Files(Vec<String>),
     /// Drop-down input type with a list of selectable options.
     Dropdown(Vec<String>),
 }

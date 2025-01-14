@@ -18,7 +18,8 @@ import { ConfigSchemaInteger } from './renders/integer/component';
 import { ConfigSchemaFloat } from './renders/float/component';
 import { ConfigSchemaString } from './renders/string/component';
 import { ConfigSchemaDropdown } from './renders/dropdown/component';
-import { ConfigSchemaPaths } from './renders/paths/component';
+import { ConfigSchemaFiles } from './renders/files/component';
+import { ConfigSchemaDirs } from './renders/dirs/component';
 
 const components = [
     ConfigSchemas,
@@ -28,7 +29,8 @@ const components = [
     ConfigSchemaFloat,
     ConfigSchemaString,
     ConfigSchemaDropdown,
-    ConfigSchemaPaths,
+    ConfigSchemaFiles,
+    ConfigSchemaDirs,
 ];
 
 @NgModule({

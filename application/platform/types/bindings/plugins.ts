@@ -62,7 +62,8 @@ export type PluginConfigSchemaType =
     | 'Integer'
     | 'Float'
     | 'Text'
-    | 'Paths'
+    | 'Directories'
+    | { Files: Array<string> }
     | { Dropdown: Array<string> };
 
 /**
@@ -73,7 +74,8 @@ export type PluginConfigValue =
     | { Integer: number }
     | { Float: number }
     | { Text: string }
-    | { Paths: Array<string> }
+    | { Directories: Array<string> }
+    | { Files: Array<string> }
     | { Dropdown: string };
 
 /**

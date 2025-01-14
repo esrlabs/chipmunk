@@ -19,7 +19,8 @@ pub fn get_wasi_ctx_builder(
     for config_path in plugin_configs
         .iter()
         .filter_map(|item| match &item.value {
-            ConfValue::Paths(paths) => Some(paths),
+            ConfValue::Files(paths) => Some(paths),
+            ConfValue::Directories(paths) => Some(paths),
             ConfValue::Boolean(_)
             | ConfValue::Integer(_)
             | ConfValue::Float(_)

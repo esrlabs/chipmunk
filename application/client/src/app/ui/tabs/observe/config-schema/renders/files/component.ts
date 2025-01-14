@@ -6,11 +6,11 @@ import { File } from '@platform/types/files';
 import { bridge } from '@service/bridge';
 
 @Component({
-    selector: 'app-tabs-config-schema-paths',
+    selector: 'app-tabs-config-schema-files',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
 })
-export class ConfigSchemaPaths extends ChangesDetector {
+export class ConfigSchemaFiles extends ChangesDetector {
     @Input() public config!: PluginConfigSchemaItem;
     @Input() public state!: State;
 
@@ -21,9 +21,14 @@ export class ConfigSchemaPaths extends ChangesDetector {
     }
 
     public ngOnAddButtonkclick(): void {
+        const inputType = this.config.input_type;
+        const exts =
+            typeof inputType === 'object' && 'Files' in inputType && inputType.Files.length > 0
+                ? inputType.Files.join(',')
+                : '*';
         bridge
             .files()
-            .select.custom('*')
+            .select.custom(exts)
             .then((files: File[]) => {
                 files = files.filter((added) => {
                     return (
@@ -49,6 +54,6 @@ export class ConfigSchemaPaths extends ChangesDetector {
 
     update(): void {
         const files = this.paths.map((p) => p.filename);
-        this.state.saveConfig(this.config.id, { Paths: files });
+        this.state.saveConfig(this.config.id, { Files: files });
     }
 }

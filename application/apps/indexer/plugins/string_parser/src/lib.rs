@@ -16,7 +16,8 @@ const PREFIX_ID: &str = "prefix";
 // TODO AAZ: Remove after debugging.
 const INTEGER_ID: &str = "integer_idx";
 const FLOAT_ID: &str = "float_idx";
-const PATHS_ID: &str = "paths_idx";
+const FILES_ID: &str = "files_idx";
+const DIRS_ID: &str = "dirs_idx";
 const DROPDOWN_ID: &str = "dropdown_idx";
 
 /// Simple struct that converts the given bytes into UTF-8 Strings line by line.
@@ -95,10 +96,16 @@ impl Parser for StringTokenizer {
                 ConfigSchemaType::Float,
             ),
             ConfigSchemaItem::new(
-                PATHS_ID,
-                "Example Path",
-                Some("Configuration item with paths"),
-                ConfigSchemaType::Paths,
+                FILES_ID,
+                "Example File",
+                Some("Configuration item with files"),
+                ConfigSchemaType::Files(vec!["log".into(), "txt".into()]),
+            ),
+            ConfigSchemaItem::new(
+                DIRS_ID,
+                "Example Directories",
+                Some("Configuration item with directories"),
+                ConfigSchemaType::Directories,
             ),
             ConfigSchemaItem::new(
                 DROPDOWN_ID,
@@ -192,13 +199,13 @@ impl Parser for StringTokenizer {
 
         for item in plugins_configs.iter() {
             match item.id.as_str() {
+                LOSSY_ID => println!("Boolean config value is: {:?}", item.value),
+                PREFIX_ID => println!("Text config value is: {:?}", item.value),
                 INTEGER_ID => println!("Number config value is: {:?}", item.value),
                 FLOAT_ID => println!("Float config value is: {:?}", item.value),
-                PATHS_ID => println!("Path config value is: {:?}", item.value),
+                FILES_ID => println!("Files config value is: {:?}", item.value),
+                DIRS_ID => println!("Dirs config value is: {:?}", item.value),
                 DROPDOWN_ID => println!("Drop-Down config value is: {:?}", item.value),
-                LOSSY_ID | PREFIX_ID => {
-                    // Already handled above.
-                }
                 unknown => {
                     let error_msg = format!("Unknow configuration ID: {unknown}");
                     return Err(InitError::Config(error_msg));

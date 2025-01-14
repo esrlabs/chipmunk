@@ -28,8 +28,10 @@ interface shared-types {
     integer(s32),
     float(f32),
     text(string),
-    /// List of strings representing file or directory path.
-    paths(list<string>),
+    /// List of strings representing directory paths.
+    directories(list<string>),
+    /// List of strings representing file paths.
+    files(list<string>),
     /// A string representing a selected option from a drop-down menu
     dropdown(string)
   }
@@ -48,7 +50,10 @@ interface shared-types {
     integer,
     float,
     text,
-    paths,
+    /// A list of directories.
+    directories,
+    /// A list of types with the given allowed file extensions (Empty to allow all).
+    files(list<string>),
     /// Drop-down input type with a list of selectable options.
     dropdown(list<string>)
   }

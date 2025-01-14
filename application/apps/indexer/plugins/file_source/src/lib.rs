@@ -35,7 +35,7 @@ impl ByteSource for FileSource {
             INPUT_PATH_ID,
             "File Path",
             Some("The path of the input file to read from"),
-            ConfigSchemaType::Path,
+            ConfigSchemaType::Files(Vec::new()),
         )]
     }
 
@@ -68,9 +68,9 @@ impl ByteSource for FileSource {
             })?;
 
         let file_path = match &file_path_config.value {
-            ConfigValue::Paths(paths) => {
+            ConfigValue::Files(paths) => {
                 if paths.len() != 1 {
-                    let err_msg = format!("Pluign expects one path only but got: {:?}", paths);
+                    let err_msg = format!("Pluign expects one file only but got: {:?}", paths);
                     return Err(InitError::Config(err_msg));
                 }
                 PathBuf::from(&paths[0])

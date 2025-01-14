@@ -70,7 +70,8 @@ export class Configuration
     }
 
     /**
-     * Extract the value from the configuration value item depending on its kind.
+     * Extract the value from the configuration value item depending on its kind,
+     * returning a value that can represented as a formatted string.
      */
     getConfigValue(value: PluginConfigValue): string | number | boolean {
         if ('Boolean' in value) {
@@ -89,8 +90,12 @@ export class Configuration
             return value.Text;
         }
 
-        if ('Paths' in value) {
-            return value.Paths.join(',');
+        if ('Files' in value) {
+            return value.Files.join(',');
+        }
+
+        if ('Directories' in value) {
+            return value.Directories.join(',');
         }
 
         if ('Dropdown' in value) {

@@ -99,7 +99,12 @@ impl From<HostConfValue> for ConfigValue {
             HostConfValue::Integer(val) => ConfigValue::Integer(val),
             HostConfValue::Float(val) => ConfigValue::Float(val),
             HostConfValue::Text(val) => ConfigValue::Text(val),
-            HostConfValue::Paths(val) => ConfigValue::Paths(
+            HostConfValue::Files(val) => ConfigValue::Files(
+                val.into_iter()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .collect(),
+            ),
+            HostConfValue::Directories(val) => ConfigValue::Directories(
                 val.into_iter()
                     .map(|p| p.to_string_lossy().to_string())
                     .collect(),
@@ -126,7 +131,8 @@ impl From<ConfigSchemaType> for HostSchemaType {
             ConfigSchemaType::Integer => HostSchemaType::Integer,
             ConfigSchemaType::Float => HostSchemaType::Float,
             ConfigSchemaType::Text => HostSchemaType::Text,
-            ConfigSchemaType::Paths => HostSchemaType::Paths,
+            ConfigSchemaType::Directories => HostSchemaType::Directories,
+            ConfigSchemaType::Files(exts) => HostSchemaType::Files(exts),
             ConfigSchemaType::Dropdown(items) => HostSchemaType::Dropdown(items),
         }
     }

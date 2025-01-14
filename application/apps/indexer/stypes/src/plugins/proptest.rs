@@ -86,7 +86,8 @@ impl Arbitrary for PluginConfigValue {
             PluginConfigValue::Integer(_) => (),
             PluginConfigValue::Float(_) => (),
             PluginConfigValue::Text(_) => (),
-            PluginConfigValue::Paths(_) => (),
+            PluginConfigValue::Directories(_) => (),
+            PluginConfigValue::Files(_) => (),
             PluginConfigValue::Dropdown(_) => (),
         };
 
@@ -95,7 +96,8 @@ impl Arbitrary for PluginConfigValue {
             any::<i32>().prop_map(PluginConfigValue::Integer),
             any::<f32>().prop_map(PluginConfigValue::Float),
             any::<String>().prop_map(PluginConfigValue::Text),
-            prop::collection::vec(any::<PathBuf>(), 0..10).prop_map(PluginConfigValue::Paths),
+            prop::collection::vec(any::<PathBuf>(), 0..10).prop_map(PluginConfigValue::Directories),
+            prop::collection::vec(any::<PathBuf>(), 0..10).prop_map(PluginConfigValue::Files),
             any::<String>().prop_map(PluginConfigValue::Dropdown),
         ]
         .boxed()
@@ -114,7 +116,8 @@ impl Arbitrary for PluginConfigSchemaType {
             T::Integer => (),
             T::Float => (),
             T::Text => (),
-            T::Paths => (),
+            T::Directories => (),
+            T::Files(_) => (),
             T::Dropdown(_) => (),
         };
 
@@ -123,7 +126,8 @@ impl Arbitrary for PluginConfigSchemaType {
             Just(T::Integer),
             Just(T::Float),
             Just(T::Text),
-            Just(T::Paths),
+            Just(T::Directories),
+            prop::collection::vec(any::<String>(), 0..10).prop_map(T::Files),
             prop::collection::vec(any::<String>(), 0..10).prop_map(T::Dropdown),
         ]
         .boxed()
