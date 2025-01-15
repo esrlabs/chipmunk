@@ -69,5 +69,6 @@ import { Bin } from './bin/component';
         Bin,
     ],
     exports: [Filters],
+    bootstrap: [Filters],
 })
 export class FiltersModule {}

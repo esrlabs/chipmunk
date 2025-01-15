@@ -29,5 +29,6 @@ import { ChartPreview } from './preview/chart/component';
     ],
     declarations: [Preset, History, FilterPreview, ChartPreview],
     exports: [History],
+    bootstrap: [History],
 })
 export class HistoryModule {}

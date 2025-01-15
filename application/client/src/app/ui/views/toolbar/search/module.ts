@@ -35,5 +35,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     ],
     declarations: [ViewSearch, ViewSearchInput, ViewSearchNested, ViewSearchResults],
     exports: [ViewSearch],
+    bootstrap: [ViewSearch],
 })
 export class SearchModule {}

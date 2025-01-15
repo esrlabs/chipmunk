@@ -26,5 +26,6 @@ import { MatDividerModule } from '@angular/material/divider';
     ],
     declarations: [Attachments],
     exports: [Attachments],
+    bootstrap: [Attachments],
 })
 export class AttachmentsModule {}
