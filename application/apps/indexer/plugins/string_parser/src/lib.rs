@@ -5,8 +5,9 @@ use memchr::memchr;
 use plugins_api::{
     log,
     parser::{
-        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, ParseError,
-        ParseReturn, ParseYield, ParsedMessage, Parser, ParserConfig, RenderOptions, Version,
+        ColumnInfo, ColumnsRenderOptions, ConfigItem, ConfigSchemaItem, ConfigSchemaType,
+        ConfigValue, InitError, ParseError, ParseReturn, ParseYield, ParsedMessage, Parser,
+        ParserConfig, RenderOptions, Version,
     },
     parser_export,
 };
@@ -33,7 +34,7 @@ pub struct StringTokenizer {
 
 impl StringTokenizer {
     /// Converts a slice from the given data to UTF-8 String stopping when it hit the first
-    /// break-line character to return one line at a time.
+    /// break-line character to return one line and its length at a time.
     ///
     /// # Panic:
     /// The function will panic is the provided data is empty.
@@ -56,8 +57,9 @@ impl StringTokenizer {
         if let Some(prefix) = self.prefix.as_ref() {
             line = format!("{prefix} {line}");
         }
-        let msg = ParsedMessage::Line(line);
-        let yld = ParseYield::Message(msg);
+
+        let msgs = ParsedMessage::Columns(vec![line.len().to_string(), line]);
+        let yld = ParseYield::Message(msgs);
 
         Ok(ParseReturn::new((end_idx + 1) as u64, Some(yld)))
     }
@@ -122,8 +124,15 @@ impl Parser for StringTokenizer {
     }
 
     fn get_render_options() -> RenderOptions {
-        // String Tokenizer doesn't use headers
-        RenderOptions::default()
+        // Demonstration of render options.
+        let columns = vec![
+            ColumnInfo::new("Length", "The length of the log message", 30),
+            ColumnInfo::new("Message", "The log message", -1),
+        ];
+
+        let columns_opts = ColumnsRenderOptions::new(columns, 30, 600);
+
+        RenderOptions::new(Some(columns_opts))
     }
 
     fn create(
