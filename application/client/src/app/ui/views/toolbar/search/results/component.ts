@@ -57,7 +57,6 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
             }),
             this.session.indexed.subjects.get().updated.subscribe((len: number) => {
                 this.service.setLen(len);
-                this.service.refresh();
             }),
             this.service.onBound(() => {
                 this.env().subscriber.register(
