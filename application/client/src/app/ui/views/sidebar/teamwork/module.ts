@@ -33,5 +33,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     ],
     declarations: [TeamWork],
     exports: [TeamWork],
+    bootstrap: [TeamWork],
 })
 export class TeamWorkModule {}

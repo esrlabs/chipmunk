@@ -6,5 +6,6 @@ import { Details } from './component';
     imports: [CommonModule],
     declarations: [Details],
     exports: [Details],
+    bootstrap: [Details],
 })
 export class DetailsModule {}

@@ -12,6 +12,6 @@ import { MAT_BOTTOM_SHEET_DEFAULT_OPTIONS } from '@angular/material/bottom-sheet
     declarations: [AppComponent],
     imports: [BrowserModule, LayoutModule, ViewsModule, TabsModule, BrowserAnimationsModule],
     providers: [{ provide: MAT_BOTTOM_SHEET_DEFAULT_OPTIONS, useValue: { hasBackdrop: false } }],
-    bootstrap: [AppComponent],
+    bootstrap: [AppComponent, ViewsModule, TabsModule],
 })
 export class AppModule {}

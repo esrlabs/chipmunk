@@ -25,5 +25,6 @@ import { InputListenerDirective } from '@ui/env/directives/input';
     ],
     declarations: [ElementsTreeSelector, InputListenerDirective],
     exports: [ElementsTreeSelector],
+    bootstrap: [ElementsTreeSelector],
 })
 export class TreeModule {}

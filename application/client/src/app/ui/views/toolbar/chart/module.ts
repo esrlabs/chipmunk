@@ -19,6 +19,6 @@ import { ViewChartCursor } from './cursor/component';
     ],
     declarations: [ViewChart, ViewChartOutput, ViewChartSummary, ViewChartCursor],
     exports: [ViewChart],
-    bootstrap: [ViewChart, ViewChartOutput, ViewChartSummary, ViewChartCursor],
+    bootstrap: [ViewChart],
 })
 export class ChartModule {}

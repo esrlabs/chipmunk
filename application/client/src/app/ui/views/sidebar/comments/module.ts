@@ -37,6 +37,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     ],
     declarations: [Comments, Comment, Editor, Reply],
     exports: [Comments],
+    bootstrap: [Comments],
 })
 export class CommentsModule {
     constructor() {}

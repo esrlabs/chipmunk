@@ -34,5 +34,6 @@ import { ListModule as UdpListModule } from './lists/udp/module';
     ],
     declarations: [Observed],
     exports: [Observed],
+    bootstrap: [Observed],
 })
 export class ObservedModule {}

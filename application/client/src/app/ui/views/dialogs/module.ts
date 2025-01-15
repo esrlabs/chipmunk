@@ -21,7 +21,7 @@ import { ColumnsSelectorModule } from './columnsselector/module';
         ColumnsSelectorModule,
     ],
     declarations: [],
-    exports: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule],
-    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule],
+    exports: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule, JumpToModule],
+    bootstrap: [HotkeysModule, AboutModule, LockerMessageModule, CommentModule, JumpToModule],
 })
 export class DialogsModule {}
