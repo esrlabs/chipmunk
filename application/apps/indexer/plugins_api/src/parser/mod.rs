@@ -28,7 +28,8 @@ pub mod __internal_bindings {
 pub use __internal_bindings::chipmunk::plugin::{
     logging::Level,
     parse_types::{
-        Attachment, ParseError, ParseReturn, ParseYield, ParsedMessage, ParserConfig, RenderOptions,
+        Attachment, ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield,
+        ParsedMessage, ParserConfig, RenderOptions,
     },
     shared_types::{
         ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
@@ -65,18 +66,38 @@ impl Version {
 
 impl RenderOptions {
     /// Creates a new instance of render options with the given arguments
-    ///
-    /// * `headers`: List of strings representing the header names to be rendered at
-    ///   the top of log messages, allowing users to specify the visibility of the
-    ///   columns as well.
-    pub fn new(headers: Option<Vec<String>>) -> Self {
-        Self { headers }
+    pub fn new(columns_options: Option<ColumnsRenderOptions>) -> Self {
+        Self { columns_options }
     }
 }
 
 impl Default for RenderOptions {
     fn default() -> Self {
-        Self { headers: None }
+        Self {
+            columns_options: None,
+        }
+    }
+}
+
+impl ColumnsRenderOptions {
+    /// Creates a new instance of columns render options with the given arguments
+    pub fn new(columns: Vec<ColumnInfo>, min_width: u16, max_width: u16) -> Self {
+        Self {
+            columns,
+            max_width,
+            min_width,
+        }
+    }
+}
+
+impl ColumnInfo {
+    /// Creates a new instance of column render infos with the given arguments
+    pub fn new<S: Into<String>>(caption: S, description: S, width: i16) -> Self {
+        Self {
+            caption: caption.into(),
+            description: description.into(),
+            width,
+        }
     }
 }
 

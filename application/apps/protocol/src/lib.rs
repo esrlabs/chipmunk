@@ -144,6 +144,8 @@ gen_encode_decode_fns!(ValidPluginInfo);
 gen_encode_decode_fns!(SemanticVersion);
 gen_encode_decode_fns!(RenderOptions);
 gen_encode_decode_fns!(ParserRenderOptions);
+gen_encode_decode_fns!(ColumnsRenderOptions);
+gen_encode_decode_fns!(ColumnInfo);
 gen_encode_decode_fns!(InvalidPluginInfo);
 gen_encode_decode_fns!(PluginsList);
 gen_encode_decode_fns!(CommandOutcome<PluginsList>);

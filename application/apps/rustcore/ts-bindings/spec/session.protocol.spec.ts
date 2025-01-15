@@ -127,6 +127,8 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     SemanticVersion: protocol.decodeSemanticVersion,
     RenderOptions: protocol.decodeRenderOptions,
     ParserRenderOptions: protocol.decodeParserRenderOptions,
+    ColumnsRenderOptions: protocol.decodeColumnsRenderOptions,
+    ColumnInfo: protocol.decodeColumnInfo,
     InvalidPluginInfo: protocol.decodeInvalidPluginInfo,
     PluginsList: protocol.decodePluginsList,
     CommandOutcome_PluginsList: protocol.decodeCommandOutcomeWithPluginsList,

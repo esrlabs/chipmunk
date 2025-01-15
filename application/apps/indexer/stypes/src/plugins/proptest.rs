@@ -287,8 +287,40 @@ impl Arbitrary for ParserRenderOptions {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        prop::option::of(prop::collection::vec(any::<String>(), 0..10))
-            .prop_map(|headers| Self { headers })
+        prop::option::of(any::<ColumnsRenderOptions>())
+            .prop_map(|columns_options| Self { columns_options })
+            .boxed()
+    }
+}
+
+impl Arbitrary for ColumnsRenderOptions {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            prop::collection::vec(any::<ColumnInfo>(), 0..10),
+            any::<u16>(),
+            any::<u16>(),
+        )
+            .prop_map(|(columns, min_width, max_width)| Self {
+                columns,
+                min_width,
+                max_width,
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for ColumnInfo {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (any::<String>(), any::<String>(), any::<i16>())
+            .prop_map(|(caption, description, width)| Self {
+                caption,
+                description,
+                width,
+            })
             .boxed()
     }
 }
@@ -331,5 +363,7 @@ test_msg!(ValidPluginInfo, TESTS_USECASE_COUNT);
 test_msg!(SemanticVersion, TESTS_USECASE_COUNT);
 test_msg!(RenderOptions, TESTS_USECASE_COUNT);
 test_msg!(ParserRenderOptions, TESTS_USECASE_COUNT);
+test_msg!(ColumnsRenderOptions, TESTS_USECASE_COUNT);
+test_msg!(ColumnInfo, TESTS_USECASE_COUNT);
 test_msg!(InvalidPluginInfo, TESTS_USECASE_COUNT);
 test_msg!(PluginsList, TESTS_USECASE_COUNT);

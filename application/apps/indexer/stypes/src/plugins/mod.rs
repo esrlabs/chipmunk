@@ -247,13 +247,47 @@ pub enum RenderOptions {
     ts(export, export_to = "plugins.ts")
 )]
 pub struct ParserRenderOptions {
-    /// List of strings representing the header names to be rendered at the top of log messages.
-    /// This list allows users to specify which columns are visible as well.
+    /// Rendering information for the column if log messages have multiple columns.
     ///
-    /// # Note
-    /// Headers should be provided only if the log messages have multiple columns, and their
-    /// count must match the count of the columns of the log message as well.
-    pub headers: Option<Vec<String>>,
+    /// # Note:
+    /// The count of the provided columns must match the count of the columns of each log message as well.
+    pub columns_options: Option<ColumnsRenderOptions>,
+}
+
+/// Represents the options needs to render columns information if they exist.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct ColumnsRenderOptions {
+    /// List of columns infos providing the needed information for each column in log view.
+    ///
+    /// Note: The count of this list must match the count of the column of each log message.
+    pub columns: Vec<ColumnInfo>,
+    /// Minimum column width.
+    pub min_width: u16,
+    /// Maximum column width.
+    pub max_width: u16,
+}
+
+/// Represents the infos of a column that will be used in the render options.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct ColumnInfo {
+    /// Header title to be rendered on the top of the column in log view.
+    pub caption: String,
+    /// Description to be shown as tooltip for the column.
+    pub description: String,
+    /// Width of column (-1) for unlimited.
+    pub width: i16,
 }
 
 /// Contains the informations for an invalid plugin.

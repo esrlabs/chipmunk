@@ -158,7 +158,27 @@ impl From<Version> for SemanticVersion {
 impl From<RenderOptions> for ParserRenderOptions {
     fn from(value: RenderOptions) -> Self {
         Self {
-            headers: value.headers,
+            columns_options: value.columns_options.map(|o| o.into()),
+        }
+    }
+}
+
+impl From<ColumnsRenderOptions> for stypes::ColumnsRenderOptions {
+    fn from(value: ColumnsRenderOptions) -> Self {
+        Self {
+            columns: value.columns.into_iter().map(|c| c.into()).collect(),
+            min_width: value.min_width,
+            max_width: value.max_width,
+        }
+    }
+}
+
+impl From<ColumnInfo> for stypes::ColumnInfo {
+    fn from(value: ColumnInfo) -> Self {
+        Self {
+            caption: value.caption,
+            description: value.description,
+            width: value.width,
         }
     }
 }
