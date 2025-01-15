@@ -30,7 +30,6 @@ pub struct Slot {
 }
 impl Slot {
     pub fn new(from: usize, to: usize, tag: String, mapper: &AnsiMapper) -> Self {
-        println!("{tag}");
         Slot {
             from,
             to,
