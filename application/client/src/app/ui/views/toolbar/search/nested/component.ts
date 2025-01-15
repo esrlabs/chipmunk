@@ -35,8 +35,27 @@ export class ViewSearchNested
 
     public readonly input = new SearchInput();
     public readonly recent: List;
-    public readonly progress: boolean = false;
+    public pendding: boolean = false;
+    public progress: boolean = false;
 
+    protected action(action: Promise<number | undefined>) {
+        this.pendding = true;
+        action
+            .catch((err: Error) => {
+                this.log().error(`Fail go to next/prev nested match: ${err.message}`);
+            })
+            .finally(() => {
+                clearTimeout(tm);
+                this.progress = false;
+                this.pendding = false;
+                this.detectChanges();
+            });
+        // Show progress bar with delay to prevent showing it for quick done work
+        const tm = setTimeout(() => {
+            this.progress = true;
+            this.detectChanges();
+        }, 250) as number;
+    }
     constructor(chRef: ChangeDetectorRef) {
         super(chRef);
         this.recent = new List(this.input.control, 'RecentNestedFilters', 'recent_nested_filters');
@@ -84,23 +103,17 @@ export class ViewSearchNested
     }
 
     public next() {
-        this.session.search
-            .state()
-            .nested()
-            .next()
-            .catch((err: Error) => {
-                this.log().error(`Fail go to next nested match: ${err.message}`);
-            });
+        if (this.pendding) {
+            return;
+        }
+        this.action(this.session.search.state().nested().next());
     }
 
     public prev() {
-        this.session.search
-            .state()
-            .nested()
-            .prev()
-            .catch((err: Error) => {
-                this.log().error(`Fail go to prev nested match: ${err.message}`);
-            });
+        if (this.pendding) {
+            return;
+        }
+        this.action(this.session.search.state().nested().prev());
     }
 
     public drop() {
