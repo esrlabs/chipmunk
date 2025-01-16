@@ -345,25 +345,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "buf_redux"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b953a6887648bb07a535631f2bc00fbdb2a2216f135552cb3f534ed136b9c07f"
-dependencies = [
- "memchr",
- "safemem",
- "slice-deque",
-]
-
-[[package]]
-name = "buf_redux"
-version = "0.8.4"
-source = "git+https://github.com/DmitryAstafyev/buf_redux.git#595d13446d3d90eb4834a3cee67c0f79e28f01d8"
-dependencies = [
- "memchr",
- "safemem",
- "slice-deque",
-]
+name = "bufread"
+version = "0.1.0"
+source = "git+https://github.com/kruss/bufread#5dec80376c0cbbbf3c4f864cf88b965cceb67c3b"
 
 [[package]]
 name = "bumpalo"
@@ -647,10 +631,9 @@ dependencies = [
 [[package]]
 name = "dlt-core"
 version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b304e32f1164b8c2ef1dc746b32d321f25f88a32672f0f5bcba2df0f70a3b70"
+source = "git+https://github.com/kruss/dlt-core.git?branch=remove_buf_redux#87c7cea8be5224790ba8457ff531b4b6804c1298"
 dependencies = [
- "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bufread",
  "byteorder",
  "bytes",
  "derive_more",
@@ -1282,15 +1265,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mach"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86dd2487cdfea56def77b88438a2c915fb45113c5319bfe7e14306ca4cd0b0e1"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "mach2"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1831,7 +1805,7 @@ name = "processor"
 version = "0.2.0"
 dependencies = [
  "bincode",
- "buf_redux 0.8.4 (git+https://github.com/DmitryAstafyev/buf_redux.git)",
+ "bufread",
  "bytecount",
  "futures",
  "grep-regex",
@@ -2025,12 +1999,6 @@ name = "ryu"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
-
-[[package]]
-name = "safemem"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
 
 [[package]]
 name = "same-file"
@@ -2240,17 +2208,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "slice-deque"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffddf594f5f597f63533d897427a570dbaa9feabaaa06595b74b71b7014507d7"
-dependencies = [
- "libc",
- "mach",
- "winapi",
-]
-
-[[package]]
 name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2303,7 +2260,7 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
- "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bufread",
  "bytes",
  "etherparse",
  "futures",

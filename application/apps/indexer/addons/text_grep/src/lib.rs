@@ -65,7 +65,6 @@
 //!
 //! # Dependencies
 //!
-//! - `buf_redux`: Provides buffered I/O functionality.
 //! - `grep_regex`: Facilitates regular expression searching.
 //! - `grep_searcher`: Implements file searching capabilities.
 //! - `regex`: Provides regular expression support.
@@ -81,8 +80,7 @@
 //! - Both case-sensitive and case-insensitive searches are supported based on user preference.
 
 pub mod buffer;
-use crate::buffer::{CancallableMinBuffered, REDUX_MIN_BUFFER_SPACE, REDUX_READER_CAPACITY};
-use buf_redux::BufReader;
+use crate::buffer::CancellableBufReader;
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::{sinks::UTF8, Searcher};
 use regex::Regex;
@@ -214,9 +212,7 @@ fn process_file(
 ) -> Result<SearchResult, GrepError> {
     let mut pattern_counts = HashMap::new();
     let file = File::open(file_path)?;
-    let reader = BufReader::with_capacity(REDUX_READER_CAPACITY, file).set_policy(
-        CancallableMinBuffered((REDUX_MIN_BUFFER_SPACE, cancel_token.clone())),
-    );
+    let reader = CancellableBufReader::new(file, cancel_token.clone());
     let mut searcher = Searcher::new();
     searcher
         .search_reader(
