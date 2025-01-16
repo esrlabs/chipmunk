@@ -24,11 +24,12 @@ thiserror = "2.0"
 lazy_static = "1.5"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
-dlt-core = "0.18.0"
+#dlt-core = "0.18.0"
+dlt-core = { git = "https://github.com/kruss/dlt-core.git", branch = "remove_buf_redux" }
 crossbeam-channel = "0.5"
 futures = "0.3"
 tokio-util = "0.7"
-buf_redux = "0.8"
+bufread = { git = "https://github.com/kruss/bufread" }
 regex = "1"
 grep-regex = "0.1"
 rand = "0.8"

@@ -1,39 +1,62 @@
-use buf_redux::{
-    do_read,
-    policy::{DoRead, ReaderPolicy},
-    Buffer,
-};
+// TODO this duplicates: application/apps/indexer/processor/src/search/buffer.rs
+use bufread::BufReader;
 use tokio_util::sync::CancellationToken;
+use std::io::{BufRead, Read, Result, Seek, SeekFrom, Error, ErrorKind};
 
-pub const REDUX_READER_CAPACITY: usize = 1024 * 1024;
-pub const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
+const BIN_READER_CAPACITY: usize = 1024 * 1024;
+const BIN_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
-#[derive(Debug)]
-pub struct CancallableMinBuffered(pub (usize, CancellationToken));
+pub struct CancellableBufReader<R> {
+    buffer: BufReader<R>,
+    cancel: CancellationToken
+}
 
-impl CancallableMinBuffered {
-    /// Set the number of bytes to ensure are in the buffer.
-    pub fn set_min(&mut self, min: usize) {
-        self.0 .0 = min;
+impl<R> CancellableBufReader<R> {
+    pub fn new(reader: R, cancel: CancellationToken) -> Self {
+        CancellableBufReader {
+            buffer: BufReader::new(
+                BIN_READER_CAPACITY,
+                BIN_MIN_BUFFER_SPACE,
+                reader),
+            cancel
+        }
     }
 }
 
-impl ReaderPolicy for CancallableMinBuffered {
-    fn before_read(&mut self, buffer: &mut Buffer) -> DoRead {
-        // do nothing if we have enough data
-        if buffer.len() >= self.0 .0 {
-            do_read!(false)
+impl<R: Read> Read for CancellableBufReader<R> {
+    fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
+        if self.cancel.is_cancelled() {
+            return Ok(0);
+        }
+        
+        self.buffer.read(buffer)
+    }
+}
+
+impl<R: Read> BufRead for CancellableBufReader<R> {
+    fn fill_buf(&mut self) -> Result<&[u8]> {
+        if self.cancel.is_cancelled() {
+            return Ok(&[][..]);
+        }
+        
+        self.buffer.fill_buf()
+    }
+
+    fn consume(&mut self, size: usize) {
+        if self.cancel.is_cancelled() {
+            return;
         }
 
-        let cap = buffer.capacity();
+        self.buffer.consume(size)
+    }
+}
 
-        // if there's enough room but some of it's stuck after the head
-        if buffer.usable_space() < self.0 .0 && buffer.free_space() >= self.0 .0 {
-            buffer.make_room();
-        } else if cap < self.0 .0 {
-            buffer.reserve(self.0 .0 - cap);
+impl<R: Seek> Seek for CancellableBufReader<R> {
+    fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
+        if self.cancel.is_cancelled() {
+            return Err(Error::from(ErrorKind::NotFound));
         }
-
-        DoRead(true)
+        
+        self.buffer.seek(pos)
     }
 }
