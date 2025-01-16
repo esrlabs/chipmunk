@@ -54,7 +54,7 @@ export class ViewSearchNested
         const tm = setTimeout(() => {
             this.progress = true;
             this.detectChanges();
-        }, 250) as number;
+        }, 250) as unknown as number;;
     }
     constructor(chRef: ChangeDetectorRef) {
         super(chRef);
