@@ -2,11 +2,13 @@ import * as FileDlt from './file.dlt';
 import * as FileText from './file.text';
 import * as FilePcap from './file.pcapng';
 import * as FilePcapLegacy from './file.pcap';
+import * as FilePlugins from './file.plugins';
 import * as FileAny from './file.any';
 import * as FolderDlt from './folder.dlt';
 import * as FolderText from './folder.text';
 import * as FolderPcap from './folder.pcapng';
 import * as FolderPcapLegacy from './folder.pcap';
+import * as FolderPlugins from './folder.plugins';
 import * as FolderAny from './folder.any';
 import * as UdpDlt from './udp.dlt';
 import * as TcpDlt from './tcp.dlt';
@@ -27,11 +29,13 @@ export * as FileDlt from './file.dlt';
 export * as FileText from './file.text';
 export * as FilePcap from './file.pcapng';
 export * as FilePcapLegacy from './file.pcap';
+export * as FilePlugins from './file.plugins';
 export * as FileAny from './file.any';
 export * as FolderDlt from './folder.dlt';
 export * as FolderText from './folder.text';
 export * as FolderPcap from './folder.pcapng';
 export * as FolderPcapLegacy from './folder.pcap';
+export * as FolderPlugins from './folder.plugins';
 export * as FolderAny from './folder.any';
 export * as UdpDlt from './udp.dlt';
 export * as TcpDlt from './tcp.dlt';
@@ -53,11 +57,13 @@ export const all = [
     [FileText.ACTION_UUID, FileText.Action],
     [FilePcap.ACTION_UUID, FilePcap.Action],
     [FilePcapLegacy.ACTION_UUID, FilePcapLegacy.Action],
+    [FilePlugins.ACTION_UUID, FilePlugins.Action],
     [FileAny.ACTION_UUID, FileAny.Action],
     [FolderDlt.ACTION_UUID, FolderDlt.Action],
     [FolderText.ACTION_UUID, FolderText.Action],
     [FolderPcap.ACTION_UUID, FolderPcap.Action],
     [FolderPcapLegacy.ACTION_UUID, FolderPcapLegacy.Action],
+    [FolderPlugins.ACTION_UUID, FolderPlugins.Action],
     [FolderAny.ACTION_UUID, FolderAny.Action],
     [UdpDlt.ACTION_UUID, UdpDlt.Action],
     [TcpDlt.ACTION_UUID, TcpDlt.Action],

@@ -68,6 +68,17 @@ export class Action extends Base {
                                 .get(),
                         );
                     break;
+                case FileType.Plugins:
+                    session
+                        .initialize()
+                        .observe(
+                            new Factory.File()
+                                .type(files[0].type)
+                                .file(files[0].filename)
+                                .asPlugin()
+                                .get(),
+                        );
+                    break;
             }
         }
         return Promise.resolve();

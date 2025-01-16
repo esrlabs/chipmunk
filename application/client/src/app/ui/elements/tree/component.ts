@@ -34,7 +34,10 @@ export class ElementsTreeSelector
     public state: State;
     private init!: Promise<void>;
 
-    constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
+    constructor(
+        cdRef: ChangeDetectorRef,
+        private _sanitizer: DomSanitizer,
+    ) {
         super(cdRef);
         this.state = new State(this);
     }
@@ -169,6 +172,25 @@ export class ElementsTreeSelector
                             )
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);
+                            });
+                    },
+                },
+                {
+                    caption: 'Open with parser plugins',
+                    handler: () => {
+                        this.ilc()
+                            .services.system.session.initialize()
+                            .observe(
+                                new Factory.File()
+                                    .type(Factory.FileType.Plugins)
+                                    .asPlugin()
+                                    .file(entity.getPath())
+                                    .get(),
+                            )
+                            .catch((err: Error) => {
+                                this.log().error(
+                                    `Fail to open file with plugins: errord ${err.message}`,
+                                );
                             });
                     },
                 },

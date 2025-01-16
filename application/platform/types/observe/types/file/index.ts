@@ -2,12 +2,12 @@ export abstract class Support {
     public abstract getSupportedFileType(): FileName[];
 }
 
-//TODO AAZ: Check if we need a file type for the plugins.
 export enum FileType {
     PcapNG = 'PcapNG',
     PcapLegacy = 'PcapLegacy',
     Text = 'Text',
     Binary = 'Binary',
+    Plugins = 'Plugins',
 }
 
 export function getFileTypeFrom(smth: unknown): FileType | Error {
@@ -20,6 +20,8 @@ export function getFileTypeFrom(smth: unknown): FileType | Error {
             return FileType.PcapLegacy;
         case FileType.Text:
             return FileType.Text;
+        case FileType.Plugins:
+            return FileType.Plugins;
         default:
             return new Error(`${smth} isn't FileType`);
     }

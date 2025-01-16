@@ -75,6 +75,7 @@ export class Provider extends Base<IFileDescription> {
         pcapng(): void;
         pcap(): void;
         text(): void;
+        plugins(): void;
         auto(): void;
     } {
         return {
@@ -136,6 +137,23 @@ export class Provider extends Base<IFileDescription> {
                     )
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
+                    });
+            },
+            plugins: (): void => {
+                this.ilc
+                    .ilc()
+                    .services.system.session.initialize()
+                    .observe(
+                        new Factory.File()
+                            .asPlugin()
+                            .type(Factory.FileType.Plugins)
+                            .file(item.filename)
+                            .get(),
+                    )
+                    .catch((err: Error) => {
+                        this.ilc
+                            .log()
+                            .error(`Fail to open file with parsr plugins; error: ${err.message}`);
                     });
             },
             auto: (): void => {
@@ -282,6 +300,13 @@ export class Provider extends Base<IFileDescription> {
                 caption: 'Open as Pcap',
                 handler: () => {
                     this.open(desc).pcap();
+                    close !== undefined && close();
+                },
+            },
+            {
+                caption: 'Open with parser Plugins',
+                handler: () => {
+                    this.open(desc).plugins();
                     close !== undefined && close();
                 },
             },

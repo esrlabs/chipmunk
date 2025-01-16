@@ -117,6 +117,7 @@ export class State extends Holder {
 
     public isConcatable(): boolean {
         // TODO: Needs some rework! This method should consider parser
+        // TODO AAZ: Ask how to integrate plugins here.
         return (
             this._selected.types.length === 1 ||
             (this._selected.types.length === 2 &&
@@ -184,6 +185,17 @@ export class State extends Holder {
                                     new Factory.Concat()
                                         .asDlt()
                                         .type(Factory.FileType.Binary)
+                                        .files(files)
+                                        .get(),
+                                );
+                        case FileType.Plugins:
+                            return this._ref
+                                .ilc()
+                                .services.system.session.initialize()
+                                .configure(
+                                    new Factory.Concat()
+                                        .asPlugin()
+                                        .type(Factory.FileType.Plugins)
                                         .files(files)
                                         .get(),
                                 );
@@ -288,6 +300,25 @@ export class State extends Holder {
                                         .ilc()
                                         .logger.error(
                                             `Fail to open dlt file; error: ${err.message}`,
+                                        );
+                                });
+                            break;
+                        case FileType.Plugins:
+                            this._ref
+                                .ilc()
+                                .services.system.session.initialize()
+                                .configure(
+                                    new Factory.File()
+                                        .asPlugin()
+                                        .type(Factory.FileType.Plugins)
+                                        .file(file.filename)
+                                        .get(),
+                                )
+                                .catch((err: Error) => {
+                                    this._ref
+                                        .ilc()
+                                        .logger.error(
+                                            `Fail to open file with plugins; error: ${err.message}`,
                                         );
                                 });
                             break;

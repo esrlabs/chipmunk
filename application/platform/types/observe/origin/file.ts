@@ -155,6 +155,8 @@ export class Configuration
                 ];
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
+            case Types.File.FileType.Plugins:
+                return [Parser.Plugin.Configuration];
         }
     }
 

@@ -53,6 +53,7 @@ export const Files: {
         File.FileType.Binary,
         File.FileType.PcapNG,
         File.FileType.PcapLegacy,
+        File.FileType.Plugins,
     ],
 };
 

@@ -493,8 +493,7 @@ export class Service extends Implementation {
                     {
                         label: 'File with plugin parser',
                         click: async () => {
-                            this.log().info('Fie with plugin parser clicked');
-                            Actions.openFile(undefined).catch((err: Error) => {
+                            Actions.openFile(FileType.Plugins).catch((err: Error) => {
                                 this.log().error(
                                     `Fail call action OpenFile with Plugin: ${err.message}`,
                                 );
@@ -502,9 +501,18 @@ export class Service extends Implementation {
                         },
                     },
                     {
+                        label: 'Folder with plugin parser',
+                        click: async () => {
+                            Actions.openFolder(FileType.Plugins).catch((err: Error) => {
+                                this.log().error(
+                                    `Fail call action Open Folder with Plugin: ${err.message}`,
+                                );
+                            });
+                        },
+                    },
+                    {
                         label: 'Stream source for plugin parser',
                         click: async () => {
-                            this.log().info('Stream source for plugin parser clicked');
                             Actions.stream(
                                 $.Parser.Protocol.Plugin,
                                 $.Origin.Stream.Stream.Source.Process,

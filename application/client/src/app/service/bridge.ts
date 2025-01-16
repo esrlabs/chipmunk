@@ -67,6 +67,7 @@ export class Service extends Implementation {
             pcapng(): Promise<File[]>;
             pcap(): Promise<File[]>;
             text(): Promise<File[]>;
+            plugins(): Promise<File[]>;
             custom(ext: string): Promise<File[]>;
             save(
                 ext: string | undefined,
@@ -299,6 +300,9 @@ export class Service extends Implementation {
                 text: (): Promise<File[]> => {
                     return request(FileType.Text, `txt,log,logs`);
                 },
+                plugins: (): Promise<File[]> => {
+                    return request(FileType.Plugins, '*');
+                },
                 custom: (ext: string): Promise<File[]> => {
                     return request(undefined, ext);
                 },
@@ -329,6 +333,7 @@ export class Service extends Implementation {
         pcapng(): Promise<File[]>;
         pcap(): Promise<File[]>;
         text(): Promise<File[]>;
+        plugins(): Promise<File[]>;
         custom(ext: string): Promise<File[]>;
         select(): Promise<string[]>;
         ls(paths: string[]): Promise<string[]>;
@@ -364,6 +369,9 @@ export class Service extends Implementation {
             },
             text: (): Promise<File[]> => {
                 return request(FileType.Text, `txt,log,logs`);
+            },
+            plugins: (): Promise<File[]> => {
+                return request(FileType.Plugins, '*');
             },
             custom: (ext: string): Promise<File[]> => {
                 return request(undefined, ext);
