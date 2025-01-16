@@ -1,5 +1,5 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
-use buf_redux::Buffer;
+use bufread::DeqBuffer;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
@@ -30,7 +30,7 @@ pub enum ProcessError {
 
 pub struct ProcessSource {
     process: Child,
-    buffer: Buffer,
+    buffer: DeqBuffer,
     stdout: FramedRead<ChildStdout, LinesCodec>,
     stderr: FramedRead<ChildStderr, LinesCodec>,
     stdin: ChildStdin,
@@ -144,7 +144,7 @@ impl ProcessSource {
             .ok_or_else(|| ProcessError::Setup(String::from("Fail to get stdin handle")))?;
         Ok(Self {
             process,
-            buffer: Buffer::new(),
+            buffer: DeqBuffer::new(8192),
             stdout,
             stderr,
             stdin,
@@ -183,9 +183,9 @@ impl ByteSource for ProcessSource {
         }
         if let Some(Ok(line)) = output {
             let stored = line.len() + 1;
-            self.buffer.copy_from_slice(line.as_bytes());
-            self.buffer.copy_from_slice(b"\n");
-            let available_bytes = self.buffer.len();
+            self.buffer.write_from(line.as_bytes());
+            self.buffer.write_from(b"\n");
+            let available_bytes = self.buffer.read_available();
             Ok(Some(ReloadInfo::new(stored, available_bytes, 0, None)))
         } else if let Some(Err(err)) = output {
             Err(SourceError::Unrecoverable(format!("{err}")))
@@ -195,15 +195,15 @@ impl ByteSource for ProcessSource {
     }
 
     fn current_slice(&self) -> &[u8] {
-        self.buffer.buf()
+        self.buffer.read_slice()
     }
 
     fn consume(&mut self, offset: usize) {
-        self.buffer.consume(offset);
+        self.buffer.read_done(offset);
     }
 
     fn len(&self) -> usize {
-        self.buffer.len()
+        self.buffer.read_available()
     }
 
     fn is_empty(&self) -> bool {
