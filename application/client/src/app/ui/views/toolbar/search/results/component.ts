@@ -79,18 +79,18 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                             undefined,
                         );
                     }),
-                );
-                this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen(']', () => {
+                        if (this.session.search.state().nested().get() !== undefined) {
+                            return;
+                        }
                         this.move().next();
                     }),
-                );
-                this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen('[', () => {
+                        if (this.session.search.state().nested().get() !== undefined) {
+                            return;
+                        }
                         this.move().prev();
                     }),
-                );
-                this.env().subscriber.register(
                     this.ilc().services.system.hotkeys.listen('Ctrl + 2', () => {
                         this.service.focus().set();
                     }),
