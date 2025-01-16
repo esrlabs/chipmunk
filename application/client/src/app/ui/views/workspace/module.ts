@@ -46,7 +46,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
         ViewWorkspaceHeadersMenuComponent,
         ViewWorkspaceTitleComponent,
     ],
-    exports: [ViewWorkspace, ScrollAreaModule],
+    exports: [ViewWorkspace],
     bootstrap: [ViewWorkspace],
 })
 export class WorkspaceModule {}

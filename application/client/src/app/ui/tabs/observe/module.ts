@@ -25,6 +25,6 @@ import { TabObserve } from './component';
     ],
     declarations: [TabObserve],
     exports: [TabObserve],
-    bootstrap: [TabObserve, FileModule, ConcatModule, StreamModule],
+    bootstrap: [TabObserve],
 })
 export class ObserveModule {}

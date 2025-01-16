@@ -24,5 +24,6 @@ import { TabSourceMultipleFiles } from './component';
     ],
     declarations: [TabSourceMultipleFiles, TabSourceMultipleFilesStructure],
     exports: [TabSourceMultipleFiles],
+    bootstrap: [TabSourceMultipleFiles, TabSourceMultipleFilesStructure],
 })
 export class MultipleFilesModule {}

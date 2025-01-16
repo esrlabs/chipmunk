@@ -87,8 +87,6 @@ import { SessionInfoModule } from '@views/statusbar/info/module';
         LayoutPopup,
         LayoutSnackBar,
         LayoutSnackBarMessage,
-        LayoutHomeModule,
-        ElementsModule,
     ],
 })
 export class LayoutModule {}

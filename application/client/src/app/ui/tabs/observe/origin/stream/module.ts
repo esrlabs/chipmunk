@@ -17,6 +17,6 @@ import { RecentActionsModule } from '@elements/recent/module';
     ],
     declarations: [TabObserveStream],
     exports: [TabObserveStream],
-    bootstrap: [TabObserveStream, StreamsModule],
+    bootstrap: [TabObserveStream],
 })
 export class StreamModule {}

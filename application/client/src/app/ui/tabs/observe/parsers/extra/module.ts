@@ -12,10 +12,6 @@ import { ParserExtraConfiguration } from './component';
         DltExtraConfigurationModule,
         SomeIpExtraConfigurationModule,
     ],
-    bootstrap: [
-        ParserExtraConfiguration,
-        DltExtraConfigurationModule,
-        SomeIpExtraConfigurationModule,
-    ],
+    bootstrap: [ParserExtraConfiguration],
 })
 export class ParserExtraConfigurationModule {}
