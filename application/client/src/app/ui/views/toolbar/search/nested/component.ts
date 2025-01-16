@@ -62,13 +62,25 @@ export class ViewSearchNested
     }
 
     public ngOnDestroy(): void {
-        this.session.search.state().nonActive = this.input.getNonActive();
+        this.session.search.state().nested().drop();
         this.input.destroy();
     }
 
     public ngAfterContentInit(): void {
-        const filter = this.session.search.state().nested().get();
-        this.input.set().value(filter ? filter.filter : '');
+        this.env().subscriber.register(
+            this.ilc().services.system.hotkeys.listen(']', () => {
+                if (this.session.search.state().nested().get() === undefined) {
+                    return;
+                }
+                this.next();
+            }),
+            this.ilc().services.system.hotkeys.listen('[', () => {
+                if (this.session.search.state().nested().get() === undefined) {
+                    return;
+                }
+                this.prev();
+            }),
+        );
     }
 
     public ngAfterViewInit(): void {
