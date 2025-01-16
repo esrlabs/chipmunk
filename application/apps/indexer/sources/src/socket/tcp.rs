@@ -1,13 +1,13 @@
 use crate::{
     socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
-use buf_redux::Buffer;
+use bufread::DeqBuffer;
 use tokio::{net::TcpStream, task::yield_now};
 
 use super::{ReconnectInfo, ReconnectResult, ReconnectToServer};
 
 pub struct TcpSource {
-    buffer: Buffer,
+    buffer: DeqBuffer,
     socket: TcpStream,
     tmp_buffer: Vec<u8>,
     binding_address: String,
@@ -23,8 +23,8 @@ impl TcpSource {
     ) -> Result<Self, std::io::Error> {
         let binding_address: String = addr.into();
         Ok(Self {
-            buffer: Buffer::new(),
-            socket: TcpStream::connect(&binding_address).await?,
+            buffer: DeqBuffer::new(8192),
+            socket: TcpStream::connect(binding_address).await?,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
             binding_address,
             reconnect_info,
@@ -114,8 +114,10 @@ impl ByteSource for TcpSource {
                             }
                         };
                     }
-                    self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
-                    let available_bytes = self.buffer.len();
+                    if len > 0 {
+                        self.buffer.write_from(&self.tmp_buffer[..len]);
+                    }
+                    let available_bytes = self.buffer.read_available();
                     return Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)));
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
@@ -149,15 +151,15 @@ impl ByteSource for TcpSource {
     }
 
     fn current_slice(&self) -> &[u8] {
-        self.buffer.buf()
+        self.buffer.read_slice()
     }
 
     fn consume(&mut self, offset: usize) {
-        self.buffer.consume(offset)
+        self.buffer.read_done(offset);
     }
 
     fn len(&self) -> usize {
-        self.buffer.len()
+        self.buffer.read_available()
     }
 }
 
