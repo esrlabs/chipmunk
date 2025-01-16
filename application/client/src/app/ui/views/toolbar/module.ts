@@ -9,6 +9,6 @@ import { ChartModule } from './chart/module';
     imports: [CommonModule, SearchModule, HistoryModule, ChartModule, DetailsModule],
     declarations: [],
     exports: [SearchModule, HistoryModule, ChartModule, DetailsModule],
-    bootstrap: [SearchModule, HistoryModule, ChartModule, DetailsModule],
+    bootstrap: [],
 })
 export class ToolbarModule {}

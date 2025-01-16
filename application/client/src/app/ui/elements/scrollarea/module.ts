@@ -11,6 +11,6 @@ export { ScrollAreaComponent };
     imports: [CommonModule, RowModule],
     declarations: [ScrollAreaComponent, ScrollAreaVerticalComponent],
     exports: [ScrollAreaComponent, RowModule],
-    bootstrap: [ScrollAreaComponent, RowModule],
+    bootstrap: [ScrollAreaComponent],
 })
 export class ScrollAreaModule {}

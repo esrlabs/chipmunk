@@ -17,6 +17,6 @@ import { TeamWorkModule } from './teamwork/module';
     ],
     declarations: [],
     exports: [FiltersModule, ObservedModule, AttachmentsModule, CommentsModule, TeamWorkModule],
-    bootstrap: [FiltersModule, ObservedModule, AttachmentsModule, CommentsModule, TeamWorkModule],
+    bootstrap: [],
 })
 export class SidebarModule {}

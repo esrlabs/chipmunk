@@ -8,7 +8,13 @@ import { TextGeneralConfigurationModule } from './text/module';
 import { ParserGeneralConfiguration } from './component';
 
 @NgModule({
-    imports: [CommonModule, DltGeneralConfigurationModule, SomeIpGeneralConfigurationModule, TextGeneralConfigurationModule, ErrorStateModule],
+    imports: [
+        CommonModule,
+        DltGeneralConfigurationModule,
+        SomeIpGeneralConfigurationModule,
+        TextGeneralConfigurationModule,
+        ErrorStateModule,
+    ],
     declarations: [ParserGeneralConfiguration],
     exports: [
         ParserGeneralConfiguration,
@@ -17,12 +23,6 @@ import { ParserGeneralConfiguration } from './component';
         TextGeneralConfigurationModule,
         ErrorStateModule,
     ],
-    bootstrap: [
-        ParserGeneralConfiguration,
-        DltGeneralConfigurationModule,
-        SomeIpGeneralConfigurationModule,
-        TextGeneralConfigurationModule,
-        ErrorStateModule,
-    ],
+    bootstrap: [ParserGeneralConfiguration],
 })
 export class ParserGeneralConfigurationModule {}
