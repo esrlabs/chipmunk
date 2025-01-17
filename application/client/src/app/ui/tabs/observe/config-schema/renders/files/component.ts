@@ -37,8 +37,8 @@ export class ConfigSchemaFiles extends ChangesDetector {
                 });
                 this.paths = this.paths.concat(files);
             })
-            .catch((_err: Error) => {
-                // TODO AAZ: Errors ignored for now
+            .catch((err: Error) => {
+                console.error(`Error while opening folders: ${err.message}`);
             })
             .finally(() => {
                 this.update();

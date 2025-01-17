@@ -117,7 +117,6 @@ export class State extends Holder {
 
     public isConcatable(): boolean {
         // TODO: Needs some rework! This method should consider parser
-        // TODO AAZ: Ask how to integrate plugins here.
         return (
             this._selected.types.length === 1 ||
             (this._selected.types.length === 2 &&
