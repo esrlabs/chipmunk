@@ -157,7 +157,10 @@ export class Jobs extends Base {
         const sequence = this.sequence();
         const job: CancelablePromise<Profile[]> = this.execute(
             (buf: Uint8Array): any | Error => {
-                const decoded = decode<ProfileList>(buf, protocol.decodeCommandOutcomeWithString);
+                const decoded = decode<ProfileList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithProfileList,
+                );
                 return decoded;
             },
             this.native.getShellProfiles(sequence),
