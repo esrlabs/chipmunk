@@ -14,7 +14,6 @@ export class Action extends Base {
         return ACTION_UUID;
     }
     public override caption(): string {
-        //TODO AAZ: Name extended for now only.
         return 'Execute command with plugins';
     }
     public override apply(): Promise<void> {

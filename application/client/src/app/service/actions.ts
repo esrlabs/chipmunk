@@ -144,16 +144,11 @@ export class Service extends Implementation {
                                             case Source.Process:
                                                 return new handlers.StdoutPlugin.Action().apply();
                                             case Source.Serial:
+                                                return new handlers.SerialParserPlugin.Action().apply();
                                             case Source.UDP:
+                                                return new handlers.UdpParserPlugin.Action().apply();
                                             case Source.TCP:
-                                                //TODO AAZ: Provide handlers for all sources.
-                                                //Note: It should be possible to use one handler for all sources,
-                                                //with internal enum to decide which method to call.
-                                                return Promise.reject(
-                                                    new Error(
-                                                        `TODO: Source still not impelmented for plguins: ${request.source}`,
-                                                    ),
-                                                );
+                                                return new handlers.TcpParserPlugin.Action().apply();
                                             default:
                                                 return Promise.reject(
                                                     new Error(

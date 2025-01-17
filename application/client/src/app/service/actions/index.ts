@@ -11,8 +11,11 @@ import * as FolderPcapLegacy from './folder.pcap';
 import * as FolderParserPlugin from './folder.parserPlugin';
 import * as FolderAny from './folder.any';
 import * as UdpDlt from './udp.dlt';
+import * as UdpParserPlugin from './udp.parserPlugin';
 import * as TcpDlt from './tcp.dlt';
+import * as TcpParserPlugin from './tcp.parserPlugin';
 import * as SerialText from './serial.text';
+import * as SerialParserPlugin from './serial.parserPlugin';
 import * as StdoutText from './stdout.text';
 import * as About from './about';
 import * as JumpTo from './jumpto';
@@ -38,8 +41,11 @@ export * as FolderPcapLegacy from './folder.pcap';
 export * as FolderParserPlugin from './folder.parserPlugin';
 export * as FolderAny from './folder.any';
 export * as UdpDlt from './udp.dlt';
+export * as UdpParserPlugin from './udp.parserPlugin';
 export * as TcpDlt from './tcp.dlt';
+export * as TcpParserPlugin from './tcp.parserPlugin';
 export * as SerialText from './serial.text';
+export * as SerialParserPlugin from './serial.parserPlugin';
 export * as StdoutText from './stdout.text';
 export * as About from './about';
 export * as JumpTo from './jumpto';
@@ -66,8 +72,11 @@ export const all = [
     [FolderParserPlugin.ACTION_UUID, FolderParserPlugin.Action],
     [FolderAny.ACTION_UUID, FolderAny.Action],
     [UdpDlt.ACTION_UUID, UdpDlt.Action],
+    [UdpParserPlugin.ACTION_UUID, UdpParserPlugin.Action],
     [TcpDlt.ACTION_UUID, TcpDlt.Action],
+    [TcpParserPlugin.ACTION_UUID, TcpParserPlugin.Action],
     [SerialText.ACTION_UUID, SerialText.Action],
+    [SerialParserPlugin.ACTION_UUID, SerialParserPlugin.Action],
     [StdoutText.ACTION_UUID, StdoutText.Action],
     [About.ACTION_UUID, About.Action],
     [JumpTo.ACTION_UUID, JumpTo.Action],
