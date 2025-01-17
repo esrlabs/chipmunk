@@ -94,8 +94,7 @@ class Factory<T> {
         return this as unknown as T;
     }
 
-    public asPlugin(configuration?: $.Parser.Plugin.IConfiguration): T {
-        console.log('asPlugin called');
+    public asParserPlugin(configuration?: $.Parser.Plugin.IConfiguration): T {
         this.observe.parser.change(
             new $.Parser.Plugin.Configuration(
                 configuration === undefined

@@ -28,7 +28,7 @@ pub async fn observe_file<'a>(
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
     match file_format {
-        stypes::FileFormat::Binary => {
+        stypes::FileFormat::Binary | stypes::FileFormat::ParserPlugin => {
             //TODO AAZ: Remove prototyping code when not needed anymore.
             const PLUGIN_SOURCE_PATH_ENV: &str = "WASM_SOURCE_PATH";
 

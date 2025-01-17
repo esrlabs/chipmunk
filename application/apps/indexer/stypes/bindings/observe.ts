@@ -33,7 +33,7 @@ export type DltParserSettings = {
 /**
  * Supported file formats for observation.
  */
-export type FileFormat = 'PcapNG' | 'PcapLegacy' | 'Text' | 'Binary';
+export type FileFormat = 'PcapNG' | 'PcapLegacy' | 'Text' | 'Binary' | 'ParserPlugin';
 
 /**
  * Multicast configuration information.

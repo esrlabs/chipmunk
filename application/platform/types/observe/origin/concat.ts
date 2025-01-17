@@ -158,7 +158,7 @@ export class Configuration
                 return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
-            case Types.File.FileType.Plugins:
+            case Types.File.FileType.ParserPlugin:
                 return [Parser.Plugin.Configuration];
         }
     }

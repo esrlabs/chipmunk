@@ -68,14 +68,14 @@ export class Action extends Base {
                                 .get(),
                         );
                     break;
-                case FileType.Plugins:
+                case FileType.ParserPlugin:
                     session
                         .initialize()
                         .observe(
                             new Factory.File()
                                 .type(files[0].type)
                                 .file(files[0].filename)
-                                .asPlugin()
+                                .asParserPlugin()
                                 .get(),
                         );
                     break;

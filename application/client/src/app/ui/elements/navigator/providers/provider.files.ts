@@ -75,7 +75,7 @@ export class Provider extends Base<IFileDescription> {
         pcapng(): void;
         pcap(): void;
         text(): void;
-        plugins(): void;
+        parserPlugin(): void;
         auto(): void;
     } {
         return {
@@ -139,14 +139,14 @@ export class Provider extends Base<IFileDescription> {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
             },
-            plugins: (): void => {
+            parserPlugin: (): void => {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
                     .observe(
                         new Factory.File()
-                            .asPlugin()
-                            .type(Factory.FileType.Plugins)
+                            .asParserPlugin()
+                            .type(Factory.FileType.ParserPlugin)
                             .file(item.filename)
                             .get(),
                     )
@@ -306,7 +306,7 @@ export class Provider extends Base<IFileDescription> {
             {
                 caption: 'Open with parser Plugins',
                 handler: () => {
-                    this.open(desc).plugins();
+                    this.open(desc).parserPlugin();
                     close !== undefined && close();
                 },
             },

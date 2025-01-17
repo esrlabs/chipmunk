@@ -53,7 +53,7 @@ export const Files: {
         File.FileType.Binary,
         File.FileType.PcapNG,
         File.FileType.PcapLegacy,
-        File.FileType.Plugins,
+        File.FileType.ParserPlugin,
     ],
 };
 
@@ -80,6 +80,7 @@ export const Configurable: {
         [Parser.Protocol.Text]: false,
         [Parser.Protocol.Dlt]: true,
         [Parser.Protocol.SomeIp]: true,
+        [Parser.Protocol.Plugin]: true,
     },
     [Origin.Context.Concat]: true,
     [Origin.Context.Plugin]: true,

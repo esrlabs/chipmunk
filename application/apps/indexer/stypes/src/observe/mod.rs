@@ -201,6 +201,7 @@ pub enum FileFormat {
     PcapLegacy,
     Text,
     Binary,
+    ParserPlugin,
 }
 
 /// Describes the source of data for observation.

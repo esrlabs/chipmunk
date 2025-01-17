@@ -1,12 +1,11 @@
 import { Base } from './action';
 import { bridge } from '@service/bridge';
 import { session } from '@service/session';
-import { notifications, Notification } from '@ui/service/notifications';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 
 import * as Factory from '@platform/types/observe/factory';
 
-export const ACTION_UUID = 'open_folder_parser_plugins';
+export const ACTION_UUID = 'open_file_parser_plugins';
 
 export class Action extends Base {
     public override group(): number {
@@ -18,21 +17,14 @@ export class Action extends Base {
     }
 
     public override caption(): string {
-        return 'Select Folder with Plugins';
+        return 'Open file with parser plugins';
     }
 
     public override async apply(): Promise<void> {
-        const files = await bridge.folders().parserPlugin();
+        const files = await bridge.files().select.parserPlugin();
         if (files.length === 0) {
-            notifications.notify(
-                new Notification({
-                    message: 'No files has been found',
-                    actions: [],
-                }),
-            );
             return Promise.resolve();
         }
-
         if (files.length > 1) {
             session.add().tab({
                 name: 'Multiple Files',
@@ -46,11 +38,14 @@ export class Action extends Base {
         } else {
             session
                 .initialize()
-                .observe(
-                    new Factory.File().type(files[0].type).file(files[0].filename).asPlugin().get(),
+                .configure(
+                    new Factory.File()
+                        .type(files[0].type)
+                        .file(files[0].filename)
+                        .asParserPlugin()
+                        .get(),
                 );
         }
-
         return Promise.resolve();
     }
 }

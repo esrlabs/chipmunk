@@ -21,7 +21,7 @@ export class Action extends Base {
     }
 
     public override async apply(): Promise<void> {
-        const files = await bridge.files().select.plugins();
+        const files = await bridge.files().select.parserPlugin();
         if (files.length === 0) {
             return Promise.resolve();
         }

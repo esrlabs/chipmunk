@@ -18,7 +18,7 @@ export class Action extends Base {
         return 'Execute command with plugins';
     }
     public override apply(): Promise<void> {
-        session.initialize().configure(new Factory.Stream().process().asPlugin().get());
+        session.initialize().configure(new Factory.Stream().process().asParserPlugin().get());
         return Promise.resolve();
     }
 }

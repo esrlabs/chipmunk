@@ -188,14 +188,14 @@ export class State extends Holder {
                                         .files(files)
                                         .get(),
                                 );
-                        case FileType.Plugins:
+                        case FileType.ParserPlugin:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
                                 .configure(
                                     new Factory.Concat()
-                                        .asPlugin()
-                                        .type(Factory.FileType.Plugins)
+                                        .asParserPlugin()
+                                        .type(Factory.FileType.ParserPlugin)
                                         .files(files)
                                         .get(),
                                 );
@@ -303,14 +303,14 @@ export class State extends Holder {
                                         );
                                 });
                             break;
-                        case FileType.Plugins:
+                        case FileType.ParserPlugin:
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
                                 .configure(
                                     new Factory.File()
-                                        .asPlugin()
-                                        .type(Factory.FileType.Plugins)
+                                        .asParserPlugin()
+                                        .type(Factory.FileType.ParserPlugin)
                                         .file(file.filename)
                                         .get(),
                                 )

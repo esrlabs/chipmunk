@@ -30,8 +30,8 @@ export class Service extends Implementation {
                                         return new handlers.FileDlt.Action().apply();
                                     case FileType.PcapNG:
                                         return new handlers.FilePcap.Action().apply();
-                                    case FileType.Plugins:
-                                        return new handlers.FilePlugins.Action().apply();
+                                    case FileType.ParserPlugin:
+                                        return new handlers.FileParserPlugin.Action().apply();
                                     default:
                                         return new handlers.FileAny.Action().apply();
                                 }
@@ -72,8 +72,8 @@ export class Service extends Implementation {
                                         return new handlers.FolderDlt.Action().apply();
                                     case FileType.PcapNG:
                                         return new handlers.FolderPcap.Action().apply();
-                                    case FileType.Plugins:
-                                        return new handlers.FolderPlugins.Action().apply();
+                                    case FileType.ParserPlugin:
+                                        return new handlers.FolderParserPlugin.Action().apply();
                                     default:
                                         return Promise.reject(
                                             new Error(`Unsupported format: ${request.type}`),

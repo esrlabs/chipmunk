@@ -182,8 +182,8 @@ export class ElementsTreeSelector
                             .services.system.session.initialize()
                             .observe(
                                 new Factory.File()
-                                    .type(Factory.FileType.Plugins)
-                                    .asPlugin()
+                                    .type(Factory.FileType.ParserPlugin)
+                                    .asParserPlugin()
                                     .file(entity.getPath())
                                     .get(),
                             )
