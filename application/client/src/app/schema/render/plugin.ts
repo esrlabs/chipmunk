@@ -1,7 +1,7 @@
-import { ParserRenderOptions, PluginEntity } from '@platform/types/bindings';
+import { PluginEntity } from '@platform/types/bindings';
 import { Render } from './index';
 import { Columns } from './columns';
-import { Plugin, Protocol } from '@platform/types/observe/parser';
+import { Protocol } from '@platform/types/observe/parser';
 
 export class Implementation extends Render<Columns> {
     private _columnsCount: number = 0;

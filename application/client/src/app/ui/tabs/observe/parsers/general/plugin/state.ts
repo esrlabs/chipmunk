@@ -19,7 +19,7 @@ export class State extends Base {
     }
 
     public async load(): Promise<void> {
-        let conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
+        const conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
             this.ref.log().error(`Currnet parser configuration must match plugin parser`);
             return;
@@ -41,7 +41,7 @@ export class State extends Base {
      * @param value - Value of the configuration
      */
     public saveConfig(id: string, value: PluginConfigValue) {
-        let conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
+        const conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
             this.ref.log().error(`Currnet parser configuration must match plugin parser`);
             return;
@@ -59,7 +59,7 @@ export class State extends Base {
      * Updates the configuration data for the parser in the current tab
      */
     public update() {
-        let conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
+        const conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
             this.ref.log().error(`Currnet parser configuration must match plugin parser`);
             return;
@@ -80,7 +80,7 @@ export class State extends Base {
     }
 
     public getPluginConfigs(parser?: PluginEntity): PluginConfigSchemaItem[] {
-        const state = this.selectedParser?.state;
+        const state = parser?.state;
         return state && 'Active' in state ? state.Active.config_schemas : [];
     }
 }
