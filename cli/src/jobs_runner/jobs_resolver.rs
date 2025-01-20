@@ -153,7 +153,12 @@ fn is_job_involved(
                 | Target::Wasm
                 | Target::Protocol
                 | Target::Client
-                | Target::App => true,
+                | Target::App => {
+                    // Only building jobs for dependencies is required.
+                    // For example: Linting jobs for dependencies shouldn't be involved when they
+                    // are not included in the original targets.
+                    current_job.is_build_related() || original_targets.contains(&target)
+                }
             },
 
             // Tests for TS and WASM targets inquire that those targets are built
@@ -174,28 +179,20 @@ fn is_job_involved(
                 },
                 // These targets aren't involved in the dependencies tree.
                 Target::Cli | Target::Updater => matches!(current_job, JobType::Test { .. }),
-                // Only TS and WASM Bindings have tests that inquire running build on them and their dependencies
-                // before running the actual tests.
-                Target::Wrapper | Target::Wasm => true,
 
-                // Shared, Bindings and Protocol don't have tests but they should be built for Wrapper and Wasm
-                // tests
-                Target::Shared | Target::Binding | Target::Protocol => {
-                    assert!(
-                        !matches!(current_job, JobType::Test { .. }),
-                        "Shared, Bindings and Protocol targets don't have test jobs currently"
-                    );
-                    true
-                }
-
-                // Client and App doesn't have tests and they are not dependencies other TS and WASM
-                // targets.
-                Target::Client | Target::App => {
-                    assert!(
-                        !matches!(current_job, JobType::Test { .. }),
-                        "Client and App targets don't have test jobs currently"
-                    );
-                    false
+                // TS and Bindings targets need to be built with all their dependencies to perform the
+                // needed tests on TypeScript targets.
+                Target::Shared
+                | Target::Binding
+                | Target::Wrapper
+                | Target::Wasm
+                | Target::Protocol
+                | Target::Client
+                | Target::App => {
+                    // Only building jobs for dependencies is required.
+                    // For example: Test jobs for dependencies shouldn't be involved when they
+                    // are not included in the original targets.
+                    current_job.is_build_related() || original_targets.contains(&target)
                 }
             },
             JobType::Clean
@@ -429,25 +426,11 @@ mod tests {
                 )],
             ),
             (
-                JobDefinition::new(Target::Protocol, JobType::Lint),
-                vec![JobDefinition::new(
-                    Target::Protocol,
-                    JobType::Build { production },
-                )],
-            ),
-            (
                 JobDefinition::new(Target::Shared, JobType::Build { production }),
                 vec![JobDefinition::new(
                     Target::Shared,
                     JobType::Install { production },
                 )],
-            ),
-            (
-                JobDefinition::new(Target::Shared, JobType::Lint),
-                vec![
-                    JobDefinition::new(Target::Shared, JobType::Install { production }),
-                    JobDefinition::new(Target::Shared, JobType::Build { production }),
-                ],
             ),
             (
                 JobDefinition::new(Target::Binding, JobType::Install { production }),
@@ -473,14 +456,6 @@ mod tests {
                 vec![
                     JobDefinition::new(Target::Binding, JobType::Install { production }),
                     JobDefinition::new(Target::Binding, JobType::Build { production }),
-                ],
-            ),
-            (
-                JobDefinition::new(Target::Binding, JobType::Lint),
-                vec![
-                    JobDefinition::new(Target::Binding, JobType::Install { production }),
-                    JobDefinition::new(Target::Binding, JobType::Build { production }),
-                    JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
                 ],
             ),
             (
