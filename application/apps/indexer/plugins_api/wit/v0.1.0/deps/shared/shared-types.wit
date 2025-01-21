@@ -1,3 +1,5 @@
+package chipmunk:shared@0.1.0;
+
 /// Interface used for shard types among all plugins 
 interface shared-types {
 
@@ -57,20 +59,4 @@ interface shared-types {
     /// Drop-down input type with a list of selectable options.
     dropdown(list<string>)
   }
-}
-
-/// Logging definitions and methods for all plugins
-interface logging {
-
-  /// Log Level 
-  enum level {
-    error,
-    warn,
-    info,
-    debug,
-    trace,
-  }
-
-  /// Log the given message with current log level if log level is allowed
-  log: func(level: level, msg: string);
 }

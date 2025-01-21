@@ -1,0 +1,6 @@
+package chipmunk:shared@0.1.0;
+
+world bindings {
+  import shared-types;
+  import logging;
+}

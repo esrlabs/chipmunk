@@ -5,11 +5,13 @@ use memchr::memchr;
 use plugins_api::{
     log,
     parser::{
-        ColumnInfo, ColumnsRenderOptions, ConfigItem, ConfigSchemaItem, ConfigSchemaType,
-        ConfigValue, InitError, ParseError, ParseReturn, ParseYield, ParsedMessage, Parser,
-        ParserConfig, RenderOptions, Version,
+        ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield, ParsedMessage,
+        Parser, ParserConfig, RenderOptions,
     },
     parser_export,
+    shared_types::{
+        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
+    },
 };
 
 const LOSSY_ID: &str = "lossy";

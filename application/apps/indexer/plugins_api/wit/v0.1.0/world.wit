@@ -1,0 +1,9 @@
+package chipmunk:plugins;
+
+world imports {
+  include chipmunk:shared/bindings@0.1.0;
+}
+
+world bindings {
+  include imports;
+}

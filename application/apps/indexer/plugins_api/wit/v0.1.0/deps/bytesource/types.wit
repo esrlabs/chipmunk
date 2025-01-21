@@ -1,0 +1,23 @@
+package chipmunk:bytesource@0.1.0;
+
+interface bytesource-types {
+  use chipmunk:shared/logging@0.1.0.{level};
+
+  /// Represents the addresses defining a network socket
+  record socket-info {
+      ip: string,
+      port: u16,
+  }
+
+  /// Represents the errors while reading bytes in bytesource plugin
+  variant source-error {
+    io(string),
+    unsupported,
+    other(string),
+  }
+
+  /// General configurations related to all bytesources
+  record source-config {
+    log-level: level,
+  }
+}

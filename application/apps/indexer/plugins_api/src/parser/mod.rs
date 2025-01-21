@@ -1,11 +1,7 @@
 //! Provides types, methods and macros to write plugins that provide parser functionality.
 //!
 
-mod logging;
-
-// This is needed to be public because it's used in the export macro
-#[doc(hidden)]
-pub use logging::ParserLogSend as __ParserLogSend;
+use crate::shared_types::{ConfigItem, ConfigSchemaItem, InitError, Version};
 
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
@@ -14,55 +10,26 @@ pub use logging::ParserLogSend as __ParserLogSend;
 #[doc(hidden)]
 pub mod __internal_bindings {
     wit_bindgen::generate!({
-        path: "wit/v_0.1.0",
-        world: "parse-plugin",
+        path: "wit/v0.1.0",
+        world: "chipmunk:parser/parse",
+        with: {
+            "chipmunk:shared/logging@0.1.0": crate::logging,
+            "chipmunk:shared/shared-types@0.1.0": crate::shared_types,
+        },
         // Export macro is used withing the exported `parser_export!` macro and must be public
         pub_export_macro: true,
         // Bindings for export macro must be set, because it won't be called from withing the
         // same module where `generate!` is called
         default_bindings_module: "$crate::parser::__internal_bindings",
+
     });
 }
 
 // External exports for users
-pub use __internal_bindings::chipmunk::plugin::{
-    logging::Level,
-    parse_types::{
-        Attachment, ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield,
-        ParsedMessage, ParserConfig, RenderOptions,
-    },
-    shared_types::{
-        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
-    },
+pub use __internal_bindings::chipmunk::parser::parse_types::{
+    Attachment, ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield,
+    ParsedMessage, ParserConfig, RenderOptions,
 };
-
-impl ConfigSchemaItem {
-    /// Creates a configuration schema item with the given arguments.
-    pub fn new<S: Into<String>>(
-        id: S,
-        title: S,
-        description: Option<S>,
-        input_type: ConfigSchemaType,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            title: title.into(),
-            description: description.map(|d| d.into()),
-            input_type,
-        }
-    }
-}
-
-impl Version {
-    /// Creates a semantic version instance with the given arguments.
-    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self {
-            major,
-            minor,
-            patch,
-        }
-    }
-}
 
 impl RenderOptions {
     /// Creates a new instance of render options with the given arguments
@@ -185,8 +152,9 @@ impl ParseReturn {
 /// # Examples
 ///
 /// ```
-/// # use plugins_api::parser::*;
-/// # use plugins_api::*;
+/// # use plugins_api::parser::{Parser, RenderOptions, ParserConfig, ParseReturn, ParseError};
+/// # use plugins_api::parser_export;
+/// # use plugins_api::shared_types::{Version, ConfigSchemaItem, ConfigItem, InitError};
 ///
 /// struct CustomParser;
 ///
@@ -233,27 +201,27 @@ macro_rules! parser_export {
         static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
 
         // Define logger as static field to use it with macro initialization
+        use $crate::__PluginLogSend;
         use $crate::__PluginLogger;
-        use $crate::parser::__ParserLogSend;
-        static LOGGER: __PluginLogger<__ParserLogSend> = __PluginLogger {
-            sender: __ParserLogSend,
+        static LOGGER: __PluginLogger<__PluginLogSend> = __PluginLogger {
+            sender: __PluginLogSend,
         };
 
         // Name intentionally lengthened to avoid conflict with user's own types
         struct InternalPluginParserGuest;
 
-        impl $crate::parser::__internal_bindings::exports::chipmunk::plugin::parser::Guest
+        impl $crate::parser::__internal_bindings::exports::chipmunk::parser::parser::Guest
             for InternalPluginParserGuest
         {
             /// Provides the current semantic version of the plugin.
             /// This version is for the plugin only and is different from the plugin's API version.
-            fn get_version() -> $crate::parser::Version {
+            fn get_version() -> $crate::shared_types::Version {
                 <$par as $crate::parser::Parser>::get_version()
             }
 
             /// Provides the schemas for the configurations needed by the plugin to
             /// be specified by the users.
-            fn get_config_schemas() -> ::std::vec::Vec<$crate::parser::ConfigSchemaItem> {
+            fn get_config_schemas() -> ::std::vec::Vec<$crate::shared_types::ConfigSchemaItem> {
                 <$par as $crate::parser::Parser>::get_config_schemas()
             }
 
@@ -264,8 +232,8 @@ macro_rules! parser_export {
             /// Initialize the parser with the given configurations
             fn init(
                 general_configs: $crate::parser::ParserConfig,
-                plugin_configs: ::std::vec::Vec<$crate::parser::ConfigItem>,
-            ) -> ::std::result::Result<(), $crate::parser::InitError> {
+                plugin_configs: ::std::vec::Vec<$crate::shared_types::ConfigItem>,
+            ) -> ::std::result::Result<(), $crate::shared_types::InitError> {
                 // Logger initialization
                 let level = $crate::log::Level::from(general_configs.log_level);
                 $crate::log::set_logger(&LOGGER)
@@ -291,6 +259,7 @@ macro_rules! parser_export {
                 ::std::vec::Vec<$crate::parser::ParseReturn>,
                 $crate::parser::ParseError,
             > {
+                use $crate::parser::Parser;
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
                 //TODO AAZ: Find better way than denying the warning.
@@ -310,27 +279,25 @@ macro_rules! parser_export {
 // compiled in all real use cases;
 #[cfg(test)]
 mod prototyping {
-    use super::*;
-
     struct Dummy;
 
-    impl Parser for Dummy {
-        fn get_version() -> Version {
+    impl crate::parser::Parser for Dummy {
+        fn get_version() -> crate::shared_types::Version {
             todo!()
         }
 
-        fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+        fn get_config_schemas() -> Vec<crate::shared_types::ConfigSchemaItem> {
             todo!()
         }
 
-        fn get_render_options() -> RenderOptions {
+        fn get_render_options() -> crate::parser::RenderOptions {
             todo!()
         }
 
         fn create(
-            _general_configs: ParserConfig,
-            _plugins_configs: Vec<ConfigItem>,
-        ) -> Result<Self, InitError>
+            _general_configs: crate::parser::ParserConfig,
+            _plugins_configs: Vec<crate::shared_types::ConfigItem>,
+        ) -> Result<Self, crate::shared_types::InitError>
         where
             Self: Sized,
         {
@@ -341,10 +308,11 @@ mod prototyping {
             &mut self,
             _data: &[u8],
             _timestamp: Option<u64>,
-        ) -> Result<impl Iterator<Item = ParseReturn>, ParseError> {
+        ) -> Result<impl Iterator<Item = crate::parser::ParseReturn>, crate::parser::ParseError>
+        {
             Ok(std::iter::empty())
         }
     }
 
-    parser_export!(Dummy);
+    crate::parser_export!(Dummy);
 }

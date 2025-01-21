@@ -1,16 +1,16 @@
 //! Provides types, methods and macros to write plugins that provide byte source functionality
 
-mod logging;
-
-// This is needed to be public because it's used in the export macro
-#[doc(hidden)]
-pub use logging::ByteSourceLogSend as __ByteSourceLogSend;
+use crate::shared_types::{ConfigItem, ConfigSchemaItem, InitError, Version};
 
 #[doc(hidden)]
 pub mod __internal_bindings {
     wit_bindgen::generate!({
-        path: "wit/v_0.1.0",
-        world: "bytesource-plugin",
+        path: "wit/v0.1.0",
+        world: "chipmunk:bytesource/bytesource",
+        with: {
+            "chipmunk:shared/logging@0.1.0": crate::logging,
+            "chipmunk:shared/shared-types@0.1.0": crate::shared_types,
+        },
         // Export macro is used withing the exported `bytesource_export!` macro and must be public
         pub_export_macro: true,
         // Bindings for export macro must be set, because it won't be called from withing the
@@ -20,41 +20,7 @@ pub mod __internal_bindings {
 }
 
 // External exports for users
-pub use __internal_bindings::chipmunk::plugin::{
-    bytesource_types::{SourceConfig, SourceError},
-    logging::Level,
-    shared_types::{
-        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
-    },
-};
-
-impl ConfigSchemaItem {
-    /// Creates a new configuration schema item with the given arguments
-    pub fn new<S: Into<String>>(
-        id: S,
-        title: S,
-        description: Option<S>,
-        input_type: ConfigSchemaType,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            title: title.into(),
-            description: description.map(|d| d.into()),
-            input_type,
-        }
-    }
-}
-
-impl Version {
-    /// Creates a semantic version instance with the given arguments.
-    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
-        Self {
-            major,
-            minor,
-            patch,
-        }
-    }
-}
+pub use __internal_bindings::chipmunk::bytesource::bytesource_types::{SourceConfig, SourceError};
 
 /// Trait representing a bytesource for Chipmunk plugins. Types that need to be
 /// exported as bytesource plugins for use within Chipmunk must implement this trait.
@@ -120,8 +86,9 @@ pub trait ByteSource {
 /// # Examples
 ///
 /// ```
-/// # use plugins_api::bytesource::*;
-/// # use plugins_api::*;
+/// # use plugins_api::bytesource::{ByteSource, SourceConfig, SourceError};
+/// # use plugins_api::bytesource_export;
+/// # use plugins_api::shared_types::{Version, ConfigSchemaItem, ConfigItem, InitError};
 ///
 /// struct CustomByteSoruce;
 ///
@@ -158,34 +125,34 @@ macro_rules! bytesource_export {
         static mut BYTESOURCE: ::std::option::Option<$par> = ::std::option::Option::None;
 
         // Define logger as static field to use it with macro initialization
+        use $crate::__PluginLogSend;
         use $crate::__PluginLogger;
-        use $crate::bytesource::__ByteSourceLogSend;
-        static LOGGER: __PluginLogger<__ByteSourceLogSend> = __PluginLogger {
-            sender: __ByteSourceLogSend,
+        static LOGGER: __PluginLogger<__PluginLogSend> = __PluginLogger {
+            sender: __PluginLogSend,
         };
 
         // Name intentionally lengthened to avoid conflict with user's own types
         struct InternalPluginByteSourceGuest;
 
-        impl $crate::bytesource::__internal_bindings::exports::chipmunk::plugin::byte_source::Guest
+        impl $crate::bytesource::__internal_bindings::exports::chipmunk::bytesource::byte_source::Guest
             for InternalPluginByteSourceGuest
         {
             /// Provides the current semantic version of the plugin.
             /// This version is for the plugin only and is different from the plugin's API version.
-            fn get_version() -> $crate::bytesource::Version {
+            fn get_version() -> $crate::shared_types::Version {
                 <$par as $crate::bytesource::ByteSource>::get_version()
             }
             /// Provides the schemas for the configurations needed by the plugin to
             /// be specified by the users.
-            fn get_config_schemas() -> ::std::vec::Vec<$crate::bytesource::ConfigSchemaItem> {
+            fn get_config_schemas() -> ::std::vec::Vec<$crate::shared_types::ConfigSchemaItem> {
                 <$par as $crate::bytesource::ByteSource>::get_config_schemas()
             }
 
             /// Initialize the bytesource with the given configurations
             fn init(
                 general_configs: $crate::bytesource::SourceConfig,
-                plugin_configs: ::std::vec::Vec<$crate::bytesource::ConfigItem>,
-            ) -> ::std::result::Result<(), $crate::bytesource::InitError> {
+                plugin_configs: ::std::vec::Vec<$crate::shared_types::ConfigItem>,
+            ) -> ::std::result::Result<(), $crate::shared_types::InitError> {
                 // Logger initialization
                 let level = $crate::log::Level::from(general_configs.log_level);
                 $crate::log::set_logger(&LOGGER)
@@ -209,6 +176,7 @@ macro_rules! bytesource_export {
             fn read(
                 len: u64,
             ) -> ::std::result::Result<::std::vec::Vec<u8>, $crate::bytesource::SourceError> {
+                use $crate::bytesource::ByteSource;
                 // SAFETY: Bytesource host implements read trait, which takes a mutable reference
                 // to self when called. Therefor it's not possible to have multiple references on
                 // the static bytesource instance here at once.
@@ -230,30 +198,28 @@ macro_rules! bytesource_export {
 // compiled in all real use cases;
 #[cfg(test)]
 mod prototyping {
-    use super::*;
-
     struct Dummy;
 
-    impl ByteSource for Dummy {
-        fn get_version() -> Version {
+    impl crate::bytesource::ByteSource for Dummy {
+        fn get_version() -> crate::shared_types::Version {
             todo!()
         }
 
-        fn get_config_schemas() -> Vec<ConfigSchemaItem> {
+        fn get_config_schemas() -> Vec<crate::shared_types::ConfigSchemaItem> {
             todo!()
         }
 
         fn create(
-            _general_configs: SourceConfig,
-            _plugins_configs: Vec<ConfigItem>,
-        ) -> Result<Self, InitError>
+            _general_configs: crate::bytesource::SourceConfig,
+            _plugins_configs: Vec<crate::shared_types::ConfigItem>,
+        ) -> Result<Self, crate::bytesource::InitError>
         where
             Self: Sized,
         {
             todo!()
         }
 
-        fn read(&mut self, _len: usize) -> Result<Vec<u8>, SourceError> {
+        fn read(&mut self, _len: usize) -> Result<Vec<u8>, crate::bytesource::SourceError> {
             todo!()
         }
     }

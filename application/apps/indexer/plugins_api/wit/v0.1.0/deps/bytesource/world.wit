@@ -1,0 +1,7 @@
+package chipmunk:bytesource@0.1.0;
+
+world bytesource {
+  import chipmunk:shared/logging@0.1.0;
+
+  export byte-source;
+}

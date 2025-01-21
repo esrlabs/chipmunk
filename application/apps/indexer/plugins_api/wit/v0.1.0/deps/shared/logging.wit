@@ -1,0 +1,18 @@
+package chipmunk:shared@0.1.0;
+
+/// Logging definitions and methods for all plugins
+interface logging {
+
+  /// Log Level 
+  enum level {
+    error,
+    warn,
+    info,
+    debug,
+    trace,
+  }
+
+  /// Log the given message with current log level if log level is allowed
+  log: func(level: level, msg: string);
+}
+

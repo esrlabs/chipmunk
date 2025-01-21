@@ -9,11 +9,11 @@ use std::{
 };
 
 use plugins_api::{
-    bytesource::{
-        ByteSource, ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError,
-        SourceConfig, SourceError, Version,
-    },
+    bytesource::{ByteSource, SourceConfig, SourceError},
     bytesource_export, log,
+    shared_types::{
+        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
+    },
 };
 
 const INPUT_PATH_ID: &str = "input-path";

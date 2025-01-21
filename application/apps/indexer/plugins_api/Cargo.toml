@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-wit-bindgen = "0.36"
+wit-bindgen = "0.37"
 
 [dev-dependencies]
 trybuild = "1.0"

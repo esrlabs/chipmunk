@@ -1,29 +1,7 @@
-package chipmunk:plugin@0.1.0;
-
-interface bytesource-types {
-  use logging.{level};
-
-  /// Represents the addresses defining a network socket
-  record socket-info {
-      ip: string,
-      port: u16,
-  }
-
-  /// Represents the errors while reading bytes in bytesource plugin
-  variant source-error {
-    io(string),
-    unsupported,
-    other(string),
-  }
-
-  /// General configurations related to all bytesources
-  record source-config {
-    log-level: level,
-  }
-}
+package chipmunk:bytesource@0.1.0;
 
 interface byte-source {
-  use shared-types.{version, init-error, config-item, config-schema-item};
+  use chipmunk:shared/shared-types@0.1.0.{version, init-error, config-item, config-schema-item};
   use bytesource-types.{source-config, source-error};
 
   /// Provides the current semantic version of the plugin.
@@ -45,7 +23,3 @@ interface byte-source {
   read: func(len: u64) -> result<list<u8>, source-error>;
 }
 
-world bytesource-plugin {
-  import logging;
-  export byte-source;
-}
