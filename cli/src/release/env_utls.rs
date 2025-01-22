@@ -15,8 +15,8 @@ pub fn load_from_env_file() {
         }
         Err(err) => {
             println!(
-                "{} Error: {err}",
-                style("dotenv not found, not considering .env file.").cyan()
+                "{} Info: {err}",
+                style("dotenv for local environment not found, not considering .env file.").cyan()
             );
         }
     }
