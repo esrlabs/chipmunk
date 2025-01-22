@@ -199,11 +199,11 @@ async fn main_process(command: Command) -> Result<(), Error> {
         }
         Command::Release {
             verbose,
-            fail_fast,
+            no_fail_fast,
             development,
             code_sign,
         } => {
-            JobsState::init(JobsConfig::new(fail_fast).release_build(true));
+            JobsState::init(JobsConfig::new(!no_fail_fast).release_build(true));
             let ui_mode = if verbose {
                 UiMode::PrintImmediately
             } else {

@@ -86,7 +86,7 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
             .bold()
     );
 
-    jobs_runner::run(
+    let results = jobs_runner::run(
         &[Target::App, Target::Updater],
         JobType::Build {
             production: !development,
@@ -94,6 +94,12 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
     )
     .await
     .context("Build Chipmunk failed")?;
+
+    // Check for failing jobs
+    let success = results
+        .iter()
+        .all(|r| r.as_ref().is_ok_and(|s| s.status.success()));
+    ensure!(success, "Build Chipmunk failed: Some tasks have failed");
 
     let msg = format!(
         "Building Chipmunk Application succeeded in {} seconds.",

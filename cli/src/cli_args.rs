@@ -167,8 +167,8 @@ pub enum Command {
         /// Verbose logging
         #[arg(short, long, default_value_t = false)]
         verbose: bool,
-        #[arg(short, long, help = FAIL_FAST_HELP_TEXT)]
-        fail_fast: bool,
+        #[arg(short, long, help = NO_FAIL_FAST_HELP_TEXT)]
+        no_fail_fast: bool,
         /// Build chipmunk in development mode
         #[arg(short, long, default_value_t = false)]
         development: bool,
