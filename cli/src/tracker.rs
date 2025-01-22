@@ -349,7 +349,7 @@ impl Tracker {
                             JobBarPhase::Finished(_) => continue,
                         };
 
-                        job_bar.phase = JobBarPhase::Finished((OperationResult::Failed, time));
+                        job_bar.phase = JobBarPhase::Finished((OperationResult::Skipped, time));
                         max_time_len = max_time_len.max(Self::count_digits(time));
 
                         job_bar.bar.finish();
