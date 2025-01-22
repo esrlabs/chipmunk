@@ -7,8 +7,6 @@ import {
     EAlias,
 } from '../modifier';
 import { FilterRequest } from '../../filters/request';
-import { settings } from '@service/settings';
-import { getContrastColor } from '@styles/colors';
 
 import * as ModifiersTools from '../tools';
 
@@ -26,21 +24,13 @@ export class NestedSearchModifier extends Modifier {
     }
 
     public getInjections(): IHTMLInjection[] {
-        const defaultMatchColor = settings.defaults['general.colors.match'];
         const injections: IHTMLInjection[] = [];
         this._ranges.forEach((range: IModifierRange) => {
             injections.push(
                 ...[
                     {
                         offset: range.start,
-                        injection: `<span class="match" ${
-                            defaultMatchColor === undefined
-                                ? ''
-                                : `style="background: ${defaultMatchColor}; color: ${getContrastColor(
-                                      defaultMatchColor,
-                                      true,
-                                  )};"`
-                        }>`,
+                        injection: `<span class="match nested">`,
                         type: EHTMLInjectionType.open,
                     },
                     {
