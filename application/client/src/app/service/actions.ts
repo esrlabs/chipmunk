@@ -207,6 +207,30 @@ export class Service extends Implementation {
                 .transport()
                 .respondent(
                     this.getName(),
+                    Requests.Actions.FindInSearch.Request,
+                    (
+                        _request: Requests.Actions.FindInSearch.Request,
+                    ): CancelablePromise<Requests.Actions.JumpTo.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.FindInSearch.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call FindInSearch action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.About.Response());
+                                });
+                        });
+                    },
+                ),
+        );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
                     Requests.Actions.Updates.Request,
                     (
                         _request: Requests.Actions.Updates.Request,

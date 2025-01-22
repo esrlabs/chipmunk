@@ -14,6 +14,7 @@ import * as SerialText from './serial.text';
 import * as StdoutText from './stdout.text';
 import * as About from './about';
 import * as JumpTo from './jumpto';
+import * as FindInSearch from './find';
 import * as Updates from './updates';
 import * as Settings from './settings';
 import * as Exit from './exit';
@@ -37,6 +38,7 @@ export * as SerialText from './serial.text';
 export * as StdoutText from './stdout.text';
 export * as About from './about';
 export * as JumpTo from './jumpto';
+export * as FindInSearch from './find';
 export * as Updates from './updates';
 export * as Settings from './settings';
 export * as Exit from './exit';
@@ -61,6 +63,7 @@ export const all = [
     [StdoutText.ACTION_UUID, StdoutText.Action],
     [About.ACTION_UUID, About.Action],
     [JumpTo.ACTION_UUID, JumpTo.Action],
+    [FindInSearch.ACTION_UUID, FindInSearch.Action],
     [Updates.ACTION_UUID, Updates.Action],
     [Settings.ACTION_UUID, Settings.Action],
     [Help.ACTION_UUID, Help.Action],

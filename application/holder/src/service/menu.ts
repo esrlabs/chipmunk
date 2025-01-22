@@ -498,6 +498,15 @@ export class Service extends Implementation {
                     { role: 'paste' },
                     { type: 'separator' },
                     { role: 'selectAll' },
+                    { type: 'separator' },
+                    {
+                        label: 'Find in Search Results',
+                        click: async () => {
+                            Actions.find().catch((err: Error) => {
+                                this.log().error(`Fail call action FindInSearch: ${err.message}`);
+                            });
+                        },
+                    },
                 ],
             },
             {

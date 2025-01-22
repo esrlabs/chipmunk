@@ -1,5 +1,6 @@
 @import './variables.less';
 
+
 .row span{
     display: inline-block;
     font-family: 'console', monospace;
@@ -17,6 +18,7 @@
         background: @scheme-color-2;
         color: @scheme-color-5;
         font-weight: 600;
+
     }
     &.accent{
         background: @scheme-color-accent;
@@ -34,6 +36,14 @@
             font-weight: 600;
         }
         
+    }
+}
+app-scrollarea-row {
+    &[data-selected="true"] {
+        & span.nested{
+            background:  @scheme-color-accent;
+            color: @scheme-color-7;
+        }
     }
 }
 & span.injected-row-comment {
