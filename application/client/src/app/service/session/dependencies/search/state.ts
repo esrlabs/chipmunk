@@ -126,6 +126,7 @@ export class State {
         next(): Promise<number | undefined>;
         prev(): Promise<number | undefined>;
         set(filter: IFilter): Promise<number | undefined>;
+        setFrom(pos: number): void;
         nextPos(): number;
         prevPos(): number;
         get(): IFilter | undefined;
@@ -173,6 +174,9 @@ export class State {
                     this._session.highlights.subjects.get().update.emit();
                 });
                 return this.nested().next();
+            },
+            setFrom: (pos: number): void => {
+                this._nested.from = pos;
             },
             nextPos: (): number => {
                 if (this._nested.from >= this._session.search.len()) {

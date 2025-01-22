@@ -36,11 +36,22 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
         this.service = getScrollAreaService(this.session);
         this.env().subscriber.register(
             this.session.cursor.subjects.get().selected.subscribe((event) => {
-                if (event.initiator === Owner.Search || this.session.search.len() === 0) {
+                if (this.session.search.len() === 0) {
                     return;
                 }
                 const single = this.session.cursor.getSingle().position();
-                if (single !== undefined) {
+                if (event.initiator === Owner.Search && single !== undefined) {
+                    this.session.search
+                        .nearest(single)
+                        .then((location) => {
+                            location !== undefined &&
+                                this.session.search.state().nested().setFrom(location.index);
+                        })
+                        .catch((err: Error) => {
+                            this.log().error(`Fail to get nearest content: ${err.message}`);
+                        });
+                    return;
+                } else if (single !== undefined) {
                     this.session.search
                         .nearest(single)
                         .then((location) => {
