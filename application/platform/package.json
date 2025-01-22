@@ -145,5 +145,5 @@
     "./types/bindings": "./dist/types/bindings/index.js",
     "./package.json": "./package.json"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "pnpm@10.0.0"
 }

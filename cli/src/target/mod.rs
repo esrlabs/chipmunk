@@ -434,7 +434,7 @@ impl Target {
         let path = self.cwd();
         let job_def = JobDefinition::new(*self, JobType::Lint);
 
-        let command = yarn_command(vec![String::from("run"), String::from("lint")]);
+        let command = npm_pm_command(vec![String::from("run"), String::from("lint")]);
         spawn(job_def, command, Some(path), iter::empty(), None).await
     }
 
@@ -629,7 +629,7 @@ async fn install_general(
     overridden_target: Option<Target>,
 ) -> Option<Result<SpawnResult, anyhow::Error>> {
     let cmd = match target {
-        // Wasm needs `yarn install` command despite having the kind `TargetKind::Rs`
+        // Wasm needs `yarn/pnpm install` command despite having the kind `TargetKind::Rs`
         Target::Wasm => TargetKind::Ts.install_cmd(prod),
         t => t.kind().install_cmd(prod),
     };
@@ -644,8 +644,8 @@ async fn install_general(
     }
 }
 
-/// Provides a process command with yarn as [`ProcessCommand::cmd`] and the given arguments
+/// Provides a process command with npm package manager (NpmPM) as [`ProcessCommand::cmd`] and the given arguments
 /// as [`ProcessCommand::args`]
-fn yarn_command(args: Vec<String>) -> ProcessCommand {
-    ProcessCommand::new(DevTool::Yarn.cmd(), args)
+fn npm_pm_command(args: Vec<String>) -> ProcessCommand {
+    ProcessCommand::new(DevTool::NpmPM.cmd(), args)
 }

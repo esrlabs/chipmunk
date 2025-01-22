@@ -2,7 +2,7 @@
 
 use crate::dev_tools::DevTool;
 
-use super::{yarn_command, ProcessCommand};
+use super::{npm_pm_command, ProcessCommand};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetKind {
@@ -24,7 +24,7 @@ impl TargetKind {
                     args.push("build".into());
                 }
 
-                yarn_command(args)
+                npm_pm_command(args)
             }
             TargetKind::Rs => {
                 let mut args = vec![
@@ -54,7 +54,7 @@ impl TargetKind {
                     vec![String::from("install")]
                 };
 
-                let command = yarn_command(args);
+                let command = npm_pm_command(args);
 
                 Some(command)
             }

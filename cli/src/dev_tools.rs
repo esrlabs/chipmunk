@@ -3,12 +3,14 @@
 
 use std::fmt::Display;
 
+use crate::chipmunk_runner::NPM_PACKAGE_MANAGER;
+
 #[derive(Debug, Clone, Copy)]
 /// Represents the development tools which used to build & test the app
 pub enum DevTool {
     Node,
     Npm,
-    Yarn,
+    NpmPM,
     RustUp,
     Cargo,
     WasmPack,
@@ -20,7 +22,7 @@ impl Display for DevTool {
         match self {
             DevTool::Node => write!(f, "NodeJS"),
             DevTool::Npm => write!(f, "npm"),
-            DevTool::Yarn => write!(f, "yarn"),
+            DevTool::NpmPM => write!(f, "{NPM_PACKAGE_MANAGER}"),
             DevTool::RustUp => write!(f, "Rust"),
             DevTool::Cargo => write!(f, "cargo"),
             DevTool::WasmPack => write!(f, "wasm-pack"),
@@ -37,7 +39,7 @@ impl DevTool {
             match DevTool::Node {
                 DevTool::Node => (),
                 DevTool::Npm => (),
-                DevTool::Yarn => (),
+                DevTool::NpmPM => (),
                 DevTool::RustUp => (),
                 DevTool::Cargo => (),
                 DevTool::WasmPack => (),
@@ -48,7 +50,7 @@ impl DevTool {
         [
             DevTool::Node,
             DevTool::Npm,
-            DevTool::Yarn,
+            DevTool::NpmPM,
             DevTool::RustUp,
             DevTool::Cargo,
             DevTool::WasmPack,
@@ -61,7 +63,7 @@ impl DevTool {
     pub fn install_hint(self) -> Option<&'static str> {
         match self {
             DevTool::Node | DevTool::Npm | DevTool::RustUp | DevTool::Cargo => None,
-            DevTool::Yarn => Some("npm install --global yarn"),
+            DevTool::NpmPM => Some("npm install --global pnpm"),
             DevTool::WasmPack => Some("cargo install wasm-pack"),
             DevTool::NjCli => Some("cargo install nj-cli"),
         }
@@ -72,7 +74,7 @@ impl DevTool {
         match self {
             DevTool::Node => "node",
             DevTool::Npm => "npm",
-            DevTool::Yarn => "yarn",
+            DevTool::NpmPM => NPM_PACKAGE_MANAGER,
             DevTool::RustUp => "rustup",
             DevTool::Cargo => "cargo",
             DevTool::WasmPack => "wasm-pack",

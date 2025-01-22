@@ -58,5 +58,5 @@
     "os": false,
     "path": false
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "pnpm@10.0.0"
 }

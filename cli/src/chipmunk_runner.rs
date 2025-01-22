@@ -4,11 +4,13 @@ use std::{io, process::ExitStatus};
 
 use crate::{dev_tools::DevTool, shell::shell_tokio_command, target::Target};
 
+pub const NPM_PACKAGE_MANAGER: &str = "pnpm";
+
 /// Runs Chipmunk application from its electron path.
 pub async fn run_chipmunk() -> io::Result<ExitStatus> {
     let electron_path = Target::App.cwd();
 
-    let yarn_cmd = DevTool::Yarn.cmd();
+    let npm_pm_cmd = DevTool::NpmPM.cmd();
 
     let electron_arg = if cfg!(windows) {
         "electron-win"
@@ -17,7 +19,7 @@ pub async fn run_chipmunk() -> io::Result<ExitStatus> {
     };
 
     shell_tokio_command()
-        .arg([yarn_cmd, "run", electron_arg].join(" "))
+        .arg([npm_pm_cmd, "run", electron_arg].join(" "))
         .current_dir(electron_path)
         .kill_on_drop(true)
         .status()
