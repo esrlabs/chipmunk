@@ -7,6 +7,10 @@
 * Skip build, test, lint job if any of the build related jobs of their all dependencies failed.
 * Build related jobs for linting and testing can be skipped if possible.
 * Remove test and lint jobs from dependencies if the targets aren't included in the original targets.
+* Differentiate between finished and skipped jobs in the UI and logs.
+* Stop release if any build jobs has failed + Enable fail fast on release by default.
+* Add UI-Mode argument to run command.
+* Always show message on mismatch build CLI versions.
 * Update dependencies
 
 # 0.3.0
