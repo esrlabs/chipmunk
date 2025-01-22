@@ -62,18 +62,18 @@ export class Queue {
     }
 
     private _proceed() {
+        if (this._processing.isLocked()) {
+            return;
+        }
         this._logger.verbose(`Tasks in queue: ${this._tasks.size}`);
-        if (this._tasks.size === 0) {
+        const next: Task | undefined = this._tasks.values().next().value;
+        if (this._tasks.size === 0 || next === undefined) {
             if (this._destroy !== undefined) {
                 this._destroy();
             }
             return;
         }
-        if (this._processing.isLocked()) {
-            return;
-        }
         this._processing.lock();
-        const next: Task = this._tasks.values().next().value;
         const ts = Date.now();
         next.task().finally(() => {
             const duration = Date.now() - ts;
