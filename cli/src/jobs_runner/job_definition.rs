@@ -35,7 +35,7 @@ impl JobDefinition {
             Some(Ok(res)) => {
                 if res.status.success() {
                     if res.skipped {
-                        tracker.success(self, "skipped".into());
+                        tracker.skipped(self, String::default());
                     } else {
                         tracker.success(self, String::default());
                     }

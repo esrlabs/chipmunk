@@ -27,6 +27,7 @@ static TRACKER: OnceLock<Tracker> = OnceLock::new();
 pub enum OperationResult {
     Success,
     Failed,
+    Skipped,
 }
 
 impl std::fmt::Display for OperationResult {
@@ -37,6 +38,7 @@ impl std::fmt::Display for OperationResult {
             match self {
                 OperationResult::Success => style("done").bold().green(),
                 OperationResult::Failed => style("fail").bold().red(),
+                OperationResult::Skipped => style("skip").bold().cyan(),
             }
         )
     }
@@ -397,7 +399,7 @@ impl Tracker {
             let seq_width = jobs_count_txt.len();
             let job = job_bar.name.as_str();
             let line_prefix = match &job_bar.phase {
-                JobBarPhase::Pending => format!("[{job_number:seq_width$}/{jobs_count_txt}][{}][{job}]", style("wait").bold().cyan()),
+                JobBarPhase::Pending => format!("[{job_number:seq_width$}/{jobs_count_txt}][{}][{job}]", style("wait").bold().yellow()),
                 JobBarPhase::Running(_) => format!("[{job_number:seq_width$}/{jobs_count_txt}][....][{job}]"),
                 JobBarPhase::Finished((res, time)) => {
                     if let Some(total_time) = total_time {
@@ -566,6 +568,21 @@ impl Tracker {
         } else if self.print_immediately() {
             let success_txt = format!("Job '{}' succeeded", job_def.job_title());
             println!("{}", style(success_txt).green().bold());
+        }
+    }
+
+    /// Sets the job on UI as finished providing skipped result and a message.
+    pub fn skipped(&self, job_def: JobDefinition, msg: String) {
+        if self.show_bars() {
+            if let Err(e) =
+                self.ui_tx
+                    .send(UiTick::Finished(job_def, OperationResult::Skipped, msg))
+            {
+                eprintln!("Fail to communicate with tracker: {e}");
+            }
+        } else if self.print_immediately() {
+            let success_txt = format!("Job '{}' Skipped", job_def.job_title());
+            println!("{}", style(success_txt).cyan().bold());
         }
     }
 
