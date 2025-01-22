@@ -8,6 +8,7 @@ import {
     ChangeDetectorRef,
     ElementRef,
     ViewEncapsulation,
+    HostListener,
 } from '@angular/core';
 import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
 import { Session } from '@service/session';
@@ -32,7 +33,11 @@ export class ViewSearchNested
 
     @ViewChild('searchinput') searchInputRef!: ElementRef<HTMLInputElement>;
     @ViewChild(MatAutocompleteTrigger) recentPanelRef!: MatAutocompleteTrigger;
-
+    @HostListener('window:keydown', ['$event']) onKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Escape') {
+            this.close();
+        }
+    }
     public readonly input = new SearchInput();
     public readonly recent: List;
     public pendding: boolean = false;
@@ -54,7 +59,7 @@ export class ViewSearchNested
         const tm = setTimeout(() => {
             this.progress = true;
             this.detectChanges();
-        }, 250) as unknown as number;;
+        }, 250) as unknown as number;
     }
     constructor(chRef: ChangeDetectorRef) {
         super(chRef);
