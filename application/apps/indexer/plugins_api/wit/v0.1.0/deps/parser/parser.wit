@@ -1,5 +1,6 @@
 package chipmunk:parser@0.1.0;
 
+/// The definitions which must be provided by the parser plugins.
 interface parser {
   use chipmunk:shared/shared-types@0.1.0.{version, init-error, config-item, config-schema-item};
   use parse-types.{render-options, parser-config, parse-return, parse-error};

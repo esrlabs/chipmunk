@@ -1,4 +1,4 @@
-//! TODO AAZ: Docs and verify the final pubic API before changing the host.
+//! Provides shared types to be used among all other plugins.
 
 pub mod logging;
 pub mod plugin_logger;

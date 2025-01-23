@@ -1,5 +1,6 @@
 package chipmunk:parser@0.1.0;
 
+/// Contains the types definitions used for the development of parser plugins. 
 interface parse-types {
   use chipmunk:shared/logging@0.1.0.{level};
 

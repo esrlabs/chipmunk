@@ -32,8 +32,6 @@ mod impl_mod {
 // Module for export macro
 mod export_mod {
     use super::Dummy;
-    use plugins_api::bytesource::*;
-    use plugins_api::*;
 
     plugins_api::bytesource_export!(Dummy);
 }

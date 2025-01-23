@@ -5,30 +5,46 @@ interface shared-types {
 
   /// Represents a semantic version.
   record version {
+    /// The major part of semantic version.
     major: u16,
+    /// The minor part of semantic version.
     minor: u16,
+    /// The patch part of semantic version.
     patch: u16,
   }
 
   /// Error type while initializing the plugins
   variant init-error {
+    /// Errors related to the provided configurations to the plugin.
     config(string),
+    /// Errors happened around IO operations.
     io(string),
+    /// Errors represents an unsupported interface by the plugin.
     unsupported(string),
+    /// Other kind of errors with custom string message.
     other(string),
   }
 
-  /// Represents a configuration item, which includes an identifier and its corresponding value.
+  /// Represents a configuration item, that will be provided to the plugin in the 
+  /// initialization function.
   record config-item {
+    /// The identifier of the configuration item. This ID must match the one provided in 
+    /// `config-schema-item`
     id: string,
+    /// The corresponding value of the configuration with the provided ID.
+    /// The value type matches the type define in `config-schema-item` with the same ID.
     value: config-value,
   }
 
   /// Represents the value of a configuration item.
   variant config-value {
+    /// Represents boolean value.
     boolean(bool),
+    /// Represents numerical integer value.
     integer(s32),
+    /// Represents numerical floating value.
     float(f32),
+    /// Represents text value.
     text(string),
     /// List of strings representing directory paths.
     directories(list<string>),
@@ -38,25 +54,35 @@ interface shared-types {
     dropdown(string)
   }
 
-  /// Represents the schema for a configuration item.
+  /// Represents the schema for a configuration item, which should be provided from the plugins 
+  /// to define their configuration that needed to be set by the users.
   record config-schema-item {
+    /// The identifier of the configuration schema item. This ID will match the one provided in 
+    /// `config-item`
     id: string,
+    /// Title of the configuration item that will be presented to the users.
     title: string,
+    /// An optional short description of the configuration item that will be presented to the users.
     description: option<string>,
+    /// Represent the type of the needed configuration value (boolean, string, path ...)
     input-type: config-schema-type,
   }
 
   /// Defines the possible input types for configuration schemas.
   variant config-schema-type {
+    /// Represents boolean type.
     boolean,
+    /// Represents numerical integer type.
     integer,
+    /// Represents numerical floating type.
     float,
+    /// Represents a text type.
     text,
-    /// A list of directories.
+    /// Represents a list of directories.
     directories,
-    /// A list of types with the given allowed file extensions (Empty to allow all).
+    /// Represents a list of types with the given allowed file extensions (Empty to allow all).
     files(list<string>),
-    /// Drop-down input type with a list of selectable options.
+    /// Represents Drop-down input type with a list of selectable options.
     dropdown(list<string>)
   }
 }
