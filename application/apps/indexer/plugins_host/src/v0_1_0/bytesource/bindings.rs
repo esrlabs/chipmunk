@@ -1,16 +1,17 @@
 use std::io;
 
-use crate::PluginGuestInitError;
-
-pub use self::chipmunk::plugin::{bytesource_types, shared_types};
-use self::shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, Version};
+pub use self::chipmunk::bytesource::bytesource_types;
 
 wasmtime::component::bindgen!({
-    path: "../plugins_api/wit/v_0.1.0/",
-    world: "bytesource-plugin",
+    path: "../plugins_api/wit/v0.1.0",
+    world: "chipmunk:bytesource/bytesource",
     async: {
         only_imports: [],
     },
+    with: {
+        "chipmunk:shared/logging@0.1.0": crate::v0_1_0::shared::logging,
+        "chipmunk:shared/shared-types@0.1.0": crate::v0_1_0::shared::shared_types,
+    }
 });
 
 impl From<&stypes::PluginByteSourceGeneralSettings> for bytesource_types::SourceConfig {
@@ -19,7 +20,7 @@ impl From<&stypes::PluginByteSourceGeneralSettings> for bytesource_types::Source
         // functionality to log the message from the plugins.
         let current_log_level = log::max_level().to_level().unwrap_or(log::Level::Error);
 
-        use chipmunk::plugin::logging::Level as PlugLevel;
+        use crate::v0_1_0::shared::logging::Level as PlugLevel;
         let level = match current_log_level {
             log::Level::Error => PlugLevel::Error,
             log::Level::Warn => PlugLevel::Warn,
@@ -32,93 +33,15 @@ impl From<&stypes::PluginByteSourceGeneralSettings> for bytesource_types::Source
     }
 }
 
-impl From<shared_types::InitError> for PluginGuestInitError {
-    fn from(value: shared_types::InitError) -> Self {
-        use shared_types::InitError as E;
-        use PluginGuestInitError as GuestE;
-        match value {
-            E::Config(msg) => GuestE::Config(msg),
-            E::Io(msg) => GuestE::IO(msg),
-            E::Unsupported(msg) => GuestE::Unsupported(msg),
-            E::Other(msg) => GuestE::Other(msg),
-        }
-    }
-}
-
 impl From<bytesource_types::SourceError> for io::Error {
     fn from(value: bytesource_types::SourceError) -> Self {
         use bytesource_types::SourceError as E;
         let msg = match value {
             E::Io(msg) => format!("IO Error from bytesoruce plugin. Error: {msg}"),
-            E::Unsupported => String::from("Unsupported Error from bytesource plugin"),
+            E::Unsupported(msg) => format!("Unsupported Error from bytesource plugin: {msg}"),
             E::Other(msg) => format!("Unknown Error from bytesoruce plugin. Error: {msg}"),
         };
 
         io::Error::new(io::ErrorKind::Other, msg)
-    }
-}
-
-use stypes::PluginConfigValue as HostConfValue;
-impl From<HostConfValue> for ConfigValue {
-    fn from(value: HostConfValue) -> Self {
-        match value {
-            HostConfValue::Boolean(val) => ConfigValue::Boolean(val),
-            HostConfValue::Integer(val) => ConfigValue::Integer(val),
-            HostConfValue::Float(val) => ConfigValue::Float(val),
-            HostConfValue::Text(val) => ConfigValue::Text(val),
-            HostConfValue::Files(val) => ConfigValue::Files(
-                val.into_iter()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .collect(),
-            ),
-            HostConfValue::Directories(val) => ConfigValue::Directories(
-                val.into_iter()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .collect(),
-            ),
-            HostConfValue::Dropdown(val) => ConfigValue::Dropdown(val),
-        }
-    }
-}
-
-impl From<stypes::PluginConfigItem> for ConfigItem {
-    fn from(item: stypes::PluginConfigItem) -> Self {
-        Self {
-            id: item.id,
-            value: item.value.into(),
-        }
-    }
-}
-
-use stypes::PluginConfigSchemaType as HostSchemaType;
-use stypes::SemanticVersion;
-impl From<ConfigSchemaType> for HostSchemaType {
-    fn from(value: ConfigSchemaType) -> Self {
-        match value {
-            ConfigSchemaType::Boolean => HostSchemaType::Boolean,
-            ConfigSchemaType::Integer => HostSchemaType::Integer,
-            ConfigSchemaType::Float => HostSchemaType::Float,
-            ConfigSchemaType::Text => HostSchemaType::Text,
-            ConfigSchemaType::Directories => HostSchemaType::Directories,
-            ConfigSchemaType::Files(exts) => HostSchemaType::Files(exts),
-            ConfigSchemaType::Dropdown(items) => HostSchemaType::Dropdown(items),
-        }
-    }
-}
-
-impl From<ConfigSchemaItem> for stypes::PluginConfigSchemaItem {
-    fn from(item: ConfigSchemaItem) -> Self {
-        Self {
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            input_type: item.input_type.into(),
-        }
-    }
-}
-
-impl From<Version> for SemanticVersion {
-    fn from(value: Version) -> Self {
-        Self::new(value.major, value.minor, value.patch)
     }
 }

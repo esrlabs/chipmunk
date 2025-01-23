@@ -11,7 +11,7 @@ use crate::{
     PluginHostInitError, WasmPlugin,
 };
 
-const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:plugin/byte-source";
+const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:bytesource/byte-source";
 
 /// The maximum number of consecutive returns with empty bytes allowed from a plugin.
 /// If a plugin exceeds this number, it may be considered harmful to the system.

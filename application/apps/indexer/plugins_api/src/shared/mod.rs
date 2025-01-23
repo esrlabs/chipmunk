@@ -6,6 +6,7 @@ pub mod plugin_logger;
 wit_bindgen::generate!({
     path: "wit/v0.1.0",
     world: "chipmunk:shared/bindings",
+    generate_unused_types: true,
 });
 
 use crate::shared_types::{ConfigSchemaItem, ConfigSchemaType, Version};

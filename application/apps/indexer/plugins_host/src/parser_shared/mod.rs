@@ -10,7 +10,7 @@ use crate::{
 
 pub mod plugin_parse_message;
 
-const PARSER_INTERFACE_NAME: &str = "chipmunk:plugin/parser";
+const PARSER_INTERFACE_NAME: &str = "chipmunk:parser/parser";
 
 /// Marker for a column separator in the output string.
 pub const COLUMN_SEP: &str = "\u{0004}";

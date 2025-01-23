@@ -15,11 +15,11 @@ use crate::{
     PluginGuestInitError, PluginHostInitError, PluginParseMessage,
 };
 
-use self::{bindings::ParsePlugin, parser_plugin_state::ParserPluginState};
+use self::{bindings::Parse, parser_plugin_state::ParserPluginState};
 
 pub struct PluginParser {
     store: Store<ParserPluginState>,
-    plugin_bindings: ParsePlugin,
+    plugin_bindings: Parse,
 }
 
 impl PluginParser {
@@ -50,14 +50,13 @@ impl PluginParser {
         let mut linker: Linker<ParserPluginState> = Linker::new(engine);
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-        ParsePlugin::add_to_linker(&mut linker, |state| state)?;
+        Parse::add_to_linker(&mut linker, |state| state)?;
 
         let resource_table = ResourceTable::new();
 
         let mut store = Store::new(engine, ParserPluginState::new(ctx, resource_table));
 
-        let plugin_bindings =
-            ParsePlugin::instantiate_async(&mut store, &component, &linker).await?;
+        let plugin_bindings = Parse::instantiate_async(&mut store, &component, &linker).await?;
 
         Ok(Self {
             store,
@@ -81,7 +80,7 @@ impl PluginParser {
 
         parser
             .plugin_bindings
-            .chipmunk_plugin_parser()
+            .chipmunk_parser_parser()
             .call_init(&mut parser.store, general_config.into(), &plugin_configs)
             .await?
             .map_err(|guest_err| {
@@ -96,7 +95,7 @@ impl PluginParser {
     ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
         let schemas = self
             .plugin_bindings
-            .chipmunk_plugin_parser()
+            .chipmunk_parser_parser()
             .call_get_config_schemas(&mut self.store)
             .await?;
 
@@ -106,7 +105,7 @@ impl PluginParser {
     pub async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
         let version = self
             .plugin_bindings
-            .chipmunk_plugin_parser()
+            .chipmunk_parser_parser()
             .call_get_version(&mut self.store)
             .await?;
 
@@ -116,7 +115,7 @@ impl PluginParser {
     pub async fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
         let options = self
             .plugin_bindings
-            .chipmunk_plugin_parser()
+            .chipmunk_parser_parser()
             .call_get_render_options(&mut self.store)
             .await?;
 
@@ -132,7 +131,7 @@ impl p::Parser<PluginParseMessage> for PluginParser {
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
-        let call_res = block_on(self.plugin_bindings.chipmunk_plugin_parser().call_parse(
+        let call_res = block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
             &mut self.store,
             input,
             timestamp,

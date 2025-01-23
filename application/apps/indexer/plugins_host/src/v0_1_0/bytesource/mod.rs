@@ -3,7 +3,7 @@ mod bytesource_plugin_state;
 
 use std::io;
 
-use bindings::BytesourcePlugin;
+use bindings::Bytesource;
 use bytesource_plugin_state::ByteSourcePluginState;
 use stypes::{RenderOptions, SemanticVersion};
 use wasmtime::{
@@ -20,7 +20,7 @@ use crate::{
 
 pub struct PluginByteSource {
     store: Store<ByteSourcePluginState>,
-    plugin_bindings: BytesourcePlugin,
+    plugin_bindings: Bytesource,
 }
 
 impl PluginByteSource {
@@ -51,14 +51,14 @@ impl PluginByteSource {
         let mut linker: Linker<ByteSourcePluginState> = Linker::new(engine);
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-        BytesourcePlugin::add_to_linker(&mut linker, |state| state)?;
+        Bytesource::add_to_linker(&mut linker, |state| state)?;
 
         let resource_table = ResourceTable::new();
 
         let mut store = Store::new(engine, ByteSourcePluginState::new(ctx, resource_table));
 
         let plugin_bindings =
-            BytesourcePlugin::instantiate_async(&mut store, &component, &linker).await?;
+            Bytesource::instantiate_async(&mut store, &component, &linker).await?;
 
         Ok(Self {
             store,
@@ -81,7 +81,7 @@ impl PluginByteSource {
 
         byte_source
             .plugin_bindings
-            .chipmunk_plugin_byte_source()
+            .chipmunk_bytesource_byte_source()
             .call_init(
                 &mut byte_source.store,
                 general_config.into(),
@@ -100,7 +100,7 @@ impl PluginByteSource {
     ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
         let schemas = self
             .plugin_bindings
-            .chipmunk_plugin_byte_source()
+            .chipmunk_bytesource_byte_source()
             .call_get_config_schemas(&mut self.store)
             .await?;
 
@@ -110,7 +110,7 @@ impl PluginByteSource {
     pub async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
         let version = self
             .plugin_bindings
-            .chipmunk_plugin_byte_source()
+            .chipmunk_bytesource_byte_source()
             .call_get_version(&mut self.store)
             .await?;
 
@@ -120,7 +120,7 @@ impl PluginByteSource {
     pub async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
         let bytes_result = self
             .plugin_bindings
-            .chipmunk_plugin_byte_source()
+            .chipmunk_bytesource_byte_source()
             .call_read(&mut self.store, len as u64)
             .await
             .map_err(|err| {

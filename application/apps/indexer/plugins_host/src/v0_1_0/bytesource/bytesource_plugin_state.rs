@@ -2,8 +2,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
 use super::bindings::{
     bytesource_types::{self, Level},
-    chipmunk::plugin::logging,
-    shared_types,
+    chipmunk::shared::{logging, shared_types},
 };
 
 pub struct ByteSourcePluginState {

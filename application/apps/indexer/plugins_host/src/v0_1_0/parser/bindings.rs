@@ -1,15 +1,19 @@
-use crate::{parser_shared::COLUMN_SEP, PluginGuestInitError, PluginParseMessage};
+use crate::{parser_shared::COLUMN_SEP, PluginParseMessage};
 
-pub use self::chipmunk::plugin::{parse_types::*, shared_types::*};
+pub use self::chipmunk::parser::parse_types::*;
 
-use stypes::{ParserRenderOptions, PluginConfigValue as HostConfValue, SemanticVersion};
+use stypes::ParserRenderOptions;
 
 wasmtime::component::bindgen!({
-    path: "../plugins_api/wit/v_0.1.0/",
-    world: "parse-plugin",
+    path: "../plugins_api/wit/v0.1.0",
+    world: "chipmunk:parser/parse",
     async: {
         only_imports: [],
     },
+    with: {
+        "chipmunk:shared/logging@0.1.0": crate::v0_1_0::shared::logging,
+        "chipmunk:shared/shared-types@0.1.0": crate::v0_1_0::shared::shared_types,
+    }
 });
 
 impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
@@ -18,7 +22,7 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
         // functionality to log the message from the plugins.
         let current_log_level = log::max_level().to_level().unwrap_or(log::Level::Error);
 
-        use chipmunk::plugin::logging::Level as PlugLevel;
+        use crate::v0_1_0::shared::logging::Level as PlugLevel;
         let level = match current_log_level {
             log::Level::Error => PlugLevel::Error,
             log::Level::Warn => PlugLevel::Warn,
@@ -28,18 +32,6 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
         };
 
         Self { log_level: level }
-    }
-}
-
-impl From<InitError> for PluginGuestInitError {
-    fn from(value: InitError) -> Self {
-        use PluginGuestInitError as GuestErr;
-        match value {
-            InitError::Config(msg) => GuestErr::Config(msg),
-            InitError::Io(msg) => GuestErr::IO(msg),
-            InitError::Unsupported(msg) => GuestErr::Unsupported(msg),
-            InitError::Other(msg) => GuestErr::Other(msg),
-        }
     }
 }
 
@@ -89,69 +81,6 @@ impl From<ParsedMessage> for PluginParseMessage {
         };
 
         Self { content }
-    }
-}
-
-impl From<HostConfValue> for ConfigValue {
-    fn from(value: HostConfValue) -> Self {
-        match value {
-            HostConfValue::Boolean(val) => ConfigValue::Boolean(val),
-            HostConfValue::Integer(val) => ConfigValue::Integer(val),
-            HostConfValue::Float(val) => ConfigValue::Float(val),
-            HostConfValue::Text(val) => ConfigValue::Text(val),
-            HostConfValue::Files(val) => ConfigValue::Files(
-                val.into_iter()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .collect(),
-            ),
-            HostConfValue::Directories(val) => ConfigValue::Directories(
-                val.into_iter()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .collect(),
-            ),
-            HostConfValue::Dropdown(val) => ConfigValue::Dropdown(val),
-        }
-    }
-}
-
-impl From<stypes::PluginConfigItem> for ConfigItem {
-    fn from(item: stypes::PluginConfigItem) -> Self {
-        Self {
-            id: item.id,
-            value: item.value.into(),
-        }
-    }
-}
-
-use stypes::PluginConfigSchemaType as HostSchemaType;
-impl From<ConfigSchemaType> for HostSchemaType {
-    fn from(value: ConfigSchemaType) -> Self {
-        match value {
-            ConfigSchemaType::Boolean => HostSchemaType::Boolean,
-            ConfigSchemaType::Integer => HostSchemaType::Integer,
-            ConfigSchemaType::Float => HostSchemaType::Float,
-            ConfigSchemaType::Text => HostSchemaType::Text,
-            ConfigSchemaType::Directories => HostSchemaType::Directories,
-            ConfigSchemaType::Files(exts) => HostSchemaType::Files(exts),
-            ConfigSchemaType::Dropdown(items) => HostSchemaType::Dropdown(items),
-        }
-    }
-}
-
-impl From<ConfigSchemaItem> for stypes::PluginConfigSchemaItem {
-    fn from(item: ConfigSchemaItem) -> Self {
-        Self {
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            input_type: item.input_type.into(),
-        }
-    }
-}
-
-impl From<Version> for SemanticVersion {
-    fn from(value: Version) -> Self {
-        Self::new(value.major, value.minor, value.patch)
     }
 }
 

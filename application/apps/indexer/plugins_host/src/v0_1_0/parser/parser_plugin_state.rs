@@ -1,8 +1,9 @@
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
-use super::bindings::chipmunk::plugin::{
+use super::bindings::chipmunk::parser::parse_types;
+use super::bindings::chipmunk::shared::{
     logging::{self, Level},
-    parse_types, shared_types,
+    shared_types,
 };
 
 pub struct ParserPluginState {
