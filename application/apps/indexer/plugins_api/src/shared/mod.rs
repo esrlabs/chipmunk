@@ -1,5 +1,6 @@
 //! Provides shared types to be used among all other plugins.
 
+pub mod config;
 pub mod logging;
 pub mod plugin_logger;
 

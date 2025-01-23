@@ -1,17 +1,16 @@
 use core::str;
-use std::iter;
+use std::{iter, ops::Not};
 
 use memchr::memchr;
 use plugins_api::{
+    config::{self, get_as_text},
     log,
     parser::{
         ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield, ParsedMessage,
         Parser, ParserConfig, RenderOptions,
     },
     parser_export,
-    shared_types::{
-        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
-    },
+    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
 };
 
 const LOSSY_ID: &str = "lossy";
@@ -155,59 +154,24 @@ impl Parser for StringTokenizer {
             plugins_configs
         );
 
-        //TODO AAZ: Disabled for now since this plugin is used in benchmarks.
-        // // *** Demonstrates writing to std console ***
-        // println!(
-        //     "From Plugin to Stdout: Initialize called with the {} custom configs.",
-        //     plugins_configs.len()
-        // );
+        // *** Demonstrates writing to std console ***
+        println!(
+            "From Plugin to Stdout: Initialize called with the {} custom configs.",
+            plugins_configs.len()
+        );
 
-        // eprintln!(
-        //     "From Plugin to Stderr: Log level is {:?}",
-        //     general_configs.log_level
-        // );
+        eprintln!(
+            "From Plugin to Stderr: Log level is {:?}",
+            general_configs.log_level
+        );
 
-        // *** Configurations validation ***
-        let lossy_config_item = plugins_configs
-            .iter()
-            .find(|item| item.id == LOSSY_ID)
-            .ok_or_else(|| {
-                InitError::Config(format!(
-                    "No configuration value for id '{LOSSY_ID}' is provided"
-                ))
-            })?;
+        // *** Configurations validation using the provided helper functions ***
+        let lossy = *config::get_as_boolean(LOSSY_ID, &plugins_configs)?;
 
-        let lossy = match &lossy_config_item.value {
-            ConfigValue::Boolean(lossy) => *lossy,
-            invalid => {
-                let err_msg = format!(
-                    "Invalid config value for '{LOSSY_ID}' was provided. Value: {:?}",
-                    invalid
-                );
-                return Err(InitError::Config(err_msg));
-            }
-        };
+        let prefix = get_as_text(PREFIX_ID, &plugins_configs)?;
+        let prefix = prefix.is_empty().not().then(|| prefix.to_owned());
 
-        let prefix_config_item = plugins_configs
-            .iter()
-            .find(|item| item.id == PREFIX_ID)
-            .ok_or_else(|| {
-                InitError::Config(format!(
-                    "No configuration value for id '{PREFIX_ID}' is provided"
-                ))
-            })?;
-
-        let prefix = match &prefix_config_item.value {
-            ConfigValue::Text(txt) if txt.is_empty() => None,
-            ConfigValue::Text(txt) => Some(txt.to_owned()),
-            invalid => {
-                let err_msg = format!(
-                    "Invalid config value for '{PREFIX_ID}' is provided. Value: {invalid:?}"
-                );
-                return Err(InitError::Config(err_msg));
-            }
-        };
-
+        // *** Printing configuration for debugging purpose ***
         for item in plugins_configs.iter() {
             match item.id.as_str() {
                 LOSSY_ID => println!("Boolean config value is: {:?}", item.value),

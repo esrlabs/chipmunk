@@ -14,7 +14,20 @@
 //!
 
 mod shared;
-pub use shared::chipmunk::shared::{logging, shared_types};
+pub use shared::{
+    chipmunk::shared::{logging, shared_types},
+    config,
+};
+
+// `log` crate must be reexported because we use it withing our macros
+pub use log;
+
+// This is needed to be public because it's used in the export macro
+#[doc(hidden)]
+pub use shared::{
+    logging::PluginLogSend as __PluginLogSend,
+    plugin_logger::{LogSend as __LogSend, PluginLogger as __PluginLogger},
+};
 
 //TODO AAZ: Check if we can remove the features, after moving shared types.
 // NOTE: Calling generate! Macro multiple time on the same crate causes compilation errors with `cargo
@@ -27,16 +40,6 @@ pub mod bytesource;
 #[cfg(feature = "parser")]
 #[cfg_attr(docsrs, doc(cfg(feature = "parser")))]
 pub mod parser;
-
-// `log` crate must be reexported because we use it withing our macros
-pub use log;
-
-// This is needed to be public because it's used in the export macro
-#[doc(hidden)]
-pub use shared::{
-    logging::PluginLogSend as __PluginLogSend,
-    plugin_logger::{LogSend as __LogSend, PluginLogger as __PluginLogger},
-};
 
 // This is a temporary reminder to include `--all-features` flag with cargo test in CI pipelines.
 // This code is activated in tests only if no features is activated, since almost all tests are

@@ -10,10 +10,8 @@ use std::{
 
 use plugins_api::{
     bytesource::{ByteSource, SourceConfig, SourceError},
-    bytesource_export, log,
-    shared_types::{
-        ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
-    },
+    bytesource_export, config, log,
+    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
 };
 
 const INPUT_PATH_ID: &str = "input-path";
@@ -57,33 +55,15 @@ impl ByteSource for FileSource {
             plugins_configs
         );
 
-        // Plugin Initialization
-        let file_path_config = plugins_configs
-            .iter()
-            .find(|item| item.id == INPUT_PATH_ID)
-            .ok_or_else(|| {
-                InitError::Config(format!(
-                    " No configuration value for id '{INPUT_PATH_ID}' is provided"
-                ))
-            })?;
+        // *** Configuration validation using the helper function ***
+        let file_paths = config::get_as_files(INPUT_PATH_ID, &plugins_configs)?;
+        if file_paths.len() != 1 {
+            let err_msg = format!("Pluign expects one file only but got: {:?}", file_paths);
+            return Err(InitError::Config(err_msg));
+        }
+        let file_path = PathBuf::from(&file_paths[0]);
 
-        let file_path = match &file_path_config.value {
-            ConfigValue::Files(paths) => {
-                if paths.len() != 1 {
-                    let err_msg = format!("Pluign expects one file only but got: {:?}", paths);
-                    return Err(InitError::Config(err_msg));
-                }
-                PathBuf::from(&paths[0])
-            }
-            invalid => {
-                let err_msg = format!(
-                    "Invalid config value for '{INPUT_PATH_ID}' was provided. Value: {:?}",
-                    invalid
-                );
-                return Err(InitError::Config(err_msg));
-            }
-        };
-
+        // *** Plugins initialization ***
         let file = File::open(file_path).map_err(|err| InitError::Io(err.to_string()))?;
         let reader = BufReader::new(file);
 
