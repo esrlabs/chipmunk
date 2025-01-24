@@ -94,6 +94,20 @@ class Factory<T> {
         return this as unknown as T;
     }
 
+    public asParserPlugin(configuration?: $.Parser.Plugin.IConfiguration): T {
+        this.observe.parser.change(
+            new $.Parser.Plugin.Configuration(
+                configuration === undefined
+                    ? $.Parser.Plugin.Configuration.initial()
+                    : configuration,
+
+                undefined,
+            ),
+        );
+        this.updated().parser();
+        return this as unknown as T;
+    }
+
     public guessParser(): T {
         const parsers = this.observe.origin.getSupportedParsers();
         if (parsers.length === 0) {
@@ -279,6 +293,7 @@ export class Stream extends Factory<Stream> {
     }
 }
 
+//TODO AAZ: We may need a class `PluginSource` here to represent byte-source plugin.
 export function map(observe: $.Observe): {
     file(): boolean;
     concat(): boolean;
@@ -286,6 +301,8 @@ export function map(observe: $.Observe): {
     serial(): boolean;
     udp(): boolean;
     tcp(): boolean;
+    //TODO: check where map is used then integrate plugin() call there.
+    plugin(): boolean;
 } {
     return {
         file: (): boolean => {
@@ -350,6 +367,12 @@ export function map(observe: $.Observe): {
                 stream.as<$.Origin.Stream.Stream.TCP.Configuration>(
                     $.Origin.Stream.Stream.TCP.Configuration,
                 ) !== undefined
+            );
+        },
+        plugin: (): boolean => {
+            return (
+                observe.origin.as<$.Origin.Plugin.Configuration>($.Origin.Plugin.Configuration) !==
+                undefined
             );
         },
     };

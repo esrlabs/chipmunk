@@ -15,14 +15,14 @@ function any(ext?: string): Promise<File[]> {
             .any(ext)
             .then((files: string[]) => {
                 getFileEntities(files)
-                .then((entities) => {
-                    if (entities instanceof Error) {
-                        reject(entities);
-                    } else {
-                        resolve(entities);
-                    }
-                })
-                .catch(reject);
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    })
+                    .catch(reject);
             })
             .catch(reject);
     });
@@ -91,6 +91,27 @@ function pcap(): Promise<File[]> {
     });
 }
 
+function parserPlugin(): Promise<File[]> {
+    return new Promise((resolve, reject) => {
+        electron
+            .dialogs()
+            .openFile()
+            .plugins()
+            .then((files: string[]) => {
+                getFileEntities(files, FileType.ParserPlugin)
+                    .then((entities) => {
+                        if (entities instanceof Error) {
+                            reject(entities);
+                        } else {
+                            resolve(entities);
+                        }
+                    })
+                    .catch(reject);
+            })
+            .catch(reject);
+    });
+}
+
 export const handler = Requests.InjectLogger<
     Requests.File.Select.Request,
     CancelablePromise<Requests.File.Select.Response>
@@ -110,6 +131,8 @@ export const handler = Requests.InjectLogger<
                         return pcapng();
                     case FileType.PcapLegacy:
                         return pcap();
+                    case FileType.ParserPlugin:
+                        return parserPlugin();
                     default:
                         return any(request.ext);
                 }

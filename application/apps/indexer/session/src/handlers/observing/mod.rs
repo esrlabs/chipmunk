@@ -12,6 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield, Parser,
 };
+use plugins_host::PluginsParser;
 use sources::{
     producer::{MessageProducer, SdeReceiver},
     ByteSource,
@@ -76,7 +77,25 @@ async fn run_source_intern<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
+    //TODO AAZ: Remove when done.
+    const FORCE_PLUGIN_ENV: &str = "FORCE_PLUGIN";
+    const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
+
     match parser {
+        stypes::ParserType::Plugin(settings) => {
+            println!("------------------------------------------------------");
+            println!("-------------    WASM parser used    -----------------");
+            println!("------------------------------------------------------");
+            println!("DEBUG: Plugin Path: {}", settings.plugin_path.display());
+            let parser = PluginsParser::initialize(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.plugin_configs.clone(),
+            )
+            .await?;
+            let producer = MessageProducer::new(parser, source, rx_sde);
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
+        }
         stypes::ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
                 Some(paths) => {
@@ -85,6 +104,47 @@ async fn run_source_intern<S: ByteSource>(
                 None => SomeipParser::new(),
             };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
+            run_producer(operation_api, state, source_id, producer, rx_tail).await
+        }
+        //TODO AAZ: Remove the whole block when done.
+        stypes::ParserType::Dlt(_) | stypes::ParserType::Text(())
+            if std::env::var(FORCE_PLUGIN_ENV).is_ok() =>
+        {
+            println!("------------------------------------------------------");
+            println!("-------------   WASM parser forced   -----------------");
+            println!("------------------------------------------------------");
+
+            //TODO AAZ: Find a better way to deliver plugin path than environment variables
+            let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
+                Ok(path) => path,
+                Err(err) => panic!("Retrieving plugin path environment variable failed. Err {err}"),
+            };
+            let proto_plugin_path = PathBuf::from(plugin_path);
+
+            // Hard-coded configurations for string parser for now.
+            const LOSSY_ID: &str = "lossy";
+            let string_parser_configs = vec![stypes::PluginConfigItem::new(
+                LOSSY_ID,
+                stypes::PluginConfigValue::Boolean(true),
+            )];
+
+            let settings =
+                stypes::PluginParserSettings::prototyping(proto_plugin_path, string_parser_configs);
+            let now = std::time::Instant::now();
+
+            let parser = PluginsParser::initialize(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.plugin_configs.clone(),
+            )
+            .await?;
+            let elapsed = now.elapsed();
+            println!(
+                "-------------   Loading module took: {}   -----------------",
+                elapsed.as_millis()
+            );
+
+            let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         stypes::ParserType::Text(()) => {
@@ -123,6 +183,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     let stream = producer.as_stream();
     futures::pin_mut!(stream);
     let cancel_on_tail = cancel.clone();
+    let timer = std::time::Instant::now();
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {
@@ -161,6 +222,17 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                         }
                         MessageStreamItem::Done => {
                             trace!("observe, message stream is done");
+
+                            //TODO AAZ: Remove benchmarks when not needed anymore.
+                            let elapsed = timer.elapsed();
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+                            println!("File Read Took: {}", elapsed.as_millis());
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+                            println!("---------------------------------------------------------");
+
                             state.flush_session_file().await?;
                             state.file_read().await?;
                         }

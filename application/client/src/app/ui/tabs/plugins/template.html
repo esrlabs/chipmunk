@@ -1,0 +1,20 @@
+<div class="preset-container">
+    <div class="preset-container-content">
+        <div class="left">
+            <mat-card class="fill sticky">
+                <h1>All Plugins:</h1>
+                <pre class="t-normal name color-scheme-1">{{allPlugins}}</pre>
+                <hr />
+                <h1>Active Plugins:</h1>
+                <pre class="t-normal name color-scheme-1">{{activePlugins}}</pre>
+            </mat-card>
+        </div>
+        <div class="right">
+            <mat-card>
+                <mat-card-content style="text-align: center">
+                    <button mat-stroked-button (click)="onReloadClick()">Reload</button>
+                </mat-card-content>
+            </mat-card>
+        </div>
+    </div>
+</div>

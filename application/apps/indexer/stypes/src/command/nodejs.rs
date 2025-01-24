@@ -10,3 +10,4 @@ try_into_js!(CommandOutcome<i64>);
 try_into_js!(CommandOutcome<Option<String>>);
 try_into_js!(CommandOutcome<String>);
 try_into_js!(CommandOutcome<bool>);
+try_into_js!(CommandOutcome<PluginsList>);

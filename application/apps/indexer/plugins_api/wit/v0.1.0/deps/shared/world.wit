@@ -1,0 +1,9 @@
+package chipmunk:shared@0.1.0;
+
+/// This world contains the shared types among all other plugins,
+/// and meant to be used to generate their bindings so they can be used 
+/// along all plugins.
+world bindings {
+  import shared-types;
+  import logging;
+}

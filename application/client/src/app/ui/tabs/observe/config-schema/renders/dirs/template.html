@@ -1,0 +1,23 @@
+<p class="t-medium">{{config.title}}</p>
+<div *ngIf="paths.length > 0">
+    <mat-chip-listbox aria-label="Directories" class="chip-listbox">
+        <mat-chip-option
+            *ngFor="let path of paths"
+            (removed)="ngOnRemovePath(path)"
+            class="chip-item"
+        >
+            <p [title]="path" class="chip-path">{{ path }}</p>
+            <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+            </button>
+        </mat-chip-option>
+    </mat-chip-listbox>
+</div>
+<mat-divider *ngIf="paths.length > 0" />
+<div class="paths-controls">
+    <button mat-stroked-button (click)="ngOnAddButtonkclick()">
+        <mat-icon aria-hidden="false" class="mini-button">note_add</mat-icon>
+        Add
+    </button>
+</div>
+<p class="t-small">{{config.description}}</p>

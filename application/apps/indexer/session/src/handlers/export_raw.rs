@@ -7,6 +7,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem,
 };
+use plugins_host::PluginsParser;
 use processor::export::{export_raw, ExportError};
 use sources::{
     binary::{
@@ -87,7 +88,9 @@ async fn assing_source(
         message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
     })?;
     match file_format {
-        stypes::FileFormat::Binary | stypes::FileFormat::Text => {
+        stypes::FileFormat::Binary
+        | stypes::FileFormat::Text
+        | stypes::FileFormat::ParserPlugin => {
             export(
                 dest,
                 parser,
@@ -132,6 +135,28 @@ async fn export<S: ByteSource>(
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, stypes::NativeError> {
     match parser {
+        stypes::ParserType::Plugin(settings) => {
+            println!("------------------------------------------------------");
+            println!("-------------    WASM parser used    -----------------");
+            println!("------------------------------------------------------");
+            println!("DEBUG: Plugin Path: {}", settings.plugin_path.display());
+            let parser = PluginsParser::initialize(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.plugin_configs.clone(),
+            )
+            .await?;
+            let mut producer = MessageProducer::new(parser, source, None);
+            export_runner(
+                Box::pin(producer.as_stream()),
+                dest,
+                sections,
+                read_to_end,
+                false,
+                cancel,
+            )
+            .await
+        }
         stypes::ParserType::SomeIp(settings) => {
             let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
                 SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())

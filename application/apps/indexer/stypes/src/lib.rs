@@ -100,6 +100,7 @@ mod lf_transition;
 mod miscellaneous;
 mod observe;
 mod operations;
+mod plugins;
 mod progress;
 
 pub use attachment::*;
@@ -110,6 +111,7 @@ pub use lf_transition::*;
 pub use miscellaneous::*;
 pub use observe::*;
 pub use operations::*;
+pub use plugins::*;
 pub use progress::*;
 
 pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};

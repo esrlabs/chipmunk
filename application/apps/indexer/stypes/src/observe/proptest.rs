@@ -35,6 +35,7 @@ impl Arbitrary for ParserType {
             any::<DltParserSettings>().prop_map(ParserType::Dlt),
             any::<SomeIpParserSettings>().prop_map(ParserType::SomeIp),
             Just(ParserType::Text(())),
+            any::<PluginParserSettings>().prop_map(ParserType::Plugin)
         ]
         .boxed()
     }
@@ -215,11 +216,21 @@ impl Arbitrary for FileFormat {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        // Reminder to extend tests here when new items are added.
+        _ = match FileFormat::Text {
+            FileFormat::PcapNG => {}
+            FileFormat::PcapLegacy => {}
+            FileFormat::Text => {}
+            FileFormat::Binary => {}
+            FileFormat::ParserPlugin => {}
+        };
+
         prop_oneof![
             Just(FileFormat::PcapNG),
             Just(FileFormat::PcapLegacy),
             Just(FileFormat::Text),
             Just(FileFormat::Binary),
+            Just(FileFormat::ParserPlugin),
         ]
         .boxed()
     }

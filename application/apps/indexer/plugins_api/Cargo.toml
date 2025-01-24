@@ -1,0 +1,36 @@
+[workspace]
+
+[package]
+name = "plugins_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = "0.4"
+wit-bindgen = "0.37"
+
+[dev-dependencies]
+trybuild = "1.0"
+
+[features]
+default = []
+parser =[]
+bytesource = []
+
+[[test]]
+name = "parser"
+required-features = ["parser"]
+
+[[test]]
+name = "bytesource"
+required-features = ["bytesource"]
+
+[package.metadata.docs.rs]
+# Activate all features when generating the code on docs.rs
+all-features = true
+# Activate the banner on docs explaining that the items is only available 
+# with specific feature 
+rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.component]
+target = { path = "wit" }
