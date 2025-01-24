@@ -166,7 +166,7 @@ impl Parser for StringTokenizer {
         );
 
         // *** Configurations validation using the provided helper functions ***
-        let lossy = *config::get_as_boolean(LOSSY_ID, &plugins_configs)?;
+        let lossy = config::get_as_boolean(LOSSY_ID, &plugins_configs)?;
 
         let prefix = get_as_text(PREFIX_ID, &plugins_configs)?;
         let prefix = prefix.is_empty().not().then(|| prefix.to_owned());
