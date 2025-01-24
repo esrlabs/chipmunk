@@ -28,7 +28,7 @@ export class Task<T> {
 }
 
 export class Queue {
-    protected readonly tasks: Task<any>[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    protected readonly tasks: Task<any>[] = [];
     protected working: boolean = false;
     protected proceed() {
         if (this.working) {

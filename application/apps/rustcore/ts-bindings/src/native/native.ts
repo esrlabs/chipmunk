@@ -26,6 +26,7 @@ export function getNativeModule(): IRustModuleExports {
         throw new Error(`Fail to find modules in:\n${paths.join('\n')}`);
     })();
     scope.getLogger('Native module getter').verbose(`Target: ${modulePath}`);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require(modulePath);
 }
 

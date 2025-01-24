@@ -22,7 +22,7 @@ export function isValid(strRegExp: string, parameters: string = 'gi'): boolean {
         if (regExp instanceof RegExp) {
             isValidRegExpCache[key] = true;
         }
-    } catch (error) {
+    } catch (_err) {
         isValidRegExpCache[key] = false;
     }
     return isValidRegExpCache[key];

@@ -8,7 +8,7 @@
     "build": "node_modules/.bin/tsc -p tsconfig.json",
     "prod": "node_modules/.bin/tsc -p tsconfig.json",
     "test_cancel": "node_modules/.bin/electron node_modules/jasmine-ts/lib/index.js ./spec/session.cancel.spec.ts",
-    "lint": "node_modules/.bin/eslint . --ext .ts --max-warnings=0",
+    "lint": "node_modules/.bin/eslint . --max-warnings=0",
     "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
   },
   "author": "Dmitry Astafyev",

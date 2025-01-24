@@ -89,7 +89,7 @@ export class SessionStream {
         return this._session.sendIntoSde(operation, request).then((response) => {
             try {
                 return response;
-            } catch (e) {
+            } catch (_err) {
                 return Promise.reject(new Error(`Fail to parse response`));
             }
         });

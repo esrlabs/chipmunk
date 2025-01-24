@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable no-prototype-builtins */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -198,7 +196,7 @@ async function detectAvailableWindowsProfiles(): Promise<ITerminalProfile[]> {
         if (result) {
             resultProfiles.push(...result);
         }
-    } catch (e) {
+    } catch (_err) {
         console.info('WSL is not installed, so could not detect WSL profiles');
     }
 
