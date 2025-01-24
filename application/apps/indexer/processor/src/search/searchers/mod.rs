@@ -20,6 +20,8 @@ use uuid::Uuid;
 pub mod linear;
 pub mod regular;
 #[cfg(test)]
+pub mod tests_linear;
+#[cfg(test)]
 pub mod tests_regular;
 #[cfg(test)]
 pub mod tests_values;
