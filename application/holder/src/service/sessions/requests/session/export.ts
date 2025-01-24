@@ -11,8 +11,7 @@ export const handler = Requests.InjectLogger<
     CancelablePromise<Requests.Session.Export.Response>
 >(
     (
-        log: Logger,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _log: Logger,
         request: Requests.Session.Export.Request,
     ): CancelablePromise<Requests.Session.Export.Response> => {
         return new CancelablePromise<Requests.Session.Export.Response>((resolve, reject) => {

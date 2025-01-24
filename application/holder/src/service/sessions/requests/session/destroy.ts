@@ -9,8 +9,7 @@ export const handler = Requests.InjectLogger<
     CancelablePromise<Requests.Session.Destroy.Response>
 >(
     (
-        log: Logger,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _log: Logger,
         request: Requests.Session.Destroy.Request,
     ): CancelablePromise<Requests.Session.Destroy.Response> => {
         return new CancelablePromise<Requests.Session.Destroy.Response>((resolve, reject) => {

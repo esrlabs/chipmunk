@@ -313,7 +313,7 @@ export class Service extends Implementation {
             ) {
                 return path.dirname(require.resolve('../main'));
             }
-        } catch (e) {
+        } catch (_err) {
             // We are developing mode; app is running with `yarn run electron`
         }
         if (process.argv instanceof Array && process.argv.length > 0) {
