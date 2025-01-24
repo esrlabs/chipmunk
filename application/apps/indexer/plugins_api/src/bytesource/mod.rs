@@ -154,9 +154,9 @@ macro_rules! bytesource_export {
                 plugin_configs: ::std::vec::Vec<$crate::shared_types::ConfigItem>,
             ) -> ::std::result::Result<(), $crate::shared_types::InitError> {
                 // Logger initialization
-                let level = $crate::log::Level::from(general_configs.log_level);
-                $crate::log::set_logger(&LOGGER)
-                    .map(|()| $crate::log::set_max_level(level.to_level_filter()))
+                let level = $crate::log::__Level::from(general_configs.log_level);
+                $crate::log::__set_logger(&LOGGER)
+                    .map(|()| $crate::log::__set_max_level(level.to_level_filter()))
                     .expect("Logger can be set on initialization only");
 
                 // Initializing the given bytesource

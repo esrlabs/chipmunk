@@ -19,8 +19,15 @@ pub use shared::{
     config,
 };
 
-// `log` crate must be reexported because we use it withing our macros
-pub use log;
+/// Contains re-exported logging macros from [`log`] crate to be used inside the plugins.
+/// Logs messages will be sent to the host if logging level matches the current log level
+/// inside chipmunk.
+pub mod log {
+    pub use log::{debug, error, info, log, trace, warn};
+    // This is needed to be public because it's used in the export macro.
+    #[doc(hidden)]
+    pub use log::{set_logger as __set_logger, set_max_level as __set_max_level, Level as __Level};
+}
 
 // This is needed to be public because it's used in the export macro
 #[doc(hidden)]
