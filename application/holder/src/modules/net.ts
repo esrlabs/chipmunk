@@ -76,15 +76,15 @@ export class Net extends Module {
             return undefined;
         }
         const opts = {
-            host: link.hostname || '',
-            port: link.port || (link.protocol === 'https' ? '443' : '80'),
             auth:
                 link.username !== '' && link.password !== ''
                     ? `${link.username}:${link.password}`
                     : '',
             rejectUnauthorized: typeof strictSSL === 'boolean' ? strictSSL : true,
         };
-        return uri.protocol === 'http:' ? new HttpProxyAgent(opts) : new HttpsProxyAgent(opts);
+        return uri.protocol === 'http:'
+            ? new HttpProxyAgent(link, opts)
+            : new HttpsProxyAgent(link, opts);
     }
 
     public getRequestOptions(

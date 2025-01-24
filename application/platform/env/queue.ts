@@ -63,7 +63,8 @@ export class Queue {
 
     private _proceed() {
         this._logger.verbose(`Tasks in queue: ${this._tasks.size}`);
-        if (this._tasks.size === 0) {
+        const next: Task | undefined = this._tasks.values().next().value;
+        if (this._tasks.size === 0 || next === undefined) {
             if (this._destroy !== undefined) {
                 this._destroy();
             }
@@ -73,7 +74,6 @@ export class Queue {
             return;
         }
         this._processing.lock();
-        const next: Task = this._tasks.values().next().value;
         const ts = Date.now();
         next.task().finally(() => {
             const duration = Date.now() - ts;
