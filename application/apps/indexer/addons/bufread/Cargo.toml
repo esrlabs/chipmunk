@@ -1,0 +1,19 @@
+[package]
+name = "bufread"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+
+[dev-dependencies]
+criterion.workspace = true
+proptest.workspace = true
+rand.workspace = true
+
+[[bench]]
+name = "buffer_benches"
+harness = false
+
+[[bench]]
+name = "reader_benches"
+harness = false

@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 async-stream = "0.3"
-bufread.workspace = true
+bufread = { path = "../addons/bufread" }
 bytes = "1.3"
 etherparse = "0.16"
 futures.workspace = true
