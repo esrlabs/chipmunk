@@ -6,6 +6,7 @@ members = [
     "addons/someip-tools",
     "addons/file-tools",
     "addons/text_grep",
+    "addons/bufread",
     "indexer_base",
     "indexer_cli",
     "merging",
@@ -24,12 +25,10 @@ thiserror = "2.0"
 lazy_static = "1.5"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
-#dlt-core = "0.18.0"
-dlt-core = { git = "https://github.com/kruss/dlt-core.git", branch = "remove_buf_redux" }
+dlt-core = "0.18.0"
 crossbeam-channel = "0.5"
 futures = "0.3"
 tokio-util = "0.7"
-bufread = { git = "https://github.com/kruss/bufread" }
 regex = "1"
 grep-regex = "0.1"
 rand = "0.8"
@@ -45,6 +44,7 @@ envvars = "0.1"
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
 criterion = { version = "0.5", features = ["html_reports"] }
 insta = { version = "1.41", features = ["yaml"] }
+proptest = "1.6"
 
 # `insta` crate and its dependency `similar` will be compiled once and run many times, 
 # therefore it's suggested to compile them with more optimizations for faster runs.

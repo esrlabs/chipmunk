@@ -448,9 +448,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "buf_redux"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b953a6887648bb07a535631f2bc00fbdb2a2216f135552cb3f534ed136b9c07f"
+dependencies = [
+ "memchr",
+ "safemem",
+ "slice-deque",
+]
+
+[[package]]
 name = "bufread"
-version = "0.1.0"
-source = "git+https://github.com/kruss/bufread#5dec80376c0cbbbf3c4f864cf88b965cceb67c3b"
+version = "0.1.1"
+dependencies = [
+ "criterion",
+ "proptest",
+ "rand",
+]
 
 [[package]]
 name = "bumpalo"
@@ -892,9 +907,10 @@ dependencies = [
 [[package]]
 name = "dlt-core"
 version = "0.18.0"
-source = "git+https://github.com/kruss/dlt-core.git?branch=remove_buf_redux#87c7cea8be5224790ba8457ff531b4b6804c1298"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b304e32f1164b8c2ef1dc746b32d321f25f88a32672f0f5bcba2df0f70a3b70"
 dependencies = [
- "bufread",
+ "buf_redux",
  "byteorder",
  "bytes",
  "derive_more",
@@ -1626,6 +1642,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04cbf5b083de1c7e0222a7a51dbfdba1cbe1c6ab0b15e29fff3f6c077fd9cd9f"
 dependencies = [
  "value-bag",
+]
+
+[[package]]
+name = "mach"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86dd2487cdfea56def77b88438a2c915fb45113c5319bfe7e14306ca4cd0b0e1"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
@@ -2476,6 +2501,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
+name = "safemem"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
+
+[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2633,6 +2664,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "slice-deque"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffddf594f5f597f63533d897427a570dbaa9feabaaa06595b74b71b7014507d7"
+dependencies = [
+ "libc",
+ "mach",
+ "winapi",
 ]
 
 [[package]]
