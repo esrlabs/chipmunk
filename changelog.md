@@ -1,3 +1,16 @@
+# 3.15.0 (27.01.2025)
+
+## Features
+- Add support for nested search in the search results
+
+## Changes
+- Upgrade Angular version to 19.x
+- Upgrade Electron version to 34.x
+- Upgrade the rest npm packages to recent versions
+
+## Developing
+- Update build CLI
+
 # 3.14.4 (08.01.2025)
 
 ## Changes
