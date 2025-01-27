@@ -24,7 +24,7 @@ impl TcpSource {
         let binding_address: String = addr.into();
         Ok(Self {
             buffer: DeqBuffer::new(8192),
-            socket: TcpStream::connect(binding_address).await?,
+            socket: TcpStream::connect(&binding_address).await?,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
             binding_address,
             reconnect_info,

@@ -1,9 +1,6 @@
 use crate::{
     grabber::GrabError,
-    search::{
-        buffer::CancellableBufReader,
-        error::SearchError,
-    },
+    search::{buffer::CancellableBufReader, error::SearchError},
 };
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher};
