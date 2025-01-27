@@ -77,7 +77,7 @@ APP_PATHS_FOR_BUILD_CHECK = [
     "apps/rustcore/wasm-bindings/pkg",
     "apps/rustcore/wasm-bindings/node_modules",
     # Client
-    "client/dist",
+    "client/dist/debug",
     "client/node_modules",
     # Updater
     "apps/precompiled/updater/target",
@@ -170,7 +170,7 @@ INVOLVED_PATHS_BUILD_RECORDS_CHECK = [
     # Wrapper
     "apps/rustcore/ts-bindings/dist/index.js",
     # Client
-    "client/dist",
+    "client/dist/debug",
     # App
     "holder/dist/app.js",
 ]
