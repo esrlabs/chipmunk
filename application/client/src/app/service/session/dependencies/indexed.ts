@@ -12,8 +12,10 @@ import * as Events from '@platform/ipc/event';
 export class Indexed extends Subscriber {
     public readonly subjects: Subjects<{
         updated: Subject<number>;
+        changed: Subject<void>;
     }> = new Subjects({
         updated: new Subject<number>(),
+        changed: new Subject<void>(),
     });
     private _len: number = 0;
     private _uuid!: string;
@@ -67,6 +69,9 @@ export class Indexed extends Subscriber {
                     this.log().error(
                         `Fail to expand indexed content on position ${row}: ${error.message}`,
                     );
+                })
+                .finally(() => {
+                    this.subjects.get().changed.emit();
                 });
         };
         return {
@@ -178,6 +183,9 @@ export class Indexed extends Subscriber {
                 })
                 .catch((error: Error) => {
                     this.log().error(`Fail to switch indexing mode: ${error.message}`);
+                })
+                .finally(() => {
+                    this.subjects.get().changed.emit();
                 });
         };
         return {
