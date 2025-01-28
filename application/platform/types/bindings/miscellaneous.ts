@@ -58,6 +58,10 @@ export type GrabbedElement = {
  */
 export type GrabbedElementList = Array<GrabbedElement>;
 
+// *** ATTENTION ***
+// This type has been adjusted after code generation.
+// Please make sure to not change it on further type generation if not intended.
+
 export type MapKeyValue = Map<string, string>;
 
 /**
