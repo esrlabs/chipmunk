@@ -16,13 +16,13 @@ version: {version}
 pub struct Cli {
     /// Specify the parser type to use in parsing the incoming bytes.
     #[arg(short, long, value_enum, default_value_t= Parser::Dlt)]
-    parser: Parser,
+    pub parser: Parser,
     #[command(subcommand)]
-    input: InputSource,
+    pub input: InputSource,
     /// Specify an optional path for the output. In case no file is set the output will be printed
     /// to stdout.
     #[arg(short, long)]
-    output: Option<PathBuf>,
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -43,17 +43,26 @@ impl Display for Parser {
 pub enum InputSource {
     /// Input as TCP connection with the provided IP.
     Tcp {
-        #[arg(short, long)]
+        // #[arg(short, long)]
+        #[arg(index = 1)]
         ip: String,
     },
     /// Input as UDP connection with the provided IP.
     Udp {
-        #[arg(short, long)]
+        // #[arg(short, long)]
+        #[arg(index = 1)]
         ip: String,
     },
     /// Input as File with the provided path.
     File {
-        #[arg(short, long)]
+        #[arg(index = 1)]
         path: PathBuf,
     },
+}
+
+impl Cli {
+    pub fn validate(&self) -> anyhow::Result<()> {
+        //TODO AAZ: Make sure we need validation here.
+        Ok(())
+    }
 }
