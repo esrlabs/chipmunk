@@ -69,11 +69,13 @@
 /// - Add TypeScript definitions. This step can also be done mostly automatically by adding
 ///   `#[cfg_attr(test, derive(TS), ts(export, export_to = "module_name.ts"))]` above the
 ///   definition of your type. Make sure you are using the correct `module_name`. The TypeScript type
-///   definition will be placed into `application/apps/indexer/stypes/bindings/module_name.ts`.
+///   definition will be placed into `application/platform/types/bindings/module_name.ts`.
 ///   Writing of types happens by executing tests (`cargo test`).
-///   As soon as a new TypeScript definition has been created, you have to manually copy it into
-///   `application/platform/types/bindings`.
-///   **Important:** Do not remove `application/apps/indexer/stypes/bindings/index.ts`. This file
+///
+///   **Note:** The path for the generated typescript files is set by defining the environment
+///   variable `TS_RS_EXPORT_DIR` which is defined in `application/apps/indexer/stypes/.cargo/config.toml` file.
+///
+///   **Important:** Do not remove `application/platform/types/bindings/index.ts`. This file
 ///   isn't generated and is created manually. If you are introducing a new
 ///   module along with your type, please add a reference to it in the `index.ts` file.
 ///

@@ -1,0 +1,4 @@
+[env]
+# Sets the output directory for the generated typescript types to the corresponding directory in platform:
+# 'chipmunk/application/platform/types/bindings'
+TS_RS_EXPORT_DIR = { value = "../../../platform/types/bindings", relative = true }
