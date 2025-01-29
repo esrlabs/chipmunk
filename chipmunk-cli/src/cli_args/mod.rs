@@ -41,20 +41,27 @@ impl Display for Parser {
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum InputSource {
-    /// Open TCP connection with the provided IP as input source.
+    /// Establish a TCP connection using the specified IP address as the input source.
     Tcp {
-        // #[arg(short, long)]
+        /// The address to bind the connection to.
         #[arg(index = 1)]
-        ip: String,
+        address: String,
+        /// Maximum number of reconnection attempts if the connection is lost.
+        #[arg(short, long = "max-reconnect")]
+        max_reconnect_count: Option<usize>,
+        /// Time interval (in milliseconds) between reconnection attempts.
+        #[arg(short, long = "interval-reconnect", default_value_t = 1000)]
+        interval_reconnect: u64,
     },
-    /// Open UDP connection with the provided IP as input source.
+    /// Establish a UDP connection using the specified IP address as the input source.
     Udp {
-        // #[arg(short, long)]
+        /// The address to bind the connection to.
         #[arg(index = 1)]
-        ip: String,
+        address: String,
     },
-    /// Open the file with the provided path as input source.
+    /// Read input from a file at the specified path.
     File {
+        /// Path to the input file.
         #[arg(index = 1)]
         path: PathBuf,
     },

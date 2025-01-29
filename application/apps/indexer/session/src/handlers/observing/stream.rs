@@ -40,7 +40,8 @@ pub async fn observe_stream(
             .await
         }
         stypes::Transport::TCP(settings) => {
-            let tcp_source = TcpSource::new(settings.bind_addr.clone())
+            //TODO AAZ: For now reconnect in CLI only.
+            let tcp_source = TcpSource::new(settings.bind_addr.clone(), None)
                 .await
                 .map_err(|e| stypes::NativeError {
                     severity: stypes::Severity::ERROR,

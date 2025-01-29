@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, time::Duration};
 
 use anyhow::Context;
 use clap::Parser as _;
@@ -6,7 +6,7 @@ use cli_args::InputSource;
 use parsers::dlt::DltParser;
 use sources::{
     binary::raw::BinaryByteSource,
-    socket::{tcp::TcpSource, udp::UdpSource},
+    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo},
 };
 
 mod cli_args;
@@ -19,16 +19,22 @@ pub async fn run_app() -> anyhow::Result<()> {
     // TODO AAZ: Make sure we don't have storage header with connections.
 
     match cli.input {
-        InputSource::Tcp { ip } => {
-            let source = TcpSource::new(ip)
+        InputSource::Tcp {
+            address,
+            max_reconnect_count,
+            interval_reconnect,
+        } => {
+            let reconnect = max_reconnect_count
+                .map(|max| ReconnectInfo::new(max, Duration::from_millis(interval_reconnect)));
+            let source = TcpSource::new(address, reconnect)
                 .await
                 .context("Initializing TCP connection failed")?;
 
             let parser = DltParser::new(None, None, None, None, false);
             session::run_session(parser, source, cli.output).await?;
         }
-        InputSource::Udp { ip } => {
-            let source = UdpSource::new(ip, Vec::new())
+        InputSource::Udp { address } => {
+            let source = UdpSource::new(address, Vec::new())
                 .await
                 .context("Initializing UDP connection failed")?;
             let parser = DltParser::new(None, None, None, None, false);
