@@ -41,19 +41,19 @@ impl Display for Parser {
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum InputSource {
-    /// Input as TCP connection with the provided IP.
+    /// Open TCP connection with the provided IP as input source.
     Tcp {
         // #[arg(short, long)]
         #[arg(index = 1)]
         ip: String,
     },
-    /// Input as UDP connection with the provided IP.
+    /// Open UDP connection with the provided IP as input source.
     Udp {
         // #[arg(short, long)]
         #[arg(index = 1)]
         ip: String,
     },
-    /// Input as File with the provided path.
+    /// Open the file with the provided path as input source.
     File {
         #[arg(index = 1)]
         path: PathBuf,
