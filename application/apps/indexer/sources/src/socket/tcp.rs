@@ -1,22 +1,82 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{
+    socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+};
 use buf_redux::Buffer;
-use tokio::net::{TcpStream, ToSocketAddrs};
+use tokio::net::TcpStream;
+
+use super::{ReconnectInfo, ReconnectResult, ReconnectToServer};
 
 pub struct TcpSource {
     buffer: Buffer,
     socket: TcpStream,
     tmp_buffer: Vec<u8>,
+    binding_address: String,
+    reconnect_info: Option<ReconnectInfo>,
 }
 
 const MAX_DATAGRAM_SIZE: usize = 65_507;
 
 impl TcpSource {
-    pub async fn new<A: ToSocketAddrs>(addr: A) -> Result<Self, std::io::Error> {
+    pub async fn new<A: Into<String>>(
+        addr: A,
+        reconnect_info: Option<ReconnectInfo>,
+    ) -> Result<Self, std::io::Error> {
+        let binding_address: String = addr.into();
         Ok(Self {
             buffer: Buffer::new(),
-            socket: TcpStream::connect(addr).await?,
+            socket: TcpStream::connect(&binding_address).await?,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
+            binding_address,
+            reconnect_info,
         })
+    }
+}
+
+impl ReconnectToServer for TcpSource {
+    async fn reconnect(&mut self) -> ReconnectResult {
+        let Some(reconnect_info) = self.reconnect_info.as_ref() else {
+            log::debug!("No reconnect info provided. Skipping reconnecting");
+            return ReconnectResult::NotConfigured;
+        };
+
+        if let Some(sender) = &reconnect_info.state_sender {
+            if let Err(err) = sender.send(ReconnectStateMsg::Reconnecting) {
+                log::error!("Failed to send reconnnecting state with err: {err}");
+            }
+        }
+
+        let mut attempts = 0;
+        loop {
+            attempts += 1;
+            if let Some(sender) = &reconnect_info.state_sender {
+                if let Err(err) = sender.send(ReconnectStateMsg::StateMsg(format!(
+                    "Reconnecting to TCP server. Attempt: {attempts}"
+                ))) {
+                    log::error!("Failed to send state msg with err: {err}");
+                }
+            }
+            log::info!("Reconnecting to TCP server. Attempt: {attempts}");
+            tokio::time::sleep(reconnect_info.internval).await;
+
+            match TcpStream::connect(&self.binding_address).await {
+                Ok(socket) => {
+                    self.socket = socket;
+
+                    if let Some(sender) = &reconnect_info.state_sender {
+                        if let Err(err) = sender.send(ReconnectStateMsg::Connected) {
+                            log::error!("Failed to send connected state with err: {err}");
+                        }
+                    }
+                    return ReconnectResult::Reconnected;
+                }
+                Err(err) => {
+                    log::debug!("Got following error while trying to reconnect: {err}");
+                    if attempts >= reconnect_info.max_attempts {
+                        return ReconnectResult::Error(err);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -36,9 +96,18 @@ impl ByteSource for TcpSource {
             match self.socket.try_read(&mut self.tmp_buffer) {
                 Ok(len) => {
                     trace!("---> Received {} bytes", len);
-                    if len > 0 {
-                        self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
+                    if len == 0 {
+                        // No data were received -> Server may be temporally down
+                        // then try to reconnect.
+                        match self.reconnect().await {
+                            ReconnectResult::Reconnected => continue,
+                            ReconnectResult::NotConfigured => {}
+                            ReconnectResult::Error(error) => {
+                                return Err(SourceError::Unrecoverable(error.to_string()));
+                            }
+                        };
                     }
+                    self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
                     let available_bytes = self.buffer.len();
                     return Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)));
                 }
@@ -46,7 +115,23 @@ impl ByteSource for TcpSource {
                     continue;
                 }
                 Err(e) => {
-                    return Err(SourceError::Setup(format!("{e}")));
+                    // Server may be temporally down -> Try to reconnect.
+                    match self.reconnect().await {
+                        ReconnectResult::Reconnected => {
+                            continue;
+                        }
+                        ReconnectResult::NotConfigured => {
+                            // Continue with the original error.
+                            return Err(SourceError::Setup(format!("{e}")));
+                        }
+                        ReconnectResult::Error(err) => {
+                            // return both errors.
+                            return Err(SourceError::Setup(format!(
+                                " Reconnection failed with error: {e}.\
+                                \nAfter recieving original error: {err}"
+                            )));
+                        }
+                    };
                 }
             }
         }
@@ -97,7 +182,7 @@ mod tests {
                 sleep(Duration::from_millis(100)).await;
             }
         });
-        let mut udp_source = TcpSource::new(SERVER).await?;
+        let mut udp_source = TcpSource::new(SERVER, None).await?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
                 udp_source.load(None).await.expect("reload failed");
@@ -135,7 +220,7 @@ mod tests {
                 sleep(Duration::from_millis(100)).await;
             }
         });
-        let mut tcp_source = TcpSource::new(SERVER).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None).await.unwrap();
 
         general_source_reload_test(&mut tcp_source).await;
     }
