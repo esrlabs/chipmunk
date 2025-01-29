@@ -14,15 +14,14 @@ version: {version}
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, help_template = HELP_TEMPLATE)]
 pub struct Cli {
+    /// Specify an path for the output file.
+    #[arg(short, long, required = true)]
+    pub output: PathBuf,
     /// Specify the parser type to use in parsing the incoming bytes.
     #[arg(short, long, value_enum, default_value_t= Parser::Dlt)]
     pub parser: Parser,
     #[command(subcommand)]
     pub input: InputSource,
-    /// Specify an optional path for the output. In case no file is set the output will be printed
-    /// to stdout.
-    #[arg(short, long)]
-    pub output: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
@@ -46,6 +45,9 @@ pub enum InputSource {
         /// The address to bind the connection to.
         #[arg(index = 1)]
         address: String,
+        // Time interval (in milliseconds) to print current status.
+        #[arg(short, long = "interval-reconnect", default_value_t = 5000)]
+        update_interval: u64,
         /// Maximum number of reconnection attempts if the connection is lost.
         #[arg(short, long = "max-reconnect")]
         max_reconnect_count: Option<usize>,

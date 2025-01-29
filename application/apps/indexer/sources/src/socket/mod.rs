@@ -1,4 +1,5 @@
 use std::time::Duration;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub mod tcp;
 pub mod udp;
@@ -17,20 +18,27 @@ pub struct ReconnectInfo {
     max_attempts: usize,
     /// The time interval between each try to connect to server.
     internval: Duration,
+    /// Channel to send information of the state of reconnecting progress.
+    state_sender: Option<UnboundedSender<ReconnectStateMsg>>,
 }
 
 impl ReconnectInfo {
-    pub fn new(max_attempts: usize, internval: Duration) -> Self {
+    pub fn new(
+        max_attempts: usize,
+        internval: Duration,
+        state_sender: Option<UnboundedSender<ReconnectStateMsg>>,
+    ) -> Self {
         Self {
             max_attempts,
             internval,
+            state_sender,
         }
     }
 }
 
 impl Default for ReconnectInfo {
     fn default() -> Self {
-        Self::new(usize::MAX, Duration::from_secs(5))
+        Self::new(usize::MAX, Duration::from_secs(5), None)
     }
 }
 
@@ -43,4 +51,12 @@ enum ReconnectResult {
     NotConfigured,
     /// Error while reconnecting.
     Error(std::io::Error),
+}
+
+#[derive(Debug, Clone)]
+/// Represent the information of the state of the reconnection progress.
+pub enum ReconnectStateMsg {
+    Reconnecting,
+    Connected,
+    StateMsg(String),
 }

@@ -1,4 +1,6 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{
+    socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+};
 use buf_redux::Buffer;
 use tokio::net::TcpStream;
 
@@ -32,23 +34,39 @@ impl TcpSource {
 
 impl ReconnectToServer for TcpSource {
     async fn reconnect(&mut self) -> ReconnectResult {
-        //TODO AAZ: All `eprint!()` calls sent via channel to the caller.
         let Some(reconnect_info) = self.reconnect_info.as_ref() else {
-            eprintln!("No reconnect info provided. Skipping reconnecting");
             log::debug!("No reconnect info provided. Skipping reconnecting");
             return ReconnectResult::NotConfigured;
         };
 
+        if let Some(sender) = &reconnect_info.state_sender {
+            if let Err(err) = sender.send(ReconnectStateMsg::Reconnecting) {
+                log::error!("Failed to send reconnnecting state with err: {err}");
+            }
+        }
+
         let mut attempts = 0;
         loop {
             attempts += 1;
-            eprintln!("Reconnecting to TCP server. Attempt: {attempts}");
+            if let Some(sender) = &reconnect_info.state_sender {
+                if let Err(err) = sender.send(ReconnectStateMsg::StateMsg(format!(
+                    "Reconnecting to TCP server. Attempt: {attempts}"
+                ))) {
+                    log::error!("Failed to send state msg with err: {err}");
+                }
+            }
             log::info!("Reconnecting to TCP server. Attempt: {attempts}");
             tokio::time::sleep(reconnect_info.internval).await;
 
             match TcpStream::connect(&self.binding_address).await {
                 Ok(socket) => {
                     self.socket = socket;
+
+                    if let Some(sender) = &reconnect_info.state_sender {
+                        if let Err(err) = sender.send(ReconnectStateMsg::Connected) {
+                            log::error!("Failed to send connected state with err: {err}");
+                        }
+                    }
                     return ReconnectResult::Reconnected;
                 }
                 Err(err) => {

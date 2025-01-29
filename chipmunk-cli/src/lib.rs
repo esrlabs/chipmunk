@@ -17,35 +17,46 @@ pub async fn run_app() -> anyhow::Result<()> {
     cli.validate()?;
 
     // TODO AAZ: Make sure we don't have storage header with connections.
-
+    let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
     match cli.input {
         InputSource::Tcp {
             address,
+            update_interval,
             max_reconnect_count,
             interval_reconnect,
         } => {
-            let reconnect = max_reconnect_count
-                .map(|max| ReconnectInfo::new(max, Duration::from_millis(interval_reconnect)));
+            let reconnect = max_reconnect_count.map(|max| {
+                ReconnectInfo::new(
+                    max,
+                    Duration::from_millis(interval_reconnect),
+                    Some(state_tx),
+                )
+            });
+
+            let update_interval = Duration::from_millis(update_interval);
             let source = TcpSource::new(address, reconnect)
                 .await
                 .context("Initializing TCP connection failed")?;
 
             let parser = DltParser::new(None, None, None, None, false);
-            session::run_session(parser, source, cli.output).await?;
+            session::socket::run_session(parser, source, cli.output, state_rx, update_interval)
+                .await?;
         }
         InputSource::Udp { address } => {
             let source = UdpSource::new(address, Vec::new())
                 .await
                 .context("Initializing UDP connection failed")?;
             let parser = DltParser::new(None, None, None, None, false);
-            session::run_session(parser, source, cli.output).await?;
+            let temp_interval = Duration::from_millis(1000);
+            session::socket::run_session(parser, source, cli.output, state_rx, temp_interval)
+                .await?;
         }
         InputSource::File { path } => {
             let file = File::open(&path).context("Opening input file failed")?;
             let reader = BufReader::new(&file);
             let source = BinaryByteSource::new(reader);
             let parser = DltParser::new(None, None, None, None, true);
-            session::run_session(parser, source, cli.output).await?;
+            session::file::run_session(parser, source, cli.output).await?;
         }
     }
 
