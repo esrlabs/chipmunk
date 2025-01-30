@@ -4,7 +4,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Subscriber } from '@platform/env/subscription';
-import { Row } from '@schema/content/row';
+import { Row, RowSrc } from '@schema/content/row';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
@@ -20,7 +20,7 @@ export class Details extends ChangesDetector implements AfterViewInit, OnDestroy
     protected subscriber: Subscriber = new Subscriber();
     protected sanitizer: DomSanitizer;
 
-    public row: Row | undefined;
+    public row: RowSrc | undefined;
     public origin: SafeHtml | undefined;
     public parsed: SafeHtml | undefined;
 
@@ -87,18 +87,20 @@ export class Details extends ChangesDetector implements AfterViewInit, OnDestroy
             this.parsed = undefined;
         } else {
             this.row = this.session.cursor.getSingle().row();
-            this.origin =
-                this.row !== undefined
-                    ? this.sanitizer.bypassSecurityTrustHtml(
-                          this.row.content
-                              .replace(/\u0006/gi, '<br>')
-                              .replace(/\t/gi, ' '.repeat(4)),
-                      )
-                    : undefined;
-            this.parsed =
-                this.row !== undefined && this.row.html !== undefined
-                    ? this.sanitizer.bypassSecurityTrustHtml(this.row.html)
-                    : undefined;
+            if (this.row === undefined) {
+                this.origin = undefined;
+                this.parsed = undefined;
+            } else {
+                this.origin = this.sanitizer.bypassSecurityTrustHtml(
+                    this.row.content.replace(/\u0006/gi, '<br>').replace(/\t/gi, ' '.repeat(4)),
+                );
+                const row = new Row(this.row);
+                this.parsed =
+                    row.html !== undefined
+                        ? this.sanitizer.bypassSecurityTrustHtml(row.html)
+                        : undefined;
+                row.destroy();
+            }
         }
         this.detectChanges();
     }

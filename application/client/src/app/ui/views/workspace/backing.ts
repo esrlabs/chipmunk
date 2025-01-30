@@ -1,7 +1,8 @@
 import { Session } from '@service/session';
 import { IRowsPacket, Service } from '@elements/scrollarea/controllers/service';
 import { Range } from '@platform/types/range';
-import { Row, Owner } from '@schema/content/row';
+import { Owner, RowSrc } from '@schema/content/row';
+import { Nature } from '@platform/types/content';
 
 const SCROLLAREA_SERVICE = 'workspace_scroll_area_service';
 
@@ -10,8 +11,8 @@ function getRows(session: Session, range: Range): Promise<IRowsPacket> {
         session.stream
             .chunk(range)
             .then((rows) => {
-                const converted = rows.map((row) => {
-                    return new Row({
+                const converted: RowSrc[] = rows.map((row) => {
+                    return {
                         position: row.pos,
                         content: row.content,
                         session,
@@ -20,8 +21,8 @@ function getRows(session: Session, range: Range): Promise<IRowsPacket> {
                             typeof row.source_id === 'string'
                                 ? parseInt(row.source_id, 10)
                                 : row.source_id,
-                        nature: row.nature,
-                    });
+                        nature: new Nature(row.nature),
+                    };
                 });
                 session.cursor.recent(converted);
                 resolve({

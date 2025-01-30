@@ -3,7 +3,6 @@ import {
     Input,
     AfterContentInit,
     ChangeDetectorRef,
-    NgZone,
     ChangeDetectionStrategy,
 } from '@angular/core';
 import { Session } from '@service/session';
@@ -29,7 +28,7 @@ export class ViewSearch extends ChangesDetector implements AfterContentInit {
     public columns: Columns | undefined;
     public nested!: boolean;
 
-    constructor(chRef: ChangeDetectorRef, private ngZone: NgZone) {
+    constructor(chRef: ChangeDetectorRef) {
         super(chRef);
     }
 
@@ -37,10 +36,8 @@ export class ViewSearch extends ChangesDetector implements AfterContentInit {
         this.nested = this.session.search.state().nested().visible();
         this.env().subscriber.register(
             this.session.search.state().subjects.nested.subscribe((visible: boolean) => {
-                this.ngZone.run(() => {
-                    this.nested = visible;
-                    this.detectChanges();
-                });
+                this.nested = visible;
+                this.detectChanges();
             }),
             this.ilc().services.system.hotkeys.listen('Ctrl + Shift + F', () => {
                 this.session.search.state().nested().toggle();

@@ -169,10 +169,6 @@ export class State {
             set: (filter: IFilter): Promise<number | undefined> => {
                 this._nested.filter = obj.clone(filter);
                 this._nested.from = -1;
-                setTimeout(() => {
-                    // Change highlighting in background
-                    this._session.highlights.subjects.get().update.emit();
-                });
                 return this.nested().next();
             },
             setFrom: (pos: number): void => {
@@ -199,10 +195,6 @@ export class State {
                 this._nested.filter = undefined;
                 this._nested.from = -1;
                 this.nested().update(undefined);
-                setTimeout(() => {
-                    // Change highlighting in background
-                    this._session.highlights.subjects.get().update.emit();
-                });
             },
             toggle: (): void => {
                 this._nested.visible = !this._nested.visible;
@@ -212,7 +204,10 @@ export class State {
                 }
             },
             update: (pos: number | undefined): void => {
-                this._session.highlights.subjects.get().update.emit();
+                setTimeout(() => {
+                    // Update highlights in background to let views to be updated first
+                    this._session.highlights.subjects.get().update.emit();
+                });
                 pos !== undefined &&
                     this._session.cursor.select(pos, Owner.NestedSearch, undefined, undefined);
             },

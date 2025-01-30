@@ -14,16 +14,30 @@ export enum Owner {
     NestedSearch = 'NestedSearch',
 }
 
-export interface RowInputs {
+export interface RowSrc {
     content: string;
     position: number;
     owner: Owner;
     source: number;
     session: Session;
-    nature: number;
+    nature: Nature;
 }
 
 const MAX_ROW_LENGTH_LIMIT = 10000;
+
+export interface IRow {
+    content: string;
+    position: number;
+    owner: Owner;
+    source: number;
+    cropped: boolean;
+    html: string;
+    color: string | undefined;
+    background: string | undefined;
+    columns: string[];
+    nature: Nature;
+    seporator: boolean;
+}
 
 export class Row extends Subscriber {
     static removeMarkerSymbols(str: string): string {
@@ -54,9 +68,11 @@ export class Row extends Subscriber {
 
     protected readonly delimiter: string | undefined;
 
-    constructor(inputs: RowInputs) {
+    private _hash: string = '';
+
+    constructor(inputs: RowSrc) {
         super();
-        this.nature = new Nature(inputs.nature);
+        this.nature = inputs.nature;
         this.session = inputs.session;
         this.cropped = inputs.content.length > MAX_ROW_LENGTH_LIMIT;
         this.content =
@@ -70,8 +86,7 @@ export class Row extends Subscriber {
         this.update();
         this.register(
             this.session.highlights.subjects.get().update.subscribe(() => {
-                this.update();
-                this.change.emit();
+                this.softUpdate();
             }),
         );
     }
@@ -81,23 +96,15 @@ export class Row extends Subscriber {
         this.unsubscribe();
     }
 
-    public from(row: Row) {
-        const contentUpdated =
-            this.content !== row.content ||
-            this.position !== row.position ||
-            this.session !== row.session;
-        this.content !== row.content && (this.content = row.content);
-        this.color !== row.color && (this.color = row.color);
-        this.background !== row.background && (this.background = row.background);
-        this.position !== row.position && (this.position = row.position);
-        this.owner !== row.owner && (this.owner = row.owner);
-        this.source !== row.source && (this.source = row.source);
-        this.session !== row.session && (this.session = row.session);
-        this.cropped !== row.cropped && (this.cropped = row.cropped);
-        this.nature !== row.nature && (this.nature = row.nature);
+    public from(inputs: RowSrc) {
+        this.content !== inputs.content && (this.content = inputs.content);
+        this.position !== inputs.position && (this.position = inputs.position);
+        this.owner !== inputs.owner && (this.owner = inputs.owner);
+        this.source !== inputs.source && (this.source = inputs.source);
+        this.session.uuid() !== inputs.session.uuid() && (this.session = inputs.session);
+        this.nature !== inputs.nature && (this.nature = inputs.nature);
         this.seporator = this.isSeporator();
-        contentUpdated && this.update();
-        this.change.emit();
+        this.softUpdate();
     }
 
     public as(): {
@@ -163,11 +170,32 @@ export class Row extends Subscriber {
         };
     }
 
+    public serialized(): RowSrc {
+        return {
+            content: this.content,
+            position: this.position,
+            owner: this.owner,
+            source: this.source,
+            nature: this.nature,
+            session: this.session,
+        };
+    }
+
     protected isSeporator(): boolean {
         if (this.owner !== Owner.Search) {
             return false;
         }
         return this.nature.seporator;
+    }
+
+    protected hash(): string {
+        if (this.delimiter === undefined) {
+            return `${this.color};${this.background};${this.html};${this.position};${this.seporator}`;
+        } else {
+            return `${this.color};${this.background};${this.columns.join(';')};${this.position};${
+                this.seporator
+            }`;
+        }
     }
 
     protected update() {
@@ -222,5 +250,12 @@ export class Row extends Subscriber {
             });
         }
         this.seporator = this.isSeporator();
+    }
+
+    protected softUpdate() {
+        const hash = this.hash();
+        this.update();
+        this._hash !== hash && this.change.emit();
+        this._hash = hash;
     }
 }
