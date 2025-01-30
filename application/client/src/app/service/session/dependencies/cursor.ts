@@ -1,7 +1,7 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
-import { Owner, Row } from '@schema/content/row';
+import { RowSrc, Owner, Row } from '@schema/content/row';
 import { IRange } from '@platform/types/range';
 
 export interface SelectEvent {
@@ -26,8 +26,8 @@ export class Cursor extends Subscriber {
     private _uuid!: string;
     private _last: {
         position: number | undefined;
-        row: Row | undefined;
-        recent: Row[];
+        row: RowSrc | undefined;
+        recent: RowSrc[];
     } = {
         position: undefined,
         row: undefined,
@@ -45,7 +45,7 @@ export class Cursor extends Subscriber {
         this.subjects.destroy();
     }
 
-    public recent(rows: Row[]) {
+    public recent(rows: RowSrc[]) {
         this._last.recent = rows;
         this.subjects.get().loaded.emit();
     }
@@ -98,7 +98,7 @@ export class Cursor extends Subscriber {
             this._selected = [position];
         }
         this._last.position = position;
-        this._last.row = row;
+        this._last.row = row !== undefined ? row.serialized() : undefined;
         this.subjects.get().selected.emit({
             row: position,
             initiator,
@@ -135,13 +135,13 @@ export class Cursor extends Subscriber {
 
     public getSingle(): {
         position(): number | undefined;
-        row(): Row | undefined;
+        row(): RowSrc | undefined;
     } {
         return {
             position: (): number | undefined => {
                 return this._selected.length === 1 ? this._last.position : undefined;
             },
-            row: (): Row | undefined => {
+            row: (): RowSrc | undefined => {
                 if (this._selected.length !== 1) {
                     return undefined;
                 }

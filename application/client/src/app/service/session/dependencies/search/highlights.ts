@@ -15,7 +15,7 @@ export class Highlights extends Subscriber {
     public readonly subjects: Subjects<{
         update: Subject<void>;
     }> = new Subjects({
-        update: new Subject(),
+        update: new Subject<void>(),
     });
 
     constructor() {

@@ -8,6 +8,7 @@ import {
     HostBinding,
     ChangeDetectionStrategy,
     SkipSelf,
+    OnDestroy,
 } from '@angular/core';
 import { Owner, Row } from '@schema/content/row';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -31,7 +32,10 @@ import * as dom from '@ui/env/dom';
     standalone: false,
 })
 @Ilc()
-export class RowComponent extends ChangesDetector implements AfterContentInit, AfterViewInit {
+export class RowComponent
+    extends ChangesDetector
+    implements AfterContentInit, AfterViewInit, OnDestroy
+{
     protected hash!: string;
 
     @Input() public row!: Row;
@@ -367,6 +371,10 @@ export class RowComponent extends ChangesDetector implements AfterContentInit, A
 
     constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, cdRef: ChangeDetectorRef) {
         super([selfCdRef, cdRef]);
+    }
+
+    public ngOnDestroy(): void {
+        this.row.destroy();
     }
 
     public ngAfterContentInit(): void {

@@ -26,6 +26,7 @@ export class Standard extends ChangesDetector implements AfterContentInit {
     @Input() public row!: Row;
 
     private _sanitizer: DomSanitizer;
+    private _hash: string = '';
 
     constructor(@SkipSelf() selfCdRef: ChangeDetectorRef, sanitizer: DomSanitizer) {
         super(selfCdRef);
@@ -37,20 +38,22 @@ export class Standard extends ChangesDetector implements AfterContentInit {
     @HostBinding('style.color') color = '';
     @HostBinding('innerHTML') html: SafeHtml | string = '';
 
-    public ngAfterContentInit() {
-        this.update();
-        this.env().subscriber.register(
-            this.row.change.subscribe(() => {
-                this.update();
-                this.detectChanges();
-            }),
-        );
-    }
-
     protected update() {
+        const hash = this.hash();
         this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
         this.background = this.row.background === undefined ? '' : this.row.background;
         this.color = this.row.color === undefined ? '' : this.row.color;
+        this._hash !== hash && this.detectChanges();
+        this._hash = hash;
+    }
+
+    protected hash(): string {
+        return `${this.html};${this.background};${this.color}`;
+    }
+
+    public ngAfterContentInit() {
+        this.update();
+        this.env().subscriber.register(this.row.change.subscribe(this.update.bind(this)));
     }
 }
 export interface Standard extends IlcInterface {}

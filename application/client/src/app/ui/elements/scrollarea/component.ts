@@ -13,7 +13,7 @@ import {
     EventEmitter,
 } from '@angular/core';
 import { Subscriber } from '@platform/env/subscription';
-import { Row } from '@schema/content/row';
+import { Row, RowSrc } from '@schema/content/row';
 import { Holder } from './controllers/holder';
 import { Service } from './controllers/service';
 import { Frame, ChangesInitiator } from './controllers/frame';
@@ -113,13 +113,13 @@ export class ScrollAreaComponent extends ChangesDetector implements OnDestroy, A
         this.selecting.bind(this._nodeHolder.nativeElement, this.frame, this.service);
         this.keyboard.bind(this.frame);
         this._subscriber.register(
-            this.frame.onFrameChange((rows: Row[]) => {
+            this.frame.onFrameChange((rows: RowSrc[]) => {
                 const exists = this.rows.length;
-                rows.forEach((updated: Row, i: number) => {
+                rows.forEach((updated: RowSrc, i: number) => {
                     if (i < exists) {
                         this.rows[i].from(updated);
                     } else {
-                        this.rows.push(updated);
+                        this.rows.push(new Row(updated));
                     }
                 });
                 if (rows.length < exists) {
