@@ -4,7 +4,7 @@ use anyhow::Context;
 use clap::Parser as _;
 use cli_args::InputSource;
 use parsers::dlt::DltParser;
-use session::format::{BinaryMessageWriter, MessegeTextWriter};
+use session::format::{binary::BinaryMessageWriter, text::MessageTextWriter};
 use sources::{
     binary::raw::BinaryByteSource,
     socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo},
@@ -17,7 +17,6 @@ pub async fn run_app() -> anyhow::Result<()> {
     let cli = cli_args::Cli::parse();
     cli.validate()?;
 
-    // TODO AAZ: Make sure we don't have storage header with connections.
     let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
     match cli.input {
         InputSource::Tcp {
@@ -46,7 +45,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                     session::socket::run_session(
                         parser,
                         source,
-                        cli.output,
+                        cli.output_path,
                         BinaryMessageWriter::default(),
                         state_rx,
                         update_interval,
@@ -57,8 +56,8 @@ pub async fn run_app() -> anyhow::Result<()> {
                     session::socket::run_session(
                         parser,
                         source,
-                        cli.output,
-                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
+                        cli.output_path,
+                        MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator),
                         state_rx,
                         update_interval,
                     )
@@ -77,7 +76,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                     session::socket::run_session(
                         parser,
                         source,
-                        cli.output,
+                        cli.output_path,
                         BinaryMessageWriter::default(),
                         state_rx,
                         temp_interval,
@@ -88,8 +87,8 @@ pub async fn run_app() -> anyhow::Result<()> {
                     session::socket::run_session(
                         parser,
                         source,
-                        cli.output,
-                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
+                        cli.output_path,
+                        MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator),
                         state_rx,
                         temp_interval,
                     )
@@ -107,7 +106,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                     session::file::run_session(
                         parser,
                         source,
-                        cli.output,
+                        cli.output_path,
                         BinaryMessageWriter::default(),
                     )
                     .await?;
@@ -116,8 +115,8 @@ pub async fn run_app() -> anyhow::Result<()> {
                     session::file::run_session(
                         parser,
                         source,
-                        cli.output,
-                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
+                        cli.output_path,
+                        MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator),
                     )
                     .await?;
                 }

@@ -2,7 +2,7 @@ use std::{fmt::Display, path::PathBuf};
 
 use clap::Subcommand;
 
-use crate::session::format::{TEXT_ARGS_SEPARATOR_DEFAULT, TEXT_COLUMS_SEPARATOR_DEFAULT};
+use crate::session::format::text::{TEXT_ARGS_SEPARATOR_DEFAULT, TEXT_COLUMNS_SEPARATOR_DEFAULT};
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{about}
@@ -17,8 +17,8 @@ version: {version}
 #[command(author, version, about, help_template = HELP_TEMPLATE)]
 pub struct Cli {
     /// Specify an path for the output file.
-    #[arg(short, long, required = true)]
-    pub output: PathBuf,
+    #[arg(short, long = "output", required = true)]
+    pub output_path: PathBuf,
     /// Specify the format of the output.
     #[arg(short = 'f', long, default_value_t = OutputFormat::Binary)]
     pub output_format: OutputFormat,
@@ -26,8 +26,8 @@ pub struct Cli {
     #[arg(short, long, value_enum, default_value_t = Parser::Dlt)]
     pub parser: Parser,
     /// Specify the separator between the columns of parsed data in text output format.
-    #[arg(long = "cols-sep", default_value_t = String::from(TEXT_COLUMS_SEPARATOR_DEFAULT))]
-    pub text_colmuns_separator: String,
+    #[arg(long = "cols-sep", default_value_t = String::from(TEXT_COLUMNS_SEPARATOR_DEFAULT))]
+    pub text_columns_separator: String,
     /// Specify the separator between the arguments of the payload columns in parsed data
     /// in text output format.
     #[arg(long = "args-sep", default_value_t = String::from(TEXT_ARGS_SEPARATOR_DEFAULT))]
