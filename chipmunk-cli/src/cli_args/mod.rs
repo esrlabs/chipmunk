@@ -45,8 +45,8 @@ pub enum InputSource {
         /// The address to bind the connection to.
         #[arg(index = 1)]
         address: String,
-        // Time interval (in milliseconds) to print current status.
-        #[arg(short, long = "interval-reconnect", default_value_t = 5000)]
+        /// Time interval (in milliseconds) to print current status.
+        #[arg(short, long = "update-interval", default_value_t = 5000)]
         update_interval: u64,
         /// Maximum number of reconnection attempts if the connection is lost.
         #[arg(short, long = "max-reconnect")]
