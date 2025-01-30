@@ -58,7 +58,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         parser,
                         source,
                         cli.output,
-                        MessegeTextWriter::default(),
+                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
                         state_rx,
                         update_interval,
                     )
@@ -89,7 +89,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         parser,
                         source,
                         cli.output,
-                        MessegeTextWriter::default(),
+                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
                         state_rx,
                         temp_interval,
                     )
@@ -117,7 +117,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         parser,
                         source,
                         cli.output,
-                        MessegeTextWriter::default(),
+                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
                     )
                     .await?;
                 }

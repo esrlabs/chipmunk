@@ -2,6 +2,8 @@ use std::{fmt::Display, path::PathBuf};
 
 use clap::Subcommand;
 
+use crate::session::format::{TEXT_ARGS_SEPARATOR_DEFAULT, TEXT_COLUMS_SEPARATOR_DEFAULT};
+
 const HELP_TEMPLATE: &str = "\
 {before-help}{about}
 version: {version}
@@ -21,8 +23,15 @@ pub struct Cli {
     #[arg(short = 'f', long, default_value_t = OutputFormat::Binary)]
     pub output_format: OutputFormat,
     /// Specify the parser type to use in parsing the incoming bytes.
-    #[arg(short, long, value_enum, default_value_t= Parser::Dlt)]
+    #[arg(short, long, value_enum, default_value_t = Parser::Dlt)]
     pub parser: Parser,
+    /// Specify the separator between the columns of parsed data in text output format.
+    #[arg(long = "cols-sep", default_value_t = String::from(TEXT_COLUMS_SEPARATOR_DEFAULT))]
+    pub text_colmuns_separator: String,
+    /// Specify the separator between the arguments of the payload columns in parsed data
+    /// in text output format.
+    #[arg(long = "args-sep", default_value_t = String::from(TEXT_ARGS_SEPARATOR_DEFAULT))]
+    pub text_args_separator: String,
     #[command(subcommand)]
     pub input: InputSource,
 }

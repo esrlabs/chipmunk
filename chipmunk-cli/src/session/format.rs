@@ -9,10 +9,10 @@ const CHIPMUNK_DLT_COLUMN_SENTINAL: char = '\u{0004}';
 const CHIPMUNK_DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
 
 // Separators to be used here in the CLI tool.
-const CLI_OUT_MAIN_SEPARATOR: &str = " ||| ";
-const CLI_OUT_ARG_SEPARATOR: &str = " &&& ";
+pub const TEXT_COLUMS_SEPARATOR_DEFAULT: &str = " ||| ";
+pub const TEXT_ARGS_SEPARATOR_DEFAULT: &str = " &&& ";
 
-const ERROR_MSG: &str = "Error while writing parsed message to buffer";
+const WRITE_ERROR_MSG: &str = "Error while writing parsed message to buffer";
 
 /// Format the message and then write it to the provided. [`std::io::Write`]
 pub trait MessageWriter {
@@ -29,10 +29,23 @@ pub trait MessageWriter {
 ///
 /// # Note:
 /// Struct currently have support for DLT-messages only.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct MessegeTextWriter {
     origin_msg_buffer: String,
     replaced_msg_buffer: String,
+    columns_separator: String,
+    argument_separator: String,
+}
+
+impl MessegeTextWriter {
+    pub fn new(columns_separator: String, argument_separator: String) -> Self {
+        Self {
+            origin_msg_buffer: String::new(),
+            replaced_msg_buffer: String::new(),
+            columns_separator,
+            argument_separator,
+        }
+    }
 }
 
 impl MessageWriter for MessegeTextWriter {
@@ -46,7 +59,7 @@ impl MessageWriter for MessegeTextWriter {
         self.origin_msg_buffer.clear();
         self.replaced_msg_buffer.clear();
 
-        write!(&mut self.origin_msg_buffer, "{msg}").context(ERROR_MSG)?;
+        write!(&mut self.origin_msg_buffer, "{msg}").context(WRITE_ERROR_MSG)?;
 
         let rep_buff = &mut self.replaced_msg_buffer;
 
@@ -56,15 +69,15 @@ impl MessageWriter for MessegeTextWriter {
             .enumerate()
         {
             if idx != 0 {
-                write!(rep_buff, "{CLI_OUT_MAIN_SEPARATOR}").context(ERROR_MSG)?;
+                write!(rep_buff, "{}", self.columns_separator).context(WRITE_ERROR_MSG)?;
             }
             for (jdx, argument) in main.split(CHIPMUNK_DLT_ARGUMENT_SENTINAL).enumerate() {
                 // TODO AAZ: Current solution in chipmunk puts empty arguments on some
                 // of the messages.
                 if jdx != 0 {
-                    write!(rep_buff, "{CLI_OUT_ARG_SEPARATOR}").context(ERROR_MSG)?;
+                    write!(rep_buff, "{}", self.argument_separator).context(WRITE_ERROR_MSG)?;
                 }
-                write!(rep_buff, "{argument}").context(ERROR_MSG)?;
+                write!(rep_buff, "{argument}").context(WRITE_ERROR_MSG)?;
             }
         }
 
