@@ -1,7 +1,6 @@
 use anyhow::Context;
 use futures::StreamExt;
 use std::{
-    fmt::Write,
     fs::File,
     io::{BufWriter, Write as _},
     path::PathBuf,
@@ -12,15 +11,13 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use parsers::{LogMessage, Parser};
 use sources::{producer::MessageProducer, socket::ReconnectStateMsg, ByteSource};
 
-use super::{
-    CHIPMUNK_DLT_ARGUMENT_SENTINAL, CHIPMUNK_DLT_COLUMN_SENTINAL, CLI_OUT_ARG_SEPARATOR,
-    CLI_OUT_MAIN_SEPARATOR, ERROR_MSG,
-};
+use super::format::MessageWriter;
 
-pub async fn run_session<T, P, D>(
+pub async fn run_session<T, P, D, W>(
     parser: P,
     bytesource: D,
     output: PathBuf,
+    mut msg_writer: W,
     mut state_rc: UnboundedReceiver<ReconnectStateMsg>,
     update_interval: Duration,
 ) -> anyhow::Result<()>
@@ -28,15 +25,13 @@ where
     T: LogMessage,
     P: Parser<T>,
     D: ByteSource,
+    W: MessageWriter,
 {
     let mut producer = MessageProducer::new(parser, bytesource, None);
     let stream = producer.as_stream();
     tokio::pin!(stream);
 
     let mut update_interval = tokio::time::interval(update_interval);
-
-    let mut origin_msg_buffer = String::new();
-    let mut replaced_msg_buffer = String::new();
 
     let file = File::create(output).context("Error while creating output file")?;
     let mut writer = BufWriter::new(file);
@@ -78,36 +73,15 @@ where
                                 }
                                 parsers::ParseYield::MessageAndAttachment((msg, _attachment)) => msg,
                             };
+                            msg_writer.write_msg(&mut writer, msg)?;
 
-                            origin_msg_buffer.clear();
-                            write!(&mut origin_msg_buffer, "{msg}").context(ERROR_MSG)?;
-
-                            replaced_msg_buffer.clear();
-                            let rep_buff = &mut replaced_msg_buffer;
-
-                            for (idx, main) in origin_msg_buffer
-                                .split(CHIPMUNK_DLT_COLUMN_SENTINAL)
-                                .enumerate()
-                            {
-                                if idx != 0 {
-                                    write!(rep_buff, "{CLI_OUT_MAIN_SEPARATOR}").context(ERROR_MSG)?;
-                                }
-                                for (jdx, argument) in
-                                    main.split(CHIPMUNK_DLT_ARGUMENT_SENTINAL).enumerate()
-                                {
-                                    // TODO AAZ: Current solution in chipmunk puts empty arguments on some
-                                    // of the messages.
-                                    if jdx != 0 {
-                                        write!(rep_buff, "{CLI_OUT_ARG_SEPARATOR}").context(ERROR_MSG)?;
-                                    }
-                                    write!(rep_buff, "{argument}").context(ERROR_MSG)?;
-                                }
-                            }
+                            //TODO AAZ: Check if there is a better solution than calling
+                            //flush on each line after implementing graceful shutdown.
+                            writer
+                                .flush()
+                                .context("Error while writing to output file")?;
 
                             msg_count += 1;
-
-                            writeln!(writer, "{replaced_msg_buffer}")
-                                .context("Error while writing to output file")?;
                         }
                         parsers::MessageStreamItem::Skipped
                         | parsers::MessageStreamItem::Incomplete
