@@ -17,6 +17,9 @@ pub struct Cli {
     /// Specify an path for the output file.
     #[arg(short, long, required = true)]
     pub output: PathBuf,
+    /// Specify the format of the output.
+    #[arg(short = 'f', long, default_value_t = OutputFormat::Binary)]
+    pub output_format: OutputFormat,
     /// Specify the parser type to use in parsing the incoming bytes.
     #[arg(short, long, value_enum, default_value_t= Parser::Dlt)]
     pub parser: Parser,
@@ -34,6 +37,23 @@ impl Display for Parser {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Parser::Dlt => write!(f, "Dlt"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+pub enum OutputFormat {
+    /// Output in binary format.
+    Binary,
+    /// Parsed output as text.
+    Text,
+}
+
+impl Display for OutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OutputFormat::Binary => write!(f, "binary"),
+            OutputFormat::Text => write!(f, "text"),
         }
     }
 }

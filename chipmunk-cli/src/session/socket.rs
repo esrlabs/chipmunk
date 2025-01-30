@@ -11,12 +11,13 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use parsers::{LogMessage, Parser};
 use sources::{producer::MessageProducer, socket::ReconnectStateMsg, ByteSource};
 
-use super::MessegeTextWriter;
+use super::format::MessageWriter;
 
-pub async fn run_session<T, P, D>(
+pub async fn run_session<T, P, D, W>(
     parser: P,
     bytesource: D,
     output: PathBuf,
+    mut msg_writer: W,
     mut state_rc: UnboundedReceiver<ReconnectStateMsg>,
     update_interval: Duration,
 ) -> anyhow::Result<()>
@@ -24,14 +25,13 @@ where
     T: LogMessage,
     P: Parser<T>,
     D: ByteSource,
+    W: MessageWriter,
 {
     let mut producer = MessageProducer::new(parser, bytesource, None);
     let stream = producer.as_stream();
     tokio::pin!(stream);
 
     let mut update_interval = tokio::time::interval(update_interval);
-
-    let mut text_writer = MessegeTextWriter::default();
 
     let file = File::create(output).context("Error while creating output file")?;
     let mut writer = BufWriter::new(file);
@@ -73,7 +73,7 @@ where
                                 }
                                 parsers::ParseYield::MessageAndAttachment((msg, _attachment)) => msg,
                             };
-                            text_writer.write_msg(&mut writer, msg)?;
+                            msg_writer.write_msg(&mut writer, msg)?;
 
                             //TODO AAZ: Check if there is a better solution than calling
                             //flush on each line after implementing graceful shutdown.

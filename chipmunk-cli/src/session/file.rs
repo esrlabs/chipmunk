@@ -5,19 +5,23 @@ use std::{fs::File, io::BufWriter, path::PathBuf};
 use parsers::{LogMessage, Parser};
 use sources::{producer::MessageProducer, ByteSource};
 
-use super::MessegeTextWriter;
+use super::format::MessageWriter;
 
-pub async fn run_session<T, P, D>(parser: P, bytesource: D, output: PathBuf) -> anyhow::Result<()>
+pub async fn run_session<T, P, D, W>(
+    parser: P,
+    bytesource: D,
+    output: PathBuf,
+    mut msg_writer: W,
+) -> anyhow::Result<()>
 where
     T: LogMessage,
     P: Parser<T>,
     D: ByteSource,
+    W: MessageWriter,
 {
     let mut producer = MessageProducer::new(parser, bytesource, None);
     let stream = producer.as_stream();
     tokio::pin!(stream);
-
-    let mut text_writer = MessegeTextWriter::default();
 
     let file = File::create(output).context("Error while creating output file")?;
     let mut writer = BufWriter::new(file);
@@ -36,7 +40,7 @@ where
                         }
                         parsers::ParseYield::MessageAndAttachment((msg, _attachment)) => msg,
                     };
-                    text_writer.write_msg(&mut writer, msg)?;
+                    msg_writer.write_msg(&mut writer, msg)?;
 
                     msg_count += 1;
                     if msg_count % 5000 == 0 {
