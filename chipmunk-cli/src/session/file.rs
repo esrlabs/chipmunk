@@ -27,6 +27,9 @@ where
     let mut writer = BufWriter::new(file);
 
     let mut msg_count = 0;
+    let mut skipped_count = 0;
+    let mut empty_count = 0;
+    let mut incomplete_count = 0;
 
     while let Some(items) = stream.next().await {
         for (_, item) in items {
@@ -44,17 +47,24 @@ where
 
                     msg_count += 1;
                     if msg_count % 5000 == 0 {
-                        println!("Parsing... {msg_count} message has been written to file sofar.");
+                        println!("Processing... {msg_count} messages have been written to file.");
                     }
                 }
-                parsers::MessageStreamItem::Skipped
-                | parsers::MessageStreamItem::Incomplete
-                | parsers::MessageStreamItem::Empty => {
-                    //TODO AAZ: Deal with none expected value.
-                    continue;
-                }
+                parsers::MessageStreamItem::Skipped => skipped_count += 1,
+                parsers::MessageStreamItem::Incomplete => incomplete_count += 1,
+                parsers::MessageStreamItem::Empty => empty_count += 1,
                 parsers::MessageStreamItem::Done => {
-                    println!("Parsing Done. {msg_count} has been written to file.");
+                    println!("Parsing Done. {msg_count} messages have been written to file.");
+                    if skipped_count > 0 {
+                        println!("* {skipped_count} messages skipped");
+                    }
+                    if empty_count > 0 {
+                        println!("* {empty_count} messages were empty");
+                    }
+                    if incomplete_count > 0 {
+                        println!("* {incomplete_count} messages were incomplete");
+                    }
+
                     return Ok(());
                 }
             }
