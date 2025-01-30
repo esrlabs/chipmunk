@@ -4,6 +4,7 @@ use anyhow::Context;
 use clap::Parser as _;
 use cli_args::InputSource;
 use parsers::dlt::DltParser;
+use session::format::{BinaryMessageWriter, MessegeTextWriter};
 use sources::{
     binary::raw::BinaryByteSource,
     socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo},
@@ -39,8 +40,31 @@ pub async fn run_app() -> anyhow::Result<()> {
                 .context("Initializing TCP connection failed")?;
 
             let parser = DltParser::new(None, None, None, None, false);
-            session::socket::run_session(parser, source, cli.output, state_rx, update_interval)
-                .await?;
+
+            match cli.output_format {
+                cli_args::OutputFormat::Binary => {
+                    session::socket::run_session(
+                        parser,
+                        source,
+                        cli.output,
+                        BinaryMessageWriter::default(),
+                        state_rx,
+                        update_interval,
+                    )
+                    .await?
+                }
+                cli_args::OutputFormat::Text => {
+                    session::socket::run_session(
+                        parser,
+                        source,
+                        cli.output,
+                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
+                        state_rx,
+                        update_interval,
+                    )
+                    .await?
+                }
+            }
         }
         InputSource::Udp { address } => {
             let source = UdpSource::new(address, Vec::new())
@@ -48,15 +72,56 @@ pub async fn run_app() -> anyhow::Result<()> {
                 .context("Initializing UDP connection failed")?;
             let parser = DltParser::new(None, None, None, None, false);
             let temp_interval = Duration::from_millis(1000);
-            session::socket::run_session(parser, source, cli.output, state_rx, temp_interval)
-                .await?;
+            match cli.output_format {
+                cli_args::OutputFormat::Binary => {
+                    session::socket::run_session(
+                        parser,
+                        source,
+                        cli.output,
+                        BinaryMessageWriter::default(),
+                        state_rx,
+                        temp_interval,
+                    )
+                    .await?
+                }
+                cli_args::OutputFormat::Text => {
+                    session::socket::run_session(
+                        parser,
+                        source,
+                        cli.output,
+                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
+                        state_rx,
+                        temp_interval,
+                    )
+                    .await?
+                }
+            }
         }
         InputSource::File { path } => {
             let file = File::open(&path).context("Opening input file failed")?;
             let reader = BufReader::new(&file);
             let source = BinaryByteSource::new(reader);
             let parser = DltParser::new(None, None, None, None, true);
-            session::file::run_session(parser, source, cli.output).await?;
+            match cli.output_format {
+                cli_args::OutputFormat::Binary => {
+                    session::file::run_session(
+                        parser,
+                        source,
+                        cli.output,
+                        BinaryMessageWriter::default(),
+                    )
+                    .await?;
+                }
+                cli_args::OutputFormat::Text => {
+                    session::file::run_session(
+                        parser,
+                        source,
+                        cli.output,
+                        MessegeTextWriter::new(cli.text_colmuns_separator, cli.text_args_separator),
+                    )
+                    .await?;
+                }
+            }
         }
     }
 
