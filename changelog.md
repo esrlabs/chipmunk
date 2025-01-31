@@ -1,3 +1,9 @@
+# 3.15.2 (31.01.2025)
+
+## Fixes
+
+- Fixed an issue related to hashing row's state
+
 # 3.15.1 (30.01.2025)
 
 ## Fixes
