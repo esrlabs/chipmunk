@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
 use sources::{producer::MessageProducer, socket::ReconnectStateMsg, ByteSource};
@@ -20,6 +21,7 @@ pub async fn run_session<T, P, D, W>(
     mut msg_writer: W,
     mut state_rc: UnboundedReceiver<ReconnectStateMsg>,
     update_interval: Duration,
+    cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
     T: LogMessage,
@@ -41,9 +43,14 @@ where
     let mut skipped_count = 0;
     let mut empty_count = 0;
     let mut incomplete_count = 0;
-
     loop {
         tokio::select! {
+            _ = cancel_token.cancelled() => {
+                writer.flush().context("Error writing data to file.")?;
+                super::write_summary(msg_count, skipped_count, empty_count, incomplete_count);
+
+                return Ok(());
+            }
             Some(msg) = state_rc.recv() => {
                 match msg {
                     ReconnectStateMsg::Reconnecting => {
@@ -78,11 +85,12 @@ where
                             };
                             msg_writer.write_msg(&mut writer, msg)?;
 
-                            //TODO AAZ: Check if there is a better solution than calling
-                            //flush on each line after implementing graceful shutdown.
-                            writer
-                                .flush()
-                                .context("Error while writing to output file")?;
+                            //TODO AAZ: Check if we still need to flush on each line even with
+                            //graceful shutdown.
+                            ////flush on each line after implementing graceful shutdown.
+                            //writer
+                            //    .flush()
+                            //    .context("Error while writing to output file")?;
 
                             msg_count += 1;
                         }
@@ -90,16 +98,9 @@ where
                         parsers::MessageStreamItem::Incomplete => incomplete_count += 1,
                         parsers::MessageStreamItem::Empty => empty_count += 1,
                         parsers::MessageStreamItem::Done => {
-                            println!("Parsing Done. {msg_count} messages has been written to file.");
-                            if skipped_count > 0 {
-                                println!("* {skipped_count} messages skipped");
-                            }
-                            if empty_count > 0 {
-                                println!("* {empty_count} messages were empty");
-                            }
-                            if incomplete_count > 0 {
-                                println!("* {incomplete_count} messages were incomplete");
-                            }
+                            println!("Parsing Done");
+                            super::write_summary(msg_count, skipped_count, empty_count, incomplete_count);
+
                             return Ok(());
                         }
                     }
