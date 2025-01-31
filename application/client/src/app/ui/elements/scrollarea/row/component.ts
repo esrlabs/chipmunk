@@ -458,7 +458,6 @@ export class RowComponent
             }.${this.source.color}`;
         };
         const prev = this.hash;
-        this.hash = hash();
         this.bookmarked = this.row.bookmark().is();
         if (this.row.session.stream.observe().descriptions.count() > 1) {
             this.source.color = getSourceColor(this.row.source);
@@ -480,6 +479,7 @@ export class RowComponent
         } else {
             this.attachment = undefined;
         }
+        this.hash = hash();
         if (prev !== this.hash) {
             this.detectChanges();
         }

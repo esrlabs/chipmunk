@@ -39,10 +39,10 @@ export class Standard extends ChangesDetector implements AfterContentInit {
     @HostBinding('innerHTML') html: SafeHtml | string = '';
 
     protected update() {
-        const hash = this.hash();
         this.html = this._sanitizer.bypassSecurityTrustHtml(this.row.html);
         this.background = this.row.background === undefined ? '' : this.row.background;
         this.color = this.row.color === undefined ? '' : this.row.color;
+        const hash = this.hash();
         this._hash !== hash && this.detectChanges();
         this._hash = hash;
     }

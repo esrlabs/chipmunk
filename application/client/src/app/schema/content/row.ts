@@ -253,8 +253,8 @@ export class Row extends Subscriber {
     }
 
     protected softUpdate() {
-        const hash = this.hash();
         this.update();
+        const hash = this.hash();
         this._hash !== hash && this.change.emit();
         this._hash = hash;
     }
