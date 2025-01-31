@@ -2,7 +2,7 @@ use crate::{
     socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
 use buf_redux::Buffer;
-use tokio::net::TcpStream;
+use tokio::{net::TcpStream, task::yield_now};
 
 use super::{ReconnectInfo, ReconnectResult, ReconnectToServer};
 
@@ -72,6 +72,17 @@ impl ReconnectToServer for TcpSource {
                 Err(err) => {
                     log::debug!("Got following error while trying to reconnect: {err}");
                     if attempts >= reconnect_info.max_attempts {
+                        if let Some(sender) = &reconnect_info.state_sender {
+                            if let Err(err) = sender.send(ReconnectStateMsg::StateMsg(format!(
+                                "Reconnecting to TCP server failed after {attempts} attemps."
+                            ))) {
+                                log::error!("Failed to send state msg with err: {err}");
+                            }
+                            // Make sure the message has been sent before returning.
+                            yield_now().await;
+                        }
+                        log::warn!("Reconnecting to TCP server failed after {attempts} attemps.");
+
                         return ReconnectResult::Error(err);
                     }
                 }
