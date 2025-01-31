@@ -23,14 +23,17 @@ pub async fn run_app() -> anyhow::Result<()> {
             address,
             update_interval,
             max_reconnect_count,
-            interval_reconnect,
+            reconnect_interval,
         } => {
-            let reconnect = max_reconnect_count.map(|max| {
-                ReconnectInfo::new(
-                    max,
-                    Duration::from_millis(interval_reconnect),
-                    Some(state_tx),
-                )
+            let reconnect = max_reconnect_count.and_then(|max| {
+                // provide reconnect infos when max count exists and bigger than zero.
+                (max > 0).then(|| {
+                    ReconnectInfo::new(
+                        max,
+                        Duration::from_millis(reconnect_interval),
+                        Some(state_tx),
+                    )
+                })
             });
 
             let update_interval = Duration::from_millis(update_interval);

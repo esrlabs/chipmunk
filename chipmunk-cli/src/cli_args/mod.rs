@@ -1,5 +1,6 @@
 use std::{fmt::Display, path::PathBuf};
 
+use anyhow::ensure;
 use clap::Subcommand;
 
 use crate::session::format::text::{TEXT_ARGS_SEPARATOR_DEFAULT, TEXT_COLUMNS_SEPARATOR_DEFAULT};
@@ -81,8 +82,8 @@ pub enum InputSource {
         #[arg(short, long = "max-reconnect")]
         max_reconnect_count: Option<usize>,
         /// Time interval (in milliseconds) between reconnection attempts.
-        #[arg(short, long = "interval-reconnect", default_value_t = 1000)]
-        interval_reconnect: u64,
+        #[arg(short, long = "reconnect-interval", default_value_t = 1000)]
+        reconnect_interval: u64,
     },
     /// Establish a UDP connection using the specified IP address as the input source.
     Udp {
@@ -100,7 +101,59 @@ pub enum InputSource {
 
 impl Cli {
     pub fn validate(&self) -> anyhow::Result<()> {
-        //TODO AAZ: Make sure we need validation here.
+        // We are using pattern matching here as reminder to check the validation on each change
+        // in the CLI arguments.
+        let Self {
+            output_path,
+            output_format,
+            parser,
+            text_columns_separator: _,
+            text_args_separator: _,
+            input,
+        } = self;
+
+        // Reminders to check validation on new output formats.
+        match output_format {
+            OutputFormat::Binary => {}
+            OutputFormat::Text => {}
+        };
+
+        // Reminders to check validation on new parsers.
+        match parser {
+            Parser::Dlt => {}
+        }
+
+        match input {
+            InputSource::Tcp {
+                address: _,
+                update_interval,
+                max_reconnect_count: _,
+                reconnect_interval: interval_reconnect,
+            } => {
+                const UPDATE_INTERVAL_MIN: u64 = 100;
+                ensure!(*update_interval >= UPDATE_INTERVAL_MIN, 
+                    "Update interval must be equal or bigger than {UPDATE_INTERVAL_MIN} milliseconds");
+
+                const INTERVAL_RECONNECT_MIN: u64 = 0;
+                ensure!(*interval_reconnect > INTERVAL_RECONNECT_MIN, 
+                "Reconnect interval must be bigger than {INTERVAL_RECONNECT_MIN} milliseconds");
+            }
+            InputSource::Udp { address: _ } => {}
+            InputSource::File { path } => {
+                ensure!(
+                    path.exists(),
+                    "Input file doesn't exit. Path: {}",
+                    path.display()
+                );
+            }
+        }
+
+        ensure!(
+            !output_path.exists(),
+            "Output file already exist. Path: {}",
+            output_path.display()
+        );
+
         Ok(())
     }
 }
