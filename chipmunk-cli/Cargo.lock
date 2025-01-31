@@ -246,6 +246,7 @@ dependencies = [
  "parsers",
  "sources",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

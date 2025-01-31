@@ -1,7 +1,8 @@
-use std::{fs::File, io::BufReader, time::Duration};
-
 use anyhow::Context;
 use clap::Parser as _;
+use std::{fs::File, io::BufReader, time::Duration};
+use tokio_util::sync::CancellationToken;
+
 use cli_args::InputSource;
 use parsers::dlt::DltParser;
 use session::format::{binary::BinaryMessageWriter, text::MessageTextWriter};
@@ -13,11 +14,12 @@ use sources::{
 mod cli_args;
 mod session;
 
-pub async fn run_app() -> anyhow::Result<()> {
+pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
     let cli = cli_args::Cli::parse();
     cli.validate()?;
 
     let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
+
     match cli.input {
         InputSource::Tcp {
             address,
@@ -52,6 +54,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         BinaryMessageWriter::default(),
                         state_rx,
                         update_interval,
+                        cancel_token,
                     )
                     .await?
                 }
@@ -63,6 +66,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator),
                         state_rx,
                         update_interval,
+                        cancel_token,
                     )
                     .await?
                 }
@@ -83,6 +87,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         BinaryMessageWriter::default(),
                         state_rx,
                         temp_interval,
+                        cancel_token,
                     )
                     .await?
                 }
@@ -94,6 +99,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator),
                         state_rx,
                         temp_interval,
+                        cancel_token,
                     )
                     .await?
                 }
@@ -111,6 +117,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         source,
                         cli.output_path,
                         BinaryMessageWriter::default(),
+                        cancel_token,
                     )
                     .await?;
                 }
@@ -120,6 +127,7 @@ pub async fn run_app() -> anyhow::Result<()> {
                         source,
                         cli.output_path,
                         MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator),
+                        cancel_token,
                     )
                     .await?;
                 }
