@@ -1,6 +1,9 @@
-use crate::{Error, LogMessage, ParseYield, Parser};
+use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
-use std::{fmt, io::Write, iter};
+use std::{fmt, io::Write};
+
+/// The most likely minimal bytes count needed to parse a text message.
+const MIN_MSG_LEN: usize = 1;
 
 pub struct StringTokenizer {}
 
@@ -23,19 +26,16 @@ impl LogMessage for StringMessage {
     }
 }
 
-impl Parser<StringMessage> for StringTokenizer
-where
-    StringMessage: LogMessage,
-{
-    fn parse(
+impl StringTokenizer {
+    fn parse_item(
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<StringMessage>>)>, Error> {
+    ) -> Result<(usize, Option<ParseYield<StringMessage>>), Error> {
         // TODO: support non-utf8 encodings
         use memchr::memchr;
         if input.is_empty() {
-            return Ok(iter::once((input.len(), None)));
+            return Ok((input.len(), None));
         }
         let item = if let Some(msg_size) = memchr(b'\n', input) {
             let content = String::from_utf8_lossy(&input[..msg_size]);
@@ -52,31 +52,70 @@ where
             )
         };
 
-        Ok(iter::once(item))
+        Ok(item)
     }
 }
 
-#[test]
-fn test_string_tokenizer() {
-    let mut parser = StringTokenizer {};
-    let content = b"hello\nworld\n";
-    let (consumed_1, first_msg) = parser.parse(content, None).unwrap().next().unwrap();
-    match first_msg {
-        Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
-        _ => panic!("First message did not match"),
+impl Parser<StringMessage> for StringTokenizer
+where
+    StringMessage: LogMessage,
+{
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<StringMessage>>)>, Error> {
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
     }
-    let rest_1 = &content[consumed_1..];
-    println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
-    let (consumed_2, second_msg) = parser.parse(rest_1, None).unwrap().next().unwrap();
-    match second_msg {
-        Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
-        _ => panic!("Second message did not match"),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn multiple_parse_calls() {
+        let mut parser = StringTokenizer {};
+        let content = b"hello\nworld\n";
+        let (consumed_1, first_msg) = parser.parse(content, None).unwrap().next().unwrap();
+        match first_msg {
+            Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
+            _ => panic!("First message did not match"),
+        }
+        let rest_1 = &content[consumed_1..];
+        println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
+        let (consumed_2, second_msg) = parser.parse(rest_1, None).unwrap().next().unwrap();
+        match second_msg {
+            Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
+            _ => panic!("Second message did not match"),
+        }
+        let rest_2 = &rest_1[consumed_2..];
+        let (consumed_3, third_msg) = parser.parse(rest_2, None).unwrap().next().unwrap();
+        println!(
+            "rest_3 = {:?}",
+            String::from_utf8_lossy(&rest_2[consumed_3..])
+        );
+        assert!(third_msg.is_none());
     }
-    let rest_2 = &rest_1[consumed_2..];
-    let (consumed_3, third_msg) = parser.parse(rest_2, None).unwrap().next().unwrap();
-    println!(
-        "rest_3 = {:?}",
-        String::from_utf8_lossy(&rest_2[consumed_3..])
-    );
-    assert!(third_msg.is_none());
+
+    #[test]
+    fn one_parse_call() {
+        let mut parser = StringTokenizer {};
+        let content = b"hello\nworld\n";
+        let mut items_iter = parser.parse(content, None).unwrap();
+
+        let (_consumed_1, first_msg) = items_iter.next().unwrap();
+        match first_msg {
+            Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
+            _ => panic!("First message did not match"),
+        }
+        let (_consumed_2, second_msg) = items_iter.next().unwrap();
+        match second_msg {
+            Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
+            _ => panic!("Second message did not match"),
+        }
+        assert!(items_iter.next().is_none());
+    }
 }

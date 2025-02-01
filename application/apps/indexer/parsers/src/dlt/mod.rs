@@ -2,8 +2,8 @@ pub mod attachment;
 pub mod fmt;
 
 use crate::{
-    dlt::fmt::FormattableMessage, someip::FibexMetadata as FibexSomeipMetadata, Error, LogMessage,
-    ParseYield, Parser,
+    dlt::fmt::FormattableMessage, parse_all, someip::FibexMetadata as FibexSomeipMetadata, Error,
+    LogMessage, ParseYield, Parser,
 };
 use byteorder::{BigEndian, WriteBytesExt};
 use dlt_core::{
@@ -16,9 +16,12 @@ pub use dlt_core::{
     filtering::{DltFilterConfig, ProcessedDltFilterConfig},
 };
 use serde::Serialize;
-use std::{io::Write, iter, ops::Range};
+use std::{io::Write, ops::Range};
 
 use self::{attachment::FtScanner, fmt::FormatOptions};
+
+/// The most likely minimal bytes count needed to parse a DLT message.
+const MIN_MSG_LEN: usize = 20;
 
 impl LogMessage for FormattableMessage<'_> {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
@@ -93,11 +96,47 @@ impl DltRawParser {
             with_storage_header,
         }
     }
+
+    fn parse_item(
+        &mut self,
+        input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<(usize, Option<ParseYield<RawMessage>>), Error> {
+        let (rest, consumed) = dlt_consume_msg(input)?;
+        let msg = consumed.map(|c| RawMessage {
+            content: Vec::from(&input[0..c as usize]),
+        });
+        let total_consumed = input.len() - rest.len();
+        let item = (total_consumed, msg.map(|m| m.into()));
+
+        Ok(item)
+    }
 }
 
 impl DltRangeParser {
     pub fn new() -> Self {
         Self { offset: 0 }
+    }
+
+    fn parse_item(
+        &mut self,
+        input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<(usize, Option<ParseYield<RangeMessage>>), Error> {
+        let (rest, consumed) = dlt_consume_msg(input)?;
+        let msg = consumed.map(|c| {
+            self.offset += c as usize;
+            RangeMessage {
+                range: Range {
+                    start: self.offset,
+                    end: self.offset + c as usize,
+                },
+            }
+        });
+        let total_consumed = input.len() - rest.len();
+        let item = (total_consumed, msg.map(|m| m.into()));
+
+        Ok(item)
     }
 }
 
@@ -119,31 +158,17 @@ impl<'m> DltParser<'m> {
             offset: 0,
         }
     }
-}
 
-impl From<DltParseError> for Error {
-    fn from(value: DltParseError) -> Self {
-        match value {
-            DltParseError::Unrecoverable(e) | DltParseError::ParsingHickup(e) => {
-                Error::Parse(e.to_string())
-            }
-            DltParseError::IncompleteParse { needed: _ } => Error::Incomplete,
-        }
-    }
-}
-
-impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
-    fn parse(
+    fn parse_item(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<FormattableMessage<'m>>>)>, Error>
-    {
+    ) -> Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)? {
             (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
                 let consumed = input.len() - rest.len();
                 self.offset += consumed;
-                Ok(iter::once((consumed, None)))
+                Ok((consumed, None))
             }
             (_, dlt_core::parse::ParsedMessage::Invalid) => {
                 Err(Error::Parse("Invalid parse".to_owned()))
@@ -173,9 +198,33 @@ impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
                     },
                 );
 
-                Ok(iter::once(item))
+                Ok(item)
             }
         }
+    }
+}
+
+impl From<DltParseError> for Error {
+    fn from(value: DltParseError) -> Self {
+        match value {
+            DltParseError::Unrecoverable(e) | DltParseError::ParsingHickup(e) => {
+                Error::Parse(e.to_string())
+            }
+            DltParseError::IncompleteParse { needed: _ } => Error::Incomplete,
+        }
+    }
+}
+
+impl<'m> Parser<FormattableMessage<'m>> for DltParser<'m> {
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<FormattableMessage<'m>>>)>, Error>
+    {
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
     }
 }
 
@@ -183,22 +232,11 @@ impl Parser<RangeMessage> for DltRangeParser {
     fn parse(
         &mut self,
         input: &[u8],
-        _timestamp: Option<u64>,
+        timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<RangeMessage>>)>, Error> {
-        let (rest, consumed) = dlt_consume_msg(input)?;
-        let msg = consumed.map(|c| {
-            self.offset += c as usize;
-            RangeMessage {
-                range: Range {
-                    start: self.offset,
-                    end: self.offset + c as usize,
-                },
-            }
-        });
-        let total_consumed = input.len() - rest.len();
-        let item = (total_consumed, msg.map(|m| m.into()));
-
-        Ok(iter::once(item))
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
     }
 }
 
@@ -206,15 +244,10 @@ impl Parser<RawMessage> for DltRawParser {
     fn parse(
         &mut self,
         input: &[u8],
-        _timestamp: Option<u64>,
+        timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<RawMessage>>)>, Error> {
-        let (rest, consumed) = dlt_consume_msg(input)?;
-        let msg = consumed.map(|c| RawMessage {
-            content: Vec::from(&input[0..c as usize]),
-        });
-        let total_consumed = input.len() - rest.len();
-        let item = (total_consumed, msg.map(|m| m.into()));
-
-        Ok(iter::once(item))
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
     }
 }

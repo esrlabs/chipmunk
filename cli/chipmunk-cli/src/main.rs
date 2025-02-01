@@ -1,3 +1,5 @@
+#![warn(unused_extern_crates)]
+
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
 
