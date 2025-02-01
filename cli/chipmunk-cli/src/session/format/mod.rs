@@ -9,9 +9,7 @@ pub mod text;
 /// the provided [`std::io::Write`].
 pub trait MessageFormatter {
     /// Format the message and then write it to the provided [`writer`]
-    fn write_msg(
-        &mut self,
-        writer: impl std::io::Write,
-        msg: impl LogMessage,
-    ) -> anyhow::Result<()>;
+    fn write_msg<M>(&mut self, writer: impl std::io::Write, msg: &M) -> anyhow::Result<()>
+    where
+        M: LogMessage;
 }

@@ -6,7 +6,6 @@ use super::mock_byte_source::*;
 use super::mock_parser::*;
 use super::*;
 
-use futures::{pin_mut, StreamExt};
 use parsers::{Error as ParseError, ParseYield};
 use tokio::sync::{mpsc::unbounded_channel, oneshot};
 
@@ -19,14 +18,11 @@ async fn empty_byte_source() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -37,16 +33,13 @@ async fn byte_source_fail() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -70,11 +63,8 @@ async fn parse_item_then_skip() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // First results should be one message with content
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -85,17 +75,17 @@ async fn parse_item_then_skip() {
     ));
 
     // Skipped message when Parser is returning None
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (5, MessageStreamItem::Skipped)));
 
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -126,11 +116,8 @@ async fn parse_incomplete() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // First message should be message with content
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -141,7 +128,7 @@ async fn parse_incomplete() {
     ));
 
     // Second message consumes all the remaining bytes.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -152,12 +139,12 @@ async fn parse_incomplete() {
     ));
 
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -174,11 +161,8 @@ async fn parse_incomplete_with_err_reload() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Stream should be closed directly if reload failed after parser returning Incomplete error
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -189,11 +173,8 @@ async fn parse_err_eof() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Stream should be closed directly if parse returns `Error::Eof`
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -218,11 +199,8 @@ async fn parsing_error_success_reload() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Message with content should be yielded consuming all the bytes.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -233,12 +211,12 @@ async fn parsing_error_success_reload() {
     ));
 
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -256,16 +234,13 @@ async fn parsing_error_then_fail_reload() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Done message should be sent with unused bytes.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (10, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -292,11 +267,8 @@ async fn parse_with_skipped_bytes() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Message with content 1 should be yielded considering skipped bytes
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -307,7 +279,7 @@ async fn parse_with_skipped_bytes() {
     ));
 
     // Skipped Message should be yielded considering skipped bytes
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -318,7 +290,7 @@ async fn parse_with_skipped_bytes() {
     ));
 
     // Consume the remaining bytes with successful parse.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -329,12 +301,12 @@ async fn parse_with_skipped_bytes() {
     ));
 
     // Done message should be sent.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -352,16 +324,13 @@ async fn parsing_error_then_fail_reload_with_skipped_bytes() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Done message should be sent with unused bytes, considering the skipped bytes.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (13, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -391,11 +360,8 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Message with content should be yielded considering the skipped bytes on both reload calls
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -406,7 +372,7 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
     ));
 
     // Message uses all available bytes.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -417,12 +383,12 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
     ));
 
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -456,9 +422,6 @@ async fn sde_communication() {
     let (tx_sde, rx_sde) = unbounded_channel();
     let mut producer = MessageProducer::new(parser, source, Some(rx_sde));
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Send message to sde receiver before calling next.
     let (tx_sde_response, mut rx_sde_response) = oneshot::channel();
     const SDE_TEXT: &str = "sde_msg";
@@ -471,7 +434,7 @@ async fn sde_communication() {
 
     // The first source seed has a delay and won't be picked in the `select!` macro in the producer
     // loop, and it will be dropped because `reload()` in `MockByteSource` isn't cancel safe.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],

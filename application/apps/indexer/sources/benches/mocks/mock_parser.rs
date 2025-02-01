@@ -184,13 +184,23 @@ impl Parser<MockMessage> for MockParser<IterMany> {
     > {
         self.counter += 1;
 
-        const REPEAT: usize = 10;
-        let mut res = Vec::with_capacity(black_box(REPEAT));
-        for _ in 0..black_box(REPEAT) {
-            let item = Self::inner_parse(self.counter, self.max_count, input, timestamp)?;
-            res.push(item)
+        if self.counter >= self.max_count {
+            const ERR: parsers::Error = parsers::Error::Eof;
+
+            return Err(black_box(ERR));
         }
 
-        Ok(res.into_iter())
+        const REPEAT: usize = 10;
+        let mut counter = 0;
+        let res = iter::from_fn(move || {
+            counter += 1;
+            if counter < black_box(REPEAT) {
+                Self::inner_parse(self.counter, self.max_count, input, timestamp).ok()
+            } else {
+                None
+            }
+        });
+
+        black_box(Ok(res))
     }
 }
