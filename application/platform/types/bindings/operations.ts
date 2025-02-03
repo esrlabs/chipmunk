@@ -4,25 +4,26 @@
  * Used to delivery results of extracting values. That's used in the scope
  * of chart feature
  */
-export type ExtractedMatchValue = { 
-/**
- * The index of log entry (row number)
- */
-index: number, 
-/**
- * List of matches:
- * `usize` - index of filter
- * `Vec<String>` - list of extracted values
- */
-values: Array<[number, Array<string>]>, };
+export type ExtractedMatchValue = {
+    /**
+     * The index of log entry (row number)
+     */
+    index: number;
+    /**
+     * List of matches:
+     * `usize` - index of filter
+     * `Vec<String>` - list of extracted values
+     */
+    values: Array<[number, Array<string>]>;
+};
 
-export type NearestPosition = { index: number, position: number, };
+export type NearestPosition = { index: number; position: number };
 
 /**
  *(row_number, min_value_in_range, max_value_in_range, value)
  * value - can be last value in range or some kind of average
  */
-export type Point = { row: number, min: number, max: number, y_value: number, };
+export type Point = { row: number; min: number; max: number; y_value: number };
 
 export type ResultBool = boolean;
 
@@ -43,6 +44,6 @@ export type ResultSearchValues = Map<number, Point[]>;
 /**
  * Used only for debug session lifecycle
  */
-export type ResultSleep = { sleep_well: boolean, };
+export type ResultSleep = { sleep_well: boolean };
 
 export type ResultU64 = number;
