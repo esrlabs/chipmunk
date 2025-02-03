@@ -91,21 +91,27 @@ export class ViewSearchNested
     public ngAfterViewInit(): void {
         this.input.bind(this.searchInputRef.nativeElement, this.recentPanelRef);
         this.input.actions.accept.subscribe(() => {
-            if (this.input.value.trim() !== '') {
-                const filter = this.input.asFilter();
-                this.recent.update(filter.filter);
-                this.session.search
-                    .state()
-                    .nested()
-                    .set(filter)
-                    .then((pos: number | undefined) => {
-                        if (pos === undefined) {
-                            return;
-                        }
-                    });
-            } else {
+            const value = this.input.value.trim();
+            if (value === '') {
                 this.drop();
+                return;
             }
+            const current = this.session.search.state().nested().get();
+            if (current !== undefined && current.filter === value) {
+                this.next();
+                return;
+            }
+            const filter = this.input.asFilter();
+            this.recent.update(filter.filter);
+            this.session.search
+                .state()
+                .nested()
+                .set(filter)
+                .then((pos: number | undefined) => {
+                    if (pos === undefined) {
+                        return;
+                    }
+                });
         });
         this.input.actions.drop.subscribe(() => {
             this.drop();
