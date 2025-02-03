@@ -38,7 +38,7 @@ Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to s
 
 ## Development CLI Tool
 
-We provide a CLI tool to assist with various development tasks. For more details, refer to the [Chipmunk Development CLI Tool](cli/README.md).
+We provide a CLI tool to assist with various development tasks. For more details, refer to the [Chipmunk Development CLI Tool](cli/development/README.md).
 
 ## Contributing
 See our [contribution](contribution.md) guide for details

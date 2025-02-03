@@ -94,7 +94,7 @@ fn bin_version() -> &'static str {
 /// Reads `cargo.toml` of build CLI tool in the local repo, returning the current version of
 /// the app from it.
 fn version_in_repo() -> anyhow::Result<String> {
-    let cargo_path = Target::Cli.cwd().join("Cargo.toml");
+    let cargo_path = Target::CliDev.cwd().join("Cargo.toml");
     ensure!(
         cargo_path.exists(),
         "Cargo file for build_cli doesn't exit. Path: {}",

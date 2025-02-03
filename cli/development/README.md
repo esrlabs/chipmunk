@@ -146,7 +146,7 @@ You can run benchmarks of the Rust Core part directly using the Build CLI tool. 
 
 The CLI tool simplifies running these benchmarks from anywhere in the Chipmunk repository. You can provide the input sources and configurations as CLI arguments, and the tool will handle setting the environment variables for the benchmarks. For more details, use the help command: `cargo chipmunk bench --help`.
 
-The registered benchmarks are loaded from `chipmunk/cli/config/bench_core.toml`. To add a new benchmark, please include it in this configuration file.
+The registered benchmarks are loaded from `chipmunk/cli/development/config/bench_core.toml`. To add a new benchmark, please include it in this configuration file.
 
 ## Shell Completion
 
@@ -180,7 +180,7 @@ Contributions in any part of Chipmunk are very welcome!
 
 After making any changes to this build CLI tool, please run the integration tests to ensure that all the provided commands in this tool are still working as expected. Additionally, consider adding new tests when introducing new features and commands.
 
-To run all the tests, execute the Python file `chipmunk/cli/integration_tests/run_all.py` from within the `chipmunk/cli` directory. For example:
+To run all the tests, execute the Python file `chipmunk/cli/development/integration_tests/run_all.py` from within the `chipmunk/cli/development` directory. For example:
 
 ```bash
 # Move to cli directory

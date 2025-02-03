@@ -6,6 +6,8 @@ use git2::Repository;
 
 use std::{env::current_dir, path::PathBuf, sync::OnceLock};
 
+use crate::target::Target;
+
 pub static LOCATION: OnceLock<Location> = OnceLock::new();
 
 #[derive(Clone, Debug)]
@@ -54,7 +56,7 @@ pub fn init_location() -> Result<(), Error> {
 
 /// Return the path for the configuration directory of the Build CLI Tool.
 pub fn config_path() -> PathBuf {
-    get_root().join("cli").join("config")
+    Target::CliDev.cwd().join("config")
 }
 
 /// Return the path for the home directory directory where logs and configuration are placed.
