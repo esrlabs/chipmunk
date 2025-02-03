@@ -3,7 +3,7 @@ use std::{fmt::Display, path::PathBuf};
 use anyhow::ensure;
 use clap::Subcommand;
 
-use crate::session::format::text::{TEXT_ARGS_SEPARATOR_DEFAULT, TEXT_COLUMNS_SEPARATOR_DEFAULT};
+use crate::session::format::text::{OUTPUT_ARGS_SEPARATOR_DEFAULT, OUTPUT_COLUMNS_SEPARATOR_DEFAULT};
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{about}
@@ -27,11 +27,11 @@ pub struct Cli {
     #[arg(short, long, value_enum, default_value_t = Parser::Dlt)]
     pub parser: Parser,
     /// Specify the separator between the columns of parsed data in text output format.
-    #[arg(long = "cols-sep", default_value_t = String::from(TEXT_COLUMNS_SEPARATOR_DEFAULT))]
+    #[arg(long = "cols-sep", default_value_t = String::from(OUTPUT_COLUMNS_SEPARATOR_DEFAULT))]
     pub text_columns_separator: String,
     /// Specify the separator between the arguments of the payload columns in parsed data
     /// in text output format.
-    #[arg(long = "args-sep", default_value_t = String::from(TEXT_ARGS_SEPARATOR_DEFAULT))]
+    #[arg(long = "args-sep", default_value_t = String::from(OUTPUT_ARGS_SEPARATOR_DEFAULT))]
     pub text_args_separator: String,
     #[command(subcommand)]
     pub input: InputSource,
