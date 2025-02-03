@@ -1,3 +1,14 @@
+# 3.15.3 (03.02.2025)
+
+## Fixes
+
+- Fixed an issue related to navigation in a nested search
+- Fixed an issue related to navigation in a major search
+
+## Changes
+
+- Bind "Enter" with the next result in a nested search
+
 # 3.15.2 (31.01.2025)
 
 ## Fixes
