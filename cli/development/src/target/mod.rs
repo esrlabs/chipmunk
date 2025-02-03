@@ -24,7 +24,7 @@ use target_kind::TargetKind;
 
 mod app;
 mod binding;
-mod cli;
+mod cli_dev;
 mod client;
 mod core;
 mod protocol;
@@ -60,8 +60,8 @@ pub enum Target {
     Updater,
     /// Represents the path `application/holder`
     App,
-    /// Represents the path `cli`
-    Cli,
+    /// Represents the path `cli/development`
+    CliDev,
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +119,7 @@ impl std::fmt::Display for Target {
                 Target::Wrapper => "Wrapper",
                 Target::Protocol => "Protocol",
                 Target::Binding => "Binding",
-                Target::Cli => "Cli",
+                Target::CliDev => "Cli-Dev",
                 Target::Client => "Client",
                 Target::Shared => "Shared",
                 Target::App => "App",
@@ -146,7 +146,7 @@ impl FromStr for Target {
                 T::Client => (),
                 T::Shared => (),
                 T::App => (),
-                T::Cli => (),
+                T::CliDev => (),
                 T::Wasm => (),
                 T::Updater => (),
             };
@@ -157,7 +157,7 @@ impl FromStr for Target {
             "Wrapper" => Ok(T::Wrapper),
             "Protocol" => Ok(T::Protocol),
             "Binding" => Ok(T::Binding),
-            "Cli" => Ok(T::Cli),
+            "Cli-Dev" => Ok(T::CliDev),
             "Client" => Ok(T::Client),
             "Shared" => Ok(T::Shared),
             "App" => Ok(T::App),
@@ -181,7 +181,7 @@ impl Target {
                 Target::Client => (),
                 Target::Shared => (),
                 Target::App => (),
-                Target::Cli => (),
+                Target::CliDev => (),
                 Target::Wasm => (),
                 Target::Updater => (),
             };
@@ -190,7 +190,7 @@ impl Target {
         [
             Target::Binding,
             Target::Protocol,
-            Target::Cli,
+            Target::CliDev,
             Target::App,
             Target::Core,
             Target::Wrapper,
@@ -220,7 +220,7 @@ impl Target {
             Target::Client => ["application", "client"].iter(),
             Target::Shared => ["application", "platform"].iter(),
             Target::App => ["application", "holder"].iter(),
-            Target::Cli => ["cli"].iter(),
+            Target::CliDev => ["cli", "development"].iter(),
             Target::Wasm => ["application", "apps", "rustcore", "wasm-bindings"].iter(),
             Target::Updater => ["application", "apps", "precompiled", "updater"].iter(),
         };
@@ -234,7 +234,7 @@ impl Target {
             Target::Protocol
             | Target::Binding
             | Target::Core
-            | Target::Cli
+            | Target::CliDev
             | Target::Wasm
             | Target::Updater => TargetKind::Rs,
             Target::Client | Target::Wrapper | Target::Shared | Target::App => TargetKind::Ts,
@@ -244,7 +244,7 @@ impl Target {
     /// Provides the targets which this target directly depend on
     pub fn direct_deps(self) -> Vec<Target> {
         match self {
-            Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
+            Target::Core | Target::CliDev | Target::Shared | Target::Wasm | Target::Updater => {
                 Vec::new()
             }
             Target::Protocol => vec![Target::Core],
@@ -286,7 +286,7 @@ impl Target {
                 Target::Core
                 | Target::Wrapper
                 | Target::Updater
-                | Target::Cli
+                | Target::CliDev
                 | Target::Protocol => false,
             },
 
@@ -297,11 +297,11 @@ impl Target {
                 | Target::Wrapper
                 | Target::Wasm
                 | Target::Updater
-                | Target::Cli
+                | Target::CliDev
                 | Target::Protocol => false,
             },
             JobType::Test { .. } => match self {
-                Target::Wrapper | Target::Core | Target::Cli | Target::Wasm => true,
+                Target::Wrapper | Target::Core | Target::CliDev | Target::Wasm => true,
                 Target::Shared
                 | Target::Binding
                 | Target::Client
@@ -381,7 +381,7 @@ impl Target {
     fn test_cmds(self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
             Target::Core => Some(core::get_test_cmds(production)),
-            Target::Cli => Some(cli::get_test_cmds(production)),
+            Target::CliDev => Some(cli_dev::get_test_cmds(production)),
             Target::Wasm => Some(wasm::get_test_cmds()),
             Target::Shared
             | Target::Binding
@@ -540,7 +540,7 @@ impl Target {
             | Target::Client
             | Target::Updater
             | Target::App
-            | Target::Cli => {}
+            | Target::CliDev => {}
         }
 
         for path in paths_to_remove.into_iter().filter(|p| p.exists()) {
@@ -628,7 +628,7 @@ impl Target {
             | Target::Wasm
             | Target::Updater
             | Target::Protocol
-            | Target::Cli => return None,
+            | Target::CliDev => return None,
         };
 
         match (after_res, reinstall_res) {
