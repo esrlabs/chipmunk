@@ -182,10 +182,10 @@ export class State {
                 }
             },
             prevPos: (): number => {
-                if (this._nested.from <= 0) {
+                if (this._nested.from < 0) {
                     return this._session.search.len() - 1;
                 } else {
-                    return this._nested.from - 1;
+                    return this._nested.from;
                 }
             },
             get: (): IFilter | undefined => {
