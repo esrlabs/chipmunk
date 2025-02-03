@@ -3,7 +3,9 @@ use std::{fmt::Display, path::PathBuf};
 use anyhow::ensure;
 use clap::Subcommand;
 
-use crate::session::format::text::{OUTPUT_ARGS_SEPARATOR_DEFAULT, OUTPUT_COLUMNS_SEPARATOR_DEFAULT};
+use crate::session::format::text::{
+    OUTPUT_ARGS_SEPARATOR_DEFAULT, OUTPUT_COLUMNS_SEPARATOR_DEFAULT,
+};
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{about}
@@ -26,9 +28,6 @@ pub struct Cli {
     /// Append to the end of output file if exists instead of returning an error.
     #[arg(short, long, default_value_t = false)]
     pub append_output: bool,
-    /// Specify the parser type to use in parsing the incoming bytes.
-    #[arg(short, long, value_enum, default_value_t = Parser::Dlt)]
-    pub parser: Parser,
     /// Specify the separator between the columns of parsed data in text output format.
     #[arg(long = "cols-sep", default_value_t = String::from(OUTPUT_COLUMNS_SEPARATOR_DEFAULT))]
     pub text_columns_separator: String,
@@ -36,20 +35,24 @@ pub struct Cli {
     /// in text output format.
     #[arg(long = "args-sep", default_value_t = String::from(OUTPUT_ARGS_SEPARATOR_DEFAULT))]
     pub text_args_separator: String,
+    /// Specify the parser type to use in parsing the incoming bytes.
     #[command(subcommand)]
-    pub input: InputSource,
+    pub parser: Parser,
 }
 
-#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+#[derive(Debug, Clone, Subcommand)]
 pub enum Parser {
-    /// Dlt Parser.
-    Dlt,
+    /// Establish a session using DLT parser.
+    Dlt {
+        #[command(subcommand)]
+        input: InputSource,
+    },
 }
 
 impl Display for Parser {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Parser::Dlt => write!(f, "Dlt"),
+            Parser::Dlt { .. } => write!(f, "Dlt"),
         }
     }
 }
@@ -110,23 +113,30 @@ impl Cli {
             output_path,
             output_format,
             append_output,
-            parser,
             text_columns_separator: _,
             text_args_separator: _,
-            input,
+            parser,
         } = self;
 
-        // Reminders to check validation on new output formats.
-        match output_format {
-            OutputFormat::Binary => {}
-            OutputFormat::Text => {}
-        };
+        Self::validate_output_format(output_format)?;
 
-        // Reminders to check validation on new parsers.
+        ensure!(
+            *append_output || !output_path.exists(),
+            "Output file already exist. Path: {}\n\
+             Note: You can append to the output file by enabling the `append-output` flag.",
+            output_path.display()
+        );
+
         match parser {
-            Parser::Dlt => {}
+            Parser::Dlt { input } => {
+                Self::validate_input_source(input)?;
+            },
         }
 
+        Ok(())
+    }
+
+    fn validate_input_source(input: &InputSource) -> anyhow::Result<()> {
         match input {
             InputSource::Tcp {
                 address: _,
@@ -151,13 +161,16 @@ impl Cli {
                 );
             }
         }
+        
+        Ok(())
+    }
 
-        ensure!(
-           *append_output || !output_path.exists() ,
-            "Output file already exist. Path: {}\n\
-             Note: You can append to the output file by enabling the `append-output` flag.",
-            output_path.display()
-        );
+    fn validate_output_format(output_format: &OutputFormat) -> anyhow::Result<()> {
+        // Reminder to check validation on new output formats.
+        match output_format {
+            OutputFormat::Binary => {}
+            OutputFormat::Text => {}
+        };
 
         Ok(())
     }
