@@ -122,7 +122,8 @@ export class Frame extends Subscriber {
         };
     }
     public offsetTo(offsetPx: number, initiator: ChangesInitiator) {
-        this._frame.offsetTo(Math.round(offsetPx / this._service.getItemHeight()), initiator);
+        const offset = Math.round(offsetPx / this._service.getItemHeight());
+        this._frame.offsetTo(offset === 0 ? 1 * (offsetPx < 0 ? -1 : 1) : offset, initiator);
     }
 
     public offsetToByRows(offsetRow: number, initiator: ChangesInitiator) {
