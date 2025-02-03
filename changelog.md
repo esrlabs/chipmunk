@@ -8,6 +8,7 @@
 ## Changes
 
 - Bind "Enter" with the next result in a nested search
+- Boost scrolling rate to better support touchpads
 
 # 3.15.2 (31.01.2025)
 
