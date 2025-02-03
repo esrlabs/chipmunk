@@ -15,5 +15,5 @@ pub fn get_test_cmds(production: bool) -> Vec<TestSpawnCommand> {
 
     let cmd = ProcessCommand::new(DevTool::Cargo.cmd(), args);
 
-    vec![TestSpawnCommand::new(cmd, Target::Cli.cwd(), None)]
+    vec![TestSpawnCommand::new(cmd, Target::CliDev.cwd(), None)]
 }
