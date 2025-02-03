@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use format::MessageWriter;
+use format::MessageFormatter;
 use tokio_util::sync::CancellationToken;
 
 use parsers::LogMessage;
@@ -27,22 +27,21 @@ mod socket;
 ///
 /// * `parser`: Parser instance to be used for parsing the bytes in the session.
 /// * `input_source`: The input source info for the session.
-/// * `msg_writer`: The formatter and writer for messages in the session.
+/// * `msg_formatter`: The formatter and writer for messages in the session.
 /// * `output_path`: The path for the output file path.
 /// * `cancel_token`: CancellationToken.
 pub async fn start_session<T, P, W>(
     parser: P,
     input_source: InputSource,
-    msg_writer: W,
+    msg_formatter: W,
     output_path: PathBuf,
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
     T: LogMessage,
     P: parsers::Parser<T>,
-    W: MessageWriter,
+    W: MessageFormatter,
 {
-    let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
     match input_source {
         InputSource::Tcp {
             address,
@@ -50,6 +49,7 @@ where
             max_reconnect_count,
             reconnect_interval,
         } => {
+            let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
             let reconnect = max_reconnect_count.and_then(|max| {
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
@@ -70,7 +70,7 @@ where
                 parser,
                 source,
                 output_path,
-                msg_writer,
+                msg_formatter,
                 state_rx,
                 update_interval,
                 cancel_token,
@@ -78,6 +78,9 @@ where
             .await?
         }
         InputSource::Udp { address } => {
+            // UDP connections inherently support auto-connecting by design.
+            let (_state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
+
             let source = UdpSource::new(address, Vec::new())
                 .await
                 .context("Initializing UDP connection failed")?;
@@ -88,7 +91,7 @@ where
                 parser,
                 source,
                 output_path,
-                msg_writer,
+                msg_formatter,
                 state_rx,
                 temp_interval,
                 cancel_token,
@@ -100,7 +103,7 @@ where
             let reader = BufReader::new(&file);
             let source = BinaryByteSource::new(reader);
 
-            file::run_session(parser, source, output_path, msg_writer, cancel_token).await?;
+            file::run_session(parser, source, output_path, msg_formatter, cancel_token).await?;
         }
     }
     Ok(())

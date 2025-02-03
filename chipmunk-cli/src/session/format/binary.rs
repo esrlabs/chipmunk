@@ -1,13 +1,15 @@
+//! Structures and methods to write parsed message in binary format.
+
 use anyhow::Context;
 use parsers::LogMessage;
 
-use super::MessageWriter;
+use super::MessageFormatter;
 
-/// Struct to format log messages and write them as binary into a file.
+/// Structure to write parsed message in binary format.
 #[derive(Debug, Clone, Default)]
-pub struct BinaryMessageWriter {}
+pub struct MsgBinaryFormatter {}
 
-impl MessageWriter for BinaryMessageWriter {
+impl MessageFormatter for MsgBinaryFormatter {
     fn write_msg(
         &mut self,
         mut writer: impl std::io::Write,

@@ -1,3 +1,5 @@
+//! Provides function to create and configure DLT parser.
+
 use std::path::PathBuf;
 
 use parsers::dlt::{FibexConfig, FibexDltMetadata};
