@@ -44,6 +44,9 @@ pub struct Cli {
 pub enum Parser {
     /// Establish a session using DLT parser.
     Dlt {
+        /// The paths for Fibex files associated with this parsing session.
+        #[arg(short, long)]
+        fibex_files: Vec<PathBuf>,
         #[command(subcommand)]
         input: InputSource,
     },
@@ -128,7 +131,12 @@ impl Cli {
         );
 
         match parser {
-            Parser::Dlt { input } => {
+            Parser::Dlt {fibex_files, input } => {
+                for fibex in fibex_files {
+                    ensure!(fibex.exists(), "Following fibex path doesn't exist. Path: {}", fibex.display());
+                    ensure!(fibex.is_file(), "Following fibex path is not a file. Path: {}", fibex.display());
+                }
+
                 Self::validate_input_source(input)?;
             },
         }

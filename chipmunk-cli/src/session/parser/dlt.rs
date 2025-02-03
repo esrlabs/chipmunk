@@ -1,8 +1,16 @@
-use parsers::dlt::DltParser;
+use std::path::PathBuf;
 
-/// Creates new [`DltParser`] instance with the given arguments.
-///
-/// * `with_header`: Sets if each input message should start with a header.
-pub fn create_parser<'a>(with_header: bool) -> DltParser<'a> {
-    DltParser::new(None, None, None, None, with_header)
+use parsers::dlt::{FibexConfig, FibexDltMetadata};
+
+/// Creates [`FibexDltMetadata`] instance from the provided paths for fibex files if any and if
+/// they are valid.
+// TODO: Change function signature to return error once `gather_fibex_data()` is `dlt-core` is
+// changed to return Result instead of Option.
+pub fn create_fibex_metadata(fibex_files: Vec<PathBuf>) -> Option<FibexDltMetadata> {
+    let fibex_file_paths = fibex_files
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect();
+
+    parsers::dlt::gather_fibex_data(FibexConfig { fibex_file_paths })
 }

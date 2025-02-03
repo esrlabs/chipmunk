@@ -15,13 +15,21 @@ pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
     cli.validate()?;
 
     match cli.parser {
-        cli_args::Parser::Dlt { input } => {
-            let with_headers = match &input {
+        cli_args::Parser::Dlt { fibex_files, input } => {
+            let with_storage_header = match &input {
                 cli_args::InputSource::Tcp { .. } | cli_args::InputSource::Udp { .. } => false,
                 cli_args::InputSource::File { .. } => true,
             };
 
-            let parser = session::parser::dlt::create_parser(with_headers);
+            let fibex_metadata = session::parser::dlt::create_fibex_metadata(fibex_files);
+
+            let parser = parsers::dlt::DltParser::new(
+                None,
+                fibex_metadata.as_ref(),
+                None,
+                None,
+                with_storage_header,
+            );
 
             match cli.output_format {
                 OutputFormat::Binary => {
