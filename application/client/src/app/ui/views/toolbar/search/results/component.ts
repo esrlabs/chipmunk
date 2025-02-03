@@ -7,6 +7,12 @@ import { Service } from '@elements/scrollarea/controllers/service';
 import { Columns } from '@schema/render/columns';
 import { getScrollAreaService, setScrollAreaService } from './backing';
 
+enum PendingScroll {
+    Prev,
+    Next,
+    Unset,
+}
+
 @Component({
     selector: 'app-views-search-results',
     templateUrl: './template.html',
@@ -23,9 +29,9 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     public columns: Columns | undefined;
 
     protected navigation: {
-        pending: number;
+        pending: PendingScroll;
     } = {
-        pending: -1,
+        pending: PendingScroll.Unset,
     };
 
     public ngOnDestroy(): void {
@@ -75,23 +81,22 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
             this.service.onBound(() => {
                 this.env().subscriber.register(
                     this.service.getFrame().onFrameChange(() => {
-                        if (this.navigation.pending === -1) {
+                        if (this.navigation.pending === PendingScroll.Unset) {
                             return;
                         }
-                        const frame = this.service.getFrame();
-                        const pending = frame
-                            .getRows()
-                            .find((r) => r.position === this.navigation.pending);
-                        if (pending === undefined) {
+                        const rows = this.service.getFrame().getRows();
+                        if (rows.length === 0) {
                             return;
                         }
-                        this.navigation.pending = -1;
                         this.session.cursor.select(
-                            pending.position,
+                            this.navigation.pending === PendingScroll.Next
+                                ? rows[rows.length - 1].position
+                                : rows[0].position,
                             Owner.Search,
                             undefined,
                             undefined,
                         );
+                        this.navigation.pending = PendingScroll.Unset;
                     }),
                     this.ilc().services.system.hotkeys.listen(']', () => {
                         if (this.session.search.state().nested().get() !== undefined) {
@@ -123,6 +128,7 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
     } {
         const frame = this.service.getFrame();
         const rows = frame.getRows();
+        const range = frame.get();
         const selected = (() => {
             if (this.session.indexed.len() === 0) {
                 return undefined;
@@ -152,25 +158,23 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     );
                     return;
                 }
-                if (selected === rows.length - 1) {
-                    const last = rows[rows.length - 1];
-                    if (last.position === this.service.getLen() - 1) {
-                        // Last match
-                        return;
-                    }
-                    const target = rows[1];
-                    if (target !== undefined) {
-                        this.navigation.pending = last.position + 1;
-                        this.service.scrollTo(target.position);
-                    }
+                if (
+                    range.start + 1 >= this.service.getLen() - 1 ||
+                    range.end >= this.service.getLen() - 1
+                ) {
                     return;
                 }
+                this.navigation.pending = PendingScroll.Next;
+                this.service.scrollTo(range.start + 1);
             },
             prev: (): void => {
                 if (selected === undefined) {
                     return;
                 }
-                if (selected > 0) {
+                if (rows[selected] === undefined) {
+                    return;
+                }
+                if (selected >= 1) {
                     this.session.cursor.select(
                         rows[selected - 1].position,
                         Owner.Search,
@@ -179,16 +183,11 @@ export class ViewSearchResults implements AfterContentInit, OnDestroy {
                     );
                     return;
                 }
-                if (selected === 0) {
-                    const first = rows[0];
-                    if (first.position === 0) {
-                        // First match
-                        return;
-                    }
-                    this.navigation.pending = first.position - 1;
-                    this.service.scrollTo(this.navigation.pending);
+                if (range.start === 0) {
                     return;
                 }
+                this.navigation.pending = PendingScroll.Prev;
+                this.service.scrollTo(range.start - 1);
             },
             top: (): void => {
                 this.service.getLen() > 0 && this.service.focus().get() && this.service.scrollTo(0);
