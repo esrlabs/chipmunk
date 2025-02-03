@@ -11,7 +11,7 @@ readme = "README.md"
 anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 tokio = { version = "1.43", features = ["full"] }
-parsers = {path = "../application/apps/indexer/parsers"}
-sources = {path = "../application/apps/indexer/sources"}
+parsers = {path = "../../application/apps/indexer/parsers"}
+sources = {path = "../../application/apps/indexer/sources"}
 futures = "0.3"
 tokio-util = "0.7"
