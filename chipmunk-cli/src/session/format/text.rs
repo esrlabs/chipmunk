@@ -67,9 +67,11 @@ impl MessageWriter for MessageTextWriter {
             if idx != 0 {
                 write!(rep_buff, "{}", self.columns_separator).context(WRITE_ERROR_MSG)?;
             }
-            for (jdx, argument) in main.split(INEXER_DLT_ARGUMENT_SENTINAL).enumerate() {
-                // TODO AAZ: Current solution in chipmunk puts empty arguments on some
-                // of the messages.
+            for (jdx, argument) in main
+                .split(INEXER_DLT_ARGUMENT_SENTINAL)
+                .filter(|e| !e.trim().is_empty())
+                .enumerate()
+            {
                 if jdx != 0 {
                     write!(rep_buff, "{}", self.argument_separator).context(WRITE_ERROR_MSG)?;
                 }

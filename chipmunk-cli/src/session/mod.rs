@@ -42,7 +42,6 @@ where
     P: parsers::Parser<T>,
     W: MessageWriter,
 {
-    let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
     match input_source {
         InputSource::Tcp {
             address,
@@ -50,6 +49,7 @@ where
             max_reconnect_count,
             reconnect_interval,
         } => {
+            let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
             let reconnect = max_reconnect_count.and_then(|max| {
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
@@ -78,6 +78,9 @@ where
             .await?
         }
         InputSource::Udp { address } => {
+            // UDP connections inherently support auto-connecting by design.
+            let (_state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
+
             let source = UdpSource::new(address, Vec::new())
                 .await
                 .context("Initializing UDP connection failed")?;
