@@ -34,11 +34,20 @@ where
 
     let mut file_writer = create_append_file_writer(&output)?;
 
+    // Flush the file writer every 500 milliseconds for users tailing the output
+    // file when messages are receive in relative slow frequency.
+    let mut flush_interval = tokio::time::interval(Duration::from_millis(500));
+
+    // Counters to keep track on the status of the session.
     let mut msg_count = 0;
     let mut reconnecting = false;
     let mut skipped_count = 0;
     let mut empty_count = 0;
     let mut incomplete_count = 0;
+
+    // Keep track how many message has been received since the last flush.
+    let mut msg_since_last_flush = 0;
+
     loop {
         tokio::select! {
             _ = cancel_token.cancelled() => {
@@ -62,6 +71,12 @@ where
                     },
                 }
             },
+            _ = flush_interval.tick() => {
+                if msg_since_last_flush > 0 {
+                    msg_since_last_flush = 0;
+                    file_writer.flush().context("Error while writing to output file")?;
+                }
+            }
             _ = update_interval.tick() => {
                 if !reconnecting {
                     println!("Processing... {msg_count} messages have been written to file.");
@@ -80,13 +95,7 @@ where
                                 parsers::ParseYield::MessageAndAttachment((msg, _attachment)) => msg,
                             };
                             msg_writer.write_msg(&mut file_writer, msg)?;
-
-                            //TODO AAZ: Check if we still need to flush on each line even with
-                            //graceful shutdown.
-                            ////flush on each line after implementing graceful shutdown.
-                            //writer
-                            //    .flush()
-                            //    .context("Error while writing to output file")?;
+                            msg_since_last_flush += 1;
 
                             msg_count += 1;
                         }
