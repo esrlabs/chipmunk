@@ -5,14 +5,17 @@ use parsers::LogMessage;
 
 use super::MessageWriter;
 
-//TODO AAZ: Temp solution to avoid changing code in chipmunk.
-// Separators values used in indexer in Chipmunk.
-const CHIPMUNK_DLT_COLUMN_SENTINAL: char = '\u{0004}';
-const CHIPMUNK_DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
+use parsers::dlt::fmt::{
+    DLT_ARGUMENT_SENTINAL as INEXER_DLT_ARGUMENT_SENTINAL,
+    DLT_COLUMN_SENTINAL as INEXER_DLT_COLUMN_SENTINAL,
+};
 
-// Separators to be used here in the CLI tool.
-pub const TEXT_COLUMNS_SEPARATOR_DEFAULT: &str = " ||| ";
-pub const TEXT_ARGS_SEPARATOR_DEFAULT: &str = " &&& ";
+/// The default separator to used between the columns in the output of this CLI tool.
+pub const OUTPUT_COLUMNS_SEPARATOR_DEFAULT: &str = " , ";
+
+/// The default separator to used between the arguments in the payload column in
+/// the output of this CLI tool.
+pub const OUTPUT_ARGS_SEPARATOR_DEFAULT: &str = " ; ";
 
 const WRITE_ERROR_MSG: &str = "Error while writing parsed message to buffer";
 
@@ -58,13 +61,13 @@ impl MessageWriter for MessageTextWriter {
 
         for (idx, main) in self
             .origin_msg_buffer
-            .split(CHIPMUNK_DLT_COLUMN_SENTINAL)
+            .split(INEXER_DLT_COLUMN_SENTINAL)
             .enumerate()
         {
             if idx != 0 {
                 write!(rep_buff, "{}", self.columns_separator).context(WRITE_ERROR_MSG)?;
             }
-            for (jdx, argument) in main.split(CHIPMUNK_DLT_ARGUMENT_SENTINAL).enumerate() {
+            for (jdx, argument) in main.split(INEXER_DLT_ARGUMENT_SENTINAL).enumerate() {
                 // TODO AAZ: Current solution in chipmunk puts empty arguments on some
                 // of the messages.
                 if jdx != 0 {

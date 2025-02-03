@@ -3,7 +3,7 @@ use std::{fmt::Display, path::PathBuf};
 use anyhow::ensure;
 use clap::Subcommand;
 
-use crate::session::format::text::{TEXT_ARGS_SEPARATOR_DEFAULT, TEXT_COLUMNS_SEPARATOR_DEFAULT};
+use crate::session::format::text::{OUTPUT_ARGS_SEPARATOR_DEFAULT, OUTPUT_COLUMNS_SEPARATOR_DEFAULT};
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{about}
@@ -23,15 +23,18 @@ pub struct Cli {
     /// Specify the format of the output.
     #[arg(short = 'f', long, default_value_t = OutputFormat::Binary)]
     pub output_format: OutputFormat,
+    /// Append to the end of output file if exists instead of returning an error.
+    #[arg(short, long, default_value_t = false)]
+    pub append_output: bool,
     /// Specify the parser type to use in parsing the incoming bytes.
     #[arg(short, long, value_enum, default_value_t = Parser::Dlt)]
     pub parser: Parser,
     /// Specify the separator between the columns of parsed data in text output format.
-    #[arg(long = "cols-sep", default_value_t = String::from(TEXT_COLUMNS_SEPARATOR_DEFAULT))]
+    #[arg(long = "cols-sep", default_value_t = String::from(OUTPUT_COLUMNS_SEPARATOR_DEFAULT))]
     pub text_columns_separator: String,
     /// Specify the separator between the arguments of the payload columns in parsed data
     /// in text output format.
-    #[arg(long = "args-sep", default_value_t = String::from(TEXT_ARGS_SEPARATOR_DEFAULT))]
+    #[arg(long = "args-sep", default_value_t = String::from(OUTPUT_ARGS_SEPARATOR_DEFAULT))]
     pub text_args_separator: String,
     #[command(subcommand)]
     pub input: InputSource,
@@ -106,6 +109,7 @@ impl Cli {
         let Self {
             output_path,
             output_format,
+            append_output,
             parser,
             text_columns_separator: _,
             text_args_separator: _,
@@ -149,8 +153,9 @@ impl Cli {
         }
 
         ensure!(
-            !output_path.exists(),
-            "Output file already exist. Path: {}",
+           *append_output || !output_path.exists() ,
+            "Output file already exist. Path: {}\n\
+             Note: You can append to the output file by enabling the `append-output` flag.",
             output_path.display()
         );
 

@@ -1,3 +1,11 @@
+use std::{
+    fs::{File, OpenOptions},
+    io::BufWriter,
+    path::Path,
+};
+
+use anyhow::Context;
+
 pub mod file;
 pub mod format;
 pub mod socket;
@@ -24,4 +32,16 @@ fn write_summary(
     if incomplete_count > 0 {
         println!("* {incomplete_count} messages were incomplete");
     }
+}
+
+/// Creates or append a file with the provided [`file_path`] returning its buffer writer.
+fn create_append_file_writer(file_path: &Path) -> anyhow::Result<BufWriter<File>> {
+    let file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(file_path)
+        .context("Error while creating output file")?;
+    let writer = BufWriter::new(file);
+
+    Ok(writer)
 }
