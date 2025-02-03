@@ -1,14 +1,110 @@
 use std::{
     fs::{File, OpenOptions},
-    io::BufWriter,
-    path::Path,
+    io::{BufReader, BufWriter},
+    path::{Path, PathBuf},
+    time::Duration,
 };
 
 use anyhow::Context;
+use format::MessageWriter;
+use tokio_util::sync::CancellationToken;
 
-pub mod file;
+use parsers::LogMessage;
+use sources::{
+    binary::raw::BinaryByteSource,
+    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo},
+};
+
+use crate::cli_args::InputSource;
+
+mod file;
 pub mod format;
-pub mod socket;
+pub mod parser;
+mod socket;
+
+/// Starts session with the given parser and the provided infos about input source
+/// and other session parameters.
+///
+/// * `parser`: Parser instance to be used for parsing the bytes in the session.
+/// * `input_source`: The input source info for the session.
+/// * `msg_writer`: The formatter and writer for messages in the session.
+/// * `output_path`: The path for the output file path.
+/// * `cancel_token`: CancellationToken.
+pub async fn start_session<T, P, W>(
+    parser: P,
+    input_source: InputSource,
+    msg_writer: W,
+    output_path: PathBuf,
+    cancel_token: CancellationToken,
+) -> anyhow::Result<()>
+where
+    T: LogMessage,
+    P: parsers::Parser<T>,
+    W: MessageWriter,
+{
+    let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
+    match input_source {
+        InputSource::Tcp {
+            address,
+            update_interval,
+            max_reconnect_count,
+            reconnect_interval,
+        } => {
+            let reconnect = max_reconnect_count.and_then(|max| {
+                // provide reconnect infos when max count exists and bigger than zero.
+                (max > 0).then(|| {
+                    ReconnectInfo::new(
+                        max,
+                        Duration::from_millis(reconnect_interval),
+                        Some(state_tx),
+                    )
+                })
+            });
+
+            let update_interval = Duration::from_millis(update_interval);
+            let source = TcpSource::new(address, reconnect)
+                .await
+                .context("Initializing TCP connection failed")?;
+
+            socket::run_session(
+                parser,
+                source,
+                output_path,
+                msg_writer,
+                state_rx,
+                update_interval,
+                cancel_token,
+            )
+            .await?
+        }
+        InputSource::Udp { address } => {
+            let source = UdpSource::new(address, Vec::new())
+                .await
+                .context("Initializing UDP connection failed")?;
+
+            let temp_interval = Duration::from_millis(1000);
+
+            socket::run_session(
+                parser,
+                source,
+                output_path,
+                msg_writer,
+                state_rx,
+                temp_interval,
+                cancel_token,
+            )
+            .await?
+        }
+        InputSource::File { path } => {
+            let file = File::open(&path).context("Opening input file failed")?;
+            let reader = BufReader::new(&file);
+            let source = BinaryByteSource::new(reader);
+
+            file::run_session(parser, source, output_path, msg_writer, cancel_token).await?;
+        }
+    }
+    Ok(())
+}
 
 /// Writes summary of the process session.
 fn write_summary(
