@@ -1,3 +1,5 @@
+//! Provide the types and the definitions for the command line arguments.
+
 use std::{fmt::Display, path::PathBuf};
 
 use anyhow::ensure;
@@ -19,32 +21,31 @@ version: {version}
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, help_template = HELP_TEMPLATE)]
 pub struct Cli {
-    /// Specify an path for the output file.
+    /// Specify the path for the output file.
     #[arg(short, long = "output", required = true)]
     pub output_path: PathBuf,
     /// Specify the format of the output.
     #[arg(short = 'f', long, default_value_t = OutputFormat::Binary)]
     pub output_format: OutputFormat,
-    /// Append to the end of output file if exists instead of returning an error.
+    /// Appends to the output file if it exists, rather than returning an error.
     #[arg(short, long, default_value_t = false)]
     pub append_output: bool,
-    /// Specify the separator between the columns of parsed data in text output format.
+    /// Sets the column separator for parsed data in text output.
     #[arg(long = "cols-sep", default_value_t = String::from(OUTPUT_COLUMNS_SEPARATOR_DEFAULT))]
     pub text_columns_separator: String,
-    /// Specify the separator between the arguments of the payload columns in parsed data
-    /// in text output format.
+    /// Sets the argument separator for payload column in text output.
     #[arg(long = "args-sep", default_value_t = String::from(OUTPUT_ARGS_SEPARATOR_DEFAULT))]
     pub text_args_separator: String,
-    /// Specify the parser type to use in parsing the incoming bytes.
+    /// Specifies the parser to use for incoming bytes.
     #[command(subcommand)]
     pub parser: Parser,
 }
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Parser {
-    /// Establish a session using DLT parser.
+    /// Establishes a DLT session using the configured parser.
     Dlt {
-        /// The paths for Fibex files associated with this parsing session.
+        /// The paths to the FIBEX files used for this parsing session.
         #[arg(short, long)]
         fibex_files: Vec<PathBuf>,
         #[command(subcommand)]

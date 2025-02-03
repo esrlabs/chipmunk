@@ -1,14 +1,18 @@
+//! Structures and methods to write parsed message in text format.
+
 use std::fmt::Write as _;
 
 use anyhow::Context;
-use parsers::LogMessage;
 
-use super::MessageWriter;
-
-use parsers::dlt::fmt::{
-    DLT_ARGUMENT_SENTINAL as INEXER_DLT_ARGUMENT_SENTINAL,
-    DLT_COLUMN_SENTINAL as INEXER_DLT_COLUMN_SENTINAL,
+use parsers::{
+    dlt::fmt::{
+        DLT_ARGUMENT_SENTINAL as INEXER_DLT_ARGUMENT_SENTINAL,
+        DLT_COLUMN_SENTINAL as INEXER_DLT_COLUMN_SENTINAL,
+    },
+    LogMessage,
 };
+
+use super::MessageFormatter;
 
 /// The default separator to used between the columns in the output of this CLI tool.
 pub const OUTPUT_COLUMNS_SEPARATOR_DEFAULT: &str = " , ";
@@ -26,14 +30,14 @@ const WRITE_ERROR_MSG: &str = "Error while writing parsed message to buffer";
 /// # Note:
 /// Struct currently have support for DLT-messages only.
 #[derive(Debug, Clone)]
-pub struct MessageTextWriter {
+pub struct MsgTextFormatter {
     origin_msg_buffer: String,
     replaced_msg_buffer: String,
     columns_separator: String,
     argument_separator: String,
 }
 
-impl MessageTextWriter {
+impl MsgTextFormatter {
     pub fn new(columns_separator: String, argument_separator: String) -> Self {
         Self {
             origin_msg_buffer: String::new(),
@@ -44,7 +48,7 @@ impl MessageTextWriter {
     }
 }
 
-impl MessageWriter for MessageTextWriter {
+impl MessageFormatter for MsgTextFormatter {
     /// Format the given message by running the original formatting in chipmunk and then
     /// replace the special separator from chipmunk with the configured ones in the CLI tool.
     fn write_msg(
@@ -67,9 +71,11 @@ impl MessageWriter for MessageTextWriter {
             if idx != 0 {
                 write!(rep_buff, "{}", self.columns_separator).context(WRITE_ERROR_MSG)?;
             }
-            for (jdx, argument) in main.split(INEXER_DLT_ARGUMENT_SENTINAL).enumerate() {
-                // TODO AAZ: Current solution in chipmunk puts empty arguments on some
-                // of the messages.
+            for (jdx, argument) in main
+                .split(INEXER_DLT_ARGUMENT_SENTINAL)
+                .filter(|e| !e.trim().is_empty())
+                .enumerate()
+            {
                 if jdx != 0 {
                     write!(rep_buff, "{}", self.argument_separator).context(WRITE_ERROR_MSG)?;
                 }
