@@ -1,16 +1,13 @@
 use anyhow::Context;
 use futures::StreamExt;
-use std::{
-    fs::File,
-    io::{BufWriter, Write as _},
-    path::PathBuf,
-    time::Duration,
-};
+use std::{io::Write as _, path::PathBuf, time::Duration};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
 use sources::{producer::MessageProducer, socket::ReconnectStateMsg, ByteSource};
+
+use crate::session::create_append_file_writer;
 
 use super::format::MessageWriter;
 
@@ -35,8 +32,7 @@ where
 
     let mut update_interval = tokio::time::interval(update_interval);
 
-    let file = File::create(output).context("Error while creating output file")?;
-    let mut writer = BufWriter::new(file);
+    let mut file_writer = create_append_file_writer(&output)?;
 
     let mut msg_count = 0;
     let mut reconnecting = false;
@@ -46,7 +42,7 @@ where
     loop {
         tokio::select! {
             _ = cancel_token.cancelled() => {
-                writer.flush().context("Error writing data to file.")?;
+                file_writer.flush().context("Error writing data to file.")?;
                 super::write_summary(msg_count, skipped_count, empty_count, incomplete_count);
 
                 return Ok(());
@@ -83,7 +79,7 @@ where
                                 }
                                 parsers::ParseYield::MessageAndAttachment((msg, _attachment)) => msg,
                             };
-                            msg_writer.write_msg(&mut writer, msg)?;
+                            msg_writer.write_msg(&mut file_writer, msg)?;
 
                             //TODO AAZ: Check if we still need to flush on each line even with
                             //graceful shutdown.
