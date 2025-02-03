@@ -10,6 +10,7 @@ async fn main() -> anyhow::Result<()> {
     // Listen on cancel events on a separate task.
     tokio::spawn(cancel_listener(cancel_token.clone()));
 
+    // Run main app on the current task.
     run_app(cancel_token).await
 }
 

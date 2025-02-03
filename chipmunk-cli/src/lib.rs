@@ -3,19 +3,22 @@ use cli_args::OutputFormat;
 use tokio_util::sync::CancellationToken;
 
 use session::{
-    format::{binary::BinaryMessageWriter, text::MessageTextWriter},
+    format::{binary::MsgBinaryFormatter, text::MsgTextFormatter},
     start_session,
 };
 
 mod cli_args;
 mod session;
 
+/// Runs the app parsing and validating the arguments, then starting the matching
+/// session keeping track to cancel calls provided by [`cancel_token`].
 pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
     let cli = cli_args::Cli::parse();
     cli.validate()?;
 
     match cli.parser {
         cli_args::Parser::Dlt { fibex_files, input } => {
+            // Create DLT parser.
             let with_storage_header = match &input {
                 cli_args::InputSource::Tcp { .. } | cli_args::InputSource::Udp { .. } => false,
                 cli_args::InputSource::File { .. } => true,
@@ -31,17 +34,26 @@ pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
                 with_storage_header,
             );
 
+            // Move to next part initializing the input source and starting the session.
             match cli.output_format {
                 OutputFormat::Binary => {
-                    let msg_writer = BinaryMessageWriter::default();
+                    let binary_formatter = MsgBinaryFormatter::default();
 
-                    start_session(parser, input, msg_writer, cli.output_path, cancel_token).await?;
+                    start_session(
+                        parser,
+                        input,
+                        binary_formatter,
+                        cli.output_path,
+                        cancel_token,
+                    )
+                    .await?;
                 }
                 OutputFormat::Text => {
-                    let msg_writer =
-                        MessageTextWriter::new(cli.text_columns_separator, cli.text_args_separator);
+                    let text_formatter =
+                        MsgTextFormatter::new(cli.text_columns_separator, cli.text_args_separator);
 
-                    start_session(parser, input, msg_writer, cli.output_path, cancel_token).await?;
+                    start_session(parser, input, text_formatter, cli.output_path, cancel_token)
+                        .await?;
                 }
             };
         }
