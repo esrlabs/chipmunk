@@ -60,7 +60,7 @@ pub enum Target {
     App,
     /// Represents the path `cli/development`
     CliDev,
-    /// Represents the path `cli/chipmunk`
+    /// Represents the path `cli/chipmunk-cli`
     CliChipmunk,
 }
 
@@ -226,7 +226,7 @@ impl Target {
             Target::Shared => ["application", "platform"].iter(),
             Target::App => ["application", "holder"].iter(),
             Target::CliDev => ["cli", "development"].iter(),
-            Target::CliChipmunk => ["cli", "chipmunk"].iter(),
+            Target::CliChipmunk => ["cli", "chipmunk-cli"].iter(),
             Target::Wasm => ["application", "apps", "rustcore", "wasm-bindings"].iter(),
             Target::Updater => ["application", "apps", "precompiled", "updater"].iter(),
         };

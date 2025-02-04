@@ -38,7 +38,7 @@ Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to s
 
 ## Chipmunk CLI Tool
 
-We provide a command-line tool to facilitate data parsing from multiple input sources and with support for various parser formats. For more details, refer to the [Chipmunk CLI Tool](cli/chipmunk/README.md).
+We provide a command-line tool to facilitate data parsing from multiple input sources and with support for various parser formats. For more details, refer to the [Chipmunk CLI Tool](cli/chipmunk-cli/README.md).
 
 ## Development CLI Tool
 

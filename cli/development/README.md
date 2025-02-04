@@ -76,7 +76,7 @@ Arguments:
           - updater:      Represents the path `application/apps/precompiled/updater`
           - app:          Represents the path `application/holder`
           - cli-dev:      Represents the path `cli/development`
-          - cli-chipmunk: Represents the path `cli/chipmunk`
+          - cli-chipmunk: Represents the path `cli/chipmunk-cli`
 
 Options:
   -p, --production
