@@ -1,6 +1,6 @@
 [package]
 name = "cargo-chipmunk"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2021"
 description = "CLI Tool for chipmunk application development"
