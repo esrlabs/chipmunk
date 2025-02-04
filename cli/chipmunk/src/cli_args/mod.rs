@@ -132,14 +132,22 @@ impl Cli {
         );
 
         match parser {
-            Parser::Dlt {fibex_files, input } => {
+            Parser::Dlt { fibex_files, input } => {
                 for fibex in fibex_files {
-                    ensure!(fibex.exists(), "Following fibex path doesn't exist. Path: {}", fibex.display());
-                    ensure!(fibex.is_file(), "Following fibex path is not a file. Path: {}", fibex.display());
+                    ensure!(
+                        fibex.exists(),
+                        "Following fibex path doesn't exist. Path: {}",
+                        fibex.display()
+                    );
+                    ensure!(
+                        fibex.is_file(),
+                        "Following fibex path is not a file. Path: {}",
+                        fibex.display()
+                    );
                 }
 
                 Self::validate_input_source(input)?;
-            },
+            }
         }
 
         Ok(())
@@ -154,12 +162,14 @@ impl Cli {
                 reconnect_interval: interval_reconnect,
             } => {
                 const UPDATE_INTERVAL_MIN: u64 = 100;
-                ensure!(*update_interval >= UPDATE_INTERVAL_MIN, 
+                ensure!(*update_interval >= UPDATE_INTERVAL_MIN,
                     "Update interval must be equal or bigger than {UPDATE_INTERVAL_MIN} milliseconds");
 
                 const INTERVAL_RECONNECT_MIN: u64 = 0;
-                ensure!(*interval_reconnect > INTERVAL_RECONNECT_MIN, 
-                "Reconnect interval must be bigger than {INTERVAL_RECONNECT_MIN} milliseconds");
+                ensure!(
+                    *interval_reconnect > INTERVAL_RECONNECT_MIN,
+                    "Reconnect interval must be bigger than {INTERVAL_RECONNECT_MIN} milliseconds"
+                );
             }
             InputSource::Udp { address: _ } => {}
             InputSource::File { path } => {
@@ -170,7 +180,7 @@ impl Cli {
                 );
             }
         }
-        
+
         Ok(())
     }
 
@@ -182,5 +192,17 @@ impl Cli {
         };
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ensure the CLI configurations are valid.
+    #[test]
+    fn verify_cli() {
+        use clap::CommandFactory;
+        Cli::command().debug_assert();
     }
 }
