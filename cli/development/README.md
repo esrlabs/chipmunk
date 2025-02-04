@@ -66,15 +66,17 @@ Arguments:
           Target to build, by default whole application will be built
 
           Possible values:
-          - core:    Represents the path `application/apps/indexer`
-          - shared:  Represents the path `application/platform`
-          - binding: Represents the path `application/apps/rustcore/rs-bindings`
-          - wrapper: Represents the path `application/apps/rustcore/ts-bindings`
-          - wasm:    Represents the path `application/apps/rustcore/wasm-bindings`
-          - client:  Represents the path `application/client`
-          - updater: Represents the path `application/apps/precompiled/updater`
-          - app:     Represents the path `application/holder`
-          - cli:     Represents the path `cli`
+          - core:         Represents the path `application/apps/indexer`
+          - shared:       Represents the path `application/platform`
+          - protocol:     Represents the path `application/apps/protocol`
+          - binding:      Represents the path `application/apps/rustcore/rs-bindings`
+          - wrapper:      Represents the path `application/apps/rustcore/ts-bindings`
+          - wasm:         Represents the path `application/apps/rustcore/wasm-bindings`
+          - client:       Represents the path `application/client`
+          - updater:      Represents the path `application/apps/precompiled/updater`
+          - app:          Represents the path `application/holder`
+          - cli-dev:      Represents the path `cli/development`
+          - cli-chipmunk: Represents the path `cli/chipmunk`
 
 Options:
   -p, --production
@@ -190,5 +192,5 @@ python ./integration_tests/run_all.py
 ```
 Please be aware that these tests will run on your local copy of Chipmunk. This process will rebuild the project and run all linting and tests on the entire solution.
 
-For more details, please see our [contribution guid](../contribution.md)
+For more details, please see our [contribution guid](../../contribution.md)
 

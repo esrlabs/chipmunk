@@ -144,7 +144,9 @@ fn is_job_involved(
                         .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
-                Target::CliDev | Target::Updater => matches!(current_job, JobType::Lint),
+                Target::CliDev | Target::Updater | Target::CliChipmunk => {
+                    matches!(current_job, JobType::Lint)
+                }
                 // TS and Bindings targets need to be built with all their dependencies to perform the
                 // needed type checks on TypeScript
                 Target::Shared
@@ -178,7 +180,9 @@ fn is_job_involved(
                         .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
-                Target::CliDev | Target::Updater => matches!(current_job, JobType::Test { .. }),
+                Target::CliDev | Target::Updater | Target::CliChipmunk => {
+                    matches!(current_job, JobType::Test { .. })
+                }
 
                 // TS and Bindings targets need to be built with all their dependencies to perform the
                 // needed tests on TypeScript targets.
