@@ -7,7 +7,7 @@ ENV['REPO_OWNER'] = 'esrlabs'
 ENV['REPO_NAME'] = 'chipmunk'
 
 COMMANDS = [
-  'cargo install --path=cli/development',
+  'cargo install --path=cli/development-cli',
   'cargo chipmunk test wrapper -p -s spec/build/spec/_session.benchmark.spec.js -u print'
 ]
 
@@ -76,7 +76,7 @@ end
 def clone_and_setup_repo(branch_or_tag_name, temp_dir)
   system("git clone --depth 1 --branch #{branch_or_tag_name} https://github.com/#{ENV['REPO_OWNER']}/#{ENV['REPO_NAME']}.git #{temp_dir}")
   FileUtils.cp_r("#{SHELL_SCRIPT_PATH}/.", "#{temp_dir}/#{SHELL_SCRIPT_PATH}/.", verbose: true)
-  FileUtils.cp_r("cli/development", "#{temp_dir}/", verbose: true)
+  FileUtils.cp_r("cli/development-cli", "#{temp_dir}/", verbose: true)
 end
 
 def process_release_or_pr(branch_or_tag_name, identifier, env_vars)

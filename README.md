@@ -42,7 +42,7 @@ We provide a command-line tool to facilitate data parsing from multiple input so
 
 ## Development CLI Tool
 
-We provide a CLI tool to assist with various development tasks. For more details, refer to the [Chipmunk Development CLI Tool](cli/development/README.md).
+We provide a CLI tool to assist with various development tasks. For more details, refer to the [Chipmunk Development CLI Tool](cli/development-cli/README.md).
 
 ## Contributing
 See our [contribution](contribution.md) guide for details
