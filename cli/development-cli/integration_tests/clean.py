@@ -63,7 +63,7 @@ PATHS_TO_CHECK = [
     "application/holder/dist",
     "application/holder/node_modules",
     # Chipmunk CLI
-    "cli/chipmunk/target",
+    "cli/chipmunk-cli/target",
 ]
 
 
