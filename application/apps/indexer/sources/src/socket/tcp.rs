@@ -193,16 +193,16 @@ mod tests {
                 sleep(Duration::from_millis(100)).await;
             }
         });
-        let mut udp_source = TcpSource::new(SERVER, None).await?;
+        let mut tcp_source = TcpSource::new(SERVER, None).await?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
-                udp_source.load(None).await.expect("reload failed");
+                tcp_source.load(None).await.expect("reload failed");
                 println!(
                     "receive: {:02X?}",
-                    std::str::from_utf8(udp_source.current_slice())
+                    std::str::from_utf8(tcp_source.current_slice())
                 );
-                assert_eq!(udp_source.current_slice(), msg.as_bytes());
-                udp_source.consume(msg.len());
+                assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                tcp_source.consume(msg.len());
             }
         });
 
