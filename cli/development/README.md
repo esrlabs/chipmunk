@@ -14,12 +14,12 @@ Before installing the Chipmunk CLI tool, ensure that Rust is installed on your s
 
 - **Install Rust:** Visit [rustup.rs](https://rustup.rs/) and follow the instructions to install Rust.
 
-### Install Chipmunk CLI
+### Install Chipmunk Development CLI
 
-Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk CLI tool:
+Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk Development CLI tool:
 
 ```bash
-cargo install --path cli
+cargo install --path cli/development
 ```
 
 This command installs this tool as a cargo extension, allowing you to use `cargo chipmunk <COMMAND> <ARGS>` to execute various development tasks for Chipmunk.
