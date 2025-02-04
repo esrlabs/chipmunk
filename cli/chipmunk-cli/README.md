@@ -43,7 +43,7 @@ Before installing the Chipmunk CLI tool, ensure that Rust is installed on your s
 Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk CLI tool:
 
 ```bash
-cargo install --path cli/chipmunk
+cargo install --path cli/chipmunk-cli
 ```
 This command installs the tool `chipmunk-cli`, allowing you to use `chipmunk-cli <ARGS> <COMMAND>` to execute parsing tasks using multiple parsers and input sources.
 
@@ -140,21 +140,7 @@ Chipmunk can establish a connection with a **TCP server**, receive data from it,
 Reconnection is enabled **only** when the `--max-reconnect` option is specified. If not set, the session will terminate as soon as the connection to the server is lost.
 
 ```shell
-$ chipmunk-cli dlt --help
-Establishes a DLT session using the configured parser
-
-Usage: chipmunk-cli --output <OUTPUT_PATH> dlt [OPTIONS] <COMMAND>
-
-Commands:
-  tcp   Establish a TCP connection using the specified IP address as the input source
-  udp   Establish a UDP connection using the specified IP address as the input source
-  file  Read input from a file at the specified path
-  help  Print this message or the help of the given subcommand(s)
-
-Options:
-  -f, --fibex-files <FIBEX_FILES>  The paths to the FIBEX files used for this parsing session
-  -h, --help                       Print help
-~/r/chipmunk_one $ chipmunk-cli dlt tcp --help
+$ chipmunk-cli dlt tcp --help
 Establish a TCP connection using the specified IP address as the input source
 
 Usage: chipmunk-cli dlt tcp [OPTIONS] <ADDRESS>

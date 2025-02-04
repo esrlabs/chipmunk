@@ -87,7 +87,7 @@ APP_PATHS_FOR_BUILD_CHECK = [
     "application/holder/dist",
     "application/holder/node_modules",
     # Chipmunk CLI
-    "cli/development/target",
+    "cli/chipmunk-cli/target",
 ]
 
 # The name of the file where the states of the latest build are saved.
