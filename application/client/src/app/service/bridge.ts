@@ -297,7 +297,7 @@ export class Service extends Implementation {
             },
             select: {
                 any: (): Promise<File[]> => {
-                    return request(undefined, `dlt,pcapng,txt,log,logs`);
+                    return request(undefined);
                 },
                 dlt: (): Promise<File[]> => {
                     return request(FileType.Binary, 'dlt');
