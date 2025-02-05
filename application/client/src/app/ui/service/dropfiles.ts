@@ -12,8 +12,8 @@ export class Service extends Implementation {
         if (!this.enabled) {
             return true;
         }
-        stop(event);
         const files: string[] = this.getFiles(event);
+        stop(event);
         if (files.length === 0) {
             this.log().warn(`No files dropped.`);
             return false;
@@ -50,14 +50,11 @@ export class Service extends Implementation {
         if (event.dataTransfer === null || event.dataTransfer === undefined) {
             return [];
         }
-        const path = (entity: unknown): string => {
-            return typeof (entity as { [key: string]: string })['path'] === 'string'
-                ? (entity as { [key: string]: string })['path']
-                : (entity as { [key: string]: string })['name'];
-        };
         const files = (() => {
             if (event.dataTransfer.files) {
-                return Array.from(event.dataTransfer.files).map((f) => path(f));
+                return Array.from(event.dataTransfer.files).map((f) =>
+                    window.electron.webUtils.getPathForFile(f),
+                );
             } else if (event.dataTransfer.items) {
                 return (
                     Array.from(event.dataTransfer.items)
@@ -69,7 +66,7 @@ export class Service extends Implementation {
                             }
                         })
                         .filter((f) => f !== undefined) as File[]
-                ).map((f) => path(f));
+                ).map((f) => window.electron.webUtils.getPathForFile(f));
             } else {
                 return [];
             }
@@ -83,6 +80,7 @@ export class Service extends Implementation {
         document.addEventListener('dragover', this.stop);
         document.addEventListener('dragleave', this.stop);
         document.addEventListener('drop', this.drop);
+        console.log(`>>>>>>>>>>>>>>>>>>>>>> INITED`);
         return Promise.resolve();
     }
 
@@ -90,6 +88,7 @@ export class Service extends Implementation {
         document.removeEventListener('dragover', this.stop);
         document.removeEventListener('dragleave', this.stop);
         document.removeEventListener('drop', this.drop);
+        console.log(`>>>>>>>>>>>>>>>>>>>>>> DESTROYED`);
         return Promise.resolve();
     }
 
