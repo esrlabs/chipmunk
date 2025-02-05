@@ -2,8 +2,8 @@
 
 use anyhow::Context;
 use futures::StreamExt;
-use std::{io::Write as _, path::PathBuf, time::Duration};
-use tokio::sync::mpsc::UnboundedReceiver;
+use std::{io::Write as _, ops::Deref, path::PathBuf, time::Duration};
+use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
@@ -28,7 +28,7 @@ pub async fn run_session<T, P, D, W>(
     bytesource: D,
     output_path: PathBuf,
     mut msg_formatter: W,
-    mut state_rc: UnboundedReceiver<ReconnectStateMsg>,
+    mut state_rc: watch::Receiver<ReconnectStateMsg>,
     update_interval: Duration,
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
@@ -68,18 +68,27 @@ where
 
                 return Ok(());
             }
-            Some(msg) = state_rc.recv() => {
-                match msg {
-                    ReconnectStateMsg::Reconnecting => {
+            Ok(_) = state_rc.changed() => {
+                let msg = state_rc.borrow_and_update();
+                match msg.deref() {
+                    ReconnectStateMsg::Reconnecting { attempts } => {
                         reconnecting = true;
-                        println!("Connection to server lost. Trying to reconnect...");
+                        if *attempts == 0 {
+                            println!("Connection to server lost. Trying to reconnect...");
+                        }else {
+                            println!("Reconnecting to TCP server. Attempt: {attempts}");
+                        }
                     },
                     ReconnectStateMsg::Connected => {
                         reconnecting = false;
                         println!("Connected to server");
                     },
-                    ReconnectStateMsg::StateMsg(msg) => {
-                        println!("Reconnecting status: {msg}");
+                    ReconnectStateMsg::Failed{ attempts, err_msg } => {
+                        let mut msg = format!("Reconnecting to TCP server failed after {attempts} attempts.");
+                        if let Some(err_msg) = err_msg {
+                            msg = format!("{msg} Error: {err_msg}");
+                        }
+                        println!("{msg}");
                     },
                 }
             },

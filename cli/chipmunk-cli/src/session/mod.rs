@@ -12,7 +12,7 @@ use tokio_util::sync::CancellationToken;
 use parsers::LogMessage;
 use sources::{
     binary::raw::BinaryByteSource,
-    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo},
+    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo, ReconnectStateMsg},
 };
 
 use crate::cli_args::InputSource;
@@ -49,7 +49,8 @@ where
             max_reconnect_count,
             reconnect_interval,
         } => {
-            let (state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
+            let (state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
+
             let reconnect = max_reconnect_count.and_then(|max| {
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
@@ -79,7 +80,7 @@ where
         }
         InputSource::Udp { address } => {
             // UDP connections inherently support auto-connecting by design.
-            let (_state_tx, state_rx) = tokio::sync::mpsc::unbounded_channel();
+            let (_state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
 
             let source = UdpSource::new(address, Vec::new())
                 .await

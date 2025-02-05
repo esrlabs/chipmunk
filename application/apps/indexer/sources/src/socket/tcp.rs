@@ -40,20 +40,17 @@ impl ReconnectToServer for TcpSource {
         };
 
         if let Some(sender) = &reconnect_info.state_sender {
-            if let Err(err) = sender.send(ReconnectStateMsg::Reconnecting) {
-                log::error!("Failed to send reconnnecting state with err: {err}");
-            }
+            sender.send_replace(ReconnectStateMsg::Reconnecting { attempts: 0 });
+            // Give receivers a chance to get the initial reconnecting state before sending
+            // the first attempt update.
+            yield_now().await;
         }
 
         let mut attempts = 0;
         loop {
             attempts += 1;
             if let Some(sender) = &reconnect_info.state_sender {
-                if let Err(err) = sender.send(ReconnectStateMsg::StateMsg(format!(
-                    "Reconnecting to TCP server. Attempt: {attempts}"
-                ))) {
-                    log::error!("Failed to send state msg with err: {err}");
-                }
+                sender.send_replace(ReconnectStateMsg::Reconnecting { attempts });
             }
             log::info!("Reconnecting to TCP server. Attempt: {attempts}");
             tokio::time::sleep(reconnect_info.internval).await;
@@ -73,11 +70,10 @@ impl ReconnectToServer for TcpSource {
                     log::debug!("Got following error while trying to reconnect: {err}");
                     if attempts >= reconnect_info.max_attempts {
                         if let Some(sender) = &reconnect_info.state_sender {
-                            if let Err(err) = sender.send(ReconnectStateMsg::StateMsg(format!(
-                                "Reconnecting to TCP server failed after {attempts} attemps."
-                            ))) {
-                                log::error!("Failed to send state msg with err: {err}");
-                            }
+                            sender.send_replace(ReconnectStateMsg::Failed {
+                                attempts,
+                                err_msg: Some(err.to_string()),
+                            });
                             // Make sure the message has been sent before returning.
                             yield_now().await;
                         }
