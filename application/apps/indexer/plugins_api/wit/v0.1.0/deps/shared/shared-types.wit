@@ -70,19 +70,19 @@ interface shared-types {
 
   /// Defines the possible input types for configuration schemas.
   variant config-schema-type {
-    /// Represents boolean type.
-    boolean,
-    /// Represents numerical integer type.
-    integer,
-    /// Represents numerical floating type.
-    float,
-    /// Represents a text type.
-    text,
+    /// Represents boolean type with the default value.
+    boolean(bool),
+    /// Represents numerical integer type with the default value.
+    integer(s32),
+    /// Represents numerical floating type with the default value.
+    float(f32),
+    /// Represents a text type with the default value.
+    text(string),
     /// Represents a list of directories.
     directories,
     /// Represents a list of types with the given allowed file extensions (Empty to allow all).
     files(list<string>),
-    /// Represents Drop-down input type with a list of selectable options.
-    dropdown(list<string>)
+    /// Represents Drop-down input type with a list of selectable options and the default value.
+    dropdown(tuple<list<string>, string>)
   }
 }

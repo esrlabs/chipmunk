@@ -29,18 +29,19 @@ impl Parser for DltParser {
                 STORAGE_HEADER_ID,
                 "With storage header",
                 None,
-                ConfigSchemaType::Boolean,
+                ConfigSchemaType::Boolean(true),
             ),
             ConfigSchemaItem::new(
                 LOG_LEVEL_ID,
                 "Log level",
                 Some("Select required level of logs"),
-                ConfigSchemaType::Dropdown(
+                ConfigSchemaType::Dropdown((
                     LogLevel::all()
                         .iter()
                         .map(|level| level.to_str().to_owned())
                         .collect(),
-                ),
+                    LogLevel::Verbose.to_str().to_owned(),
+                )),
             ),
             ConfigSchemaItem::new(
                 FIBEX_ID,

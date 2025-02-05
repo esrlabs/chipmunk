@@ -78,25 +78,25 @@ impl Parser for StringTokenizer {
                 LOSSY_ID,
                 "Parse Lossy",
                 Some("Parse UTF-8 including invalid characters"),
-                ConfigSchemaType::Boolean,
+                ConfigSchemaType::Boolean(true),
             ),
             ConfigSchemaItem::new(
                 PREFIX_ID,
                 "Custom Prefix",
                 Some("Specify custom prefix for each line"),
-                ConfigSchemaType::Text,
+                ConfigSchemaType::Text(String::new()),
             ),
             ConfigSchemaItem::new(
                 INTEGER_ID,
                 "Example Number",
                 Some("Configuration item with integer"),
-                ConfigSchemaType::Integer,
+                ConfigSchemaType::Integer(32),
             ),
             ConfigSchemaItem::new(
                 FLOAT_ID,
                 "Example Float",
                 Some("Configuration item with flaoting number"),
-                ConfigSchemaType::Float,
+                ConfigSchemaType::Float(1.55),
             ),
             ConfigSchemaItem::new(
                 FILES_ID,
@@ -114,12 +114,15 @@ impl Parser for StringTokenizer {
                 DROPDOWN_ID,
                 "Example Drop-Down",
                 Some("Configuration item with drop-down"),
-                ConfigSchemaType::Dropdown(vec![
+                ConfigSchemaType::Dropdown((
+                    vec![
+                        String::from("Option 1"),
+                        String::from("Option 2"),
+                        String::from("Option 3"),
+                        String::from("Option 4"),
+                    ],
                     String::from("Option 1"),
-                    String::from("Option 2"),
-                    String::from("Option 3"),
-                    String::from("Option 4"),
-                ]),
+                )),
             ),
         ]
     }
