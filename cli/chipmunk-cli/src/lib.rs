@@ -49,8 +49,13 @@ pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
                     .await?;
                 }
                 OutputFormat::Text => {
-                    let text_formatter =
-                        MsgTextFormatter::new(cli.text_columns_separator, cli.text_args_separator);
+                    use parsers::dlt::fmt;
+                    let text_formatter = MsgTextFormatter::new(
+                        fmt::DLT_COLUMN_SENTINAL,
+                        fmt::DLT_ARGUMENT_SENTINAL,
+                        cli.text_columns_separator,
+                        cli.text_args_separator,
+                    );
 
                     start_session(parser, input, text_formatter, cli.output_path, cancel_token)
                         .await?;
