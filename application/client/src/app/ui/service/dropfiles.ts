@@ -80,7 +80,6 @@ export class Service extends Implementation {
         document.addEventListener('dragover', this.stop);
         document.addEventListener('dragleave', this.stop);
         document.addEventListener('drop', this.drop);
-        console.log(`>>>>>>>>>>>>>>>>>>>>>> INITED`);
         return Promise.resolve();
     }
 
@@ -88,7 +87,6 @@ export class Service extends Implementation {
         document.removeEventListener('dragover', this.stop);
         document.removeEventListener('dragleave', this.stop);
         document.removeEventListener('drop', this.drop);
-        console.log(`>>>>>>>>>>>>>>>>>>>>>> DESTROYED`);
         return Promise.resolve();
     }
 
