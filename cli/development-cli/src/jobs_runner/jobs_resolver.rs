@@ -144,7 +144,9 @@ fn is_job_involved(
                         .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
-                Target::Cli | Target::Updater => matches!(current_job, JobType::Lint),
+                Target::CliDev | Target::Updater | Target::CliChipmunk => {
+                    matches!(current_job, JobType::Lint)
+                }
                 // TS and Bindings targets need to be built with all their dependencies to perform the
                 // needed type checks on TypeScript
                 Target::Shared
@@ -178,7 +180,9 @@ fn is_job_involved(
                         .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
-                Target::Cli | Target::Updater => matches!(current_job, JobType::Test { .. }),
+                Target::CliDev | Target::Updater | Target::CliChipmunk => {
+                    matches!(current_job, JobType::Test { .. })
+                }
 
                 // TS and Bindings targets need to be built with all their dependencies to perform the
                 // needed tests on TypeScript targets.
@@ -321,12 +325,15 @@ mod tests {
     fn resolve_lint_core_cli() {
         let expected = BTreeMap::from([
             (JobDefinition::new(Target::Core, JobType::Lint), Vec::new()),
-            (JobDefinition::new(Target::Cli, JobType::Lint), Vec::new()),
+            (
+                JobDefinition::new(Target::CliDev, JobType::Lint),
+                Vec::new(),
+            ),
         ]);
 
         assert_eq!(
             expected,
-            resolve(&[Target::Core, Target::Cli], JobType::Lint)
+            resolve(&[Target::Core, Target::CliDev], JobType::Lint)
         );
     }
 
@@ -572,7 +579,7 @@ mod tests {
 
         assert!(
             tree.get(&JobDefinition::new(
-                Target::Cli,
+                Target::CliDev,
                 JobType::Build { production }
             ))
             .is_some_and(|dep| dep.is_empty()),

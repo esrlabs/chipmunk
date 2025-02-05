@@ -10,7 +10,7 @@ With the new [Chipmunk Development CLI Tool](cli/README.md), you can perform var
 To build and run chipmunk on local you will need following languages installed on your system.
 1. Rust
 2. NodeJS
-3. Ruby (Not needed with the new [Chipmunk Development CLI Tool](cli/README.md))
+3. Ruby (Not needed with the new [Chipmunk Development CLI Tool](cli/development-cli/README.md))
 
 To check if you have all the pre-requisite installed or not, chipmunk provides the shell
 script for this purpose. After cloning the repo run following command in your preferred terminal.
@@ -57,7 +57,7 @@ which will print the installed NodeJS version on terminal.
 
 
 > [!TIP] 
-> You can use the new [Chipmunk Development CLI Tool](cli/README.md) instead of Ruby & `rake`
+> You can use the new [Chipmunk Development CLI Tool](cli/development-cli/README.md) instead of Ruby & `rake`
 
 ### Installing Ruby
 You must have latest Ruby installed on your system. Prefer your choice of version manager
@@ -155,7 +155,7 @@ by executing following task
 ```
 rake test:all
 ```
-**Note -** If any changes are made to the build cli tool, make sure to add the label "build-cli" to the PR. This would ensure that all the integration tests for the cli tool are run, which are otherwise not required.
+**Note -** If any changes are made to the development cli tool, make sure to add the label "build-cli" to the PR. This would ensure that all the integration tests for the cli tool are run, which are otherwise not required.
 
 ## Reporting Issues
 If you find scope for improvement or any bug in the processing, please log

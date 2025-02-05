@@ -50,40 +50,44 @@ BUILD_COMMAND = [
     "--",
     "chipmunk",
     "build",
-    # Provide app target only and it should pull all other targets expect for build CLI,
+    # Provide app target only and it should pull all other GUI-app targets expect for build CLI,
     # which isn't possible to build on Windows because it's not allowed to replace a binary while
     # it's running.
     "app",
+    # Chipmunk CLI tool isn't included with app target.
+    "cli-chipmunk",
 ]
 
 # These paths must exist after build command has been finished.
-# The paths are relative starting from `chipmunk_root/application`
+# The paths are relative starting from `chipmunk_root`
 APP_PATHS_FOR_BUILD_CHECK = [
     # Core
-    "apps/indexer/target",
+    "application/apps/indexer/target",
     # Shared
-    "platform/dist",
-    "platform/node_modules",
+    "application/platform/dist",
+    "application/platform/node_modules",
     # Protocol
-    "apps/protocol/pkg",
+    "application/apps/protocol/pkg",
     # Binding
-    "apps/rustcore/rs-bindings/dist",
-    "apps/rustcore/rs-bindings/target",
+    "application/apps/rustcore/rs-bindings/dist",
+    "application/apps/rustcore/rs-bindings/target",
     # Wrapper
-    "apps/rustcore/ts-bindings/dist",
-    "apps/rustcore/ts-bindings/node_modules",
-    "apps/rustcore/ts-bindings/src/native/index.node",
+    "application/apps/rustcore/ts-bindings/dist",
+    "application/apps/rustcore/ts-bindings/node_modules",
+    "application/apps/rustcore/ts-bindings/src/native/index.node",
     # Wasm
-    "apps/rustcore/wasm-bindings/pkg",
-    "apps/rustcore/wasm-bindings/node_modules",
+    "application/apps/rustcore/wasm-bindings/pkg",
+    "application/apps/rustcore/wasm-bindings/node_modules",
     # Client
-    "client/dist/debug",
-    "client/node_modules",
+    "application/client/dist/debug",
+    "application/client/node_modules",
     # Updater
-    "apps/precompiled/updater/target",
+    "application/apps/precompiled/updater/target",
     # App
-    "holder/dist",
-    "holder/node_modules",
+    "application/holder/dist",
+    "application/holder/node_modules",
+    # Chipmunk CLI
+    "cli/chipmunk-cli/target",
 ]
 
 # The name of the file where the states of the latest build are saved.
@@ -92,10 +96,7 @@ BUILD_RECORDS_FILENAME = ".build_last_state"
 
 def get_build_paths(root_dir: Path) -> list[Path]:
     """Provides the paths for the directories that must be created after running the build command"""
-    application_dir = root_dir.joinpath("application")
-    build_paths = [
-        application_dir.joinpath(sub_dir) for sub_dir in APP_PATHS_FOR_BUILD_CHECK
-    ]
+    build_paths = [root_dir.joinpath(sub_dir) for sub_dir in APP_PATHS_FOR_BUILD_CHECK]
     return build_paths
 
 

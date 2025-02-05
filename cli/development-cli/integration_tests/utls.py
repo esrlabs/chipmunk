@@ -16,8 +16,8 @@ def get_root() -> Path:
         Root directory of chipmunk
     """
 
-    # We are using the utls file with the assumption that is path is `root/cli/integration_tests`
-    root_dir = Path(__file__).parent.parent.parent
+    # We are using the utls file with the assumption that is path is `root/cli/development-cli/integration_tests`
+    root_dir = Path(__file__).parent.parent.parent.parent
 
     # Root Dir checks. This checks depends on the current chipmunk directories' structure
     sub_dirs = (

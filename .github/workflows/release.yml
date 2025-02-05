@@ -65,7 +65,7 @@ jobs:
       - name: install wasm-pack
         run: cargo binstall wasm-pack
       - name: Install Build CLI tool
-        run: cargo install --path=cli --locked
+        run: cargo install --path=cli/development-cli --locked
         env:
           SCCACHE_GHA_ENABLED: "true"
           RUSTC_WRAPPER: "sccache"
@@ -100,7 +100,7 @@ jobs:
       - name: build release macOS
         if: runner.os == 'macOS'
         run: |
-          cargo chipmunk release -c cli/config/codesign_macos.toml
+          cargo chipmunk release -c cli/development-cli/config/codesign_macos.toml
         env:
           KEYCHAIN_NAME: "build.keychain"
           CSC_LINK: ${{ secrets.CSC_LINK }}

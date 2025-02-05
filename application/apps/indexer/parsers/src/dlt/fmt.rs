@@ -34,8 +34,11 @@ use std::{
     str,
 };
 
-const DLT_COLUMN_SENTINAL: char = '\u{0004}';
-const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
+/// Separator to used between the columns in DLT [`FormattableMessage`].
+pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
+/// Separator to used between the arguments in the payload of DLT [`FormattableMessage`].
+pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
+
 const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
 
 lazy_static::lazy_static! {
