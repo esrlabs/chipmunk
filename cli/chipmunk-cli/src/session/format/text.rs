@@ -4,13 +4,7 @@ use std::fmt::Write as _;
 
 use anyhow::Context;
 
-use parsers::{
-    dlt::fmt::{
-        DLT_ARGUMENT_SENTINAL as INEXER_DLT_ARGUMENT_SENTINAL,
-        DLT_COLUMN_SENTINAL as INEXER_DLT_COLUMN_SENTINAL,
-    },
-    LogMessage,
-};
+use parsers::LogMessage;
 
 use super::MessageFormatter;
 
@@ -28,22 +22,48 @@ const WRITE_ERROR_MSG: &str = "Error while writing parsed message to buffer";
 /// the performance assuming it will be called inside a hot loop.
 ///
 /// # Note:
-/// Struct currently have support for DLT-messages only.
+/// Formatting needs the columns and arguments separators used originally in each parser
+/// to avoid any changes in indexer libraries before the implementation of this tool is
+/// stabilized.
+// TODO: Revisit this part once the UI part of this CLI tool is implemented.
 #[derive(Debug, Clone)]
 pub struct MsgTextFormatter {
     origin_msg_buffer: String,
     replaced_msg_buffer: String,
+    /// The separator used for message columns in the parser used in indexer crates originally.
+    indexer_cols_sep: char,
+    /// The separator used for message payload arguments in the parser used in indexer
+    /// crates originally.
+    indexer_args_sep: char,
+    /// The separator to be used for message columns in the output of this session.
     columns_separator: String,
+    /// The separator to be used for message payload arguments in the output of this session.
     argument_separator: String,
 }
 
 impl MsgTextFormatter {
-    pub fn new(columns_separator: String, argument_separator: String) -> Self {
+    /// Creates a new instance with the given arguments.
+    ///
+    /// * `indexer_cols_sep`: Separator used for message columns in the parser used in indexer
+    ///   crates originally.
+    /// * `indexer_args_sep`: Separator used for message payload arguments in the parser used
+    ///   in indexer crates originally
+    /// * `columns_separator`: Separator to be used for message columns in the output of this session.
+    /// * `argument_separator`: Separator to be used for message payload arguments in the output of
+    ///   this session.
+    pub fn new(
+        indexer_cols_sep: char,
+        indexer_args_sep: char,
+        columns_separator: String,
+        argument_separator: String,
+    ) -> Self {
         Self {
             origin_msg_buffer: String::new(),
             replaced_msg_buffer: String::new(),
             columns_separator,
             argument_separator,
+            indexer_cols_sep,
+            indexer_args_sep,
         }
     }
 }
@@ -63,23 +83,28 @@ impl MessageFormatter for MsgTextFormatter {
 
         let rep_buff = &mut self.replaced_msg_buffer;
 
-        for (idx, main) in self
+        for (idx, cols) in self
             .origin_msg_buffer
-            .split(INEXER_DLT_COLUMN_SENTINAL)
+            .split(self.indexer_cols_sep)
             .enumerate()
         {
             if idx != 0 {
-                write!(rep_buff, "{}", self.columns_separator).context(WRITE_ERROR_MSG)?;
+                rep_buff.push_str(&self.columns_separator);
             }
-            for (jdx, argument) in main
-                .split(INEXER_DLT_ARGUMENT_SENTINAL)
-                .filter(|e| !e.trim().is_empty())
-                .enumerate()
-            {
-                if jdx != 0 {
-                    write!(rep_buff, "{}", self.argument_separator).context(WRITE_ERROR_MSG)?;
-                }
-                write!(rep_buff, "{argument}").context(WRITE_ERROR_MSG)?;
+
+            let mut main_iter = cols
+                .split(self.indexer_args_sep)
+                .filter(|e| !e.trim().is_empty());
+
+            let Some(first) = main_iter.next() else {
+                continue;
+            };
+
+            rep_buff.push_str(first);
+
+            for argument in main_iter {
+                rep_buff.push_str(&self.argument_separator);
+                rep_buff.push_str(argument);
             }
         }
 
