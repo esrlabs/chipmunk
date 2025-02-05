@@ -61,6 +61,7 @@ export class Service extends Implementation {
         cp(src: string, dest: string): Promise<void>;
         copy(files: string[], dest: string): Promise<void>;
         read(filename: string): Promise<string>;
+        write(filename: string, content: string, overwrite: true): Promise<void>;
         select: {
             any(): Promise<File[]>;
             dlt(): Promise<File[]>;
@@ -281,6 +282,17 @@ export class Service extends Implementation {
                         return Promise.reject(new Error(response.error));
                     }
                     return Promise.resolve(response.text as string);
+                });
+            },
+            write: (filename: string, content: string, overwrite: true): Promise<void> => {
+                return Requests.IpcRequest.send<Requests.File.Write.Response>(
+                    Requests.File.Write.Response,
+                    new Requests.File.Write.Request({ filename, content, overwrite }),
+                ).then((response) => {
+                    if (response.error !== undefined) {
+                        return Promise.reject(new Error(response.error));
+                    }
+                    return undefined;
                 });
             },
             select: {

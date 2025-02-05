@@ -402,6 +402,23 @@ export class Service extends Implementation {
                             },
                         ],
                     },
+                    { type: 'separator' },
+                    {
+                        label: 'Export Session State',
+                        click: async () => {
+                            Actions.exportSessionState().catch((err: Error) => {
+                                this.log().error(`Fail call action OpenFile: ${err.message}`);
+                            });
+                        },
+                    },
+                    {
+                        label: 'Import Session State',
+                        click: async () => {
+                            Actions.importSessionState().catch((err: Error) => {
+                                this.log().error(`Fail call action OpenFile: ${err.message}`);
+                            });
+                        },
+                    },
                 ],
             },
             {
