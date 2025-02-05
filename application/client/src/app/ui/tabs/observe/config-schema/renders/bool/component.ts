@@ -7,6 +7,7 @@ import { State } from '../../state';
     selector: 'app-tabs-config-schema-bool',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ConfigSchemaBool extends ChangesDetector implements AfterContentInit {
     @Input() public config!: PluginConfigSchemaItem;

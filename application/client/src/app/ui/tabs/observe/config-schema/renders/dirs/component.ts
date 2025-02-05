@@ -8,6 +8,7 @@ import { bridge } from '@service/bridge';
     selector: 'app-tabs-config-schema-dirs',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ConfigSchemaDirs extends ChangesDetector {
     @Input() public config!: PluginConfigSchemaItem;

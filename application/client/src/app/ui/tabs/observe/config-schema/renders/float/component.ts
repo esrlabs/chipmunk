@@ -15,6 +15,7 @@ import { State } from '../../state';
     selector: 'app-tabs-config-schema-float',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ConfigSchemaFloat extends ChangesDetector implements AfterContentInit, OnChanges {
     @Input() public config!: PluginConfigSchemaItem;

@@ -13,6 +13,7 @@ import { State } from '../../state';
     selector: 'app-tabs-config-schema-dropdown',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ConfigSchemaDropdown extends ChangesDetector implements AfterContentInit {
     @Input() public config!: PluginConfigSchemaItem;

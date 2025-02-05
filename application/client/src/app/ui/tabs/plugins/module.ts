@@ -10,8 +10,6 @@ import { MatButtonModule } from '@angular/material/button';
 
 import { PluginsManager } from './component';
 
-const components = [PluginsManager];
-
 //TODO AAZ: Check if imports on all created components are needed.
 @NgModule({
     imports: [
@@ -25,8 +23,8 @@ const components = [PluginsManager];
         MatInputModule,
         MatButtonModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [PluginsManager],
+    exports: [PluginsManager],
+    bootstrap: [PluginsManager],
 })
 export class PluginsManagerModule {}

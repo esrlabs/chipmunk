@@ -7,6 +7,7 @@ import { State } from '../state';
     selector: 'app-tabs-config-schema-entry',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ConfgiSchemaEntry extends ChangesDetector {
     @Input() public config!: PluginConfigSchemaItem;

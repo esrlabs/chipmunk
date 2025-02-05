@@ -21,18 +21,6 @@ import { ConfigSchemaDropdown } from './renders/dropdown/component';
 import { ConfigSchemaFiles } from './renders/files/component';
 import { ConfigSchemaDirs } from './renders/dirs/component';
 
-const components = [
-    ConfigSchemas,
-    ConfgiSchemaEntry,
-    ConfigSchemaBool,
-    ConfigSchemaInteger,
-    ConfigSchemaFloat,
-    ConfigSchemaString,
-    ConfigSchemaDropdown,
-    ConfigSchemaFiles,
-    ConfigSchemaDirs,
-];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -48,8 +36,28 @@ const components = [
         MatIconModule,
         MatDividerModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [
+        ConfigSchemas,
+        ConfgiSchemaEntry,
+        ConfigSchemaBool,
+        ConfigSchemaInteger,
+        ConfigSchemaFloat,
+        ConfigSchemaString,
+        ConfigSchemaDropdown,
+        ConfigSchemaFiles,
+        ConfigSchemaDirs,
+    ],
+    exports: [ConfigSchemas],
+    bootstrap: [
+        ConfigSchemas,
+        ConfgiSchemaEntry,
+        ConfigSchemaBool,
+        ConfigSchemaInteger,
+        ConfigSchemaFloat,
+        ConfigSchemaString,
+        ConfigSchemaDropdown,
+        ConfigSchemaFiles,
+        ConfigSchemaDirs,
+    ],
 })
 export class ConfigSchmasModule {}

@@ -9,6 +9,7 @@ import { State as ParserState } from '../parsers/general/plugin/state';
     selector: 'app-tab-config-schemas',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

@@ -17,6 +17,7 @@ import { ConfigSchemas } from '@ui/tabs/observe/config-schema/component';
     selector: 'app-el-parser-plugin-general',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()
