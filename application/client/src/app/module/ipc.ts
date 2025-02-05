@@ -4,6 +4,7 @@ declare global {
     interface Window {
         electron: {
             ipc: IPC;
+            webUtils: WebUtils;
         };
     }
 }
@@ -17,4 +18,8 @@ export interface IPC {
     subscribe: (channel: string, callback: (...args: any[]) => void) => void;
     unsubscribe: (channel: string, callback: (...args: any[]) => void) => void;
     unsubscribeAll: (channel: string) => void;
+}
+
+export interface WebUtils {
+    getPathForFile(file: File): string;
 }
