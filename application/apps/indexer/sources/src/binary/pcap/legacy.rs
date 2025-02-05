@@ -2,7 +2,7 @@ use crate::{
     binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
     TransportProtocol,
 };
-use buf_redux::Buffer;
+use bufread::DeqBuffer;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
@@ -10,7 +10,7 @@ use std::io::Read;
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
-    buffer: Buffer,
+    buffer: DeqBuffer,
     last_know_timestamp: Option<u64>,
     total: usize,
 }
@@ -20,7 +20,7 @@ impl<R: Read> PcapLegacyByteSource<R> {
         Ok(Self {
             pcap_reader: LegacyPcapReader::new(65536, reader)
                 .map_err(|e| SourceError::Setup(format!("{e}")))?,
-            buffer: Buffer::new(),
+            buffer: DeqBuffer::new(8192),
             last_know_timestamp: None,
             total: 0,
         })
@@ -104,8 +104,8 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                         }),
                     ) => {
                         let actual_tp: TransportProtocol = actual.into();
-                        let received_bytes = self.buffer.copy_from_slice(payload);
-                        let available_bytes = self.buffer.len();
+                        let received_bytes = self.buffer.write_from(payload);
+                        let available_bytes = self.buffer.read_available();
                         if actual_tp == *wanted {
                             Ok(Some(ReloadInfo::new(
                                 received_bytes,
@@ -123,8 +123,8 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                         }
                     }
                     _ => {
-                        let copied = self.buffer.copy_from_slice(payload);
-                        let available_bytes = self.buffer.len();
+                        let copied = self.buffer.write_from(payload);
+                        let available_bytes = self.buffer.read_available();
                         Ok(Some(ReloadInfo::new(
                             copied,
                             available_bytes,
@@ -145,15 +145,15 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
     }
 
     fn current_slice(&self) -> &[u8] {
-        self.buffer.buf()
+        self.buffer.read_slice()
     }
 
     fn consume(&mut self, offset: usize) {
-        self.buffer.consume(offset);
+        self.buffer.read_done(offset);
     }
 
     fn len(&self) -> usize {
-        self.buffer.len()
+        self.buffer.read_available()
     }
 }
 

@@ -356,14 +356,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "buf_redux"
-version = "0.8.4"
-source = "git+https://github.com/DmitryAstafyev/buf_redux.git#595d13446d3d90eb4834a3cee67c0f79e28f01d8"
-dependencies = [
- "memchr",
- "safemem",
- "slice-deque",
-]
+name = "bufread"
+version = "0.1.1"
 
 [[package]]
 name = "bumpalo"
@@ -650,7 +644,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b304e32f1164b8c2ef1dc746b32d321f25f88a32672f0f5bcba2df0f70a3b70"
 dependencies = [
- "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "buf_redux",
  "byteorder",
  "bytes",
  "derive_more",
@@ -1831,7 +1825,7 @@ name = "processor"
 version = "0.2.0"
 dependencies = [
  "bincode",
- "buf_redux 0.8.4 (git+https://github.com/DmitryAstafyev/buf_redux.git)",
+ "bufread",
  "bytecount",
  "futures",
  "grep-regex",
@@ -2303,7 +2297,7 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
- "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bufread",
  "bytes",
  "etherparse",
  "futures",
