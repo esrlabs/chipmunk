@@ -6,4 +6,5 @@ export * as Name from './name';
 export * as Copy from './copy';
 export * as CopyFile from './copyfile';
 export * as Read from './read';
+export * as Write from './write';
 export * as ExportSession from './exportsession';

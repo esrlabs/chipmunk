@@ -79,12 +79,12 @@ export class Dialogs extends Implementation {
                         filters:
                             ext !== undefined
                                 ? [
+                                      { name: 'All Files', extensions: ['*'] },
                                       ...ext.split(',').map((e) => {
                                           return { name: `*.${e}`, extensions: [e] };
                                       }),
-                                      { name: 'All Files', extensions: ['*'] },
                                   ]
-                                : [{ name: 'All Files', extensions: ['*'] }],
+                                : undefined,
                     });
                     break;
                 case 1:

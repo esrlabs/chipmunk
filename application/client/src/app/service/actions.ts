@@ -294,6 +294,54 @@ export class Service extends Implementation {
                     },
                 ),
         );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.ExportSessionState.Request,
+                    (
+                        _request: Requests.Actions.ExportSessionState.Request,
+                    ): CancelablePromise<Requests.Actions.ExportSessionState.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.ExportSession.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call ExportSessionState action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.Help.Response());
+                                });
+                        });
+                    },
+                ),
+        );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.ImportSessionState.Request,
+                    (
+                        _request: Requests.Actions.ImportSessionState.Request,
+                    ): CancelablePromise<Requests.Actions.ImportSessionState.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.ImportSession.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call ImportSessionState action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.Help.Response());
+                                });
+                        });
+                    },
+                ),
+        );
         return Promise.resolve();
     }
 }

@@ -21,6 +21,12 @@ import { session } from '@service/session';
 import { Highlights } from './dependencies/search/highlights';
 import { TeamWork } from './dependencies/teamwork';
 import { Cli } from './dependencies/cli';
+import { FilterRequest } from './dependencies/search/filters/request';
+import { ChartRequest } from './dependencies/search/charts/request';
+import { DisabledRequest } from './dependencies/search/disabled/request';
+import { StoredEntity } from './dependencies/search/store';
+import { Notification, notifications } from '@ui/service/notifications';
+import { error } from '@platform/log/utils';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -30,6 +36,12 @@ import * as Parsers from '@platform/types/observe/parser/index';
 import * as Types from '@platform/types/observe/types/index';
 
 export { Stream };
+
+interface Snap {
+    filters: string[];
+    charts: string[];
+    disabled: string[];
+}
 
 @SetupLogger()
 export class Session extends Base {
@@ -347,6 +359,91 @@ export class Session extends Base {
             },
             get: (): Error | string => {
                 return this._tab.getTitle();
+            },
+        };
+    }
+
+    public snap(): {
+        get(): string;
+        load(json: string): Error | undefined;
+    } {
+        return {
+            get: (): string => {
+                const snap: Snap = {
+                    filters: this.search
+                        .store()
+                        .filters()
+                        .get()
+                        .map((v) => v.json().to()),
+                    disabled: this.search
+                        .store()
+                        .disabled()
+                        .get()
+                        .map((v) => v.json().to()),
+                    charts: this.search
+                        .store()
+                        .charts()
+                        .get()
+                        .map((v) => v.json().to()),
+                };
+                return JSON.stringify(snap);
+            },
+            load: (json: string): Error | undefined => {
+                try {
+                    const snap: Snap = JSON.parse(json);
+                    if (snap.filters === undefined) {
+                        throw new Error(`No filters list`);
+                    }
+                    if (snap.disabled === undefined) {
+                        throw new Error(`No disabled list`);
+                    }
+                    if (snap.charts === undefined) {
+                        throw new Error(`No charts list`);
+                    }
+                    const warnings: string[] = [];
+                    const check = (v: FilterRequest | DisabledRequest | ChartRequest | Error) => {
+                        if (!(v instanceof Error)) {
+                            return true;
+                        } else {
+                            warnings.push(v.message);
+                            return false;
+                        }
+                    };
+                    const filters = snap.filters
+                        .map((json) => FilterRequest.fromJson(json))
+                        .filter((v) => check(v)) as FilterRequest[];
+                    const charts = snap.charts
+                        .map((json) => ChartRequest.fromJson(json))
+                        .filter((v) => check(v)) as ChartRequest[];
+                    const disabled = snap.disabled
+                        .map((json) => DisabledRequest.fromJson(json))
+                        .filter((v) => check(v)) as DisabledRequest[];
+                    this.search
+                        .store()
+                        .filters()
+                        .overwrite(filters as StoredEntity<FilterRequest>[]);
+                    this.search
+                        .store()
+                        .charts()
+                        .overwrite(charts as StoredEntity<ChartRequest>[]);
+                    this.search
+                        .store()
+                        .disabled()
+                        .overwrite(disabled as StoredEntity<DisabledRequest>[]);
+                    if (warnings.length > 0) {
+                        notifications.notify(
+                            new Notification({
+                                message: `Some filters/charts weren't imported: ${warnings.join(
+                                    '; ',
+                                )}`,
+                                actions: [],
+                            }),
+                        );
+                    }
+                    return undefined;
+                } catch (err) {
+                    return new Error(`Fail to parse session snap file: ${error(err)}`);
+                }
             },
         };
     }
