@@ -29,21 +29,23 @@ pub fn resolve(
     for target in involved_targets {
         for job in involved_jobs
             .iter()
-            .filter(|&&j| is_job_involved(target, j, &main_job))
+            .filter(|&&j| is_job_involved(target, j, &main_job, targets))
         {
             // Start with dependencies from other targets (Applies for Build & Install jobs only)
             let mut dep_jobs = match job {
                 // Install jobs are involved here too because copying the files in the after build
                 // process could delete the current files.
                 JobType::Build { .. } | JobType::Install { .. } => {
-                    let deps = flatten_targets_for_build(target.deps().as_slice());
+                    let deps = target.flatten_deps();
 
                     // Jobs of the dependencies are already included in the jobs tree because we
                     // are iterating through targets and jobs in the matching order of their
                     // dependencies relations.
                     jobs_tree
                         .keys()
-                        .filter(|job_def| deps.contains(&job_def.target))
+                        .filter(|job_def| {
+                            job_def.job_type.is_build_related() && deps.contains(&job_def.target)
+                        })
                         .cloned()
                         .collect()
                 }
@@ -99,19 +101,10 @@ fn flatten_jobs(main_job: JobType) -> BTreeSet<JobType> {
 
 /// Returns all involved targets for the given target for build tasks
 fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
-    fn flatten_rec(target: Target, involved_targets: &mut BTreeSet<Target>) {
-        if !involved_targets.insert(target) {
-            return;
-        }
-        for involved_target in target.deps() {
-            flatten_rec(involved_target, involved_targets);
-        }
-    }
-
-    let mut resolved_targets = BTreeSet::new();
+    let mut resolved_targets = BTreeSet::from_iter(targets.iter().copied());
 
     for target in targets {
-        flatten_rec(*target, &mut resolved_targets);
+        resolved_targets.extend(target.flatten_deps());
     }
 
     resolved_targets
@@ -125,17 +118,33 @@ fn flatten_targets_for_build(targets: &[Target]) -> BTreeSet<Target> {
 /// * `target`: Job Target
 /// * `current_job`: Current job type to check if it has job for the given target
 /// * `main_job`: Main job type, which is used for the additional filter
-fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> bool {
+/// * `original_targets`: original targets associated with the main job
+fn is_job_involved(
+    target: Target,
+    current_job: JobType,
+    main_job: &JobType,
+    original_targets: &[Target],
+) -> bool {
     // This filter handle the special cases of adding build steps for TS and WASM lints and tests
     // and remove those jobs from the not involved targets
     let additional_filter = || {
         match main_job {
             // Linting for TS and WASM targets inquire that those targets are built
             JobType::Lint => match target {
+                // * Linting for Rust core doesn't need any build and must be excluded in the
+                //   additional filter.
+                Target::Core => match current_job {
+                    // When the current job matches the main job we need to check if the target is
+                    // included in the original targets
+                    JobType::Lint => original_targets.contains(&target),
+                    // Otherwise we need to check if the targets have core in their dependencies to
+                    // build the core since it's needed for their linting jobs.
+                    _ => original_targets
+                        .iter()
+                        .any(|t| t.flatten_deps().contains(&Target::Core)),
+                },
                 // These targets aren't involved in the dependencies tree.
-                Target::Core | Target::Cli | Target::Updater => {
-                    matches!(current_job, JobType::Lint)
-                }
+                Target::Cli | Target::Updater => matches!(current_job, JobType::Lint),
                 // TS and Bindings targets need to be built with all their dependencies to perform the
                 // needed type checks on TypeScript
                 Target::Shared
@@ -144,37 +153,46 @@ fn is_job_involved(target: Target, current_job: JobType, main_job: &JobType) -> 
                 | Target::Wasm
                 | Target::Protocol
                 | Target::Client
-                | Target::App => true,
+                | Target::App => {
+                    // Only building jobs for dependencies is required.
+                    // For example: Linting jobs for dependencies shouldn't be involved when they
+                    // are not included in the original targets.
+                    current_job.is_build_related() || original_targets.contains(&target)
+                }
             },
 
             // Tests for TS and WASM targets inquire that those targets are built
             JobType::Test { .. } => match target {
+                // * Running tests for rust core doesn't inquire running build on it.
+                // * It should excluded in the filter if it's not included in the original targets
+                //   dependencies before being flatted. This is to avoid running test on core if we
+                //   want to run test on Binding or Wrapper.
+                Target::Core => match current_job {
+                    // When the current job matches the main job we need to check if the target is
+                    // included in the original targets
+                    JobType::Test { .. } => original_targets.contains(&target),
+                    // Otherwise we need to check if the targets have core in their dependencies to
+                    // build the core since it's needed for their testing jobs.
+                    _ => original_targets
+                        .iter()
+                        .any(|t| t.flatten_deps().contains(&Target::Core)),
+                },
                 // These targets aren't involved in the dependencies tree.
-                Target::Core | Target::Cli | Target::Updater => {
-                    matches!(current_job, JobType::Test { .. })
-                }
-                // Only TS and WASM Bindings have tests that inquire running build on them and their dependencies
-                // before running the actual tests.
-                Target::Wrapper | Target::Wasm => true,
+                Target::Cli | Target::Updater => matches!(current_job, JobType::Test { .. }),
 
-                // Shared, Bindings and Protocol don't have tests but they should be built for Wrapper and Wasm
-                // tests
-                Target::Shared | Target::Binding | Target::Protocol => {
-                    assert!(
-                        !matches!(current_job, JobType::Test { .. }),
-                        "Shared, Bindings and Protocol targets don't have test jobs currently"
-                    );
-                    true
-                }
-
-                // Client and App doesn't have tests and they are not dependencies other TS and WASM
-                // targets.
-                Target::Client | Target::App => {
-                    assert!(
-                        !matches!(current_job, JobType::Test { .. }),
-                        "Client, App and Protocol targets don't have test jobs currently"
-                    );
-                    false
+                // TS and Bindings targets need to be built with all their dependencies to perform the
+                // needed tests on TypeScript targets.
+                Target::Shared
+                | Target::Binding
+                | Target::Wrapper
+                | Target::Wasm
+                | Target::Protocol
+                | Target::Client
+                | Target::App => {
+                    // Only building jobs for dependencies is required.
+                    // For example: Test jobs for dependencies shouldn't be involved when they
+                    // are not included in the original targets.
+                    current_job.is_build_related() || original_targets.contains(&target)
                 }
             },
             JobType::Clean
@@ -254,6 +272,7 @@ mod tests {
     fn flatten_wrapper_target() {
         let expected = BTreeSet::from([
             Target::Shared,
+            Target::Core,
             Target::Binding,
             Target::Protocol,
             Target::Wrapper,
@@ -264,6 +283,7 @@ mod tests {
     #[test]
     fn flatten_app_target() {
         let expected = BTreeSet::from([
+            Target::Core,
             Target::Shared,
             Target::Protocol,
             Target::Binding,
@@ -329,11 +349,18 @@ mod tests {
         let production = false;
         let expected = BTreeMap::from([
             (
-                JobDefinition::new(Target::Shared, JobType::Install { production }),
+                JobDefinition::new(Target::Core, JobType::Build { production }),
                 vec![],
             ),
             (
                 JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Core,
+                    JobType::Build { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Shared, JobType::Install { production }),
                 vec![],
             ),
             (
@@ -346,6 +373,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Binding, JobType::Install { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
@@ -354,6 +382,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Binding, JobType::Build { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
@@ -376,8 +405,9 @@ mod tests {
     }
 
     #[test]
-    /// Ensure testing ts targets will invoke all building targets involved in the dependencies tree.
-    fn resolve_test_wrapper() {
+    /// Ensure linting ts targets will invoke all building targets involved in the dependencies tree.
+    /// And on build should wait for a lint job to start.
+    fn resolve_lint_wrapper() {
         let production = false;
         let expected = BTreeMap::from([
             (
@@ -385,8 +415,15 @@ mod tests {
                 vec![],
             ),
             (
-                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                JobDefinition::new(Target::Core, JobType::Build { production }),
                 vec![],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Core,
+                    JobType::Build { production },
+                )],
             ),
             (
                 JobDefinition::new(Target::Shared, JobType::Build { production }),
@@ -398,6 +435,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Binding, JobType::Install { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
@@ -406,6 +444,7 @@ mod tests {
             (
                 JobDefinition::new(Target::Binding, JobType::Build { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),
@@ -422,6 +461,84 @@ mod tests {
             (
                 JobDefinition::new(Target::Wrapper, JobType::Build { production }),
                 vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Lint),
+                vec![JobDefinition::new(
+                    Target::Wrapper,
+                    JobType::Build { production },
+                )],
+            ),
+        ]);
+
+        assert_eq!(expected, resolve(&[Target::Wrapper], JobType::Lint));
+    }
+
+    #[test]
+    /// Ensure testing ts targets will invoke all building targets involved in the dependencies tree.
+    fn resolve_test_wrapper() {
+        let production = false;
+        let expected = BTreeMap::from([
+            (
+                JobDefinition::new(Target::Shared, JobType::Install { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Core, JobType::Build { production }),
+                vec![],
+            ),
+            (
+                JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Core,
+                    JobType::Build { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Shared, JobType::Build { production }),
+                vec![JobDefinition::new(
+                    Target::Shared,
+                    JobType::Install { production },
+                )],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Install { production }),
+                vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
+                    JobDefinition::new(Target::Shared, JobType::Install { production }),
+                    JobDefinition::new(Target::Shared, JobType::Build { production }),
+                    JobDefinition::new(Target::Protocol, JobType::Build { production }),
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Binding, JobType::AfterBuild { production }),
+                vec![
+                    JobDefinition::new(Target::Binding, JobType::Install { production }),
+                    JobDefinition::new(Target::Binding, JobType::Build { production }),
+                ],
+            ),
+            (
+                JobDefinition::new(Target::Wrapper, JobType::Build { production }),
+                vec![
+                    JobDefinition::new(Target::Core, JobType::Build { production }),
                     JobDefinition::new(Target::Shared, JobType::Install { production }),
                     JobDefinition::new(Target::Shared, JobType::Build { production }),
                     JobDefinition::new(Target::Protocol, JobType::Build { production }),

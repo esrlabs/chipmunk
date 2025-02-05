@@ -11,21 +11,19 @@ import { HiddenFilterModule } from '@elements/filter.hidden/module';
 import { TabSourceMultipleFilesStructure } from './structure/component';
 import { TabSourceMultipleFiles } from './component';
 
-const components = [TabSourceMultipleFiles, TabSourceMultipleFilesStructure];
-const imports = [
-    MatButtonModule,
-    MatCardModule,
-    MatTableModule,
-    AppDirectiviesModule,
-    MatSortModule,
-    CommonModule,
-    DragDropModule,
-    HiddenFilterModule,
-];
-
 @NgModule({
-    imports: [...imports],
-    declarations: [...components],
-    exports: [...components],
+    imports: [
+        MatButtonModule,
+        MatCardModule,
+        MatTableModule,
+        AppDirectiviesModule,
+        MatSortModule,
+        CommonModule,
+        DragDropModule,
+        HiddenFilterModule,
+    ],
+    declarations: [TabSourceMultipleFiles, TabSourceMultipleFilesStructure],
+    exports: [TabSourceMultipleFiles],
+    bootstrap: [TabSourceMultipleFiles, TabSourceMultipleFilesStructure],
 })
 export class MultipleFilesModule {}

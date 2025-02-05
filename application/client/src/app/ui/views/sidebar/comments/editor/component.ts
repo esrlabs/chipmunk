@@ -38,6 +38,7 @@ export class InputErrorStateMatcher implements ErrorStateMatcher {
     selector: 'app-views-comments-editor',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

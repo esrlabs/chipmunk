@@ -1,15 +1,10 @@
-import {
-    Component,
-    Input,
-    ChangeDetectorRef,
-    Output,
-    EventEmitter,
-} from '@angular/core';
+import { Component, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 
 @Component({
     selector: 'app-com-color-selector',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 export class ComColorSelectorComponent {
     @Input() public color!: string;

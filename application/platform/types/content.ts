@@ -72,6 +72,15 @@ export class Nature {
         }
         return types;
     }
+    public isEq(nature: Nature): boolean {
+        return (
+            this.bookmark === nature.bookmark &&
+            this.match === nature.match &&
+            this.breadcrumb === nature.breadcrumb &&
+            this.seporator === nature.seporator &&
+            this.hidden === nature.hidden
+        );
+    }
 }
 
 export class Attachment {

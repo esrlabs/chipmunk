@@ -3,7 +3,12 @@ use parsers;
 use processor::{
     grabber::LineRange,
     map::SearchMap,
-    search::searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
+    search::{
+        filter::SearchFilter,
+        searchers::{
+            linear::LineSearcher, regular::RegularSearchHolder, values::ValueSearchHolder,
+        },
+    },
 };
 use std::{
     collections::HashMap,
@@ -36,7 +41,7 @@ pub use indexes::{
 use observed::Observed;
 use searchers::{SearcherState, Searchers};
 pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
-use stypes::GrabbedElement;
+use stypes::{FilterMatch, GrabbedElement};
 pub use values::{Values, ValuesError};
 
 #[derive(Debug)]
@@ -101,6 +106,39 @@ impl SessionState {
         Ok(elements)
     }
 
+    /// Transforms search match data into ranges of line numbers in the original session file.
+    ///
+    /// This function is used to retrieve the line number ranges in the session file based on the
+    /// search results. These ranges are necessary for reading data related to the search results.
+    ///
+    /// # Parameters
+    ///
+    /// * `search_indexes` - A slice of `FilterMatch` instances containing information about search matches.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<RangeInclusive<u64>>` - A vector of inclusive ranges representing line numbers in the session file.
+    fn transform_indexes(&self, search_indexes: &[FilterMatch]) -> Vec<RangeInclusive<u64>> {
+        let mut ranges = vec![];
+        let mut from_pos: u64 = 0;
+        let mut to_pos: u64 = 0;
+        for (i, el) in search_indexes.iter().enumerate() {
+            if i == 0 {
+                from_pos = el.index;
+            } else if to_pos + 1 != el.index {
+                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+                from_pos = el.index;
+            }
+            to_pos = el.index;
+        }
+        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
+            || (ranges.is_empty() && !search_indexes.is_empty())
+        {
+            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
+        }
+        ranges
+    }
+
     fn handle_grab_search(
         &mut self,
         range: LineRange,
@@ -114,29 +152,97 @@ impl SessionState {
                 message: Some(format!("{e}")),
             })?;
         let mut elements: Vec<GrabbedElement> = vec![];
-        let mut ranges = vec![];
-        let mut from_pos: u64 = 0;
-        let mut to_pos: u64 = 0;
-        for (i, el) in indexes.iter().enumerate() {
-            if i == 0 {
-                from_pos = el.index;
-            } else if to_pos + 1 != el.index {
-                ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-                from_pos = el.index;
-            }
-            to_pos = el.index;
-        }
-        if (!ranges.is_empty() && ranges[ranges.len() - 1].start() != &from_pos)
-            || (ranges.is_empty() && !indexes.is_empty())
-        {
-            ranges.push(std::ops::RangeInclusive::new(from_pos, to_pos));
-        }
-        for range in ranges.iter() {
+        for range in self.transform_indexes(indexes).iter() {
             let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
             elements.append(&mut session_elements);
         }
         self.indexes.naturalize(&mut elements);
         Ok(elements)
+    }
+
+    /// Handles "nested" search functionality.
+    /// A "nested" search refers to filtering matches within the primary search results.
+    ///
+    /// # Parameters
+    ///
+    /// * `filter` - The search filter used to specify the criteria for the nested search.
+    /// * `from` - The starting position (within the primary search results) for the nested search.
+    /// * `rev` - Specifies the direction of the search:
+    ///     * `true` - Perform the search in reverse.
+    ///     * `false` - Perform the search in forward order.
+    ///
+    /// # Process
+    ///
+    /// 1. Starting from the `from` position, determine the ranges of lines in the original session file
+    ///    that correspond to the primary search results.
+    /// 2. Create a line-based search utility (`LineSearcher`) using the provided `filter`.
+    /// 3. Iterate through each range, reading and checking lines for matches.
+    /// 4. Stop the search as soon as a match is found and return the result.
+    ///
+    /// # Returns
+    ///
+    /// If a match is found:
+    /// * `Some((search_result_line_index, session_file_line_index))` - A tuple containing:
+    ///     - The line index within the search results.
+    ///     - The corresponding line index in the session file.
+    ///
+    /// If no match is found:
+    /// * `None`
+    ///
+    /// On error:
+    /// * `Err(stypes::NativeError)` - Describes the error encountered during the process.
+    fn handle_search_nested_match(
+        &mut self,
+        filter: SearchFilter,
+        from: u64,
+        rev: bool,
+    ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
+        let indexes = if !rev {
+            self.search_map.indexes_from(from)
+        } else {
+            self.search_map.indexes_to_rev(from)
+        }
+        .map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
+            message: Some(format!("{e}")),
+        })?;
+        let searcher = LineSearcher::new(&filter).map_err(|e| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::OperationSearch,
+            message: Some(e.to_string()),
+        })?;
+        let mut indexes: std::vec::IntoIter<RangeInclusive<u64>> =
+            self.transform_indexes(indexes).into_iter();
+        while let Some(range) = if !rev {
+            indexes.next()
+        } else {
+            indexes.next_back()
+        } {
+            let grabbed = self.session_file.grab(&LineRange::from(range.clone()))?;
+            let found = if !rev {
+                grabbed.iter().find(|ln| searcher.is_match(&ln.content))
+            } else {
+                grabbed
+                    .iter()
+                    .rev()
+                    .find(|ln| searcher.is_match(&ln.content))
+            };
+            if let Some(ln) = found {
+                let Some(srch_pos) = self.search_map.get_match_index(ln.pos as u64) else {
+                    return Err(stypes::NativeError {
+                        severity: stypes::Severity::ERROR,
+                        kind: stypes::NativeErrorKind::OperationSearch,
+                        message: Some(format!(
+                            "Fail to find search index of stream position {}",
+                            ln.pos
+                        )),
+                    });
+                };
+                return Ok(Some((ln.pos as u64, srch_pos)));
+            };
+        }
+        Ok(None)
     }
 
     fn handle_grab_ranges(
@@ -605,6 +711,13 @@ pub async fn run(
                     .send(state.handle_grab_search(range))
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
+                    })?;
+            }
+            Api::SearchNestedMatch((filter, from, rev, tx_response)) => {
+                tx_response
+                    .send(state.handle_search_nested_match(filter, from, rev))
+                    .map_err(|_| {
+                        stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
                     })?;
             }
             Api::GrabRanges((ranges, tx_response)) => {

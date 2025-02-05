@@ -9,8 +9,7 @@ export const handler = Requests.InjectLogger<
     CancelablePromise<Requests.Session.IsExportRawAvailable.Response>
 >(
     (
-        log: Logger,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _log: Logger,
         request: Requests.Session.IsExportRawAvailable.Request,
     ): CancelablePromise<Requests.Session.IsExportRawAvailable.Response> => {
         return new CancelablePromise<Requests.Session.IsExportRawAvailable.Response>(

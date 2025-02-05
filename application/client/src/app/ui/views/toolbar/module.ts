@@ -8,7 +8,7 @@ import { ChartModule } from './chart/module';
 @NgModule({
     imports: [CommonModule, SearchModule, HistoryModule, ChartModule, DetailsModule],
     declarations: [],
-    exports: [SearchModule],
-    bootstrap: [ChartModule]
+    exports: [SearchModule, HistoryModule, ChartModule, DetailsModule],
+    bootstrap: [],
 })
 export class ToolbarModule {}

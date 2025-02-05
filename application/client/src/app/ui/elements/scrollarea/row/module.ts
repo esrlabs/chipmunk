@@ -12,8 +12,6 @@ import { Separator } from './separator/component';
 
 import { ContainersModule } from '@elements/containers/module';
 
-const components = [RowComponent, Standard, Columns, Separator];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -23,8 +21,8 @@ const components = [RowComponent, Standard, Columns, Separator];
         MatCheckboxModule,
         MatButtonModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components]
+    declarations: [RowComponent, Standard, Columns, Separator],
+    exports: [RowComponent],
+    bootstrap: [RowComponent, Standard, Columns, Separator],
 })
 export class RowModule {}

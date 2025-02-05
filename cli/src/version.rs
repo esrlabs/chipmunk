@@ -1,7 +1,7 @@
 //! Manages Comparing the current version of the binary to the version of this CLI tool from the
 //! current local repository of the user, printing a message to the user on newer editions.
 
-use std::{fmt::Display, str::FromStr};
+use std::{cmp::Ordering, fmt::Display, str::FromStr};
 
 use anyhow::{ensure, Context};
 use console::style;
@@ -65,9 +65,22 @@ fn try_check_version() -> anyhow::Result<()> {
         format!("Parsing local repo version text failed. Version: {repo_version}")
     })?;
 
-    if repo_version > bin_version {
-        let warn_msg = format!("A newer version of the Build CLI Tool is available in your local repository\nInstalled Version: {bin_version}\nLatest Version: {repo_version}\n");
-        eprintln!("{}", style(warn_msg).yellow());
+    match repo_version.cmp(&bin_version) {
+        Ordering::Less => {
+            let info_msg = format!("The version of the installed Build CLI Tool is more recent than the current one in the local repository\n\
+                Installed Version: {bin_version}\n\
+                Local repo Version: {repo_version}\n");
+            eprintln!("{}", style(info_msg).cyan());
+        }
+        Ordering::Equal => {}
+        Ordering::Greater => {
+            let warn_msg = format!(
+                "A newer version of the Build CLI Tool is available in the local repository\n\
+                Installed Version: {bin_version}\n\
+                Local repo Version: {repo_version}\n"
+            );
+            eprintln!("{}", style(warn_msg).yellow());
+        }
     }
 
     Ok(())

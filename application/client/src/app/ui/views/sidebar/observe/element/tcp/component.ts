@@ -11,6 +11,7 @@ import * as $ from '@platform/types/observe';
     selector: 'app-views-observed-tcp',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Item extends ChangesDetector implements AfterContentInit {

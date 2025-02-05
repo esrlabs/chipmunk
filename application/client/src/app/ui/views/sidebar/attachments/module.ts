@@ -11,9 +11,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 
-const entryComponents = [Attachments];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -27,7 +24,8 @@ const components = [...entryComponents];
         ItemModule,
         PreviewModule,
     ],
-    declarations: [...components],
-    exports: [...components],
+    declarations: [Attachments],
+    exports: [Attachments],
+    bootstrap: [Attachments],
 })
 export class AttachmentsModule {}

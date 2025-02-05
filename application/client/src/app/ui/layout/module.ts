@@ -34,24 +34,6 @@ import { JobsModule } from '@views/statusbar/jobs/module';
 import { SessionModule } from '@views/statusbar/session/module';
 import { SessionInfoModule } from '@views/statusbar/info/module';
 
-const entryComponents = [
-    Layout,
-    LayoutStatusBar,
-    LayoutFocus,
-    LayoutContextMenu,
-    LayoutSidebar,
-    LayoutSidebarCaption,
-    LayoutSidebarControls,
-    LayoutWorkspace,
-    LayoutWorkspaceControls,
-    LayoutToolbar,
-    LayoutToolbarControls,
-    LayoutPopups,
-    LayoutPopup,
-    LayoutSnackBar,
-    LayoutSnackBarMessage,
-];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -71,8 +53,40 @@ const entryComponents = [
         LayoutHomeModule,
         OverlayModule,
     ],
-    declarations: [...entryComponents],
-    exports: [...entryComponents, AppDirectiviesModule],
-    bootstrap: [...entryComponents, LayoutHomeModule, ElementsModule],
+    declarations: [
+        Layout,
+        LayoutStatusBar,
+        LayoutFocus,
+        LayoutContextMenu,
+        LayoutSidebar,
+        LayoutSidebarCaption,
+        LayoutSidebarControls,
+        LayoutWorkspace,
+        LayoutWorkspaceControls,
+        LayoutToolbar,
+        LayoutToolbarControls,
+        LayoutPopups,
+        LayoutPopup,
+        LayoutSnackBar,
+        LayoutSnackBarMessage,
+    ],
+    exports: [Layout, AppDirectiviesModule],
+    bootstrap: [
+        Layout,
+        LayoutStatusBar,
+        LayoutFocus,
+        LayoutContextMenu,
+        LayoutSidebar,
+        LayoutSidebarCaption,
+        LayoutSidebarControls,
+        LayoutWorkspace,
+        LayoutWorkspaceControls,
+        LayoutToolbar,
+        LayoutToolbarControls,
+        LayoutPopups,
+        LayoutPopup,
+        LayoutSnackBar,
+        LayoutSnackBarMessage,
+    ],
 })
 export class LayoutModule {}

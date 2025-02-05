@@ -7,4 +7,5 @@ export * as Help from './help';
 export * as Updates from './updates';
 export * as UrlInBrowser from './open.browserurl';
 export * as JumpTo from './jumpto';
+export * as FindInSearch from './find';
 export * as PluginsManager from './plugins_manager';

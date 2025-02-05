@@ -203,6 +203,7 @@ fn test(query: String, tag: Option<String>, expected: Vec<HashMap<&str, &str>>) 
     }
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn all_match() {
     let query = "l".to_string();
@@ -236,6 +237,7 @@ fn all_match() {
     test(query, tag, expected);
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn no_match() {
     let query = "c".to_string();
@@ -260,6 +262,7 @@ fn no_match() {
     test(query, tag, expected);
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn scattered_match() {
     let query = "mel".to_string();
@@ -299,6 +302,7 @@ fn scattered_match() {
     test(query, tag, expected);
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn few_match() {
     let query = "g".to_string();

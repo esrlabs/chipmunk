@@ -18,6 +18,7 @@ import { unique } from '@platform/env/sequence';
     selector: 'app-views-teamwork',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

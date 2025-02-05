@@ -30,7 +30,6 @@ pub struct Slot {
 }
 impl Slot {
     pub fn new(from: usize, to: usize, tag: String, mapper: &AnsiMapper) -> Self {
-        println!("{tag}");
         Slot {
             from,
             to,
@@ -145,6 +144,7 @@ impl AnsiMapper {
     }
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn converting() {
     assert_eq!(
@@ -155,6 +155,7 @@ fn converting() {
     );
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn error_handling() {
     assert!(
@@ -162,6 +163,7 @@ fn error_handling() {
     );
 }
 
+#[allow(dead_code)]
 #[wasm_bindgen_test]
 fn escaping() {
     assert_eq!(

@@ -11,6 +11,7 @@ const TITLE_STATE = unique();
     selector: 'app-views-workspace-title',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class ViewWorkspaceTitleComponent

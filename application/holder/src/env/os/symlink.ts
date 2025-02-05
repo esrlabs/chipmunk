@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-namespace */
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
@@ -38,7 +37,7 @@ export namespace SymlinkSupport {
             if (!lstats.isSymbolicLink()) {
                 return { stat: lstats };
             }
-        } catch (error) {
+        } catch (_err) {
             /* ignore - use stat() instead */
         }
 
@@ -95,7 +94,7 @@ export namespace SymlinkSupport {
             const { stat, symbolicLink } = await SymlinkSupport.stat(path);
 
             return stat.isFile() && symbolicLink?.dangling !== true;
-        } catch (error) {
+        } catch (_err) {
             // Ignore, path might not exist
         }
 
@@ -117,7 +116,7 @@ export namespace SymlinkSupport {
             const { stat, symbolicLink } = await SymlinkSupport.stat(path);
 
             return stat.isDirectory() && symbolicLink?.dangling !== true;
-        } catch (error) {
+        } catch (_err) {
             // Ignore, path might not exist
         }
 

@@ -195,6 +195,16 @@ export const KeysMap: KeyDescription[] = [
         client: undefined,
     },
     {
+        alias: 'Ctrl + Shift + F',
+        shortkeys: { darwin: ['Cmd + Shift + F'], others: ['Ctrl + Shift + F'] },
+        display: { darwin: ['⌘ + Shift + F'], others: ['Ctrl + Shift + F'] },
+        description: 'Toggle nested search',
+        category: Category.Search,
+        required: [Requirement.Session],
+        uuid: 'Ctrl + Shift + F',
+        client: undefined,
+    },
+    {
         alias: '/',
         shortkeys: { others: ['/'] },
         display: { others: ['/'] },

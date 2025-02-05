@@ -52,14 +52,23 @@ jobs:
         uses: hecrj/setup-rust-action@v1
         with:
           rust-version: ${{ matrix.rust }}
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2.7.3
-      - name: cargo install nj-cli
-        run: cargo install nj-cli
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@v1.9.0
+      - name: set sccache env var
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+      - name: cargo binstall nj-cli
+        run: cargo binstall nj-cli
       - name: install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+        run: cargo binstall wasm-pack
       - name: Install Build CLI tool
-        run: cargo install --path=cli
+        run: cargo install --path=cli --locked
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+          RUSTC_WRAPPER: "sccache"
       - name: enable corepack for yarnpkg upgrade
         run: |
           corepack enable

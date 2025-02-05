@@ -7,6 +7,7 @@ import { Observe } from '@platform/types/observe';
     selector: 'app-el-text-general',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

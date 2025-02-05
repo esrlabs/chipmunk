@@ -10,7 +10,6 @@ use crate::{
     JobsState,
 };
 use anyhow::Context;
-use console::style;
 use core::panic;
 use std::{
     path::PathBuf,
@@ -24,7 +23,7 @@ pub struct SpawnResult {
     pub status: ExitStatus,
     pub job: String,
     pub cmd: String,
-    pub skipped: Option<bool>,
+    pub skipped: bool,
 }
 
 impl SpawnResult {
@@ -35,7 +34,7 @@ impl SpawnResult {
             job,
             status: ExitStatus::default(),
             cmd: "Multiple file system commands".into(),
-            skipped: None,
+            skipped: false,
         }
     }
 
@@ -46,7 +45,7 @@ impl SpawnResult {
             job,
             status: ExitStatus::default(),
             cmd,
-            skipped: Some(true),
+            skipped: true,
         }
     }
 
@@ -70,11 +69,7 @@ impl SpawnResult {
         };
 
         self.cmd = format!("{} \n {}", self.cmd, other.cmd);
-        self.skipped = match (self.skipped, other.skipped) {
-            (Some(false), _) | (_, Some(false)) => Some(false),
-            (Some(true), _) | (_, Some(true)) => Some(true),
-            _ => None,
-        };
+        self.skipped = self.skipped && other.skipped;
     }
 }
 
@@ -82,8 +77,6 @@ impl SpawnResult {
 pub(crate) struct SpawnOptions {
     /// Indicates that log messages should be not shown on UI.
     pub suppress_ui: bool,
-    /// Indicates if the job is a part of build process and can be skipped.
-    pub has_skip_info: bool,
 }
 
 /// Spawns and runs a job asynchronously, updating the bar when job infos are available
@@ -93,7 +86,7 @@ pub async fn spawn(
     cwd: Option<PathBuf>,
     environment_vars: impl IntoIterator<Item = (String, String)>,
     opts: Option<SpawnOptions>,
-) -> Result<SpawnResult, anyhow::Error> {
+) -> anyhow::Result<SpawnResult> {
     let opts = opts.unwrap_or_default();
     let cwd = cwd.unwrap_or_else(|| get_root().clone());
     let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
@@ -174,12 +167,6 @@ pub async fn spawn(
 
     let status = child.wait().await?;
 
-    let skipped = if opts.has_skip_info {
-        Some(false)
-    } else {
-        None
-    };
-
     let report_lines = tracker.get_logs(job_def).await?.unwrap_or_default();
 
     Ok(SpawnResult {
@@ -187,7 +174,7 @@ pub async fn spawn(
         status,
         job: job_def.job_title(),
         cmd: command.to_string(),
-        skipped,
+        skipped: false,
     })
 }
 
@@ -224,18 +211,13 @@ pub async fn spawn_blocking(
         status,
         job: job_def.job_title(),
         cmd: command.to_string(),
-        skipped: None,
+        skipped: false,
     })
 }
 
 /// This spawns a new task and return immediately showing that the job has been skipped
 pub async fn spawn_skip(job_def: JobDefinition, command: String) -> anyhow::Result<SpawnResult> {
-    if get_tracker().print_immediately() {
-        let msg = format!("Job '{}' has been skipped", job_def.job_title());
-        println!("{}", style(msg).cyan().bold());
-    }
-    Ok(SpawnResult::create_for_skipped(
-        job_def.job_title(),
-        command,
-    ))
+    let skip_result = SpawnResult::create_for_skipped(job_def.job_title(), command);
+
+    Ok(skip_result)
 }

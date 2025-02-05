@@ -7,13 +7,10 @@ import { RowModule } from './row/module';
 
 export { ScrollAreaComponent };
 
-const entryComponents = [ScrollAreaComponent, ScrollAreaVerticalComponent];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [CommonModule, RowModule],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components, RowModule]
+    declarations: [ScrollAreaComponent, ScrollAreaVerticalComponent],
+    exports: [ScrollAreaComponent, RowModule],
+    bootstrap: [ScrollAreaComponent],
 })
 export class ScrollAreaModule {}

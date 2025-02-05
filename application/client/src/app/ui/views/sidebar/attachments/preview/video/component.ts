@@ -8,6 +8,7 @@ import { Subject } from '@platform/env/subscription';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Preview {

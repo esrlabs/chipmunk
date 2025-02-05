@@ -55,14 +55,14 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
     let (tx, mut rx) = unbounded_channel::<(JobDefinition, Result<SpawnResult>)>();
 
     let mut checksum_compare_map = BTreeMap::new();
-    let mut failed_jobs = Vec::new();
+    let mut failed_build_jobs = Vec::new();
 
     // Spawn free job at first
     spawn_jobs(
         tx.clone(),
         &mut jobs_status,
         &mut checksum_compare_map,
-        &failed_jobs,
+        &failed_build_jobs,
     )?;
 
     let mut results = Vec::new();
@@ -96,7 +96,9 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
         let jobs_state = JobsState::get();
 
         if failed {
-            failed_jobs.push(job_def.target);
+            if job_def.job_type.is_build_related() {
+                failed_build_jobs.push(job_def.target);
+            }
 
             if jobs_state.fail_fast() {
                 jobs_state.cancellation_token().cancel();
@@ -143,7 +145,7 @@ pub async fn run(targets: &[Target], main_job: JobType) -> Result<SpawnResultsCo
             tx.clone(),
             &mut jobs_status,
             &mut checksum_compare_map,
-            &failed_jobs,
+            &failed_build_jobs,
         )?;
     }
 
@@ -155,7 +157,7 @@ fn spawn_jobs(
     sender: UnboundedSender<(JobDefinition, Result<SpawnResult>)>,
     jobs_status: &mut BTreeMap<JobDefinition, JobPhase>,
     checksum_compare_map: &mut BTreeMap<Target, ChecksumCompareResult>,
-    failed_jobs: &[Target],
+    failed_build_jobs: &[Target],
 ) -> Result<()> {
     let jobs_state = JobsState::get();
     let task_tracker = jobs_state.task_tracker();
@@ -168,13 +170,19 @@ fn spawn_jobs(
             continue;
         }
 
-        let skip = if job_def.job_type.can_be_skipped() && !jobs_state.is_release_build() {
-            // Skip if any prequel job of this target has failed
-            if failed_jobs.contains(&job_def.target) {
-                true
-            }
+        let deps_fail = job_def
+            .target
+            .flatten_deps()
+            .into_iter()
+            .chain(std::iter::once(job_def.target))
+            .any(|t| failed_build_jobs.contains(&t));
+
+        // Skip on dependencies failing, no matter what the job is.
+        let skip = if deps_fail {
+            true
+        } else if job_def.job_type.is_build_related() && !jobs_state.is_release_build() {
             // Check if target is already registered and checked
-            else if let Some(&chksm_compare) = checksum_compare_map.get(&job_def.target) {
+            if let Some(&chksm_compare) = checksum_compare_map.get(&job_def.target) {
                 chksm_compare == ChecksumCompareResult::Same
             } else {
                 // Calculate target checksums and compare it the persisted one
@@ -185,7 +193,7 @@ fn spawn_jobs(
                 checksum_rec.register_job(job_def.target)?;
 
                 // Check if all dependent jobs are skipped, then do the checksum calculations
-                if job_def.target.deps().iter().all(|dep| {
+                if job_def.target.direct_deps().iter().all(|dep| {
                     checksum_compare_map
                         .get(dep)
                         .is_some_and(|&chksm| chksm == ChecksumCompareResult::Same)

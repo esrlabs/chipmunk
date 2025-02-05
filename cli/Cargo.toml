@@ -1,6 +1,6 @@
 [package]
 name = "cargo-chipmunk"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2021"
 description = "CLI Tool for chipmunk application development"
@@ -23,7 +23,7 @@ clap = { version = "4.5", features = ["derive"] }
 console = "0.15"
 fs_extra = "1.3"
 futures = "0.3"
-git2 = { version = "0.19", default-features = false }
+git2 = { version = "0.20", default-features = false }
 indicatif = "0.17"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["rt"] }
@@ -34,7 +34,7 @@ serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 glob = "0.3"
 toml = "0.8"
-dirs = "5"
+dirs = "6"
 
 [dev-dependencies]
 tempdir.workspace = true

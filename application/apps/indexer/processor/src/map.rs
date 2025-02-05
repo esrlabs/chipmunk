@@ -196,6 +196,66 @@ impl SearchMap {
         Ok(&self.matches[*range.start() as usize..=*range.end() as usize])
     }
 
+    /// Returns information about all matches in the search results occurring after the specified position.
+    ///
+    /// # Parameters
+    ///
+    /// * `from` - The starting position from which to retrieve matches.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&[stypes::FilterMatch])` - A slice of matches starting from the specified position.
+    /// * `Err(MapError::OutOfRange)` - If the `from` position exceeds the available matches.
+    pub fn indexes_from(&self, from: u64) -> Result<&[stypes::FilterMatch], MapError> {
+        if from >= self.len() as u64 {
+            return Err(MapError::OutOfRange(format!(
+                "Search has: {} matches. Requested from: {from}",
+                self.len(),
+            )));
+        }
+        Ok(&self.matches[from as usize..])
+    }
+
+    /// Returns information about all matches in the search results occurring before the specified position.
+    ///
+    /// # Parameters
+    ///
+    /// * `to` - The ending position up to which to retrieve matches.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&[stypes::FilterMatch])` - A slice of matches up to the specified position.
+    /// * `Err(MapError::OutOfRange)` - If the `to` position exceeds the available matches.
+    pub fn indexes_to_rev(&self, to: u64) -> Result<&[stypes::FilterMatch], MapError> {
+        if to >= self.len() as u64 {
+            return Err(MapError::OutOfRange(format!(
+                "Search has: {} matches. Requested from: {to}",
+                self.len(),
+            )));
+        }
+        Ok(&self.matches[..to as usize])
+    }
+
+    /// Returns the search result line index corresponding to a line index in the session file.
+    ///
+    /// # Parameters
+    ///
+    /// * `pos` - The line index in the session file.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(u64)` - The index of the matching line in the search results.
+    /// * `None` - If no match is found for the specified position.
+    pub fn get_match_index(&self, pos: u64) -> Option<u64> {
+        self.matches.iter().enumerate().find_map(|(index, m)| {
+            if m.index == pos {
+                Some(index as u64)
+            } else {
+                None
+            }
+        })
+    }
+
     /// Takes position of row in main stream/file and try to find
     /// relevant nearest position in search results.
     /// For example, search results are (indexes or rows):

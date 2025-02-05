@@ -5,12 +5,9 @@ import { ElementModule } from '../../element/module';
 import { CommonObserveModule } from '../../common/module';
 import { MatButtonModule } from '@angular/material/button';
 
-const entryComponents = [List];
-const components = [...entryComponents];
-
 @NgModule({
     imports: [CommonModule, ElementModule, CommonObserveModule, MatButtonModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [List],
+    exports: [List],
 })
 export class ListModule {}

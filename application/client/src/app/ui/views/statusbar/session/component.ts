@@ -18,6 +18,7 @@ import { Subscriber } from '@platform/env/subscription';
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Session extends ChangesDetector implements AfterViewInit, OnDestroy {

@@ -65,9 +65,8 @@ impl JobType {
         }
     }
 
-    /// Returns if the job type can be skipped as it is part of the build process
-    /// (install, build, or after build)
-    pub fn can_be_skipped(&self) -> bool {
+    /// Returns if the job type is related to the build process. (install, build, or after build)
+    pub fn is_build_related(&self) -> bool {
         match self {
             JobType::Install { .. } | JobType::Build { .. } | JobType::AfterBuild { .. } => true,
             JobType::Clean | JobType::Lint | JobType::Test { .. } | JobType::Run { .. } => false,

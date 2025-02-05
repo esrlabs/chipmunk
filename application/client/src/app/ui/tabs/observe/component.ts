@@ -17,6 +17,7 @@ import { Observe } from '@platform/types/observe';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Initial()
 @Ilc()

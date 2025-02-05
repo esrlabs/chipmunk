@@ -9,6 +9,7 @@ import { Render as FiltersRender } from '../render/filters';
     selector: 'app-views-chart-summary',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

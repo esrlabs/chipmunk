@@ -57,11 +57,11 @@ export class Service extends Implementation {
                                         error: undefined,
                                     }),
                                 );
-                            } catch (e) {
+                            } catch (err) {
                                 resolve(
                                     new Requests.Cwd.Set.Response({
                                         uuid: request.uuid,
-                                        error: error(e),
+                                        error: error(err),
                                     }),
                                 );
                             }
@@ -94,7 +94,7 @@ export class Service extends Implementation {
                                                 : cwd,
                                     }),
                                 );
-                            } catch (e) {
+                            } catch (_err) {
                                 resolve(
                                     new Requests.Cwd.Get.Response({
                                         uuid: request.uuid,

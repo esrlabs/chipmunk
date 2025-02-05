@@ -17,6 +17,7 @@ import * as Parsers from '@platform/types/observe/parser/index';
     selector: 'app-tabs-observe-file',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

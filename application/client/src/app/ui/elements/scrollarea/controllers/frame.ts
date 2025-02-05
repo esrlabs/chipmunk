@@ -2,7 +2,7 @@ import { Subscription, Subject, Subscriber } from '@platform/env/subscription';
 import { Service, Range, IRowsPacket } from './service';
 import { IRange, Range as SafeRange } from '@platform/types/range';
 import { Holder } from './holder';
-import { Row } from '@schema/content/row';
+import { RowSrc } from '@schema/content/row';
 
 export enum ChangesInitiator {
     Wheel = 0,
@@ -24,13 +24,13 @@ export class Frame extends Subscriber {
     private _service!: Service;
     private _holder!: Holder;
     private _frame: Range = new Range();
-    private _rows: Row[] = [];
+    private _rows: RowSrc[] = [];
     private _prev: string | undefined;
     private readonly _subjects: {
-        change: Subject<Row[]>;
+        change: Subject<RowSrc[]>;
         position: Subject<PositionEvent>;
     } = {
-        change: new Subject<Row[]>(),
+        change: new Subject<RowSrc[]>(),
         position: new Subject<PositionEvent>(),
     };
 
@@ -122,7 +122,8 @@ export class Frame extends Subscriber {
         };
     }
     public offsetTo(offsetPx: number, initiator: ChangesInitiator) {
-        this._frame.offsetTo(Math.round(offsetPx / this._service.getItemHeight()), initiator);
+        const offset = Math.round(offsetPx / this._service.getItemHeight());
+        this._frame.offsetTo(offset === 0 ? 1 * (offsetPx < 0 ? -1 : 1) : offset, initiator);
     }
 
     public offsetToByRows(offsetRow: number, initiator: ChangesInitiator) {
@@ -133,11 +134,11 @@ export class Frame extends Subscriber {
         return this._frame.getLength();
     }
 
-    public getRows(): Row[] {
+    public getRows(): RowSrc[] {
         return this._rows;
     }
 
-    public onFrameChange(handler: (rows: Row[]) => void): Subscription {
+    public onFrameChange(handler: (rows: RowSrc[]) => void): Subscription {
         return this._subjects.change.subscribe(handler);
     }
 

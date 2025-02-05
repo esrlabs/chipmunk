@@ -5,7 +5,7 @@ use anyhow::bail;
 use clap::ValueEnum;
 use futures::future::join_all;
 use serde::{Deserialize, Serialize};
-use std::{borrow::Cow, fmt::Display, iter, path::PathBuf, str::FromStr};
+use std::{borrow::Cow, collections::BTreeSet, fmt::Display, iter, path::PathBuf, str::FromStr};
 use tokio::fs;
 
 use crate::{
@@ -241,20 +241,37 @@ impl Target {
         }
     }
 
-    /// Provides the target which this target depend on
-    pub fn deps(self) -> Vec<Target> {
+    /// Provides the targets which this target directly depend on
+    pub fn direct_deps(self) -> Vec<Target> {
         match self {
-            Target::Core
-            | Target::Cli
-            | Target::Shared
-            | Target::Wasm
-            | Target::Updater
-            | Target::Protocol => Vec::new(),
-            Target::Binding => vec![Target::Shared, Target::Protocol],
+            Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
+                Vec::new()
+            }
+            Target::Protocol => vec![Target::Core],
+            Target::Binding => vec![Target::Shared, Target::Core, Target::Protocol],
             Target::Wrapper => vec![Target::Binding, Target::Shared, Target::Protocol],
             Target::Client => vec![Target::Shared, Target::Wasm, Target::Protocol],
             Target::App => vec![Target::Wrapper, Target::Client, Target::Updater],
         }
+    }
+
+    /// Provides all the dependencies of this target and its dependencies recursively.
+    pub fn flatten_deps(self) -> BTreeSet<Target> {
+        fn flatten_rec(target: Target, involved_targets: &mut BTreeSet<Target>) {
+            if !involved_targets.insert(target) {
+                return;
+            }
+            for involved_target in target.direct_deps() {
+                flatten_rec(involved_target, involved_targets);
+            }
+        }
+
+        let mut resolved_targets = BTreeSet::new();
+        for target in self.direct_deps() {
+            flatten_rec(target, &mut resolved_targets);
+        }
+
+        resolved_targets
     }
 
     /// Returns if the current target has a job to the given job type
@@ -349,10 +366,14 @@ impl Target {
     }
 
     /// Run tests for the giving the target
-    pub async fn test(&self, production: bool) -> Option<Result<SpawnResult, anyhow::Error>> {
+    pub async fn test(
+        &self,
+        production: bool,
+        skip: bool,
+    ) -> Option<Result<SpawnResult, anyhow::Error>> {
         match self {
-            Target::Wrapper => Some(wrapper::run_test(production).await),
-            rest_targets => rest_targets.run_test_general(production).await,
+            Target::Wrapper => Some(wrapper::run_test(production, skip).await),
+            rest_targets => rest_targets.run_test_general(production, skip).await,
         }
     }
 
@@ -376,6 +397,7 @@ impl Target {
     async fn run_test_general(
         &self,
         production: bool,
+        skip: bool,
     ) -> Option<Result<SpawnResult, anyhow::Error>> {
         let test_cmds = self.test_cmds(production)?;
 
@@ -392,16 +414,25 @@ impl Target {
             // `*.snap.new`)
             "no"
         };
-        let spawn_results = join_all(test_cmds.into_iter().map(|cmd| {
-            spawn(
-                job_def,
-                cmd.command,
-                Some(cmd.cwd),
-                [(String::from("INSTA_UPDATE"), String::from(insta_env))],
-                cmd.spawn_opts,
+        let spawn_results = if skip {
+            join_all(
+                test_cmds
+                    .into_iter()
+                    .map(|cmd| spawn_skip(job_def, cmd.command.to_string())),
             )
-        }))
-        .await;
+            .await
+        } else {
+            join_all(test_cmds.into_iter().map(|cmd| {
+                spawn(
+                    job_def,
+                    cmd.command,
+                    Some(cmd.cwd),
+                    [(String::from("INSTA_UPDATE"), String::from(insta_env))],
+                    cmd.spawn_opts,
+                )
+            }))
+            .await
+        };
 
         let mut spawn_results = spawn_results.into_iter();
 
@@ -531,17 +562,12 @@ impl Target {
         let path = get_root().join(self.cwd());
         let cmd = self.build_cmd(prod)?;
 
-        let spawn_opt = SpawnOptions {
-            has_skip_info: true,
-            ..Default::default()
-        };
-
         let job_def = JobDefinition::new(*self, JobType::Build { production: prod });
 
         if skip {
             spawn_skip(job_def, cmd.to_string()).await
         } else {
-            spawn(job_def, cmd, Some(path), iter::empty(), Some(spawn_opt)).await
+            spawn(job_def, cmd, Some(path), iter::empty(), None).await
         }
     }
 

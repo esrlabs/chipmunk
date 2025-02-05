@@ -6,8 +6,6 @@ import { ParserExtraConfigurationModule } from '@ui/tabs/observe/parsers/extra/m
 
 import { TabObserveFile } from './component';
 
-const components = [TabObserveFile];
-
 @NgModule({
     imports: [
         CommonModule,
@@ -15,8 +13,8 @@ const components = [TabObserveFile];
         ParserGeneralConfigurationModule,
         ParserExtraConfigurationModule,
     ],
-    declarations: [...components],
-    exports: [...components],
-    bootstrap: [...components],
+    declarations: [TabObserveFile],
+    exports: [TabObserveFile],
+    bootstrap: [TabObserveFile],
 })
 export class FileModule {}

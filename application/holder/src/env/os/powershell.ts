@@ -235,7 +235,6 @@ function findPSCoreDotnetGlobalTool(): IPossiblePowerShellExe {
 
 function findWinPS(): IPossiblePowerShellExe | null {
     const winPSPath = paths.join(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         process.env['windir']!,
         processArch === Arch.x86 && osArch !== Arch.x86 ? 'SysNative' : 'System32',
         'WindowsPowerShell',

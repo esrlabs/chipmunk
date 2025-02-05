@@ -4,10 +4,9 @@ import { CommonModule } from '@angular/common';
 import { HiddenFilter } from './component';
 export { HiddenFilter } from './component';
 
-const components = [HiddenFilter];
 @NgModule({
     imports: [CommonModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [HiddenFilter],
+    exports: [HiddenFilter],
 })
 export class HiddenFilterModule {}

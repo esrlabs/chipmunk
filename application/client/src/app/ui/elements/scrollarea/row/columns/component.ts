@@ -21,6 +21,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
     templateUrl: './template.html',
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Columns extends ChangesDetector implements AfterContentInit {

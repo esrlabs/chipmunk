@@ -1,8 +1,9 @@
 import { Session } from '@service/session';
 import { IRowsPacket, Service } from '@elements/scrollarea/controllers/service';
 import { Range, IRange } from '@platform/types/range';
-import { Row, Owner } from '@schema/content/row';
+import { Owner, RowSrc } from '@schema/content/row';
 import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
+import { Nature } from '@platform/types/content';
 
 const SCROLLAREA_SERVICE = 'search_scroll_area_service';
 
@@ -11,8 +12,8 @@ async function getRowFrom(
     element: GrabbedElement,
     elements: GrabbedElement[],
     index: number,
-): Promise<Row> {
-    const row = new Row({
+): Promise<RowSrc> {
+    const row: RowSrc = {
         position: element.pos,
         content: element.content,
         session: session,
@@ -21,8 +22,8 @@ async function getRowFrom(
             typeof element.source_id === 'string'
                 ? parseInt(element.source_id, 10)
                 : element.source_id,
-        nature: element.nature,
-    });
+        nature: new Nature(element.nature),
+    };
     if (!row.nature.seporator) {
         return row;
     }

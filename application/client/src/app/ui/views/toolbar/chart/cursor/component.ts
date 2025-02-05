@@ -18,6 +18,7 @@ enum Target {
     selector: 'app-views-chart-cursor',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

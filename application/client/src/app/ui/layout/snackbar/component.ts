@@ -9,6 +9,7 @@ import { LayoutSnackBarMessage } from './message/component';
     selector: 'app-layout-snackbar',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class LayoutSnackBar implements AfterContentInit {

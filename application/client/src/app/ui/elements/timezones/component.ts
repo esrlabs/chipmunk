@@ -19,6 +19,7 @@ import { HiddenFilter } from '@elements/filter.hidden/component';
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Initial()
 @Ilc()

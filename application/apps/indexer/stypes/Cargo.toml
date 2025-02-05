@@ -43,6 +43,8 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 remove_dir_all = "1.0"
 ts-rs = { version = "10.1", features = ["uuid-impl"] }
 
+# Proptest and its random number generator can be CPU intensive, therefore setting their optimizations level 
+# to max will have significant performance improvement for the tests.
 [profile.test.package.proptest]
 opt-level = 3
 

@@ -50,10 +50,9 @@ BUILD_COMMAND = [
     "--",
     "chipmunk",
     "build",
-    # Provide app and core targets only and it should pull all other targets expect for build CLI,
+    # Provide app target only and it should pull all other targets expect for build CLI,
     # which isn't possible to build on Windows because it's not allowed to replace a binary while
     # it's running.
-    "core",
     "app",
 ]
 
@@ -78,7 +77,7 @@ APP_PATHS_FOR_BUILD_CHECK = [
     "apps/rustcore/wasm-bindings/pkg",
     "apps/rustcore/wasm-bindings/node_modules",
     # Client
-    "client/dist",
+    "client/dist/debug",
     "client/node_modules",
     # Updater
     "apps/precompiled/updater/target",
@@ -171,7 +170,7 @@ INVOLVED_PATHS_BUILD_RECORDS_CHECK = [
     # Wrapper
     "apps/rustcore/ts-bindings/dist/index.js",
     # Client
-    "client/dist",
+    "client/dist/debug",
     # App
     "holder/dist/app.js",
 ]

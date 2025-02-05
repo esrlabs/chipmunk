@@ -21,7 +21,8 @@ const getSequence: () => number = (function () {
 @Component({
     selector: 'lib-containers-dynamic',
     template: '',
-    styles: [':host { display: none; }']
+    styles: [':host { display: none; }'],
+    standalone: false,
 })
 export class DynamicComponent {
     private _component: any = null;

@@ -8,6 +8,7 @@ import { Filter } from '@ui/env/entities/filter';
     selector: 'app-filter-hidden',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

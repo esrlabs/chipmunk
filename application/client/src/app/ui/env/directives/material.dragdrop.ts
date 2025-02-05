@@ -6,6 +6,7 @@ import { scope } from '@platform/env/scope';
 @Directive({
     selector: '[appMatDragDropResetFeature]',
     exportAs: 'appMatDragDropResetFeatureRef',
+    standalone: false,
 })
 export class MatDragDropResetFeatureDirective implements OnDestroy {
     private _anchor: HTMLElement | undefined;

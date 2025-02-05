@@ -24,6 +24,7 @@ import { Providers } from '../providers/providers';
             directive: CdkDropList,
         },
     ],
+    standalone: false,
 })
 @Ilc()
 export class Bin extends ChangesDetector implements AfterContentInit, OnDestroy {

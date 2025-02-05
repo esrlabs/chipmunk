@@ -1,109 +1,178 @@
+# 3.15.3 (03.02.2025)
+
+## Fixes
+
+- Fixed an issue related to navigation in a nested search
+- Fixed an issue related to navigation in a major search
+
+## Changes
+
+- Bind "Enter" with the next result in a nested search
+- Boost scrolling rate to better support touchpads
+
+# 3.15.2 (31.01.2025)
+
+## Fixes
+
+- Fixed an issue related to hashing row's state
+
+# 3.15.1 (30.01.2025)
+
+## Fixes
+
+- Fixed an issue related to breadcrumbs
+- Fixed an issue with updating rows in views
+
+# 3.15.0 (27.01.2025)
+
+## Features
+
+- Add support for nested search in the search results
+
+## Changes
+
+- Upgrade Angular version to 19.x
+- Upgrade Electron version to 34.x
+- Upgrade the rest npm packages to recent versions
+
+## Developing
+
+- Update build CLI
+
+# 3.14.4 (08.01.2025)
+
+## Changes
+
+- Using binary format for messaging instead of JSON strings
+
 # 3.14.3 (15.11.2024)
 
 ## Corrections
+
 - show recently added filters after importing
 - add parsing of DLT payload's network prefix
 
 # 3.14.2 (08.11.2024)
 
 ## Corrections
+
 - better parsing Some/IP in the scope of DLT Network Trace
 - cleanup temporary session files
 
 # 3.14.1 (28.10.2024)
 
 ## Corrections
+
 - allow select columns, which will be exported into a file on search results export
 - suggest default file name on exporting and saving of attachments
 
 # 3.14.0 (25.10.2024)
 
 ## Features
+
 - allow select columns, which will be exported into a file
 
 ## Developing
+
 - add additional tests for exporting functionality
 
 # 3.13.5 (21.10.2024)
 
 ## Fixes
-- fix export feature
 
+- fix export feature
 
 # 3.13.4 (21.10.2024)
 
 ## Fixes
+
 - sanitize the attachment path before saving
 - prevent closing session on invalid attachment
 
 ## Changes
+
 - add support for multiple values/messages on the producer level
 
 # 3.13.3 (18.10.2024)
 
 ## Fixes
+
 - fix a filters on selecting file dialog
 
 # 3.13.2 (04.10.2024)
 
 ## Changes
+
 - pretty printing Some/IP payloads
 
 ## Fixes
+
 - fixed sticky scrolling for files and streams
 
 # 3.13.1 (27.09.2024)
 
 ## Changes
+
 - improve performance of parsing Some/IP messages from DLT payload
 - import filters/chars/disabled from parent session on new one based on search results
 
 # 3.13.0 (19.09.2024)
 
 ## Fixes
+
 - prevent requests to the nearest position (search results) on empty results
 
 ## Changes
+
 - remove "Copy As Formatted Table"
 - apply formatted coping as soon as the render is columns
 
 ## Features
+
 - add support Some/IP messages from DLT payload
 
 ## Developing
+
 - switching build workflow from ruby scripts (rake) to own build CLI module
 - add benchmark tests to keep control of performance
 
 # 3.12.9 (06.06.2024)
 
 ## Fixes
+
 - Fix issue with non-UTF8 symbols in paths (recent actions)
 
 # 3.12.8 (24.05.2024)
 
 ## Fixes
-- Fix issue on stopping observing 
+
+- Fix issue on stopping observing
 
 # 3.12.7 (17.05.2024)
 
 ## Changes
+
 - Allow open files from favorites by dblclick
 
 ## Fixes
+
 - Fix the import/export presets feature
 - Fix logger. Make it react to envvars correctly
 
 ## Updates
+
 - Upgrade electron version
 
 # 3.12.6 (10.05.2024)
 
 ## Changes
+
 - Up electron version to 30.x.x
 
 # 3.12.5 (08.05.2024)
 
 ## Changes
+
 - Check filters/charts during importing
 - Highlight invalid filters/charts in sidebar
 - Prevent search with invalid conditions
@@ -114,53 +183,63 @@
 # 3.12.4 (19.04.2024)
 
 ## Fixes
+
 - Fix parsing disabled entities (filters/charts)
 
 # 3.12.3 (19.04.2024)
 
 ## Changes
+
 - Optimization of the events life cycle of filters/charts/disabled
 
 # 3.12.2 (19.04.2024)
 
 ## Changes
+
 - Optimization for "History/Presets" tab
 
 # 3.12.1 (16.04.2024)
 
 ## Fixes
+
 - Fix issue related to invalid UTF-8 and Unicode
 
 # 3.12.0 (12.04.2024)
 
 ## Features
+
 - Allow export a session state as CLI command
 
 ## Changes
+
 - Update UI related to tabs
 
 # 3.11.2 (22.03.2024)
 
 ## Changes
+
 - Allow custom entry-point for teamwork
 
 ## Fixes
+
 - Fix loading metadata for teamwork for new files
 - Suggest action on merge conflicts (teamwork)
-
 
 # 3.11.1 (22.03.2024)
 
 ## Fixes
+
 - Fix create/update/change repo issue in context of Teamwork feature
 
 # 3.11.0 (22.03.2024)
 
 ## Fixes
+
 - Fixed bookmarks update event
 - Fixed "/" shortcut
 
 ## Features
+
 - Add feature "teamwork" for sharing session data between users
 - Add feature "comments" to comment content of file
 

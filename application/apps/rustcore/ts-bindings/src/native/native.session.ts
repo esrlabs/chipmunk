@@ -148,6 +148,12 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract isRawExportAvailable(): Promise<boolean>;
 
+    public abstract searchNestedMatch(
+        filter: IFilter,
+        from: number,
+        rev: boolean,
+    ): Promise<[number, number] | undefined>;
+
     public abstract search(filters: IFilter[], operationUuid: string): Promise<void>;
 
     public abstract searchValues(filters: string[], operationUuid: string): Promise<void>;
@@ -281,6 +287,17 @@ export abstract class RustSessionNative {
         }>,
         operationUuid: string,
     ): Promise<void>;
+
+    public abstract searchNestedMatch(
+        filter: {
+            value: string;
+            is_regex: boolean;
+            ignore_case: boolean;
+            is_word: boolean;
+        },
+        from: number,
+        rev: boolean,
+    ): Promise<[number, number] | undefined>;
 
     public abstract applySearchValuesFilters(
         filters: string[],
@@ -822,6 +839,36 @@ export class RustSessionWrapper extends RustSession {
                     });
             } catch (err) {
                 return reject(new NativeError(NativeError.from(err), Type.Other, Source.Search));
+            }
+        });
+    }
+
+    public searchNestedMatch(
+        filter: IFilter,
+        from: number,
+        rev: boolean,
+    ): Promise<[number, number] | undefined> {
+        return new Promise((resolve, reject) => {
+            try {
+                this._native
+                    .searchNestedMatch(
+                        {
+                            value: filter.filter,
+                            is_regex: filter.flags.reg,
+                            ignore_case: !filter.flags.cases,
+                            is_word: filter.flags.word,
+                        },
+                        from,
+                        rev,
+                    )
+                    .then(resolve)
+                    .catch((err: Error) => {
+                        reject(NativeError.from(err));
+                    });
+            } catch (err) {
+                return reject(
+                    new NativeError(NativeError.from(err), Type.Other, Source.SearchNested),
+                );
             }
         });
     }

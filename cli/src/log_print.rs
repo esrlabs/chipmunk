@@ -8,7 +8,7 @@ use crate::spawner::SpawnResult;
 pub fn print_report(spawn_result: &SpawnResult) {
     match (spawn_result.skipped, spawn_result.status.success()) {
         // Skipped
-        (Some(true), _) => {
+        (true, _) => {
             let msg = format!("Job '{}' has been skipped", spawn_result.job);
             println!("{}", style(msg).cyan().bold());
         }
@@ -26,7 +26,7 @@ pub fn print_report(spawn_result: &SpawnResult) {
     println!();
 
     println!("Command: {}", spawn_result.cmd);
-    if spawn_result.skipped.is_some_and(|skipped| skipped) {
+    if spawn_result.skipped {
         return;
     }
 

@@ -9,6 +9,7 @@ import { IInfoBlock } from '@service/session/dependencies/info';
     selector: 'app-statusbar-info',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class SessionInfo extends ChangesDetector implements AfterViewInit, OnDestroy {

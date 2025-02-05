@@ -9,6 +9,7 @@ import { Observe } from '@platform/types/observe';
     selector: 'app-el-someip-extra',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Initial()
 @Ilc()

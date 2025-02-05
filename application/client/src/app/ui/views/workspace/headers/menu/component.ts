@@ -15,6 +15,7 @@ import { CColors } from '@ui/styles/colors';
     styleUrls: ['./styles.less'],
     templateUrl: './template.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 export class ViewWorkspaceHeadersMenuComponent extends ChangesDetector implements AfterContentInit {
     protected clickOnCheckbox: boolean = false;

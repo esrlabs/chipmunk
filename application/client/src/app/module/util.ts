@@ -9,7 +9,7 @@ export function getFilterError(
     try {
         const result = wasm.getBindings().get_filter_error(filter, caseSensitive, wholeWord, regex);
         return typeof result !== 'string' ? undefined : result;
-    } catch (e) {
+    } catch (_e) {
         return undefined;
     }
 }

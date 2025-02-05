@@ -10,6 +10,7 @@ import { stop } from '@ui/env/dom';
     selector: 'app-views-observed-file',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
+    standalone: false,
 })
 @Ilc()
 export class Item extends ChangesDetector implements AfterContentInit {

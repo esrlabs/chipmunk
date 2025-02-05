@@ -33,6 +33,7 @@ function initialSidebarWidth(): LimittedValue {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Ilc()
 export class Layout extends ChangesDetector implements AfterViewInit {

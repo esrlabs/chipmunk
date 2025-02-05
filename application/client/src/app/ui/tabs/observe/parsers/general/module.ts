@@ -26,13 +26,7 @@ import { ParserGeneralConfiguration } from './component';
         ParserPluginGeneralConfigurationModule,
         ErrorStateModule,
     ],
-    bootstrap: [
-        ParserGeneralConfiguration,
-        DltGeneralConfigurationModule,
-        SomeIpGeneralConfigurationModule,
-        TextGeneralConfigurationModule,
-        ParserPluginGeneralConfigurationModule,
-        ErrorStateModule,
-    ],
+    //TODO AAZ: Add ParserGeneralConfiguration to general if needed.
+    bootstrap: [ParserGeneralConfiguration],
 })
 export class ParserGeneralConfigurationModule {}

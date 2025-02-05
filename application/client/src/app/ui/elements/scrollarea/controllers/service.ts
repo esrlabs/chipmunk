@@ -1,4 +1,4 @@
-import { Row } from '@schema/content/row';
+import { RowSrc } from '@schema/content/row';
 import { Range } from './range';
 import { Subject, Subscription } from '@platform/env/subscription';
 import { IRange, Range as SafeRange } from '@platform/types/range';
@@ -9,7 +9,7 @@ export { Range };
 
 export interface IRowsPacket {
     range: IRange;
-    rows: Row[];
+    rows: RowSrc[];
 }
 
 export type CursorCorrectorHandler = () => number;

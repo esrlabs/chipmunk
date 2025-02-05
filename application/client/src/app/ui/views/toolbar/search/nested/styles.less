@@ -1,0 +1,55 @@
+@import '../../../../styles/variables.less';
+
+app-views-search-nested {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    height: 32px;
+    width: 300px;
+    background: @scheme-color-5;
+    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.4);
+    div.input {
+        display: block;
+        flex: auto;
+        height: 24px;
+        overflow: hidden;
+        align-items: center;
+        padding-left: 6px;
+    }
+    div.flags,
+    div.arrows {
+        display: flex;
+        padding: 0px 8px 0 8px;
+        align-items: center;
+        & span {
+            display: inline-block;
+            height: 24px;
+            width: 24px;
+            color: @scheme-color-0;
+            text-align: center;
+            padding-top: 4px;
+            box-sizing: border-box;
+            &:hover{
+                background: @scheme-color-4;
+            }
+            &.active{
+                background: @scheme-color-active;
+            }
+            &.invalid {
+                color: @scheme-color-error;
+            }
+        }
+    } 
+    & span.progress {
+        position: absolute;
+        bottom: 0;
+        left:0;
+        width: 100%;
+        height: 2px;
+        overflow: hidden;
+    }
+}

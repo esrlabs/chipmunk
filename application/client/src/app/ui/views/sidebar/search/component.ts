@@ -31,6 +31,7 @@ import * as ids from '@schema/ids';
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false,
 })
 @Initial()
 @Ilc()

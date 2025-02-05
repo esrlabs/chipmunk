@@ -386,6 +386,60 @@ impl RustSession {
             .await
     }
 
+    /// "nested" search.
+    /// A "nested" search refers to filtering matches within the primary search results.
+    ///
+    /// # Parameters
+    ///
+    /// * `filter` - The search filter used to specify the criteria for the nested search.
+    /// * `from` - The starting position (within the primary search results) for the nested search.
+    /// * `rev` - Specifies the direction of the search:
+    ///     * `true` - Perform the search in reverse.
+    ///     * `false` - Perform the search in forward order.
+    ///
+    /// # Returns
+    ///
+    /// If a match is found:
+    /// * `Some((search_result_line_index, session_file_line_index))` - A tuple containing:
+    ///     - The line index within the search results.
+    ///     - The corresponding line index in the session file.
+    ///
+    /// If no match is found:
+    /// * `None`
+    ///
+    /// On error:
+    /// * `Err(stypes::ComputationError)` - Describes the error encountered during the process.
+    #[node_bindgen]
+    async fn search_nested_match(
+        &self,
+        filter: WrappedSearchFilter,
+        from: i64,
+        rev: bool,
+    ) -> Result<Option<(i64, i64)>, stypes::ComputationError> {
+        let res = self
+            .session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .search_nested_match(
+                filter.as_filter(),
+                u64::try_from(from).map_err(|_| stypes::ComputationError::InvalidData)?,
+                rev,
+            )
+            .await?;
+        Ok(if let Some((pos, srch_pos)) = res {
+            Some((
+                i64::try_from(pos).map_err(|e| {
+                    stypes::ComputationError::SearchError(format!("fail convert index: {e}"))
+                })?,
+                i64::try_from(srch_pos).map_err(|e| {
+                    stypes::ComputationError::SearchError(format!("fail convert index: {e}"))
+                })?,
+            ))
+        } else {
+            None
+        })
+    }
+
     #[node_bindgen]
     async fn observe(
         &self,

@@ -44,6 +44,7 @@ export const COLUMNS = {
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
     encapsulation: ViewEncapsulation.None,
+    standalone: false,
 })
 @Ilc()
 export class TabSourceMultipleFilesStructure implements AfterContentInit, AfterViewInit, OnDestroy {

@@ -5,11 +5,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { LocksHistory } from './component';
 import { LocksHistoryEntry } from './entry/component';
 
-const components = [LocksHistory, LocksHistoryEntry];
-
 @NgModule({
     imports: [CommonModule, MatIconModule],
-    declarations: [...components],
-    exports: [...components]
+    declarations: [LocksHistory, LocksHistoryEntry],
+    exports: [LocksHistory],
 })
 export class LocksHistoryModule {}

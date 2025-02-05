@@ -6,7 +6,7 @@ use crate::{
     fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
-    spawner::{spawn, spawn_blocking, SpawnResult},
+    spawner::{spawn, spawn_blocking, spawn_skip, SpawnResult},
     JobsState,
 };
 
@@ -29,8 +29,12 @@ const TEST_FILES_SUFFIXES: &[&str] = &[".spec.js", ".spec.ts"];
 // sequentially using `Stdio::inherit` to keep using the main shell, printing the results
 // of the test directly to standard out, then the progress bars will be shown again.
 
-pub async fn run_test(production: bool) -> Result<SpawnResult, anyhow::Error> {
+pub async fn run_test(production: bool, skip: bool) -> Result<SpawnResult, anyhow::Error> {
     let job_def = JobDefinition::new(Target::Wrapper, JobType::Test { production });
+
+    if skip {
+        return spawn_skip(job_def, "Various test wrapper commands".into()).await;
+    }
 
     let cwd = Target::Wrapper.cwd();
 

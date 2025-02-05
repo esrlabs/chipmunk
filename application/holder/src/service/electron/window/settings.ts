@@ -24,7 +24,7 @@ export class Settings extends Implementation<Window> {
             this._settings.x = obj.getAsValidNumber(settings, 'x', { min: 0 });
             this._settings.y = obj.getAsValidNumber(settings, 'y', { min: 0 });
             return Promise.resolve();
-        } catch (e) {
+        } catch (_err) {
             return Promise.reject(
                 new Error(this.log().error(`Fail to read settings from string: ${content}`)),
             );

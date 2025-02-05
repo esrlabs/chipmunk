@@ -10,7 +10,7 @@ blake3 = { version = "1", features = ["rayon"] }
 ignore = "0.4"
 memmap2 = "0.9"
 rayon = "1"
-thiserror = "1"
+thiserror = "2"
 log = "0.4"
 
 [dev-dependencies]

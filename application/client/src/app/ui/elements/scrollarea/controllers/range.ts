@@ -98,6 +98,6 @@ export class Range {
     }
 
     public hash(): string {
-        return `${this.getTotal()}:${this.get().start}-${this.get().end}`;
+        return `${this.getLength()}:${this.get().start}-${this.get().end}`;
     }
 }
