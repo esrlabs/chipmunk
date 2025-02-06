@@ -35,7 +35,8 @@ export class ConfigSchemaString extends ChangesDetector implements AfterContentI
     }
 
     ngAfterContentInit(): void {
-        this.value = '';
+        const input_type = this.config.input_type;
+        this.value = this.state.isTextItem(input_type) ? input_type.Text : '';
         this.state.saveConfig(this.config.id, { Text: this.value });
     }
 

@@ -114,16 +114,20 @@ pub enum PluginConfigValue {
     ts(export, export_to = "plugins.ts")
 )]
 pub enum PluginConfigSchemaType {
-    Boolean,
-    Integer,
-    Float,
-    Text,
-    /// A list of directories.
+    /// Represents boolean type with the default value.
+    Boolean(bool),
+    /// Represents numerical integer type with the default value.
+    Integer(i32),
+    /// Represents numerical floating type with the default value.
+    Float(f32),
+    /// Represents a text type with the default value.
+    Text(String),
+    /// Represents a list of directories.
     Directories,
-    /// A list of types with the given allowed extensions.
+    /// Represents a list of types with the given allowed file extensions (Empty to allow all).
     Files(Vec<String>),
-    /// Drop-down input type with a list of selectable options.
-    Dropdown(Vec<String>),
+    /// Represents Drop-down input type with a list of selectable options and the default value.
+    Dropdown((Vec<String>, String)),
 }
 
 /// Represents the schema for a configuration item.

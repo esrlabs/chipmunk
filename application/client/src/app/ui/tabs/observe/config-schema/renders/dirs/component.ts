@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { PluginConfigSchemaItem } from '@platform/types/bindings';
 import { State } from '../../state';
@@ -10,7 +10,7 @@ import { bridge } from '@service/bridge';
     styleUrls: ['./styles.less'],
     standalone: false,
 })
-export class ConfigSchemaDirs extends ChangesDetector {
+export class ConfigSchemaDirs extends ChangesDetector implements AfterContentInit {
     @Input() public config!: PluginConfigSchemaItem;
     @Input() public state!: State;
 
@@ -37,6 +37,10 @@ export class ConfigSchemaDirs extends ChangesDetector {
                 this.update();
                 this.detectChanges();
             });
+    }
+
+    ngAfterContentInit(): void {
+        this.update();
     }
 
     public ngOnRemovePath(dir: string): void {

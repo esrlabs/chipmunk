@@ -94,13 +94,13 @@ export type PluginConfigSchemaItem = {
  * Defines the possible input types for configuration schemas.
  */
 export type PluginConfigSchemaType =
-    | 'Boolean'
-    | 'Integer'
-    | 'Float'
-    | 'Text'
+    | { Boolean: boolean }
+    | { Integer: number }
+    | { Float: number }
+    | { Text: string }
     | 'Directories'
     | { Files: Array<string> }
-    | { Dropdown: Array<string> };
+    | { Dropdown: [Array<string>, string] };
 
 /**
  * Represents the value of a configuration item.

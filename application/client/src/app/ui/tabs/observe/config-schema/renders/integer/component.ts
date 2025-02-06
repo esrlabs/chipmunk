@@ -35,7 +35,8 @@ export class ConfigSchemaInteger extends ChangesDetector implements AfterContent
     }
 
     ngAfterContentInit(): void {
-        this.value = 0;
+        const input_type = this.config.input_type;
+        this.value = this.state.isIntegerItem(input_type) ? input_type.Integer : 0;
         this.state.saveConfig(this.config.id, { Integer: this.value });
     }
 

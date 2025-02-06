@@ -36,7 +36,9 @@ export class ConfigSchemaFloat extends ChangesDetector implements AfterContentIn
     }
 
     ngAfterContentInit(): void {
-        this.value = 0.0;
+        const input_type = this.config.input_type;
+
+        this.value = this.state.isFloatItem(input_type) ? input_type.Float : 0.0;
         this.state.saveConfig(this.config.id, {
             Float: this.value,
         });

@@ -28,8 +28,13 @@ export class ConfigSchemaDropdown extends ChangesDetector implements AfterConten
 
     ngAfterContentInit(): void {
         const input_type = this.config.input_type;
-        if (typeof input_type === 'object' && 'Dropdown' in input_type) {
-            this.allOptions = input_type.Dropdown;
+        if (this.state.isDropdownItem(input_type)) {
+            this.allOptions = input_type.Dropdown[0];
+            this.selectedOption = input_type.Dropdown[1];
+
+            this.state.saveConfig(this.config.id, {
+                Dropdown: this.selectedOption,
+            });
         }
     }
 

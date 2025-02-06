@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { PluginConfigSchemaItem } from '@platform/types/bindings';
 import { State } from '../../state';
@@ -11,7 +11,7 @@ import { bridge } from '@service/bridge';
     styleUrls: ['./styles.less'],
     standalone: false,
 })
-export class ConfigSchemaFiles extends ChangesDetector {
+export class ConfigSchemaFiles extends ChangesDetector implements AfterContentInit {
     @Input() public config!: PluginConfigSchemaItem;
     @Input() public state!: State;
 
@@ -38,6 +38,7 @@ export class ConfigSchemaFiles extends ChangesDetector {
                 });
                 this.paths = this.paths.concat(files);
             })
+
             .catch((err: Error) => {
                 console.error(`Error while opening folders: ${err.message}`);
             })
@@ -45,6 +46,10 @@ export class ConfigSchemaFiles extends ChangesDetector {
                 this.update();
                 this.detectChanges();
             });
+    }
+
+    ngAfterContentInit(): void {
+        this.update();
     }
 
     public ngOnRemovePath(file: File): void {

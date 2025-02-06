@@ -20,7 +20,8 @@ export class ConfigSchemaBool extends ChangesDetector implements AfterContentIni
     }
 
     ngAfterContentInit(): void {
-        this.value = false;
+        const input_type = this.config.input_type;
+        this.value = this.state.isBooleanItem(input_type) ? input_type.Boolean : false;
         this.state.saveConfig(this.config.id, { Boolean: this.value });
     }
 

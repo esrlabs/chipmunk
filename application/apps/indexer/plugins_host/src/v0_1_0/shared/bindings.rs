@@ -63,13 +63,13 @@ impl From<stypes::PluginConfigItem> for ConfigItem {
 impl From<ConfigSchemaType> for HostSchemaType {
     fn from(value: ConfigSchemaType) -> Self {
         match value {
-            ConfigSchemaType::Boolean => HostSchemaType::Boolean,
-            ConfigSchemaType::Integer => HostSchemaType::Integer,
-            ConfigSchemaType::Float => HostSchemaType::Float,
-            ConfigSchemaType::Text => HostSchemaType::Text,
+            ConfigSchemaType::Boolean(val) => HostSchemaType::Boolean(val),
+            ConfigSchemaType::Integer(val) => HostSchemaType::Integer(val),
+            ConfigSchemaType::Float(val) => HostSchemaType::Float(val),
+            ConfigSchemaType::Text(val) => HostSchemaType::Text(val),
             ConfigSchemaType::Directories => HostSchemaType::Directories,
-            ConfigSchemaType::Files(exts) => HostSchemaType::Files(exts),
-            ConfigSchemaType::Dropdown(items) => HostSchemaType::Dropdown(items),
+            ConfigSchemaType::Files(val) => HostSchemaType::Files(val),
+            ConfigSchemaType::Dropdown(val) => HostSchemaType::Dropdown(val),
         }
     }
 }

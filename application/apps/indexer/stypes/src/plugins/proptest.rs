@@ -111,24 +111,28 @@ impl Arbitrary for PluginConfigSchemaType {
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         use PluginConfigSchemaType as T;
         // Reminder to add new items to proptests here.
-        _ = match T::Boolean {
-            T::Boolean => (),
-            T::Integer => (),
-            T::Float => (),
-            T::Text => (),
+        _ = match T::Boolean(true) {
+            T::Boolean(_) => (),
+            T::Integer(_) => (),
+            T::Float(_) => (),
+            T::Text(_) => (),
             T::Directories => (),
             T::Files(_) => (),
             T::Dropdown(_) => (),
         };
 
         prop_oneof![
-            Just(T::Boolean),
-            Just(T::Integer),
-            Just(T::Float),
-            Just(T::Text),
+            any::<bool>().prop_map(T::Boolean),
+            any::<i32>().prop_map(T::Integer),
+            any::<f32>().prop_map(T::Float),
+            any::<String>().prop_map(T::Text),
             Just(T::Directories),
             prop::collection::vec(any::<String>(), 0..10).prop_map(T::Files),
-            prop::collection::vec(any::<String>(), 0..10).prop_map(T::Dropdown),
+            (
+                prop::collection::vec(any::<String>(), 0..10),
+                any::<String>()
+            )
+                .prop_map(T::Dropdown),
         ]
         .boxed()
     }
