@@ -11,6 +11,7 @@ use crate::{
     PluginHostInitError, WasmPlugin,
 };
 
+/// Interface name for the byte-source plugin with the package name as defined in WIT file.
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:bytesource/byte-source";
 
 /// The maximum number of consecutive returns with empty bytes allowed from a plugin.
@@ -139,6 +140,7 @@ impl PluginsByteSource {
         }
     }
 
+    /// Calls the function read on the plugin with provided length return the read byte.
     async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
         let res = match &mut self.source {
             PlugVerByteSource::Ver010(source) => source.read_next(len).await,
@@ -183,6 +185,7 @@ impl WasmPlugin for PluginsByteSource {
     }
 }
 
+// PluginsByteSource implements Read trait so we can use it with `BinaryByteSource`
 impl Read for PluginsByteSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let len = buf.len();

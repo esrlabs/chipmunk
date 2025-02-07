@@ -17,6 +17,8 @@ export interface IConfiguration {
     plugin_configs: PluginConfigItem[];
 }
 
+//TODO Dmitry: Names and Descriptions having TODO in them needs to be updated.
+
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
 export class Configuration
     extends Base<IConfiguration, Configuration, Protocol>
@@ -113,7 +115,6 @@ export class Configuration
     }
 }
 
-//TODO AAZ: Move to central position.
 /**
  * Helper function to ensure the remaining item is never for exhausting matching at compile time,
  * and throwing an unhandled error at runtime.

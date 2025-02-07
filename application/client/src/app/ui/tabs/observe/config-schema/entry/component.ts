@@ -1,6 +1,6 @@
 import { Component, ChangeDetectorRef, Input } from '@angular/core';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { PluginConfigSchemaItem, PluginConfigSchemaType } from '@platform/types/bindings/plugins';
+import { PluginConfigSchemaItem } from '@platform/types/bindings/plugins';
 import { State } from '../state';
 
 @Component({

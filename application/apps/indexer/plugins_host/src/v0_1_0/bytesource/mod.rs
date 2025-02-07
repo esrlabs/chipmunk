@@ -1,3 +1,6 @@
+//! Include structures and implementation of byte-source plugins for API version 0.1.0
+//! as defined in WIT files.
+
 mod bindings;
 mod bytesource_plugin_state;
 
@@ -18,6 +21,7 @@ use crate::{
     PluginGuestInitError, PluginHostInitError,
 };
 
+/// Host of the byte-source plugin for plugins API version 0.1.0
 pub struct PluginByteSource {
     store: Store<ByteSourcePluginState>,
     plugin_bindings: Bytesource,
@@ -95,6 +99,7 @@ impl PluginByteSource {
         Ok(byte_source)
     }
 
+    /// Request configuration schemas from the plugin Guest.
     pub async fn get_config_schemas(
         &mut self,
     ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
@@ -107,6 +112,7 @@ impl PluginByteSource {
         Ok(schemas.into_iter().map(|item| item.into()).collect())
     }
 
+    /// Requests plugins version from plugin Guest.
     pub async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
         let version = self
             .plugin_bindings
@@ -117,6 +123,8 @@ impl PluginByteSource {
         Ok(version.into())
     }
 
+    /// Requests from guest plugins to read and provide next chunk for bytes with
+    /// the given length.
     pub async fn read_next(&mut self, len: usize) -> io::Result<Vec<u8>> {
         let bytes_result = self
             .plugin_bindings

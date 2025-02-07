@@ -9,11 +9,6 @@ mod proptest;
 
 use crate::*;
 
-//TODO AAZ: Remove if still not used.
-#[allow(unused)]
-#[cfg(feature = "rustcore")]
-pub use extending::*;
-
 /// Settings for the Plugins parser.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
@@ -24,13 +19,13 @@ pub use extending::*;
 )]
 pub struct PluginParserSettings {
     pub plugin_path: PathBuf,
-    //Check if Default implementation should be removed on General Setting once this temp is done.
-    //TODO AAZ: Temp solution.
+    // General setting doesn't exist in front-end since it doesn't have real fields yet.
     #[serde(default)]
     pub general_settings: PluginParserGeneralSettings,
     pub plugin_configs: Vec<PluginConfigItem>,
 }
 
+//TODO AAZ: This struct is a place holder currently and doesn't provide any value yet.
 /// General settings for all parsers as plugins
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[extend::encode_decode]
@@ -39,7 +34,6 @@ pub struct PluginParserSettings {
     derive(TS),
     ts(export, export_to = "plugins.ts")
 )]
-//TODO AAZ: Check if this is needed in the final solution
 pub struct PluginParserGeneralSettings {
     pub placeholder: String,
 }
@@ -58,9 +52,9 @@ pub struct PluginByteSourceSettings {
     pub plugin_configs: Vec<PluginConfigItem>,
 }
 
-//TODO AAZ: Make sure this is needed
+//TODO: This struct is a place holder currently and doesn't provide any value yet.
 /// General settings for all byte-sources as plugins
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[extend::encode_decode]
 #[cfg_attr(
     all(test, feature = "test_and_gen"),

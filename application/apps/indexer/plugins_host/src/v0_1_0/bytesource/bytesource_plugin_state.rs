@@ -5,16 +5,20 @@ use super::bindings::{
     chipmunk::shared::{logging, shared_types},
 };
 
+/// State to be used within wasmtime runtime store but byte-source host.
 pub struct ByteSourcePluginState {
     pub ctx: WasiCtx,
     pub table: ResourceTable,
 }
 
 impl ByteSourcePluginState {
+    /// Creates new [`ByteSourcePluginState`] instance from the given arguments.
     pub fn new(ctx: WasiCtx, table: ResourceTable) -> Self {
         Self { ctx, table }
     }
 }
+
+// *** Implementation of traits the must be implemented by byte-source plugins state ***
 
 impl WasiView for ByteSourcePluginState {
     fn table(&mut self) -> &mut ResourceTable {

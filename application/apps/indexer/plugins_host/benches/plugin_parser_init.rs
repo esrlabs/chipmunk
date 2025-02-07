@@ -24,8 +24,9 @@ fn plugin_parser_init(c: &mut Criterion) {
     //TODO AAZ: Deliver plugin configurations for benchmarks
     let plugin_configs = Vec::new();
 
-    let settings = black_box(stypes::PluginParserSettings::prototyping(
+    let settings = black_box(stypes::PluginParserSettings::new(
         plugin_file,
+        stypes::PluginParserGeneralSettings::default(),
         plugin_configs,
     ));
 

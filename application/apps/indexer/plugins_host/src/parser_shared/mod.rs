@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use stypes::{ParserRenderOptions, SemanticVersion, ValidPluginInfo};
+use stypes::{SemanticVersion, ValidPluginInfo};
 use wasmtime::component::Component;
 
 use crate::{
@@ -10,6 +10,7 @@ use crate::{
 
 pub mod plugin_parse_message;
 
+/// Interface name for the parser plugin with the package name as defined in WIT file.
 const PARSER_INTERFACE_NAME: &str = "chipmunk:parser/parser";
 
 /// Marker for a column separator in the output string.
@@ -137,12 +138,6 @@ impl PluginsParser {
             invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
                 "Plugin version {invalid_version} is not supported"
             ))),
-        }
-    }
-
-    pub async fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
-        match &mut self.parser {
-            PlugVerParser::Ver010(parser) => parser.get_render_options().await,
         }
     }
 }

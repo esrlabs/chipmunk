@@ -228,7 +228,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     }
                 }
                 Err(ParserError::Unrecoverable(err)) => {
-                    //TODO AAZ: Better handling to this error.
+                    // Current producer loop swallows the errors after logging them,
+                    // returning that the session is ended after encountering such errors.
                     error!("Parsing failed: Error {err}");
                     eprintln!("Parsing failed: Error: {err}");
                     self.done = true;

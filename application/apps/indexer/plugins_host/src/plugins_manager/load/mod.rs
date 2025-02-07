@@ -1,6 +1,4 @@
 mod paths;
-#[cfg(test)]
-mod tests;
 
 use std::{
     fs::{self, read_to_string},
@@ -63,9 +61,13 @@ fn get_dirs(dir_path: &PathBuf) -> Result<impl Iterator<Item = PathBuf>, io::Err
     Ok(dirs)
 }
 
+/// Loads parser infos and metadata from the provided parser directory.
 async fn load_parser(dir: PathBuf) -> Result<PluginEntity, InitError> {
     let (wasm_file, metadata_file) = match validate_plugin_files(&dir)? {
-        PluginValidationState::Valid { wasm, metadata } => (wasm, metadata),
+        PluginValidationState::Valid {
+            wasm_path: wasm,
+            metadata,
+        } => (wasm, metadata),
         PluginValidationState::Invalid { err_msg } => {
             let invalid_entity = PluginEntity {
                 dir_path: dir,
@@ -127,17 +129,25 @@ async fn load_parser(dir: PathBuf) -> Result<PluginEntity, InitError> {
     Ok(valid_plugin)
 }
 
+/// Represents Plugins State and the corresponding infos.
 #[derive(Debug, Clone)]
 enum PluginValidationState {
+    /// Represents valid plugin with its infos and metadata.
     Valid {
-        wasm: PathBuf,
+        /// The path for the plugin wasm file.
+        wasm_path: PathBuf,
+        /// Metadata of the plugins found in plugins metadata toml file.
         metadata: Option<PathBuf>,
     },
+    /// Represents an invalid plugin with infos about validation error.
     Invalid {
+        /// Error message explaining why the plugin is invalid.
         err_msg: String,
     },
 }
 
+/// Loads the files inside plugin directory and validate their content return the state
+/// of the plugin.
 fn validate_plugin_files(dir: &PathBuf) -> Result<PluginValidationState, InitError> {
     use PluginValidationState as Re;
     let mut wasm_file = None;
@@ -172,7 +182,7 @@ fn validate_plugin_files(dir: &PathBuf) -> Result<PluginValidationState, InitErr
 
     let res = match wasm_file {
         Some(wasm) => Re::Valid {
-            wasm,
+            wasm_path: wasm,
             metadata: metadata_file,
         },
         None => {
@@ -185,6 +195,7 @@ fn validate_plugin_files(dir: &PathBuf) -> Result<PluginValidationState, InitErr
     Ok(res)
 }
 
+/// Parser the plugin metadata from the provided toml file.
 fn parse_metadata(file: &PathBuf) -> Result<PluginMetadata, String> {
     let content = read_to_string(file)
         .map_err(|err| format!("Reading metadata file fail. Error {err:#?}"))?;
@@ -192,6 +203,7 @@ fn parse_metadata(file: &PathBuf) -> Result<PluginMetadata, String> {
     toml::from_str(&content).map_err(|err| format!("Parsing metadata file fail. Error {err:#?}"))
 }
 
+/// Loads all byte-source plugins from their main directory.
 async fn load_all_bytesources() -> Result<Vec<PluginEntity>, InitError> {
     let mut bytesources = Vec::new();
 
@@ -211,9 +223,13 @@ async fn load_all_bytesources() -> Result<Vec<PluginEntity>, InitError> {
     Ok(bytesources)
 }
 
+/// Loads byte-source infos and metadata from the provided parser directory.
 async fn load_bytesource(dir: PathBuf) -> Result<PluginEntity, InitError> {
     let (wasm_file, metadata_file) = match validate_plugin_files(&dir)? {
-        PluginValidationState::Valid { wasm, metadata } => (wasm, metadata),
+        PluginValidationState::Valid {
+            wasm_path: wasm,
+            metadata,
+        } => (wasm, metadata),
         PluginValidationState::Invalid { err_msg } => {
             let invalid_entity = PluginEntity {
                 dir_path: dir,

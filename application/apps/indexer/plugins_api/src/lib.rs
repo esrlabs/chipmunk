@@ -10,7 +10,7 @@
 //! The provided types and functions match the definitions from the `WIT` files defined in Chipmunk
 //! repository.
 //!
-//! TODO: This is basic documentation that need a lot of improvements and examples
+//! TODO AAZ: This is basic documentation that need a lot of improvements and examples
 //!
 
 mod shared;
@@ -35,10 +35,6 @@ pub use shared::{
     logging::PluginLogSend as __PluginLogSend,
     plugin_logger::{LogSend as __LogSend, PluginLogger as __PluginLogger},
 };
-
-//TODO AAZ: Check if we can remove the features, after moving shared types.
-// NOTE: Calling generate! Macro multiple time on the same crate causes compilation errors with `cargo
-// component` in release mode.
 
 #[cfg(feature = "bytesource")]
 #[cfg_attr(docsrs, doc(cfg(feature = "bytesource")))]

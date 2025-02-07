@@ -46,8 +46,11 @@ pub async fn observe_file(
                     stypes::PluginConfigValue::Files(vec![filename.into()]),
                 )];
 
-                let setting =
-                    stypes::PluginByteSourceSettings::prototyping(path.into(), file_source_configs);
+                let setting = stypes::PluginByteSourceSettings::new(
+                    path.into(),
+                    Default::default(),
+                    file_source_configs,
+                );
 
                 let plugin_source = PluginsByteSource::initialize(
                     &setting.plugin_path,

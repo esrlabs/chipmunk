@@ -8,8 +8,12 @@ use stypes::{
 };
 wasmtime::component::bindgen!({
     path: "../plugins_api/wit/v0.1.0",
+    // Generate the shared type separately so we can reference those types on each plugin
+    // kind to avoid duplicating those generated types and all the mapping happens afterwords.
+    //
     // TODO AAZ: This is workaround because referencing bindings world won't generate
     // the types which aren't referenced in functions in the same world.
+    // An issue #10090 is open on `wasmtime` GitHub repo.
     world: "chipmunk:parser/parse",
     // world: "chipmunk:shared/bindings",
     async: {

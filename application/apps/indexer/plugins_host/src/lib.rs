@@ -1,3 +1,7 @@
+//! Library contains implementation for plugins system in Chipmunk using WASM with
+//! the component model approach.
+//! The used runtime for the plugin is [wasmtime](https://docs.rs/wasmtime/latest/wasmtime/)
+
 mod bytesource_shared;
 mod parser_shared;
 pub mod plugins_manager;
@@ -14,7 +18,7 @@ pub use bytesource_shared::PluginsByteSource;
 pub use plugins_shared::plugin_errors::{PluginGuestInitError, PluginHostInitError};
 use stypes::{PluginType, SemanticVersion};
 
-// Trait is used with Chipmunk only.
+/// Provided needed method and definitions for all WASM plugins in Chipmunk.
 #[allow(async_fn_in_trait)]
 pub trait WasmPlugin {
     /// Provides the Type of the plugin.

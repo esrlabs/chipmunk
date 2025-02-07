@@ -27,6 +27,7 @@ export class Configuration
         return Context.Plugin;
     }
 
+    //TODO Dmitry: All names and descriptions have TODO word in them.
     static desc(): IList {
         return {
             major: 'Plugin source static major TODO',
@@ -62,7 +63,6 @@ export class Configuration
         return this.configuration[0];
     }
 
-    //TODO AAZ: Complete this one all other plugins info are set.
     public set(): {
         alias(alias?: string): void;
         pluginDir(dir: string): void;

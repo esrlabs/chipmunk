@@ -105,7 +105,7 @@ export class Action {
                             return 'Connect with recent configuration';
                         case $.Description.OriginType.command:
                             return 'Execute with recent configuration';
-                        //TODO AAZ: Added this temporally to make it compile
+                        //TODO Dmitry: Added this temporally to make it compile
                         case $.Description.OriginType.plugin:
                             return '*** TODO Load with recent configuration TODO ***';
                     }

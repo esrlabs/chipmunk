@@ -16,7 +16,7 @@ import * as Plugin from './plugin';
 import * as Parser from '../parser';
 import * as Sde from '../sde';
 
-//TODO AAZ: Plugin byte source integration will be postponed
+//TODO AAZ & Dimtry: Plugin byte source integration will be postponed
 //until parser prototype is ready.
 export enum Context {
     File = 'File',

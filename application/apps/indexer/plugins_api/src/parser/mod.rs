@@ -262,7 +262,8 @@ macro_rules! parser_export {
                 use $crate::parser::Parser;
                 // SAFETY: Parse method has mutable reference to self and can't be called more than
                 // once on the same time on host
-                //TODO AAZ: Find better way than denying the warning.
+                //TODO AAZ: Measure the impact on this unsafe function and provide explanation for
+                // suppressing the warning here.
                 #[allow(static_mut_refs)]
                 let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
                 parser.parse(&data, timestamp).map(|items| items.collect())

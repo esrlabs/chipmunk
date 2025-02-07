@@ -3,37 +3,37 @@ use std::fmt::{self, Display};
 use crate::*;
 
 impl PluginParserSettings {
-    /// Implementation needed during prototyping only
-    pub fn prototyping(plugin_path: PathBuf, plugin_configs: Vec<PluginConfigItem>) -> Self {
+    /// Creates a new instance of parser settings with the provided arguments.
+    pub fn new(
+        plugin_path: PathBuf,
+        general_settings: PluginParserGeneralSettings,
+        plugin_configs: Vec<PluginConfigItem>,
+    ) -> Self {
         Self {
             plugin_path,
-            general_settings: PluginParserGeneralSettings {
-                placeholder: Default::default(),
-            },
+            general_settings,
             plugin_configs,
         }
-    }
-
-    /// Default implementation needed during prototyping only
-    pub fn default_prototyping() -> Self {
-        Self::prototyping(PathBuf::default(), Vec::new())
     }
 }
 
 impl PluginByteSourceSettings {
-    /// Implementation needed during prototyping only
-    pub fn prototyping(plugin_path: PathBuf, plugin_configs: Vec<PluginConfigItem>) -> Self {
+    /// Creates a new instance of byte-source settings with the provided arguments.
+    pub fn new(
+        plugin_path: PathBuf,
+        general_settings: PluginByteSourceGeneralSettings,
+        plugin_configs: Vec<PluginConfigItem>,
+    ) -> Self {
         Self {
             plugin_path,
-            general_settings: PluginByteSourceGeneralSettings {
-                placeholder: Default::default(),
-            },
+            general_settings,
             plugin_configs,
         }
     }
 }
 
 impl PluginConfigSchemaItem {
+    /// Creates a new instance of [`PluginConfigSchemaItem`] with the provided arguments.
     pub fn new<S: Into<String>>(
         id: S,
         title: S,
@@ -50,6 +50,7 @@ impl PluginConfigSchemaItem {
 }
 
 impl PluginConfigItem {
+    /// Creates a new instance of [`PluginConfigItem`] with the provided arguments.
     pub fn new(id: impl Into<String>, value: PluginConfigValue) -> Self {
         Self {
             id: id.into(),
@@ -59,7 +60,7 @@ impl PluginConfigItem {
 }
 
 impl SemanticVersion {
-    /// Creates a new [`SemanticVersion`]
+    /// Creates a new [`SemanticVersion`] with the provided arguments.
     pub fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,

@@ -3,27 +3,11 @@ use std::fmt::Display;
 use parsers::LogMessage;
 use serde::Serialize;
 
+/// Represent the message of the parsed item returned by plugins.
 #[derive(Debug, Serialize)]
 pub struct PluginParseMessage {
+    /// The content of the message as string.
     pub content: String,
-}
-
-impl PluginParseMessage {
-    pub fn new(content: String) -> Self {
-        Self { content }
-    }
-}
-
-impl From<String> for PluginParseMessage {
-    fn from(content: String) -> Self {
-        Self::new(content)
-    }
-}
-
-impl From<PluginParseMessage> for String {
-    fn from(value: PluginParseMessage) -> Self {
-        value.content
-    }
 }
 
 impl Display for PluginParseMessage {
@@ -37,6 +21,7 @@ impl LogMessage for PluginParseMessage {
         &self,
         writer: &mut W,
     ) -> Result<usize, std::io::Error> {
+        //TODO AAZ: Make sure plugins messages should support export as binary.
         let bytes = self.content.as_bytes();
         let len = bytes.len();
         writer.write_all(bytes)?;

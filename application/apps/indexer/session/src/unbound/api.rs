@@ -210,6 +210,7 @@ impl UnboundSessionAPI {
             .await
     }
 
+    /// Get all plugins including active and invalid plugins.
     pub async fn get_all_plugins(
         &self,
         id: u64,
@@ -219,6 +220,7 @@ impl UnboundSessionAPI {
             .await
     }
 
+    /// Get active (valid) plugins only.
     pub async fn get_active_plugins(
         &self,
         id: u64,
@@ -228,6 +230,7 @@ impl UnboundSessionAPI {
             .await
     }
 
+    /// Reload the plugin directory.
     pub async fn reload_plugins(
         &self,
         id: u64,

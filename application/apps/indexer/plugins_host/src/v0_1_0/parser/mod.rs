@@ -1,3 +1,6 @@
+//! Include structures and implementation of parser plugins for API version 0.1.0
+//! as defined in WIT files.
+
 mod bindings;
 mod parser_plugin_state;
 
@@ -17,6 +20,7 @@ use crate::{
 
 use self::{bindings::Parse, parser_plugin_state::ParserPluginState};
 
+/// Host of the parser plugin for plugins API version 0.1.0
 pub struct PluginParser {
     store: Store<ParserPluginState>,
     plugin_bindings: Parse,
@@ -90,6 +94,7 @@ impl PluginParser {
         Ok(parser)
     }
 
+    /// Request configuration schemas from the plugin Guest.
     pub async fn get_config_schemas(
         &mut self,
     ) -> Result<Vec<stypes::PluginConfigSchemaItem>, PluginError> {
@@ -102,6 +107,7 @@ impl PluginParser {
         Ok(schemas.into_iter().map(|item| item.into()).collect())
     }
 
+    /// Requests plugins version from plugin Guest.
     pub async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
         let version = self
             .plugin_bindings
@@ -112,6 +118,7 @@ impl PluginParser {
         Ok(version.into())
     }
 
+    /// Requests render options from parser plugin Guest.
     pub async fn get_render_options(&mut self) -> Result<ParserRenderOptions, PluginError> {
         let options = self
             .plugin_bindings

@@ -25,7 +25,11 @@ fn plugin_parser_producer(c: &mut Criterion) {
     //For now we are delivering the configurations of string parser plugin hard-coded.
     let plugin_configs = get_string_parser_configs();
 
-    let settings = stypes::PluginParserSettings::prototyping(plugin_path, plugin_configs);
+    let settings = stypes::PluginParserSettings::new(
+        plugin_path,
+        stypes::PluginParserGeneralSettings::default(),
+        plugin_configs,
+    );
 
     c.bench_function("plugin_parser_producer", |bencher| {
         bencher

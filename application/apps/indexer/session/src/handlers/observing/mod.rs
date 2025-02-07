@@ -77,16 +77,8 @@ async fn run_source_intern<S: ByteSource>(
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
-    //TODO AAZ: Remove when done.
-    const FORCE_PLUGIN_ENV: &str = "FORCE_PLUGIN";
-    const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
-
     match parser {
         stypes::ParserType::Plugin(settings) => {
-            println!("------------------------------------------------------");
-            println!("-------------    WASM parser used    -----------------");
-            println!("------------------------------------------------------");
-            println!("DEBUG: Plugin Path: {}", settings.plugin_path.display());
             let parser = PluginsParser::initialize(
                 &settings.plugin_path,
                 &settings.general_settings,
@@ -104,47 +96,6 @@ async fn run_source_intern<S: ByteSource>(
                 None => SomeipParser::new(),
             };
             let producer = MessageProducer::new(someip_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
-        }
-        //TODO AAZ: Remove the whole block when done.
-        stypes::ParserType::Dlt(_) | stypes::ParserType::Text(())
-            if std::env::var(FORCE_PLUGIN_ENV).is_ok() =>
-        {
-            println!("------------------------------------------------------");
-            println!("-------------   WASM parser forced   -----------------");
-            println!("------------------------------------------------------");
-
-            //TODO AAZ: Find a better way to deliver plugin path than environment variables
-            let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
-                Ok(path) => path,
-                Err(err) => panic!("Retrieving plugin path environment variable failed. Err {err}"),
-            };
-            let proto_plugin_path = PathBuf::from(plugin_path);
-
-            // Hard-coded configurations for string parser for now.
-            const LOSSY_ID: &str = "lossy";
-            let string_parser_configs = vec![stypes::PluginConfigItem::new(
-                LOSSY_ID,
-                stypes::PluginConfigValue::Boolean(true),
-            )];
-
-            let settings =
-                stypes::PluginParserSettings::prototyping(proto_plugin_path, string_parser_configs);
-            let now = std::time::Instant::now();
-
-            let parser = PluginsParser::initialize(
-                &settings.plugin_path,
-                &settings.general_settings,
-                settings.plugin_configs.clone(),
-            )
-            .await?;
-            let elapsed = now.elapsed();
-            println!(
-                "-------------   Loading module took: {}   -----------------",
-                elapsed.as_millis()
-            );
-
-            let producer = MessageProducer::new(parser, source, rx_sde);
             run_producer(operation_api, state, source_id, producer, rx_tail).await
         }
         stypes::ParserType::Text(()) => {

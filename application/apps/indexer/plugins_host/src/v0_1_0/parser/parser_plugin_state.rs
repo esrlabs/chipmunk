@@ -6,16 +6,20 @@ use super::bindings::chipmunk::shared::{
     shared_types,
 };
 
+/// State to be used within wasmtime runtime store but parser host.
 pub struct ParserPluginState {
     pub ctx: WasiCtx,
     pub table: ResourceTable,
 }
 
 impl ParserPluginState {
+    /// Creates new [`ParserPluginState`] instance from the given arguments.
     pub fn new(ctx: WasiCtx, table: ResourceTable) -> Self {
         Self { ctx, table }
     }
 }
+
+// *** Implementation of traits the must be implemented by parser plugins state ***
 
 impl WasiView for ParserPluginState {
     fn table(&mut self) -> &mut ResourceTable {

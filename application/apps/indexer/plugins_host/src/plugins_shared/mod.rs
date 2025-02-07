@@ -53,7 +53,12 @@ pub fn get_wasi_ctx_builder(
 
 // Represents the retrieved static information form parser WASM file.
 pub(crate) struct PluginInfo {
+    /// The version of the plugins itself.
+    /// # Note:
+    /// This is different than the API version defined in WIT files that are used by the plugin.
     pub version: SemanticVersion,
+    /// Schema definitions for the configurations needed by the plugin.
     pub config_schemas: Vec<stypes::PluginConfigSchemaItem>,
+    /// Then render options for the plugins.
     pub render_options: RenderOptions,
 }

@@ -6,7 +6,6 @@ import { FileType } from 'platform/types/observe/types/file';
 import { getFileEntities, getFilesFromFolder } from '@env/fs';
 
 import * as Requests from 'platform/ipc/request';
-import { Plugin } from 'platform/dist/types/observe/types';
 
 async function collect(exts: string[]): Promise<string[]> {
     const folders = await electron.dialogs().openFolder();

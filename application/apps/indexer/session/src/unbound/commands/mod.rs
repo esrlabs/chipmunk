@@ -83,16 +83,19 @@ pub enum Command {
         i64,
         oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
+    /// Command to get all plugins including active and invalid.
     GetAllPlugins(
         oneshot::Sender<
             Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
         >,
     ),
+    /// Get all active (valid) plugins only.
     GetActivePlugins(
         oneshot::Sender<
             Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
         >,
     ),
+    /// Reload all the plugins from their directory.
     ReloadPlugins(oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>),
 }
 
