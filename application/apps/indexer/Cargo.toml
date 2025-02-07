@@ -5,7 +5,6 @@ members = [
     "addons/dlt-tools",
     "addons/someip-tools",
     "addons/file-tools",
-    "addons/text_grep",
     "addons/bufread",
     "indexer_base",
     "indexer_cli",
