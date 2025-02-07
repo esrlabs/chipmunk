@@ -2,10 +2,6 @@ import { exec, spawn } from 'child_process';
 
 import * as os from 'os';
 
-import { detectAvailableProfiles as getProfiles, ITerminalProfile } from './profiles';
-
-export { getProfiles, ITerminalProfile };
-
 export function shell(command: string, defShell?: string): Promise<string> {
     return new Promise((resolve, reject) => {
         exec(
@@ -40,43 +36,6 @@ export enum EPlatforms {
 
 export type TEnvVars = { [key: string]: string };
 
-export function printenv(shellFullPath?: string): Promise<TEnvVars> {
-    if (os.platform() === EPlatforms.win32) {
-        return Promise.reject(new Error(`This command doesn't supported by windows.`));
-    }
-    return new Promise((resolve, reject) => {
-        (() => {
-            if (shellFullPath === undefined) {
-                return getDefShell();
-            } else {
-                return Promise.resolve(shellFullPath);
-            }
-        })()
-            .then((defShell: string) => {
-                shell('printenv', defShell)
-                    .then((stdout: string) => {
-                        const pairs: TEnvVars = {};
-                        stdout.split(/[\n\r]/gi).forEach((row: string) => {
-                            const pair: string[] = row.split('=');
-                            if (pair.length <= 1) {
-                                return;
-                            }
-                            pairs[pair[0]] = row.replace(`${pair[0]}=`, '');
-                        });
-                        if (Object.keys(pairs).length === 0) {
-                            return resolve(Object.assign({}, process.env) as TEnvVars);
-                        }
-                        resolve(pairs);
-                    })
-                    .catch((error: Error) => {
-                        reject(error);
-                    });
-            })
-            .catch((defShellErr: Error) => {
-                reject(defShellErr);
-            });
-    });
-}
 export function getElectronAppShellEnvVars(
     electronPath: string,
     shellFullPath?: string,
@@ -236,21 +195,5 @@ export function getDefShell(): Promise<string> {
                 // Therefore: we will try to use /bin/sh as error-mitigation
                 reject(error);
             });
-    });
-}
-
-export function getShells(): Promise<string[]> {
-    return new Promise((resolve, reject) => {
-        getProfiles()
-            .then((profiles: ITerminalProfile[]) => {
-                const shells: string[] = [];
-                profiles.forEach((p) => {
-                    if (shells.indexOf(p.path) === -1) {
-                        shells.push(p.path);
-                    }
-                });
-                resolve(shells);
-            })
-            .catch(reject);
     });
 }
