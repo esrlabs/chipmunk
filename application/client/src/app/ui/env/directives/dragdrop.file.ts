@@ -37,14 +37,11 @@ export class MatDragDropFileFeatureDirective implements OnDestroy {
         if (event.dataTransfer === null || event.dataTransfer === undefined) {
             return [];
         }
-        const path = (entity: unknown): string => {
-            return typeof (entity as { [key: string]: string })['path'] === 'string'
-                ? (entity as { [key: string]: string })['path']
-                : (entity as { [key: string]: string })['name'];
-        };
         const files = (() => {
             if (event.dataTransfer.files) {
-                return Array.from(event.dataTransfer.files).map((f) => path(f));
+                return Array.from(event.dataTransfer.files).map((f) =>
+                    window.electron.webUtils.getPathForFile(f),
+                );
             } else if (event.dataTransfer.items) {
                 return (
                     Array.from(event.dataTransfer.items)
@@ -56,7 +53,7 @@ export class MatDragDropFileFeatureDirective implements OnDestroy {
                             }
                         })
                         .filter((f) => f !== undefined) as File[]
-                ).map((f) => path(f));
+                ).map((f) => window.electron.webUtils.getPathForFile(f));
             } else {
                 return [];
             }

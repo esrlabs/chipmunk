@@ -1,3 +1,14 @@
+# 3.16.0 (05.02.2025)
+
+## Features
+
+- Allow saving session state into a file (state includes: filters, charts, and disabled entities)
+- Allow import filters, charts, and disabled entities from a file into the current session.
+
+## Fixes
+
+- Fix drag & drop files
+
 # 3.15.3 (03.02.2025)
 
 ## Fixes

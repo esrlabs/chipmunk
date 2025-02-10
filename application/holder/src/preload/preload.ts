@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 contextBridge.exposeInMainWorld('electron', {
     ipc: {
@@ -8,5 +8,8 @@ contextBridge.exposeInMainWorld('electron', {
         unsubscribe: (channel: string, callback: (...args: unknown[]) => void) =>
             ipcRenderer.removeListener(channel, callback),
         unsubscribeAll: (channel: string) => ipcRenderer.removeAllListeners(channel),
-    }
+    },
+    webUtils: {
+        getPathForFile: (file: File) => webUtils.getPathForFile(file),
+    },
 });

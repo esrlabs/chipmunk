@@ -8,4 +8,6 @@ export * as Updates from './updates';
 export * as UrlInBrowser from './open.browserurl';
 export * as JumpTo from './jumpto';
 export * as FindInSearch from './find';
+export * as ExportSessionState from './export.session.state';
+export * as ImportSessionState from './import.session.state';
 export * as PluginsManager from './plugins_manager';

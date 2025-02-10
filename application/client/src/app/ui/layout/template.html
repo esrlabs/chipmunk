@@ -3,10 +3,15 @@
         <div class="workspace" [ngStyle]="ngWorkspaceStyle()">
             <app-layout-workspace></app-layout-workspace>
         </div>
-        <div class="toolbar" *ngIf="session !== undefined && session.toolbar() !== undefined" [ngStyle]="ngToolbarStyle()">
+        <div
+            class="toolbar"
+            *ngIf="session !== undefined && session.toolbar() !== undefined"
+            [ngStyle]="ngToolbarStyle()"
+        >
             <app-layout-toolbar [session]="session"></app-layout-toolbar>
         </div>
-        <div class="toolbar-resizer"
+        <div
+            class="toolbar-resizer"
             *ngIf="session !== undefined && session.toolbar() !== undefined"
             appResizer
             [min]="toolbar.min"
@@ -15,27 +20,32 @@
             [resized]="resizes.toolbar"
             [direction]="Direction.Vertical"
             [corrector]="1"
-            [ngStyle]="ngToolbarResizeStyle()"></div>
-        <div class="sidebar" *ngIf="session !== undefined && session.sidebar() !== undefined" [ngStyle]="ngSidebarStyle()">
+            [ngStyle]="ngToolbarResizeStyle()"
+        ></div>
+        <div
+            class="sidebar"
+            *ngIf="session !== undefined && session.sidebar() !== undefined"
+            [ngStyle]="ngSidebarStyle()"
+        >
             <div class="sidebar-caption">
                 <div class="injections">
                     <app-layout-sidebar-caption></app-layout-sidebar-caption>
                 </div>
             </div>
             <app-layout-sidebar [session]="session"></app-layout-sidebar>
-            <div class="sidebar-resizer"
+            <div
+                class="sidebar-resizer"
                 appResizer
                 [min]="sidebar.min"
                 [max]="sidebar.max"
                 [size]="sidebar.value"
                 [resized]="resizes.sidebar"
                 [direction]="Direction.Horizontal"
-                [corrector]="1"></div>
+                [corrector]="1"
+            ></div>
         </div>
     </div>
     <app-layout-statusbar></app-layout-statusbar>
-    <!-- <app-notifications></app-notifications>
-    <app-popups></app-popups> -->
     <app-layout-contextmenu></app-layout-contextmenu>
     <app-layout-popups></app-layout-popups>
     <app-layout-snackbar></app-layout-snackbar>

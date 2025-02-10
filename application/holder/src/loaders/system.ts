@@ -17,7 +17,6 @@ import { setLogLevelFromEnvvars } from '@env/logs';
 import { envvars } from './envvars';
 import { spawn } from 'child_process';
 import { serializeSpaces } from 'platform/env/str';
-// import { tools } from 'rustcore';
 
 import * as cases from './exitcases';
 import * as Requests from 'platform/ipc/request';
@@ -94,8 +93,8 @@ class Application implements IApplication {
                     .catch((err: Error) => {
                         this.logger.error(`Fail to shutdown on "app:before-quit": ${err.message}`);
                     });
-                    return false;
-                });
+                return false;
+            });
         });
     }
 

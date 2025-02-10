@@ -24,6 +24,8 @@ import * as Updates from './updates';
 import * as Settings from './settings';
 import * as Exit from './exit';
 import * as Help from './help';
+import * as ExportSession from './export.session.state';
+import * as ImportSession from './import.session.state';
 import * as PluginsManager from './plugins_manager';
 import * as StdoutPlugin from './stdout.plugin';
 
@@ -55,6 +57,8 @@ export * as Updates from './updates';
 export * as Settings from './settings';
 export * as Exit from './exit';
 export * as Help from './help';
+export * as ExportSession from './export.session.state';
+export * as ImportSession from './import.session.state';
 export * as PluginsManager from './plugins_manager';
 export * as StdoutPlugin from './stdout.plugin';
 
@@ -87,6 +91,8 @@ export const all = [
     [Settings.ACTION_UUID, Settings.Action],
     [Help.ACTION_UUID, Help.Action],
     [Exit.ACTION_UUID, Exit.Action],
+    [ExportSession.ACTION_UUID, ExportSession.Action],
+    [ImportSession.ACTION_UUID, ImportSession.Action],
     [PluginsManager.ACTION_UUID, PluginsManager.Action],
     [StdoutPlugin.ACTION_UUID, StdoutPlugin.Action],
 ];
