@@ -3,6 +3,7 @@ mod checksum;
 mod dlt;
 mod file;
 mod folder;
+pub mod plugins;
 mod process;
 mod regex;
 mod serial;
@@ -11,11 +12,12 @@ mod sleep;
 mod someip;
 
 use crate::unbound::commands::someip::get_someip_statistic;
+use plugins_host::plugins_manager::PluginsManager;
+use tokio::sync::{oneshot, RwLock};
 
 use super::signal::Signal;
 use log::{debug, error};
 use processor::search::filter::SearchFilter;
-use tokio::sync::oneshot;
 
 #[derive(Debug)]
 pub enum Command {
@@ -81,6 +83,20 @@ pub enum Command {
         i64,
         oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
+    /// Command to get all plugins including active and invalid.
+    GetAllPlugins(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
+        >,
+    ),
+    /// Get all active (valid) plugins only.
+    GetActivePlugins(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
+        >,
+    ),
+    /// Reload all the plugins from their directory.
+    ReloadPlugins(oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>),
 }
 
 impl std::fmt::Display for Command {
@@ -101,12 +117,15 @@ impl std::fmt::Display for Command {
                 Command::GetSomeipStatistic(_, _) => "Getting someip statistic",
                 Command::GetRegexError(_, _) => "Checking regex",
                 Command::IsFileBinary(_, _) => "Checking if file is binary",
+                Command::GetAllPlugins(..) => "Getting all plugins",
+                Command::GetActivePlugins(..) => "Getting active plugins",
+                Command::ReloadPlugins(..) => "Reloading plugins' information",
             }
         )
     }
 }
 
-pub async fn process(command: Command, signal: Signal) {
+pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<PluginsManager>) {
     let cmd = command.to_string();
     debug!("Processing command: {cmd}");
     if match command {
@@ -139,6 +158,15 @@ pub async fn process(command: Command, signal: Signal) {
         Command::CancelTest(a, b, tx) => tx
             .send(cancel_test::cancel_test(a, b, signal).await)
             .is_err(),
+        Command::GetAllPlugins(tx) => tx
+            .send(plugins::get_all_plugins(plugins_manager, signal).await)
+            .is_err(),
+        Command::GetActivePlugins(tx) => tx
+            .send(plugins::get_active_plugins(plugins_manager, signal).await)
+            .is_err(),
+        Command::ReloadPlugins(tx) => tx
+            .send(plugins::reload_plugins(plugins_manager, signal).await)
+            .is_err(),
     } {
         error!("Fail to send response for command: {cmd}");
     }
@@ -159,6 +187,9 @@ pub fn err(command: Command, err: stypes::ComputationError) {
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
         Command::IsFileBinary(_filepath, tx) => tx.send(Err(err)).is_err(),
         Command::CancelTest(_a, _b, tx) => tx.send(Err(err)).is_err(),
+        Command::GetAllPlugins(tx) => tx.send(Err(err)).is_err(),
+        Command::GetActivePlugins(tx) => tx.send(Err(err)).is_err(),
+        Command::ReloadPlugins(tx) => tx.send(Err(err)).is_err(),
     } {
         error!("Fail to send error response for command: {cmd}");
     }

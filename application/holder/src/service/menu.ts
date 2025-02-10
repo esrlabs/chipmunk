@@ -505,6 +505,53 @@ export class Service extends Implementation {
                 ],
             },
             {
+                label: 'Plugins',
+                submenu: [
+                    {
+                        label: 'File with plugin parser',
+                        click: async () => {
+                            Actions.openFile(FileType.ParserPlugin).catch((err: Error) => {
+                                this.log().error(
+                                    `Fail call action OpenFile with Plugin: ${err.message}`,
+                                );
+                            });
+                        },
+                    },
+                    {
+                        label: 'Folder with plugin parser',
+                        click: async () => {
+                            Actions.openFolder(FileType.ParserPlugin).catch((err: Error) => {
+                                this.log().error(
+                                    `Fail call action Open Folder with Plugin: ${err.message}`,
+                                );
+                            });
+                        },
+                    },
+                    {
+                        label: 'Stream source for plugin parser',
+                        click: async () => {
+                            Actions.stream(
+                                $.Parser.Protocol.Plugin,
+                                $.Origin.Stream.Stream.Source.Process,
+                            ).catch((err: Error) => {
+                                this.log().error(`Fail call action Open : ${err.message}`);
+                            });
+                        },
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'Plugins Manager',
+                        click: async () => {
+                            Actions.pluginsManager().catch((err: Error) => {
+                                this.log().error(
+                                    `Fail call action Plugins Manager: ${err.message}`,
+                                );
+                            });
+                        },
+                    },
+                ],
+            },
+            {
                 label: 'Edit',
                 submenu: [
                     { role: 'undo' },

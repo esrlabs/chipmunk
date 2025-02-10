@@ -1,0 +1,9 @@
+package chipmunk:plugins;
+
+// This file used as the top of the plugins packages and used only as the place 
+// where `generate!()` macro needs to point to, in order to resolve the relation 
+// between the packages.
+
+world bindings {
+  include chipmunk:shared/bindings@0.1.0;
+}

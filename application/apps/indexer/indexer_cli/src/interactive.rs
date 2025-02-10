@@ -95,6 +95,28 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                         session.observe(uuid, stypes::ObserveOptions::file(file_path.clone(), stypes::FileFormat::Binary, stypes::ParserType::Dlt(dlt_parser_settings))).expect("observe failed");
                         println!("dlt session was destroyed");
                     }
+                    Some(Command::Plugin) => {
+                        println!("plugin command received");
+                        const PLUGIN_PATH_ENV: &str = "WASM_PLUGIN_PATH";
+
+                        // Delivering the plugins info via env variables is good enough since this
+                        // tool is going to be deprecated soon.
+                        let plugin_path = match std::env::var(PLUGIN_PATH_ENV) {
+                            Ok(path) => path,
+                            Err(err) => panic!("Retrieving plugin path environment variable failed.\n\
+                                    Please set the plugin path via the environment variable {PLUGIN_PATH_ENV}.\n\
+                                    Err {err}") ,
+                        };
+                        start = Instant::now();
+                        let uuid = Uuid::new_v4();
+                        let file_path = input.clone().expect("input must be present");
+                        let proto_plugin_path = PathBuf::from(plugin_path);
+
+                        //NOTE: plugins configuration aren't delivered here.
+                        let plugin_configs = Vec::new();
+                        let plugin_parser_settings = stypes::PluginParserSettings::new(proto_plugin_path, Default::default() ,plugin_configs);
+                        session.observe(uuid, stypes::ObserveOptions::file(file_path, stypes::FileFormat::Binary, stypes::ParserType::Plugin(plugin_parser_settings))).expect("observe failed");
+                    }
                     Some(Command::Grab) => {
                         println!("grab command received");
                         start = Instant::now();
@@ -142,6 +164,7 @@ enum Command {
     Dlt,
     Grab,
     Udp,
+    Plugin,
     Stop,
     Help,
 }
@@ -158,6 +181,9 @@ async fn collect_user_input(tx: mpsc::UnboundedSender<Command>) -> JoinHandle<()
                     }
                     "dlt" => {
                         tx.send(Command::Dlt).expect("send failed");
+                    }
+                    "plugin" => {
+                        tx.send(Command::Plugin).expect("send failed");
                     }
                     "stop" => {
                         tx.send(Command::Stop).expect("send failed");

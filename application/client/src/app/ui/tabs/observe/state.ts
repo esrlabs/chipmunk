@@ -115,7 +115,9 @@ export class State extends Subscriber {
                 const nature = this.observe.origin.nature();
                 if (
                     nature instanceof Origin.File.Configuration ||
-                    nature instanceof Origin.Concat.Configuration
+                    nature instanceof Origin.Concat.Configuration ||
+                    //TODO Dmitry: Added this temporally to make it compile.
+                    nature instanceof Origin.Plugin.Configuration
                 ) {
                     this.streams = [];
                     this.stream = undefined;
@@ -154,8 +156,8 @@ export class State extends Subscriber {
                     instance instanceof FileOrigin.Configuration
                         ? [instance.filename()]
                         : instance instanceof ConcatOrigin.Configuration
-                        ? instance.files()
-                        : undefined;
+                          ? instance.files()
+                          : undefined;
                 if (files === undefined) {
                     return;
                 }

@@ -29,6 +29,7 @@ stypes = { path = "../stypes", features=["rustcore"] }
 [dev-dependencies]
 env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
+plugins_host = {path = "../plugins_host/"}
 mimalloc = "0.1"
 # Jemalloc combined with Node.js exceeds the default TLS memory limit on Linux.
 tikv-jemallocator = { version = "0.6" , features = ["disable_initial_exec_tls"] }
@@ -47,6 +48,10 @@ harness = false
 
 [[bench]]
 name = "text_producer"
+harness = false
+
+[[bench]]
+name = "plugin_praser_producer"
 harness = false
 
 [[bench]]

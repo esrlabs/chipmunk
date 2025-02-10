@@ -221,6 +221,42 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
+    async fn get_all_plugins(
+        &self,
+        id: i64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .get_all_plugins(u64_from_i64(id)?)
+            .await
+    }
+
+    #[node_bindgen]
+    async fn get_active_plugins(
+        &self,
+        id: i64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .get_active_plugins(u64_from_i64(id)?)
+            .await
+    }
+
+    #[node_bindgen]
+    async fn reload_plugins(
+        &self,
+        id: i64,
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .reload_plugins(u64_from_i64(id)?)
+            .await
+    }
+
+    #[node_bindgen]
     async fn job_cancel_test(
         &self,
         id: i64,

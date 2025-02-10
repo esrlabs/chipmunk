@@ -1,0 +1,96 @@
+use self::chipmunk::shared::shared_types::{
+    ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
+};
+use crate::PluginGuestInitError;
+use stypes::{
+    PluginConfigSchemaType as HostSchemaType, PluginConfigValue as HostConfValue,
+    SemanticVersion as HostVersion,
+};
+wasmtime::component::bindgen!({
+    path: "../plugins_api/wit/v0.1.0",
+    // Generate the shared type separately so we can reference those types on each plugin
+    // kind to avoid duplicating those generated types and all the mapping happens afterwords.
+    //
+    // TODO AAZ: This is workaround because referencing bindings world won't generate
+    // the types which aren't referenced in functions in the same world.
+    // An issue #10090 is open on `wasmtime` GitHub repo.
+    world: "chipmunk:parser/parse",
+    // world: "chipmunk:shared/bindings",
+    async: {
+        only_imports: [],
+    }
+});
+
+impl From<InitError> for PluginGuestInitError {
+    fn from(value: InitError) -> Self {
+        use PluginGuestInitError as GuestErr;
+        match value {
+            InitError::Config(msg) => GuestErr::Config(msg),
+            InitError::Io(msg) => GuestErr::IO(msg),
+            InitError::Unsupported(msg) => GuestErr::Unsupported(msg),
+            InitError::Other(msg) => GuestErr::Other(msg),
+        }
+    }
+}
+
+impl From<HostConfValue> for ConfigValue {
+    fn from(value: HostConfValue) -> Self {
+        match value {
+            HostConfValue::Boolean(val) => ConfigValue::Boolean(val),
+            HostConfValue::Integer(val) => ConfigValue::Integer(val),
+            HostConfValue::Float(val) => ConfigValue::Float(val),
+            HostConfValue::Text(val) => ConfigValue::Text(val),
+            HostConfValue::Files(val) => ConfigValue::Files(
+                val.into_iter()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .collect(),
+            ),
+            HostConfValue::Directories(val) => ConfigValue::Directories(
+                val.into_iter()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .collect(),
+            ),
+            HostConfValue::Dropdown(val) => ConfigValue::Dropdown(val),
+        }
+    }
+}
+
+impl From<stypes::PluginConfigItem> for ConfigItem {
+    fn from(item: stypes::PluginConfigItem) -> Self {
+        Self {
+            id: item.id,
+            value: item.value.into(),
+        }
+    }
+}
+
+impl From<ConfigSchemaType> for HostSchemaType {
+    fn from(value: ConfigSchemaType) -> Self {
+        match value {
+            ConfigSchemaType::Boolean(val) => HostSchemaType::Boolean(val),
+            ConfigSchemaType::Integer(val) => HostSchemaType::Integer(val),
+            ConfigSchemaType::Float(val) => HostSchemaType::Float(val),
+            ConfigSchemaType::Text(val) => HostSchemaType::Text(val),
+            ConfigSchemaType::Directories => HostSchemaType::Directories,
+            ConfigSchemaType::Files(val) => HostSchemaType::Files(val),
+            ConfigSchemaType::Dropdown(val) => HostSchemaType::Dropdown(val),
+        }
+    }
+}
+
+impl From<ConfigSchemaItem> for stypes::PluginConfigSchemaItem {
+    fn from(item: ConfigSchemaItem) -> Self {
+        Self {
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            input_type: item.input_type.into(),
+        }
+    }
+}
+
+impl From<Version> for HostVersion {
+    fn from(value: Version) -> Self {
+        Self::new(value.major, value.minor, value.patch)
+    }
+}

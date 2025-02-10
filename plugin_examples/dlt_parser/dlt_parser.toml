@@ -1,0 +1,2 @@
+name = "DLT Parser"
+description = "Example for parser plugins. It replicates the built-in parser in Chipmunk"

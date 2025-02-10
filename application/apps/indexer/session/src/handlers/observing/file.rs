@@ -28,21 +28,67 @@ pub async fn observe_file(
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
     match file_format {
-        stypes::FileFormat::Binary => {
-            let source = BinaryByteSource::new(input_file(filename)?);
-            let (_, listening) = join!(
-                tail::track(filename, tx_tail, operation_api.cancellation_token()),
-                super::run_source(
-                    operation_api,
-                    state,
-                    source,
-                    source_id,
-                    parser,
-                    None,
-                    Some(rx_tail)
+        stypes::FileFormat::Binary | stypes::FileFormat::ParserPlugin => {
+            //TODO AAZ: Remove prototyping code when not needed anymore.
+            const PLUGIN_SOURCE_PATH_ENV: &str = "WASM_SOURCE_PATH";
+
+            if let Ok(path) = std::env::var(PLUGIN_SOURCE_PATH_ENV) {
+                println!("------------------------------------------------------");
+                println!("-------------    WASM source used    -----------------");
+                println!("------------------------------------------------------");
+
+                use plugins_host::*;
+
+                // Hard-coded configurations for file byte-source plugin temporally.
+                const INPUT_PATH_ID: &str = "input-path";
+                let file_source_configs = vec![stypes::PluginConfigItem::new(
+                    INPUT_PATH_ID,
+                    stypes::PluginConfigValue::Files(vec![filename.into()]),
+                )];
+
+                let setting = stypes::PluginByteSourceSettings::new(
+                    path.into(),
+                    Default::default(),
+                    file_source_configs,
+                );
+
+                let plugin_source = PluginsByteSource::initialize(
+                    &setting.plugin_path,
+                    &setting.general_settings,
+                    setting.plugin_configs.clone(),
                 )
-            );
-            listening
+                .await?;
+
+                let source = BinaryByteSource::new(plugin_source);
+                let (_, listening) = join!(
+                    tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                    super::run_source(
+                        operation_api,
+                        state,
+                        source,
+                        source_id,
+                        parser,
+                        None,
+                        Some(rx_tail)
+                    )
+                );
+                listening
+            } else {
+                let source = BinaryByteSource::new(input_file(filename)?);
+                let (_, listening) = join!(
+                    tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                    super::run_source(
+                        operation_api,
+                        state,
+                        source,
+                        source_id,
+                        parser,
+                        None,
+                        Some(rx_tail)
+                    )
+                );
+                listening
+            }
         }
         stypes::FileFormat::PcapLegacy => {
             let source = PcapLegacyByteSource::new(input_file(filename)?)?;

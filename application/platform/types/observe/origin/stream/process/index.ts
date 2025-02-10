@@ -91,7 +91,7 @@ export class Configuration
     }
 
     public getSupportedParsers(): Parser.Reference[] {
-        return [Parser.Text.Configuration];
+        return [Parser.Text.Configuration, Parser.Plugin.Configuration];
     }
 
     public override storable(): IConfiguration {

@@ -10,6 +10,7 @@ import {
     ProfileList,
     MapKeyValue,
 } from 'platform/types/bindings';
+import { PluginEntity, PluginsList } from 'platform/types/bindings/plugins';
 
 import * as protocol from 'protocol';
 
@@ -237,6 +238,53 @@ export class Jobs extends Base {
             this.native.sleep(sequence, ms),
             sequence,
             'sleep',
+        );
+        return job;
+    }
+
+    public getAllPlugins(): CancelablePromise<PluginEntity[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<PluginEntity[]> = this.execute(
+            (buf: Uint8Array): any | Error => {
+                const decoded = decode<PluginsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithPluginsList,
+                );
+                return decoded;
+            },
+            this.native.getAllPlugins(sequence),
+            sequence,
+            'getAllPlugins',
+        );
+        return job;
+    }
+
+    public getActivePlugins(): CancelablePromise<PluginEntity[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<PluginEntity[]> = this.execute(
+            (buf: Uint8Array): PluginEntity[] | Error => {
+                const decoded = decode<PluginsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithPluginsList,
+                );
+                return decoded;
+            },
+            this.native.getActivePlugins(sequence),
+            sequence,
+            'getActivePlugins',
+        );
+        return job;
+    }
+
+    public reloadPlugins(): CancelablePromise<void> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<void> = this.execute(
+            (buf: Uint8Array): any | Error => {
+                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
+            },
+            this.native.reloadPlugins(sequence),
+            sequence,
+            'reloadPlugins',
         );
         return job;
     }

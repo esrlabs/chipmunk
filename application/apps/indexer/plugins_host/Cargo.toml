@@ -1,0 +1,29 @@
+[package]
+name = "plugins_host"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+futures.workspace = true
+log.workspace = true
+dirs.workspace = true
+toml.workspace = true
+
+wasmtime = "29.0"
+wasmtime-wasi = "29.0"
+
+parsers = { path = "../parsers" }
+sources = { path = "../sources" }
+stypes = { path = "../stypes" }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["async_tokio"] }
+
+[[bench]]
+name = "plugin_parser_init"
+harness = false
+

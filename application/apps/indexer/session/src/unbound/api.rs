@@ -209,4 +209,34 @@ impl UnboundSessionAPI {
         self.process_command(id, rx_results, Command::Sleep(ms, tx_results))
             .await
     }
+
+    /// Get all plugins including active and invalid plugins.
+    pub async fn get_all_plugins(
+        &self,
+        id: u64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetAllPlugins(tx_results))
+            .await
+    }
+
+    /// Get active (valid) plugins only.
+    pub async fn get_active_plugins(
+        &self,
+        id: u64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::GetActivePlugins(tx_results))
+            .await
+    }
+
+    /// Reload the plugin directory.
+    pub async fn reload_plugins(
+        &self,
+        id: u64,
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::ReloadPlugins(tx_results))
+            .await
+    }
 }
