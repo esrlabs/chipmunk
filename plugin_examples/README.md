@@ -94,7 +94,8 @@ The build process will generate a WASM file named after your plugin. To integrat
    Create a directory within the appropriate plugin type folder (for example, `<HOME>/.chipmunk/plugins/parser/` for parser plugins or `<HOME>/.chipmunk/plugins/bytesource/` for byte-source plugins) using the plugin name.
 
 2. **Copy Artifacts:**  
-   Place the compiled WASM file in the directory. You may also include an optional TOML file containing plugin metadata (such as the plugin name and description).
+Place the compiled WASM file inside the plugin directory. Optionally, you can include a TOML file to provide metadata such as the plugin’s name and description.
+Ensure that both the `.wasm` binary and the `.toml` metadata file (if present) have names that match the plugin directory name.
 
 ---
 
