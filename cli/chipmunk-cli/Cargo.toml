@@ -1,0 +1,17 @@
+[package]
+name = "chipmunk-cli"
+version = "0.1.0"
+authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
+edition = "2021"
+description = "CLI Tool for parsing bytes form different source supporting multiple data formats"
+documentation = "README.md"
+readme = "README.md"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+tokio = { version = "1.43", features = ["full"] }
+parsers = {path = "../../application/apps/indexer/parsers"}
+sources = {path = "../../application/apps/indexer/sources"}
+futures = "0.3"
+tokio-util = "0.7"

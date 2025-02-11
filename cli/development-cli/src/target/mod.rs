@@ -24,9 +24,7 @@ use target_kind::TargetKind;
 
 mod app;
 mod binding;
-mod cli;
 mod client;
-mod core;
 mod protocol;
 mod target_kind;
 mod updater;
@@ -60,8 +58,10 @@ pub enum Target {
     Updater,
     /// Represents the path `application/holder`
     App,
-    /// Represents the path `cli`
-    Cli,
+    /// Represents the path `cli/development-cli`
+    CliDev,
+    /// Represents the path `cli/chipmunk-cli`
+    CliChipmunk,
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +119,8 @@ impl std::fmt::Display for Target {
                 Target::Wrapper => "Wrapper",
                 Target::Protocol => "Protocol",
                 Target::Binding => "Binding",
-                Target::Cli => "Cli",
+                Target::CliDev => "Development-Cli",
+                Target::CliChipmunk => "Chipmunk-Cli",
                 Target::Client => "Client",
                 Target::Shared => "Shared",
                 Target::App => "App",
@@ -146,9 +147,10 @@ impl FromStr for Target {
                 T::Client => (),
                 T::Shared => (),
                 T::App => (),
-                T::Cli => (),
+                T::CliDev => (),
                 T::Wasm => (),
                 T::Updater => (),
+                T::CliChipmunk => (),
             };
         }
 
@@ -157,7 +159,8 @@ impl FromStr for Target {
             "Wrapper" => Ok(T::Wrapper),
             "Protocol" => Ok(T::Protocol),
             "Binding" => Ok(T::Binding),
-            "Cli" => Ok(T::Cli),
+            "Development-Cli" => Ok(T::CliDev),
+            "Chipmunk-Cli" => Ok(T::CliChipmunk),
             "Client" => Ok(T::Client),
             "Shared" => Ok(T::Shared),
             "App" => Ok(T::App),
@@ -181,16 +184,17 @@ impl Target {
                 Target::Client => (),
                 Target::Shared => (),
                 Target::App => (),
-                Target::Cli => (),
+                Target::CliDev => (),
                 Target::Wasm => (),
                 Target::Updater => (),
+                Target::CliChipmunk => (),
             };
         }
 
         [
             Target::Binding,
             Target::Protocol,
-            Target::Cli,
+            Target::CliDev,
             Target::App,
             Target::Core,
             Target::Wrapper,
@@ -198,6 +202,7 @@ impl Target {
             Target::Client,
             Target::Wasm,
             Target::Updater,
+            Target::CliChipmunk,
         ]
         .as_slice()
     }
@@ -220,7 +225,8 @@ impl Target {
             Target::Client => ["application", "client"].iter(),
             Target::Shared => ["application", "platform"].iter(),
             Target::App => ["application", "holder"].iter(),
-            Target::Cli => ["cli"].iter(),
+            Target::CliDev => ["cli", "development-cli"].iter(),
+            Target::CliChipmunk => ["cli", "chipmunk-cli"].iter(),
             Target::Wasm => ["application", "apps", "rustcore", "wasm-bindings"].iter(),
             Target::Updater => ["application", "apps", "precompiled", "updater"].iter(),
         };
@@ -234,7 +240,8 @@ impl Target {
             Target::Protocol
             | Target::Binding
             | Target::Core
-            | Target::Cli
+            | Target::CliDev
+            | Target::CliChipmunk
             | Target::Wasm
             | Target::Updater => TargetKind::Rs,
             Target::Client | Target::Wrapper | Target::Shared | Target::App => TargetKind::Ts,
@@ -244,9 +251,14 @@ impl Target {
     /// Provides the targets which this target directly depend on
     pub fn direct_deps(self) -> Vec<Target> {
         match self {
-            Target::Core | Target::Cli | Target::Shared | Target::Wasm | Target::Updater => {
-                Vec::new()
-            }
+            Target::Core
+            | Target::CliDev
+            // Cargo take care of the dependency between indexer and the CLI tool, 
+            // it's not need to be resolved manually in this tool.
+            | Target::CliChipmunk
+            | Target::Shared
+            | Target::Wasm
+            | Target::Updater => Vec::new(),
             Target::Protocol => vec![Target::Core],
             Target::Binding => vec![Target::Shared, Target::Core, Target::Protocol],
             Target::Wrapper => vec![Target::Binding, Target::Shared, Target::Protocol],
@@ -286,7 +298,8 @@ impl Target {
                 Target::Core
                 | Target::Wrapper
                 | Target::Updater
-                | Target::Cli
+                | Target::CliDev
+                | Target::CliChipmunk
                 | Target::Protocol => false,
             },
 
@@ -297,11 +310,16 @@ impl Target {
                 | Target::Wrapper
                 | Target::Wasm
                 | Target::Updater
-                | Target::Cli
+                | Target::CliDev
+                | Target::CliChipmunk
                 | Target::Protocol => false,
             },
             JobType::Test { .. } => match self {
-                Target::Wrapper | Target::Core | Target::Cli | Target::Wasm => true,
+                Target::Wrapper
+                | Target::Core
+                | Target::CliDev
+                | Target::Wasm
+                | Target::CliChipmunk => true,
                 Target::Shared
                 | Target::Binding
                 | Target::Client
@@ -380,8 +398,9 @@ impl Target {
     /// Provides the test commands for the given target if available
     fn test_cmds(self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
-            Target::Core => Some(core::get_test_cmds(production)),
-            Target::Cli => Some(cli::get_test_cmds(production)),
+            Target::Core | Target::CliDev | Target::CliChipmunk => {
+                Some(rust_test_commands(self.cwd(), production))
+            }
             Target::Wasm => Some(wasm::get_test_cmds()),
             Target::Shared
             | Target::Binding
@@ -540,7 +559,8 @@ impl Target {
             | Target::Client
             | Target::Updater
             | Target::App
-            | Target::Cli => {}
+            | Target::CliDev
+            | Target::CliChipmunk => {}
         }
 
         for path in paths_to_remove.into_iter().filter(|p| p.exists()) {
@@ -628,7 +648,8 @@ impl Target {
             | Target::Wasm
             | Target::Updater
             | Target::Protocol
-            | Target::Cli => return None,
+            | Target::CliDev
+            | Target::CliChipmunk => return None,
         };
 
         match (after_res, reinstall_res) {
@@ -674,4 +695,18 @@ async fn install_general(
 /// as [`ProcessCommand::args`]
 fn yarn_command(args: Vec<String>) -> ProcessCommand {
     ProcessCommand::new(DevTool::Yarn.cmd(), args)
+}
+
+/// Provides the general commands to run tests on rust targets.
+fn rust_test_commands(path: PathBuf, production: bool) -> Vec<TestSpawnCommand> {
+    let mut args = vec![String::from("+stable"), String::from("test")];
+    if production {
+        args.push("-r".into());
+    }
+    args.push("--color".into());
+    args.push("always".into());
+
+    let cmd = ProcessCommand::new(DevTool::Cargo.cmd(), args);
+
+    vec![TestSpawnCommand::new(cmd, path, None)]
 }

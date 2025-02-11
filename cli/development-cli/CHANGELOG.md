@@ -1,3 +1,10 @@
+# 0.4.0
+
+## Changes:
+
+* Include Chipmunk CLI target & related functionality.
+* Adjustments to the changes directories structures, including code, integration tests and documentation.
+
 # 0.3.1
 
 ## Changes:

@@ -26,41 +26,44 @@ CLEAN_COMMAND = [
     "client",
     "updater",
     "app",
+    "cli-chipmunk",
     # Set UI mode to immediate.
     "-u",
     "immediate",
 ]
 
 # These paths must not exist after clean build is done.
-# The paths are relative starting from `chipmunk_root/application`
+# The paths are relative starting from `chipmunk_root`
 PATHS_TO_CHECK = [
     # Core
-    "apps/indexer/target",
+    "application/apps/indexer/target",
     # Shared
-    "platform/dist",
-    "platform/node_modules",
+    "application/platform/dist",
+    "application/platform/node_modules",
     # Protocol
-    "apps/protocol/pkg",
+    "application/apps/protocol/pkg",
     # Binding
-    "apps/rustcore/rs-bindings/dist",
-    "apps/rustcore/rs-bindings/target",
+    "application/apps/rustcore/rs-bindings/dist",
+    "application/apps/rustcore/rs-bindings/target",
     # Wrapper
-    "apps/rustcore/ts-bindings/dist",
-    "apps/rustcore/ts-bindings/node_modules",
-    "apps/rustcore/ts-bindings/spec/build",
-    "apps/rustcore/ts-bindings/src/native/index.node",
+    "application/apps/rustcore/ts-bindings/dist",
+    "application/apps/rustcore/ts-bindings/node_modules",
+    "application/apps/rustcore/ts-bindings/spec/build",
+    "application/apps/rustcore/ts-bindings/src/native/index.node",
     # Wasm
-    "apps/rustcore/wasm-bindings/pkg",
-    "apps/rustcore/wasm-bindings/node_modules",
-    "apps/rustcore/wasm-bindings/test_output",
+    "application/apps/rustcore/wasm-bindings/pkg",
+    "application/apps/rustcore/wasm-bindings/node_modules",
+    "application/apps/rustcore/wasm-bindings/test_output",
     # Client
-    "client/dist",
-    "client/node_modules",
+    "application/client/dist",
+    "application/client/node_modules",
     # Updater
-    "apps/precompiled/updater/target",
+    "application/apps/precompiled/updater/target",
     # App
-    "holder/dist",
-    "holder/node_modules",
+    "application/holder/dist",
+    "application/holder/node_modules",
+    # Chipmunk CLI
+    "cli/chipmunk-cli/target",
 ]
 
 
@@ -80,8 +83,7 @@ def run_clean_command():
 def get_removed_paths() -> list[Path]:
     """Provides the paths for the directories that must be removed after running the clean command"""
     root_dir = get_root()
-    application_dir = root_dir.joinpath("application")
-    return [application_dir.joinpath(sub_dir) for sub_dir in PATHS_TO_CHECK]
+    return [root_dir.joinpath(sub_dir) for sub_dir in PATHS_TO_CHECK]
 
 
 if __name__ == "__main__":

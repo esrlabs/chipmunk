@@ -14,12 +14,12 @@ Before installing the Chipmunk CLI tool, ensure that Rust is installed on your s
 
 - **Install Rust:** Visit [rustup.rs](https://rustup.rs/) and follow the instructions to install Rust.
 
-### Install Chipmunk CLI
+### Install Chipmunk Development CLI
 
-Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk CLI tool:
+Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk Development CLI tool:
 
 ```bash
-cargo install --path cli
+cargo install --path cli/development-cli
 ```
 
 This command installs this tool as a cargo extension, allowing you to use `cargo chipmunk <COMMAND> <ARGS>` to execute various development tasks for Chipmunk.
@@ -66,15 +66,17 @@ Arguments:
           Target to build, by default whole application will be built
 
           Possible values:
-          - core:    Represents the path `application/apps/indexer`
-          - shared:  Represents the path `application/platform`
-          - binding: Represents the path `application/apps/rustcore/rs-bindings`
-          - wrapper: Represents the path `application/apps/rustcore/ts-bindings`
-          - wasm:    Represents the path `application/apps/rustcore/wasm-bindings`
-          - client:  Represents the path `application/client`
-          - updater: Represents the path `application/apps/precompiled/updater`
-          - app:     Represents the path `application/holder`
-          - cli:     Represents the path `cli`
+          - core:         Represents the path `application/apps/indexer`
+          - shared:       Represents the path `application/platform`
+          - protocol:     Represents the path `application/apps/protocol`
+          - binding:      Represents the path `application/apps/rustcore/rs-bindings`
+          - wrapper:      Represents the path `application/apps/rustcore/ts-bindings`
+          - wasm:         Represents the path `application/apps/rustcore/wasm-bindings`
+          - client:       Represents the path `application/client`
+          - updater:      Represents the path `application/apps/precompiled/updater`
+          - app:          Represents the path `application/holder`
+          - cli-dev:      Represents the path `cli/development-cli`
+          - cli-chipmunk: Represents the path `cli/chipmunk-cli`
 
 Options:
   -p, --production
@@ -146,7 +148,7 @@ You can run benchmarks of the Rust Core part directly using the Build CLI tool. 
 
 The CLI tool simplifies running these benchmarks from anywhere in the Chipmunk repository. You can provide the input sources and configurations as CLI arguments, and the tool will handle setting the environment variables for the benchmarks. For more details, use the help command: `cargo chipmunk bench --help`.
 
-The registered benchmarks are loaded from `chipmunk/cli/config/bench_core.toml`. To add a new benchmark, please include it in this configuration file.
+The registered benchmarks are loaded from `chipmunk/cli/development-cli/config/bench_core.toml`. To add a new benchmark, please include it in this configuration file.
 
 ## Shell Completion
 
@@ -180,7 +182,7 @@ Contributions in any part of Chipmunk are very welcome!
 
 After making any changes to this build CLI tool, please run the integration tests to ensure that all the provided commands in this tool are still working as expected. Additionally, consider adding new tests when introducing new features and commands.
 
-To run all the tests, execute the Python file `chipmunk/cli/integration_tests/run_all.py` from within the `chipmunk/cli` directory. For example:
+To run all the tests, execute the Python file `chipmunk/cli/development-cli/integration_tests/run_all.py` from within the `chipmunk/cli/development` directory. For example:
 
 ```bash
 # Move to cli directory
@@ -190,5 +192,5 @@ python ./integration_tests/run_all.py
 ```
 Please be aware that these tests will run on your local copy of Chipmunk. This process will rebuild the project and run all linting and tests on the entire solution.
 
-For more details, please see our [contribution guid](../contribution.md)
+For more details, please see our [contribution guid](../../contribution.md)
 

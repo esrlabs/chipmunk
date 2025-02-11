@@ -43,7 +43,7 @@ jobs:
       - name: enable corepack for yarnpkg upgrade
         run: corepack enable
       - name: Install Build CLI tool
-        run: cargo install --path=cli --locked
+        run: cargo install --path=cli/development-cli --locked
         env:
           SCCACHE_GHA_ENABLED: "true"
           RUSTC_WRAPPER: "sccache"
@@ -96,7 +96,7 @@ jobs:
           npm install tslib
           corepack enable
       - name: Install Build CLI tool
-        run: cargo install --path=cli --locked
+        run: cargo install --path=cli/development-cli --locked
         env:
           SCCACHE_GHA_ENABLED: "true"
           RUSTC_WRAPPER: "sccache"
@@ -112,4 +112,4 @@ jobs:
         if: contains(github.event.pull_request.labels.*.name, 'build-cli')
         timeout-minutes: 30
         run: python3 integration_tests/run_all.py
-        working-directory: ./cli
+        working-directory: ./cli/development-cli

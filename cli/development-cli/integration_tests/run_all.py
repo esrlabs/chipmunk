@@ -1,7 +1,7 @@
 """
 Provide method to run the tests for all the commands provided by Chipmunk Build CLI Tool
 All the tests build and run the current build CLI implementation in release mode, therefore 
-it must be invoked from withing `Chipmunk/cli` directory
+it must be invoked from withing `Chipmunk/cli/development-cli` directory
 """
 
 from utls import print_red_bold, print_blue_bold, print_green_bold, print_cyan

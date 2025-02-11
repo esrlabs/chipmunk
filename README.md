@@ -36,9 +36,13 @@ Requirements:
 
 Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to start chipmunk.
 
+## Chipmunk CLI Tool
+
+We provide a command-line tool to facilitate data parsing from multiple input sources and with support for various parser formats. For more details, refer to the [Chipmunk CLI Tool](cli/chipmunk-cli/README.md).
+
 ## Development CLI Tool
 
-We provide a CLI tool to assist with various development tasks. For more details, refer to the [Chipmunk Development CLI Tool](cli/README.md).
+We provide a CLI tool to assist with various development tasks. For more details, refer to the [Chipmunk Development CLI Tool](cli/development-cli/README.md).
 
 ## Contributing
 See our [contribution](contribution.md) guide for details
