@@ -3,7 +3,7 @@ mod paths;
 use std::{
     fs::{self, read_to_string},
     io,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use stypes::{InvalidPluginInfo, PluginMetadata};
@@ -146,33 +146,58 @@ enum PluginValidationState {
     },
 }
 
-/// Loads the files inside plugin directory and validate their content return the state
+/// Extract plugins binary filename and metadata filename from plugins directory
+/// path by conventions.
+/// The current conventions state the plugin filename and metadata must match
+/// the directory name of the plugin itself and will be considered as plugin name.
+///
+/// * `plugins_dir`: The path of the plugin directory
+///
+/// # Returns:
+///
+/// A tuple contains the filename of the plugin binary `*.wasm` file and its
+/// metadata `*.toml` file when plugins directory is valid.
+fn extract_plugin_filenames(plugins_dir: &Path) -> Result<(String, String), InitError> {
+    let dir_name = plugins_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| {
+            InitError::Other(format!(
+                "Extracting plugins files from its directory failed. Plugin directory: {}",
+                plugins_dir.display()
+            ))
+        })?;
+
+    let plugin_file = format!("{dir_name}.wasm");
+    let metadata_file = format!("{dir_name}.toml");
+
+    Ok((plugin_file, metadata_file))
+}
+
+/// Loads plugin files inside its directory and validate their content returning the state
 /// of the plugin.
-fn validate_plugin_files(dir: &PathBuf) -> Result<PluginValidationState, InitError> {
+///
+/// * `plugin_dir`: Path for the plugin directory.
+fn validate_plugin_files(plugin_dir: &PathBuf) -> Result<PluginValidationState, InitError> {
     use PluginValidationState as Re;
+
+    let (plugin_filename, metadata_filename) = extract_plugin_filenames(plugin_dir)?;
+
     let mut wasm_file = None;
     let mut metadata_file = None;
-    for file in fs::read_dir(dir)?
+    for file in fs::read_dir(plugin_dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|e| e.is_file())
     {
-        match file.extension().map(|ext| ext.to_str()) {
-            Some(Some("wasm")) => {
-                if wasm_file.replace(file).is_some() {
-                    let err_msg = format!("Multiple wasm files found in {}", dir.display());
-
-                    return Ok(Re::Invalid { err_msg });
-                }
+        match file.file_name().and_then(|name| name.to_str()) {
+            Some(name) if name == plugin_filename => {
+                wasm_file = Some(file);
             }
-            Some(Some("toml")) => {
-                if metadata_file.replace(file).is_some() {
-                    let err_msg = format!("Multiple metadata files found in {}", dir.display());
-
-                    return Ok(Re::Invalid { err_msg });
-                }
+            Some(name) if name == metadata_filename => {
+                metadata_file = Some(file);
             }
-            _invalid => {
-                log::warn!(
+            _ignored => {
+                log::info!(
                     "File ignored while loading parser plugin. Path {}",
                     file.display()
                 );
@@ -186,7 +211,10 @@ fn validate_plugin_files(dir: &PathBuf) -> Result<PluginValidationState, InitErr
             metadata: metadata_file,
         },
         None => {
-            let err_msg = format!("No *.wasm file found in {}", dir.display());
+            let err_msg = format!(
+                "File {plugin_filename} is not found in {}",
+                plugin_dir.display()
+            );
 
             Re::Invalid { err_msg }
         }
