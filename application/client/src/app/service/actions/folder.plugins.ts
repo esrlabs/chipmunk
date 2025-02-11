@@ -47,7 +47,11 @@ export class Action extends Base {
             session
                 .initialize()
                 .observe(
-                    new Factory.File().type(files[0].type).file(files[0].filename).asPlugin().get(),
+                    new Factory.File()
+                        .type(files[0].type)
+                        .file(files[0].filename)
+                        .asParserPlugin()
+                        .get(),
                 );
         }
 
