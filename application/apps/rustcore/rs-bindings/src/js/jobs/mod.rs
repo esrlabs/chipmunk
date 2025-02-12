@@ -221,26 +221,78 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
-    async fn get_all_plugins(
+    async fn installed_plugins_list(
         &self,
         id: i64,
     ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
         self.api
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
-            .get_all_plugins(u64_from_i64(id)?)
+            .installed_plugins_list(u64_from_i64(id)?)
             .await
     }
 
     #[node_bindgen]
-    async fn get_active_plugins(
+    async fn invalid_plugins_list(
         &self,
         id: i64,
-    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::InvalidPluginsList>, stypes::ComputationError> {
         self.api
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
-            .get_active_plugins(u64_from_i64(id)?)
+            .invalid_plugins_list(u64_from_i64(id)?)
+            .await
+    }
+
+    #[node_bindgen]
+    async fn installed_plugins_paths(
+        &self,
+        id: i64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsPathsList>, stypes::ComputationError> {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .installed_plugins_paths(u64_from_i64(id)?)
+            .await
+    }
+
+    #[node_bindgen]
+    async fn invalid_plugins_paths(
+        &self,
+        id: i64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsPathsList>, stypes::ComputationError> {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .invalid_plugins_paths(u64_from_i64(id)?)
+            .await
+    }
+
+    #[node_bindgen]
+    async fn installed_plugin_info(
+        &self,
+        id: i64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<Option<stypes::PluginEntity>>, stypes::ComputationError>
+    {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .installed_plugin_info(u64_from_i64(id)?, plugin_path)
+            .await
+    }
+
+    #[node_bindgen]
+    async fn invalid_plugin_info(
+        &self,
+        id: i64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<Option<stypes::InvalidPluginEntity>>, stypes::ComputationError>
+    {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .invalid_plugin_info(u64_from_i64(id)?, plugin_path)
             .await
     }
 

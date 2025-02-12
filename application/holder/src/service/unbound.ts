@@ -88,8 +88,8 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Plugins.ListAll.Request,
-                    RequestHandlers.Plugins.ListAll.handler,
+                    Requests.Plugins.ListInstalled.Request,
+                    RequestHandlers.Plugins.ListInstalled.handler,
                 ),
         );
         this.register(
@@ -97,8 +97,44 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Plugins.ListActive.Request,
-                    RequestHandlers.Plugins.ListActive.handler,
+                    Requests.Plugins.ListInvalid.Request,
+                    RequestHandlers.Plugins.ListInvalid.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.ListInstalledPaths.Request,
+                    RequestHandlers.Plugins.ListInstalledPaths.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.ListInvalidPaths.Request,
+                    RequestHandlers.Plugins.ListInvalidPaths.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.InstalledPluginInfo.Request,
+                    RequestHandlers.Plugins.InstalledPluginInfo.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.InvalidPluginInfo.Request,
+                    RequestHandlers.Plugins.InvalidPluginInfo.handler,
                 ),
         );
         this.register(

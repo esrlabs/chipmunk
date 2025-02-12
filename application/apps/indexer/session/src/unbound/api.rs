@@ -210,24 +210,76 @@ impl UnboundSessionAPI {
             .await
     }
 
-    /// Get all plugins including active and invalid plugins.
-    pub async fn get_all_plugins(
+    /// Get all information of installed plugins .
+    pub async fn installed_plugins_list(
         &self,
         id: u64,
     ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(id, rx_results, Command::GetAllPlugins(tx_results))
+        self.process_command(id, rx_results, Command::InstalledPluginsList(tx_results))
             .await
     }
 
-    /// Get active (valid) plugins only.
-    pub async fn get_active_plugins(
+    /// Get all information of invalid plugins .
+    pub async fn invalid_plugins_list(
         &self,
         id: u64,
-    ) -> Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError> {
+    ) -> Result<stypes::CommandOutcome<stypes::InvalidPluginsList>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(id, rx_results, Command::GetActivePlugins(tx_results))
+        self.process_command(id, rx_results, Command::InvalidPluginsList(tx_results))
             .await
+    }
+
+    /// Get the directory paths (considered ID) for installed plugins.
+    pub async fn installed_plugins_paths(
+        &self,
+        id: u64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsPathsList>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::InstalledPluginsPaths(tx_results))
+            .await
+    }
+
+    /// Get the directory paths (considered ID) for invalid plugins.
+    pub async fn invalid_plugins_paths(
+        &self,
+        id: u64,
+    ) -> Result<stypes::CommandOutcome<stypes::PluginsPathsList>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(id, rx_results, Command::InvalidPluginsPaths(tx_results))
+            .await
+    }
+
+    /// Get all info for the installed plugin with provided directory path (considered ID)
+    pub async fn installed_plugin_info(
+        &self,
+        id: u64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<Option<stypes::PluginEntity>>, stypes::ComputationError>
+    {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::InstalledPluginInfo(plugin_path, tx_results),
+        )
+        .await
+    }
+
+    /// Get all info for the invalid plugin with provided directory path (considered ID)
+    pub async fn invalid_plugin_info(
+        &self,
+        id: u64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<Option<stypes::InvalidPluginEntity>>, stypes::ComputationError>
+    {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::InvalidPluginInfo(plugin_path, tx_results),
+        )
+        .await
     }
 
     /// Reload the plugin directory.

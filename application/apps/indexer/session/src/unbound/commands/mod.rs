@@ -83,16 +83,45 @@ pub enum Command {
         i64,
         oneshot::Sender<Result<stypes::CommandOutcome<i64>, stypes::ComputationError>>,
     ),
-    /// Command to get all plugins including active and invalid.
-    GetAllPlugins(
+    /// Get all information of the installed plugins .
+    InstalledPluginsList(
         oneshot::Sender<
             Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
         >,
     ),
-    /// Get all active (valid) plugins only.
-    GetActivePlugins(
+    /// Get all information of invalid plugins .
+    InvalidPluginsList(
         oneshot::Sender<
-            Result<stypes::CommandOutcome<stypes::PluginsList>, stypes::ComputationError>,
+            Result<stypes::CommandOutcome<stypes::InvalidPluginsList>, stypes::ComputationError>,
+        >,
+    ),
+    /// Get the directory paths (considered ID) for installed plugins.
+    InstalledPluginsPaths(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::PluginsPathsList>, stypes::ComputationError>,
+        >,
+    ),
+    /// Get the directory paths (considered ID) for invalid plugins.
+    InvalidPluginsPaths(
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<stypes::PluginsPathsList>, stypes::ComputationError>,
+        >,
+    ),
+    /// Get all info for the installed plugin with provided directory path (considered ID)
+    InstalledPluginInfo(
+        String,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<Option<stypes::PluginEntity>>, stypes::ComputationError>,
+        >,
+    ),
+    /// Get all info for the invalid plugin with provided directory path (considered ID)
+    InvalidPluginInfo(
+        String,
+        oneshot::Sender<
+            Result<
+                stypes::CommandOutcome<Option<stypes::InvalidPluginEntity>>,
+                stypes::ComputationError,
+            >,
         >,
     ),
     /// Reload all the plugins from their directory.
@@ -117,8 +146,12 @@ impl std::fmt::Display for Command {
                 Command::GetSomeipStatistic(_, _) => "Getting someip statistic",
                 Command::GetRegexError(_, _) => "Checking regex",
                 Command::IsFileBinary(_, _) => "Checking if file is binary",
-                Command::GetAllPlugins(..) => "Getting all plugins",
-                Command::GetActivePlugins(..) => "Getting active plugins",
+                Command::InstalledPluginsList(..) => "Getting installed plugins",
+                Command::InvalidPluginsList(..) => "Getting invalid plugins",
+                Command::InstalledPluginsPaths(..) => "Getting installed plugins paths",
+                Command::InvalidPluginsPaths(..) => "Getting invaild plugins paths",
+                Command::InstalledPluginInfo(..) => "Getting installed plugin info",
+                Command::InvalidPluginInfo(..) => "Getting invalid plugin info",
                 Command::ReloadPlugins(..) => "Reloading plugins' information",
             }
         )
@@ -158,11 +191,23 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
         Command::CancelTest(a, b, tx) => tx
             .send(cancel_test::cancel_test(a, b, signal).await)
             .is_err(),
-        Command::GetAllPlugins(tx) => tx
-            .send(plugins::get_all_plugins(plugins_manager, signal).await)
+        Command::InstalledPluginsList(tx) => tx
+            .send(plugins::installed_plugins_list(plugins_manager, signal).await)
             .is_err(),
-        Command::GetActivePlugins(tx) => tx
-            .send(plugins::get_active_plugins(plugins_manager, signal).await)
+        Command::InvalidPluginsList(tx) => tx
+            .send(plugins::invalid_plugins_list(plugins_manager, signal).await)
+            .is_err(),
+        Command::InstalledPluginsPaths(tx) => tx
+            .send(plugins::installed_plugins_paths(plugins_manager, signal).await)
+            .is_err(),
+        Command::InvalidPluginsPaths(tx) => tx
+            .send(plugins::invalid_plugins_paths(plugins_manager, signal).await)
+            .is_err(),
+        Command::InstalledPluginInfo(path, tx) => tx
+            .send(plugins::installed_plugins_info(path, plugins_manager, signal).await)
+            .is_err(),
+        Command::InvalidPluginInfo(path, tx) => tx
+            .send(plugins::invalid_plugins_info(path, plugins_manager, signal).await)
             .is_err(),
         Command::ReloadPlugins(tx) => tx
             .send(plugins::reload_plugins(plugins_manager, signal).await)
@@ -187,8 +232,12 @@ pub fn err(command: Command, err: stypes::ComputationError) {
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
         Command::IsFileBinary(_filepath, tx) => tx.send(Err(err)).is_err(),
         Command::CancelTest(_a, _b, tx) => tx.send(Err(err)).is_err(),
-        Command::GetAllPlugins(tx) => tx.send(Err(err)).is_err(),
-        Command::GetActivePlugins(tx) => tx.send(Err(err)).is_err(),
+        Command::InstalledPluginsList(tx) => tx.send(Err(err)).is_err(),
+        Command::InvalidPluginsList(tx) => tx.send(Err(err)).is_err(),
+        Command::InstalledPluginsPaths(tx) => tx.send(Err(err)).is_err(),
+        Command::InvalidPluginsPaths(tx) => tx.send(Err(err)).is_err(),
+        Command::InstalledPluginInfo(_, tx) => tx.send(Err(err)).is_err(),
+        Command::InvalidPluginInfo(_, tx) => tx.send(Err(err)).is_err(),
         Command::ReloadPlugins(tx) => tx.send(Err(err)).is_err(),
     } {
         error!("Fail to send error response for command: {cmd}");

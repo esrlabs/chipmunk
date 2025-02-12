@@ -4,11 +4,11 @@ import * as validator from '../../../env/obj';
 
 import { PluginEntity } from '../../../types/bindings/plugins';
 
-@Define({ name: 'ListAllPluginsRequest' })
+@Define({ name: 'ListInstalledPluginsRequest' })
 export class Request extends SignatureRequirement {}
 export interface Request extends Interface {}
 
-@Define({ name: 'ListAllPluginsRespond' })
+@Define({ name: 'ListInstalledPluginsResponse' })
 export class Response extends SignatureRequirement {
     public plugins: PluginEntity[];
 

@@ -139,7 +139,7 @@ pub struct PluginConfigSchemaItem {
     pub input_type: PluginConfigSchemaType,
 }
 
-/// Represents a plugin entity informations and configurations.
+/// Represents an installed plugin entity informations and configurations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
 #[cfg_attr(
@@ -148,10 +148,34 @@ pub struct PluginConfigSchemaItem {
     ts(export, export_to = "plugins.ts")
 )]
 pub struct PluginEntity {
+    /// Directory path of the plugin. Qualify as ID for the plugin.
     pub dir_path: PathBuf,
+    /// Represents the plugin type.
     pub plugin_type: PluginType,
-    pub state: PluginState,
-    pub metadata: Option<PluginMetadata>,
+    /// Include various information about the plugin.
+    pub info: PluginInfo,
+    /// Provides Plugins Metadata from separate source than the plugin binary.
+    /// Currently they are saved inside plugin `*.toml` file.
+    pub metadata: PluginMetadata,
+    /// Represents messages (mostly warning and infos) produced while loading the plugin.
+    pub warn_msgs: Vec<String>,
+}
+
+/// Represents the informations of an invalid plugin.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct InvalidPluginEntity {
+    /// Directory path of the plugin. Qualify as ID for the plugin.
+    pub dir_path: PathBuf,
+    /// Represents the plugin type.
+    pub plugin_type: PluginType,
+    /// Error messages describing why the plugin is invalid.
+    pub error_msgs: Vec<String>,
 }
 
 /// Represents the plugins metadata like name, description...
@@ -180,19 +204,6 @@ pub enum PluginType {
     ByteSource,
 }
 
-/// Represents the plugins states and their corresponding informations.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "plugins.ts")
-)]
-pub enum PluginState {
-    Active(Box<ValidPluginInfo>),
-    Invalid(Box<InvalidPluginInfo>),
-}
-
 /// Contains the infos and options for a valid plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
@@ -201,7 +212,7 @@ pub enum PluginState {
     derive(TS),
     ts(export, export_to = "plugins.ts")
 )]
-pub struct ValidPluginInfo {
+pub struct PluginInfo {
     pub wasm_file_path: PathBuf,
     pub api_version: SemanticVersion,
     pub plugin_version: SemanticVersion,
@@ -288,19 +299,6 @@ pub struct ColumnInfo {
     pub width: i16,
 }
 
-/// Contains the informations for an invalid plugin.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "plugins.ts")
-)]
-pub struct InvalidPluginInfo {
-    /// Error message describing why the plugin is invalid.
-    pub error_msg: String,
-}
-
 /// Represents a list of [`PluginEntity`].
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
@@ -310,3 +308,23 @@ pub struct InvalidPluginInfo {
     ts(export, export_to = "plugins.ts")
 )]
 pub struct PluginsList(pub Vec<PluginEntity>);
+
+/// Represents a list of [`InvalidPluginEntity`].
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct InvalidPluginsList(pub Vec<InvalidPluginEntity>);
+
+/// Represents a list of [`InvalidPluginEntity`].
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct PluginsPathsList(pub Vec<String>);

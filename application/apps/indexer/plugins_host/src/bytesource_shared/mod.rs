@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use stypes::{PluginType, RenderOptions, SemanticVersion, ValidPluginInfo};
+use stypes::{PluginInfo, PluginType, RenderOptions, SemanticVersion};
 use wasmtime::component::Component;
 
 use crate::{
@@ -35,7 +35,7 @@ pub enum PlugVerByteSource {
 
 impl PluginsByteSource {
     /// Loads the plugin and extract the needed plugin info if valid.
-    pub async fn get_info(plugin_path: PathBuf) -> Result<ValidPluginInfo, PluginError> {
+    pub async fn get_info(plugin_path: PathBuf) -> Result<PluginInfo, PluginError> {
         let (component, version) = Self::load(&plugin_path).await?;
 
         let plug_info = match version {
@@ -52,7 +52,7 @@ impl PluginsByteSource {
             }
         };
 
-        let plugin_info = ValidPluginInfo {
+        let plugin_info = PluginInfo {
             wasm_file_path: plugin_path,
             api_version: version,
             plugin_version: plug_info.version,

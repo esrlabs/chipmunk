@@ -10,11 +10,10 @@ export class Implementation extends Render<Columns> {
         super();
 
         if (
-            'Active' in plugin.state &&
-            typeof plugin.state.Active.render_options === 'object' &&
-            'Parser' in plugin.state.Active.render_options
+            typeof plugin.info.render_options === 'object' &&
+            'Parser' in plugin.info.render_options
         ) {
-            const columns_options = plugin.state.Active.render_options.Parser.columns_options;
+            const columns_options = plugin.info.render_options.Parser.columns_options;
 
             if (columns_options === null) {
                 // Render options doesn't have columns.

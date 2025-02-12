@@ -6,50 +6,171 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use stypes::{InvalidPluginInfo, PluginMetadata};
+use stypes::{InvalidPluginEntity, PluginMetadata};
 
 use crate::{
-    plugins_manager::PluginState, plugins_shared::plugin_errors::PluginError, PluginHostInitError,
-    PluginType, PluginsByteSource, PluginsParser,
+    plugins_shared::plugin_errors::PluginError, PluginHostInitError, PluginType, PluginsByteSource,
+    PluginsParser,
 };
 
 use super::{InitError, PluginEntity};
 
 /// Loads all the plugins from the plugin directory
-pub async fn load_plugins() -> Result<Vec<PluginEntity>, InitError> {
+///
+/// # Returns:
+///
+/// List of valid plugins alongside with other list for invalid ones.
+pub async fn load_all_plugins() -> Result<(Vec<PluginEntity>, Vec<InvalidPluginEntity>), InitError>
+{
     let plugins_dir = paths::plugins_dir()?;
     if !plugins_dir.exists() {
         log::trace!("Plugins directory doesn't exist. Creating it...");
         fs::create_dir_all(plugins_dir)?;
     }
 
-    let mut plugins = load_all_parsers().await?;
+    let (mut valid_plugins, mut invalid_plugs) = load_plugins(PluginType::Parser).await?;
 
-    let bytesources = load_all_bytesources().await?;
+    let (valid_sources, invalid_soruces) = load_plugins(PluginType::ByteSource).await?;
 
-    plugins.extend(bytesources);
+    valid_plugins.extend(valid_sources);
+    invalid_plugs.extend(invalid_soruces);
 
-    Ok(plugins)
+    Ok((valid_plugins, invalid_plugs))
 }
 
-/// Loads all parser plugins from their directory.
-async fn load_all_parsers() -> Result<Vec<PluginEntity>, InitError> {
-    let mut parsers = Vec::new();
+/// Loads all plugins from the main directory of the provided plugin type.
+///
+/// # Returns:
+///
+/// List of valid plugins alongside with other list for invalid ones.
+async fn load_plugins(
+    plug_type: PluginType,
+) -> Result<(Vec<PluginEntity>, Vec<InvalidPluginEntity>), InitError> {
+    let mut valid_plugins = Vec::new();
+    let mut invalid_plugins = Vec::new();
 
-    let parsers_dir = paths::parser_dir()?;
-    if !parsers_dir.exists() {
-        log::trace!("Parsers directory doesn't exist. Creating it ...");
-        fs::create_dir_all(&parsers_dir)?;
+    let plugins_dir = match plug_type {
+        PluginType::Parser => paths::parser_dir()?,
+        PluginType::ByteSource => paths::bytesource_dir()?,
+    };
 
-        return Ok(parsers);
+    if !plugins_dir.exists() {
+        log::trace!("{plug_type} directory doesn't exist. Creating it...");
+        fs::create_dir_all(plugins_dir)?;
+
+        return Ok((valid_plugins, invalid_plugins));
     }
 
-    for dir in get_dirs(&parsers_dir)? {
-        let parser = load_parser(dir).await?;
-        parsers.push(parser);
+    for dir in get_dirs(&plugins_dir)? {
+        match load_plugin(dir, plug_type).await? {
+            PluginEntityState::Valid(plugin) => valid_plugins.push(plugin),
+            PluginEntityState::Invalid(invalid) => invalid_plugins.push(invalid),
+        }
     }
 
-    Ok(parsers)
+    Ok((valid_plugins, invalid_plugins))
+}
+
+/// Represents the various states of a plugin entity.
+/// This type is used internally in this module only.
+enum PluginEntityState {
+    Valid(PluginEntity),
+    Invalid(InvalidPluginEntity),
+}
+
+/// Loads plugin infos and metadata from the provided plugin directory.
+///
+/// * `plug_dir`: Plugin directory
+/// * `plug_type`: Plugin Type
+///
+/// # Returns:
+///
+/// Plugins infos and metadata when valid, or error infos when invalid.
+async fn load_plugin(
+    plug_dir: PathBuf,
+    plug_type: PluginType,
+) -> Result<PluginEntityState, InitError> {
+    let (wasm_file, metadata_file) = match validate_plugin_files(&plug_dir)? {
+        PluginValidationState::Valid {
+            wasm_path: wasm,
+            metadata,
+        } => (wasm, metadata),
+        PluginValidationState::Invalid { err_msg } => {
+            let invalid_entity = InvalidPluginEntity {
+                dir_path: plug_dir,
+                plugin_type: plug_type,
+                error_msgs: vec![err_msg],
+            };
+
+            return Ok(PluginEntityState::Invalid(invalid_entity));
+        }
+    };
+
+    let plug_info_res = match plug_type {
+        PluginType::Parser => PluginsParser::get_info(wasm_file).await,
+        PluginType::ByteSource => PluginsByteSource::get_info(wasm_file).await,
+    };
+
+    let plug_info = match plug_info_res {
+        Ok(info) => info,
+        // Stop the whole loading on engine errors
+        Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
+            return Err(err.into())
+        }
+        Err(err) => {
+            let err_msg = format!("Loading plugin binary fail. Error: {err}");
+            let invalid = InvalidPluginEntity {
+                dir_path: plug_dir,
+                plugin_type: plug_type,
+                error_msgs: vec![err_msg],
+            };
+
+            return Ok(PluginEntityState::Invalid(invalid));
+        }
+    };
+
+    let mut warn_msgs = Vec::new();
+    let plug_metadata = match metadata_file {
+        Some(file) => match parse_metadata(&file) {
+            Ok(metadata) => metadata,
+            Err(err_msg) => {
+                warn_msgs.push(format!(
+                    "Parsing metadata file failed with error: {err_msg}"
+                ));
+                let dir_name = plug_dir
+                    .file_name()
+                    .and_then(|p| p.to_str())
+                    .unwrap_or("Unkown");
+
+                PluginMetadata {
+                    name: dir_name.into(),
+                    description: None,
+                }
+            }
+        },
+        None => {
+            warn_msgs.push(String::from("Metadata file not found"));
+            let dir_name = plug_dir
+                .file_name()
+                .and_then(|p| p.to_str())
+                .unwrap_or("Unkown");
+
+            PluginMetadata {
+                name: dir_name.into(),
+                description: None,
+            }
+        }
+    };
+
+    let valid_plugin = PluginEntity {
+        dir_path: plug_dir,
+        plugin_type: plug_type,
+        info: plug_info,
+        metadata: plug_metadata,
+        warn_msgs,
+    };
+
+    Ok(PluginEntityState::Valid(valid_plugin))
 }
 
 /// Retrieves all directory form the given directory path
@@ -59,74 +180,6 @@ fn get_dirs(dir_path: &PathBuf) -> Result<impl Iterator<Item = PathBuf>, io::Err
         .filter(|path| path.is_dir());
 
     Ok(dirs)
-}
-
-/// Loads parser infos and metadata from the provided parser directory.
-async fn load_parser(dir: PathBuf) -> Result<PluginEntity, InitError> {
-    let (wasm_file, metadata_file) = match validate_plugin_files(&dir)? {
-        PluginValidationState::Valid {
-            wasm_path: wasm,
-            metadata,
-        } => (wasm, metadata),
-        PluginValidationState::Invalid { err_msg } => {
-            let invalid_entity = PluginEntity {
-                dir_path: dir,
-                plugin_type: PluginType::Parser,
-                state: PluginState::Invalid(Box::new(InvalidPluginInfo::new(err_msg))),
-                metadata: None,
-            };
-
-            return Ok(invalid_entity);
-        }
-    };
-
-    let plugin_info = match PluginsParser::get_info(wasm_file).await {
-        Ok(info) => info,
-        // Stop the whole loading on engine errors
-        Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
-            return Err(err.into())
-        }
-        Err(err) => {
-            let err_msg = format!("Loading plugin binary fail. Error: {err}");
-            let invalid = PluginEntity {
-                dir_path: dir,
-                plugin_type: PluginType::Parser,
-                state: PluginState::Invalid(Box::new(InvalidPluginInfo::new(err_msg))),
-                metadata: None,
-            };
-
-            return Ok(invalid);
-        }
-    };
-
-    let plugin_metadata = match metadata_file {
-        Some(file) => {
-            let metadata = match parse_metadata(&file) {
-                Ok(metadata) => metadata,
-                Err(err_msg) => {
-                    let invalid_entity = PluginEntity {
-                        dir_path: dir,
-                        plugin_type: PluginType::Parser,
-                        state: PluginState::Invalid(Box::new(InvalidPluginInfo::new(err_msg))),
-                        metadata: None,
-                    };
-                    return Ok(invalid_entity);
-                }
-            };
-
-            Some(metadata)
-        }
-        None => None,
-    };
-
-    let valid_plugin = PluginEntity {
-        dir_path: dir,
-        plugin_type: PluginType::Parser,
-        state: PluginState::Active(Box::new(plugin_info)),
-        metadata: plugin_metadata,
-    };
-
-    Ok(valid_plugin)
 }
 
 /// Represents Plugins State and the corresponding infos.
@@ -229,92 +282,4 @@ fn parse_metadata(file: &PathBuf) -> Result<PluginMetadata, String> {
         .map_err(|err| format!("Reading metadata file fail. Error {err:#?}"))?;
 
     toml::from_str(&content).map_err(|err| format!("Parsing metadata file fail. Error {err:#?}"))
-}
-
-/// Loads all byte-source plugins from their main directory.
-async fn load_all_bytesources() -> Result<Vec<PluginEntity>, InitError> {
-    let mut bytesources = Vec::new();
-
-    let bytesource_dir = paths::bytesource_dir()?;
-    if !bytesource_dir.exists() {
-        log::trace!("Bytesources directory doesn't exist. Creating it ...");
-        fs::create_dir_all(&bytesource_dir)?;
-
-        return Ok(bytesources);
-    }
-
-    for dir in get_dirs(&bytesource_dir)? {
-        let source = load_bytesource(dir).await?;
-        bytesources.push(source);
-    }
-
-    Ok(bytesources)
-}
-
-/// Loads byte-source infos and metadata from the provided parser directory.
-async fn load_bytesource(dir: PathBuf) -> Result<PluginEntity, InitError> {
-    let (wasm_file, metadata_file) = match validate_plugin_files(&dir)? {
-        PluginValidationState::Valid {
-            wasm_path: wasm,
-            metadata,
-        } => (wasm, metadata),
-        PluginValidationState::Invalid { err_msg } => {
-            let invalid_entity = PluginEntity {
-                dir_path: dir,
-                plugin_type: PluginType::ByteSource,
-                state: PluginState::Invalid(Box::new(InvalidPluginInfo::new(err_msg))),
-                metadata: None,
-            };
-
-            return Ok(invalid_entity);
-        }
-    };
-
-    let plugin_info = match PluginsByteSource::get_info(wasm_file).await {
-        Ok(info) => info,
-        // Stop the whole loading on engine errors
-        Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
-            return Err(err.into())
-        }
-        Err(err) => {
-            let err_msg = format!("Loading plugin binary fail. Error: {err}");
-            let invalid = PluginEntity {
-                dir_path: dir,
-                plugin_type: PluginType::ByteSource,
-                state: PluginState::Invalid(Box::new(InvalidPluginInfo::new(err_msg))),
-                metadata: None,
-            };
-
-            return Ok(invalid);
-        }
-    };
-
-    let plugin_metadata = match metadata_file {
-        Some(file) => {
-            let metadata = match parse_metadata(&file) {
-                Ok(metadata) => metadata,
-                Err(err_msg) => {
-                    let invalid_entity = PluginEntity {
-                        dir_path: dir,
-                        plugin_type: PluginType::ByteSource,
-                        state: PluginState::Invalid(Box::new(InvalidPluginInfo::new(err_msg))),
-                        metadata: None,
-                    };
-                    return Ok(invalid_entity);
-                }
-            };
-
-            Some(metadata)
-        }
-        None => None,
-    };
-
-    let valid_plugin = PluginEntity {
-        dir_path: dir,
-        plugin_type: PluginType::ByteSource,
-        state: PluginState::Active(Box::new(plugin_info)),
-        metadata: plugin_metadata,
-    };
-
-    Ok(valid_plugin)
 }

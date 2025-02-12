@@ -10,7 +10,13 @@ import {
     ProfileList,
     MapKeyValue,
 } from 'platform/types/bindings';
-import { PluginEntity, PluginsList } from 'platform/types/bindings/plugins';
+import {
+    InvalidPluginEntity,
+    InvalidPluginsList,
+    PluginEntity,
+    PluginsList,
+    PluginsPathsList,
+} from 'platform/types/bindings/plugins';
 
 import * as protocol from 'protocol';
 
@@ -242,24 +248,7 @@ export class Jobs extends Base {
         return job;
     }
 
-    public getAllPlugins(): CancelablePromise<PluginEntity[]> {
-        const sequence = this.sequence();
-        const job: CancelablePromise<PluginEntity[]> = this.execute(
-            (buf: Uint8Array): any | Error => {
-                const decoded = decode<PluginsList>(
-                    buf,
-                    protocol.decodeCommandOutcomeWithPluginsList,
-                );
-                return decoded;
-            },
-            this.native.getAllPlugins(sequence),
-            sequence,
-            'getAllPlugins',
-        );
-        return job;
-    }
-
-    public getActivePlugins(): CancelablePromise<PluginEntity[]> {
+    public installedPluginsList(): CancelablePromise<PluginEntity[]> {
         const sequence = this.sequence();
         const job: CancelablePromise<PluginEntity[]> = this.execute(
             (buf: Uint8Array): PluginEntity[] | Error => {
@@ -269,9 +258,96 @@ export class Jobs extends Base {
                 );
                 return decoded;
             },
-            this.native.getActivePlugins(sequence),
+            this.native.installedPluginsList(sequence),
             sequence,
-            'getActivePlugins',
+            'installedPluginsList',
+        );
+        return job;
+    }
+
+    public invalidPluginsList(): CancelablePromise<InvalidPluginEntity[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<InvalidPluginEntity[]> = this.execute(
+            (buf: Uint8Array): InvalidPluginEntity[] | Error => {
+                const decoded = decode<InvalidPluginsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithInvalidPluginsList,
+                );
+                return decoded;
+            },
+            this.native.invalidPluginsList(sequence),
+            sequence,
+            'invalidPluginsList',
+        );
+        return job;
+    }
+
+    public installedPluginsPaths(): CancelablePromise<string[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string[]> = this.execute(
+            (buf: Uint8Array): string[] | Error => {
+                const decoded = decode<PluginsPathsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithPluginsPathsList,
+                );
+                return decoded;
+            },
+            this.native.installedPluginsPaths(sequence),
+            sequence,
+            'installedPluginsPaths',
+        );
+        return job;
+    }
+
+    public invalidPluginsPaths(): CancelablePromise<string[]> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<string[]> = this.execute(
+            (buf: Uint8Array): string[] | Error => {
+                const decoded = decode<PluginsPathsList>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithPluginsPathsList,
+                );
+                return decoded;
+            },
+            this.native.invalidPluginsPaths(sequence),
+            sequence,
+            'invalidPluginsPaths',
+        );
+        return job;
+    }
+
+    public installedPluginsInfo(plugin_path: string): CancelablePromise<PluginEntity | undefined> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<PluginEntity | undefined> = this.execute(
+            (buf: Uint8Array): PluginEntity | undefined | Error => {
+                const decoded = decode<PluginEntity | undefined>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithOptionPluginEntity,
+                );
+                return decoded;
+            },
+            this.native.installedPluginsInfo(sequence, plugin_path),
+            sequence,
+            'installedPluginsInfo',
+        );
+        return job;
+    }
+
+    public invalidPluginsInfo(
+        plugin_path: string,
+    ): CancelablePromise<InvalidPluginEntity | undefined> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<InvalidPluginEntity | undefined> = this.execute(
+            (buf: Uint8Array): InvalidPluginEntity | undefined | Error => {
+                const decoded = decode<InvalidPluginEntity | undefined>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithOptionInvalidPluginEntity,
+                );
+                return decoded;
+            },
+            this.native.invalidPluginsInfo(sequence, plugin_path),
+            sequence,
+            'invalidPluginsInfo',
         );
         return job;
     }

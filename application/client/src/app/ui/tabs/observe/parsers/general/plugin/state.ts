@@ -25,7 +25,7 @@ export class State extends Base {
             return;
         }
 
-        this.parsers = await plugService.activePlugins().then((plugins) => {
+        this.parsers = await plugService.listIntalled().then((plugins) => {
             return plugins.filter((p) => p.plugin_type === 'Parser');
         });
 
@@ -65,8 +65,7 @@ export class State extends Base {
             return;
         }
 
-        const state = this.selectedParser?.state;
-        const pluginPath = state && 'Active' in state ? state.Active.wasm_file_path : '';
+        const pluginPath = this.selectedParser?.info.wasm_file_path ?? '';
 
         if (conf.configuration.plugin_path !== pluginPath) {
             conf.configuration.plugin_path = pluginPath;
@@ -80,7 +79,6 @@ export class State extends Base {
     }
 
     public getPluginConfigs(parser?: PluginEntity): PluginConfigSchemaItem[] {
-        const state = parser?.state;
-        return state && 'Active' in state ? state.Active.config_schemas : [];
+        return parser?.info.config_schemas ?? [];
     }
 }
