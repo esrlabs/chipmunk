@@ -1,0 +1,26 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    cursor: default;
+    & div.icon {
+        & mat-icon {
+            font-size: 18px;
+            height: 16px;
+        }
+    }
+    & div.info {
+        flex: 1;
+        margin: 0 6px;
+        overflow: hidden;
+        & p {
+            text-align: left;
+        }
+    }
+    &:hover {
+        background: @scheme-color-3-75;
+    }
+}
