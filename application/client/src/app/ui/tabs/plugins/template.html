@@ -2,17 +2,37 @@
     <div class="preset-container-content">
         <div class="left">
             <mat-card class="fill sticky">
-                <h1>All Plugins:</h1>
-                <pre class="t-normal name color-scheme-1">{{allPlugins}}</pre>
-                <hr />
-                <h1>Active Plugins:</h1>
-                <pre class="t-normal name color-scheme-1">{{activePlugins}}</pre>
+                <ng-container *ngIf="!provider.selected ">
+                    <p class="t-normal color-scheme-2">Select plugin to see details</p>
+                </ng-container>
+                <app-plugins-manager-details
+                    *ngIf="provider.selected "
+                    [plugin]="provider.selected"
+                    [provider]="provider"
+                ></app-plugins-manager-details>
             </mat-card>
         </div>
         <div class="right">
+            <app-plugins-manager-list
+                [provider]="provider"
+                [target]="Target.Active"
+            ></app-plugins-manager-list>
+            <app-plugins-manager-list
+                [provider]="provider"
+                [target]="Target.Available"
+            ></app-plugins-manager-list>
             <mat-card>
-                <mat-card-content style="text-align: center">
-                    <button mat-stroked-button (click)="onReloadClick()">Reload</button>
+                <mat-card-content>
+                    <div class="controlls">
+                        <button mat-stroked-button>Add</button>
+                        <button
+                            mat-stroked-button
+                            [disabled]="provider.state.loading"
+                            (click)="reload()"
+                        >
+                            Reload
+                        </button>
+                    </div>
                 </mat-card-content>
             </mat-card>
         </div>

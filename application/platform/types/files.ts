@@ -87,6 +87,13 @@ export interface Stat {
     birthtimeMs: number;
 }
 
+export interface ParsedPath {
+    name: string;
+    filename: string;
+    parent: string;
+    ext: string;
+}
+
 const FILE_NAME_REG = /[^/\\]*$/gi;
 const FILE_EXT_REG = /[^/\\.]*$/gi;
 export function getFileName(filename: string): string {

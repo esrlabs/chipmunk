@@ -1,6 +1,6 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { File, Entity } from '@platform/types/files';
+import { File, Entity, ParsedPath } from '@platform/types/files';
 import { FolderEntity } from '@platform/types/bindings';
 import { FileType } from '@platform/types/observe/types/file';
 import { DltStatisticInfo, Profile } from '@platform/types/bindings';
@@ -55,9 +55,7 @@ export class Service extends Implementation {
         isBinary(file: string): Promise<boolean>;
         checksumWithCache(filename: string): Promise<string>;
         exists(path: string): Promise<boolean>;
-        name(
-            path: string,
-        ): Promise<{ name: string; filename: string; parent: string; ext: string }>;
+        name(path: string): Promise<ParsedPath>;
         cp(src: string, dest: string): Promise<void>;
         copy(files: string[], dest: string): Promise<void>;
         read(filename: string): Promise<string>;
@@ -185,9 +183,7 @@ export class Service extends Implementation {
                     return response.exists;
                 });
             },
-            name: (
-                path: string,
-            ): Promise<{ name: string; filename: string; parent: string; ext: string }> => {
+            name: (path: string): Promise<ParsedPath> => {
                 return Requests.IpcRequest.send(
                     Requests.File.Name.Response,
                     new Requests.File.Name.Request({
