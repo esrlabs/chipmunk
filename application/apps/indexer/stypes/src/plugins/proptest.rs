@@ -169,15 +169,19 @@ impl Arbitrary for PluginEntity {
         (
             any::<PathBuf>(),
             any::<PluginType>(),
-            any::<PluginState>(),
-            prop::option::of(any::<PluginMetadata>()),
+            any::<PluginInfo>(),
+            any::<PluginMetadata>(),
+            prop::collection::vec(any::<String>(), 0..10),
         )
-            .prop_map(|(dir_path, plugin_type, state, metadata)| Self {
-                dir_path,
-                plugin_type,
-                state,
-                metadata,
-            })
+            .prop_map(
+                |(dir_path, plugin_type, info, metadata, loading_msgs)| Self {
+                    dir_path,
+                    plugin_type,
+                    info,
+                    metadata,
+                    warn_msgs: loading_msgs,
+                },
+            )
             .boxed()
     }
 }
@@ -208,20 +212,7 @@ impl Arbitrary for PluginType {
     }
 }
 
-impl Arbitrary for PluginState {
-    type Parameters = ();
-    type Strategy = BoxedStrategy<Self>;
-
-    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        prop_oneof![
-            any::<Box<ValidPluginInfo>>().prop_map(Self::Active),
-            any::<Box<InvalidPluginInfo>>().prop_map(Self::Invalid),
-        ]
-        .boxed()
-    }
-}
-
-impl Arbitrary for ValidPluginInfo {
+impl Arbitrary for PluginInfo {
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
@@ -244,6 +235,25 @@ impl Arbitrary for ValidPluginInfo {
                     }
                 },
             )
+            .boxed()
+    }
+}
+
+impl Arbitrary for InvalidPluginEntity {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<PathBuf>(),
+            any::<PluginType>(),
+            prop::collection::vec(any::<String>(), 0..10),
+        )
+            .prop_map(|(dir_path, plugin_type, error_msgs)| Self {
+                dir_path,
+                plugin_type,
+                error_msgs,
+            })
             .boxed()
     }
 }
@@ -329,17 +339,6 @@ impl Arbitrary for ColumnInfo {
     }
 }
 
-impl Arbitrary for InvalidPluginInfo {
-    type Parameters = ();
-    type Strategy = BoxedStrategy<Self>;
-
-    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        any::<String>()
-            .prop_map(|error_msg| Self { error_msg })
-            .boxed()
-    }
-}
-
 impl Arbitrary for PluginsList {
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
@@ -347,6 +346,28 @@ impl Arbitrary for PluginsList {
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<PluginEntity>(), 0..7)
             .prop_map(|plugins| Self(plugins))
+            .boxed()
+    }
+}
+
+impl Arbitrary for InvalidPluginsList {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(any::<InvalidPluginEntity>(), 0..7)
+            .prop_map(|plugins| Self(plugins))
+            .boxed()
+    }
+}
+
+impl Arbitrary for PluginsPathsList {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(any::<String>(), 0..7)
+            .prop_map(|paths| Self(paths))
             .boxed()
     }
 }
@@ -362,12 +383,13 @@ test_msg!(PluginConfigSchemaItem, TESTS_USECASE_COUNT);
 test_msg!(PluginEntity, TESTS_USECASE_COUNT);
 test_msg!(PluginMetadata, TESTS_USECASE_COUNT);
 test_msg!(PluginType, TESTS_USECASE_COUNT);
-test_msg!(PluginState, TESTS_USECASE_COUNT);
-test_msg!(ValidPluginInfo, TESTS_USECASE_COUNT);
+test_msg!(PluginInfo, TESTS_USECASE_COUNT);
+test_msg!(InvalidPluginEntity, TESTS_USECASE_COUNT);
 test_msg!(SemanticVersion, TESTS_USECASE_COUNT);
 test_msg!(RenderOptions, TESTS_USECASE_COUNT);
 test_msg!(ParserRenderOptions, TESTS_USECASE_COUNT);
 test_msg!(ColumnsRenderOptions, TESTS_USECASE_COUNT);
 test_msg!(ColumnInfo, TESTS_USECASE_COUNT);
-test_msg!(InvalidPluginInfo, TESTS_USECASE_COUNT);
 test_msg!(PluginsList, TESTS_USECASE_COUNT);
+test_msg!(InvalidPluginsList, TESTS_USECASE_COUNT);
+test_msg!(PluginsPathsList, TESTS_USECASE_COUNT);

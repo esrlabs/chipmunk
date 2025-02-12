@@ -50,8 +50,15 @@ export abstract class JobsNative {
             is_word: boolean;
         },
     ): Promise<Uint8Array>;
-    public abstract getAllPlugins(sequence: number): Promise<Uint8Array>;
-    public abstract getActivePlugins(sequence: number): Promise<Uint8Array>;
+    public abstract installedPluginsList(sequence: number): Promise<Uint8Array>;
+    public abstract invalidPluginsList(sequence: number): Promise<Uint8Array>;
+    public abstract installedPluginsPaths(sequence: number): Promise<Uint8Array>;
+    public abstract invalidPluginsPaths(sequence: number): Promise<Uint8Array>;
+    public abstract installedPluginsInfo(
+        sequence: number,
+        plugin_path: string,
+    ): Promise<Uint8Array>;
+    public abstract invalidPluginsInfo(sequence: number, plugin_path: string): Promise<Uint8Array>;
     public abstract reloadPlugins(sequence: number): Promise<Uint8Array>;
 }
 

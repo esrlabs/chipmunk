@@ -1,32 +1,84 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { PluginEntity } from '@platform/types/bindings/plugins';
+import { InvalidPluginEntity, PluginEntity } from '@platform/types/bindings/plugins';
 
 import * as Requests from '@platform/ipc/request/index';
 
 @SetupService(services['plugins'])
 export class Service extends Implementation {
-    public allPlugins(): Promise<PluginEntity[]> {
-        return new Promise((resolve, reject) => {
+    public listIntalled(): Promise<PluginEntity[]> {
+        return new Promise((reslove, reject) => {
             Requests.IpcRequest.send(
-                Requests.Plugins.ListAll.Response,
-                new Requests.Plugins.ListAll.Request(),
+                Requests.Plugins.ListInstalled.Response,
+                new Requests.Plugins.ListInstalled.Request(),
             )
-                .then((response: Requests.Plugins.ListAll.Response) => {
-                    resolve(response.plugins);
+                .then((response: Requests.Plugins.ListInstalled.Response) => {
+                    reslove(response.plugins);
                 })
                 .catch(reject);
         });
     }
 
-    public activePlugins(): Promise<PluginEntity[]> {
+    public listInvalid(): Promise<InvalidPluginEntity[]> {
         return new Promise((reslove, reject) => {
             Requests.IpcRequest.send(
-                Requests.Plugins.ListActive.Response,
-                new Requests.Plugins.ListActive.Request(),
+                Requests.Plugins.ListInvalid.Response,
+                new Requests.Plugins.ListInvalid.Request(),
             )
-                .then((response: Requests.Plugins.ListActive.Response) => {
-                    reslove(response.plugins);
+                .then((response: Requests.Plugins.ListInvalid.Response) => {
+                    reslove(response.invalidPlugins);
+                })
+                .catch(reject);
+        });
+    }
+
+    public listInstalledPaths(): Promise<string[]> {
+        return new Promise((reslove, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.ListInstalledPaths.Response,
+                new Requests.Plugins.ListInstalledPaths.Request(),
+            )
+                .then((response: Requests.Plugins.ListInstalledPaths.Response) => {
+                    reslove(response.paths);
+                })
+                .catch(reject);
+        });
+    }
+
+    public listInvalidPaths(): Promise<string[]> {
+        return new Promise((reslove, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.ListInvalidPaths.Response,
+                new Requests.Plugins.ListInvalidPaths.Request(),
+            )
+                .then((response: Requests.Plugins.ListInvalidPaths.Response) => {
+                    reslove(response.paths);
+                })
+                .catch(reject);
+        });
+    }
+
+    public installedPluginInfo(pluginPath: string): Promise<PluginEntity | undefined> {
+        return new Promise((reslove, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.InstalledPluginInfo.Response,
+                new Requests.Plugins.InstalledPluginInfo.Request({ pluginPath }),
+            )
+                .then((response: Requests.Plugins.InstalledPluginInfo.Response) => {
+                    reslove(response.plugin);
+                })
+                .catch(reject);
+        });
+    }
+
+    public invalidPluginInfo(pluginPath: string): Promise<InvalidPluginEntity | undefined> {
+        return new Promise((reslove, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.InvalidPluginInfo.Response,
+                new Requests.Plugins.InvalidPluginInfo.Request({ pluginPath }),
+            )
+                .then((response: Requests.Plugins.InvalidPluginInfo.Response) => {
+                    reslove(response.invalidPlugin);
                 })
                 .catch(reject);
         });

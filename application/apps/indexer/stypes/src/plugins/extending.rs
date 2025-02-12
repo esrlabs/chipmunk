@@ -76,8 +76,11 @@ impl Display for SemanticVersion {
     }
 }
 
-impl InvalidPluginInfo {
-    pub fn new(error_msg: String) -> Self {
-        Self { error_msg }
+impl Display for PluginType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PluginType::Parser => f.write_str("Parser"),
+            PluginType::ByteSource => f.write_str("Byte-Source"),
+        }
     }
 }

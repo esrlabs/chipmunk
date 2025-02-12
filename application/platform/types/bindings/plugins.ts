@@ -39,14 +39,27 @@ export type ColumnsRenderOptions = {
 };
 
 /**
- * Contains the informations for an invalid plugin.
+ * Represents the informations of an invalid plugin.
  */
-export type InvalidPluginInfo = {
+export type InvalidPluginEntity = {
     /**
-     * Error message describing why the plugin is invalid.
+     * Directory path of the plugin. Qualify as ID for the plugin.
      */
-    error_msg: string;
+    dir_path: string;
+    /**
+     * Represents the plugin type.
+     */
+    plugin_type: PluginType;
+    /**
+     * Error messages describing why the plugin is invalid.
+     */
+    error_msgs: Array<string>;
 };
+
+/**
+ * Represents a list of [`InvalidPluginEntity`].
+ */
+export type InvalidPluginsList = Array<InvalidPluginEntity>;
 
 /**
  * Provides additional information to be rendered in the log view.
@@ -115,13 +128,41 @@ export type PluginConfigValue =
     | { Dropdown: string };
 
 /**
- * Represents a plugin entity informations and configurations.
+ * Represents an installed plugin entity informations and configurations.
  */
 export type PluginEntity = {
+    /**
+     * Directory path of the plugin. Qualify as ID for the plugin.
+     */
     dir_path: string;
+    /**
+     * Represents the plugin type.
+     */
     plugin_type: PluginType;
-    state: PluginState;
-    metadata: PluginMetadata | null;
+    /**
+     * Include various information about the plugin.
+     */
+    info: PluginInfo;
+    /**
+     * Provides Plugins Metadata from separate source than the plugin binary.
+     * Currently they are saved inside plugin `*.toml` file.
+     */
+    metadata: PluginMetadata;
+    /**
+     * Represents messages (mostly warning and infos) produced while loading the plugin.
+     */
+    warn_msgs: Array<string>;
+};
+
+/**
+ * Contains the infos and options for a valid plugin.
+ */
+export type PluginInfo = {
+    wasm_file_path: string;
+    api_version: SemanticVersion;
+    plugin_version: SemanticVersion;
+    config_schemas: Array<PluginConfigSchemaItem>;
+    render_options: RenderOptions;
 };
 
 /**
@@ -144,11 +185,6 @@ export type PluginParserSettings = {
 };
 
 /**
- * Represents the plugins states and their corresponding informations.
- */
-export type PluginState = { Active: ValidPluginInfo } | { Invalid: InvalidPluginInfo };
-
-/**
  * Represents plugins main types
  */
 export type PluginType = 'Parser' | 'ByteSource';
@@ -159,6 +195,11 @@ export type PluginType = 'Parser' | 'ByteSource';
 export type PluginsList = Array<PluginEntity>;
 
 /**
+ * Represents a list of [`InvalidPluginEntity`].
+ */
+export type PluginsPathsList = Array<string>;
+
+/**
  * Represents the render options (columns headers, etc.) for the plugins.
  */
 export type RenderOptions = { Parser: ParserRenderOptions } | 'ByteSource';
@@ -167,14 +208,3 @@ export type RenderOptions = { Parser: ParserRenderOptions } | 'ByteSource';
  * Represents the semantic version used in the plugins system.
  */
 export type SemanticVersion = { major: number; minor: number; patch: number };
-
-/**
- * Contains the infos and options for a valid plugin.
- */
-export type ValidPluginInfo = {
-    wasm_file_path: string;
-    api_version: SemanticVersion;
-    plugin_version: SemanticVersion;
-    config_schemas: Array<PluginConfigSchemaItem>;
-    render_options: RenderOptions;
-};

@@ -122,16 +122,22 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     PluginEntity: protocol.decodePluginEntity,
     PluginMetadata: protocol.decodePluginMetadata,
     PluginType: protocol.decodePluginType,
-    PluginState: protocol.decodePluginState,
-    ValidPluginInfo: protocol.decodeValidPluginInfo,
+    PluginInfo: protocol.decodePluginInfo,
+    InvalidPluginEntity: protocol.decodeInvalidPluginEntity,
     SemanticVersion: protocol.decodeSemanticVersion,
     RenderOptions: protocol.decodeRenderOptions,
     ParserRenderOptions: protocol.decodeParserRenderOptions,
     ColumnsRenderOptions: protocol.decodeColumnsRenderOptions,
     ColumnInfo: protocol.decodeColumnInfo,
-    InvalidPluginInfo: protocol.decodeInvalidPluginInfo,
     PluginsList: protocol.decodePluginsList,
+    InvalidPluginsList: protocol.decodeInvalidPluginsList,
+    PluginsPathsList: protocol.decodePluginsPathsList,
     CommandOutcome_PluginsList: protocol.decodeCommandOutcomeWithPluginsList,
+    CommandOutcome_InvalidPluginsList: protocol.decodeCommandOutcomeWithInvalidPluginsList,
+    CommandOutcome_PluginsPathsList: protocol.decodeCommandOutcomeWithPluginsPathsList,
+    CommandOutcome_Option_PluginEntity: protocol.decodeCommandOutcomeWithOptionPluginEntity,
+    CommandOutcome_Option_InvalidPluginEntity:
+        protocol.decodeCommandOutcomeWithOptionInvalidPluginEntity,
 };
 
 const OUTPUT_PATH_ENVVAR = 'CHIPMUNK_PROTOCOL_TEST_OUTPUT';

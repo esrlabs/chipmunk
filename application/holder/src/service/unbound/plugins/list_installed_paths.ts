@@ -5,18 +5,18 @@ import { unbound } from '@service/unbound';
 import * as Requests from 'platform/ipc/request';
 
 export const handler = Requests.InjectLogger<
-    Requests.Plugins.ListActive.Request,
-    CancelablePromise<Requests.Plugins.ListActive.Response>
+    Requests.Plugins.ListInstalled.Request,
+    CancelablePromise<Requests.Plugins.ListInstalledPaths.Response>
 >(
     (
         _log: Logger,
-        _request: Requests.Plugins.ListActive.Request,
-    ): CancelablePromise<Requests.Plugins.ListActive.Response> => {
+        _request: Requests.Plugins.ListInstalledPaths.Request,
+    ): CancelablePromise<Requests.Plugins.ListInstalledPaths.Response> => {
         return new CancelablePromise((reslove, reject) => {
             unbound.jobs
-                .getActivePlugins()
-                .then((plugins) => {
-                    reslove(new Requests.Plugins.ListActive.Response({ plugins }));
+                .installedPluginsPaths()
+                .then((paths) => {
+                    reslove(new Requests.Plugins.ListInstalledPaths.Response({ paths }));
                 })
                 .catch(reject);
         });

@@ -1,5 +1,5 @@
 import { plugins } from '@service/plugins';
-import { PluginEntity } from '@platform/types/bindings/plugins';
+import { InvalidPluginEntity, PluginEntity } from '@platform/types/bindings/plugins';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
@@ -43,30 +43,33 @@ export class Provider {
         }
         this.state.loading = true;
         this.subjects.get().state.emit();
-        return Promise.all([plugins.allPlugins(), plugins.activePlugins()])
-            .then((loaded: [PluginEntity[], PluginEntity[]]) => {
-                this.plugins.all = loaded[0].map((en) => new PluginDesc(en));
-                this.plugins.active = loaded[1].map((en) => new PluginDesc(en));
-                this.state.error = undefined;
-            })
-            .catch((err: Error) => {
-                this.log.error(`Fail to load plugins, due error: ${err.message}`);
-                this.state.error = err.message;
-            })
-            .finally(() => {
-                Promise.all([
-                    ...this.plugins.active.map((pl) => pl.load()),
-                    ...this.plugins.all.map((pl) => pl.load()),
-                ])
-                    .catch((err: Error) => {
-                        this.log.error(`Fail load some plugins data: ${err.message}`);
-                    })
-                    .then(() => {
-                        this.state.loading = false;
-                        this.subjects.get().state.emit();
-                        this.subjects.get().load.emit();
-                    });
-            });
+        return (
+            Promise.all([plugins.listIntalled(), plugins.listInvalid()])
+                // TODO: Fixes to make it compile only.
+                .then((loaded: [PluginEntity[], InvalidPluginEntity[]]) => {
+                    this.plugins.all = loaded[0].map((en) => new PluginDesc(en));
+                    this.plugins.active = loaded[0].map((en) => new PluginDesc(en));
+                    this.state.error = undefined;
+                })
+                .catch((err: Error) => {
+                    this.log.error(`Fail to load plugins, due error: ${err.message}`);
+                    this.state.error = err.message;
+                })
+                .finally(() => {
+                    Promise.all([
+                        ...this.plugins.active.map((pl) => pl.load()),
+                        ...this.plugins.all.map((pl) => pl.load()),
+                    ])
+                        .catch((err: Error) => {
+                            this.log.error(`Fail load some plugins data: ${err.message}`);
+                        })
+                        .then(() => {
+                            this.state.loading = false;
+                            this.subjects.get().state.emit();
+                            this.subjects.get().load.emit();
+                        });
+                })
+        );
     }
 
     public destroy() {

@@ -32,12 +32,8 @@ export async function getRender(observe: Observe): Promise<Render<unknown> | Err
 
         const pluginPath = config.configuration.plugin_path;
         const parser = await pluginService
-            .activePlugins()
-            .then((plugins) =>
-                plugins.find(
-                    (p) => 'Active' in p.state && p.state.Active.wasm_file_path === pluginPath,
-                ),
-            );
+            .listIntalled()
+            .then((plugins) => plugins.find((p) => p.info.wasm_file_path === pluginPath));
 
         if (parser === undefined) {
             return new Error("Selected parser plugin does'n exit");
