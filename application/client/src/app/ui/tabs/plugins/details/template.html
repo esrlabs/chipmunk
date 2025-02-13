@@ -2,3 +2,14 @@
     <p class="title t-normal color-scheme-0">{{plugin.name}}</p>
     <p class="subtitle t-small color-scheme-2">{{plugin.desc}}</p>
 </div>
+<div class="actions">
+    <button class="flat-codicon-button">Remove</button>
+    <button class="flat-codicon-button">Visit Home Page</button>
+    <button class="flat-codicon-button">Inspect Logs</button>
+</div>
+<div class="readme">
+    <ng-container *ngIf="loading">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </ng-container>
+    <div #content class="markdown" [innerHTML]="readme"></div>
+</div>

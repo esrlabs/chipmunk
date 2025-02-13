@@ -1,12 +1,33 @@
 @import '../../../styles/variables.less';
 
 :host {
-    position: relative;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    right: 12px;
+    overflow: hidden;
     & div.info {
-        margin: 0 6px;
-        overflow: hidden;
+        position: relative;
+        margin: 0 6px 12px 0;
         & p {
             text-align: left;
         }
+    }
+    & div.actions {
+        position: relative;
+        display: flex;
+        margin: 0 0 12px 0;
+        flex-direction: row;
+        justify-content: end;
+    }
+    & div.readme {
+        position: relative;
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: auto;
+
     }
 }

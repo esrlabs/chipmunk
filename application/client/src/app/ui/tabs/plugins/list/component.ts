@@ -6,7 +6,7 @@ import { Provider } from '../provider';
 import { PluginDesc } from '../desc';
 
 export enum Target {
-    Active,
+    Installed,
     Available,
 }
 
@@ -41,8 +41,8 @@ export class List extends ChangesDetector implements AfterContentInit {
 
     public getTitle(): string {
         switch (this.target) {
-            case Target.Active:
-                return 'Active Plugins';
+            case Target.Installed:
+                return 'Installed Plugins';
             case Target.Available:
                 return 'Available Plugins';
         }
@@ -50,7 +50,7 @@ export class List extends ChangesDetector implements AfterContentInit {
 
     protected update() {
         switch (this.target) {
-            case Target.Active:
+            case Target.Installed:
                 this.plugins = this.provider.get().active();
                 break;
             case Target.Available:
