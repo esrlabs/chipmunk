@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input, HostListener } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, HostListener, HostBinding } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -19,6 +19,13 @@ export class Plugin extends ChangesDetector {
 
     @HostListener('click', ['$event']) onClick(_event: MouseEvent) {
         this.provider.select(this.plugin.entity.dir_path);
+    }
+    @HostBinding('class') get getClass() {
+        return !this.provider.selected
+            ? ''
+            : this.provider.selected.entity.dir_path === this.plugin.entity.dir_path
+            ? 'selected'
+            : '';
     }
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
