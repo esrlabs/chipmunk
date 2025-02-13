@@ -2,7 +2,7 @@ use crate::grabber::{
     identify_byte_range, ByteRange, ComputationResult, FilePart, GrabError, GrabMetadata,
     LineRange, Slot,
 };
-use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
+use bufread::BufReader;
 use log::{debug, error};
 use std::{
     fs,
@@ -12,8 +12,8 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
-const REDUX_READER_CAPACITY: usize = 1024 * 32;
-const REDUX_MIN_BUFFER_SPACE: usize = 10 * 1024;
+const BIN_READER_CAPACITY: usize = 1024 * 32;
+const BIN_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
 #[derive(Debug)]
 pub struct TextFileSource {
@@ -135,8 +135,7 @@ impl TextFileSource {
                 &self.path, byte_offset
             ))
         })?;
-        let mut reader = ReduxReader::with_capacity(REDUX_READER_CAPACITY, f)
-            .set_policy(MinBuffered(REDUX_MIN_BUFFER_SPACE));
+        let mut reader = BufReader::new(BIN_READER_CAPACITY, BIN_MIN_BUFFER_SPACE, f);
         let mut pending: Option<Slot> = None;
         loop {
             if let Some(shutdown_token) = &shutdown_token {

@@ -1,5 +1,5 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
-use buf_redux::Buffer;
+use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
 use futures::{
     stream::{SplitSink, SplitStream, StreamExt},
@@ -79,7 +79,7 @@ fn stop_bits(stop_bits: &u8) -> StopBits {
 pub struct SerialSource {
     write_stream: SplitSink<Framed<SerialStream, LineCodec>, Vec<u8>>,
     read_stream: SplitStream<Framed<SerialStream, LineCodec>>,
-    buffer: Buffer,
+    buffer: DeqBuffer,
     amount: usize,
     send_data_delay: u8,
 }
@@ -115,7 +115,7 @@ impl SerialSource {
                 Ok(Self {
                     write_stream,
                     read_stream,
-                    buffer: Buffer::new(),
+                    buffer: DeqBuffer::new(8192),
                     amount: 0,
                     send_data_delay: config.send_data_delay,
                 })
@@ -141,7 +141,7 @@ impl ByteSource for SerialSource {
                     if self.amount == 0 {
                         return Ok(None);
                     }
-                    self.buffer.copy_from_slice(received.as_bytes());
+                    self.buffer.write_from(received.as_bytes());
                 }
                 Err(err) => {
                     return Err(SourceError::Setup(format!("Failed to read stream: {err}")));
@@ -154,20 +154,20 @@ impl ByteSource for SerialSource {
             }
         }
 
-        let available_bytes = self.buffer.len();
+        let available_bytes = self.buffer.read_available();
         Ok(Some(ReloadInfo::new(self.amount, available_bytes, 0, None)))
     }
 
     fn current_slice(&self) -> &[u8] {
-        self.buffer.buf()
+        self.buffer.read_slice()
     }
 
     fn consume(&mut self, offset: usize) {
-        self.buffer.consume(offset);
+        self.buffer.read_done(offset);
     }
 
     fn len(&self) -> usize {
-        self.buffer.len()
+        self.buffer.read_available()
     }
 
     fn is_empty(&self) -> bool {
