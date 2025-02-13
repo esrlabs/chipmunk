@@ -7,7 +7,7 @@ ENV['REPO_OWNER'] = 'esrlabs'
 ENV['REPO_NAME'] = 'chipmunk'
 
 COMMANDS = [
-  'cargo install --path=cli/development-cli',
+  "cargo install --path=cli_path",
   'cargo chipmunk test wrapper -p -s spec/build/spec/_session.benchmark.spec.js -u print'
 ]
 
@@ -89,7 +89,9 @@ def process_release_or_pr(branch_or_tag_name, identifier, env_vars)
         ENV['PERFORMANCE_RESULTS'] = "Benchmark_#{identifier}.json"
         system("corepack enable")
         system("yarn cache clean")
-        system(COMMANDS[0])
+        path = Dir.exist?('cli/development-cli') ? 'cli/development-cli' : 'cli'
+        puts "Path is #{path}"
+        system(COMMANDS[0].gsub("cli_path",path))
 
         next unless File.exist?("#{SHELL_SCRIPT_PATH}/#{env_vars['JASMIN_TEST_CONFIGURATION'].gsub('./spec/', '')}")
 
