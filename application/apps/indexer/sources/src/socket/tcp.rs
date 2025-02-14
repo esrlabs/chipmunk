@@ -114,9 +114,11 @@ impl ByteSource for TcpSource {
                             }
                         };
                     }
-                    self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
+                    // The real number of added bytes is what get copied into buffer,
+                    // not the bytes count we get from the socket.
+                    let added = self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
                     let available_bytes = self.buffer.len();
-                    return Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)));
+                    return Ok(Some(ReloadInfo::new(added, available_bytes, 0, None)));
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     continue;
