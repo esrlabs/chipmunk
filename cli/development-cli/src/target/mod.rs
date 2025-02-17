@@ -9,7 +9,6 @@ use std::{borrow::Cow, collections::BTreeSet, fmt::Display, iter, path::PathBuf,
 use tokio::fs;
 
 use crate::{
-    build_state_records::BuildStateRecords,
     dev_tools::DevTool,
     fstools,
     job_type::JobType,
@@ -514,15 +513,6 @@ impl Target {
     /// Clean the given target, removing it from the checksum tracker as well.
     pub async fn reset(&self) -> anyhow::Result<SpawnResult> {
         let job_def = JobDefinition::new(*self, JobType::Clean);
-
-        {
-            // Clean doesn't differentiate between development and production, and both of them will be
-            // cleaned from the files when the data are persisted.
-            let mut checksum = BuildStateRecords::get(false)?.lock().map_err(|err| {
-                anyhow::anyhow!("Error while acquiring items jobs mutex: Error {err}")
-            })?;
-            checksum.remove_state_if_exist(*self)?;
-        }
 
         let mut paths_to_remove = vec![self.cwd().join("dist")];
         let path = match self.kind() {

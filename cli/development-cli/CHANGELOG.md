@@ -1,3 +1,9 @@
+# 0.4.1
+
+## Changes:
+
+* Clean command removes checksum records entirely, making it more reliable.
+
 # 0.4.0
 
 ## Changes:
