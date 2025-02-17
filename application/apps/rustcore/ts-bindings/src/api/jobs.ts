@@ -16,6 +16,7 @@ import {
     PluginEntity,
     PluginsList,
     PluginsPathsList,
+    PluginRunData,
 } from 'platform/types/bindings/plugins';
 
 import * as protocol from 'protocol';
@@ -348,6 +349,23 @@ export class Jobs extends Base {
             this.native.invalidPluginsInfo(sequence, plugin_path),
             sequence,
             'invalidPluginsInfo',
+        );
+        return job;
+    }
+
+    public getPluginRunData(plugin_path: string): CancelablePromise<PluginRunData | undefined> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<PluginRunData | undefined> = this.execute(
+            (buf: Uint8Array): PluginRunData | undefined | Error => {
+                const decoded = decode<PluginRunData | undefined>(
+                    buf,
+                    protocol.decodeCommandOutcomeWithOptionPluginRunData,
+                );
+                return decoded;
+            },
+            this.native.getPluginRunData(sequence, plugin_path),
+            sequence,
+            'getPluginRunData',
         );
         return job;
     }
