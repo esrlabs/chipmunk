@@ -259,15 +259,6 @@ impl BuildStateRecords {
             })
     }
 
-    /// Remove the target from the states records
-    pub fn remove_state_if_exist(&mut self, target: Target) -> anyhow::Result<()> {
-        self.involved_targets.insert(target);
-
-        self.states.remove(&target);
-
-        Ok(())
-    }
-
     /// Clears the states from previous build then calculates the states for the involved targets.
     fn update_records(&mut self) -> anyhow::Result<()> {
         self.states.clear();

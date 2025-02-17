@@ -152,6 +152,8 @@ async fn main_process(command: Command) -> Result<(), Error> {
             JobsState::init(JobsConfig::new(false));
             init_tracker(ui_mode);
             validate_dev_tools()?;
+
+            BuildStateRecords::remove_records_file()?;
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Clean).await?;
             (JobType::Clean, results)
