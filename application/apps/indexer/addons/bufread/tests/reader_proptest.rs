@@ -11,6 +11,7 @@ mod tests {
     use proptest::test_runner::FileFailurePersistence;
 
     proptest! {
+        // Proptest for the [bufread::BufReader] with random source and buffer sizes.
         #![proptest_config(ProptestConfig::with_failure_persistence(FileFailurePersistence::Off))]
         #[test]
         fn reader_proptest(
