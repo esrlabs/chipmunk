@@ -2876,20 +2876,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "text_grep"
-version = "0.1.0"
-dependencies = [
- "bufread",
- "grep-regex",
- "grep-searcher",
- "regex",
- "tempfile",
- "thiserror 2.0.11",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "textwrap"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
