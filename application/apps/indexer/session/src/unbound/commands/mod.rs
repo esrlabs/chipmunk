@@ -124,6 +124,13 @@ pub enum Command {
             >,
         >,
     ),
+    /// Retrieves runtime data for a plugin located at the specified path.
+    PluginRunData(
+        String,
+        oneshot::Sender<
+            Result<stypes::CommandOutcome<Option<stypes::PluginRunData>>, stypes::ComputationError>,
+        >,
+    ),
     /// Reload all the plugins from their directory.
     ReloadPlugins(oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>),
 }
@@ -152,6 +159,7 @@ impl std::fmt::Display for Command {
                 Command::InvalidPluginsPaths(..) => "Getting invaild plugins paths",
                 Command::InstalledPluginInfo(..) => "Getting installed plugin info",
                 Command::InvalidPluginInfo(..) => "Getting invalid plugin info",
+                Command::PluginRunData(..) => "Getting plugin run data",
                 Command::ReloadPlugins(..) => "Reloading plugins' information",
             }
         )
@@ -209,6 +217,9 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
         Command::InvalidPluginInfo(path, tx) => tx
             .send(plugins::invalid_plugins_info(path, plugins_manager, signal).await)
             .is_err(),
+        Command::PluginRunData(path, tx) => tx
+            .send(plugins::get_plugin_run_data(path, plugins_manager, signal).await)
+            .is_err(),
         Command::ReloadPlugins(tx) => tx
             .send(plugins::reload_plugins(plugins_manager, signal).await)
             .is_err(),
@@ -238,6 +249,7 @@ pub fn err(command: Command, err: stypes::ComputationError) {
         Command::InvalidPluginsPaths(tx) => tx.send(Err(err)).is_err(),
         Command::InstalledPluginInfo(_, tx) => tx.send(Err(err)).is_err(),
         Command::InvalidPluginInfo(_, tx) => tx.send(Err(err)).is_err(),
+        Command::PluginRunData(_, tx) => tx.send(Err(err)).is_err(),
         Command::ReloadPlugins(tx) => tx.send(Err(err)).is_err(),
     } {
         error!("Fail to send error response for command: {cmd}");

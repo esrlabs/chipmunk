@@ -6,7 +6,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use stypes::{InvalidPluginEntity, PluginMetadata};
+use stypes::{
+    ExtendedInvalidPluginEntity, ExtendedPluginEntity, InvalidPluginEntity, PluginMetadata,
+    PluginRunData,
+};
 
 use crate::{
     plugins_shared::plugin_errors::PluginError, PluginHostInitError, PluginType, PluginsByteSource,
@@ -20,8 +23,8 @@ use super::{InitError, PluginEntity};
 /// # Returns:
 ///
 /// List of valid plugins alongside with other list for invalid ones.
-pub async fn load_all_plugins() -> Result<(Vec<PluginEntity>, Vec<InvalidPluginEntity>), InitError>
-{
+pub async fn load_all_plugins(
+) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), InitError> {
     let plugins_dir = paths::plugins_dir()?;
     if !plugins_dir.exists() {
         log::trace!("Plugins directory doesn't exist. Creating it...");
@@ -45,7 +48,7 @@ pub async fn load_all_plugins() -> Result<(Vec<PluginEntity>, Vec<InvalidPluginE
 /// List of valid plugins alongside with other list for invalid ones.
 async fn load_plugins(
     plug_type: PluginType,
-) -> Result<(Vec<PluginEntity>, Vec<InvalidPluginEntity>), InitError> {
+) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), InitError> {
     let mut valid_plugins = Vec::new();
     let mut invalid_plugins = Vec::new();
 
@@ -74,8 +77,8 @@ async fn load_plugins(
 /// Represents the various states of a plugin entity.
 /// This type is used internally in this module only.
 enum PluginEntityState {
-    Valid(PluginEntity),
-    Invalid(InvalidPluginEntity),
+    Valid(ExtendedPluginEntity),
+    Invalid(ExtendedInvalidPluginEntity),
 }
 
 /// Loads plugin infos and metadata from the provided plugin directory.
@@ -90,19 +93,24 @@ async fn load_plugin(
     plug_dir: PathBuf,
     plug_type: PluginType,
 ) -> Result<PluginEntityState, InitError> {
+    let mut rd = PluginRunData::default();
+    rd.info("Attempt to load and check plugin");
     let (wasm_file, metadata_file) = match validate_plugin_files(&plug_dir)? {
         PluginValidationState::Valid {
             wasm_path: wasm,
             metadata,
         } => (wasm, metadata),
         PluginValidationState::Invalid { err_msg } => {
-            let invalid_entity = InvalidPluginEntity {
-                dir_path: plug_dir,
-                plugin_type: plug_type,
-                error_msgs: vec![err_msg],
-            };
-
-            return Ok(PluginEntityState::Invalid(invalid_entity));
+            rd.err(err_msg);
+            return Ok(PluginEntityState::Invalid(
+                ExtendedInvalidPluginEntity::new(
+                    InvalidPluginEntity {
+                        dir_path: plug_dir,
+                        plugin_type: plug_type,
+                    },
+                    rd,
+                ),
+            ));
         }
     };
 
@@ -118,29 +126,33 @@ async fn load_plugin(
             return Err(err.into())
         }
         Err(err) => {
-            let err_msg = format!("Loading plugin binary fail. Error: {err}");
-            let invalid = InvalidPluginEntity {
-                dir_path: plug_dir,
-                plugin_type: plug_type,
-                error_msgs: vec![err_msg],
-            };
-
-            return Ok(PluginEntityState::Invalid(invalid));
+            rd.err(format!("Loading plugin binary fail. Error: {err}"));
+            return Ok(PluginEntityState::Invalid(
+                ExtendedInvalidPluginEntity::new(
+                    InvalidPluginEntity {
+                        dir_path: plug_dir,
+                        plugin_type: plug_type,
+                    },
+                    rd,
+                ),
+            ));
         }
     };
 
-    let mut warn_msgs = Vec::new();
     let plug_metadata = match metadata_file {
         Some(file) => match parse_metadata(&file) {
-            Ok(metadata) => metadata,
+            Ok(metadata) => {
+                rd.info("Metadata file found and load");
+                metadata
+            }
             Err(err_msg) => {
-                warn_msgs.push(format!(
+                rd.err(format!(
                     "Parsing metadata file failed with error: {err_msg}"
                 ));
                 let dir_name = plug_dir
                     .file_name()
                     .and_then(|p| p.to_str())
-                    .unwrap_or("Unkown");
+                    .unwrap_or("Unknown");
 
                 PluginMetadata {
                     name: dir_name.into(),
@@ -149,11 +161,11 @@ async fn load_plugin(
             }
         },
         None => {
-            warn_msgs.push(String::from("Metadata file not found"));
+            rd.warn("Metadata file not found");
             let dir_name = plug_dir
                 .file_name()
                 .and_then(|p| p.to_str())
-                .unwrap_or("Unkown");
+                .unwrap_or("Unknown");
 
             PluginMetadata {
                 name: dir_name.into(),
@@ -161,16 +173,16 @@ async fn load_plugin(
             }
         }
     };
-
-    let valid_plugin = PluginEntity {
-        dir_path: plug_dir,
-        plugin_type: plug_type,
-        info: plug_info,
-        metadata: plug_metadata,
-        warn_msgs,
-    };
-
-    Ok(PluginEntityState::Valid(valid_plugin))
+    rd.info("Plugin has been load, checked and accepted");
+    Ok(PluginEntityState::Valid(ExtendedPluginEntity::new(
+        PluginEntity {
+            dir_path: plug_dir,
+            plugin_type: plug_type,
+            info: plug_info,
+            metadata: plug_metadata,
+        },
+        rd,
+    )))
 }
 
 /// Retrieves all directory form the given directory path

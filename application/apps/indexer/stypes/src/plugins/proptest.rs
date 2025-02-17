@@ -171,17 +171,13 @@ impl Arbitrary for PluginEntity {
             any::<PluginType>(),
             any::<PluginInfo>(),
             any::<PluginMetadata>(),
-            prop::collection::vec(any::<String>(), 0..10),
         )
-            .prop_map(
-                |(dir_path, plugin_type, info, metadata, loading_msgs)| Self {
-                    dir_path,
-                    plugin_type,
-                    info,
-                    metadata,
-                    warn_msgs: loading_msgs,
-                },
-            )
+            .prop_map(|(dir_path, plugin_type, info, metadata)| Self {
+                dir_path,
+                plugin_type,
+                info,
+                metadata,
+            })
             .boxed()
     }
 }
@@ -244,15 +240,10 @@ impl Arbitrary for InvalidPluginEntity {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (
-            any::<PathBuf>(),
-            any::<PluginType>(),
-            prop::collection::vec(any::<String>(), 0..10),
-        )
-            .prop_map(|(dir_path, plugin_type, error_msgs)| Self {
+        (any::<PathBuf>(), any::<PluginType>())
+            .prop_map(|(dir_path, plugin_type)| Self {
                 dir_path,
                 plugin_type,
-                error_msgs,
             })
             .boxed()
     }

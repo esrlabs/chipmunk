@@ -14,7 +14,7 @@ const INV_SOURCE_PATH: &str = "inv_soruce";
 
 /// Provide manager mock to test it's API
 fn create_manager() -> PluginsManager {
-    let installed_plugins = vec![
+    let installed_plugins: Vec<ExtendedPluginEntity> = vec![
         PluginEntity {
             dir_path: PARSER_PATH_1.into(),
             plugin_type: PluginType::Parser,
@@ -31,8 +31,8 @@ fn create_manager() -> PluginsManager {
                 name: "parser_1".into(),
                 description: None,
             },
-            warn_msgs: Vec::new(),
-        },
+        }
+        .into(),
         PluginEntity {
             dir_path: PARSER_PATH_2.into(),
             plugin_type: PluginType::Parser,
@@ -49,8 +49,8 @@ fn create_manager() -> PluginsManager {
                 name: "parser_2".into(),
                 description: None,
             },
-            warn_msgs: Vec::new(),
-        },
+        }
+        .into(),
         PluginEntity {
             dir_path: SOURCE_PATH_1.into(),
             plugin_type: PluginType::ByteSource,
@@ -65,8 +65,8 @@ fn create_manager() -> PluginsManager {
                 name: "source_1".into(),
                 description: None,
             },
-            warn_msgs: Vec::new(),
-        },
+        }
+        .into(),
         PluginEntity {
             dir_path: SOURCE_PATH_2.into(),
             plugin_type: PluginType::ByteSource,
@@ -81,22 +81,24 @@ fn create_manager() -> PluginsManager {
                 name: "source_2".into(),
                 description: None,
             },
-            warn_msgs: Vec::new(),
-        },
+        }
+        .into(),
     ];
 
-    let invalid_plugins = vec![
+    let mut invalid_plugins: Vec<ExtendedInvalidPluginEntity> = vec![
         InvalidPluginEntity {
             dir_path: INV_PARSER_PATH.into(),
             plugin_type: PluginType::Parser,
-            error_msgs: vec![String::from("error")],
-        },
+        }
+        .into(),
         InvalidPluginEntity {
             dir_path: INV_SOURCE_PATH.into(),
             plugin_type: PluginType::ByteSource,
-            error_msgs: vec![String::from("error")],
-        },
+        }
+        .into(),
     ];
+    invalid_plugins[0].rd.err("error");
+    invalid_plugins[1].rd.err("error");
 
     PluginsManager {
         installed_plugins,
