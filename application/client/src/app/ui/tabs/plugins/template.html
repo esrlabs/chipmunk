@@ -17,6 +17,11 @@
                 [provider]="provider"
                 [target]="Target.Installed"
             ></app-plugins-manager-list>
+            <app-plugins-manager-list
+                *ngIf="provider.get().invalid().length > 0"
+                [provider]="provider"
+                [target]="Target.Invalid"
+            ></app-plugins-manager-list>
             <mat-card>
                 <mat-card-content>
                     <div class="controlls">

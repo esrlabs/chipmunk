@@ -3,16 +3,19 @@ import { InvalidPluginEntity, PluginEntity } from '@platform/types/bindings/plug
 import { Subjects, Subject } from '@platform/env/subscription';
 import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
-import { PluginDesc } from './desc';
+import { InstalledPluginDesc, InvalidPluginDesc, PluginDescription } from './desc';
+import { bridge } from '@service/bridge';
 
 export class Provider {
     protected log: Logger;
     protected readonly plugins: {
-        all: PluginDesc[];
-        active: PluginDesc[];
+        invalid: InvalidPluginDesc[];
+        installed: InstalledPluginDesc[];
+        available: InstalledPluginDesc[];
     } = {
-        all: [],
-        active: [],
+        invalid: [],
+        installed: [],
+        available: [],
     };
 
     public subjects: Subjects<{
@@ -24,7 +27,7 @@ export class Provider {
         state: new Subject<void>(),
         selected: new Subject<string>(),
     });
-    public selected: PluginDesc | undefined;
+    public selected: PluginDescription | undefined;
     public state: {
         loading: boolean;
         error: string | undefined;
@@ -43,33 +46,30 @@ export class Provider {
         }
         this.state.loading = true;
         this.subjects.get().state.emit();
-        return (
-            Promise.all([plugins.listIntalled(), plugins.listInvalid()])
-                // TODO: Fixes to make it compile only.
-                .then((loaded: [PluginEntity[], InvalidPluginEntity[]]) => {
-                    this.plugins.all = loaded[0].map((en) => new PluginDesc(en));
-                    this.plugins.active = loaded[0].map((en) => new PluginDesc(en));
-                    this.state.error = undefined;
-                })
-                .catch((err: Error) => {
-                    this.log.error(`Fail to load plugins, due error: ${err.message}`);
-                    this.state.error = err.message;
-                })
-                .finally(() => {
-                    Promise.all([
-                        ...this.plugins.active.map((pl) => pl.load()),
-                        ...this.plugins.all.map((pl) => pl.load()),
-                    ])
-                        .catch((err: Error) => {
-                            this.log.error(`Fail load some plugins data: ${err.message}`);
-                        })
-                        .then(() => {
-                            this.state.loading = false;
-                            this.subjects.get().state.emit();
-                            this.subjects.get().load.emit();
-                        });
-                })
-        );
+        return Promise.all([plugins.listIntalled(), plugins.listInvalid()])
+            .then((loaded: [PluginEntity[], InvalidPluginEntity[]]) => {
+                this.plugins.installed = loaded[0].map((en) => new InstalledPluginDesc(en));
+                this.plugins.invalid = loaded[1].map((en) => new InvalidPluginDesc(en));
+                this.state.error = undefined;
+            })
+            .catch((err: Error) => {
+                this.log.error(`Fail to load plugins, due error: ${err.message}`);
+                this.state.error = err.message;
+            })
+            .finally(() => {
+                Promise.all([
+                    ...this.plugins.installed.map((pl) => pl.load()),
+                    ...this.plugins.invalid.map((pl) => pl.load()),
+                ])
+                    .catch((err: Error) => {
+                        this.log.error(`Fail load some plugins data: ${err.message}`);
+                    })
+                    .then(() => {
+                        this.state.loading = false;
+                        this.subjects.get().state.emit();
+                        this.subjects.get().load.emit();
+                    });
+            });
     }
 
     public destroy() {
@@ -77,32 +77,38 @@ export class Provider {
     }
 
     public get(): {
-        /// List of active plugins
-        active(): PluginDesc[];
-        /// List of not active plugins
-        available(): PluginDesc[];
-        /// List of all plugins (active + available)
-        all(): PluginDesc[];
+        /// List of installed plugins
+        installed(): InstalledPluginDesc[];
+        /// List of available plugins (on remove source)
+        available(): InstalledPluginDesc[];
+        /// List of invalid plugins (installed, but not inited)
+        invalid(): InvalidPluginDesc[];
     } {
         return {
-            active: (): PluginDesc[] => {
-                return this.plugins.active;
+            installed: (): InstalledPluginDesc[] => {
+                return this.plugins.installed;
             },
-            available: (): PluginDesc[] => {
-                const all = this.plugins.all;
-                return this.plugins.all.filter((plugin) => {
-                    return (
-                        all.find((pl) => pl.entity.dir_path == plugin.entity.dir_path) == undefined
-                    );
-                });
+            available: (): InstalledPluginDesc[] => {
+                return this.plugins.available;
             },
-            all: (): PluginDesc[] => {
-                return this.plugins.all;
+            invalid: (): InvalidPluginDesc[] => {
+                return this.plugins.invalid;
             },
         };
     }
+    public async readme(pluginFolderPath: string): Promise<string | undefined> {
+        const delimiter = await bridge.folders().delimiter();
+        const readmePath = `${pluginFolderPath}${delimiter}README.md`;
+        if (!(await bridge.files().exists(readmePath))) {
+            return Promise.resolve(undefined);
+        }
+        return bridge.files().read(readmePath);
+    }
+    // public logs(path: string): Promise<string | undefined> {
+    //     return;
+    // }
     public select(path: string) {
-        this.selected = [...this.plugins.active, ...this.plugins.all].find(
+        this.selected = [...this.plugins.installed, ...this.plugins.available].find(
             (pl) => pl.entity.dir_path === path,
         );
         this.subjects.get().selected.emit(path);
