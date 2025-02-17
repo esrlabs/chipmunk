@@ -13,9 +13,8 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { micromark } from 'micromark';
-import { PluginDesc } from '../desc';
+import { PluginDescription } from '../desc';
 import { Provider } from '../provider';
-import { bridge } from '@service/bridge';
 
 import * as dom from '@ui/env/dom';
 
@@ -29,7 +28,7 @@ import * as dom from '@ui/env/dom';
 @Ilc()
 export class Details extends ChangesDetector implements AfterViewInit, AfterContentInit, OnDestroy {
     @Input() public provider!: Provider;
-    @Input() public plugin!: PluginDesc;
+    @Input() public plugin!: PluginDescription;
 
     @ViewChild('content') contentRef!: ElementRef<HTMLElement>;
 
@@ -48,21 +47,19 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         if (!this.plugin.path) {
             return drop();
         }
-        const delimiter = await bridge.folders().delimiter();
-        const path = `${this.plugin.path.filename}${delimiter}README.md`;
-        if (!(await bridge.files().exists(path))) {
-            return drop();
-        }
-        bridge
-            .files()
-            .read(path)
-            .then((content: string) => {
-                this.readme = this.sanitizer.bypassSecurityTrustHtml(micromark(content));
-                this.detectChanges();
-                this.links().bind();
+        this.provider
+            .readme(this.plugin.path.filename)
+            .then((content: string | undefined) => {
+                if (content !== undefined) {
+                    this.readme = this.sanitizer.bypassSecurityTrustHtml(micromark(content));
+                    this.detectChanges();
+                    this.links().bind();
+                } else {
+                    drop();
+                }
             })
             .catch((err: Error) => {
-                this.log().error(`Fail to read "${path}": ${err.message}`);
+                this.log().error(`Fail to read "${this.plugin.getPath()}": ${err.message}`);
                 this.readme = '';
             })
             .finally(() => {
