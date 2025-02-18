@@ -19,6 +19,7 @@ parsers = { path = "../parsers" }
 regex.workspace = true
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
+text_grep = { path = "../addons/text_grep" }
 thiserror.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }

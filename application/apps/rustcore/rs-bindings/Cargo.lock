@@ -1839,6 +1839,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stypes",
+ "text_grep",
  "thiserror 2.0.3",
  "tokio-util",
  "uuid",
@@ -2380,6 +2381,20 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "text_grep"
+version = "0.1.0"
+dependencies = [
+ "bufread",
+ "grep-regex",
+ "grep-searcher",
+ "regex",
+ "tempfile",
+ "thiserror 2.0.3",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
