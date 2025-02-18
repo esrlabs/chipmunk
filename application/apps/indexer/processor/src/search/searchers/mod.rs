@@ -1,7 +1,4 @@
-use crate::{
-    grabber::GrabError,
-    search::{buffer::CancellableBufReader, error::SearchError},
-};
+use crate::{grabber::GrabError, search::error::SearchError};
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher};
 use std::{
@@ -10,6 +7,7 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
 };
+use text_grep::buffer::CancellableBufReader;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 

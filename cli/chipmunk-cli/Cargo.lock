@@ -198,6 +198,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bufread"
+version = "0.1.1"
+
+[[package]]
 name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1378,7 +1382,7 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
- "buf_redux",
+ "bufread",
  "bytes",
  "etherparse",
  "futures",
