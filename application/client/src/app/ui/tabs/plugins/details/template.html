@@ -3,13 +3,24 @@
     <p class="subtitle t-small color-scheme-2">{{plugin.desc}}</p>
 </div>
 <div class="actions">
+    <button class="flat-codicon-button" (click)="goto().readme()">About</button>
     <button class="flat-codicon-button">Remove</button>
     <button class="flat-codicon-button">Visit Home Page</button>
-    <button class="flat-codicon-button">Inspect Logs</button>
+    <button class="flat-codicon-button" (click)="goto().inspect()">Inspect</button>
 </div>
 <div class="readme">
     <ng-container *ngIf="loading">
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </ng-container>
-    <div #content class="markdown" [innerHTML]="readme"></div>
+    <ng-container *ngIf="tab == Tab.ReadMe">
+        <div #content class="markdown" [innerHTML]="readme"></div>
+    </ng-container>
+    <ng-container *ngIf="tab == Tab.Inspecting">
+        <ul class="logs">
+            <li *ngFor="let log of logs" [attr.class]="log.level">
+                <span class="dt">{{log.dt}}</span><span class="level">{{log.level}}</span
+                ><span class="msg">{{log.msg}}</span>
+            </li>
+        </ul>
+    </ng-container>
 </div>

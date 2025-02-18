@@ -1,5 +1,5 @@
 import { plugins } from '@service/plugins';
-import { InvalidPluginEntity, PluginEntity } from '@platform/types/bindings/plugins';
+import { InvalidPluginEntity, PluginEntity, PluginRunData } from '@platform/types/bindings/plugins';
 import { Subjects, Subject } from '@platform/env/subscription';
 import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
@@ -104,9 +104,9 @@ export class Provider {
         }
         return bridge.files().read(readmePath);
     }
-    // public logs(path: string): Promise<string | undefined> {
-    //     return;
-    // }
+    public getRunData(path: string): Promise<PluginRunData | undefined> {
+        return plugins.getPluginRunData(path);
+    }
     public select(path: string) {
         this.selected = [...this.plugins.installed, ...this.plugins.available].find(
             (pl) => pl.entity.dir_path === path,
