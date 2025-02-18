@@ -22,6 +22,24 @@
         margin: 0 0 12px 0;
         flex-direction: row;
         justify-content: end;
+        & button.selected {
+            &::after {
+                position: absolute;
+                display: block;
+                content: '';
+                height: 2px;
+                bottom: 0;
+                width: 100%;
+                left:0px;
+                background-color: @scheme-color-accent;
+            }
+        }
+        & button[disabled] {
+            &:hover {
+                background: none;
+            }
+            color: @scheme-color-3;
+        }
     }
     & div.readme {
         position: relative;
