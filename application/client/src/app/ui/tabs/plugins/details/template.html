@@ -3,10 +3,20 @@
     <p class="subtitle t-small color-scheme-2">{{plugin.desc}}</p>
 </div>
 <div class="actions">
-    <button class="flat-codicon-button" (click)="goto().readme()">About</button>
-    <button class="flat-codicon-button">Remove</button>
-    <button class="flat-codicon-button">Visit Home Page</button>
-    <button class="flat-codicon-button" (click)="goto().inspect()">Inspect</button>
+    <button
+        [attr.class]="'flat-codicon-button ' + (tab == Tab.ReadMe ? 'selected' : '')"
+        (click)="goto().readme()"
+    >
+        About
+    </button>
+    <button class="flat-codicon-button" [disabled]="true">Visit Home Page</button>
+    <button
+        [attr.class]="'flat-codicon-button ' + (tab == Tab.Inspecting ? 'selected' : '')"
+        (click)="goto().inspect()"
+    >
+        Inspect
+    </button>
+    <button class="flat-codicon-button" [disabled]="true">Remove</button>
 </div>
 <div class="readme">
     <ng-container *ngIf="loading">
