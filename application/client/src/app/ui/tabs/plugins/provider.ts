@@ -108,9 +108,11 @@ export class Provider {
         return plugins.getPluginRunData(path);
     }
     public select(path: string) {
-        this.selected = [...this.plugins.installed, ...this.plugins.available].find(
-            (pl) => pl.entity.dir_path === path,
-        );
+        this.selected = [
+            ...this.plugins.installed,
+            ...this.plugins.available,
+            ...this.plugins.invalid,
+        ].find((pl) => pl.entity.dir_path === path);
         this.subjects.get().selected.emit(path);
     }
 }

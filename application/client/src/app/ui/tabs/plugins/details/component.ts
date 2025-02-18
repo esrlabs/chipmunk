@@ -117,6 +117,9 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
     } {
         return {
             bind: (): void => {
+                if (!this.contentRef) {
+                    return;
+                }
                 const links = this.contentRef.nativeElement.querySelectorAll('a');
                 if (links === null) {
                     return;
@@ -126,6 +129,9 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
                 });
             },
             unbind: (): void => {
+                if (!this.contentRef) {
+                    return;
+                }
                 const links = this.contentRef.nativeElement.querySelectorAll('a');
                 if (links === null) {
                     return;
@@ -138,9 +144,15 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
     }
 
     protected safeLoad(): void {
-        this.load().catch((err: Error) => {
-            this.log().error(`Fail to load plugin's details: ${err.message}`);
-        });
+        this.load()
+            .catch((err: Error) => {
+                this.log().error(`Fail to load plugin's details: ${err.message}`);
+            })
+            .finally(() => {
+                if (!this.plugin.isValid()) {
+                    this.goto().inspect();
+                }
+            });
     }
 
     protected redirect(event: MouseEvent): void {
