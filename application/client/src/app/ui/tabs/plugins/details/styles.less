@@ -30,4 +30,36 @@
         flex: auto;
 
     }
+    & ul.logs {
+        position: relative;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        & li {
+            position: relative;
+            font-family: 'console', monospace;
+            font-size: 13.5px;
+            font-variant-numeric: tabular-nums;
+            display: flex;
+            flex-direction: row;
+            & span {
+                margin-right: 12px;
+            }
+            & span.dt {
+                min-width: 70px;
+            }
+            & span.level {
+                min-width: 40px;
+            }
+            &.Info, &.Debug {
+                color: @scheme-color-1,
+            }
+            &.Error {
+                color: @scheme-color-error-light;
+            }
+            &.Warn {
+                color:@scheme-color-warning-light;
+            }
+        }
+    }
 }
