@@ -16,7 +16,7 @@ To check if you have all the pre-requisite installed or not, chipmunk provides t
 script for this purpose. After cloning the repo run following command in your preferred terminal.
 
 ```
-sh developing/check.sh
+sh developing/scripts/check.sh
 ```
 
 If everything is installed then script should print success messages.
@@ -69,7 +69,7 @@ This project uses few dependencies from other languages and to install them run
 following command in terminal.
 
 ```
-sh developing/install.sh
+sh developing/scripts/install.sh
 ```
 
 We are using [yarn](https://yarnpkg.com/) as a package manager. Installing yarn is simple
