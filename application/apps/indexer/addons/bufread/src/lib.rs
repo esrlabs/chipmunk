@@ -154,7 +154,7 @@ impl DeqBuffer {
     pub fn read_done(&mut self, size: usize) -> usize {
         let before = self.start;
 
-        self.start = min(self.start + size, self.slice.len());
+        self.start = min(self.start + size, self.end);
         let diff = self.start - before;
 
         if self.start == self.end {
