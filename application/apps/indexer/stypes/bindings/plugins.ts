@@ -3,51 +3,54 @@
 /**
  * Represents the infos of a column that will be used in the render options.
  */
-export type ColumnInfo = { 
-/**
- * Header title to be rendered on the top of the column in log view.
- */
-caption: string, 
-/**
- * Description to be shown as tooltip for the column.
- */
-description: string, 
-/**
- * Width of column (-1) for unlimited.
- */
-width: number, };
+export type ColumnInfo = {
+    /**
+     * Header title to be rendered on the top of the column in log view.
+     */
+    caption: string;
+    /**
+     * Description to be shown as tooltip for the column.
+     */
+    description: string;
+    /**
+     * Width of column (-1) for unlimited.
+     */
+    width: number;
+};
 
 /**
  * Represents the options needs to render columns information if they exist.
  */
-export type ColumnsRenderOptions = { 
-/**
- * List of columns infos providing the needed information for each column in log view.
- *
- * Note: The count of this list must match the count of the column of each log message.
- */
-columns: Array<ColumnInfo>, 
-/**
- * Minimum column width.
- */
-min_width: number, 
-/**
- * Maximum column width.
- */
-max_width: number, };
+export type ColumnsRenderOptions = {
+    /**
+     * List of columns infos providing the needed information for each column in log view.
+     *
+     * Note: The count of this list must match the count of the column of each log message.
+     */
+    columns: Array<ColumnInfo>;
+    /**
+     * Minimum column width.
+     */
+    min_width: number;
+    /**
+     * Maximum column width.
+     */
+    max_width: number;
+};
 
 /**
  * Represents the informations of an invalid plugin.
  */
-export type InvalidPluginEntity = { 
-/**
- * Directory path of the plugin. Qualify as ID for the plugin.
- */
-dir_path: string, 
-/**
- * Represents the plugin type.
- */
-plugin_type: PluginType, };
+export type InvalidPluginEntity = {
+    /**
+     * Directory path of the plugin. Qualify as ID for the plugin.
+     */
+    dir_path: string;
+    /**
+     * Represents the plugin type.
+     */
+    plugin_type: PluginType;
+};
 
 /**
  * Represents a list of [`InvalidPluginEntity`].
@@ -57,124 +60,161 @@ export type InvalidPluginsList = Array<InvalidPluginEntity>;
 /**
  * Provides additional information to be rendered in the log view.
  */
-export type ParserRenderOptions = { 
-/**
- * Rendering information for the column if log messages have multiple columns.
- *
- * # Note:
- * The count of the provided columns must match the count of the columns of each log message as well.
- */
-columns_options: ColumnsRenderOptions | null, };
+export type ParserRenderOptions = {
+    /**
+     * Rendering information for the column if log messages have multiple columns.
+     *
+     * # Note:
+     * The count of the provided columns must match the count of the columns of each log message as well.
+     */
+    columns_options: ColumnsRenderOptions | null;
+};
 
 /**
  * General settings for all byte-sources as plugins
  */
-export type PluginByteSourceGeneralSettings = { placeholder: string, };
+export type PluginByteSourceGeneralSettings = { placeholder: string };
 
 /**
  * Settings for the Plugin Byte-Sources.
  */
-export type PluginByteSourceSettings = { plugin_path: string, general_settings: PluginByteSourceGeneralSettings, plugin_configs: Array<PluginConfigItem>, };
+export type PluginByteSourceSettings = {
+    plugin_path: string;
+    general_settings: PluginByteSourceGeneralSettings;
+    plugin_configs: Array<PluginConfigItem>;
+};
 
 /**
  * Represents a configuration item, which includes an identifier and its corresponding value.
  */
-export type PluginConfigItem = { id: string, value: PluginConfigValue, };
+export type PluginConfigItem = { id: string; value: PluginConfigValue };
 
 /**
  * Represents the schema for a configuration item.
  */
-export type PluginConfigSchemaItem = { id: string, title: string, description: string | null, input_type: PluginConfigSchemaType, };
+export type PluginConfigSchemaItem = {
+    id: string;
+    title: string;
+    description: string | null;
+    input_type: PluginConfigSchemaType;
+};
 
 /**
  * Defines the possible input types for configuration schemas.
  */
-export type PluginConfigSchemaType = { "Boolean": boolean } | { "Integer": number } | { "Float": number } | { "Text": string } | "Directories" | { "Files": Array<string> } | { "Dropdown": [Array<string>, string] };
+export type PluginConfigSchemaType =
+    | { Boolean: boolean }
+    | { Integer: number }
+    | { Float: number }
+    | { Text: string }
+    | 'Directories'
+    | { Files: Array<string> }
+    | { Dropdown: [Array<string>, string] };
 
 /**
  * Represents the value of a configuration item.
  */
-export type PluginConfigValue = { "Boolean": boolean } | { "Integer": number } | { "Float": number } | { "Text": string } | { "Directories": Array<string> } | { "Files": Array<string> } | { "Dropdown": string };
+export type PluginConfigValue =
+    | { Boolean: boolean }
+    | { Integer: number }
+    | { Float: number }
+    | { Text: string }
+    | { Directories: Array<string> }
+    | { Files: Array<string> }
+    | { Dropdown: string };
 
 /**
  * Represents an installed plugin entity informations and configurations.
  */
-export type PluginEntity = { 
-/**
- * Directory path of the plugin. Qualify as ID for the plugin.
- */
-dir_path: string, 
-/**
- * Represents the plugin type.
- */
-plugin_type: PluginType, 
-/**
- * Include various information about the plugin.
- */
-info: PluginInfo, 
-/**
- * Provides Plugins Metadata from separate source than the plugin binary.
- * Currently they are saved inside plugin `*.toml` file.
- */
-metadata: PluginMetadata, };
+export type PluginEntity = {
+    /**
+     * Directory path of the plugin. Qualify as ID for the plugin.
+     */
+    dir_path: string;
+    /**
+     * Represents the plugin type.
+     */
+    plugin_type: PluginType;
+    /**
+     * Include various information about the plugin.
+     */
+    info: PluginInfo;
+    /**
+     * Provides Plugins Metadata from separate source than the plugin binary.
+     * Currently they are saved inside plugin `*.toml` file.
+     */
+    metadata: PluginMetadata;
+};
 
 /**
  * Contains the infos and options for a valid plugin.
  */
-export type PluginInfo = { wasm_file_path: string, api_version: SemanticVersion, plugin_version: SemanticVersion, config_schemas: Array<PluginConfigSchemaItem>, render_options: RenderOptions, };
+export type PluginInfo = {
+    wasm_file_path: string;
+    api_version: SemanticVersion;
+    plugin_version: SemanticVersion;
+    config_schemas: Array<PluginConfigSchemaItem>;
+    render_options: RenderOptions;
+};
 
 /**
  * Represents different levels of logging severity for a plugin.
  */
-export type PluginLogLevel = "Err" | "Warn" | "Debug" | "Info";
+export type PluginLogLevel = 'Err' | 'Warn' | 'Debug' | 'Info';
 
 /**
  * Represents a log message generated by a plugin.
  */
-export type PluginLogMessage = { 
-/**
- * The severity level of the log message.
- */
-level: PluginLogLevel, 
-/**
- * The timestamp of when the log message was generated, represented as a Unix timestamp.
- */
-tm: bigint, 
-/**
- * The actual content of the log message.
- */
-msg: string, };
+export type PluginLogMessage = {
+    /**
+     * The severity level of the log message.
+     */
+    level: PluginLogLevel;
+    /**
+     * The timestamp of when the log message was generated, represented as a Unix timestamp.
+     */
+    tm: bigint;
+    /**
+     * The actual content of the log message.
+     */
+    msg: string;
+};
 
 /**
  * Represents the plugins metadata like name, description...
  */
-export type PluginMetadata = { name: string, description: string | null, };
+export type PluginMetadata = { name: string; description: string | null };
 
 /**
  * General settings for all parsers as plugins
  */
-export type PluginParserGeneralSettings = { placeholder: string, };
+export type PluginParserGeneralSettings = { placeholder: string };
 
 /**
  * Settings for the Plugins parser.
  */
-export type PluginParserSettings = { plugin_path: string, general_settings: PluginParserGeneralSettings, plugin_configs: Array<PluginConfigItem>, };
+export type PluginParserSettings = {
+    plugin_path: string;
+    general_settings: PluginParserGeneralSettings;
+    plugin_configs: Array<PluginConfigItem>;
+};
 
 /**
  * Maintains the state of a plugin, including its log messages.
  * Represented as a struct (but not just a vector) to reserve
  * a space for a future fields.
  */
-export type PluginRunData = { 
-/**
- * A collection of log messages associated with the plugin.
- */
-logs: Array<PluginLogMessage>, };
+export type PluginRunData = {
+    /**
+     * A collection of log messages associated with the plugin.
+     */
+    logs: Array<PluginLogMessage>;
+};
 
 /**
  * Represents plugins main types
  */
-export type PluginType = "Parser" | "ByteSource";
+export type PluginType = 'Parser' | 'ByteSource';
 
 /**
  * Represents a list of [`PluginEntity`].
@@ -189,9 +229,9 @@ export type PluginsPathsList = Array<string>;
 /**
  * Represents the render options (columns headers, etc.) for the plugins.
  */
-export type RenderOptions = { "Parser": ParserRenderOptions } | "ByteSource";
+export type RenderOptions = { Parser: ParserRenderOptions } | 'ByteSource';
 
 /**
  * Represents the semantic version used in the plugins system.
  */
-export type SemanticVersion = { major: number, minor: number, patch: number, };
+export type SemanticVersion = { major: number; minor: number; patch: number };
