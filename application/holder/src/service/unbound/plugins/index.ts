@@ -4,4 +4,5 @@ export * as ListInvalidPaths from './list_invalid_paths';
 export * as ListInvalid from './list_invalid';
 export * as InstalledPluginInfo from './installed_plugin_info';
 export * as InvalidPluginInfo from './invalid_plugin_info';
+export * as PluginRunData from './rundata';
 export * as Relaod from './reload';

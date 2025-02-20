@@ -13,5 +13,6 @@ try_into_js!(CommandOutcome<bool>);
 try_into_js!(CommandOutcome<PluginsList>);
 try_into_js!(CommandOutcome<InvalidPluginsList>);
 try_into_js!(CommandOutcome<PluginsPathsList>);
+try_into_js!(CommandOutcome<Option<PluginRunData>>);
 try_into_js!(CommandOutcome<Option<PluginEntity>>);
 try_into_js!(CommandOutcome<Option<InvalidPluginEntity>>);

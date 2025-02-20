@@ -282,6 +282,22 @@ impl UnboundSessionAPI {
         .await
     }
 
+    /// Retrieves runtime data for a plugin located at the specified path.
+    pub async fn get_plugin_run_data(
+        &self,
+        id: u64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<Option<stypes::PluginRunData>>, stypes::ComputationError>
+    {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::PluginRunData(plugin_path, tx_results),
+        )
+        .await
+    }
+
     /// Reload the plugin directory.
     pub async fn reload_plugins(
         &self,

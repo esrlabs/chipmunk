@@ -1,6 +1,6 @@
 import { SetupService, Interface, Implementation, register } from '@platform/entity/service';
 import { services } from '@register/services';
-import { InvalidPluginEntity, PluginEntity } from '@platform/types/bindings/plugins';
+import { InvalidPluginEntity, PluginEntity, PluginRunData } from '@platform/types/bindings/plugins';
 
 import * as Requests from '@platform/ipc/request/index';
 
@@ -79,6 +79,19 @@ export class Service extends Implementation {
             )
                 .then((response: Requests.Plugins.InvalidPluginInfo.Response) => {
                     reslove(response.invalidPlugin);
+                })
+                .catch(reject);
+        });
+    }
+
+    public getPluginRunData(pluginPath: string): Promise<PluginRunData | undefined> {
+        return new Promise((reslove, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.PluginRunData.Response,
+                new Requests.Plugins.PluginRunData.Request({ pluginPath }),
+            )
+                .then((response: Requests.Plugins.PluginRunData.Response) => {
+                    reslove(response.data);
                 })
                 .catch(reject);
         });

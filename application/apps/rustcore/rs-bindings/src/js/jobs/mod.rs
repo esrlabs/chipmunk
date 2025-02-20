@@ -297,6 +297,20 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
+    async fn get_plugin_run_data(
+        &self,
+        id: i64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<Option<stypes::PluginRunData>>, stypes::ComputationError>
+    {
+        self.api
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .get_plugin_run_data(u64_from_i64(id)?, plugin_path)
+            .await
+    }
+
+    #[node_bindgen]
     async fn reload_plugins(
         &self,
         id: i64,

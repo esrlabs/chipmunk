@@ -4,7 +4,7 @@ use crate::unbound::signal::Signal;
 use plugins_host::plugins_manager::PluginsManager;
 use stypes::{
     CommandOutcome, ComputationError, InvalidPluginEntity, InvalidPluginsList, PluginEntity,
-    PluginsList, PluginsPathsList,
+    PluginRunData, PluginsList, PluginsPathsList,
 };
 use tokio::sync::RwLock;
 
@@ -22,7 +22,7 @@ pub async fn installed_plugins_list(
 ) -> Result<CommandOutcome<PluginsList>, ComputationError> {
     let manager = plugins_manager.read().await;
 
-    let installed_plugins = manager.installed_plugins().to_vec();
+    let installed_plugins = manager.installed_plugins().into_iter().cloned().collect();
 
     let plugins = PluginsList(installed_plugins);
 
@@ -36,7 +36,7 @@ pub async fn invalid_plugins_list(
 ) -> Result<CommandOutcome<InvalidPluginsList>, ComputationError> {
     let manager = plugins_manager.read().await;
 
-    let invalid_plugins = manager.invalid_plugins().to_vec();
+    let invalid_plugins = manager.invalid_plugins().into_iter().cloned().collect();
 
     let plugins = InvalidPluginsList(invalid_plugins);
 
@@ -102,6 +102,31 @@ pub async fn invalid_plugins_info(
 
     let invalid_plug = manager
         .get_invalid_plugin(&PathBuf::from(plugin_path))
+        .cloned();
+
+    Ok(CommandOutcome::Finished(invalid_plug))
+}
+
+/// Retrieves runtime data for a plugin located at the specified path.
+///
+/// This method searches for the plugin's runtime data (`PluginRunData`) among both
+/// successfully loaded plugins and failed ones.
+///
+/// # Parameters
+/// - `plugin_path`: The directory path of the plugin.
+///
+/// # Returns
+/// - `Some(&PluginRunData)`: If the plugin's runtime data is found.
+/// - `None`: If no matching plugin is found.
+pub async fn get_plugin_run_data(
+    plugin_path: String,
+    plugins_manager: &RwLock<PluginsManager>,
+    _signal: Signal,
+) -> Result<CommandOutcome<Option<PluginRunData>>, ComputationError> {
+    let manager = plugins_manager.read().await;
+
+    let invalid_plug = manager
+        .get_plugin_run_data(PathBuf::from(plugin_path))
         .cloned();
 
     Ok(CommandOutcome::Finished(invalid_plug))

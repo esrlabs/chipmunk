@@ -142,6 +142,15 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Plugins.PluginRunData.Request,
+                    RequestHandlers.Plugins.PluginRunData.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Plugins.Reload.Request,
                     RequestHandlers.Plugins.Relaod.handler,
                 ),
