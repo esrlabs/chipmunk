@@ -1,3 +1,9 @@
+# 3.16.1 (20.02.2025)
+
+## Fixes
+
+- Fix handling of large incoming packets in TCP/UDP servers.
+
 # 3.16.0 (05.02.2025)
 
 ## Features
