@@ -1,0 +1,27 @@
+[package]
+name = "protobuf_parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dmitry Astafyev"]
+description = "An example of a Chipmunk parser that replicate the dlt parser that is built-in into Chipmunk"
+
+[dependencies]
+# TODO: Use lib from crates.io once the crate is published
+plugins_api = {path = "../../application/apps/indexer/plugins_api", features = ["parser"]}
+prost = "0.13"
+prost-reflect = { version = "0.14", features = ["text-format"]}
+thiserror = "2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+debug = false
+strip = true
+lto = true
+
+[package.metadata.component]
+package = "component:protobuf-parser"
+
