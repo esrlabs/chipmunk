@@ -1,5 +1,4 @@
 use crate::{duration_report, Instant};
-use futures::{pin_mut, stream::StreamExt};
 use parsers::{dlt::DltParser, MessageStreamItem, ParseYield};
 use processor::grabber::LineRange;
 use rustyline::{error::ReadlineError, DefaultEditor};
@@ -42,15 +41,13 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                             let udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
                             let dlt_parser = DltParser::new(None, None, None, None, false);
                             let mut dlt_msg_producer = MessageProducer::new(dlt_parser, udp_source, None);
-                            let msg_stream = dlt_msg_producer.as_stream();
-                            pin_mut!(msg_stream);
                             loop {
                                 select! {
                                     _ = cancel.cancelled() => {
                                         println!("received shutdown through future channel");
                                         break;
                                     }
-                                    items = msg_stream.next() => {
+                                    items = dlt_msg_producer.read_next_segment() => {
                                         let items = match items {
                                             Some(item) => item,
                                             None => {
