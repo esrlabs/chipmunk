@@ -5,7 +5,7 @@ const CHIPMUNK_HOME: &str = ".chipmunk";
 const CHIPMUNK_TMP: &str = "tmp";
 
 pub fn get_home_dir() -> Result<PathBuf, stypes::NativeError> {
-    if let Some(home) = dirs::home_dir().take() {
+    if let Some(home) = dirs::home_dir() {
         Ok(home.join(CHIPMUNK_HOME))
     } else {
         Err(stypes::NativeError {

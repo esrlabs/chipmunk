@@ -22,7 +22,7 @@ pub async fn installed_plugins_list(
 ) -> Result<CommandOutcome<PluginsList>, ComputationError> {
     let manager = plugins_manager.read().await;
 
-    let installed_plugins = manager.installed_plugins().into_iter().cloned().collect();
+    let installed_plugins = manager.installed_plugins().cloned().collect();
 
     let plugins = PluginsList(installed_plugins);
 
@@ -36,7 +36,7 @@ pub async fn invalid_plugins_list(
 ) -> Result<CommandOutcome<InvalidPluginsList>, ComputationError> {
     let manager = plugins_manager.read().await;
 
-    let invalid_plugins = manager.invalid_plugins().into_iter().cloned().collect();
+    let invalid_plugins = manager.invalid_plugins().cloned().collect();
 
     let plugins = InvalidPluginsList(invalid_plugins);
 
