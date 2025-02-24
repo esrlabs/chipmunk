@@ -10,12 +10,12 @@ pub struct ExtendedPluginEntity {
     /// The core entity representing the plugin.
     pub entity: PluginEntity,
     /// Runtime data associated with the plugin.
-    pub rd: PluginRunData,
+    pub run_data: PluginRunData,
 }
 
 impl ExtendedPluginEntity {
-    pub fn new(entity: PluginEntity, rd: PluginRunData) -> Self {
-        Self { entity, rd }
+    pub fn new(entity: PluginEntity, run_data: PluginRunData) -> Self {
+        Self { entity, run_data }
     }
 }
 
@@ -29,7 +29,7 @@ impl From<PluginEntity> for ExtendedPluginEntity {
     fn from(entity: PluginEntity) -> Self {
         Self {
             entity,
-            rd: PluginRunData::default(),
+            run_data: PluginRunData::default(),
         }
     }
 }
@@ -42,12 +42,12 @@ pub struct ExtendedInvalidPluginEntity {
     /// The core entity representing an invalid plugin.
     pub entity: InvalidPluginEntity,
     /// Runtime data associated with the invalid plugin.
-    pub rd: PluginRunData,
+    pub run_data: PluginRunData,
 }
 
 impl ExtendedInvalidPluginEntity {
-    pub fn new(entity: InvalidPluginEntity, rd: PluginRunData) -> Self {
-        Self { entity, rd }
+    pub fn new(entity: InvalidPluginEntity, run_data: PluginRunData) -> Self {
+        Self { entity, run_data }
     }
 }
 
@@ -61,7 +61,7 @@ impl From<InvalidPluginEntity> for ExtendedInvalidPluginEntity {
     fn from(entity: InvalidPluginEntity) -> Self {
         Self {
             entity,
-            rd: PluginRunData::default(),
+            run_data: PluginRunData::default(),
         }
     }
 }
@@ -150,22 +150,42 @@ impl Display for PluginType {
 }
 
 impl PluginRunData {
+    /// Adds a debug-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn debug<S: AsRef<str>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::debug(msg));
     }
+
+    /// Adds an info-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn info<S: AsRef<str>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::info(msg));
     }
+
+    /// Adds an error-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn err<S: AsRef<str>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::err(msg));
     }
+
+    /// Adds a warning-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn warn<S: AsRef<str>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::warn(msg));
     }
 }
 
 impl PluginLogMessage {
-    fn tm() -> u64 {
+    /// Returns the current timestamp in seconds since the Unix epoch.
+    fn timestamp() -> u64 {
         use std::time::{SystemTime, UNIX_EPOCH};
         let start = SystemTime::now();
         match start.duration_since(UNIX_EPOCH) {
@@ -174,32 +194,51 @@ impl PluginLogMessage {
         }
     }
 
+    /// Creates a debug-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn debug<S: AsRef<str>>(msg: S) -> Self {
         Self {
             msg: msg.as_ref().to_string(),
             level: PluginLogLevel::Debug,
-            tm: Self::tm(),
+            timestamp: Self::timestamp(),
         }
     }
+
+    /// Creates an info-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn info<S: AsRef<str>>(msg: S) -> Self {
         Self {
             msg: msg.as_ref().to_string(),
             level: PluginLogLevel::Info,
-            tm: Self::tm(),
+            timestamp: Self::timestamp(),
         }
     }
+
+    /// Creates an error-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn err<S: AsRef<str>>(msg: S) -> Self {
         Self {
             msg: msg.as_ref().to_string(),
             level: PluginLogLevel::Err,
-            tm: Self::tm(),
+            timestamp: Self::timestamp(),
         }
     }
+
+    /// Creates a warning-level log message.
+    ///
+    /// # Arguments
+    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
     pub fn warn<S: AsRef<str>>(msg: S) -> Self {
         Self {
             msg: msg.as_ref().to_string(),
             level: PluginLogLevel::Warn,
-            tm: Self::tm(),
+            timestamp: Self::timestamp(),
         }
     }
 }
