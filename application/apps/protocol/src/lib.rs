@@ -137,6 +137,8 @@ gen_encode_decode_fns!(PluginConfigValue);
 gen_encode_decode_fns!(PluginConfigSchemaType);
 gen_encode_decode_fns!(PluginConfigSchemaItem);
 gen_encode_decode_fns!(PluginEntity);
+gen_encode_decode_fns!(PluginLogLevel);
+gen_encode_decode_fns!(PluginLogMessage);
 gen_encode_decode_fns!(PluginRunData);
 gen_encode_decode_fns!(PluginMetadata);
 gen_encode_decode_fns!(PluginType);
