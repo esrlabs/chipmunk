@@ -100,7 +100,7 @@ impl PluginsManager {
             .iter()
             .find_map(|p| {
                 if p.entity.dir_path == plugin_dir.as_ref() {
-                    Some(&p.rd)
+                    Some(&p.run_data)
                 } else {
                     None
                 }
@@ -108,7 +108,7 @@ impl PluginsManager {
             .or_else(|| {
                 self.invalid_plugins.iter().find_map(|p| {
                     if p.entity.dir_path == plugin_dir.as_ref() {
-                        Some(&p.rd)
+                        Some(&p.run_data)
                     } else {
                         None
                     }

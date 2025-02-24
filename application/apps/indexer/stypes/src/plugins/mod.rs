@@ -193,7 +193,7 @@ pub struct PluginLogMessage {
     /// The severity level of the log message.
     pub level: PluginLogLevel,
     /// The timestamp of when the log message was generated, represented as a Unix timestamp.
-    pub tm: u64,
+    pub timestamp: u64,
     /// The actual content of the log message.
     pub msg: String,
 }
