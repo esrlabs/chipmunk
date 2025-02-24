@@ -1,5 +1,7 @@
 use crate::*;
-use prost_reflect::{DescriptorPool, DynamicMessage, FileDescriptor, MessageDescriptor};
+use prost_reflect::{
+    prost::Message, DescriptorPool, DynamicMessage, FileDescriptor, MessageDescriptor,
+};
 use std::{fs, path::Path};
 
 /// A parser for Protocol Buffers (protobuf) messages.
@@ -60,13 +62,34 @@ impl ProtobufParser {
     /// * `data` - A byte slice containing the serialized protobuf message.
     ///
     /// # Returns
-    /// Returns `Some((message_name, decoded_message))` if any known message descriptor matches,
+    /// Returns `Some((message_name, len, decoded_message))` if any known message descriptor matches,
     /// otherwise returns `None` if no matches are found.
-    pub fn one_of_any(&self, data: &[u8]) -> Option<(String, DynamicMessage)> {
-        self.dmsgs.iter().find_map(|dmsg| {
-            DynamicMessage::decode(dmsg.clone(), data)
-                .map(|msg| (dmsg.name().to_string(), msg))
-                .ok()
-        })
+    pub fn one_of_any(&self, data: &[u8]) -> Option<(String, u64, DynamicMessage)> {
+        let mut candidates = self
+            .dmsgs
+            .iter()
+            .filter_map(|dmsg| {
+                DynamicMessage::decode(dmsg.clone(), data)
+                    .map(|msg| (dmsg.name().to_string(), msg))
+                    .ok()
+            })
+            .collect::<Vec<(String, DynamicMessage)>>();
+        // Since protobuf messages are not self-descriptive, multiple matches may occur.
+        // Additionally, protobuf messages do not store their own length, so we must estimate
+        // the length of decoded messages and select the one that consumes the maximum bytes.
+        // If multiple messages have the same maximum length, we should return all descriptor names.
+        if let Some(max_coverage) = candidates.iter().map(|(_, msg)| msg.encoded_len()).max() {
+            candidates.retain(|(_, msg)| msg.encoded_len() == max_coverage);
+            let names = candidates
+                .iter()
+                .map(|(mn, ..)| mn.to_owned())
+                .collect::<Vec<String>>()
+                .join(", ");
+            candidates
+                .pop()
+                .map(|(.., msg)| (names, max_coverage as u64, msg))
+        } else {
+            None
+        }
     }
 }

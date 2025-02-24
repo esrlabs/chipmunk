@@ -32,7 +32,12 @@ impl Parser for ProtobufParser {
     /// If parsing fails, the PAYLOAD column will display the raw packet bytes in HEX format.
     fn get_render_options() -> RenderOptions {
         let cols = vec![
+            // Show the detected message descriptor name. If there are multiple matches, display all of them.
             ColumnInfo::new("MESSAGE", "Message", 150),
+            // Show the decoding status. If all incoming bytes were successfully processed, display "OK";
+            // otherwise, show the number of unprocessed bytes.
+            ColumnInfo::new("Status", "Decoding Status", 100),
+            // Show the decoded message. If decoding fails, display the raw content in HEX format.
             ColumnInfo::new("PAYLOAD", "Payload", -1),
         ];
 
@@ -64,11 +69,16 @@ impl Parser for ProtobufParser {
         data: &[u8],
         _tm: Option<u64>,
     ) -> Result<impl Iterator<Item = ParseReturn>, ParseError> {
-        fn item<S: AsRef<str>>(name: S, msg: S, len: u64) -> ParseReturn {
+        fn item<S: AsRef<str>>(name: S, msg: S, msg_len: u64, len: u64) -> ParseReturn {
             ParseReturn::new(
                 len,
                 Some(ParseYield::Message(ParsedMessage::Columns(vec![
                     name.as_ref().to_string(),
+                    if msg_len == len {
+                        "OK".to_owned()
+                    } else {
+                        format!("{}b not decoded", len - msg_len)
+                    },
                     msg.as_ref().to_string(),
                 ]))),
             )
@@ -80,8 +90,8 @@ impl Parser for ProtobufParser {
         }
         let msg = self
             .one_of_any(data)
-            .map(|(name, msg)| item(name, msg.to_text_format(), len as u64))
-            .or_else(|| Some(item("_", &format!("{:X?}", data), len as u64)));
+            .map(|(name, msg_len, msg)| item(name, msg.to_text_format(), msg_len, len as u64))
+            .or_else(|| Some(item("_", &format!("{:X?}", data), 0, len as u64)));
         Ok(iter::successors(msg, |_| None))
     }
 }
