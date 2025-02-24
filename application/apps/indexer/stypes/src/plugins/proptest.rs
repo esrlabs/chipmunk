@@ -352,6 +352,47 @@ impl Arbitrary for InvalidPluginsList {
     }
 }
 
+impl Arbitrary for PluginLogLevel {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop_oneof![
+            Just(PluginLogLevel::Debug),
+            Just(PluginLogLevel::Err),
+            Just(PluginLogLevel::Warn),
+            Just(PluginLogLevel::Info)
+        ]
+        .boxed()
+    }
+}
+
+impl Arbitrary for PluginLogMessage {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (any::<PluginLogLevel>(), any::<String>(), any::<u32>())
+            .prop_map(|(level, msg, timestamp)| Self {
+                level,
+                msg,
+                timestamp: timestamp as u64,
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for PluginRunData {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(any::<PluginLogMessage>(), 0..7)
+            .prop_map(|logs| Self { logs })
+            .boxed()
+    }
+}
+
 impl Arbitrary for PluginsPathsList {
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
@@ -384,3 +425,4 @@ test_msg!(ColumnInfo, TESTS_USECASE_COUNT);
 test_msg!(PluginsList, TESTS_USECASE_COUNT);
 test_msg!(InvalidPluginsList, TESTS_USECASE_COUNT);
 test_msg!(PluginsPathsList, TESTS_USECASE_COUNT);
+test_msg!(PluginLogMessage, TESTS_USECASE_COUNT);
