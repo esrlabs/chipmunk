@@ -97,8 +97,8 @@ fn create_manager() -> PluginsManager {
         }
         .into(),
     ];
-    invalid_plugins[0].rd.err("error");
-    invalid_plugins[1].rd.err("error");
+    invalid_plugins[0].run_data.err("error");
+    invalid_plugins[1].run_data.err("error");
 
     PluginsManager {
         installed_plugins,
@@ -110,7 +110,7 @@ fn create_manager() -> PluginsManager {
 fn test_installed_api() {
     let manager = create_manager();
 
-    let installed = manager.installed_plugins();
+    let installed: Vec<&PluginEntity> = manager.installed_plugins().collect();
     assert_eq!(installed.len(), 4);
     assert_eq!(installed[0].dir_path, PathBuf::from(PARSER_PATH_1));
     assert_eq!(installed[1].dir_path, PathBuf::from(PARSER_PATH_2));
@@ -134,7 +134,7 @@ fn test_installed_api() {
 fn test_inavlid_api() {
     let manager = create_manager();
 
-    let invalid = manager.invalid_plugins();
+    let invalid: Vec<&InvalidPluginEntity> = manager.invalid_plugins().collect();
     assert_eq!(invalid.len(), 2);
     assert_eq!(invalid[0].dir_path, PathBuf::from(INV_PARSER_PATH));
     assert_eq!(invalid[1].dir_path, PathBuf::from(INV_SOURCE_PATH));

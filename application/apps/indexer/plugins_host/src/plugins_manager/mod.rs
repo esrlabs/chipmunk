@@ -33,11 +33,8 @@ impl PluginsManager {
     }
 
     /// Provide full infos of all loaded and valid plugins.
-    pub fn installed_plugins(&self) -> Vec<&PluginEntity> {
-        self.installed_plugins
-            .iter()
-            .map(|en| en.into())
-            .collect::<Vec<&PluginEntity>>()
+    pub fn installed_plugins(&self) -> impl Iterator<Item = &PluginEntity> {
+        self.installed_plugins.iter().map(|en| en.into())
     }
 
     /// Provide directory paths (considered ID) of all loaded and valid plugins.
@@ -59,11 +56,8 @@ impl PluginsManager {
     }
 
     /// Provide all invalid plugins.
-    pub fn invalid_plugins(&self) -> Vec<&InvalidPluginEntity> {
-        self.invalid_plugins
-            .iter()
-            .map(|en| en.into())
-            .collect::<Vec<&InvalidPluginEntity>>()
+    pub fn invalid_plugins(&self) -> impl Iterator<Item = &InvalidPluginEntity> {
+        self.invalid_plugins.iter().map(|en| en.into())
     }
 
     /// Provide directory paths (considered ID) of all invalid plugins.
