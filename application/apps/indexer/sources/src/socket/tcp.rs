@@ -6,7 +6,10 @@ use crate::{
 use bufread::DeqBuffer;
 use tokio::{net::TcpStream, task::yield_now, time::timeout};
 
-use super::{ReconnectInfo, ReconnectResult, ReconnectToServer, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
+use super::{
+    hanlde_buff_capacity, BuffCapacityState, ReconnectInfo, ReconnectResult, ReconnectToServer,
+    MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE,
+};
 
 pub struct TcpSource {
     buffer: DeqBuffer,
@@ -95,9 +98,12 @@ impl ByteSource for TcpSource {
         // If buffer is almost full then skip loading and return the available bytes.
         // This can happen because some parsers will parse the first item of the provided slice
         // while the producer will call load on each iteration making data accumulate.
-        if self.buffer.write_available() < MAX_DATAGRAM_SIZE {
-            let available_bytes = self.len();
-            return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+        match hanlde_buff_capacity(&mut self.buffer) {
+            BuffCapacityState::CanLoad => {}
+            BuffCapacityState::AlmostFull => {
+                let available_bytes = self.len();
+                return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+            }
         }
 
         // TODO use filter
@@ -189,11 +195,6 @@ impl ByteSource for TcpSource {
 
     fn consume(&mut self, offset: usize) {
         self.buffer.read_done(offset);
-        // Calling read_done() won't make free up writable memory.
-        // Therefore we need to call flush manually.
-        if self.buffer.write_available() < MAX_DATAGRAM_SIZE {
-            self.buffer.flush();
-        }
     }
 
     fn len(&self) -> usize {
