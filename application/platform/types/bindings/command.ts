@@ -129,6 +129,10 @@ export type FolderEntityDetails = {
     ext: string;
 };
 
+// *** ATTENTION ***
+// This type has been adjusted after code generation.
+// Please make sure to not change it on further type generation if not intended.
+
 /**
  * Represents the type of a folder entity in the file system.
  */

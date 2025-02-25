@@ -1,3 +1,9 @@
+/**
+ * ATTENTION:
+ * THIS FILE IS MANUALLY CREATED TO MANAGE TYPE EXPORTS.
+ * DO NOT DELETE. ADD EXPORT STATEMENTS FOR ANY NEW TYPES.
+ */
+
 export * from './attachment';
 export * from './callback';
 export * from './command';

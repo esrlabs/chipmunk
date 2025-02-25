@@ -3,31 +3,59 @@
 /**
  * Describes the type and details of an error.
  */
-export type ComputationError = "DestinationPath" | "SessionCreatingFail" | { "Communication": string } | { "OperationNotSupported": string } | { "IoOperation": string } | "InvalidData" | { "InvalidArgs": string } | { "Process": string } | { "Protocol": string } | { "SearchError": string } | "MultipleInitCall" | "SessionUnavailable" | { "NativeError": NativeError } | { "Grabbing": string } | { "Sde": string } | { "Decoding": string } | { "Encoding": string };
+export type ComputationError =
+    | 'DestinationPath'
+    | 'SessionCreatingFail'
+    | { Communication: string }
+    | { OperationNotSupported: string }
+    | { IoOperation: string }
+    | 'InvalidData'
+    | { InvalidArgs: string }
+    | { Process: string }
+    | { Protocol: string }
+    | { SearchError: string }
+    | 'MultipleInitCall'
+    | 'SessionUnavailable'
+    | { NativeError: NativeError }
+    | { Grabbing: string }
+    | { Sde: string }
+    | { Decoding: string }
+    | { Encoding: string };
 
 /**
  * Describes the details of an error.
  */
-export type NativeError = { 
-/**
- * The severity level of the error.
- */
-severity: Severity, 
-/**
- * The type or source of the error.
- */
-kind: NativeErrorKind, 
-/**
- * A detailed message describing the error.
- */
-message: string | null, };
+export type NativeError = {
+    /**
+     * The severity level of the error.
+     */
+    severity: Severity;
+    /**
+     * The type or source of the error.
+     */
+    kind: NativeErrorKind;
+    /**
+     * A detailed message describing the error.
+     */
+    message: string | null;
+};
 
 /**
  * Defines the source or type of an error.
  */
-export type NativeErrorKind = "FileNotFound" | "UnsupportedFileType" | "ComputationFailed" | "Configuration" | "Interrupted" | "OperationSearch" | "NotYetImplemented" | "ChannelError" | "Io" | "Grabber";
+export type NativeErrorKind =
+    | 'FileNotFound'
+    | 'UnsupportedFileType'
+    | 'ComputationFailed'
+    | 'Configuration'
+    | 'Interrupted'
+    | 'OperationSearch'
+    | 'NotYetImplemented'
+    | 'ChannelError'
+    | 'Io'
+    | 'Grabber';
 
 /**
  * Indicates the severity level of an error.
  */
-export type Severity = "WARNING" | "ERROR";
+export type Severity = 'WARNING' | 'ERROR';
