@@ -178,6 +178,11 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     })
                 }) {
                 Ok(()) => {
+                    // Ensure `did_produce_items()` correctness over time.
+                    if cfg!(debug_assertions) && !self.buffer.is_empty() {
+                        assert!(self.did_produce_items());
+                    }
+
                     self.byte_source.consume(total_consumed);
                     return Some(&mut self.buffer);
                 }
@@ -210,15 +215,40 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
-                    trace!(
-                    "No parse possible, try next batch of data ({}), skipped {} more bytes ({} already)",
-                    s, available, skipped_bytes
-                );
-                    // skip all currently available bytes
-                    self.byte_source.consume(available);
-                    skipped_bytes += available;
-                    available = self.byte_source.len();
+                    // Return early when initial parse call fails.
+                    // This can happen when provided bytes aren't suitable for the select parser.
+                    // In such case we close the session directly to avoid having unresponsive
+                    // state while parse is calling on each skipped byte in the source.
+                    if !self.did_produce_items() {
+                        warn!(
+                            "Aboring session due to failing initial parse call with the error: {s}"
+                        );
+                        let unused = skipped_bytes + available;
+                        self.done = true;
 
+                        self.buffer.push((unused, MessageStreamItem::Done));
+                        return Some(&mut self.buffer);
+                    }
+
+                    trace!("No parse possible, skip one bytes and retry. Error: {s}");
+
+                    debug_assert!(
+                        available > 0,
+                        "Parser can't be called with zero bytes available"
+                    );
+
+                    const DROP_STEP: usize = 1;
+                    available -= DROP_STEP;
+                    skipped_bytes += DROP_STEP;
+                    self.byte_source.consume(DROP_STEP);
+
+                    // we still have bytes -> call parse on the remaining bytes without loading.
+                    if available > 0 {
+                        continue;
+                    }
+
+                    // Load more bytes.
+                    trace!("No more bytes are availabe. Loading more bytes");
                     let loaded_new_data = match self.load().await {
                         Some((newly_loaded, _available_bytes, skipped)) => {
                             available += newly_loaded;
@@ -286,5 +316,13 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 None
             }
         }
+    }
+
+    /// Checks if the producer have already produced any parsed items in the current session.
+    pub fn did_produce_items(&self) -> bool {
+        // Produced items will be added to the internal buffer increasing its capacity.
+        // This isn't straight forward way, but used to avoid having to introduce a new field
+        // and keep track on its state.
+        self.buffer.capacity() > 0
     }
 }
