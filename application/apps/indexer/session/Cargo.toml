@@ -8,7 +8,7 @@ edition = "2021"
 blake3 = "1.5"
 crossbeam-channel.workspace = true
 dirs.workspace = true
-dlt-core = { workspace = true, features = ["statistics", "serde-support"] }
+dlt-core = { workspace = true, features = ["statistics", "serialization"] }
 envvars = { workspace = true }
 file-tools = { path = "../addons/file-tools" }
 futures.workspace = true

@@ -27,7 +27,10 @@ use dlt_core::{
     fibex::FibexConfig,
     filtering::{read_filter_options, DltFilterConfig},
     parse::DltParseError,
-    statistics::{collect_dlt_stats, count_dlt_messages as count_dlt_messages_old},
+    read::DltMessageReader,
+    statistics::{
+        collect_statistics, common::StatisticInfoCollector, Statistic, StatisticCollector,
+    },
 };
 use dlt_tools::{extract_dlt_ft, scan_dlt_ft};
 use env_logger::Env;
@@ -1283,12 +1286,21 @@ pub async fn main() -> Result<()> {
                 }
             };
 
-            let res = collect_dlt_stats(file_path);
+            let file = match File::open(file_path) {
+                Ok(file) => file,
+                Err(_) => {
+                    println!("could not open source file");
+                    std::process::exit(2);
+                }
+            };
+            let mut reader = DltMessageReader::new(file, true);
+            let mut collector = StatisticInfoCollector::default();
+            let res = collect_statistics(&mut reader, &mut collector);
             match res {
-                Ok(res) => {
+                Ok(()) => {
                     trace!("got item...");
 
-                    match serde_json::to_string(&res) {
+                    match serde_json::to_string(&collector.collect()) {
                         Ok(stats) => println!("{stats}"),
                         Err(e) => {
                             println!("serializing result {res:?} failed: {e}");
@@ -1379,6 +1391,25 @@ async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
             "Couldn't find dlt file: {input:?}"
         )))
     }
+}
+
+pub struct MessageCounter {
+    count: usize,
+}
+
+impl StatisticCollector for MessageCounter {
+    fn collect_statistic(&mut self, _statistic: Statistic) -> Result<(), DltParseError> {
+        self.count += 1;
+        Ok(())
+    }
+}
+
+fn count_dlt_messages_old(input: &Path) -> Result<u64, DltParseError> {
+    let file = File::open(input)?;
+    let mut reader = DltMessageReader::new(file, true);
+    let mut collector = MessageCounter { count: 0 };
+    collect_statistics(&mut reader, &mut collector)?;
+    Ok(collector.count as u64)
 }
 
 async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {

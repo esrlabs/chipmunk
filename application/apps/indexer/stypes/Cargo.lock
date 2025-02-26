@@ -403,23 +403,20 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.17.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa52d43b97a134644192c66296e5d3e7ed8b3d409b117c62203047bb42c6b9f1"
+checksum = "b17be7d54b4bb66239b48be3d87f94fa75ff8afa0d072a92c34c9291075e4580"
 dependencies = [
- "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder",
  "bytes",
- "derive_more",
- "lazy_static",
+ "futures",
  "log",
  "memchr",
  "nom",
- "quick-xml 0.29.0",
- "rustc-hash",
+ "quick-xml",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
