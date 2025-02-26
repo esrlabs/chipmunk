@@ -5,7 +5,7 @@ import { Implementation as Plugin } from './plugin';
 import { Render, RenderReference } from './index';
 import { Session } from '@service/session/session';
 import { Observe } from '@platform/types/observe';
-import { plugins as pluginService } from '@service/plugins';
+import { plugins } from '@service/plugins';
 
 import * as Parsers from '@platform/types/observe/parser/index';
 
@@ -31,9 +31,10 @@ export async function getRender(observe: Observe): Promise<Render<unknown> | Err
         }
 
         const pluginPath = config.configuration.plugin_path;
-        const parser = await pluginService
-            .listIntalled()
-            .then((plugins) => plugins.find((p) => p.info.wasm_file_path === pluginPath));
+        const parser = plugins
+            .list()
+            .preload()
+            .find((p) => p.info.wasm_file_path === pluginPath);
 
         if (parser === undefined) {
             return new Error("Selected parser plugin does'n exit");

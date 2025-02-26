@@ -6,30 +6,53 @@ import * as Requests from '@platform/ipc/request/index';
 
 @SetupService(services['plugins'])
 export class Service extends Implementation {
-    public listIntalled(): Promise<PluginEntity[]> {
-        return new Promise((reslove, reject) => {
-            Requests.IpcRequest.send(
-                Requests.Plugins.ListInstalled.Response,
-                new Requests.Plugins.ListInstalled.Request(),
-            )
-                .then((response: Requests.Plugins.ListInstalled.Response) => {
-                    reslove(response.plugins);
-                })
-                .catch(reject);
-        });
+    protected preload: PluginEntity[] = [];
+
+    public override ready(): Promise<void> {
+        return this.list()
+            .installed()
+            .then((plugins) => {
+                this.preload = plugins;
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail load installed plugins list: ${err.message}`);
+            });
     }
 
-    public listInvalid(): Promise<InvalidPluginEntity[]> {
-        return new Promise((reslove, reject) => {
-            Requests.IpcRequest.send(
-                Requests.Plugins.ListInvalid.Response,
-                new Requests.Plugins.ListInvalid.Request(),
-            )
-                .then((response: Requests.Plugins.ListInvalid.Response) => {
-                    reslove(response.invalidPlugins);
-                })
-                .catch(reject);
-        });
+    public list(): {
+        installed(): Promise<PluginEntity[]>;
+        invalid(): Promise<InvalidPluginEntity[]>;
+        preload(): PluginEntity[];
+    } {
+        return {
+            installed: (): Promise<PluginEntity[]> => {
+                return new Promise((reslove, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Plugins.ListInstalled.Response,
+                        new Requests.Plugins.ListInstalled.Request(),
+                    )
+                        .then((response: Requests.Plugins.ListInstalled.Response) => {
+                            reslove(response.plugins);
+                        })
+                        .catch(reject);
+                });
+            },
+            invalid: (): Promise<InvalidPluginEntity[]> => {
+                return new Promise((reslove, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.Plugins.ListInvalid.Response,
+                        new Requests.Plugins.ListInvalid.Request(),
+                    )
+                        .then((response: Requests.Plugins.ListInvalid.Response) => {
+                            reslove(response.invalidPlugins);
+                        })
+                        .catch(reject);
+                });
+            },
+            preload: (): PluginEntity[] => {
+                return this.preload;
+            },
+        };
     }
 
     public listInstalledPaths(): Promise<string[]> {
@@ -104,7 +127,8 @@ export class Service extends Implementation {
                 new Requests.Plugins.Reload.Request(),
             )
                 .then(() => {
-                    resolve();
+                    // To drop a cache to updated list
+                    this.ready().catch(reject).finally(resolve);
                 })
                 .catch(reject);
         });

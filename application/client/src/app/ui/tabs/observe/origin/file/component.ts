@@ -40,7 +40,7 @@ export class TabObserveFile extends ChangesDetector implements AfterViewInit, Af
         this.parser = new ParserState(this.state.observe);
         this.env().subscriber.register(
             this.state.updates.get().parser.subscribe(() => {
-                const parser = this.state.parser;
+                const parser = this.state.getParser().embedded();
                 if (parser === undefined) {
                     return;
                 }

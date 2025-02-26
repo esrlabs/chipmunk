@@ -1,4 +1,4 @@
-import { Observe, Parser } from '@platform/types/observe';
+import { IList, Observe, Parser } from '@platform/types/observe';
 import { IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Subjects, Subject, Subscriber } from '@platform/env/subscription';
@@ -8,6 +8,7 @@ import { Action } from './action';
 import { TabControls } from '@service/session';
 import { Notification } from '@ui/service/notifications';
 import { Locker, Level } from '@ui/service/lockers';
+import { PluginEntity } from '@platform/types/bindings';
 
 import * as StreamOrigin from '@platform/types/observe/origin/stream/index';
 import * as Origin from '@platform/types/observe/origin/index';
@@ -15,6 +16,7 @@ import * as FileOrigin from '@platform/types/observe/origin/file';
 import * as ConcatOrigin from '@platform/types/observe/origin/concat';
 import * as Parsers from '@platform/types/observe/parser';
 import * as Streams from '@platform/types/observe/origin/stream/index';
+import { plugins } from '@service/plugins';
 
 export interface IApi {
     finish(observe: Observe): Promise<void>;
@@ -27,9 +29,56 @@ export interface IInputs {
     api: IApi;
 }
 
+export class WrappedParserRef {
+    constructor(protected readonly inner: Parser.Reference | PluginEntity) {}
+
+    private as_embedded(): Parser.Reference | undefined {
+        if (typeof (this.inner as any)['alias'] === 'function') {
+            return this.inner as Parser.Reference;
+        }
+        return undefined;
+    }
+
+    private as_plugin(): PluginEntity | undefined {
+        if (typeof (this.inner as any)['dir_path'] === 'string') {
+            return this.inner as PluginEntity;
+        }
+        return undefined;
+    }
+
+    public desc(): IList {
+        const embedded = this.as_embedded();
+        if (embedded !== undefined) {
+            return embedded.desc();
+        }
+        const plugin = this.as_plugin();
+        if (plugin !== undefined) {
+            return {
+                major: plugin.metadata.name,
+                minor: plugin.metadata.description
+                    ? plugin.metadata.description
+                    : plugin.metadata.name,
+                icon: undefined,
+            };
+        }
+        throw new Error(`Fail to process ${JSON.stringify(this.inner)}`);
+    }
+    public alias(): Parser.Protocol | string {
+        const embedded = this.as_embedded();
+        if (embedded !== undefined) {
+            return embedded.alias();
+        }
+        const plugin = this.as_plugin();
+        if (plugin !== undefined) {
+            return plugin.dir_path;
+        }
+        throw new Error(`Fail to process ${JSON.stringify(this.inner)}`);
+    }
+}
+
 export class State extends Subscriber {
-    public parsers: { ref: Parser.Reference; disabled: boolean }[] = [];
-    public parser: Parser.Protocol | undefined;
+    public parser: Parser.Protocol | string | undefined;
+    public parsers: { ref: WrappedParserRef; disabled: boolean }[] = [];
     public streams: { ref: StreamOrigin.Reference; disabled: boolean }[] = [];
     public file: File | undefined;
     public concat: File[] | undefined;
@@ -102,6 +151,27 @@ export class State extends Subscriber {
         this.ref.api.cancel();
     }
 
+    public getParser(): {
+        embedded(): Parser.Protocol | undefined;
+        pluginPath(): string | undefined;
+    } {
+        return {
+            embedded: (): Parser.Protocol | undefined => {
+                if (!this.parser) {
+                    return undefined;
+                }
+                const embedded = Parser.tryAsEmbedded(this.parser);
+                return embedded ? embedded : undefined;
+            },
+            pluginPath: (): string | undefined => {
+                if (!this.parser) {
+                    return undefined;
+                }
+                return Parser.tryAsEmbedded(this.parser) ? undefined : (this.parser as string);
+            },
+        };
+    }
+
     public update(): {
         stream(): void;
         files(): void;
@@ -156,8 +226,8 @@ export class State extends Subscriber {
                     instance instanceof FileOrigin.Configuration
                         ? [instance.filename()]
                         : instance instanceof ConcatOrigin.Configuration
-                          ? instance.files()
-                          : undefined;
+                        ? instance.files()
+                        : undefined;
                 if (files === undefined) {
                     return;
                 }
@@ -198,9 +268,21 @@ export class State extends Subscriber {
             },
             parser: (): void => {
                 const current = this.parser;
-                this.parsers = this.observe.origin.getSupportedParsers().map((ref) => {
-                    return { ref, disabled: false };
-                });
+                this.parsers = [
+                    ...this.observe.origin
+                        .getSupportedParsers()
+                        .filter((ref) => ref.alias() !== Parser.Protocol.Plugin)
+                        .map((ref) => {
+                            return { ref: new WrappedParserRef(ref), disabled: false };
+                        }),
+                    ...plugins
+                        .list()
+                        .preload()
+                        .filter((ref) => ref.plugin_type === 'Parser')
+                        .map((ref) => {
+                            return { ref: new WrappedParserRef(ref), disabled: false };
+                        }),
+                ];
                 this.parser =
                     current !== undefined &&
                     this.parsers.find((p) => p.ref.alias() === current) !== undefined
@@ -214,7 +296,7 @@ export class State extends Subscriber {
                                 undefined,
                         )
                         .map((ref) => {
-                            return { ref, disabled: true };
+                            return { ref: new WrappedParserRef(ref), disabled: true };
                         }),
                 );
                 this.ref.markChangesForCheck();
@@ -254,7 +336,10 @@ export class State extends Subscriber {
                     this.ref.log().error(`Parser cannot be changed, because it's undefined`);
                     return;
                 }
-                this.observe.parser.change(Parser.getByAlias(this.parser));
+                const alias = Parser.tryAsEmbedded(this.parser);
+                this.observe.parser.change(
+                    Parser.getByAlias(alias ? alias : Parser.Protocol.Plugin),
+                );
                 this.updates.get().parser.emit();
                 this.update().stream();
             },

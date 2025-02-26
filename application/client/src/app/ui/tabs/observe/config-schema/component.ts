@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -13,7 +13,7 @@ import { State as ParserState } from '../parsers/general/plugin/state';
 })
 @Initial()
 @Ilc()
-export class ConfigSchemas extends ChangesDetector {
+export class ConfigSchemas extends ChangesDetector implements AfterContentInit {
     @Input() parserState!: ParserState;
 
     public readonly state: State = new State();
@@ -22,8 +22,12 @@ export class ConfigSchemas extends ChangesDetector {
         super(cdRef);
     }
 
-    public reload() {
-        this.state.reload(this.parserState);
+    public ngAfterContentInit(): void {
+        this.env().subscriber.register(
+            this.parserState.selected.subscribe(() => {
+                this.state.reload(this.parserState);
+            }),
+        );
     }
 }
 

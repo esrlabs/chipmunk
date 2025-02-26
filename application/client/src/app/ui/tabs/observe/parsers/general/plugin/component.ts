@@ -4,14 +4,12 @@ import {
     ChangeDetectorRef,
     AfterContentInit,
     AfterViewInit,
-    ViewChild,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Observe } from '@platform/types/observe';
 import { State } from './state';
-import { ConfigSchemas } from '@ui/tabs/observe/config-schema/component';
 
 @Component({
     selector: 'app-el-parser-plugin-general',
@@ -26,8 +24,7 @@ export class ParserPluginGeneralConfiguration
     implements AfterContentInit, AfterViewInit
 {
     @Input() observe!: Observe;
-
-    @ViewChild('cschema') configsComponent!: ConfigSchemas;
+    @Input() path!: string | undefined;
 
     protected state!: State;
 
@@ -36,27 +33,25 @@ export class ParserPluginGeneralConfiguration
     }
 
     ngAfterContentInit(): void {
-        this.state = new State(this.observe);
+        this.state = new State(this.observe, this.path);
         this.state.bind(this);
+        this.env().subscriber.register(
+            this.observe.parser.subscribe(() => {
+                if (!this.path) {
+                    return;
+                }
+                this.state.setPath(this.path);
+            }),
+        );
     }
 
     public update(): void {
         this.state.update();
-        this.configsComponent.reload();
     }
 
     ngAfterViewInit(): void {
-        this.state
-            .load()
-            .then(() => {
-                this.configsComponent.reload();
-                this.detectChanges();
-            })
-            .catch((err: Error) => {
-                this.log().error(
-                    `Fail to restore plugin parser configuration with: ${err.message}`,
-                );
-            });
+        this.state.init();
+        this.detectChanges();
     }
 }
 
