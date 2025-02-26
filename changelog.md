@@ -1,3 +1,9 @@
+# 3.16.2 (26.02.2025)
+
+## Fixes
+
+- Change a traget platform to build linux version
+
 # 3.16.1 (20.02.2025)
 
 ## Fixes
