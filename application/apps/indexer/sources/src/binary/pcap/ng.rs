@@ -48,7 +48,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     match block {
                         PcapBlockOwned::NG(pcap_parser::Block::EnhancedPacket(ref epb)) => {
                             trace!("Enhanced package");
-                            let ts_us: u64 = (epb.ts_high as u64) << 32 | epb.ts_low as u64;
+                            let ts_us: u64 = ((epb.ts_high as u64) << 32) | epb.ts_low as u64;
                             self.last_know_timestamp = Some(ts_us / 1000);
                             raw_data = &epb.data[..epb.caplen as usize];
                             break;
