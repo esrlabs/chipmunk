@@ -63,6 +63,13 @@ const REGISTER: {
     [Protocol.Plugin]: Plugin.Configuration,
 };
 
+export function tryAsEmbedded(alias: Protocol | string): Protocol | undefined {
+    if (REGISTER[alias]) {
+        return alias as Protocol;
+    }
+    return undefined;
+}
+
 export function getAllRefs(): Reference[] {
     return Object.keys(REGISTER).map((key) => REGISTER[key]);
 }

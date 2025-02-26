@@ -46,7 +46,7 @@ export class Provider {
         }
         this.state.loading = true;
         this.subjects.get().state.emit();
-        return Promise.all([plugins.listIntalled(), plugins.listInvalid()])
+        return Promise.all([plugins.list().installed(), plugins.list().invalid()])
             .then((loaded: [PluginEntity[], InvalidPluginEntity[]]) => {
                 this.plugins.installed = loaded[0].map((en) => new InstalledPluginDesc(en));
                 this.plugins.invalid = loaded[1].map((en) => new InvalidPluginDesc(en));

@@ -1,7 +1,8 @@
 import { State as Base } from '../../state';
 import { Observe } from '@platform/types/observe';
-import { plugins as plugService } from '@service/plugins';
+import { plugins } from '@service/plugins';
 import { getSafeFileName } from '@platform/types/files';
+import { Subject } from '@platform/env/subscription';
 
 import * as Plugin from '@platform/types/observe/parser/plugin';
 import {
@@ -12,25 +13,40 @@ import {
 
 export class State extends Base {
     public parsers: PluginEntity[] = [];
+    public path: string | undefined;
     public selectedParser?: PluginEntity;
+    public selected: Subject<PluginEntity> = new Subject();
 
-    constructor(observe: Observe) {
+    constructor(observe: Observe, path: string | undefined) {
         super(observe);
+        this.path = path;
     }
 
-    public async load(): Promise<void> {
+    public init() {
         const conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
             this.ref.log().error(`Currnet parser configuration must match plugin parser`);
             return;
         }
-
-        this.parsers = await plugService.listIntalled().then((plugins) => {
-            return plugins.filter((p) => p.plugin_type === 'Parser');
-        });
+        this.parsers = plugins
+            .list()
+            .preload()
+            .filter((p) => p.plugin_type === 'Parser');
 
         if (this.parsers.length > 0) {
-            this.selectedParser = this.parsers[0];
+            this.selectedParser = this.path
+                ? this.parsers.find((p) => p.dir_path == this.path)
+                : this.parsers[0];
+            this.update();
+        }
+    }
+
+    public setPath(path: string) {
+        this.path = path;
+        if (this.parsers.length > 0) {
+            this.selectedParser = this.path
+                ? this.parsers.find((p) => p.dir_path == this.path)
+                : this.parsers[0];
             this.update();
         }
     }
@@ -61,7 +77,6 @@ export class State extends Base {
     public update() {
         const conf = this.observe.parser.as<Plugin.Configuration>(Plugin.Configuration);
         if (conf === undefined) {
-            this.ref.log().error(`Currnet parser configuration must match plugin parser`);
             return;
         }
 
@@ -72,6 +87,7 @@ export class State extends Base {
             // Clear configurations on plugin change.
             conf.configuration.plugin_configs = [];
         }
+        this.selectedParser && this.selected.emit(this.selectedParser);
     }
 
     public getPluginName(parser: PluginEntity): string {
