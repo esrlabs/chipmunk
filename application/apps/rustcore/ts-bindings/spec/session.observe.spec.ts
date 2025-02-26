@@ -639,7 +639,7 @@ describe('Observe', function () {
                             'APP1',
                             'C1',
                             'IPC',
-                            "SOME/IP 'Parse error: Not enough data: min: 25, actual: 24' [00, 7B, 80, 05, 00, 00, 00, 11, 00, 00, E3, 8C, 01, 01, 02, 00, 00, 00, 01, 88, 01, C3, C4, 1D]",
+                            "SOME/IP 'Incomplete, not enough data for a message' [00, 7B, 80, 05, 00, 00, 00, 11, 00, 00, E3, 8C, 01, 01, 02, 00, 00, 00, 01, 88, 01, C3, C4, 1D]",
                         ]);
                         logger.debug('result of grab was: ' + JSON.stringify(result));
                         finish(comps.session, done);
@@ -774,7 +774,7 @@ describe('Observe', function () {
                             'APP1',
                             'C1',
                             'IPC',
-                            "SOME/IP 'Parse error: Not enough data: min: 25, actual: 24' [00, 7B, 80, 05, 00, 00, 00, 11, 00, 00, E3, 8C, 01, 01, 02, 00, 00, 00, 01, 88, 01, C3, C4, 1D]",
+                            "SOME/IP 'Incomplete, not enough data for a message' [00, 7B, 80, 05, 00, 00, 00, 11, 00, 00, E3, 8C, 01, 01, 02, 00, 00, 00, 01, 88, 01, C3, C4, 1D]",
                         ]);
                         logger.debug('result of grab was: ' + JSON.stringify(result));
                         finish(comps.session, done);

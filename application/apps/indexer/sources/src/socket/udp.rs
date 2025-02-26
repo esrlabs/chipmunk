@@ -192,7 +192,6 @@ mod tests {
     /// Tests will send packets with fixed lengths while consuming
     /// half of the sent length, ensuring the source won't break.
     ///
-    /// TODO:
     /// This test demonstrate that parsers which consume the bytes of one result at a
     /// time while miss parsing the whole bytes when the server isn't sending more data
     /// even that the buffer has bytes in it.
