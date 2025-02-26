@@ -266,11 +266,14 @@ impl SomeipParser {
                 ))
             }
 
-            Err(e) => {
-                let msg = e.to_string();
-                error!("at {} : {}", time, msg);
-                Err(Error::Parse(msg))
-            }
+            Err(e) => match e {
+                someip_messages::Error::NotEnoughData { .. } => Err(Error::Incomplete),
+                e => {
+                    let msg = e.to_string();
+                    error!("at {} : {}", time, msg);
+                    Err(Error::Parse(msg))
+                }
+            },
         }
     }
 
@@ -592,13 +595,10 @@ mod test {
         let mut parser = SomeipParser::new();
         let result = parser.parse(input, None);
 
-        if let Err(error) = result {
-            assert_eq!(
-                "Parse error: Not enough data: min: 16, actual: 0",
-                &format!("{}", error)
-            );
-        } else {
-            panic!("unexpected parse result");
+        match result {
+            Err(crate::Error::Incomplete) => {}
+            Err(err) => panic!("unexpected error: {err}"),
+            _ => panic!("unexpected parse result"),
         }
     }
 
@@ -614,13 +614,10 @@ mod test {
         let mut parser = SomeipParser::new();
         let result = parser.parse(input, None);
 
-        if let Err(error) = result {
-            assert_eq!(
-                "Parse error: Not enough data: min: 18, actual: 16",
-                &format!("{}", error)
-            );
-        } else {
-            panic!("unexpected parse result");
+        match result {
+            Err(crate::Error::Incomplete) => {}
+            Err(err) => panic!("unexpected error: {err}"),
+            _ => panic!("unexpected parse result"),
         }
     }
 
