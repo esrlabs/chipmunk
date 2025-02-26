@@ -384,7 +384,7 @@ mod tests {
         assert_eq!(reader.fill_buf().unwrap(), &[4, 5][..]);
 
         // Seek empty
-        assert_eq!(reader.seek(SeekFrom::Current(0)).unwrap(), 3);
+        assert_eq!(reader.stream_position().unwrap(), 3);
         assert_eq!(reader.fill_buf().unwrap(), &[4, 5][..]);
 
         // Seek reverse
