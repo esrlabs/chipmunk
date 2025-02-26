@@ -19,7 +19,7 @@ enum Next {
 }
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
-const ININTIAL_PARSE_ERROR_LIMIT: usize = 1024;
+const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
 #[derive(Debug)]
 pub struct MessageProducer<T, P, D>
@@ -222,7 +222,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     // This can happen when provided bytes aren't suitable for the select parser.
                     // In such case we close the session directly to avoid having unresponsive
                     // state while parse is calling on each skipped byte in the source.
-                    if !self.did_produce_items() && skipped_bytes > ININTIAL_PARSE_ERROR_LIMIT {
+                    if !self.did_produce_items() && skipped_bytes > INITIAL_PARSE_ERROR_LIMIT {
                         warn!(
                             "Aboring session due to failing initial parse call with the error: {s}"
                         );
