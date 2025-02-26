@@ -1,20 +1,36 @@
 use crate::unbound::signal::Signal;
-use dlt_core::statistics::{collect_dlt_stats, StatisticInfo};
-use std::path::Path;
+use dlt_core::{
+    read::DltMessageReader,
+    statistics::{
+        collect_statistics,
+        common::{StatisticInfo, StatisticInfoCollector},
+    },
+};
+use std::fs::File;
 
 pub fn stats(
-    files: Vec<String>,
+    file_paths: Vec<String>,
     _signal: Signal,
 ) -> Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError> {
     let mut stat = StatisticInfo::new();
     let mut error: Option<String> = None;
-    files.iter().for_each(|file| {
+    file_paths.iter().for_each(|file_path| {
         if error.is_some() {
             return;
         }
-        match collect_dlt_stats(Path::new(&file)) {
-            Ok(res) => {
-                stat.merge(res);
+        match File::open(file_path) {
+            Ok(file) => {
+                let mut reader = DltMessageReader::new(file, true);
+                let mut collector = StatisticInfoCollector::default();
+
+                match collect_statistics(&mut reader, &mut collector) {
+                    Ok(()) => {
+                        stat.merge(collector.collect());
+                    }
+                    Err(err) => {
+                        error = Some(err.to_string());
+                    }
+                }
             }
             Err(err) => {
                 error = Some(err.to_string());
