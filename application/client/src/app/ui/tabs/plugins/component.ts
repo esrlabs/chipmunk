@@ -39,8 +39,8 @@ export class PluginsManager extends ChangesDetector implements AfterContentInit,
         this.provider.load();
     }
 
-    public reload() {
-        this.provider.load();
+    public async reload() {
+        await this.provider.load(true);
     }
 }
 

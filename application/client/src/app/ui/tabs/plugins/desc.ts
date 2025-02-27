@@ -7,15 +7,18 @@ export abstract class PluginDescription {
     public desc: string = '';
     public icon: string = '';
     public path: ParsedPath | undefined;
+    public readmePath: string | undefined;
 
     protected abstract getName(): string;
     protected abstract getDesc(): string;
     protected abstract getIcon(): string;
+    protected abstract getReadmePath(): string | undefined;
 
     protected update() {
         this.icon = this.getIcon();
         this.name = this.getName();
         this.desc = this.getDesc();
+        this.readmePath = this.getReadmePath();
     }
 
     public abstract getPath(): string;
@@ -69,6 +72,9 @@ export class InstalledPluginDesc extends PluginDescription {
     public override getPath(): string {
         return this.entity.dir_path;
     }
+    public override getReadmePath(): string | undefined {
+        return this.entity.readme_path ?? undefined;
+    }
     public override isValid(): boolean {
         return true;
     }
@@ -102,6 +108,9 @@ export class InvalidPluginDesc extends PluginDescription {
     }
     public override getPath(): string {
         return this.entity.dir_path;
+    }
+    public override getReadmePath(): string | undefined {
+        return undefined;
     }
     public override isValid(): boolean {
         return false;
