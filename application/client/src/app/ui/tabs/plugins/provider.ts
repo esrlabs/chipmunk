@@ -40,11 +40,16 @@ export class Provider {
         this.log = scope.getLogger(`Plugins Provider`);
     }
 
-    public load(): Promise<void> {
+    public async load(reload: boolean = false): Promise<void> {
         if (this.state.loading) {
             return Promise.resolve();
         }
         this.state.loading = true;
+        if (reload) {
+            await plugins
+                .reloadPlugins()
+                .catch((err: Error) => this.log.error(`Fail to reload plugins: ${err.message}`));
+        }
         this.subjects.get().state.emit();
         return Promise.all([plugins.list().installed(), plugins.list().invalid()])
             .then((loaded: [PluginEntity[], InvalidPluginEntity[]]) => {
@@ -68,6 +73,13 @@ export class Provider {
                         this.state.loading = false;
                         this.subjects.get().state.emit();
                         this.subjects.get().load.emit();
+                        if (reload) {
+                            // Apply changes on selected plugins by invoking select on it again.
+                            const selectedPath = this.selected?.getPath();
+                            if (selectedPath !== undefined) {
+                                this.select(selectedPath);
+                            }
+                        }
                     });
             });
     }
@@ -96,9 +108,7 @@ export class Provider {
             },
         };
     }
-    public async readme(pluginFolderPath: string): Promise<string | undefined> {
-        const delimiter = await bridge.folders().delimiter();
-        const readmePath = `${pluginFolderPath}${delimiter}README.md`;
+    public async readme(readmePath: string): Promise<string | undefined> {
         if (!(await bridge.files().exists(readmePath))) {
             return Promise.resolve(undefined);
         }

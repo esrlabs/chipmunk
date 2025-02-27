@@ -160,6 +160,8 @@ pub struct PluginEntity {
     /// Provides Plugins Metadata from separate source than the plugin binary.
     /// Currently they are saved inside plugin `*.toml` file.
     pub metadata: PluginMetadata,
+    /// Path of the readme file for the plugin to be rendered on the front-end
+    pub readme_path: Option<PathBuf>,
 }
 
 /// Represents different levels of logging severity for a plugin.

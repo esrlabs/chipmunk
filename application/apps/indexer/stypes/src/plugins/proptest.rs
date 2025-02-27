@@ -171,13 +171,17 @@ impl Arbitrary for PluginEntity {
             any::<PluginType>(),
             any::<PluginInfo>(),
             any::<PluginMetadata>(),
+            prop::option::of(any::<PathBuf>()),
         )
-            .prop_map(|(dir_path, plugin_type, info, metadata)| Self {
-                dir_path,
-                plugin_type,
-                info,
-                metadata,
-            })
+            .prop_map(
+                |(dir_path, plugin_type, info, metadata, readme_path)| Self {
+                    dir_path,
+                    plugin_type,
+                    info,
+                    metadata,
+                    readme_path,
+                },
+            )
             .boxed()
     }
 }

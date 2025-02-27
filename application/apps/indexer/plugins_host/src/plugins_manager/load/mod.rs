@@ -18,6 +18,8 @@ use crate::{
 
 use super::{InitError, PluginEntity};
 
+pub const PLUGIN_README_FILENAME: &str = "README.md";
+
 /// Loads all the plugins from the plugin directory
 ///
 /// # Returns:
@@ -173,6 +175,16 @@ async fn load_plugin(
             }
         }
     };
+
+    let readme = plug_dir.join(PLUGIN_README_FILENAME);
+    let readme_path = if readme.exists() {
+        rd.info("README file found");
+        Some(readme)
+    } else {
+        rd.warn("README file not found");
+        None
+    };
+
     rd.info("Plugin has been load, checked and accepted");
     Ok(PluginEntityState::Valid(ExtendedPluginEntity::new(
         PluginEntity {
@@ -180,6 +192,7 @@ async fn load_plugin(
             plugin_type: plug_type,
             info: plug_info,
             metadata: plug_metadata,
+            readme_path,
         },
         rd,
     )))
