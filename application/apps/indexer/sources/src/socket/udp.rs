@@ -132,6 +132,8 @@ impl ByteSource for UdpSource {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use tokio::task::yield_now;
 
     use super::*;
@@ -213,6 +215,8 @@ mod tests {
         tokio::spawn(async move {
             let msg = [b'a'; SENT_LEN];
             let mut total_sent = 0;
+            // Give the receiver some start up time.
+            tokio::time::sleep(Duration::from_millis(100)).await;
             while total_sent < MAX_BUFF_SIZE * 2 {
                 send_socket
                     .send_to(&msg, RECEIVER)

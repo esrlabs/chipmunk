@@ -49,6 +49,9 @@ pub async fn scan_dlt_ft(
             let mut attachments = vec![];
             loop {
                 tokio::select! {
+                    // Check on events in current order ensuring cancel will be checked at first
+                    // as it's defined in the current unit tests.
+                    biased;
                     _ = cancel.cancelled() => {
                         debug!("scan canceled");
                         canceled = true;
