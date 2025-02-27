@@ -38,8 +38,11 @@ pub struct ProcessSource {
 
 impl Drop for ProcessSource {
     fn drop(&mut self) {
-        if let Err(err) = self.process.start_kill() {
-            error!("Fail to kill child process: {err}");
+        let is_process_alive = self.process.try_wait().is_ok_and(|state| state.is_none());
+        if is_process_alive {
+            if let Err(err) = self.process.start_kill() {
+                warn!("Fail to kill child process: {err}");
+            }
         }
     }
 }
