@@ -3,7 +3,7 @@ use std::io;
 pub use self::chipmunk::bytesource::bytesource_types;
 
 wasmtime::component::bindgen!({
-    path: "../plugins_api/wit/v0.1.0",
+    path: "../../../../plugins/plugins_api/wit/v0.1.0",
     world: "chipmunk:bytesource/bytesource",
     // Activate async but shrink its interfaces as possible.
     // Without activating async, wasmtime will spawn new runtime on its own,

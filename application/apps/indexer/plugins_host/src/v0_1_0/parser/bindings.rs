@@ -5,7 +5,7 @@ pub use self::chipmunk::parser::parse_types::*;
 use stypes::ParserRenderOptions;
 
 wasmtime::component::bindgen!({
-    path: "../plugins_api/wit/v0.1.0",
+    path: "../../../../plugins/plugins_api/wit/v0.1.0",
     world: "chipmunk:parser/parse",
     // Activate async but shrink its interfaces as possible.
     // Without activating async, wasmtime will spawn new runtime on its own,
