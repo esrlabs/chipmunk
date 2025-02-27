@@ -8,6 +8,7 @@ wit_bindgen::generate!({
     path: "wit/v0.1.0",
     world: "chipmunk:shared/bindings",
     generate_unused_types: true,
+    additional_derives: [Clone],
 });
 
 use crate::shared_types::{ConfigSchemaItem, ConfigSchemaType, Version};

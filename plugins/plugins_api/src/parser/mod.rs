@@ -16,12 +16,12 @@ pub mod __internal_bindings {
             "chipmunk:shared/logging@0.1.0": crate::logging,
             "chipmunk:shared/shared-types@0.1.0": crate::shared_types,
         },
+        additional_derives: [Clone],
         // Export macro is used withing the exported `parser_export!` macro and must be public
         pub_export_macro: true,
         // Bindings for export macro must be set, because it won't be called from withing the
         // same module where `generate!` is called
         default_bindings_module: "$crate::parser::__internal_bindings",
-
     });
 }
 
@@ -38,6 +38,9 @@ impl RenderOptions {
     }
 }
 
+// This type is generated be macro and we still can't set derive implementations
+// on specific types with bindgen macro currently.
+#[allow(clippy::derivable_impls)]
 impl Default for RenderOptions {
     fn default() -> Self {
         Self {
@@ -193,7 +196,6 @@ impl ParseReturn {
 ///
 /// parser_export!(CustomParser);
 /// ```
-
 macro_rules! parser_export {
     ($par:ty) => {
         // Define parser instance as static field to make it reachable from

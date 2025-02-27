@@ -11,6 +11,7 @@ pub mod __internal_bindings {
             "chipmunk:shared/logging@0.1.0": crate::logging,
             "chipmunk:shared/shared-types@0.1.0": crate::shared_types,
         },
+        additional_derives: [Clone],
         // Export macro is used withing the exported `bytesource_export!` macro and must be public
         pub_export_macro: true,
         // Bindings for export macro must be set, because it won't be called from withing the
