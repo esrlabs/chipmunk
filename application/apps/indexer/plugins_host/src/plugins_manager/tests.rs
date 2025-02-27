@@ -8,6 +8,8 @@ const PARSER_PATH_1: &str = "parser_1";
 const PARSER_PATH_2: &str = "parser_2";
 const SOURCE_PATH_1: &str = "source_1";
 const SOURCE_PATH_2: &str = "source_2";
+const PARSER_README_PATH: &str = "parser_1/README.md";
+const SOURCE_README_PATH: &str = "source_1/README.md";
 
 const INV_PARSER_PATH: &str = "inv_parse";
 const INV_SOURCE_PATH: &str = "inv_soruce";
@@ -31,6 +33,7 @@ fn create_manager() -> PluginsManager {
                 name: "parser_1".into(),
                 description: None,
             },
+            readme_path: Some(PARSER_README_PATH.into()),
         }
         .into(),
         PluginEntity {
@@ -49,6 +52,7 @@ fn create_manager() -> PluginsManager {
                 name: "parser_2".into(),
                 description: None,
             },
+            readme_path: None,
         }
         .into(),
         PluginEntity {
@@ -65,6 +69,7 @@ fn create_manager() -> PluginsManager {
                 name: "source_1".into(),
                 description: None,
             },
+            readme_path: Some(SOURCE_README_PATH.into()),
         }
         .into(),
         PluginEntity {
@@ -81,6 +86,7 @@ fn create_manager() -> PluginsManager {
                 name: "source_2".into(),
                 description: None,
             },
+            readme_path: None,
         }
         .into(),
     ];
@@ -113,8 +119,16 @@ fn test_installed_api() {
     let installed: Vec<&PluginEntity> = manager.installed_plugins().collect();
     assert_eq!(installed.len(), 4);
     assert_eq!(installed[0].dir_path, PathBuf::from(PARSER_PATH_1));
+    assert_eq!(
+        installed[0].readme_path,
+        Some(PathBuf::from(PARSER_README_PATH))
+    );
     assert_eq!(installed[1].dir_path, PathBuf::from(PARSER_PATH_2));
     assert_eq!(installed[2].dir_path, PathBuf::from(SOURCE_PATH_1));
+    assert_eq!(
+        installed[2].readme_path,
+        Some(PathBuf::from(SOURCE_README_PATH))
+    );
     assert_eq!(installed[3].dir_path, PathBuf::from(SOURCE_PATH_2));
 
     let mut paths = manager.installed_plugins_paths();
@@ -127,7 +141,11 @@ fn test_installed_api() {
     let parser_1 = manager
         .get_installed_plugin(&PathBuf::from(PARSER_PATH_1))
         .unwrap();
-    assert_eq!(parser_1.dir_path, PathBuf::from(PARSER_PATH_1))
+    assert_eq!(parser_1.dir_path, PathBuf::from(PARSER_PATH_1));
+    assert_eq!(
+        parser_1.readme_path,
+        Some(PathBuf::from(PARSER_README_PATH))
+    );
 }
 
 #[test]

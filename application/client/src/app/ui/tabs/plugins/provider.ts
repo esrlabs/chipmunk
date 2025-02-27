@@ -72,6 +72,32 @@ export class Provider {
             });
     }
 
+    public reload(): Promise<void> {
+        //TODO: Basic implementation for reloading plugins.
+        if (this.state.loading) {
+            return Promise.resolve();
+        }
+        this.state.loading = true;
+        this.subjects.get().state.emit();
+        return plugins
+            .reloadPlugins()
+            .then(() => this.load())
+            .catch((err: Error) => {
+                this.log.error(`Fail to reload plugins, due error ${err.message}`);
+                this.state.error = err.message;
+            })
+            .finally(() => {
+                this.state.loading = false;
+                this.subjects.get().state.emit();
+                this.subjects.get().load.emit();
+                // Force selected plugin to reload be reapplying select on it.
+                const selectedPath = this.selected?.getPath();
+                if (selectedPath !== undefined) {
+                    this.select(selectedPath);
+                }
+            });
+    }
+
     public destroy() {
         this.subjects.destroy();
     }
@@ -96,9 +122,7 @@ export class Provider {
             },
         };
     }
-    public async readme(pluginFolderPath: string): Promise<string | undefined> {
-        const delimiter = await bridge.folders().delimiter();
-        const readmePath = `${pluginFolderPath}${delimiter}README.md`;
+    public async readme(readmePath: string): Promise<string | undefined> {
         if (!(await bridge.files().exists(readmePath))) {
             return Promise.resolve(undefined);
         }
