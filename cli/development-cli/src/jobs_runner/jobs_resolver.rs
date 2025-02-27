@@ -144,7 +144,7 @@ fn is_job_involved(
                         .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
-                Target::CliDev | Target::Updater | Target::CliChipmunk => {
+                Target::CliDev | Target::Updater | Target::CliChipmunk | Target::PluginsApi => {
                     matches!(current_job, JobType::Lint)
                 }
                 // TS and Bindings targets need to be built with all their dependencies to perform the
@@ -180,7 +180,7 @@ fn is_job_involved(
                         .any(|t| t.flatten_deps().contains(&Target::Core)),
                 },
                 // These targets aren't involved in the dependencies tree.
-                Target::CliDev | Target::Updater | Target::CliChipmunk => {
+                Target::CliDev | Target::Updater | Target::CliChipmunk | Target::PluginsApi => {
                     matches!(current_job, JobType::Test { .. })
                 }
 
@@ -632,6 +632,34 @@ mod tests {
                 JobType::Build { production }
             ))),
             "Install App should have dependency on Wasm Build"
+        );
+    }
+
+    #[test]
+    fn resolve_build_plugins_api() {
+        let production = false;
+        let expected = BTreeMap::from([(
+            JobDefinition::new(Target::PluginsApi, JobType::Build { production }),
+            vec![],
+        )]);
+
+        assert_eq!(
+            expected,
+            resolve(&[Target::PluginsApi], JobType::Build { production })
+        );
+    }
+
+    #[test]
+    fn resolve_test_plugins_api() {
+        let production = false;
+        let expected = BTreeMap::from([(
+            JobDefinition::new(Target::PluginsApi, JobType::Test { production }),
+            vec![],
+        )]);
+
+        assert_eq!(
+            expected,
+            resolve(&[Target::PluginsApi], JobType::Test { production })
         );
     }
 }
