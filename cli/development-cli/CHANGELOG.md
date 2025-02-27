@@ -1,3 +1,9 @@
+# 0.5.0
+
+## Changes:
+
+* Include Plugin API target & related functionality and tests.
+
 # 0.4.0
 
 ## Changes:
