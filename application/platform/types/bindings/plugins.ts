@@ -144,6 +144,10 @@ export type PluginEntity = {
      * Currently they are saved inside plugin `*.toml` file.
      */
     metadata: PluginMetadata;
+    /**
+     * Path of the readme file for the plugin to be rendered on the front-end
+     */
+    readme_path: string | null;
 };
 
 /**
@@ -173,7 +177,7 @@ export type PluginLogMessage = {
     /**
      * The timestamp of when the log message was generated, represented as a Unix timestamp.
      */
-    tm: bigint;
+    timestamp: bigint;
     /**
      * The actual content of the log message.
      */

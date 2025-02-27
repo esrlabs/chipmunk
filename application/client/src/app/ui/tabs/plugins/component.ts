@@ -40,7 +40,7 @@ export class PluginsManager extends ChangesDetector implements AfterContentInit,
     }
 
     public reload() {
-        this.provider.load();
+        this.provider.reload();
     }
 }
 

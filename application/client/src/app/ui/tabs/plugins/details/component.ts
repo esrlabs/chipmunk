@@ -64,25 +64,29 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         if (!this.plugin.path) {
             return drop();
         }
-        this.provider
-            .readme(this.plugin.path.filename)
-            .then((content: string | undefined) => {
-                if (content !== undefined) {
-                    this.readme = this.sanitizer.bypassSecurityTrustHtml(micromark(content));
+        if (this.plugin.readmePath !== undefined) {
+            this.provider
+                .readme(this.plugin.readmePath)
+                .then((content: string | undefined) => {
+                    if (content !== undefined) {
+                        this.readme = this.sanitizer.bypassSecurityTrustHtml(micromark(content));
+                        this.detectChanges();
+                        this.links().bind();
+                    } else {
+                        drop();
+                    }
+                })
+                .catch((err: Error) => {
+                    this.log().error(`Fail to read "${this.plugin.getPath()}": ${err.message}`);
+                    this.readme = '';
+                })
+                .finally(() => {
+                    this.loading = false;
                     this.detectChanges();
-                    this.links().bind();
-                } else {
-                    drop();
-                }
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to read "${this.plugin.getPath()}": ${err.message}`);
-                this.readme = '';
-            })
-            .finally(() => {
-                this.loading = false;
-                this.detectChanges();
-            });
+                });
+        } else {
+            drop();
+        }
     }
 
     protected fetchRunData() {
@@ -97,7 +101,7 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
                         return {
                             msg: log.msg,
                             level: log.level,
-                            dt: new Date(Number(log.tm)).toLocaleTimeString(),
+                            dt: new Date(Number(log.timestamp)).toLocaleTimeString(),
                         };
                     });
                 }
@@ -160,7 +164,10 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         // TODO: safe openening URL
     }
 
-    constructor(cdRef: ChangeDetectorRef, protected readonly sanitizer: DomSanitizer) {
+    constructor(
+        cdRef: ChangeDetectorRef,
+        protected readonly sanitizer: DomSanitizer,
+    ) {
         super(cdRef);
     }
 
