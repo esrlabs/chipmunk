@@ -16,6 +16,7 @@ wasmtime::component::bindgen!({
     // An issue #10090 is open on `wasmtime` GitHub repo.
     world: "chipmunk:parser/parse",
     // world: "chipmunk:shared/bindings",
+    additional_derives: [Clone],
     async: {
         only_imports: [],
     }

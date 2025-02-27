@@ -8,6 +8,7 @@ wasmtime::component::bindgen!({
     // Activate async but shrink its interfaces as possible.
     // Without activating async, wasmtime will spawn new runtime on its own,
     // causing the app to panic because the app already have its own tokio runtime.
+    additional_derives: [Clone],
     async: {
         only_imports: [],
     },

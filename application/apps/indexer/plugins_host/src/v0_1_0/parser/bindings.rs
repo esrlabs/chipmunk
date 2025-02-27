@@ -7,6 +7,7 @@ use stypes::ParserRenderOptions;
 wasmtime::component::bindgen!({
     path: "../../../../plugins/plugins_api/wit/v0.1.0",
     world: "chipmunk:parser/parse",
+    additional_derives: [Clone],
     // Activate async but shrink its interfaces as possible.
     // Without activating async, wasmtime will spawn new runtime on its own,
     // causing the app to panic because the app already have its own tokio runtime.
