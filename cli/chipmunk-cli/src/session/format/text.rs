@@ -71,11 +71,10 @@ impl MsgTextFormatter {
 impl MessageFormatter for MsgTextFormatter {
     /// Format the given message by running the original formatting in chipmunk and then
     /// replace the special separator from chipmunk with the configured ones in the CLI tool.
-    fn write_msg(
-        &mut self,
-        mut writer: impl std::io::Write,
-        msg: impl LogMessage,
-    ) -> anyhow::Result<()> {
+    fn write_msg<M>(&mut self, mut writer: impl std::io::Write, msg: &M) -> anyhow::Result<()>
+    where
+        M: LogMessage,
+    {
         self.origin_msg_buffer.clear();
         self.replaced_msg_buffer.clear();
 

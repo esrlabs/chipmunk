@@ -1838,6 +1838,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "sources",
  "stypes",
  "thiserror 2.0.3",
  "tokio-util",
