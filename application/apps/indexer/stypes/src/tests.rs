@@ -1,14 +1,18 @@
+#[cfg(feature = "test_and_gen")]
 use std::path::PathBuf;
 /// The number of test cases to generate for use in test scenarios.
+#[cfg(feature = "test_and_gen")]
 pub const TESTS_USECASE_COUNT: usize = 100;
 
 /// The name of the environment variable that specifies the path for storing test data.
 /// If this variable is not set, the default path will be used.
+#[cfg(feature = "test_and_gen")]
 pub const OUTPUT_PATH_ENVVAR: &str = "CHIPMUNK_PROTOCOL_TEST_OUTPUT";
 
 /// This function returns the path for writing test data (for testing in a different context).
 /// The function checks the value of the `CHIPMUNK_PROTOCOL_TEST_OUTPUT` environment variable.
 /// If the variable is defined, its value will be used as the path for writing test data.
+#[cfg(feature = "test_and_gen")]
 pub fn get_output_path() -> Result<PathBuf, String> {
     std::env::var(OUTPUT_PATH_ENVVAR)
         .map_err(|err| err.to_string())
