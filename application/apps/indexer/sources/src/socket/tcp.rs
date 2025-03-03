@@ -1,8 +1,10 @@
+use std::time::Duration;
+
 use crate::{
     socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
 use bufread::DeqBuffer;
-use tokio::{net::TcpStream, task::yield_now};
+use tokio::{net::TcpStream, task::yield_now, time::timeout};
 
 use super::{ReconnectInfo, ReconnectResult, ReconnectToServer, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 
@@ -101,10 +103,30 @@ impl ByteSource for TcpSource {
         // TODO use filter
         loop {
             debug!("Wait for tcp socket to become readable");
-            self.socket
-                .readable()
-                .await
-                .map_err(|e| SourceError::Unrecoverable(format!("{e}")))?;
+
+            if self.reconnect_info.is_some() {
+                // It's possible for readable() message to stay stuck in case of server reset.
+                // To avoid that we try to reconnect after 2 seconds without having data ready
+                // to be written, assuming the server is down.
+                match timeout(Duration::from_secs(2), self.socket.readable()).await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(err)) => return Err(SourceError::Unrecoverable(format!("{err}"))),
+                    Err(_) => {
+                        match self.reconnect().await {
+                            ReconnectResult::Reconnected => {}
+                            ReconnectResult::NotConfigured => {}
+                            ReconnectResult::Error(error) => {
+                                return Err(SourceError::Unrecoverable(error.to_string()));
+                            }
+                        };
+                    }
+                };
+            } else {
+                self.socket
+                    .readable()
+                    .await
+                    .map_err(|e| SourceError::Unrecoverable(e.to_string()))?;
+            }
             debug!("Socket ready to read");
             match self.socket.try_read(&mut self.tmp_buffer) {
                 Ok(len) => {
