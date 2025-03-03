@@ -25,7 +25,9 @@ thiserror = "2.0"
 lazy_static = "1.5"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
-dlt-core = "0.18.0"
+# TODO: Temp solution until latest dlt-core released on crates.io
+# dlt-core = "0.18.0"
+dlt-core = { git = "https://github.com/esrlabs/dlt-core", features = ["fibex_parser"] }
 crossbeam-channel = "0.5"
 futures = "0.3"
 tokio-util = "0.7"
