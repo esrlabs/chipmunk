@@ -1,3 +1,11 @@
+# 0.2.0
+
+## Changes:
+
+* Improve reconnecting to TCP server when server is reset.
+* Ensure there is no data loss by parse errors.
+* Fixes on DLT parsing.
+
 # 0.1.0
 
 ## Features:

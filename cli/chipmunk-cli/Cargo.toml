@@ -1,6 +1,6 @@
 [package]
 name = "chipmunk-cli"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2021"
 description = "CLI Tool for parsing bytes form different source supporting multiple data formats"
