@@ -201,11 +201,11 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
-                    // Return early when initial parse call fails.
+                    // Return early when initial parse calls fail after consuming one megabyte.
                     // This can happen when provided bytes aren't suitable for the select parser.
                     // In such case we close the session directly to avoid having unresponsive
                     // state while parse is calling on each skipped byte in the source.
-                    if !self.did_produce_items() {
+                    if !self.did_produce_items() && skipped_bytes > 1024 {
                         warn!(
                             "Aboring session due to failing initial parse call with the error: {s}"
                         );
