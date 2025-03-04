@@ -92,8 +92,10 @@ The build process will generate a WASM file named after your plugin. To integrat
    Create a directory within the appropriate plugin type folder (for example, `<HOME>/.chipmunk/plugins/parser/` for parser plugins or `<HOME>/.chipmunk/plugins/bytesource/` for byte-source plugins) using the plugin name.
 
 2. **Copy Artifacts:**  
-Place the compiled WASM file inside the plugin directory. Optionally, you can include a TOML file to provide metadata such as the plugin’s name and description.
-Ensure that both the `.wasm` binary and the `.toml` metadata file (if present) have names that match the plugin directory name.
+Place the compiled WASM file inside the plugin directory. Optionally, you can include a TOML file to provide metadata such as the plugin’s name and description.  
+Ensure that both the `.wasm` binary and the `.toml` metadata file (if present) have names that match the plugin directory name.  
+
+Additionally, you can include a `README.md` file inside the plugin directory. If present, this file will be rendered directly in the Chipmunk UI, allowing you to provide documentation or usage instructions for your plugin.  
 
 ---
 
@@ -123,7 +125,9 @@ The [`plugins-api`](./plugins_api/) crate also offers helper functions for loggi
 
 **Integration:**  
 - Create a directory at `<HOME>/.chipmunk/plugins/parser/<plugin-name>/`.
-- Copy the compiled WASM file (and optionally a metadata TOML file) into this directory.
+- Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
+
+To get started quickly, you can use the provided [parser template](./templates/parser_template). Simply copy the `parser_template` directory and modify it to implement your custom parser.  
 
 For reference, see the `string_parser` and `dlt_parser` examples.
 
@@ -140,7 +144,7 @@ The [`plugins-api`](./plugins_api/) crate again provides helper functions for lo
 
 **Integration:**  
 - Create a directory at `<HOME>/.chipmunk/plugins/bytesource/<plugin-name>/`.
-- Copy the compiled WASM file (and optionally a metadata TOML file) into this directory.
+- Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
 
 For further details, refer to the `file_source` example.
 
