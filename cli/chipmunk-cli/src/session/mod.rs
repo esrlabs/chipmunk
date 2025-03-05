@@ -12,7 +12,10 @@ use tokio_util::sync::CancellationToken;
 use parsers::LogMessage;
 use sources::{
     binary::raw::BinaryByteSource,
-    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo, ReconnectStateMsg},
+    socket::{
+        tcp::{ReconnectInfo, ReconnectStateMsg, TcpSource},
+        udp::UdpSource,
+    },
 };
 
 use crate::cli_args::InputSource;
@@ -55,6 +58,9 @@ where
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
                     ReconnectInfo::new(
+                        //TODO AAZ: Add CLI arguments
+                        Duration::from_secs(2),
+                        Duration::from_secs(2),
                         max,
                         Duration::from_millis(reconnect_interval),
                         Some(state_tx),

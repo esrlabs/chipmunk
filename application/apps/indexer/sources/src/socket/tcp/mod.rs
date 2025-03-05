@@ -1,20 +1,29 @@
-use crate::{
-    socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
-use bufread::DeqBuffer;
-use tokio::{net::TcpStream, task::yield_now};
+use std::sync::Arc;
 
-use super::{
-    hanlde_buff_capacity, BuffCapacityState, ReconnectInfo, ReconnectResult, ReconnectToServer,
-    MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE,
-};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use bufread::DeqBuffer;
+use tokio::{net::TcpStream, sync::RwLock, time::timeout};
+
+use super::{hanlde_buff_capacity, BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
+
+mod reconnect;
+
+use reconnect::ReconnectHandler;
+pub use reconnect::{ReconnectInfo, ReconnectStateMsg};
+
+#[derive(Debug, Clone)]
+/// Represents the connection status of TCP byte source
+enum ConnectionState {
+    Connected,
+    Reconnecting,
+    Disconnected(String),
+}
 
 pub struct TcpSource {
     buffer: DeqBuffer,
-    socket: TcpStream,
+    socket: Arc<RwLock<TcpStream>>,
     tmp_buffer: Vec<u8>,
-    binding_address: String,
-    reconnect_info: Option<ReconnectInfo>,
+    reconnect: Option<ReconnectHandler>,
 }
 
 impl TcpSource {
@@ -23,68 +32,43 @@ impl TcpSource {
         reconnect_info: Option<ReconnectInfo>,
     ) -> Result<Self, std::io::Error> {
         let binding_address: String = addr.into();
+        let socket = Arc::new(RwLock::new(TcpStream::connect(&binding_address).await?));
+        let reconnect = reconnect_info
+            .map(|rec_info| ReconnectHandler::new(socket.clone(), rec_info, binding_address));
+
         Ok(Self {
             buffer: DeqBuffer::new(MAX_BUFF_SIZE),
-            socket: TcpStream::connect(&binding_address).await?,
+            socket,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
-            binding_address,
-            reconnect_info,
+            reconnect,
         })
     }
-}
 
-impl ReconnectToServer for TcpSource {
-    async fn reconnect(&mut self) -> ReconnectResult {
-        let Some(reconnect_info) = self.reconnect_info.as_ref() else {
-            log::debug!("No reconnect info provided. Skipping reconnecting");
-            return ReconnectResult::NotConfigured;
-        };
+    /// Sends request to reconnect then wait for the state to be changed from
+    /// reconnect task then start from top of the loop.
+    ///
+    /// # Note:
+    /// - This function is used inside `load()` function to reduce duplicated code and is suited
+    ///   for that context only.
+    ///
+    /// - Reconnect will acquire write lock on `socket`. Make sure all locks are dropped before
+    ///   calling it to avoid any dead-locks.
+    async fn request_reconnect(reconnect: &mut ReconnectHandler) -> Result<(), SourceError> {
+        if let Err(err) = reconnect.request_tx.send(()).await {
+            let err_msg = format!("Communication error while requesting reconnect. {err}");
+            log::error!("{err_msg}");
 
-        if let Some(sender) = &reconnect_info.state_sender {
-            sender.send_replace(ReconnectStateMsg::Reconnecting { attempts: 0 });
-            // Give receivers a chance to get the initial reconnecting state before sending
-            // the first attempt update.
-            yield_now().await;
+            return Err(SourceError::Unrecoverable(err_msg));
         }
 
-        let mut attempts = 0;
-        loop {
-            attempts += 1;
-            if let Some(sender) = &reconnect_info.state_sender {
-                sender.send_replace(ReconnectStateMsg::Reconnecting { attempts });
-            }
-            log::info!("Reconnecting to TCP server. Attempt: {attempts}");
-            tokio::time::sleep(reconnect_info.internval).await;
+        if let Err(err) = reconnect.state_rx.changed().await {
+            let err_msg = format!("Communication error while waiting state to change. {err}");
+            log::error!("{err_msg}");
 
-            match TcpStream::connect(&self.binding_address).await {
-                Ok(socket) => {
-                    self.socket = socket;
-
-                    if let Some(sender) = &reconnect_info.state_sender {
-                        if let Err(err) = sender.send(ReconnectStateMsg::Connected) {
-                            log::error!("Failed to send connected state with err: {err}");
-                        }
-                    }
-                    return ReconnectResult::Reconnected;
-                }
-                Err(err) => {
-                    log::debug!("Got following error while trying to reconnect: {err}");
-                    if attempts >= reconnect_info.max_attempts {
-                        if let Some(sender) = &reconnect_info.state_sender {
-                            sender.send_replace(ReconnectStateMsg::Failed {
-                                attempts,
-                                err_msg: Some(err.to_string()),
-                            });
-                            // Make sure the message has been sent before returning.
-                            yield_now().await;
-                        }
-                        log::warn!("Reconnecting to TCP server failed after {attempts} attemps.");
-
-                        return ReconnectResult::Error(err);
-                    }
-                }
-            }
+            return Err(SourceError::Unrecoverable(err_msg));
         }
+
+        Ok(())
     }
 }
 
@@ -106,25 +90,79 @@ impl ByteSource for TcpSource {
 
         // TODO use filter
         loop {
+            // Checks for connection status
+            if let Some(reconnect) = &mut self.reconnect {
+                let state = reconnect.state_rx.borrow_and_update().to_owned();
+                match state {
+                    ConnectionState::Connected => {}
+                    ConnectionState::Reconnecting => {
+                        // Wait until state changes.
+                        match reconnect.state_rx.changed().await {
+                            Ok(()) => continue, // State changed => run loop from start.
+                            Err(err) => {
+                                let err_msg =
+                                    format!("Reconnect sender dropped unexpectedly. {err}");
+                                log::error!("{}", err_msg);
+                                return Err(SourceError::Unrecoverable(err_msg));
+                            }
+                        }
+                    }
+                    ConnectionState::Disconnected(err) => {
+                        return Err(SourceError::Unrecoverable(err));
+                    }
+                }
+            }
+
             debug!("Wait for tcp socket to become readable");
-            self.socket
-                .readable()
-                .await
-                .map_err(|e| SourceError::Unrecoverable(format!("{e}")))?;
+            let socket = self.socket.read().await;
+            let mut readable_err = None;
+            if let Some(reconnect) = &self.reconnect {
+                // Apply timeout to avoid dead-locks in case load() method is never cancelled
+                // and stuck in readable() while holding lock to the socket.
+                match timeout(reconnect.read_timeout, socket.readable()).await {
+                    Ok(Ok(())) => {}
+                    Ok(Err(err)) => {
+                        let err_msg = format!("TCP socket readable call failed. {err}");
+                        log::warn!("{err_msg}");
+                        readable_err = Some(err_msg);
+                    }
+                    Err(elapsed) => {
+                        let err_msg = format!("TCP socket readable timed out after {elapsed}");
+                        log::warn!("{err_msg}");
+                        readable_err = Some(err_msg);
+                    }
+                }
+            } else if let Err(err) = socket.readable().await {
+                let err_msg = format!("TCP socket readable call failed. {err}");
+                log::warn!("{err_msg}");
+                readable_err = Some(err_msg);
+            }
+
+            // Handle readable errors trying to reconnect if configured.
+            if let Some(err) = readable_err {
+                if let Some(reconnect) = &mut self.reconnect {
+                    drop(socket);
+                    Self::request_reconnect(reconnect).await?;
+                    continue;
+                } else {
+                    return Err(SourceError::Unrecoverable(err));
+                }
+            }
+
             debug!("Socket ready to read");
-            match self.socket.try_read(&mut self.tmp_buffer) {
+            match socket.try_read(&mut self.tmp_buffer) {
                 Ok(len) => {
+                    drop(socket);
                     trace!("---> Received {} bytes", len);
                     if len == 0 {
                         // No data were received -> Server may be temporally down
-                        // then try to reconnect.
-                        match self.reconnect().await {
-                            ReconnectResult::Reconnected => continue,
-                            ReconnectResult::NotConfigured => {}
-                            ReconnectResult::Error(error) => {
-                                return Err(SourceError::Unrecoverable(error.to_string()));
-                            }
-                        };
+                        if let Some(reconnect) = &mut self.reconnect {
+                            Self::request_reconnect(reconnect).await?;
+                            continue;
+                        } else {
+                            let available_bytes = self.buffer.read_available();
+                            return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+                        }
                     }
                     let added = self.buffer.write_from(&self.tmp_buffer[..len]);
                     if added < len {
@@ -141,30 +179,17 @@ impl ByteSource for TcpSource {
                     continue;
                 }
                 Err(e) => {
+                    drop(socket);
                     // Server may be temporally down -> Try to reconnect.
-                    match self.reconnect().await {
-                        ReconnectResult::Reconnected => {
-                            continue;
-                        }
-                        ReconnectResult::NotConfigured => {
-                            // Continue with the original error.
-                            return Err(SourceError::Setup(format!("{e}")));
-                        }
-                        ReconnectResult::Error(err) => {
-                            // return both errors.
-                            return Err(SourceError::Setup(format!(
-                                " Reconnection failed with error: {e}.\
-                                \nAfter recieving original error: {err}"
-                            )));
-                        }
-                    };
+                    if let Some(reconnect) = &mut self.reconnect {
+                        Self::request_reconnect(reconnect).await?;
+                        continue;
+                    } else {
+                        return Err(SourceError::Unrecoverable(e.to_string()));
+                    }
                 }
             }
         }
-        // let len = self
-        //     .socket
-        //     .try_read(&mut self.tmp_buffer)
-        //     .map_err(|e| SourceError::Setup(format!("{}", e)))?;
     }
 
     fn current_slice(&self) -> &[u8] {
@@ -186,7 +211,7 @@ mod tests {
 
     use crate::tests::general_source_reload_test;
     use std::time::Duration;
-    use tokio::{io::AsyncWriteExt, net::TcpListener, time::sleep};
+    use tokio::{io::AsyncWriteExt, net::TcpListener, task::yield_now, time::sleep};
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
 
