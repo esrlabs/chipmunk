@@ -590,7 +590,7 @@ mod tests {
         let mut tcp_source = TcpSource::new(SERVER, Some(rec_info)).await.unwrap();
 
         let cancel_handle = tokio::spawn(async move {
-            // Keep sending notification causing load method to be dropped while both
+            // Keep sending notifications causing load method to be dropped while both
             // receiving data and reconnecting to ensure their cancel safety.
             let mut sent = 0;
             while cancel_tx.send(()).await.is_ok() {
