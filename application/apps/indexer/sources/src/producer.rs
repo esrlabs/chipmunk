@@ -81,6 +81,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             return None;
         }
         let (_newly_loaded, mut available, mut skipped_bytes) = 'outer: loop {
+            //TODO: Not Cancel Safe.
             if let Some(mut rx_sde) = self.rx_sde.take() {
                 'inner: loop {
                     // SDE mode: listening next chunk and possible incoming message for source
@@ -195,6 +196,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
 
                     // Stop if there is no new available bytes.
                     if newly_loaded == 0 {
+                        //TODO: We need to skip the current bytes here instead of ending the
+                        //session.
                         trace!("No new bytes has been added. Returning Done");
                         let unused = skipped_bytes + available;
                         self.done = true;
@@ -218,6 +221,10 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
+                    // TODO: This is temporary solution. We need to inform the user each time we
+                    // hit the `INITIAL_PARSE_ERROR_LIMIT` and not break the session.
+                    // We may need the new item `MessageStreamItem::Skipped(bytes_count)`
+                    //
                     // Return early when initial parse calls fail after consuming one megabyte.
                     // This can happen when provided bytes aren't suitable for the select parser.
                     // In such case we close the session directly to avoid having unresponsive
