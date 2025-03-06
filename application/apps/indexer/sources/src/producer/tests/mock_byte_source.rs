@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
+use tokio::task::JoinHandle;
+use tokio::time::sleep;
+
 use crate::ByteSource;
 use crate::Error;
 use crate::ReloadInfo;
@@ -12,6 +15,9 @@ pub type MockSeedRes = Result<Option<MockReloadSeed>, Error>;
 pub struct MockByteSource {
     buffer: Vec<u8>,
     reload_seeds: VecDeque<MockSeedRes>,
+    /// Handle for spawned load task, used with seeds having timeout
+    /// to ensure load method is cancel safe in that situation.
+    load_handle: Option<JoinHandle<Result<Option<ReloadInfo>, Error>>>,
 }
 
 impl MockByteSource {
@@ -20,6 +26,7 @@ impl MockByteSource {
         Self {
             buffer,
             reload_seeds: reload_seeds.into(),
+            load_handle: None,
         }
     }
 }
@@ -73,31 +80,62 @@ impl ByteSource for MockByteSource {
     }
 
     async fn load(&mut self, _filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error> {
-        let seed_res = self
-            .reload_seeds
-            .pop_front()
-            .expect("Seeds count must match reload count");
-        let seed_opt = seed_res?;
+        loop {
+            // Check for already spawned tasks from previous cancelled calls and
+            // wait for them.
+            if let Some(handle) = &mut self.load_handle {
+                let res = handle.await.unwrap();
+                self.load_handle = None;
+                return res;
+            }
 
-        let Some(seed) = seed_opt else {
-            return Ok(None);
-        };
+            let seed_res = self
+                .reload_seeds
+                .pop_front()
+                .expect("Seeds count must match reload count");
+            let seed_opt = seed_res?;
 
-        if let Some(duration) = seed.sleep_duration {
-            tokio::time::sleep(duration).await;
+            let Some(seed) = seed_opt else {
+                return Ok(None);
+            };
+
+            assert!(self.load_handle.is_none());
+
+            self.buffer
+                .extend(std::iter::repeat(b'a').take(seed.loaded));
+
+            let available_bytes = self.buffer.len();
+
+            if seed.sleep_duration.is_some() {
+                // Spawn separate task to ensure it won't dropped
+                // if load is cancelled while waiting for sleep function.
+                let handle = tokio::spawn(async move {
+                    sleep(seed.sleep_duration.unwrap()).await;
+                    let reload_info = ReloadInfo::new(
+                        seed.loaded,
+                        available_bytes,
+                        seed.skipped,
+                        seed.last_known_ts,
+                    );
+
+                    Ok(Some(reload_info))
+                });
+
+                // Set handle and go to top of loop to wait for it.
+                self.load_handle = Some(handle);
+                continue;
+            } else {
+                // Simply return the result directly if no sleep is configured.
+                let reload_info = ReloadInfo::new(
+                    seed.loaded,
+                    available_bytes,
+                    seed.skipped,
+                    seed.last_known_ts,
+                );
+
+                return Ok(Some(reload_info));
+            }
         }
-
-        self.buffer
-            .extend(std::iter::repeat(b'a').take(seed.loaded));
-
-        let reload_info = ReloadInfo::new(
-            seed.loaded,
-            self.buffer.len(),
-            seed.skipped,
-            seed.last_known_ts,
-        );
-
-        Ok(Some(reload_info))
     }
 
     async fn income(&mut self, msg: stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
@@ -210,4 +248,66 @@ async fn test_mock_byte_source_income() {
         text_income_res,
         Ok(stypes::SdeResponse { bytes: TEXT_LEN })
     ));
+}
+
+#[tokio::test]
+async fn test_load_cancel_safety() {
+    const SLEEP_DURATION: Duration = Duration::from_millis(50);
+
+    let mut source = MockByteSource::new(
+        0,
+        [
+            Ok(Some(
+                MockReloadSeed::new(5, 0).sleep_duration(SLEEP_DURATION),
+            )),
+            Ok(Some(
+                MockReloadSeed::new(4, 0).sleep_duration(SLEEP_DURATION),
+            )),
+            Ok(Some(
+                MockReloadSeed::new(6, 0).sleep_duration(SLEEP_DURATION),
+            )),
+            Ok(None),
+        ],
+    );
+
+    let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
+
+    let cancel_handel = tokio::spawn(async move {
+        let mut count = 0;
+        while cancel_tx.send(()).await.is_ok() {
+            sleep(Duration::from_millis(2)).await;
+            count += 1;
+        }
+
+        assert!(count > 20);
+    });
+
+    let mut cancel_received = 0;
+    let mut load_call_count = 0;
+    loop {
+        tokio::select! {
+            _ = cancel_rx.recv() => {
+                cancel_received += 1;
+            },
+            res = source.load(None) => {
+                let res = res.unwrap();
+                match load_call_count {
+                    0 => assert!(res.is_some_and(|r| r.newly_loaded_bytes == 5)),
+                    1 => assert!(res.is_some_and(|r| r.newly_loaded_bytes == 4)),
+                    2 => assert!(res.is_some_and(|r| r.newly_loaded_bytes == 6)),
+                    3 => {
+                        assert!(res.is_none());
+                        break;
+                    },
+                    invalid => panic!("Unreachable load count: {invalid}"),
+                }
+                load_call_count += 1;
+            },
+        }
+    }
+    drop(cancel_rx);
+
+    assert!(cancel_received > 20);
+
+    assert!(cancel_handel.await.is_ok());
 }

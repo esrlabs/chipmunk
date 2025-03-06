@@ -590,7 +590,7 @@ mod tests {
         let mut tcp_source = TcpSource::new(SERVER, Some(rec_info)).await.unwrap();
 
         let cancel_handle = tokio::spawn(async move {
-            // Keep sending notification causing load method to be dropped while both
+            // Keep sending notifications causing load method to be dropped while both
             // receiving data and reconnecting to ensure their cancel safety.
             let mut sent = 0;
             while cancel_tx.send(()).await.is_ok() {
@@ -630,5 +630,79 @@ mod tests {
 
         assert!(rec_res.is_ok());
         assert!(can_res.is_ok());
+    }
+
+    /// Ensure load and reconnect functions are cancel safe by keep calling it within a timeout
+    /// function with rapid interval.
+    #[tokio::test]
+    async fn load_reconnect_cancel_safe_timeout() {
+        static SERVER: &str = "127.0.0.1:4007";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let send_handle = tokio::spawn(async move {
+            // Run server sending data for first time.
+            let (stream, _) = listener.accept().await.unwrap();
+            let (_, mut send) = tokio::io::split(stream);
+            for msg in MESSAGES {
+                send.write_all(msg.as_bytes())
+                    .await
+                    .expect("could not send on socket");
+                send.flush().await.expect("flush message should work");
+                sleep(Duration::from_millis(30)).await;
+            }
+
+            // Then disconnected the server and sleep.
+            drop(send);
+            drop(listener);
+            sleep(Duration::from_millis(150)).await;
+
+            // Start new server sending data again.
+            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            let (stream, _) = listener.accept().await.unwrap();
+            let (_, mut send) = tokio::io::split(stream);
+            for msg in MESSAGES {
+                send.write_all(msg.as_bytes())
+                    .await
+                    .expect("could not send on socket");
+                send.flush().await.expect("flush message should work");
+                sleep(Duration::from_millis(30)).await;
+            }
+        });
+
+        // Enable reconnect without configuring state channels.
+        let rec_info = ReconnectInfo::new(
+            Duration::from_millis(50),
+            Duration::from_millis(50),
+            1000,
+            Duration::from_millis(30),
+            None,
+        );
+
+        let mut tcp_source = TcpSource::new(SERVER, Some(rec_info)).await.unwrap();
+
+        let receive_handle = tokio::spawn(async move {
+            // TCP source must receive three messages, reconnect then receive three
+            // more messages while receiving notifications with 2 milliseconds interval
+            // to prove its cancel safety while loading and reconnecting.
+            let mut idx = 0;
+            let mut received_timeout = 0;
+            while idx < MESSAGES.len() * 2 {
+                match timeout(Duration::from_millis(2), tcp_source.load(None)).await {
+                    Ok(_) => {
+                        let msg = MESSAGES[idx % MESSAGES.len()];
+                        assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                        tcp_source.consume(msg.len());
+                        idx += 1;
+                    }
+                    Err(_elapsed) => received_timeout += 1,
+                }
+            }
+
+            // Ensure cancel messages are actually received.
+            assert!(received_timeout > 50);
+        });
+
+        let (_, rec_res) = tokio::join!(send_handle, receive_handle);
+
+        assert!(rec_res.is_ok());
     }
 }
