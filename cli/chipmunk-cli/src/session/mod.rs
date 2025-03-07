@@ -12,7 +12,10 @@ use tokio_util::sync::CancellationToken;
 use parsers::LogMessage;
 use sources::{
     binary::raw::BinaryByteSource,
-    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo, ReconnectStateMsg},
+    socket::{
+        tcp::{ReconnectInfo, ReconnectStateMsg, TcpSource},
+        udp::UdpSource,
+    },
 };
 
 use crate::cli_args::InputSource;
@@ -48,6 +51,8 @@ where
             update_interval,
             max_reconnect_count,
             reconnect_interval,
+            connection_timeout,
+            connection_check_interval,
         } => {
             let (state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
 
@@ -55,6 +60,8 @@ where
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
                     ReconnectInfo::new(
+                        Duration::from_millis(connection_timeout),
+                        Duration::from_millis(connection_check_interval),
                         max,
                         Duration::from_millis(reconnect_interval),
                         Some(state_tx),

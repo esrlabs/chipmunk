@@ -82,7 +82,7 @@ impl Display for OutputFormat {
 pub enum InputSource {
     /// Establish a TCP connection using the specified IP address as the input source.
     Tcp {
-        /// The address to bind the connection to.
+        /// Address to bind the connection, specified in format IP:PORT.
         #[arg(index = 1)]
         address: String,
         /// Time interval (in milliseconds) to print current status.
@@ -94,6 +94,12 @@ pub enum InputSource {
         /// Time interval (in milliseconds) between reconnection attempts.
         #[arg(short, long = "reconnect-interval", default_value_t = 1000)]
         reconnect_interval: u64,
+        /// Timeout (in milliseconds) to wait for server data before assuming connection loss.
+        #[arg(long = "connection-timeout", default_value_t = 2000)]
+        connection_timeout: u64,
+        /// Time interval (in milliseconds) between server connection checks.
+        #[arg(long = "connection-check-interval", default_value_t = 2000)]
+        connection_check_interval: u64,
     },
     /// Establish a UDP connection using the specified IP address as the input source.
     Udp {
@@ -160,6 +166,8 @@ impl Cli {
                 update_interval,
                 max_reconnect_count: _,
                 reconnect_interval: interval_reconnect,
+                connection_timeout: _,
+                connection_check_interval: _,
             } => {
                 const UPDATE_INTERVAL_MIN: u64 = 100;
                 ensure!(*update_interval >= UPDATE_INTERVAL_MIN,

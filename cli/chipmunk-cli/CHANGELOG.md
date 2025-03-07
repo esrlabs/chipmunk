@@ -1,3 +1,12 @@
+# 0.2.0
+
+## Changes:
+
+* Improved performance and reliability of parse sessions.  
+* Enhanced auto-reconnect to TCP server, handling physical hard resets.  
+* Added new CLI arguments for connection timeout and check interval in TCP connections.  
+* Improved parse error handling to minimize data loss and enhance app responsiveness.  
+
 # 0.1.0
 
 ## Features:
