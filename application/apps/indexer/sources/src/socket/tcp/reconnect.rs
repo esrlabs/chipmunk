@@ -15,7 +15,7 @@ use super::ConnectionState;
 pub struct ReconnectInfo {
     /// Timeout duration to wait for the server to provide more data before
     /// assuming that the connection to the server is lost.
-    read_timeout: Duration,
+    connection_timeout: Duration,
     /// Time interval between each check for server connection.
     check_internval: Duration,
     /// Maximum number of attempts to reconnect to the server.
@@ -29,21 +29,21 @@ pub struct ReconnectInfo {
 impl ReconnectInfo {
     /// Create new instance of reconnect infos.
     ///
-    /// * `read_timeout`: Timeout duration to wait for the server to provide more data before
+    /// * `connection_timeout`: Timeout duration to wait for the server to provide more data before
     ///   assuming that the connection to the server is lost.
     /// * `check_internval`: Time interval between each check for server connection
     /// * `max_attempts`: Maximum number of attempts to reconnect to the server
     /// * `reconnect_internval`: Time interval between each try to connect to server
     /// * `state_sender`: Channel to send information of the state of reconnecting progress.
     pub fn new(
-        read_timeout: Duration,
+        connection_timeout: Duration,
         check_internval: Duration,
         max_attempts: usize,
         reconnect_internval: Duration,
         state_sender: Option<watch::Sender<ReconnectStateMsg>>,
     ) -> Self {
         Self {
-            read_timeout,
+            connection_timeout,
             check_internval,
             max_attempts,
             reconnect_internval,
@@ -93,7 +93,7 @@ impl ReconnectHandler {
     ) -> Self {
         let (state_tx, state_rx) = watch::channel(ConnectionState::Connected);
         let (request_tx, request_rx) = mpsc::channel(1);
-        let read_timeout = reconnect_info.read_timeout;
+        let read_timeout = reconnect_info.connection_timeout;
         let reconnect_task = tokio::spawn(reconnect_task(
             socket.clone(),
             binding_address,
@@ -144,7 +144,7 @@ async fn reconnect_task(
 
         _ = check_internval.tick() => {
             let socket_read = socket.read().await;
-            match timeout(reconnect_info.read_timeout, socket_read.readable()).await {
+            match timeout(reconnect_info.connection_timeout, socket_read.readable()).await {
                 Ok(Ok(())) => {},
                 Ok(Err(err)) => {
                     // Readable failed => Try to reconnect.

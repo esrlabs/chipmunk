@@ -146,7 +146,7 @@ Establish a TCP connection using the specified IP address as the input source
 Usage: chipmunk-cli dlt tcp [OPTIONS] <ADDRESS>
 
 Arguments:
-  <ADDRESS>  The address to bind the connection to
+  <ADDRESS>  Address to bind the connection, specified in format IP:PORT
 
 Options:
   -u, --update-interval <UPDATE_INTERVAL>
@@ -155,6 +155,10 @@ Options:
           Maximum number of reconnection attempts if the connection is lost
   -r, --reconnect-interval <RECONNECT_INTERVAL>
           Time interval (in milliseconds) between reconnection attempts [default: 1000]
+      --connection-timeout <CONNECTION_TIMEOUT>
+          Timeout (in milliseconds) to wait for server data before assuming connection loss [default: 2000]
+      --connection-check-interval <CONNECTION_CHECK_INTERVAL>
+          Time interval (in milliseconds) between server connection checks [default: 2000]
   -h, --help
           Print help
 ```
