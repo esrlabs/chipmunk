@@ -82,10 +82,7 @@ where
 {
     let mut counter = ProducerCounter::default();
 
-    let s = producer.as_stream();
-    tokio::pin!(s);
-
-    while let Some(items) = s.next().await {
+    while let Some(items) = producer.read_next_segment().await {
         for (_, i) in items {
             match i {
                 MessageStreamItem::Item(item) => match item {

@@ -1,13 +1,12 @@
 //! Provides methods for running a session with a server socket as the input source.
 
 use anyhow::Context;
-use futures::StreamExt;
 use std::{io::Write as _, ops::Deref, path::PathBuf, time::Duration};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
-use sources::{producer::MessageProducer, socket::ReconnectStateMsg, ByteSource};
+use sources::{producer::MessageProducer, socket::tcp::ReconnectStateMsg, ByteSource};
 
 use crate::session::create_append_file_writer;
 
@@ -39,8 +38,6 @@ where
     W: MessageFormatter,
 {
     let mut producer = MessageProducer::new(parser, bytesource, None);
-    let stream = producer.as_stream();
-    tokio::pin!(stream);
 
     let mut update_interval = tokio::time::interval(update_interval);
 
@@ -103,7 +100,7 @@ where
                     println!("Processing... {msg_count} messages have been written to file.");
                 }
             }
-            Some(items) = stream.next() => {
+            Some(items) = producer.read_next_segment() => {
                 for (_, item) in items {
                     match item {
                         parsers::MessageStreamItem::Item(parse_yield) => {
