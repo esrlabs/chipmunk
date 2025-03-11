@@ -95,23 +95,27 @@ export class Action {
         const configurable = observe.isConfigurable();
         const nature = observe.origin.nature().desc();
         return [
-            {
-                caption: ((): string => {
-                    switch (nature.type) {
-                        case $.Description.OriginType.file:
-                            return 'Open with recent configuration';
-                        case $.Description.OriginType.net:
-                        case $.Description.OriginType.serial:
-                            return 'Connect with recent configuration';
-                        case $.Description.OriginType.command:
-                            return 'Execute with recent configuration';
-                        //TODO Dmitry: Added this temporally to make it compile
-                        case $.Description.OriginType.plugin:
-                            return '*** TODO Load with recent configuration TODO ***';
-                    }
-                })(),
-                handler: this.apply.bind(this),
-            },
+            // **Note**: Recent actions isn't supported yet for plugins. Support of this
+            // feature will be included with general refactoring of Observe Configuration
+            // and a way to delivery available parser/source to client
+            ...(nature.type === $.Description.OriginType.plugin
+                ? []
+                : [
+                      {
+                          caption: ((): string => {
+                              switch (nature.type) {
+                                  case $.Description.OriginType.file:
+                                      return 'Open with recent configuration';
+                                  case $.Description.OriginType.net:
+                                  case $.Description.OriginType.serial:
+                                      return 'Connect with recent configuration';
+                                  case $.Description.OriginType.command:
+                                      return 'Execute with recent configuration';
+                              }
+                          })(),
+                          handler: this.apply.bind(this),
+                      },
+                  ]),
             ...(configurable
                 ? [
                       {

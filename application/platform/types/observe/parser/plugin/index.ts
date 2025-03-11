@@ -17,17 +17,18 @@ export interface IConfiguration {
     plugin_configs: PluginConfigItem[];
 }
 
-//TODO Dmitry: Names and Descriptions having TODO in them needs to be updated.
-
 @Statics<ConfigurationStaticDesc<IConfiguration, Protocol>>()
 export class Configuration
     extends Base<IConfiguration, Configuration, Protocol>
     implements List, Stream.Support, Files.Support
 {
+    /// Plugin uses inner data to provide self description. In run-time fields
+    /// `major` will be replaced with plugin name; `minor` with an addition data
+    /// more details: `WrappedParserRef` (application/client/src/app/ui/tabs/observe/state.ts)
     static desc(): IList {
         return {
-            major: 'Plugins',
-            minor: 'Plugin parser static minor TODO',
+            major: '',
+            minor: '',
             icon: undefined,
         };
     }
