@@ -4,14 +4,8 @@
 // conditional compilation detail in the docs, even it would require to specify the cfg_attr on
 // every conditional public module.
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
-//! This library provides types, functions and macros to write plugins for [Chipmunk](https://github.com/esrlabs/chipmunk).
-//!
-//! The provided types and functions match the definitions from the `WIT` files defined in Chipmunk
-//! repository.
-//!
-//! TODO AAZ: This is basic documentation that need a lot of improvements and examples
-//!
+// Use the readme as the main documentation page.
+#![doc = include_str!("../README.md")]
 
 mod shared;
 pub use shared::{

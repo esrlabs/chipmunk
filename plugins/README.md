@@ -23,7 +23,7 @@ This guide provides an overview of how to develop plugins for Chipmunk applicati
 
 ## Overview
 
-Chipmunk supports plugins built as WebAssembly components. The plugins system uses [WIT](https://component-model.bytecodealliance.org/design/wit.html) files to define plugin types and the API, allowing developers to write plugins in any language that supports the WASM component model.
+Chipmunk supports plugins built as WebAssembly components. The plugins system uses [WASM Interface Format (WIT)](https://component-model.bytecodealliance.org/design/wit.html) files to define plugin types and the API, allowing developers to write plugins in any language that supports the WASM component model.
 
 ---
 
@@ -118,7 +118,7 @@ Chipmunk currently supports two main types of plugins:
 Parser plugins receive an array of bytes, attempt to parse them, and return the parsed items. They can also define configuration schemas and specify rendering options if needed.
 
 **Development in Rust:**  
-- Implement a struct that adheres to the `Parser` trait defined in the [`plugins-api`](./plugins_api/) crate.
+- Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](./plugins_api/) crate.
 - Use the `parser_export!()` macro to export your parser struct.
 
 The [`plugins-api`](./plugins_api/) crate also offers helper functions for logging and configuration management.
@@ -137,7 +137,7 @@ For reference, see the `string_parser` and `dlt_parser` examples.
 Byte-source plugins deliver arrays of bytes of a specified length during each load call. These bytes are then processed by a selected parser. Like parser plugins, they can define configuration schemas that are provided during session initialization.
 
 **Development in Rust:**  
-- Implement a struct that adheres to the `ByteSource` trait defined in the [`plugins-api`](./plugins_api/) crate.
+- Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](./plugins_api/) crate.
 - Use the `bytesource_export!()` macro to export your byte-source struct.
 
 The [`plugins-api`](./plugins_api/) crate again provides helper functions for logging and configuration management.
