@@ -27,11 +27,13 @@ export class Configuration
         return Context.Plugin;
     }
 
-    //TODO Dmitry: All names and descriptions have TODO word in them.
+    /// Origin (source) plugin will describe itself in run-time. fields `major` will be replaced
+    //  with plugin name; `minor` with an addition data.
+    /// It will work simular to `WrappedParserRef` (application/client/src/app/ui/tabs/observe/state.ts)
     static desc(): IList {
         return {
-            major: 'Plugin source static major TODO',
-            minor: 'Plugin source static minor TODO',
+            major: '',
+            minor: '',
             icon: undefined,
         };
     }

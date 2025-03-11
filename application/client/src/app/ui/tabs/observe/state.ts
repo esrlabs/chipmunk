@@ -186,7 +186,6 @@ export class State extends Subscriber {
                 if (
                     nature instanceof Origin.File.Configuration ||
                     nature instanceof Origin.Concat.Configuration ||
-                    //TODO Dmitry: Added this temporally to make it compile.
                     nature instanceof Origin.Plugin.Configuration
                 ) {
                     this.streams = [];
