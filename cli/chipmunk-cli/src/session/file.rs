@@ -1,7 +1,6 @@
 //! Provides methods for running a session with a file as the input source.
 
 use anyhow::Context;
-use futures::StreamExt;
 use std::{io::Write as _, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
@@ -37,8 +36,6 @@ where
     W: MessageFormatter,
 {
     let mut producer = MessageProducer::new(parser, bytesource, None);
-    let stream = producer.as_stream();
-    tokio::pin!(stream);
 
     let mut file_writer = create_append_file_writer(&output_path)?;
 
@@ -55,7 +52,7 @@ where
 
                 return Ok(());
             },
-            Some(items) = stream.next() => {
+            Some(items) = producer.read_next_segment() => {
                 for (_, item) in items {
                     match item {
                         parsers::MessageStreamItem::Item(parse_yield) => {

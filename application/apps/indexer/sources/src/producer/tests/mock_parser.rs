@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fmt, io::Write, mem, usize};
+use std::{collections::VecDeque, fmt, io::Write, mem};
 
 use parsers::Error;
 use parsers::ParseYield;
@@ -98,15 +98,15 @@ fn test_mock_parser() {
         Err(ParserError::Eof),
     ]);
 
-    let parse_result_ok_none = parser.parse(&[b'a', b'b'], None).unwrap().next().unwrap();
+    let parse_result_ok_none = parser.parse(b"ab", None).unwrap().next().unwrap();
     assert!(matches!(parse_result_ok_none, (1, None)));
 
-    let parse_result_ok_val = parser.parse(&[b'a', b'b'], None).unwrap().next().unwrap();
+    let parse_result_ok_val = parser.parse(b"ab", None).unwrap().next().unwrap();
     assert!(matches!(
         parse_result_ok_val,
         (2, Some(ParseYield::Message(MockMessage { content: 1 })))
     ));
 
-    let parse_result_err = parser.parse(&[b'a', b'b'], None);
+    let parse_result_err = parser.parse(b"ab", None);
     assert!(matches!(parse_result_err, Err(ParserError::Eof)));
 }
