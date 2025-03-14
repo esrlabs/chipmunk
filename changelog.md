@@ -1,3 +1,10 @@
+# 3.16.3 (14.03.2025)
+
+## Fixes
+
+- Fix DLT file / source reading
+- Fix DLT filtering
+
 # 3.16.2 (26.02.2025)
 
 ## Fixes
