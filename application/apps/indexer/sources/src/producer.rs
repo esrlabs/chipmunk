@@ -191,25 +191,27 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     return Some(&mut self.buffer);
                 }
                 Err(ParserError::Incomplete) => {
-                    trace!("not enough bytes to parse a message");
+                    trace!("not enough bytes to parse a message. Load more data");
                     let (newly_loaded, _available_bytes, skipped) = self.load().await?;
 
-                    // Stop if there is no new available bytes.
-                    if newly_loaded == 0 {
-                        //TODO: We need to skip the current bytes here instead of ending the
-                        //session.
-                        trace!("No new bytes has been added. Returning Done");
-                        let unused = skipped_bytes + available;
-                        self.done = true;
+                    if newly_loaded > 0 {
+                        trace!("New bytes has been loaded, trying parsing again.");
+                        available += newly_loaded;
+                        skipped_bytes += skipped;
+                    } else {
+                        trace!("No bytes has been loaded, drop one byte if available or load");
 
-                        self.buffer.push((unused, MessageStreamItem::Done));
-                        return Some(&mut self.buffer);
+                        if !self.drop_and_load(&mut available, &mut skipped_bytes).await {
+                            trace!(
+                                "Terminating the session with no available bytes after drop and load"
+                            );
+                            let unused = skipped_bytes + available;
+                            self.done = true;
+
+                            self.buffer.push((unused, MessageStreamItem::Done));
+                            return Some(&mut self.buffer);
+                        }
                     }
-
-                    trace!("New bytes has been loaded, trying parsing again.");
-                    available += newly_loaded;
-                    skipped_bytes += skipped;
-                    continue;
                 }
                 Err(ParserError::Eof) => {
                     trace!(
@@ -231,7 +233,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     // state while parse is calling on each skipped byte in the source.
                     if !self.did_produce_items() && skipped_bytes > INITIAL_PARSE_ERROR_LIMIT {
                         warn!(
-                            "Aboring session due to failing initial parse call with the error: {s}"
+                            "Aborting session due to failing initial parse call with the error: {s}"
                         );
                         let unused = skipped_bytes + available;
                         self.done = true;
@@ -240,37 +242,13 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         return Some(&mut self.buffer);
                     }
 
-                    trace!("No parse possible, skip one bytes and retry. Error: {s}");
-
-                    debug_assert!(
-                        available > 0,
-                        "Parser can't be called with zero bytes available"
-                    );
-
-                    const DROP_STEP: usize = 1;
-                    available -= DROP_STEP;
-                    skipped_bytes += DROP_STEP;
-                    self.byte_source.consume(DROP_STEP);
-
-                    // we still have bytes -> call parse on the remaining bytes without loading.
-                    if available > 0 {
+                    trace!("No parse possible, skip one byte and retry. Error: {s}");
+                    if self.drop_and_load(&mut available, &mut skipped_bytes).await {
                         continue;
-                    }
-
-                    // Load more bytes.
-                    trace!("No more bytes are availabe. Loading more bytes");
-                    let loaded_new_data = match self.load().await {
-                        Some((newly_loaded, _available_bytes, skipped)) => {
-                            available += newly_loaded;
-                            skipped_bytes += skipped;
-
-                            newly_loaded > 0
-                        }
-                        None => false,
-                    };
-
-                    // Finish if no new data are available.
-                    if !loaded_new_data {
+                    } else {
+                        trace!(
+                            "Terminating the session with no available bytes after drop and load"
+                        );
                         let unused = skipped_bytes + available;
                         self.done = true;
 
@@ -325,6 +303,42 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 warn!("Error reloading content: {}", e);
                 None
             }
+        }
+    }
+
+    /// Drops one byte from the available bytes and loads more bytes if no more bytes are
+    /// available.
+    ///
+    /// # Note:
+    /// This function is intended for internal use in producer loop only.
+    ///
+    /// # Return:
+    /// `true` when there are available bytes to be parsed, otherwise it'll return `false`
+    /// indicating that the session should be terminated.
+    async fn drop_and_load(&mut self, available: &mut usize, skipped_bytes: &mut usize) -> bool {
+        if *available > 0 {
+            trace!("Dropping one byte from loaded ones.");
+            const DROP_STEP: usize = 1;
+            *available -= DROP_STEP;
+            *skipped_bytes += DROP_STEP;
+            self.byte_source.consume(DROP_STEP);
+
+            // we still have bytes -> call parse on the remaining bytes without loading.
+            if *available > 0 {
+                return true;
+            }
+        }
+
+        // Load more bytes.
+        trace!("No more bytes are available. Loading more bytes");
+        match self.load().await {
+            Some((newly_loaded, _available_bytes, skipped)) => {
+                *available += newly_loaded;
+                *skipped_bytes += skipped;
+
+                newly_loaded > 0
+            }
+            None => false,
         }
     }
 

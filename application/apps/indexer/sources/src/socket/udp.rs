@@ -6,7 +6,7 @@ use tokio::net::{ToSocketAddrs, UdpSocket};
 
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::{
-    socket::{hanlde_buff_capacity, BuffCapacityState},
+    socket::{handle_buff_capacity, BuffCapacityState},
     ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
 
@@ -84,7 +84,7 @@ impl ByteSource for UdpSource {
         // If buffer is almost full then skip loading and return the available bytes.
         // This can happen because some parsers will parse the first item of the provided slice
         // while the producer will call load on each iteration making data accumulate.
-        match hanlde_buff_capacity(&mut self.buffer) {
+        match handle_buff_capacity(&mut self.buffer) {
             BuffCapacityState::CanLoad => {}
             BuffCapacityState::AlmostFull => {
                 let available_bytes = self.len();
