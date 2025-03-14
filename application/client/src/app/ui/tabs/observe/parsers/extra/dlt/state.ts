@@ -166,7 +166,14 @@ export class State extends Base {
                     return;
                 }
                 conf.setDefaultsFilterConfig();
+                let app_id_count = 0;
+                let context_id_count = 0;
                 this.structure.forEach((structure) => {
+                    if (structure.key === ENTITIES.app_ids) {
+                        app_id_count = structure.entities.length;
+                    } else if (structure.key === ENTITIES.context_ids) {
+                        context_id_count = structure.entities.length;
+                    }
                     const selected = structure.getSelected().map((f) => f.id);
                     if (selected.length === 0) {
                         (conf.configuration.filter_config as any)[structure.key] = undefined;
@@ -174,6 +181,10 @@ export class State extends Base {
                         (conf.configuration.filter_config as any)[structure.key] = selected;
                     }
                 });
+                if (conf.configuration.filter_config) {
+                    conf.configuration.filter_config.app_id_count = app_id_count;
+                    conf.configuration.filter_config.context_id_count = context_id_count;
+                }
             },
             all: (): void => {
                 this.buildSummary().total();
