@@ -5,7 +5,7 @@ use bufread::DeqBuffer;
 use tokio::{net::TcpStream, task::yield_now};
 
 use super::{
-    hanlde_buff_capacity, BuffCapacityState, ReconnectInfo, ReconnectResult, ReconnectToServer,
+    handle_buff_capacity, BuffCapacityState, ReconnectInfo, ReconnectResult, ReconnectToServer,
     MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE,
 };
 
@@ -54,7 +54,7 @@ impl ReconnectToServer for TcpSource {
                 sender.send_replace(ReconnectStateMsg::Reconnecting { attempts });
             }
             log::info!("Reconnecting to TCP server. Attempt: {attempts}");
-            tokio::time::sleep(reconnect_info.internval).await;
+            tokio::time::sleep(reconnect_info.interval).await;
 
             match TcpStream::connect(&self.binding_address).await {
                 Ok(socket) => {
@@ -96,7 +96,7 @@ impl ByteSource for TcpSource {
         // If buffer is almost full then skip loading and return the available bytes.
         // This can happen because some parsers will parse the first item of the provided slice
         // while the producer will call load on each iteration making data accumulate.
-        match hanlde_buff_capacity(&mut self.buffer) {
+        match handle_buff_capacity(&mut self.buffer) {
             BuffCapacityState::CanLoad => {}
             BuffCapacityState::AlmostFull => {
                 let available_bytes = self.len();

@@ -24,7 +24,7 @@ pub struct ReconnectInfo {
     /// Maximum number of attempts to reconnect to the server.
     max_attempts: usize,
     /// The time interval between each try to connect to server.
-    internval: Duration,
+    interval: Duration,
     /// Channel to send information of the state of reconnecting progress.
     state_sender: Option<Sender<ReconnectStateMsg>>,
 }
@@ -32,12 +32,12 @@ pub struct ReconnectInfo {
 impl ReconnectInfo {
     pub fn new(
         max_attempts: usize,
-        internval: Duration,
+        interval: Duration,
         state_sender: Option<Sender<ReconnectStateMsg>>,
     ) -> Self {
         Self {
             max_attempts,
-            internval,
+            interval,
             state_sender,
         }
     }
@@ -50,7 +50,7 @@ impl Default for ReconnectInfo {
 }
 
 #[derive(Debug)]
-/// Represent the return result of reconfigur
+/// Represent the return result of reconnect function.
 enum ReconnectResult {
     /// Reconnection to server successful.
     Reconnected,
@@ -84,7 +84,7 @@ enum BuffCapacityState {
 
 /// Checks if the buffer can be loaded with more data, calling flush on it when necessary,
 /// and return the buffer capacity state.
-fn hanlde_buff_capacity(buffer: &mut DeqBuffer) -> BuffCapacityState {
+fn handle_buff_capacity(buffer: &mut DeqBuffer) -> BuffCapacityState {
     // Check if buffer has enough capacity for the next load call.
     if buffer.write_available() < MAX_DATAGRAM_SIZE {
         // Capacity isn't enough -> Try flushing the buffer.
