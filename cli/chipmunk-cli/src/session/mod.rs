@@ -12,7 +12,13 @@ use tokio_util::sync::CancellationToken;
 use parsers::LogMessage;
 use sources::{
     binary::raw::BinaryByteSource,
-    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo, ReconnectStateMsg},
+    socket::{
+        tcp::{
+            reconnect::{ReconnectInfo, ReconnectStateMsg},
+            KeepAliveConfig, TcpSource,
+        },
+        udp::UdpSource,
+    },
 };
 
 use crate::cli_args::InputSource;
@@ -48,6 +54,7 @@ where
             update_interval,
             max_reconnect_count,
             reconnect_interval,
+            keep_alive,
         } => {
             let (state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
 
@@ -63,7 +70,13 @@ where
             });
 
             let update_interval = Duration::from_millis(update_interval);
-            let source = TcpSource::new(address, reconnect)
+
+            let keepalive = keep_alive.map(|keepalive_mili| {
+                let keep_duration = Duration::from_millis(keepalive_mili);
+                KeepAliveConfig::new(keep_duration, keep_duration)
+            });
+
+            let source = TcpSource::new(&address, keepalive, reconnect)
                 .await
                 .context("Initializing TCP connection failed")?;
 

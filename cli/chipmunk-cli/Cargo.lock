@@ -1358,6 +1358,7 @@ dependencies = [
  "regex",
  "serde",
  "shellexpand",
+ "socket2",
  "stypes",
  "thiserror 2.0.11",
  "tokio",
