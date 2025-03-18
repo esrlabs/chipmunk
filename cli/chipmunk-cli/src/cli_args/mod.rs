@@ -85,17 +85,17 @@ pub enum InputSource {
         /// The address to bind the connection to.
         #[arg(index = 1)]
         address: String,
-        /// Time interval (in milliseconds) to print current status.
-        #[arg(short, long = "update-interval", default_value_t = 5000)]
+        /// Time interval (in seconds) to print current status.
+        #[arg(short, long = "update-interval", default_value_t = 5)]
         update_interval: u64,
         /// Maximum number of reconnection attempts if the connection is lost.
         /// Value must be set to enable automatic reconnect to server.
         #[arg(short, long = "max-reconnect", verbatim_doc_comment)]
         max_reconnect_count: Option<usize>,
-        /// Time interval (in milliseconds) between reconnection attempts.
-        #[arg(short, long = "reconnect-interval", default_value_t = 1000)]
+        /// Time interval (in seconds) between reconnection attempts.
+        #[arg(short, long = "reconnect-interval", default_value_t = 1)]
         reconnect_interval: u64,
-        /// Time interval (in milliseconds) to send `keep-alive` probes to TCP server.
+        /// Time interval (in seconds) to send `keep-alive` probes to TCP server.
         /// Value must be set to enable `keep-alive` on the server.
         #[arg(short, long = "keep-alive", verbatim_doc_comment)]
         keep_alive: Option<u64>,
@@ -105,6 +105,9 @@ pub enum InputSource {
         /// The address to bind the connection to.
         #[arg(index = 1)]
         address: String,
+        /// Time interval (in seconds) to print current status.
+        #[arg(short, long = "update-interval", default_value_t = 5)]
+        update_interval: u64,
     },
     /// Read input from a file at the specified path.
     File {
@@ -167,21 +170,28 @@ impl Cli {
                 reconnect_interval: interval_reconnect,
                 keep_alive,
             } => {
-                const UPDATE_INTERVAL_MIN: u64 = 100;
-                ensure!(*update_interval >= UPDATE_INTERVAL_MIN,
-                    "Update interval must be equal or bigger than {UPDATE_INTERVAL_MIN} milliseconds");
-
-                const INTERVAL_RECONNECT_MIN: u64 = 0;
                 ensure!(
-                    *interval_reconnect > INTERVAL_RECONNECT_MIN,
-                    "Reconnect interval must be bigger than {INTERVAL_RECONNECT_MIN} milliseconds"
+                    *update_interval > 0,
+                    "Update interval must be greater than zero"
+                );
+                ensure!(
+                    *interval_reconnect > 0,
+                    "Reconnect interval must be grater than zero"
                 );
                 ensure!(
                     keep_alive.is_none_or(|v| v > 0),
                     "Keepalive time must be greater than zero when set"
                 );
             }
-            InputSource::Udp { address: _ } => {}
+            InputSource::Udp {
+                address: _,
+                update_interval,
+            } => {
+                ensure!(
+                    *update_interval > 0,
+                    "Update interval must be greater than zero"
+                );
+            }
             InputSource::File { path } => {
                 ensure!(
                     path.exists(),

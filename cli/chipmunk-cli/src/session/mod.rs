@@ -61,18 +61,14 @@ where
             let reconnect = max_reconnect_count.and_then(|max| {
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
-                    ReconnectInfo::new(
-                        max,
-                        Duration::from_millis(reconnect_interval),
-                        Some(state_tx),
-                    )
+                    ReconnectInfo::new(max, Duration::from_secs(reconnect_interval), Some(state_tx))
                 })
             });
 
-            let update_interval = Duration::from_millis(update_interval);
+            let update_interval = Duration::from_secs(update_interval);
 
-            let keepalive = keep_alive.map(|keepalive_mili| {
-                let keep_duration = Duration::from_millis(keepalive_mili);
+            let keepalive = keep_alive.map(|keepalive_secs| {
+                let keep_duration = Duration::from_secs(keepalive_secs);
                 KeepAliveConfig::new(keep_duration, keep_duration)
             });
 
@@ -91,7 +87,10 @@ where
             )
             .await?
         }
-        InputSource::Udp { address } => {
+        InputSource::Udp {
+            address,
+            update_interval,
+        } => {
             // UDP connections inherently support auto-connecting by design.
             let (_state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
 
@@ -99,7 +98,7 @@ where
                 .await
                 .context("Initializing UDP connection failed")?;
 
-            let temp_interval = Duration::from_millis(1000);
+            let temp_interval = Duration::from_secs(update_interval);
 
             socket::run_session(
                 parser,
