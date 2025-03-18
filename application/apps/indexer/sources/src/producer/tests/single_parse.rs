@@ -524,10 +524,16 @@ async fn success_parsi_err_success_drain_bytes() {
 #[tokio::test]
 /// This function tests the sde SDE Communication in the producer loop
 async fn sde_communication() {
-    let parser = MockParser::new([Ok(vec![MockParseSeed::new(
-        5,
-        Some(ParseYield::Message(MockMessage::from(1))),
-    )])]);
+    let parser = MockParser::new([
+        Ok(vec![MockParseSeed::new(
+            5,
+            Some(ParseYield::Message(MockMessage::from(1))),
+        )]),
+        Ok(vec![MockParseSeed::new(
+            10,
+            Some(ParseYield::Message(MockMessage::from(2))),
+        )]),
+    ]);
 
     // The duration which `reload()` should wait for before delivering the data.
     const SLEEP_DURATION: Duration = Duration::from_millis(50);
@@ -535,14 +541,10 @@ async fn sde_communication() {
     let source = MockByteSource::new(
         0,
         [
-            // This value must never be delivered because `reload()` on `MockByteSource`
-            // isn't cancel safe, and the value here will be dropped with the `reload()` future
-            // within the `select!()` macro in producer loop.
+            // Both of the values here must be delivered because SDE is cancel safe.
             Ok(Some(
                 MockReloadSeed::new(5, 0).sleep_duration(SLEEP_DURATION),
             )),
-            // This value should be delivered because the first one must be dropped because of the
-            // cancel safety issue
             Ok(Some(MockReloadSeed::new(10, 0))),
         ],
     );
@@ -561,8 +563,6 @@ async fn sde_communication() {
         ))
         .unwrap();
 
-    // The first source seed has a delay and won't be picked in the `select!` macro in the producer
-    // loop, and it will be dropped because `reload()` in `MockByteSource` isn't cancel safe.
     let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
@@ -584,4 +584,15 @@ async fn sde_communication() {
 
     // Returned bytes' length must match the length of the sent data.
     assert_eq!(sde_response.bytes, SDE_TEXT.len());
+
+    // Bytes for next item should be delivered and item should be parsed.
+    let next = producer.read_next_segment().await.unwrap();
+    assert_eq!(next.len(), 1);
+    assert!(matches!(
+        next[0],
+        (
+            10,
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
+        )
+    ));
 }

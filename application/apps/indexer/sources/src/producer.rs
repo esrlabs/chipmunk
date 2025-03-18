@@ -13,11 +13,6 @@ use tokio::{
 pub type SdeSender = UnboundedSender<SdeMsg>;
 pub type SdeReceiver = UnboundedReceiver<SdeMsg>;
 
-enum Next {
-    Read((usize, usize, usize)),
-    Sde(Option<SdeMsg>),
-}
-
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
@@ -38,6 +33,7 @@ where
     done: bool,
     rx_sde: Option<SdeReceiver>,
     buffer: Vec<(usize, MessageStreamItem<T>)>,
+    pending_sde: Option<SdeMsg>,
 }
 
 impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
@@ -54,6 +50,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             done: false,
             rx_sde,
             buffer: Vec::new(),
+            pending_sde: None,
         }
     }
 
@@ -80,47 +77,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             debug!("done...no next segment");
             return None;
         }
-        let (_newly_loaded, mut available, mut skipped_bytes) = 'outer: loop {
-            //TODO: Not Cancel Safe.
-            if let Some(mut rx_sde) = self.rx_sde.take() {
-                'inner: loop {
-                    // SDE mode: listening next chunk and possible incoming message for source
-                    match select! {
-                        msg = rx_sde.recv() => Next::Sde(msg),
-                        read = self.load() => Next::Read(read.unwrap_or((0, 0, 0))),
-                    } {
-                        Next::Read(next) => {
-                            self.rx_sde = Some(rx_sde);
-                            break 'outer next;
-                        }
-                        Next::Sde(msg) => {
-                            if let Some((msg, tx_response)) = msg {
-                                if tx_response
-                                    .send(
-                                        self.byte_source
-                                            .income(msg)
-                                            .await
-                                            .map_err(|e| e.to_string()),
-                                    )
-                                    .is_err()
-                                {
-                                    warn!("Fail to send back message from source");
-                                }
-                            } else {
-                                // Means - no more senders; but it isn't an error as soon as implementation of
-                                // source could just do not use a data exchanging
-                                self.rx_sde = None;
-                                // Exiting from inner loop to avoid select! and go to NoSDE mode
-                                break 'inner;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // NoSDE mode: listening only next chunk
-                break 'outer self.load().await.unwrap_or((0, 0, 0));
-            };
-        };
+        let (_newly_loaded, mut available, mut skipped_bytes) =
+            self.load().await.unwrap_or((0, 0, 0));
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliver
@@ -260,15 +218,81 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
-    /// Calls load on the underline byte source filling it with more bytes.
-    /// Returning information about the state of the byte counts, Or None if
-    /// the reload call fails.
+    /// Calls load on the underline byte source filling it with more bytes while listening
+    /// to incoming SDE messages sending them to the underline byte source.
+    ///
+    /// # Cancel Safety:
+    ///
+    /// This function is cancel safe as long as the methods [`ByteSource::load()`] and
+    /// [`ByteSource::income()`] are cancel safe too.
     ///
     /// # Return:
     ///
+    /// It will return information about the state of the byte counts, Or None if
+    /// the reload call fails.
     /// Option<(newly_loaded_bytes, available_bytes, skipped_bytes)>
     async fn load(&mut self) -> Option<(usize, usize, usize)> {
-        match self.byte_source.load(self.filter.as_ref()).await {
+        loop {
+            // Check for pending SDE messages.
+            // This function can't take ownership of the pending message because
+            // it may be dropped before income() call returns.
+            if let Some((msg, _)) = self.pending_sde.as_ref() {
+                //TODO AAZ: Check if income can take a reference form the data.
+                let val = self
+                    .byte_source
+                    .income(msg.to_owned())
+                    .await
+                    .map_err(|e| e.to_string());
+
+                // Take ownership of pending SDE since we don't any more async calls.
+                let (_, tx_response) = self
+                    .pending_sde
+                    .take()
+                    .expect("Called from with if let Some() block");
+
+                if tx_response.send(val).is_err() {
+                    warn!("Fail to send back message from source");
+                }
+            }
+
+            if let Some(rx) = self.rx_sde.as_mut() {
+                // Wait on both load call and SDE messages.
+                select! {
+                    load_res = self.byte_source.load(self.filter.as_ref()) => {
+                        return self.handle_load_result(load_res);
+                    },
+                    sde_msg = rx.recv() => {
+                        if let Some(msg) = sde_msg {
+                            self.pending_sde = Some(msg);
+                        } else {
+                            // Means - no more senders; but it isn't an error as soon as implementation of
+                            // source could just do not use a data exchanging
+                            self.rx_sde = None;
+                        }
+                        continue;
+                    }
+                }
+            } else {
+                let load_res = self.byte_source.load(self.filter.as_ref()).await;
+
+                return self.handle_load_result(load_res);
+            }
+        }
+    }
+
+    /// Handle load call results updating internal counters and returning information about
+    /// the state of the byte counts, Or None if the reload call fails.
+    ///
+    /// # Note:
+    /// Function is made to be used within [`Self::load()`] only.
+    ///
+    /// # Return:
+    /// Option<(newly_loaded_bytes, available_bytes, skipped_bytes)>
+    fn handle_load_result(
+        &mut self,
+        load_res: Result<Option<ReloadInfo>, super::Error>,
+    ) -> Option<(usize, usize, usize)> {
+        match load_res {
             Ok(Some(ReloadInfo {
                 newly_loaded_bytes,
                 available_bytes,
@@ -284,6 +308,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     "did a do_reload, skipped {} bytes, loaded {} more bytes (total loaded and skipped: {})",
                     skipped_bytes, newly_loaded_bytes, self.total_loaded + self.total_skipped
                 );
+
                 Some((newly_loaded_bytes, available_bytes, skipped_bytes))
             }
             Ok(None) => {
