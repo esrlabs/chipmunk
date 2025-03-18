@@ -1,3 +1,13 @@
+# 0.2.0
+
+## Changes:
+
+* Enhanced auto-reconnect to TCP server with optional `keepalive` probes.
+* Added new CLI arguments for configuring TCP `keepalive` probes.  
+* Change unit for intervals from milliseconds to seconds.
+* Improved performance and reliability of parse sessions.  
+* Improved parse error handling to minimize data loss and enhance app responsiveness.  
+
 # 0.1.0
 
 ## Features:
