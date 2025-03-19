@@ -138,7 +138,7 @@ impl ByteSource for MockByteSource {
         }
     }
 
-    async fn income(&mut self, msg: stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
+    async fn income(&mut self, msg: &stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
         // Read the input for now and return it's length
         let bytes = match &msg {
             stypes::SdeRequest::WriteText(text) => text.as_bytes(),
@@ -228,7 +228,7 @@ async fn test_mock_byte_source_income() {
 
     let byte_msg = stypes::SdeRequest::WriteBytes(vec![b'a'; BYTES_LEN]);
 
-    let byte_income_res = source.income(byte_msg).await;
+    let byte_income_res = source.income(&byte_msg).await;
     // Byte income should succeed producing a response with the length of the provided bytes.
     assert!(matches!(
         byte_income_res,
@@ -241,7 +241,7 @@ async fn test_mock_byte_source_income() {
 
     let text_msg = stypes::SdeRequest::WriteText(TEXT.into());
 
-    let text_income_res = source.income(text_msg).await;
+    let text_income_res = source.income(&text_msg).await;
 
     // Text income should succeed producing a response wit the length of the provided text bytes.
     assert!(matches!(

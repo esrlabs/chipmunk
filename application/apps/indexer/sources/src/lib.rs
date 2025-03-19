@@ -147,7 +147,7 @@ pub trait ByteSource: Send + Sync {
     ///
     /// The method [`ByteSource::reload()`] must be **Cancel-Safe** for structs that support this
     /// method
-    async fn income(&mut self, _msg: stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
+    async fn income(&mut self, _msg: &stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
         Err(Error::NotSupported)
     }
 }

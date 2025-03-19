@@ -176,10 +176,10 @@ impl ByteSource for SerialSource {
 
     async fn income(
         &mut self,
-        request: stypes::SdeRequest,
+        request: &stypes::SdeRequest,
     ) -> Result<stypes::SdeResponse, SourceError> {
         Ok(match request {
-            stypes::SdeRequest::WriteText(mut str) => {
+            stypes::SdeRequest::WriteText(str) => {
                 let len = str.len();
                 if self.send_data_delay == 0 {
                     self.write_stream
@@ -187,9 +187,9 @@ impl ByteSource for SerialSource {
                         .await
                         .map_err(SourceError::Io)?;
                 } else {
-                    while !str.is_empty() {
+                    for byte in str.as_bytes() {
                         self.write_stream
-                            .send(str.drain(0..1).collect::<String>().as_bytes().to_vec())
+                            .send(vec![*byte])
                             .await
                             .map_err(SourceError::Io)?;
                         sleep(Duration::from_millis(self.send_data_delay as u64)).await;
@@ -197,17 +197,17 @@ impl ByteSource for SerialSource {
                 }
                 stypes::SdeResponse { bytes: len }
             }
-            stypes::SdeRequest::WriteBytes(mut bytes) => {
+            stypes::SdeRequest::WriteBytes(bytes) => {
                 let len = bytes.len();
                 if self.send_data_delay == 0 {
                     self.write_stream
-                        .send(bytes)
+                        .send(bytes.to_vec())
                         .await
                         .map_err(SourceError::Io)?;
                 } else {
-                    while !bytes.is_empty() {
+                    for byte in bytes {
                         self.write_stream
-                            .send(bytes.drain(0..1).collect::<Vec<u8>>())
+                            .send(vec![*byte])
                             .await
                             .map_err(SourceError::Io)?;
                         sleep(Duration::from_millis(self.send_data_delay as u64)).await;

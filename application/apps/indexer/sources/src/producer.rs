@@ -240,7 +240,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 //TODO AAZ: Check if income can take a reference form the data.
                 let val = self
                     .byte_source
-                    .income(msg.to_owned())
+                    .income(msg)
                     .await
                     .map_err(|e| e.to_string());
 
