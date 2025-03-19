@@ -40,7 +40,7 @@ pub async fn observe_stream(
             .await
         }
         stypes::Transport::TCP(settings) => {
-            let tcp_source = TcpSource::new(settings.bind_addr.clone(), None)
+            let tcp_source = TcpSource::new(&settings.bind_addr, None, None)
                 .await
                 .map_err(|e| stypes::NativeError {
                     severity: stypes::Severity::ERROR,

@@ -139,6 +139,9 @@ When exporting to **binary format**, Chipmunk automatically generates a default 
 Chipmunk can establish a connection with a **TCP server**, receive data from it, and parse it. It also supports **automatic reconnection** if the connection is lost.
 Reconnection is enabled **only** when the `--max-reconnect` option is specified. If not set, the session will terminate as soon as the connection to the server is lost.
 
+Additionally, Chipmunk supports **keep-alive probes** to maintain the connection with the server. 
+Keep-alive is enabled **only** when the `--keep-alive` option is set. It specifies the time interval (in seconds) between keep-alive probes sent to the TCP server.
+
 ```shell
 $ chipmunk-cli dlt tcp --help
 Establish a TCP connection using the specified IP address as the input source
@@ -150,11 +153,15 @@ Arguments:
 
 Options:
   -u, --update-interval <UPDATE_INTERVAL>
-          Time interval (in milliseconds) to print current status [default: 5000]
+          Time interval (in seconds) to print current status [default: 5]
   -m, --max-reconnect <MAX_RECONNECT_COUNT>
-          Maximum number of reconnection attempts if the connection is lost
+          Maximum number of reconnection attempts if the connection is lost.
+          Value must be set to enable automatic reconnect to server.
   -r, --reconnect-interval <RECONNECT_INTERVAL>
-          Time interval (in milliseconds) between reconnection attempts [default: 1000]
+          Time interval (in seconds) between reconnection attempts [default: 1]
+  -k, --keep-alive <KEEP_ALIVE>
+          Time interval (in seconds) to send `keep-alive` probes to TCP server.
+          Value must be set to enable `keep-alive` on the server.
   -h, --help
           Print help
 ```
@@ -168,13 +175,16 @@ Since UDP is connectionless by design, Chipmunk will automatically handle incomi
 $ chipmunk-cli dlt udp --help
 Establish a UDP connection using the specified IP address as the input source
 
-Usage: chipmunk-cli dlt udp <ADDRESS>
+Usage: chipmunk-cli dlt udp [OPTIONS] <ADDRESS>
 
 Arguments:
   <ADDRESS>  The address to bind the connection to
 
 Options:
-  -h, --help  Print help
+  -u, --update-interval <UPDATE_INTERVAL>
+          Time interval (in seconds) to print current status [default: 5]
+  -h, --help
+          Print help
 ```
 
 ### File Input  

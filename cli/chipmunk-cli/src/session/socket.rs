@@ -6,7 +6,7 @@ use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
-use sources::{producer::MessageProducer, socket::ReconnectStateMsg, ByteSource};
+use sources::{producer::MessageProducer, socket::tcp::reconnect::ReconnectStateMsg, ByteSource};
 
 use crate::session::create_append_file_writer;
 
@@ -70,11 +70,11 @@ where
                 match msg.deref() {
                     ReconnectStateMsg::Reconnecting { attempts } => {
                         reconnecting = true;
-                        if *attempts == 0 {
+                        if *attempts == 1 {
                             println!("Connection to server lost. Trying to reconnect...");
-                        }else {
-                            println!("Reconnecting to TCP server. Attempt: {attempts}");
                         }
+                        println!("Reconnecting to TCP server. Attempt: {attempts}");
+
                     },
                     ReconnectStateMsg::Connected => {
                         reconnecting = false;
