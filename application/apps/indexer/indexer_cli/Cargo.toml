@@ -10,7 +10,6 @@ chrono = "0.4"
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["fibex", "statistics"] }
 env_logger.workspace = true
-futures.workspace = true
 indexer_base = { path = "../indexer_base" }
 indicatif = "0.17"
 lazy_static.workspace = true

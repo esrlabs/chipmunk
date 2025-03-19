@@ -16,9 +16,11 @@ itertools = "0.13"
 lazy_static.workspace = true
 log.workspace = true
 parsers = { path = "../parsers" }
+sources = { path = "../sources" }
 regex.workspace = true
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
+text_grep = { path = "../addons/text_grep" }
 thiserror.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }

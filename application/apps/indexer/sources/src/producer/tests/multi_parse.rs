@@ -1,12 +1,12 @@
 //! Tests for parsers returning multiple values
 
+use std::collections::VecDeque;
 use std::time::Duration;
 
 use super::mock_byte_source::*;
 use super::mock_parser::*;
 use super::*;
 
-use futures::{pin_mut, StreamExt};
 use parsers::{Error as ParseError, ParseYield};
 use tokio::sync::{mpsc::unbounded_channel, oneshot};
 
@@ -35,11 +35,8 @@ async fn parse_items_then_skip() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // First results should be two messages with content
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
@@ -57,18 +54,18 @@ async fn parse_items_then_skip() {
     ));
 
     // Two Skipped messages when Parser is returning None
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(next[0], (4, MessageStreamItem::Skipped)));
     assert!(matches!(next[1], (6, MessageStreamItem::Skipped)));
 
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -94,11 +91,8 @@ async fn parse_incomplete() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // First message should be two messages with content
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
@@ -117,29 +111,36 @@ async fn parse_incomplete() {
     ));
 
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
 #[tokio::test]
-async fn parsing_error_success_reload() {
+async fn success_parse_err_success() {
     let parser = MockParser::new([
-        Err(ParseError::Parse(Default::default())),
         Ok(vec![
             MockParseSeed::new(10, Some(ParseYield::Message(MockMessage::from(1)))),
             MockParseSeed::new(5, Some(ParseYield::Message(MockMessage::from(1)))),
+        ]),
+        Err(ParseError::Parse(Default::default())),
+        Err(ParseError::Parse(Default::default())),
+        Err(ParseError::Parse(Default::default())),
+        Ok(vec![
+            MockParseSeed::new(10, Some(ParseYield::Message(MockMessage::from(2)))),
+            MockParseSeed::new(5, Some(ParseYield::Message(MockMessage::from(2)))),
         ]),
     ]);
 
     let source = MockByteSource::new(
         0,
         [
-            Ok(Some(MockReloadSeed::new(10, 0))),
+            Ok(Some(MockReloadSeed::new(17, 0))),
+            Ok(Some(MockReloadSeed::new(1, 0))),
             Ok(Some(MockReloadSeed::new(15, 0))),
             Ok(None),
         ],
@@ -147,16 +148,13 @@ async fn parsing_error_success_reload() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
-    // Two Messages with content should be yielded consuming all the bytes.
-    let next = stream.next().await.unwrap();
+    // First two messages succeed.
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
         (
-            20,
+            10,
             MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
         )
     ));
@@ -168,13 +166,32 @@ async fn parsing_error_success_reload() {
         )
     ));
 
+    // Three parse error causing 3 bytes to drop.
+    // Then two Messages with content should be yielded consuming all the bytes.
+    let next = producer.read_next_segment().await.unwrap();
+    assert_eq!(next.len(), 2);
+    assert!(matches!(
+        next[0],
+        (
+            13, // 10 items + 3 bytes
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
+        )
+    ));
+    assert!(matches!(
+        next[1],
+        (
+            5,
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
+        )
+    ));
+
     // Done message should be sent
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -204,12 +221,9 @@ async fn parse_with_skipped_bytes() {
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Two Messages with content 1 should be yielded considering skipped bytes on the first item
     // only
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
@@ -227,7 +241,7 @@ async fn parse_with_skipped_bytes() {
     ));
 
     // Two Skipped Message should be yielded considering skipped bytes on the first item only
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
@@ -245,7 +259,7 @@ async fn parse_with_skipped_bytes() {
     ));
 
     // Consume the remaining bytes with successful parse.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(
         next[0],
@@ -256,55 +270,65 @@ async fn parse_with_skipped_bytes() {
     ));
 
     // Done message should be sent.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
     assert!(matches!(next[0], (0, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
 #[tokio::test]
-async fn parsing_error_then_fail_reload_with_skipped_bytes() {
-    let parser = MockParser::new([
-        Err(ParseError::Parse(Default::default())),
-        Ok(vec![
-            MockParseSeed::new(4, Some(ParseYield::Message(MockMessage::from(1)))),
-            MockParseSeed::new(6, Some(ParseYield::Message(MockMessage::from(1)))),
-        ]),
-    ]);
+async fn initial_parsing_error() {
+    // Test to simulate a byte source delivering bytes more than INITIAL_PARSE_ERROR_LIMIT
+    // in one shot, ensuring that the session will be terminated on parse errors with total
+    // amount of loaded bytes without calling load on source anymore.
 
-    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 3))), Ok(None)]);
+    const LOADED_BYTES_COUNT: usize = INITIAL_PARSE_ERROR_LIMIT * 2;
+
+    let parse_seeds: VecDeque<_> =
+        std::iter::repeat_with(|| Err(ParseError::Parse(Default::default())))
+            .take(INITIAL_PARSE_ERROR_LIMIT + 2)
+            .collect();
+
+    let parser = MockParser::new(parse_seeds);
+
+    let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(LOADED_BYTES_COUNT, 0)))]);
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
-    // Done message should be sent with unused bytes, considering the skipped bytes.
-    // Multiple return parse values shouldn't matter here.
-    let next = stream.next().await.unwrap();
+    // Done message should be sent on initial parsing with unused bytes,
+    // considering the skipped bytes.
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (13, MessageStreamItem::Done)));
+    assert!(matches!(
+        next[0],
+        (LOADED_BYTES_COUNT, MessageStreamItem::Done)
+    ));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
 #[tokio::test]
-async fn parsing_error_success_reload_with_skipped_bytes() {
+async fn success_parse_error_success_err_skipped_bytes() {
     let parser = MockParser::new([
+        Ok(vec![
+            MockParseSeed::new(4, Some(ParseYield::Message(MockMessage::from(1)))),
+            MockParseSeed::new(6, Some(ParseYield::Message(MockMessage::from(1)))),
+        ]),
+        Err(ParseError::Parse(Default::default())),
         Err(ParseError::Parse(Default::default())),
         Ok(vec![
-            MockParseSeed::new(4, Some(ParseYield::Message(MockMessage::from(1)))),
-            MockParseSeed::new(6, Some(ParseYield::Message(MockMessage::from(1)))),
+            MockParseSeed::new(4, Some(ParseYield::Message(MockMessage::from(2)))),
+            MockParseSeed::new(10, Some(ParseYield::Message(MockMessage::from(2)))),
         ]),
-        Ok(vec![
-            MockParseSeed::new(4, Some(ParseYield::Message(MockMessage::from(1)))),
-            MockParseSeed::new(6, Some(ParseYield::Message(MockMessage::from(1)))),
-        ]),
+        Err(ParseError::Parse(Default::default())),
+        Err(ParseError::Parse(Default::default())),
+        Err(ParseError::Parse(Default::default())),
+        Err(ParseError::Parse(Default::default())),
     ]);
 
     let source = MockByteSource::new(
@@ -314,22 +338,20 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
             Ok(Some(MockReloadSeed::new(20, 4))),
             Ok(None),
             Ok(None),
+            Ok(None),
         ],
     );
 
     let mut producer = MessageProducer::new(parser, source, None);
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Two Messages with content should be yielded considering the skipped bytes on the first item
     // only with both reload calls.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
         (
-            22, // 22: 4 consumed + 10 skipped from Error::Parse match branch + (4 + 4) skipped
+            8, // 4 consumed + 4 skipped by byte source.
             MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
         )
     ));
@@ -341,31 +363,32 @@ async fn parsing_error_success_reload_with_skipped_bytes() {
         )
     ));
 
-    // Two Messages use all available bytes.
-    let next = stream.next().await.unwrap();
+    // Two bytes dropped with parser errors then two messages.
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],
         (
-            4,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
+            10, // 4 Item + 2 dropped due to parser error + 4 skipped in byte source
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
         )
     ));
     assert!(matches!(
         next[1],
         (
-            6,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
+            10,
+            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
         )
     ));
 
-    // Done message should be sent
-    let next = stream.next().await.unwrap();
+    // Four error messages should happen here causing dropping four bytes.
+    // Then Done message should be sent
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    assert!(matches!(next[0], (4, MessageStreamItem::Done)));
 
     // Then the stream should be closed
-    let next = stream.next().await;
+    let next = producer.read_next_segment().await;
     assert!(next.is_none());
 }
 
@@ -399,9 +422,6 @@ async fn sde_communication() {
     let (tx_sde, rx_sde) = unbounded_channel();
     let mut producer = MessageProducer::new(parser, source, Some(rx_sde));
 
-    let stream = producer.as_stream();
-    pin_mut!(stream);
-
     // Send message to sde receiver before calling next.
     let (tx_sde_response, mut rx_sde_response) = oneshot::channel();
     const SDE_TEXT: &str = "sde_msg";
@@ -414,7 +434,7 @@ async fn sde_communication() {
 
     // The first source seed has a delay and won't be picked in the `select!` macro in the producer
     // loop, and it will be dropped because `reload()` in `MockByteSource` isn't cancel safe.
-    let next = stream.next().await.unwrap();
+    let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 2);
     assert!(matches!(
         next[0],

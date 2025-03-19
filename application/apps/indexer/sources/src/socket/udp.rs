@@ -5,7 +5,10 @@ use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use crate::{
+    socket::{handle_buff_capacity, BuffCapacityState},
+    ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+};
 
 #[derive(Error, Debug)]
 pub enum UdpSourceError {
@@ -81,9 +84,12 @@ impl ByteSource for UdpSource {
         // If buffer is almost full then skip loading and return the available bytes.
         // This can happen because some parsers will parse the first item of the provided slice
         // while the producer will call load on each iteration making data accumulate.
-        if self.buffer.write_available() < MAX_DATAGRAM_SIZE {
-            let available_bytes = self.len();
-            return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+        match handle_buff_capacity(&mut self.buffer) {
+            BuffCapacityState::CanLoad => {}
+            BuffCapacityState::AlmostFull => {
+                let available_bytes = self.len();
+                return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+            }
         }
 
         // TODO use filter
@@ -118,11 +124,6 @@ impl ByteSource for UdpSource {
 
     fn consume(&mut self, offset: usize) {
         self.buffer.read_done(offset);
-        // Calling read_done() won't make free up writable memory.
-        // Therefore we need to call flush manually.
-        if self.buffer.write_available() < MAX_DATAGRAM_SIZE {
-            self.buffer.flush();
-        }
     }
 
     fn len(&self) -> usize {
@@ -132,6 +133,8 @@ impl ByteSource for UdpSource {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use tokio::task::yield_now;
 
     use super::*;
@@ -192,7 +195,6 @@ mod tests {
     /// Tests will send packets with fixed lengths while consuming
     /// half of the sent length, ensuring the source won't break.
     ///
-    /// TODO:
     /// This test demonstrate that parsers which consume the bytes of one result at a
     /// time while miss parsing the whole bytes when the server isn't sending more data
     /// even that the buffer has bytes in it.
@@ -213,6 +215,8 @@ mod tests {
         tokio::spawn(async move {
             let msg = [b'a'; SENT_LEN];
             let mut total_sent = 0;
+            // Give the receiver some start up time.
+            tokio::time::sleep(Duration::from_millis(100)).await;
             while total_sent < MAX_BUFF_SIZE * 2 {
                 send_socket
                     .send_to(&msg, RECEIVER)
