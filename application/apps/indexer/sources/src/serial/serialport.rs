@@ -6,7 +6,10 @@ use futures::{
     SinkExt,
 };
 use std::{io, str};
-use tokio::time::{sleep, Duration};
+use tokio::{
+    runtime::Handle,
+    time::{sleep, Duration},
+};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
@@ -187,13 +190,17 @@ impl ByteSource for SerialSource {
                         .await
                         .map_err(SourceError::Io)?;
                 } else {
-                    for byte in str.as_bytes() {
-                        self.write_stream
-                            .send(vec![*byte])
-                            .await
-                            .map_err(SourceError::Io)?;
-                        sleep(Duration::from_millis(self.send_data_delay as u64)).await;
-                    }
+                    // Prevent cancelling writing data to device once it started.
+                    Handle::current().block_on(async move {
+                        for byte in str.as_bytes() {
+                            if let Err(err) = self.write_stream.send(vec![*byte]).await {
+                                return Err(SourceError::Io(err));
+                            }
+                            sleep(Duration::from_millis(self.send_data_delay as u64)).await;
+                        }
+
+                        Ok(())
+                    })?;
                 }
                 stypes::SdeResponse { bytes: len }
             }
@@ -205,13 +212,16 @@ impl ByteSource for SerialSource {
                         .await
                         .map_err(SourceError::Io)?;
                 } else {
-                    for byte in bytes {
-                        self.write_stream
-                            .send(vec![*byte])
-                            .await
-                            .map_err(SourceError::Io)?;
-                        sleep(Duration::from_millis(self.send_data_delay as u64)).await;
-                    }
+                    // Prevent cancelling writing data to device once it started.
+                    Handle::current().block_on(async move {
+                        for byte in bytes {
+                            if let Err(err) = self.write_stream.send(vec![*byte]).await {
+                                return Err(SourceError::Io(err));
+                            }
+                            sleep(Duration::from_millis(self.send_data_delay as u64)).await;
+                        }
+                        Ok(())
+                    })?;
                 }
                 stypes::SdeResponse { bytes: len }
             }
