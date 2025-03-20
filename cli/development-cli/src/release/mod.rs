@@ -16,7 +16,7 @@ use std::{fs, path::PathBuf, time::Instant};
 use anyhow::{ensure, Context};
 use bundle::bundle_release;
 use codesign::CodeSign;
-use compress::compress;
+use compress::{compress, compress_cli};
 use console::style;
 use env_utls::load_from_env_file;
 use paths::release_path;
@@ -87,7 +87,7 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
     );
 
     let results = jobs_runner::run(
-        &[Target::App, Target::Updater],
+        &[Target::App, Target::Updater, Target::CliChipmunk],
         JobType::Build {
             production: !development,
         },
@@ -170,6 +170,9 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
     let compress_start = Instant::now();
 
     compress().await?;
+    compress_cli()
+        .await
+        .context("Error while compressing Chipmunk CLI binary")?;
 
     let finish_msg = format!(
         "Compressing succeeded in {} seconds.",
