@@ -4,7 +4,7 @@ use crate::{
     state::SessionStateAPI,
 };
 use log::error;
-use sources::producer::SdeReceiver;
+use sources::sde::SdeReceiver;
 
 pub async fn start_observing(
     operation_api: OperationAPI,
