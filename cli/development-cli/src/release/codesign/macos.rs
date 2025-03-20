@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     release::{
-        compress::release_file_name,
-        paths::{release_build_path, release_path},
+        compress::{cli_release_file_name, release_file_name},
+        paths::{cli_binary_dir, cli_binary_name, release_build_path, release_path},
     },
     shell::shell_std_command,
     target::Target,
@@ -138,6 +138,10 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
             .map(|p| release_build_path.join(p)),
     );
 
+    // Third: Chipmunk CLI binary path.
+    let cli_binary_path = cli_binary_dir().join(cli_binary_name());
+    sign_paths.push(cli_binary_path);
+
     // Start signing files
     let sign_id = env::var(&config.env_vars.signing_id)
         .context("Error while retrieving signing ID environment variable")?;
@@ -203,55 +207,61 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
 
     let release_file_name = release_file_name()?;
     let archname = format!("{}.tgz", release_file_name);
-    let release_file_path = release_path().join(archname);
 
-    let cmd = format!(
+    let cli_archname = format!("{}.tgz", cli_release_file_name()?);
+
+    for arch in [archname, cli_archname] {
+        println!("Running notarize command on `{arch}`...");
+
+        let release_file_path = release_path().join(arch);
+        let cmd = format!(
         "{} \"{}\"  --apple-id \"{apple_id}\" --team-id \"{team_id}\" --password \"{password}\"",
         config.notarize_command.command,
         release_file_path.to_string_lossy()
     );
 
-    let app_root = Target::App.cwd();
+        let app_root = Target::App.cwd();
 
-    let cmd_output = shell_std_command()
-        .arg(&cmd)
-        .current_dir(&app_root)
-        .output()
-        .context("Error while running notarize command.")?;
+        let cmd_output = shell_std_command()
+            .arg(&cmd)
+            .current_dir(&app_root)
+            .output()
+            .context("Error while running notarize command.")?;
 
-    let mut accepted = false;
+        let mut accepted = false;
 
-    println!("Notarize commnad output on stdout:");
-    for line in cmd_output.stdout.lines().map_while(Result::ok) {
-        println!("{line}");
-        if !accepted && line.trim() == config.notarize_command.accepted_line.as_str() {
-            accepted = true;
+        println!("Notarize commnad output on stdout:");
+        for line in cmd_output.stdout.lines().map_while(Result::ok) {
+            println!("{line}");
+            if !accepted && line.trim() == config.notarize_command.accepted_line.as_str() {
+                accepted = true;
+            }
         }
-    }
 
-    println!("---------------------------------");
+        println!("---------------------------------");
 
-    println!("Notarize commnad output on stderr:");
-    for line in cmd_output.stderr.lines().map_while(Result::ok) {
-        println!("{line}");
-        if !accepted && line.trim() == config.notarize_command.accepted_line.as_str() {
-            accepted = true;
+        println!("Notarize commnad output on stderr:");
+        for line in cmd_output.stderr.lines().map_while(Result::ok) {
+            println!("{line}");
+            if !accepted && line.trim() == config.notarize_command.accepted_line.as_str() {
+                accepted = true;
+            }
         }
-    }
 
-    ensure!(
-        cmd_output.status.success(),
-        "Code notarize failed. Command : '{}'",
-        cmd.replace(&apple_id, "***")
-            .replace(&team_id, "***")
-            .replace(&password, "***")
-    );
+        ensure!(
+            cmd_output.status.success(),
+            "Code notarize failed. Command : '{}'",
+            cmd.replace(&apple_id, "***")
+                .replace(&team_id, "***")
+                .replace(&password, "***")
+        );
 
-    ensure!(
-        accepted,
-        r"Accepted line couldn't be found in notarize command output
+        ensure!(
+            accepted,
+            r"Accepted line couldn't be found in notarize command output
 Ensure that the content of the `accepted_line` field in the codesign configuration file is included as a single line in the output of the notarize command"
-    );
+        );
+    }
 
     Ok(())
 }
