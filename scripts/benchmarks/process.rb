@@ -7,7 +7,7 @@ ENV['REPO_OWNER'] = 'esrlabs'
 ENV['REPO_NAME'] = 'chipmunk'
 
 COMMANDS = [
-  'cargo install --path=cli/development-cli',
+  "cargo install --path=cli_path",
   'cargo chipmunk test wrapper -p -s spec/build/spec/_session.benchmark.spec.js -u print'
 ]
 
@@ -76,7 +76,6 @@ end
 def clone_and_setup_repo(branch_or_tag_name, temp_dir)
   system("git clone --depth 1 --branch #{branch_or_tag_name} https://github.com/#{ENV['REPO_OWNER']}/#{ENV['REPO_NAME']}.git #{temp_dir}")
   FileUtils.cp_r("#{SHELL_SCRIPT_PATH}/.", "#{temp_dir}/#{SHELL_SCRIPT_PATH}/.", verbose: true)
-  FileUtils.cp_r("cli/development-cli", "#{temp_dir}/", verbose: true)
 end
 
 def process_release_or_pr(branch_or_tag_name, identifier, env_vars)
@@ -90,7 +89,9 @@ def process_release_or_pr(branch_or_tag_name, identifier, env_vars)
         ENV['PERFORMANCE_RESULTS'] = "Benchmark_#{identifier}.json"
         system("corepack enable")
         system("yarn cache clean")
-        system(COMMANDS[0])
+        path = Dir.exist?('cli/development-cli') ? 'cli/development-cli' : 'cli'
+        puts "Path is #{path}"
+        system(COMMANDS[0].gsub("cli_path",path))
 
         next unless File.exist?("#{SHELL_SCRIPT_PATH}/#{env_vars['JASMIN_TEST_CONFIGURATION'].gsub('./spec/', '')}")
 
@@ -134,21 +135,35 @@ def collect_latest_benchmark_data(directory)
   end
 end
 
-def update_performance_data(data, data_file_path)
-  test_data = data.each_with_object({}) do |benchmark, hash|
+def update_performance_data(new_data, data_file_path)
+  existing_data = File.exist?(data_file_path) ? JSON.parse(File.read(data_file_path)) : {}
+
+  # Transforming the new data into the expected format
+  new_test_data = new_data.each_with_object({}) do |benchmark, hash|
     benchmark[:data].each do |entry|
       test_name = entry['name']
       actual_value = entry['actual']
       release = benchmark[:file_name].gsub("Benchmark_", "").gsub(".json", "")
 
       hash[test_name] ||= []
-      hash[test_name] << { release: release, actual_value: actual_value }
+      hash[test_name] << { "release" => release, "actual_value" => actual_value }
     end
   end
-  test_data = test_data.to_json
-  puts "Data written to #{data_file_path}\n#{test_data}"
-  File.write(data_file_path, test_data)
-  puts "Benchmark data created successfully!"
+
+  # Merging new data with the existing data
+  new_test_data.each do |test_name, new_entries|
+    existing_data[test_name] ||= []
+
+    new_entries.each do |new_entry|
+      release = new_entry["release"]
+      # Removing existing entry for the same release before appending the new one
+      existing_data[test_name].reject! { |entry| entry["release"] == release }
+      existing_data[test_name] << new_entry
+    end
+  end
+
+  File.write(data_file_path, JSON.pretty_generate(existing_data))
+  puts "Updated benchmark data written to #{data_file_path}."
 end
 
 arg = ARGV[0] || usage

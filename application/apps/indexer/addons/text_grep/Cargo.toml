@@ -11,7 +11,7 @@ path = "src/lib.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 tokio = { workspace = true, features = ["full"] }
-buf_redux.workspace = true
+bufread = { path = "../bufread" }
 tokio-util.workspace = true
 tempfile.workspace = true
 grep-searcher.workspace = true

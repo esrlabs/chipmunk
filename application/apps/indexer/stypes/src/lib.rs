@@ -116,7 +116,7 @@ pub use progress::*;
 
 pub(crate) use serde::{de::DeserializeOwned, Deserialize, Serialize};
 pub(crate) use std::{collections::HashMap, path::PathBuf};
-#[cfg(test)]
+#[cfg(all(test, feature = "test_and_gen"))]
 pub(crate) use ts_rs::TS;
 pub(crate) use uuid::Uuid;
 
@@ -128,7 +128,7 @@ pub(crate) use node_bindgen::{
 
 #[cfg(test)]
 pub(crate) use proptest::prelude::*;
-#[cfg(test)]
+#[cfg(all(test, feature = "test_and_gen"))]
 pub(crate) use tests::*;
 
 #[cfg(feature = "rustcore")]

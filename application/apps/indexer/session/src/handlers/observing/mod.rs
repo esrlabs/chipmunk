@@ -22,10 +22,9 @@ use tokio::{
     sync::mpsc::Receiver,
     time::{timeout, Duration},
 };
-use tokio_stream::StreamExt;
 
-enum Next<T: LogMessage> {
-    Items(Box<[(usize, MessageStreamItem<T>)]>),
+enum Next<'a, T: LogMessage> {
+    Items(&'a mut Vec<(usize, MessageStreamItem<T>)>),
     Timeout,
     Waiting,
 }
@@ -131,13 +130,11 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     state.set_session_file(None).await?;
     operation_api.processing();
     let cancel = operation_api.cancellation_token();
-    let stream = producer.as_stream();
-    futures::pin_mut!(stream);
     let cancel_on_tail = cancel.clone();
     let timer = std::time::Instant::now();
     while let Some(next) = select! {
         next_from_stream = async {
-            match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), stream.next()).await {
+            match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), producer.read_next_segment()).await {
                 Ok(items) => {
                     if let Some(items) = items {
                         Some(Next::Items(items))
@@ -152,6 +149,10 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     } {
         match next {
             Next::Items(items) => {
+                // Iterating over references is more efficient than using `drain(..)`, even though
+                // we clone the attachments below. With ownership, `mem_copy()` would still be called
+                // to move the item into the attachment vector. Cloning avoids the overhead of
+                // `drain(..)`, especially since `items` is cleared on each iteration anyway.
                 for (_, item) in items {
                     match item {
                         MessageStreamItem::Item(ParseYield::Message(item)) => {
@@ -166,10 +167,10 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                             state
                                 .write_session_file(source_id, format!("{item}\n"))
                                 .await?;
-                            state.add_attachment(attachment)?;
+                            state.add_attachment(attachment.to_owned())?;
                         }
                         MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
-                            state.add_attachment(attachment)?;
+                            state.add_attachment(attachment.to_owned())?;
                         }
                         MessageStreamItem::Done => {
                             trace!("observe, message stream is done");

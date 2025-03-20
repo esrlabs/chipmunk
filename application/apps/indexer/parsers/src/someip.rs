@@ -1,11 +1,10 @@
-use crate::{Error, LogMessage, ParseYield, Parser};
+use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
 use std::{
     borrow::Cow,
     cmp::Ordering,
     collections::HashMap,
     fmt::{self, Display},
     io::Write,
-    iter,
     path::PathBuf,
     sync::Mutex,
 };
@@ -26,6 +25,9 @@ use serde::Serialize;
 const COLUMN_SEP: &str = "\u{0004}"; // EOT
 /// Marker for a newline in the output string.
 const LINE_SEP: &str = "\u{0006}"; // ACK
+
+/// The most likely minimal bytes count needed to parse a SomeIP message.
+const MIN_MSG_LEN: usize = 16;
 
 /// Wrapper for a fibex-model (new-type pattern).
 pub struct FibexMetadata {
@@ -264,12 +266,24 @@ impl SomeipParser {
                 ))
             }
 
-            Err(e) => {
-                let msg = e.to_string();
-                error!("at {} : {}", time, msg);
-                Err(Error::Parse(msg))
-            }
+            Err(e) => match e {
+                someip_messages::Error::NotEnoughData { .. } => Err(Error::Incomplete),
+                e => {
+                    let msg = e.to_string();
+                    error!("at {} : {}", time, msg);
+                    Err(Error::Parse(msg))
+                }
+            },
         }
+    }
+
+    fn parse_item(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error> {
+        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
+            .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
     }
 }
 
@@ -282,10 +296,9 @@ impl Parser<SomeipLogMessage> for SomeipParser {
         input: &[u8],
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<SomeipLogMessage>>)>, Error> {
-        let item = SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
-            .map(|(rest, message)| (rest, Some(ParseYield::from(message))))?;
-
-        Ok(iter::once(item))
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
     }
 }
 
@@ -582,13 +595,10 @@ mod test {
         let mut parser = SomeipParser::new();
         let result = parser.parse(input, None);
 
-        if let Err(error) = result {
-            assert_eq!(
-                "Parse error: Not enough data: min: 16, actual: 0",
-                &format!("{}", error)
-            );
-        } else {
-            panic!("unexpected parse result");
+        match result {
+            Err(crate::Error::Incomplete) => {}
+            Err(err) => panic!("unexpected error: {err}"),
+            _ => panic!("unexpected parse result"),
         }
     }
 
@@ -604,13 +614,10 @@ mod test {
         let mut parser = SomeipParser::new();
         let result = parser.parse(input, None);
 
-        if let Err(error) = result {
-            assert_eq!(
-                "Parse error: Not enough data: min: 18, actual: 16",
-                &format!("{}", error)
-            );
-        } else {
-            panic!("unexpected parse result");
+        match result {
+            Err(crate::Error::Incomplete) => {}
+            Err(err) => panic!("unexpected error: {err}"),
+            _ => panic!("unexpected parse result"),
         }
     }
 
@@ -624,7 +631,10 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -645,7 +655,10 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -666,7 +679,10 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -696,7 +712,10 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -718,7 +737,10 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -749,7 +771,10 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -774,7 +799,10 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -799,7 +827,10 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -824,7 +855,10 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -849,7 +883,10 @@ mod test {
         let mut parser = SomeipParser {
             fibex_metadata: Some(fibex_metadata),
         };
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -873,7 +910,10 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -919,7 +959,11 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse(input, None).unwrap().next().unwrap();
+
+        let mut items: Vec<_> = parser.parse(input, None).unwrap().collect();
+        assert_eq!(items.len(), 1);
+
+        let (consumed, message) = items.pop().unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {

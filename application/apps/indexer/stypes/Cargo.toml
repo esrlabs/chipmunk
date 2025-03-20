@@ -37,7 +37,7 @@ anyhow = { workspace = true, optional = true }
 tokio = { workspace = true  }
 walkdir = { workspace = true }
 node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master"  }
-proptest = "1.5"
+proptest = { workspace = true }
 paste = "1.0"
 uuid = { workspace = true, features = ["serde", "v4"] }
 remove_dir_all = "1.0"

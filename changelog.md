@@ -1,3 +1,22 @@
+# 3.16.3 (14.03.2025)
+
+## Fixes
+
+- Fix DLT file / source reading
+- Fix DLT filtering
+
+# 3.16.2 (26.02.2025)
+
+## Fixes
+
+- Change a traget platform to build linux version
+
+# 3.16.1 (20.02.2025)
+
+## Fixes
+
+- Fix handling of large incoming packets in TCP/UDP servers.
+
 # 3.16.0 (05.02.2025)
 
 ## Features

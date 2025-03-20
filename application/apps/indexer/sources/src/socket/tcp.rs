@@ -1,20 +1,21 @@
 use crate::{
     socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
 };
-use buf_redux::Buffer;
+use bufread::DeqBuffer;
 use tokio::{net::TcpStream, task::yield_now};
 
-use super::{ReconnectInfo, ReconnectResult, ReconnectToServer};
+use super::{
+    handle_buff_capacity, BuffCapacityState, ReconnectInfo, ReconnectResult, ReconnectToServer,
+    MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE,
+};
 
 pub struct TcpSource {
-    buffer: Buffer,
+    buffer: DeqBuffer,
     socket: TcpStream,
     tmp_buffer: Vec<u8>,
     binding_address: String,
     reconnect_info: Option<ReconnectInfo>,
 }
-
-const MAX_DATAGRAM_SIZE: usize = 65_507;
 
 impl TcpSource {
     pub async fn new<A: Into<String>>(
@@ -23,7 +24,7 @@ impl TcpSource {
     ) -> Result<Self, std::io::Error> {
         let binding_address: String = addr.into();
         Ok(Self {
-            buffer: Buffer::new(),
+            buffer: DeqBuffer::new(MAX_BUFF_SIZE),
             socket: TcpStream::connect(&binding_address).await?,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
             binding_address,
@@ -53,7 +54,7 @@ impl ReconnectToServer for TcpSource {
                 sender.send_replace(ReconnectStateMsg::Reconnecting { attempts });
             }
             log::info!("Reconnecting to TCP server. Attempt: {attempts}");
-            tokio::time::sleep(reconnect_info.internval).await;
+            tokio::time::sleep(reconnect_info.interval).await;
 
             match TcpStream::connect(&self.binding_address).await {
                 Ok(socket) => {
@@ -92,6 +93,17 @@ impl ByteSource for TcpSource {
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
+        // If buffer is almost full then skip loading and return the available bytes.
+        // This can happen because some parsers will parse the first item of the provided slice
+        // while the producer will call load on each iteration making data accumulate.
+        match handle_buff_capacity(&mut self.buffer) {
+            BuffCapacityState::CanLoad => {}
+            BuffCapacityState::AlmostFull => {
+                let available_bytes = self.len();
+                return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+            }
+        }
+
         // TODO use filter
         loop {
             debug!("Wait for tcp socket to become readable");
@@ -114,9 +126,16 @@ impl ByteSource for TcpSource {
                             }
                         };
                     }
-                    self.buffer.copy_from_slice(&self.tmp_buffer[..len]);
-                    let available_bytes = self.buffer.len();
-                    return Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)));
+                    let added = self.buffer.write_from(&self.tmp_buffer[..len]);
+                    if added < len {
+                        return Err(SourceError::Unrecoverable(format!(
+                            "Internal buffer maximum capcity reached.\
+                            Read from socekt: {len}, Copied to buffer: {added}"
+                        )));
+                    }
+                    let available_bytes = self.buffer.read_available();
+
+                    return Ok(Some(ReloadInfo::new(added, available_bytes, 0, None)));
                 }
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     continue;
@@ -149,15 +168,15 @@ impl ByteSource for TcpSource {
     }
 
     fn current_slice(&self) -> &[u8] {
-        self.buffer.buf()
+        self.buffer.read_slice()
     }
 
     fn consume(&mut self, offset: usize) {
-        self.buffer.consume(offset)
+        self.buffer.read_done(offset);
     }
 
     fn len(&self) -> usize {
-        self.buffer.len()
+        self.buffer.read_available()
     }
 }
 
@@ -230,5 +249,40 @@ mod tests {
         let mut tcp_source = TcpSource::new(SERVER, None).await.unwrap();
 
         general_source_reload_test(&mut tcp_source).await;
+    }
+
+    /// Tests will send packets with fixed lengths while consuming
+    /// half of the sent length, ensuring the source won't break.
+    #[tokio::test]
+    async fn test_source_buffer_overflow() {
+        const SERVER: &str = "127.0.0.1:4002";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+
+        const SENT_LEN: usize = MAX_DATAGRAM_SIZE;
+        const CONSUME_LEN: usize = MAX_DATAGRAM_SIZE / 2;
+
+        tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let (_, mut send) = tokio::io::split(stream);
+            let msg = [b'a'; SENT_LEN];
+            let mut total_sent = 0;
+            while total_sent < MAX_BUFF_SIZE * 2 {
+                send.write_all(&msg)
+                    .await
+                    .expect("could not send on socket");
+                send.flush().await.expect("flush message should work");
+                yield_now().await;
+                total_sent += msg.len();
+            }
+        });
+
+        let mut tcp_source = TcpSource::new(SERVER, None).await.unwrap();
+
+        while let Ok(Some(info)) = tcp_source.load(None).await {
+            if info.available_bytes == 0 {
+                break;
+            }
+            tcp_source.consume(info.available_bytes.min(CONSUME_LEN));
+        }
     }
 }

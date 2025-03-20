@@ -2,14 +2,14 @@ use crate::{
     ByteSource, Error as SourceError, ReloadInfo, SourceFilter, DEFAULT_MIN_BUFFER_SPACE,
     DEFAULT_READER_CAPACITY,
 };
-use buf_redux::{policy::MinBuffered, BufReader as ReduxReader};
+use bufread::BufReader;
 use std::io::{BufRead, Read};
 
 pub struct BinaryByteSource<R>
 where
     R: Read,
 {
-    reader: ReduxReader<R, MinBuffered>,
+    reader: BufReader<R>,
 }
 
 impl<R> BinaryByteSource<R>
@@ -18,8 +18,7 @@ where
 {
     /// create a new `BinaryByteSource` with default buffer settings for reading
     pub fn new(input: R) -> BinaryByteSource<R> {
-        let reader = ReduxReader::with_capacity(DEFAULT_READER_CAPACITY, input)
-            .set_policy(MinBuffered(DEFAULT_MIN_BUFFER_SPACE));
+        let reader = BufReader::new(DEFAULT_READER_CAPACITY, DEFAULT_MIN_BUFFER_SPACE, input);
         BinaryByteSource { reader }
     }
 
@@ -27,15 +26,14 @@ where
     /// the `total_capacity` specifies how big the underlying used buffers should be at least
     /// the `min_space` will make sure that the buffer is filled with at least that many bytes
     pub fn custom(input: R, total_capacity: usize, min_space: usize) -> BinaryByteSource<R> {
-        let reader =
-            ReduxReader::with_capacity(total_capacity, input).set_policy(MinBuffered(min_space));
+        let reader = BufReader::new(total_capacity, min_space, input);
         BinaryByteSource { reader }
     }
 }
 
 impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     async fn load(&mut self, _: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
-        let initial_buf_len = self.reader.buf_len();
+        let initial_buf_len = self.reader.len();
         trace!(
             "before: capacity: {} (buf_len: {})",
             self.reader.capacity(),
@@ -75,7 +73,7 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     }
 
     fn len(&self) -> usize {
-        self.reader.buf_len()
+        self.reader.len()
     }
 }
 

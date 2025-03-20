@@ -1,11 +1,4 @@
-use crate::{
-    grabber::GrabError,
-    search::{
-        buffer::{CancallableMinBuffered, REDUX_MIN_BUFFER_SPACE, REDUX_READER_CAPACITY},
-        error::SearchError,
-    },
-};
-use buf_redux::BufReader as ReduxReader;
+use crate::{grabber::GrabError, search::error::SearchError};
 use grep_regex::RegexMatcher;
 use grep_searcher::{sinks::UTF8, Searcher};
 use std::{
@@ -14,6 +7,7 @@ use std::{
     ops::Range,
     path::{Path, PathBuf},
 };
+use text_grep::buffer::CancellableBufReader;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -68,7 +62,7 @@ impl<State: SearchState> BaseSearcher<State> {
         &mut self,
         rows_count: u64,
         read_bytes: u64,
-        cancallation: CancellationToken,
+        cancel_token: CancellationToken,
         mut f: F,
     ) -> Result<Range<usize>, SearchError>
     where
@@ -101,10 +95,7 @@ impl<State: SearchState> BaseSearcher<State> {
         let in_file = File::open(&self.file_path).map_err(|_| {
             GrabError::IoOperation(format!("Could not open file {:?}", self.file_path))
         })?;
-        let mut in_file_reader =
-            ReduxReader::with_capacity(REDUX_READER_CAPACITY, in_file).set_policy(
-                CancallableMinBuffered((REDUX_MIN_BUFFER_SPACE, cancallation)),
-            );
+        let mut in_file_reader = CancellableBufReader::new(in_file, cancel_token);
         in_file_reader
             .seek(SeekFrom::Start(self.bytes_read))
             .map_err(|_| {
