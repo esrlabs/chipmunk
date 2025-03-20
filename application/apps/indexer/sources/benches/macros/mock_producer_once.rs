@@ -19,7 +19,6 @@ macro_rules! mocks_producer_once {
     ($name:ident, $allocator:path) => {
         use ::criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
         use ::sources::producer::MessageProducer;
-        use ::std::hint::black_box;
         use bench_utls::{bench_standrad_config, run_producer};
         use mocks::{mock_parser::MockParser, mock_source::MockByteSource};
 
@@ -56,8 +55,7 @@ macro_rules! mocks_producer_once {
                                 // Exclude initiation time from benchmarks.
                                 let parser = MockParser::new_once(max);
                                 let byte_source = MockByteSource::new();
-                                let producer =
-                                    MessageProducer::new(parser, byte_source, black_box(None));
+                                let producer = MessageProducer::new(parser, byte_source);
 
                                 producer
                             },

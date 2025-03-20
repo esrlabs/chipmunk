@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use std::{hint::black_box, path::PathBuf};
+use std::path::PathBuf;
 
 use bench_utls::{
     bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,
@@ -36,7 +36,7 @@ fn dlt_producer(c: &mut Criterion) {
                 || {
                     let parser = DltParser::new(None, fibex.as_ref(), None, None, true);
                     let source = create_binary_bytesource(data);
-                    MessageProducer::new(parser, source, black_box(None))
+                    MessageProducer::new(parser, source)
                 },
                 run_producer,
                 BatchSize::SmallInput,

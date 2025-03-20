@@ -37,7 +37,7 @@ where
     D: ByteSource,
     W: MessageFormatter,
 {
-    let mut producer = MessageProducer::new(parser, bytesource, None);
+    let mut producer = MessageProducer::new(parser, bytesource);
 
     let mut update_interval = tokio::time::interval(update_interval);
 

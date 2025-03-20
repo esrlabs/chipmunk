@@ -1,5 +1,3 @@
-use std::hint::black_box;
-
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 use bench_utls::{bench_standrad_config, create_binary_bytesource, read_binary, run_producer};
@@ -20,7 +18,7 @@ fn text_producer(c: &mut Criterion) {
                 || {
                     let parser = StringTokenizer {};
                     let source = create_binary_bytesource(data);
-                    MessageProducer::new(parser, source, black_box(None))
+                    MessageProducer::new(parser, source)
                 },
                 run_producer,
                 BatchSize::SmallInput,

@@ -42,7 +42,7 @@ pub async fn scan_dlt_ft(
                 None,
                 with_storage_header,
             );
-            let mut producer = MessageProducer::new(parser, source, None);
+            let mut producer = MessageProducer::new(parser, source);
 
             let mut canceled = false;
 

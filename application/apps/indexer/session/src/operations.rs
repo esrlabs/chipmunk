@@ -3,7 +3,7 @@ use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
-use sources::producer::{SdeReceiver, SdeSender};
+use sources::sde::{SdeReceiver, SdeSender};
 use std::{
     ops::RangeInclusive,
     path::PathBuf,

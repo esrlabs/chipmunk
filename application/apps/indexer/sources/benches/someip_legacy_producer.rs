@@ -1,6 +1,6 @@
 mod bench_utls;
 
-use std::{hint::black_box, io::Cursor, path::PathBuf};
+use std::{io::Cursor, path::PathBuf};
 
 use bench_utls::{bench_standrad_config, get_config, read_binary, run_producer};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
@@ -32,7 +32,7 @@ fn someip_legacy_producer(c: &mut Criterion) {
                 || {
                     let parser = create_someip_parser(fibex_path.as_ref());
                     let source = PcapLegacyByteSource::new(Cursor::new(data)).unwrap();
-                    MessageProducer::new(parser, source, black_box(None))
+                    MessageProducer::new(parser, source)
                 },
                 run_producer,
                 BatchSize::SmallInput,
