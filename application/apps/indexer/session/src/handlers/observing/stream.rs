@@ -5,10 +5,11 @@ use crate::{
 };
 use sources::{
     command::process::ProcessSource,
-    producer::SdeReceiver,
     serial::serialport::SerialSource,
     socket::{tcp::TcpSource, udp::UdpSource},
 };
+
+use super::SdeReceiver;
 
 pub async fn observe_stream(
     operation_api: OperationAPI,

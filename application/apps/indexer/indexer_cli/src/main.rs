@@ -808,7 +808,7 @@ pub async fn main() -> Result<()> {
             let dlt_parser = DltParser::new(None, None, None, None, true);
             let reader = BufReader::new(&in_file);
             let source = BinaryByteSource::new(reader);
-            let dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
+            let dlt_msg_producer = MessageProducer::new(dlt_parser, source);
             let cancel = CancellationToken::new();
             export_raw(
                 dlt_msg_producer,
@@ -1382,7 +1382,7 @@ async fn count_dlt_messages(input: &Path) -> Result<u64, DltParseError> {
 
         let source = BinaryByteSource::new(second_reader);
 
-        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
+        let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
         let mut msgs_count = 0;
         while let Some(items) = dlt_msg_producer.read_next_segment().await {
             msgs_count += items.len();
@@ -1422,7 +1422,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let buf_reader = BufReader::new(fs::File::open(input)?);
             let source = BinaryByteSource::new(buf_reader);
             let dlt_parser = DltRangeParser::new();
-            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
+            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
             let mut item_count = 0usize;
             let mut attachment_count = 0usize;
             let mut err_count = 0usize;
@@ -1467,7 +1467,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let some_parser = SomeipParser::new();
             match PcapngByteSource::new(fs::File::open(input)?) {
                 Ok(source) => {
-                    let mut some_msg_producer = MessageProducer::new(some_parser, source, None);
+                    let mut some_msg_producer = MessageProducer::new(some_parser, source);
                     let mut item_count = 0usize;
                     let mut err_count = 0usize;
                     let mut consumed = 0usize;
@@ -1504,7 +1504,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             // let buf_reader = BufReader::new(fs::File::open(&input)?);
             match PcapngByteSource::new(fs::File::open(input)?) {
                 Ok(source) => {
-                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source, None);
+                    let mut dlt_msg_producer = MessageProducer::new(dlt_parser, source);
                     let mut item_count = 0usize;
                     let mut attachment_count = 0usize;
                     let mut err_count = 0usize;
@@ -1554,7 +1554,7 @@ async fn detect_messages_type(input: &Path) -> Result<bool, DltParseError> {
             let txt_parser = StringTokenizer {};
             let buf_reader = BufReader::new(fs::File::open(input)?);
             let source = BinaryByteSource::new(buf_reader);
-            let mut txt_msg_producer = MessageProducer::new(txt_parser, source, None);
+            let mut txt_msg_producer = MessageProducer::new(txt_parser, source);
             let mut item_count = 0usize;
             let mut err_count = 0usize;
             let mut skipped_count = 0usize;

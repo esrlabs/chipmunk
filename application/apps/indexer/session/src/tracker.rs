@@ -1,6 +1,6 @@
 use crate::{operations::OperationStat, progress::ProgressProviderAPI, state::SessionStateAPI};
 use log::{debug, error};
-use sources::producer::SdeSender;
+use sources::sde::SdeSender;
 use std::collections::{hash_map::Entry, HashMap};
 use tokio::{
     sync::{

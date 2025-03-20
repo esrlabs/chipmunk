@@ -40,7 +40,7 @@ pub(crate) async fn handle_interactive_session(input: Option<PathBuf>) {
                             static RECEIVER: &str = "127.0.0.1:5000";
                             let udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
                             let dlt_parser = DltParser::new(None, None, None, None, false);
-                            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, udp_source, None);
+                            let mut dlt_msg_producer = MessageProducer::new(dlt_parser, udp_source);
                             loop {
                                 select! {
                                     _ = cancel.cancelled() => {
