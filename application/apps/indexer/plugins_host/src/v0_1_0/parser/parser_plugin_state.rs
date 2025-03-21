@@ -1,4 +1,4 @@
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
+use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 
 use super::bindings::chipmunk::parser::parse_types;
 use super::bindings::chipmunk::shared::{
@@ -22,12 +22,14 @@ impl ParserPluginState {
 // *** Implementation of traits the must be implemented by parser plugins state ***
 
 impl WasiView for ParserPluginState {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
-    }
-
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
+    }
+}
+
+impl IoView for ParserPluginState {
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
     }
 }
 
