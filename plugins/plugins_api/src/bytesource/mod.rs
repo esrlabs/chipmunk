@@ -123,7 +123,8 @@ macro_rules! bytesource_export {
     ($par:ty) => {
         // Define bytesource instance as static field to make it reachable from
         // within read function of ByteSource trait
-        static mut BYTESOURCE: ::std::option::Option<$par> = ::std::option::Option::None;
+        static BYTESOURCE: std::sync::Mutex<::std::option::Option<$par>> =
+            std::sync::Mutex::new(::std::option::Option::None);
 
         // Define logger as static field to use it with macro initialization
         use $crate::__PluginLogSend;
@@ -165,10 +166,9 @@ macro_rules! bytesource_export {
                     general_configs,
                     plugin_configs,
                 )?;
-                // SAFETY: Initializing the bytesource happens once only on the host
-                unsafe {
-                    BYTESOURCE = ::std::option::Option::Some(source);
-                }
+
+                *BYTESOURCE.lock().expect("Acquiring global byte-source failed") =
+                    ::std::option::Option::Some(source);
 
                 Ok(())
             }
@@ -178,14 +178,8 @@ macro_rules! bytesource_export {
                 len: u64,
             ) -> ::std::result::Result<::std::vec::Vec<u8>, $crate::bytesource::SourceError> {
                 use $crate::bytesource::ByteSource;
-                // SAFETY: Bytesource host implements read trait, which takes a mutable reference
-                // to self when called. Therefor it's not possible to have multiple references on
-                // the static bytesource instance here at once.
-                //TODO AAZ: Measure the impact on this unsafe function and provide explanation for
-                // suppressing the warning here.
-                #[allow(static_mut_refs)]
-                let source =
-                    unsafe { BYTESOURCE.as_mut().expect("Bytesource already initialized") };
+                let mut source_guard = BYTESOURCE.lock().expect("Acquiring global byte-source failed");
+                let source = source_guard.as_mut().expect("Bytesource already initialized");
                 source.read(len as usize)
             }
         }

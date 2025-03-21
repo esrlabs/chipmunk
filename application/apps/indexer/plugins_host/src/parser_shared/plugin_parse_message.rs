@@ -19,12 +19,8 @@ impl Display for PluginParseMessage {
 impl LogMessage for PluginParseMessage {
     fn to_writer<W: std::io::prelude::Write>(
         &self,
-        writer: &mut W,
+        _writer: &mut W,
     ) -> Result<usize, std::io::Error> {
-        //TODO AAZ: Make sure plugins messages should support export as binary.
-        let bytes = self.content.as_bytes();
-        let len = bytes.len();
-        writer.write_all(bytes)?;
-        Ok(len)
+        panic!("Parser plugins don't support export as binary");
     }
 }

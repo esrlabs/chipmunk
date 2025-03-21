@@ -13,8 +13,8 @@ log.workspace = true
 dirs.workspace = true
 toml.workspace = true
 
-wasmtime = "29.0"
-wasmtime-wasi = "29.0"
+wasmtime = "31.0"
+wasmtime-wasi = "31.0"
 
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
