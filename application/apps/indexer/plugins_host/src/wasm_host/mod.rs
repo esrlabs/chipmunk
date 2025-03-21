@@ -19,10 +19,6 @@ impl WasmHost {
         config.wasm_component_model(true);
         config.async_support(true);
 
-        //TODO AAZ: Check the impact of wasm configurations on the final version.
-        // Settings are changed rapidly currently in `wasmtime` development.
-        config.cranelift_opt_level(wasmtime::OptLevel::Speed);
-
         let engine = Engine::new(&config).map_err(Arc::new)?;
 
         let host = Self { engine };

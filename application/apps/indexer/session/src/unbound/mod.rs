@@ -46,8 +46,8 @@ impl UnboundSession {
     }
 
     pub async fn init(&mut self) -> Result<(), stypes::ComputationError> {
-        // TODO AAZ: Plugins manager is used temporally here in prototyping phase and will be moved
-        // to its own module. Reasons:
+        // TODO: Plugins manager is used temporally here in initial phase and we should consider
+        // moving it to its own module. Reasons:
         // * It doesn't need parallelism for most of task.
         // * It'll need different state and locking management for downloading plugins, Updating
         // caches etc...

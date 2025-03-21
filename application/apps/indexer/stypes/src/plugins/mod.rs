@@ -28,7 +28,7 @@ pub struct PluginParserSettings {
     pub plugin_configs: Vec<PluginConfigItem>,
 }
 
-//TODO AAZ: This struct is a place holder currently and doesn't provide any value yet.
+//TODO: This struct is a place holder currently and doesn't provide any value yet.
 /// General settings for all parsers as plugins
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[extend::encode_decode]
