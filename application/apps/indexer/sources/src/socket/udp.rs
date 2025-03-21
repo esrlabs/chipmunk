@@ -130,6 +130,22 @@ impl ByteSource for UdpSource {
     }
 }
 
+const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+]);
+
+impl components::Component for UdpSource {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("UDP Source"),
+            uuid: UDP_SOURCE_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
