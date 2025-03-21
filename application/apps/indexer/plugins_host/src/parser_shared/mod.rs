@@ -180,3 +180,17 @@ impl p::Parser<PluginParseMessage> for PluginsParser {
         res
     }
 }
+
+impl components::Component for PluginsParser {
+    /// **ATTANTION** That's placeholder. Should be another way to delivery data
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Plugin"),
+            uuid: uuid::Uuid::new_v4(),
+        }
+    }
+
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}

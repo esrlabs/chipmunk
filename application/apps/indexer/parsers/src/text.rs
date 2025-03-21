@@ -56,6 +56,37 @@ where
     }
 }
 
+impl Parser<StringMessage> for StringTokenizer
+where
+    StringMessage: LogMessage,
+{
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<StringMessage>>)>, Error> {
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
+    }
+}
+
+const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+]);
+
+impl components::Component for StringTokenizer {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Text Parser"),
+            uuid: TEXT_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Parser;
