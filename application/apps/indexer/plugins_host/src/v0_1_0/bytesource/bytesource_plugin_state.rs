@@ -1,4 +1,4 @@
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
+use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 
 use super::bindings::{
     bytesource_types::{self, Level},
@@ -21,12 +21,14 @@ impl ByteSourcePluginState {
 // *** Implementation of traits the must be implemented by byte-source plugins state ***
 
 impl WasiView for ByteSourcePluginState {
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
-    }
-
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
+    }
+}
+
+impl IoView for ByteSourcePluginState {
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
     }
 }
 
