@@ -284,8 +284,23 @@ impl Parser<SomeipLogMessage> for SomeipParser {
     ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<SomeipLogMessage>>)>, Error> {
         let item = SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
             .map(|(rest, message)| (rest, Some(ParseYield::from(message))))?;
-
         Ok(iter::once(item))
+    }
+}
+
+const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+]);
+
+impl components::Component for SomeipParser {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("SomeIP Parser"),
+            uuid: SOMEIP_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
     }
 }
 

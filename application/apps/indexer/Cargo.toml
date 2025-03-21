@@ -6,6 +6,7 @@ members = [
     "addons/someip-tools",
     "addons/file-tools",
     "addons/text_grep",
+    "components",
     "indexer_base",
     "indexer_cli",
     "merging",
