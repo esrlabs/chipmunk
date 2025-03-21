@@ -226,6 +226,22 @@ impl ByteSource for ProcessSource {
     }
 }
 
+const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+]);
+
+impl components::Component for ProcessSource {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Terminal Source"),
+            uuid: TERM_SOURCE_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

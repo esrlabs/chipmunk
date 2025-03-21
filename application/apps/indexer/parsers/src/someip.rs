@@ -302,6 +302,22 @@ impl Parser<SomeipLogMessage> for SomeipParser {
     }
 }
 
+const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+]);
+
+impl components::Component for SomeipParser {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("SomeIP Parser"),
+            uuid: SOMEIP_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 fn header_string(header: &Header) -> String {
     format!(
         "{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}",
