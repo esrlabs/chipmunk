@@ -345,6 +345,7 @@ export class Service extends Implementation {
         select(): Promise<string[]>;
         ls(paths: string[]): Promise<string[]>;
         delimiter(): Promise<string>;
+        open(path: string): Promise<void>;
     } {
         const request = (target: FileType | undefined, ext?: string): Promise<File[]> => {
             return new Promise((resolve, reject) => {
@@ -405,6 +406,14 @@ export class Service extends Implementation {
                     new Requests.Folder.Delimiter.Request(),
                 ).then((response) => {
                     return response.delimiter;
+                });
+            },
+            open: (path: string): Promise<void> => {
+                return Requests.IpcRequest.send(
+                    Requests.Folder.ShellOpen.Response,
+                    new Requests.Folder.ShellOpen.Request({ path }),
+                ).then((_response) => {
+                    return undefined;
                 });
             },
         };
