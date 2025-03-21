@@ -42,7 +42,14 @@ export class Frame extends Subscriber {
                 this._subjects.position.emit({ range: this._frame.get(), initiator });
                 const prev = this._prev;
                 this._prev = this._frame.hash();
-                if (initiator === ChangesInitiator.Refresh || prev !== this._prev) {
+                if (this._frame.isEmpty()) {
+                    this._service.setLen(this._frame.getTotal());
+                    this._rows = [];
+                    this._subjects.change.emit(this._rows);
+                } else if (initiator === ChangesInitiator.Refresh || prev !== this._prev) {
+                    this._service.setFrame(this._frame.get());
+                } else if (!this._frame.isEmpty()) {
+                    this._service.setLen(this._frame.getTotal());
                     this._service.setFrame(this._frame.get());
                 } else {
                     this._service.setLen(this._frame.getTotal());

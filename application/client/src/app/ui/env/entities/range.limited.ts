@@ -61,12 +61,12 @@ export class LimittedRange {
                 return this._normalize();
             },
             max: (adhered: boolean): LimittedRange => {
+                this.max = value < 0 ? 0 : value;
                 const sticky = this._unmodified
                     ? this._sticky
                     : this._sticky
                     ? this.to === this.max - 1
                     : false;
-                this.max = value < 0 ? 0 : value;
                 if (sticky && adhered) {
                     this.to = this.max === 0 ? 0 : this.max - 1;
                     const from = this.to - this.len;
