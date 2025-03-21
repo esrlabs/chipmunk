@@ -200,7 +200,8 @@ macro_rules! parser_export {
     ($par:ty) => {
         // Define parser instance as static field to make it reachable from
         // within parse function
-        static mut PARSER: ::std::option::Option<$par> = ::std::option::Option::None;
+        static PARSER: std::sync::Mutex<::std::option::Option<$par>> =
+            std::sync::Mutex::new(::std::option::Option::None);
 
         // Define logger as static field to use it with macro initialization
         use $crate::__PluginLogSend;
@@ -245,10 +246,8 @@ macro_rules! parser_export {
                 // Initializing the given parser
                 let parser =
                     <$par as $crate::parser::Parser>::create(general_configs, plugin_configs)?;
-                // SAFETY: Initializing the parser happens once only on the host
-                unsafe {
-                    PARSER = ::std::option::Option::Some(parser);
-                }
+                *PARSER.lock().expect("Acquiring global parser failed") =
+                    ::std::option::Option::Some(parser);
 
                 Ok(())
             }
@@ -262,12 +261,8 @@ macro_rules! parser_export {
                 $crate::parser::ParseError,
             > {
                 use $crate::parser::Parser;
-                // SAFETY: Parse method has mutable reference to self and can't be called more than
-                // once on the same time on host
-                //TODO AAZ: Measure the impact on this unsafe function and provide explanation for
-                // suppressing the warning here.
-                #[allow(static_mut_refs)]
-                let parser = unsafe { PARSER.as_mut().expect("parser already initialized") };
+                let mut parser_guard = PARSER.lock().expect("Acquiring global parser failed");
+                let parser = parser_guard.as_mut().expect("parser already initialized");
                 parser.parse(&data, timestamp).map(|items| items.collect())
             }
         }
