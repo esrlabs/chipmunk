@@ -168,6 +168,22 @@ impl ByteSource for TcpSource {
     }
 }
 
+const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+]);
+
+impl components::Component for TcpSource {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("TCP Source"),
+            uuid: TCP_SOURCE_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

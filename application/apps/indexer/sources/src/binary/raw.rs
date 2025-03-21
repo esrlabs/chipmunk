@@ -77,6 +77,23 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     }
 }
 
+const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
+]);
+
+impl<R: Read + Send> components::Component for BinaryByteSource<R> {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Binary Source"),
+            uuid: BIN_SOURCE_UUID,
+        }
+    }
+
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
