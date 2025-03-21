@@ -11,8 +11,7 @@ const PARSER_DIR: &str = "parsers";
 /// The name of the byte-source plugins directory in plugins directory.
 const BYTESOURCE_DIR: &str = "bytesources";
 
-/// Copied from `session/src/paths.rs`
-/// TODO AAZ: Use global function everywhere in rust core.
+/// Provide the path for Chipmunk home directory.
 pub fn get_home_dir() -> Result<PathBuf, InitError> {
     const CHIPMUNK_HOME: &str = ".chipmunk";
     dirs::home_dir()

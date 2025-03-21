@@ -1,5 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::{hint::black_box, path::PathBuf};
+use stypes::{PluginConfigItem, PluginConfigValue};
 
 // Use the same environment variable for input source from other benchmarks
 pub const PLUGIN_PATH_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
@@ -21,8 +22,9 @@ fn plugin_parser_init(c: &mut Criterion) {
         plugin_file.display()
     );
 
-    //TODO AAZ: Deliver plugin configurations for benchmarks
-    let plugin_configs = Vec::new();
+    //TODO: Deliver plugin configurations for benchmarks.
+    //For now we are delivering hard-coded configurations of string parser plugin.
+    let plugin_configs = get_string_parser_configs();
 
     let settings = black_box(stypes::PluginParserSettings::new(
         plugin_file,
@@ -47,6 +49,16 @@ fn plugin_parser_init(c: &mut Criterion) {
                 black_box(&parser);
             })
     });
+}
+
+#[allow(dead_code)]
+fn get_string_parser_configs() -> Vec<PluginConfigItem> {
+    const LOSSY_ID: &str = "lossy";
+    const PREFIX_ID: &str = "prefix";
+    vec![
+        PluginConfigItem::new(LOSSY_ID, PluginConfigValue::Boolean(false)),
+        PluginConfigItem::new(PREFIX_ID, PluginConfigValue::Text(String::default())),
+    ]
 }
 
 criterion_group! {

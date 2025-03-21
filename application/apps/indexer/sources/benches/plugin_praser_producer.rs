@@ -21,9 +21,10 @@ fn plugin_parser_producer(c: &mut Criterion) {
         .map(PathBuf::from)
         .expect("Path to plugin must be provided as additional config");
 
-    //TODO AAZ: Deliver plugin configurations for benchmarks.
-    //For now we are delivering the configurations of string parser plugin hard-coded.
-    let plugin_configs = get_string_parser_configs();
+    //TODO: Deliver plugin configurations for benchmarks.
+    //For now we are delivering hard-coded configurations of string parser and DLT plugins.
+    // let plugin_configs = get_string_parser_configs();
+    let plugin_configs = get_dlt_parser_configs();
 
     let settings = stypes::PluginParserSettings::new(
         plugin_path,
@@ -54,13 +55,25 @@ fn plugin_parser_producer(c: &mut Criterion) {
     });
 }
 
-/// TODO: Temporally solution until developing handling.
+#[allow(dead_code)]
 fn get_string_parser_configs() -> Vec<PluginConfigItem> {
     const LOSSY_ID: &str = "lossy";
     const PREFIX_ID: &str = "prefix";
     vec![
         PluginConfigItem::new(LOSSY_ID, PluginConfigValue::Boolean(false)),
         PluginConfigItem::new(PREFIX_ID, PluginConfigValue::Text(String::default())),
+    ]
+}
+
+#[allow(dead_code)]
+fn get_dlt_parser_configs() -> Vec<PluginConfigItem> {
+    const LOG_LEVEL_ID: &str = "log_level";
+    const FIBEX_ID: &str = "fibex_id";
+    const STORAGE_HEADER_ID: &str = "storage_header_id";
+    vec![
+        PluginConfigItem::new(LOG_LEVEL_ID, PluginConfigValue::Dropdown("Verbose".into())),
+        PluginConfigItem::new(FIBEX_ID, PluginConfigValue::Files(Vec::new())),
+        PluginConfigItem::new(STORAGE_HEADER_ID, PluginConfigValue::Boolean(true)),
     ]
 }
 
