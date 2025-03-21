@@ -11,6 +11,34 @@ pub use extending::*;
 use crate::*;
 use dlt_core::filtering::DltFilterConfig;
 
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub enum SourceOrigin {
+    File(PathBuf),
+    Files(Vec<PathBuf>),
+    Folder(PathBuf),
+    Folders(Vec<PathBuf>),
+    /// `String` - stream identificator
+    Stream(Ident),
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct Ident {
+    pub name: String,
+    pub uuid: Uuid,
+}
+
 /// Multicast configuration information.
 /// - `multiaddr`: A valid multicast address.
 /// - `interface`: The address of the local interface used to join the multicast group.

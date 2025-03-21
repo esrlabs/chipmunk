@@ -300,6 +300,37 @@ impl SingleParser<SomeipLogMessage> for SomeipParser {
     }
 }
 
+unsafe impl Send for SomeipParser {}
+unsafe impl Sync for SomeipParser {}
+
+impl Parser<SomeipLogMessage> for SomeipParser {
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<SomeipLogMessage>>)>, Error> {
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
+    }
+}
+
+const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+]);
+
+impl components::Component for SomeipParser {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("SomeIP Parser"),
+            uuid: SOMEIP_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 fn header_string(header: &Header) -> String {
     format!(
         "{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}{COLUMN_SEP}{}",

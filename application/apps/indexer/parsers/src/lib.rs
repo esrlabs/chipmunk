@@ -1,14 +1,13 @@
 #![deny(unused_crate_dependencies)]
 pub mod dlt;
+pub mod prelude;
 pub mod someip;
+
 pub mod text;
 use serde::Serialize;
-use std::{
-    fmt::{Debug, Display},
-    io::Write,
-    iter,
-};
+use std::{fmt::Display, future::Future, io::Write, iter};
 use thiserror::Error;
+use tokio_util::sync::CancellationToken;
 
 extern crate log;
 
@@ -39,7 +38,7 @@ impl<T> From<T> for ParseYield<T> {
 
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
-pub trait Parser<T> {
+pub trait Parser<T>: components::Component {
     /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
     /// it will return iterator of items each with the consumed bytes count along with `Some(log_message)`
     ///
