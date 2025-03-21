@@ -219,6 +219,22 @@ impl ByteSource for SerialSource {
     }
 }
 
+const SERIAL_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
+]);
+
+impl components::Component for SerialSource {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Serial Source"),
+            uuid: SERIAL_SOURCE_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
 #[cfg(target_os = "windows")]
 unsafe impl Send for SerialSource {}
 

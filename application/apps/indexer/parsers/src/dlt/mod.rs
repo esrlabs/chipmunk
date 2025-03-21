@@ -211,7 +211,24 @@ impl SingleParser<RangeMessage> for DltRangeParser {
 impl SingleParser<RawMessage> for DltRawParser {
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
-    fn parse_item(
+const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+]);
+
+impl<'a> components::Component for DltParser<'a> {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("DLT Parser"),
+            uuid: DLT_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
+impl Parser<RangeMessage> for DltRangeParser {
+    fn parse(
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
@@ -223,6 +240,46 @@ impl SingleParser<RawMessage> for DltRawParser {
         let total_consumed = input.len() - rest.len();
         let item = (total_consumed, msg.map(|m| m.into()));
 
-        Ok(item)
+const DLT_RANGE_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x01, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+]);
+
+impl components::Component for DltRangeParser {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("DLT Range Parser"),
+            uuid: DLT_RANGE_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+}
+
+impl Parser<RawMessage> for DltRawParser {
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<RawMessage>>)>, Error> {
+        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
+            self.parse_item(input, timestamp)
+        })
+    }
+}
+
+const DLT_RAW_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x01, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+]);
+
+impl components::Component for DltRawParser {
+    fn ident() -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("DLT Raw Parser"),
+            uuid: DLT_RAW_PARSER_UUID,
+        }
+    }
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        Ok(())
     }
 }

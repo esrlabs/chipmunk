@@ -14,6 +14,7 @@ mod tests;
 
 pub mod binary;
 pub mod command;
+pub mod prelude;
 pub mod producer;
 pub mod sde;
 pub mod serial;
@@ -99,7 +100,7 @@ pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 /// want to extract the data part from certain frames, the `relaod` method will load only the relevant
 /// data into an internal buffer.
 /// This data can then be accessed via the `current_slice` method.
-pub trait ByteSource: Send {
+pub trait ByteSource: Send + components::Component {
     /// Indicate that we have consumed a certain amount of data from our internal
     /// buffer and that this part can be discarded
     fn consume(&mut self, offset: usize);

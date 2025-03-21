@@ -709,6 +709,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
+name = "components"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "thiserror 2.0.11",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2557,6 +2569,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
+ "components",
  "dlt-core",
  "lazy_static",
  "log",
@@ -2569,6 +2582,9 @@ dependencies = [
  "someip-tools",
  "stringreader",
  "thiserror 2.0.12",
+ "stypes",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]
@@ -2695,6 +2711,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "blake3",
+ "components",
  "criterion",
  "dir_checksum",
  "dirs 5.0.1",
@@ -2709,6 +2726,7 @@ dependencies = [
  "thiserror 2.0.12",
  "tokio",
  "toml",
+ "uuid",
  "wasmtime",
  "wasmtime-wasi",
 ]
@@ -3184,6 +3202,7 @@ name = "session"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "components",
  "crossbeam-channel",
  "dirs 5.0.1",
  "dlt-core",
@@ -3346,6 +3365,7 @@ dependencies = [
  "async-stream",
  "bufread",
  "bytes",
+ "components",
  "criterion",
  "env_logger",
  "etherparse",
@@ -3417,6 +3437,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.12",
  "tokio",
+ "tokio-util",
  "ts-rs",
  "uuid",
  "walkdir",

@@ -7,6 +7,7 @@ members = [
     "addons/file-tools",
     "addons/text_grep",
     "addons/bufread",
+    "components",
     "indexer_base",
     "merging",
     "parsers",

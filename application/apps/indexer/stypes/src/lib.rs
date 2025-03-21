@@ -100,6 +100,7 @@ mod lf_transition;
 mod miscellaneous;
 mod observe;
 mod operations;
+mod options;
 mod plugins;
 mod progress;
 
@@ -111,6 +112,7 @@ pub use lf_transition::*;
 pub use miscellaneous::*;
 pub use observe::*;
 pub use operations::*;
+pub use options::*;
 pub use plugins::*;
 pub use progress::*;
 

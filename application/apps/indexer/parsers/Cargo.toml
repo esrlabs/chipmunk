@@ -18,6 +18,10 @@ rand.workspace = true
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
 someip-tools = { path = "../addons/someip-tools" }
+stypes = { path = "../stypes", features=["rustcore"] }
+uuid = { workspace = true , features = ["serde", "v4"] }
+components = { path = "../components" }
+tokio-util.workspace = true
 
 [dev-dependencies]
 stringreader = "0.1"

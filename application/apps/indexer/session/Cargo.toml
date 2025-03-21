@@ -32,6 +32,7 @@ tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
 plugins_host = {path = "../plugins_host/"}
+components = { path = "../components" }
 
 [dev-dependencies]
 lazy_static.workspace = true
