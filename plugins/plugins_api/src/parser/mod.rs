@@ -260,10 +260,48 @@ macro_rules! parser_export {
                 ::std::vec::Vec<$crate::parser::ParseReturn>,
                 $crate::parser::ParseError,
             > {
-                use $crate::parser::Parser;
+                use $crate::parser::{ParseYield, ParsedMessage, Parser};
+
                 let mut parser_guard = PARSER.lock().expect("Acquiring global parser failed");
                 let parser = parser_guard.as_mut().expect("parser already initialized");
-                parser.parse(&data, timestamp).map(|items| items.collect())
+
+                // HACK:
+                // Combine the columns of each message on the plugin side before sending them
+                // to the host to improve performance significantly (~25%).
+                //
+                // Sending messages as fragmented vectors requires multiple `memcpy()` calls
+                // and individual pointer updates, which is inefficient. Instead, we allocate all
+                // columns into a single vector before transmission, reducing overhead.
+                //
+                // This approach preserves the expected output by using the same delimiter as Chipmunk,
+                // ensuring compatibility with the host’s message handling logic.
+                //
+                // Same separator is used in Chipmunk host.
+                pub const COLUMN_SEP: &str = "\u{0004}";
+
+                parser.parse(&data, timestamp).map(|items| {
+                    items
+                        .map(|mut item| {
+                            if let Some(val) = item.value.as_mut() {
+                                match val {
+                                    ParseYield::Message(parsed_message)
+                                    | ParseYield::MessageAndAttachment((parsed_message, _)) => {
+                                        match parsed_message {
+                                            ParsedMessage::Line(_) => {}
+                                            ParsedMessage::Columns(vec) => {
+                                                *parsed_message =
+                                                    ParsedMessage::Line(vec.join(COLUMN_SEP))
+                                            }
+                                        }
+                                    }
+                                    ParseYield::Attachment(_) => {}
+                                }
+                            }
+
+                            item
+                        })
+                        .collect()
+                })
             }
         }
 
