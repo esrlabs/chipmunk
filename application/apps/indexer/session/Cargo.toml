@@ -5,7 +5,7 @@ authors = ["esrlabs.com"]
 edition = "2021"
 
 [dependencies]
-blake3 = "1.5"
+blake3.workspace = true
 crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serde-support"] }

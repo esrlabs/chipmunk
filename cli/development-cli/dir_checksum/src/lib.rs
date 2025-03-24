@@ -101,3 +101,8 @@ fn calc_hash(file_path: &Path, base_hasher: &Hasher) -> Result<blake3::Hash, Has
         .hash(base_hasher)
         .map_err(|e| HashError::Entry(format!("Could not hash file: {file_path:?} ({e})")))
 }
+
+/// Calculates the hash for the given file returning its [`HashDigest`]
+pub fn calc_file_hash(file_path: &Path, hasher: &Hasher) -> Result<HashDigest, HashError> {
+    calc_hash(file_path, hasher).map(|hash| hash.into())
+}
