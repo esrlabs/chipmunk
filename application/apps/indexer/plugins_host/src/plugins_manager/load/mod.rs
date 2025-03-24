@@ -1,5 +1,3 @@
-mod paths;
-
 use std::{
     fs::{self, read_to_string},
     io,
@@ -12,35 +10,49 @@ use stypes::{
 };
 
 use crate::{
-    plugins_shared::plugin_errors::PluginError, PluginHostInitError, PluginType, PluginsByteSource,
-    PluginsParser,
+    plugins_manager::paths::extract_plugin_file_paths, plugins_shared::plugin_errors::PluginError,
+    PluginHostInitError, PluginType, PluginsByteSource, PluginsParser,
 };
 
-use super::{InitError, PluginEntity};
+use super::{
+    cache::{self, CacheManager},
+    paths, InitError, PluginEntity,
+};
 
-pub const PLUGIN_README_FILENAME: &str = "README.md";
-
-/// Loads all the plugins from the plugin directory
+/// Loads all plugins from the plugin directory while using the provided `cache_manager`
+/// for unchanged plugins and updating it with newly loaded ones.
+///
+/// # Note:
+///
+/// This function does not call `persist` on cache updates during loading to avoid
+/// unnecessary deserialization and disk writes for each loaded plugin.
 ///
 /// # Returns:
 ///
 /// List of valid plugins alongside with other list for invalid ones.
 pub async fn load_all_plugins(
+    cache_manager: &mut CacheManager,
 ) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), InitError> {
-    let plugins_dir = paths::plugins_dir()?;
+    let plugins_dir = paths::plugins_dir().ok_or_else(home_dir_err)?;
     if !plugins_dir.exists() {
         log::trace!("Plugins directory doesn't exist. Creating it...");
         fs::create_dir_all(plugins_dir)?;
     }
 
-    let (mut valid_plugins, mut invalid_plugs) = load_plugins(PluginType::Parser).await?;
+    let (mut valid_plugins, mut invalid_plugs) =
+        load_plugins(PluginType::Parser, cache_manager).await?;
 
-    let (valid_sources, invalid_soruces) = load_plugins(PluginType::ByteSource).await?;
+    let (valid_sources, invalid_soruces) =
+        load_plugins(PluginType::ByteSource, cache_manager).await?;
 
     valid_plugins.extend(valid_sources);
     invalid_plugs.extend(invalid_soruces);
 
     Ok((valid_plugins, invalid_plugs))
+}
+
+fn home_dir_err() -> InitError {
+    InitError::Other(String::from("Failed to find home directory"))
 }
 
 /// Loads all plugins from the main directory of the provided plugin type.
@@ -50,13 +62,14 @@ pub async fn load_all_plugins(
 /// List of valid plugins alongside with other list for invalid ones.
 async fn load_plugins(
     plug_type: PluginType,
+    cache_manager: &mut CacheManager,
 ) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), InitError> {
     let mut valid_plugins = Vec::new();
     let mut invalid_plugins = Vec::new();
 
     let plugins_dir = match plug_type {
-        PluginType::Parser => paths::parser_dir()?,
-        PluginType::ByteSource => paths::bytesource_dir()?,
+        PluginType::Parser => paths::parser_dir().ok_or_else(home_dir_err)?,
+        PluginType::ByteSource => paths::bytesource_dir().ok_or_else(home_dir_err)?,
     };
 
     if !plugins_dir.exists() {
@@ -67,7 +80,7 @@ async fn load_plugins(
     }
 
     for dir in get_dirs(&plugins_dir)? {
-        match load_plugin(dir, plug_type).await? {
+        match load_plugin(dir, plug_type, cache_manager).await? {
             PluginEntityState::Valid(plugin) => valid_plugins.push(plugin),
             PluginEntityState::Invalid(invalid) => invalid_plugins.push(invalid),
         }
@@ -94,14 +107,16 @@ enum PluginEntityState {
 async fn load_plugin(
     plug_dir: PathBuf,
     plug_type: PluginType,
+    cache_manager: &mut CacheManager,
 ) -> Result<PluginEntityState, InitError> {
     let mut rd = PluginRunData::default();
     rd.info("Attempt to load and check plugin");
-    let (wasm_file, metadata_file) = match validate_plugin_files(&plug_dir)? {
+    let (wasm_file, metadata_file, readme_path) = match validate_plugin_files(&plug_dir)? {
         PluginValidationState::Valid {
-            wasm_path: wasm,
-            metadata,
-        } => (wasm, metadata),
+            wasm_path,
+            metadata_file,
+            readme_file,
+        } => (wasm_path, metadata_file, readme_file),
         PluginValidationState::Invalid { err_msg } => {
             rd.err(err_msg);
             return Ok(PluginEntityState::Invalid(
@@ -116,28 +131,63 @@ async fn load_plugin(
         }
     };
 
-    let plug_info_res = match plug_type {
-        PluginType::Parser => PluginsParser::get_info(wasm_file).await,
-        PluginType::ByteSource => PluginsByteSource::get_info(wasm_file).await,
-    };
-
-    let plug_info = match plug_info_res {
-        Ok(info) => info,
-        // Stop the whole loading on engine errors
-        Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
-            return Err(err.into())
+    let plug_info = if let Some(plugin_state) = cache_manager.get_plugin_cache(&plug_dir)? {
+        rd.info("Reading plugin info from cache");
+        match plugin_state {
+            super::cache::CachedPluginState::Installed(plugin_info) => plugin_info,
+            super::cache::CachedPluginState::Invalid(err_msg) => {
+                rd.err(format!(
+                    "Plugin binary failed to load in the last attempt, according to cached data. \
+                    Error: {err_msg}"
+                ));
+                return Ok(PluginEntityState::Invalid(
+                    ExtendedInvalidPluginEntity::new(
+                        InvalidPluginEntity {
+                            dir_path: plug_dir,
+                            plugin_type: plug_type,
+                        },
+                        rd,
+                    ),
+                ));
+            }
         }
-        Err(err) => {
-            rd.err(format!("Loading plugin binary fail. Error: {err}"));
-            return Ok(PluginEntityState::Invalid(
-                ExtendedInvalidPluginEntity::new(
-                    InvalidPluginEntity {
-                        dir_path: plug_dir,
-                        plugin_type: plug_type,
-                    },
-                    rd,
-                ),
-            ));
+    } else {
+        let plug_info_res = match plug_type {
+            PluginType::Parser => PluginsParser::get_info(wasm_file).await,
+            PluginType::ByteSource => PluginsByteSource::get_info(wasm_file).await,
+        };
+
+        match plug_info_res {
+            Ok(info) => {
+                cache_manager.update_plugin(
+                    &plug_dir,
+                    cache::CachedPluginState::Installed(info.clone()),
+                    false,
+                )?;
+                info
+            }
+            // Stop the whole loading on engine errors
+            Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
+                return Err(err.into())
+            }
+            Err(err) => {
+                let err_msg = format!("Loading plugin binary fail. Error: {err}");
+                rd.err(&err_msg);
+                cache_manager.update_plugin(
+                    &plug_dir,
+                    cache::CachedPluginState::Invalid(err_msg),
+                    false,
+                )?;
+                return Ok(PluginEntityState::Invalid(
+                    ExtendedInvalidPluginEntity::new(
+                        InvalidPluginEntity {
+                            dir_path: plug_dir,
+                            plugin_type: plug_type,
+                        },
+                        rd,
+                    ),
+                ));
+            }
         }
     };
 
@@ -176,15 +226,6 @@ async fn load_plugin(
         }
     };
 
-    let readme = plug_dir.join(PLUGIN_README_FILENAME);
-    let readme_path = if readme.exists() {
-        rd.info("README file found");
-        Some(readme)
-    } else {
-        rd.warn("README file not found");
-        None
-    };
-
     rd.info("Plugin has been load, checked and accepted");
     Ok(PluginEntityState::Valid(ExtendedPluginEntity::new(
         PluginEntity {
@@ -215,7 +256,9 @@ enum PluginValidationState {
         /// The path for the plugin wasm file.
         wasm_path: PathBuf,
         /// Metadata of the plugins found in plugins metadata toml file.
-        metadata: Option<PathBuf>,
+        metadata_file: Option<PathBuf>,
+        /// Path for plugin README markdown file.
+        readme_file: Option<PathBuf>,
     },
     /// Represents an invalid plugin with infos about validation error.
     Invalid {
@@ -224,78 +267,45 @@ enum PluginValidationState {
     },
 }
 
-/// Extract plugins binary filename and metadata filename from plugins directory
-/// path by conventions.
-/// The current conventions state the plugin filename and metadata must match
-/// the directory name of the plugin itself and will be considered as plugin name.
-///
-/// * `plugins_dir`: The path of the plugin directory
-///
-/// # Returns:
-///
-/// A tuple contains the filename of the plugin binary `*.wasm` file and its
-/// metadata `*.toml` file when plugins directory is valid.
-fn extract_plugin_filenames(plugins_dir: &Path) -> Result<(String, String), InitError> {
-    let dir_name = plugins_dir
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| {
-            InitError::Other(format!(
-                "Extracting plugins files from its directory failed. Plugin directory: {}",
-                plugins_dir.display()
-            ))
-        })?;
-
-    let plugin_file = format!("{dir_name}.wasm");
-    let metadata_file = format!("{dir_name}.toml");
-
-    Ok((plugin_file, metadata_file))
-}
-
 /// Loads plugin files inside its directory and validate their content returning the state
 /// of the plugin.
 ///
 /// * `plugin_dir`: Path for the plugin directory.
-fn validate_plugin_files(plugin_dir: &PathBuf) -> Result<PluginValidationState, InitError> {
+fn validate_plugin_files(plugin_dir: &Path) -> Result<PluginValidationState, InitError> {
     use PluginValidationState as Re;
 
-    let (plugin_filename, metadata_filename) = extract_plugin_filenames(plugin_dir)?;
+    let plugin_files = extract_plugin_file_paths(plugin_dir).ok_or_else(|| {
+        InitError::Other(format!(
+            "Extracting plugins files from its directory failed. Plugin directory: {}",
+            plugin_dir.display()
+        ))
+    })?;
 
-    let mut wasm_file = None;
-    let mut metadata_file = None;
-    for file in fs::read_dir(plugin_dir)?
-        .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|e| e.is_file())
-    {
-        match file.file_name().and_then(|name| name.to_str()) {
-            Some(name) if name == plugin_filename => {
-                wasm_file = Some(file);
-            }
-            Some(name) if name == metadata_filename => {
-                metadata_file = Some(file);
-            }
-            _ignored => {
-                log::info!(
-                    "File ignored while loading parser plugin. Path {}",
-                    file.display()
-                );
-            }
-        }
-    }
+    let wasm_path = if plugin_files.wasm_file.exists() {
+        plugin_files.wasm_file
+    } else {
+        let err_msg = format!(
+            "Plugin WASM file not found. Path {}",
+            plugin_files.wasm_file.display()
+        );
 
-    let res = match wasm_file {
-        Some(wasm) => Re::Valid {
-            wasm_path: wasm,
-            metadata: metadata_file,
-        },
-        None => {
-            let err_msg = format!(
-                "File {plugin_filename} is not found in {}",
-                plugin_dir.display()
-            );
+        return Ok(Re::Invalid { err_msg });
+    };
 
-            Re::Invalid { err_msg }
-        }
+    let metadata_file = plugin_files
+        .metadata_file
+        .exists()
+        .then_some(plugin_files.metadata_file);
+
+    let readme_file = plugin_files
+        .readme_file
+        .exists()
+        .then_some(plugin_files.readme_file);
+
+    let res = Re::Valid {
+        wasm_path,
+        metadata_file,
+        readme_file,
     };
 
     Ok(res)

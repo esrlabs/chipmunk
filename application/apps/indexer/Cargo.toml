@@ -42,6 +42,7 @@ walkdir = "2.5"
 envvars = "0.1"
 anyhow = "1.0"
 toml = "0.8"
+blake3 = "1.5"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.

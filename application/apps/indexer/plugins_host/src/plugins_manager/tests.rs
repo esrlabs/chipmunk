@@ -107,6 +107,7 @@ fn create_manager() -> PluginsManager {
     invalid_plugins[1].run_data.err("error");
 
     PluginsManager {
+        cache_manager: Default::default(),
         installed_plugins,
         invalid_plugins,
     }

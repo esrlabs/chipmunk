@@ -14,6 +14,9 @@ pub enum InitError {
     /// Errors from WASM runtime.
     #[error(transparent)]
     WasmRunTimeError(#[from] anyhow::Error),
+    /// Errors from plugins cache manager.
+    #[error("Plugin cache error: {0}")]
+    PluginsCache(#[from] PluginsCacheError),
     /// IO Errors.
     #[error("IO Error. {0}")]
     IO(#[from] io::Error),
@@ -30,4 +33,21 @@ impl From<InitError> for NativeError {
             message: Some(err.to_string()),
         }
     }
+}
+
+/// Errors related to plugin caching.
+#[derive(Debug, Error)]
+pub enum PluginsCacheError {
+    /// IO Errors.
+    #[error("IO Error. {0}")]
+    IO(#[from] io::Error),
+    /// Errors regarding serialization the cache into/from cache file.
+    #[error("Serialization error. {0}")]
+    Serialization(#[from] serde_json::Error),
+    /// Error while calculating hash of plugin binary
+    #[error("Error while calculating hash of plugin binary: {0}")]
+    Hash(#[from] dir_checksum::HashError),
+    /// Errors not included in the other error types.
+    #[error("Plugins Caching Error: {0}")]
+    Other(String),
 }
