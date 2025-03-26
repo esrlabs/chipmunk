@@ -85,11 +85,12 @@ impl<R: Read + Send> components::Component for BinaryByteSource<R> {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("Binary Source"),
+            desc: String::from("Binary Source"),
             uuid: BIN_SOURCE_UUID,
         }
     }
 
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }

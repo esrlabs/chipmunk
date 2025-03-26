@@ -1,4 +1,6 @@
 #[cfg(feature = "rustcore")]
+mod converting;
+#[cfg(feature = "rustcore")]
 mod extending;
 #[cfg(feature = "nodejs")]
 mod nodejs;
@@ -27,6 +29,15 @@ pub enum SourceOrigin {
     Stream(Ident),
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct IdentList(pub Vec<Ident>);
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
 #[cfg_attr(
@@ -36,6 +47,7 @@ pub enum SourceOrigin {
 )]
 pub struct Ident {
     pub name: String,
+    pub desc: String,
     pub uuid: Uuid,
 }
 

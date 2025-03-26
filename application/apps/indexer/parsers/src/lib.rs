@@ -7,7 +7,6 @@ pub mod text;
 use serde::Serialize;
 use std::{fmt::Display, future::Future, io::Write, iter};
 use thiserror::Error;
-use tokio_util::sync::CancellationToken;
 
 extern crate log;
 

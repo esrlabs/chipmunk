@@ -1,3 +1,6 @@
+#[cfg(feature = "nodejs")]
+mod nodejs;
+
 use crate::*;
 // TODOs and open topics
 // ## Validation of fields?
@@ -7,6 +10,18 @@ use crate::*;
 // Problematic places:
 // - dlt stat
 // - envvars (terminal command)
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub struct ComponentsOptions {
+    pub source: Vec<FieldDesc>,
+    pub parser: Vec<FieldDesc>,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
@@ -136,4 +151,6 @@ pub enum CallbackOptionsEvent {
     /// Triggered when a lazy fields wasn't loaded.
     #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "[string, string][]"))]
     Errors(Vec<(String, String)>),
+
+    Destroyed,
 }

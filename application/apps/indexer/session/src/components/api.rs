@@ -1,14 +1,25 @@
-use stypes::NativeError;
+use components::LazyLoadingResult;
+use stypes::{Ident, NativeError, SourceOrigin};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub enum API {
+pub enum Api {
     Shutdown(oneshot::Sender<()>),
+    LazyTaskComplite(Uuid, Result<LazyLoadingResult, NativeError>),
+    CancelLoading(Vec<String>),
     GetOptions {
         parser: Uuid,
         source: Uuid,
-        origin: stypes::SourceOrigin,
-        tx: oneshot::Sender<Result<(Vec<stypes::FieldDesc>, Vec<stypes::FieldDesc>), NativeError>>,
+        origin: SourceOrigin,
+        tx: oneshot::Sender<Result<stypes::ComponentsOptions, NativeError>>,
     },
+    GetSources(
+        SourceOrigin,
+        oneshot::Sender<Result<Vec<Ident>, NativeError>>,
+    ),
+    GetParsers(
+        SourceOrigin,
+        oneshot::Sender<Result<Vec<Ident>, NativeError>>,
+    ),
 }
