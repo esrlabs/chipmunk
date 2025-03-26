@@ -714,7 +714,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "stypes",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-util",
  "uuid",
@@ -2581,9 +2581,8 @@ dependencies = [
  "someip-payload",
  "someip-tools",
  "stringreader",
- "thiserror 2.0.12",
  "stypes",
- "tokio-util",
+ "thiserror 2.0.12",
  "uuid",
 ]
 

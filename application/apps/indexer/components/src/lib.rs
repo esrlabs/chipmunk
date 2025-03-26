@@ -1,7 +1,6 @@
 mod tys;
 
-use log::error;
-use tokio::{sync::oneshot, task};
+use tokio::{select, sync::oneshot};
 use tokio_util::sync::CancellationToken;
 pub use tys::*;
 
@@ -19,10 +18,29 @@ type Metadata<'a> = (
     ),
 );
 
+#[derive(Debug)]
+pub enum LazyLoadingResult {
+    Feilds(Vec<stypes::StaticFieldDesc>),
+    Cancelled,
+}
+
+#[derive(Debug, Clone)]
+pub struct LazyLoadingTaskMeta {
+    pub uuid: Uuid,
+    pub ident: stypes::Ident,
+    pub cancel: CancellationToken,
+    pub fields: Vec<String>,
+}
+
+impl LazyLoadingTaskMeta {
+    pub fn contains(&self, fields: &[String]) -> bool {
+        self.fields.iter().any(|id| fields.contains(id))
+    }
+}
+
 pub struct LazyLoadingTask {
-    ident: stypes::Ident,
-    rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
-    cancel: CancellationToken,
+    meta: LazyLoadingTaskMeta,
+    rx: Option<oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>>,
 }
 
 impl LazyLoadingTask {
@@ -30,11 +48,50 @@ impl LazyLoadingTask {
         ident: stypes::Ident,
         rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
         cancel: &CancellationToken,
+        fields: Vec<String>,
     ) -> Self {
         Self {
-            ident,
-            rx,
-            cancel: cancel.clone(),
+            meta: LazyLoadingTaskMeta {
+                uuid: Uuid::new_v4(),
+                ident,
+                cancel: cancel.clone(),
+                fields,
+            },
+            rx: Some(rx),
+        }
+    }
+
+    pub fn get_meta(&self) -> LazyLoadingTaskMeta {
+        self.meta.clone()
+    }
+
+    pub async fn wait(&mut self) -> Result<LazyLoadingResult, stypes::NativeError> {
+        let Some(rx) = self.rx.take() else {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!(
+                    "Settings already requested for {}",
+                    self.meta.ident.name
+                )),
+            });
+        };
+        // TODO: something about cancel safe
+        select! {
+            _ = self.meta.cancel.cancelled() => {
+                Ok(LazyLoadingResult::Cancelled)
+            }
+            fields = rx => {
+                let fields = fields.map_err(|_| stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::ChannelError,
+                    message: Some(format!(
+                        "Fail to get settings for {}",
+                        self.meta.ident.name
+                    )),
+                })??;
+                Ok(LazyLoadingResult::Feilds(fields))
+            }
         }
     }
 }
@@ -55,6 +112,32 @@ impl Options {
             lazy_parser: None,
         }
     }
+    pub fn set_source_lazy_task(
+        &mut self,
+        ident: stypes::Ident,
+        rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
+        cancel: &CancellationToken,
+    ) {
+        self.lazy_source = Some(LazyLoadingTask::new(
+            ident,
+            rx,
+            cancel,
+            self.source_lazy_uuids(),
+        ));
+    }
+    pub fn set_parser_lazy_task(
+        &mut self,
+        ident: stypes::Ident,
+        rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
+        cancel: &CancellationToken,
+    ) {
+        self.lazy_parser = Some(LazyLoadingTask::new(
+            ident,
+            rx,
+            cancel,
+            self.parser_lazy_uuids(),
+        ));
+    }
     pub fn source_has_lazy(&self) -> bool {
         self.source
             .iter()
@@ -64,6 +147,30 @@ impl Options {
         self.parser
             .iter()
             .any(|f| matches!(f, stypes::FieldDesc::Lazy(..)))
+    }
+    pub fn source_lazy_uuids(&self) -> Vec<String> {
+        self.source
+            .iter()
+            .filter_map(|f| {
+                if let stypes::FieldDesc::Lazy(f) = f {
+                    Some(f.id.to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+    pub fn parser_lazy_uuids(&self) -> Vec<String> {
+        self.parser
+            .iter()
+            .filter_map(|f| {
+                if let stypes::FieldDesc::Lazy(f) = f {
+                    Some(f.id.to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -118,6 +225,22 @@ impl Components {
         Ok(())
     }
 
+    pub fn get_sources(
+        &self,
+        _source_origin: stypes::SourceOrigin,
+    ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
+        // TODO: "ask" source based on origin
+        Ok(self.sources.values().cloned().collect())
+    }
+
+    pub fn get_parsers(
+        &self,
+        _source_origin: stypes::SourceOrigin,
+    ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
+        // TODO: "ask" parser based on origin
+        Ok(self.parsers.values().cloned().collect())
+    }
+
     pub fn get_options(
         &self,
         source_origin: stypes::SourceOrigin,
@@ -140,13 +263,13 @@ impl Components {
             let (tx, rx) = oneshot::channel();
             let tk = CancellationToken::new();
             getter(&source_origin, tx, &tk)?;
-            options.lazy_source = Some(LazyLoadingTask::new(source_ident.clone(), rx, &tk));
+            options.set_source_lazy_task(source_ident.clone(), rx, &tk);
         }
         if let (Some(getter), true) = (parser_lazy, options.source_has_lazy()) {
             let (tx, rx) = oneshot::channel();
             let tk = CancellationToken::new();
             getter(&source_origin, tx, &tk)?;
-            options.lazy_parser = Some(LazyLoadingTask::new(parser_ident.clone(), rx, &tk));
+            options.set_parser_lazy_task(parser_ident.clone(), rx, &tk);
         }
         Ok(options)
     }

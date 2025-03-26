@@ -73,6 +73,8 @@ export enum Source {
     SetIndexingMode = 'SetIndexingMode',
     GetIndexedLen = 'GetIndexedLen',
     getAroundIndexes = 'getAroundIndexes',
+    ComponentsOptions = 'ComponentsOptions',
+    IdentList = 'IdentList',
     Native = 'Native',
     Other = 'Other',
 }

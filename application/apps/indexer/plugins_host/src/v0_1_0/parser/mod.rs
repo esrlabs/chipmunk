@@ -166,11 +166,12 @@ impl components::Component for PluginParser {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("Plugin Parser"),
+            desc: String::from("Plugin Parser"),
             uuid: uuid::Uuid::new_v4(),
         }
     }
 
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }
