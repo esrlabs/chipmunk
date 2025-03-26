@@ -30,6 +30,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'unbound',
         uuid: v4(),
     },
+    components: {
+        name: 'components',
+        uuid: v4(),
+    },
     storage: {
         name: 'storage',
         uuid: v4(),

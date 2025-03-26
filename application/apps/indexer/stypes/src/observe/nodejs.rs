@@ -12,3 +12,6 @@ try_into_js!(UDPTransportConfig);
 try_into_js!(FileFormat);
 try_into_js!(ObserveOrigin);
 try_into_js!(ObserveOptions);
+try_into_js!(Ident);
+try_into_js!(IdentList);
+try_into_js!(SourceOrigin);
