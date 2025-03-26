@@ -2733,7 +2733,6 @@ dependencies = [
  "stringreader",
  "stypes",
  "thiserror 2.0.3",
- "tokio-util",
  "uuid",
 ]
 

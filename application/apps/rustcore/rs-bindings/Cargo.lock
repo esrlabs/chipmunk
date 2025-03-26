@@ -579,6 +579,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
+name = "components"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "thiserror 2.0.3",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2415,6 +2427,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
+ "components",
  "dlt-core",
  "humantime",
  "lazy_static",
@@ -2426,7 +2439,9 @@ dependencies = [
  "someip-messages",
  "someip-payload",
  "someip-tools",
+ "stypes",
  "thiserror 2.0.3",
+ "uuid",
 ]
 
 [[package]]
@@ -2524,6 +2539,7 @@ name = "plugins_host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "components",
  "dirs 5.0.1",
  "futures",
  "log",
@@ -2534,6 +2550,7 @@ dependencies = [
  "thiserror 2.0.3",
  "tokio",
  "toml",
+ "uuid",
  "wasmtime",
  "wasmtime-wasi",
 ]
@@ -2990,6 +3007,7 @@ name = "session"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "components",
  "crossbeam-channel",
  "dirs 5.0.1",
  "dlt-core",
@@ -3155,6 +3173,7 @@ dependencies = [
  "async-stream",
  "buf_redux 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
+ "components",
  "etherparse",
  "futures",
  "indexer_base",
@@ -3212,6 +3231,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.3",
  "tokio",
+ "tokio-util",
  "uuid",
  "walkdir",
 ]

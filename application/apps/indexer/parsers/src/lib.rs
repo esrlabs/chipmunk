@@ -5,9 +5,8 @@ pub mod someip;
 
 pub mod text;
 use serde::Serialize;
-use std::{fmt::Display, future::Future, io::Write};
+use std::{fmt::Display, io::Write};
 use thiserror::Error;
-use tokio_util::sync::CancellationToken;
 
 extern crate log;
 

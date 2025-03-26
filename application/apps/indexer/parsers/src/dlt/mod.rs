@@ -183,14 +183,15 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 ]);
 
-impl<'a> components::Component for DltParser<'a> {
+impl components::Component for DltParser<'_> {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("DLT Parser"),
+            desc: String::from("DLT Parser"),
             uuid: DLT_PARSER_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }
@@ -226,10 +227,11 @@ impl components::Component for DltRangeParser {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("DLT Range Parser"),
+            desc: String::from("DLT Range Parser"),
             uuid: DLT_RANGE_PARSER_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }
@@ -259,10 +261,11 @@ impl components::Component for DltRawParser {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("DLT Raw Parser"),
+            desc: String::from("DLT Raw Parser"),
             uuid: DLT_RAW_PARSER_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }
