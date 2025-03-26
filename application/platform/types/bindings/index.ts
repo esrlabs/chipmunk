@@ -9,3 +9,4 @@ export * from './progress';
 export * from './dlt';
 export * from './operations';
 export * from './plugins';
+export * from './options';

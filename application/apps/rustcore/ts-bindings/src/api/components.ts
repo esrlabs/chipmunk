@@ -1,0 +1,74 @@
+import { Logger } from 'platform/log';
+import { scope } from 'platform/env/scope';
+import { v4 as uuid } from 'uuid';
+import { Base as Native } from '../native/native.components';
+import { ComponentsEventProvider } from '../api/components.provider';
+import { SessionStream } from '../api/session.stream';
+import { SessionSearch } from '../api/session.search';
+import { Subscriber } from 'platform/env/subscription';
+import { ComponentsOptions, Ident, SourceOrigin } from 'platform/types/bindings';
+
+export {
+    ISessionEvents,
+    IProgressEvent,
+    IProgressState,
+    IEventMapUpdated,
+    IEventMatchesUpdated,
+    IEventIndexedMapUpdated,
+} from '../api/session.provider';
+export { ComponentsEventProvider, SessionStream, SessionSearch };
+
+export * as $ from 'platform/types/observe';
+export * as Factory from 'platform/types/observe/factory';
+
+export class Components extends Subscriber {
+    private readonly native: Native;
+    private readonly provider: ComponentsEventProvider;
+    private readonly logger: Logger;
+    private readonly uuid: string = uuid();
+
+    constructor(resolver: (err: Error | undefined) => void) {
+        super();
+        this.logger = scope.getLogger(`Components: ${this.uuid}`);
+        this.provider = new ComponentsEventProvider(this.uuid);
+        this.native = new Native(this.provider, (err: Error | undefined) => {
+            if (err instanceof Error) {
+                this.logger.error(`Fail to create a components session: ${err.message}`);
+            }
+            resolver(err);
+        });
+    }
+
+    public destroy(): Promise<void> {
+        return this.native.destroy().catch((err: Error) => {
+            this.logger.error(`Fail to destroy session: ${err.message}`);
+            return Promise.reject(err);
+        });
+    }
+
+    public get(origin: SourceOrigin): {
+        sources(): Promise<Ident[]>;
+        parsers(): Promise<Ident[]>;
+    } {
+        return {
+            sources: (): Promise<Ident[]> => {
+                return this.native.getSources(origin);
+            },
+            parsers: (): Promise<Ident[]> => {
+                return this.native.getParsers(origin);
+            },
+        };
+    }
+
+    public getOptions(
+        source: string,
+        parser: string,
+        origin: SourceOrigin,
+    ): Promise<ComponentsOptions> {
+        return this.native.getOptions(source, parser, origin);
+    }
+
+    public abort(fields: string[]): Error | undefined {
+        return this.native.abort(fields);
+    }
+}
