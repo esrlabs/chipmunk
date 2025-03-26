@@ -11,12 +11,12 @@ use stypes::{
 
 use crate::{
     plugins_manager::paths::extract_plugin_file_paths, plugins_shared::plugin_errors::PluginError,
-    PluginHostInitError, PluginType, PluginsByteSource, PluginsParser,
+    PluginHostError, PluginType, PluginsByteSource, PluginsParser,
 };
 
 use super::{
     cache::{self, CacheManager},
-    paths, InitError, PluginEntity,
+    paths, plugin_root_dir, PluginEntity, PluginsManagerError,
 };
 
 /// Loads all plugins from the plugin directory while using the provided `cache_manager`
@@ -32,8 +32,9 @@ use super::{
 /// List of valid plugins alongside with other list for invalid ones.
 pub async fn load_all_plugins(
     cache_manager: &mut CacheManager,
-) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), InitError> {
-    let plugins_dir = paths::plugins_dir().ok_or_else(home_dir_err)?;
+) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), PluginsManagerError> {
+    let plugins_dir = paths::plugins_dir()
+        .ok_or_else(|| PluginsManagerError::Other(String::from("Failed to find home directory")))?;
     if !plugins_dir.exists() {
         log::trace!("Plugins directory doesn't exist. Creating it...");
         fs::create_dir_all(plugins_dir)?;
@@ -51,10 +52,6 @@ pub async fn load_all_plugins(
     Ok((valid_plugins, invalid_plugs))
 }
 
-fn home_dir_err() -> InitError {
-    InitError::Other(String::from("Failed to find home directory"))
-}
-
 /// Loads all plugins from the main directory of the provided plugin type.
 ///
 /// # Returns:
@@ -63,14 +60,11 @@ fn home_dir_err() -> InitError {
 async fn load_plugins(
     plug_type: PluginType,
     cache_manager: &mut CacheManager,
-) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), InitError> {
+) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), PluginsManagerError> {
     let mut valid_plugins = Vec::new();
     let mut invalid_plugins = Vec::new();
 
-    let plugins_dir = match plug_type {
-        PluginType::Parser => paths::parser_dir().ok_or_else(home_dir_err)?,
-        PluginType::ByteSource => paths::bytesource_dir().ok_or_else(home_dir_err)?,
-    };
+    let plugins_dir = plugin_root_dir(plug_type)?;
 
     if !plugins_dir.exists() {
         log::trace!("{plug_type} directory doesn't exist. Creating it...");
@@ -91,33 +85,38 @@ async fn load_plugins(
 
 /// Represents the various states of a plugin entity.
 /// This type is used internally in this module only.
-enum PluginEntityState {
+pub enum PluginEntityState {
     Valid(ExtendedPluginEntity),
     Invalid(ExtendedInvalidPluginEntity),
 }
 
-/// Loads plugin infos and metadata from the provided plugin directory.
+/// Loads plugin information and metadata from the specified plugin directory.
+///
+/// This function retrieves the information from the cache manager if no recent  
+/// changes are detected. Otherwise, it loads the plugin binary and updates  
+/// the cache with the latest plugin metadata.
 ///
 /// * `plug_dir`: Plugin directory
 /// * `plug_type`: Plugin Type
+/// * `cache_manager`: Plugins cache manager.
 ///
 /// # Returns:
 ///
 /// Plugins infos and metadata when valid, or error infos when invalid.
-async fn load_plugin(
+pub async fn load_plugin(
     plug_dir: PathBuf,
     plug_type: PluginType,
     cache_manager: &mut CacheManager,
-) -> Result<PluginEntityState, InitError> {
+) -> Result<PluginEntityState, PluginsManagerError> {
     let mut rd = PluginRunData::default();
     rd.info("Attempt to load and check plugin");
     let (wasm_file, metadata_file, readme_path) = match validate_plugin_files(&plug_dir)? {
-        PluginValidationState::Valid {
+        PluginFilesStatus::Valid {
             wasm_path,
             metadata_file,
             readme_file,
         } => (wasm_path, metadata_file, readme_file),
-        PluginValidationState::Invalid { err_msg } => {
+        PluginFilesStatus::Invalid { err_msg } => {
             rd.err(err_msg);
             return Ok(PluginEntityState::Invalid(
                 ExtendedInvalidPluginEntity::new(
@@ -159,25 +158,19 @@ async fn load_plugin(
 
         match plug_info_res {
             Ok(info) => {
-                cache_manager.update_plugin(
-                    &plug_dir,
-                    cache::CachedPluginState::Installed(info.clone()),
-                    false,
-                )?;
+                cache_manager
+                    .update_plugin(&plug_dir, cache::CachedPluginState::Installed(info.clone()))?;
                 info
             }
             // Stop the whole loading on engine errors
-            Err(PluginError::HostInitError(PluginHostInitError::EngineError(err))) => {
+            Err(PluginError::PluginHostError(PluginHostError::EngineError(err))) => {
                 return Err(err.into())
             }
             Err(err) => {
                 let err_msg = format!("Loading plugin binary fail. Error: {err}");
                 rd.err(&err_msg);
-                cache_manager.update_plugin(
-                    &plug_dir,
-                    cache::CachedPluginState::Invalid(err_msg),
-                    false,
-                )?;
+                cache_manager
+                    .update_plugin(&plug_dir, cache::CachedPluginState::Invalid(err_msg))?;
                 return Ok(PluginEntityState::Invalid(
                     ExtendedInvalidPluginEntity::new(
                         InvalidPluginEntity {
@@ -248,9 +241,10 @@ fn get_dirs(dir_path: &PathBuf) -> Result<impl Iterator<Item = PathBuf>, io::Err
     Ok(dirs)
 }
 
-/// Represents Plugins State and the corresponding infos.
+/// Represents the result of scanning a plugin directory,  
+/// providing details about detected files and validation status.
 #[derive(Debug, Clone)]
-enum PluginValidationState {
+pub enum PluginFilesStatus {
     /// Represents valid plugin with its infos and metadata.
     Valid {
         /// The path for the plugin wasm file.
@@ -267,19 +261,28 @@ enum PluginValidationState {
     },
 }
 
-/// Loads plugin files inside its directory and validate their content returning the state
-/// of the plugin.
+/// Scans and validates the plugin directory, ensuring all required files exist  
+/// and collecting paths of relevant plugin-related files (both mandatory and optional).
 ///
 /// * `plugin_dir`: Path for the plugin directory.
-fn validate_plugin_files(plugin_dir: &Path) -> Result<PluginValidationState, InitError> {
-    use PluginValidationState as Re;
+pub fn validate_plugin_files(plugin_dir: &Path) -> Result<PluginFilesStatus, PluginsManagerError> {
+    use PluginFilesStatus as Re;
 
-    let plugin_files = extract_plugin_file_paths(plugin_dir).ok_or_else(|| {
-        InitError::Other(format!(
+    if !plugin_dir.exists() {
+        let err_msg = format!(
+            "Plugin directory doesn't exist. Path: {}",
+            plugin_dir.display()
+        );
+        return Ok(Re::Invalid { err_msg });
+    }
+
+    let Some(plugin_files) = extract_plugin_file_paths(plugin_dir) else {
+        let err_msg = format!(
             "Extracting plugins files from its directory failed. Plugin directory: {}",
             plugin_dir.display()
-        ))
-    })?;
+        );
+        return Ok(Re::Invalid { err_msg });
+    };
 
     let wasm_path = if plugin_files.wasm_file.exists() {
         plugin_files.wasm_file

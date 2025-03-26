@@ -18,7 +18,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 use crate::{
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
     wasm_host::get_wasm_host,
-    PluginGuestInitError, PluginHostInitError,
+    PluginGuestError, PluginHostError,
 };
 
 /// Host of the byte-source plugin for plugins API version 0.1.0
@@ -47,7 +47,7 @@ impl PluginByteSource {
     }
 
     /// Creates a new byte-source instance without initializing it with custom configurations.
-    async fn create(component: Component, ctx: WasiCtx) -> Result<Self, PluginHostInitError> {
+    async fn create(component: Component, ctx: WasiCtx) -> Result<Self, PluginHostError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
             .map_err(|err| err.to_owned())?;
@@ -75,7 +75,7 @@ impl PluginByteSource {
         component: Component,
         general_config: &stypes::PluginByteSourceGeneralSettings,
         plugin_configs: Vec<stypes::PluginConfigItem>,
-    ) -> Result<Self, PluginHostInitError> {
+    ) -> Result<Self, PluginHostError> {
         let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
         let ctx = ctx.build();
 
@@ -92,9 +92,7 @@ impl PluginByteSource {
                 &plugin_configs,
             )
             .await?
-            .map_err(|guest_err| {
-                PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
-            })?;
+            .map_err(|guest_err| PluginHostError::GuestError(PluginGuestError::from(guest_err)))?;
 
         Ok(byte_source)
     }

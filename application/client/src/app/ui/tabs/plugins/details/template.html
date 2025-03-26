@@ -16,7 +16,9 @@
     >
         Inspect
     </button>
-    <button class="flat-codicon-button" [disabled]="true">Remove</button>
+    <button class="flat-codicon-button" [disabled]="loading" (click)="removePlugin()">
+        Remove
+    </button>
 </div>
 <div class="readme">
     <ng-container *ngIf="loading">

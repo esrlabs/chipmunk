@@ -24,3 +24,21 @@ impl FromStr for SemanticVersion {
         })
     }
 }
+
+impl FromStr for PluginType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // Reminder to update this function on new plugin types.
+        match Self::Parser {
+            PluginType::Parser => (),
+            PluginType::ByteSource => (),
+        }
+
+        match s {
+            "Parser" => Ok(Self::Parser),
+            "ByteSource" => Ok(Self::ByteSource),
+            invalid => Err(format!("Invalid plugin type: '{invalid}'")),
+        }
+    }
+}

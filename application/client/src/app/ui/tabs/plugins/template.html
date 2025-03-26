@@ -25,7 +25,13 @@
             <mat-card>
                 <mat-card-content>
                     <div class="controlls">
-                        <button mat-stroked-button [disabled]="true">Add</button>
+                        <button
+                            mat-stroked-button
+                            [disabled]="provider.state.loading"
+                            (click)="addPlugin()"
+                        >
+                            Add
+                        </button>
                         <button
                             mat-stroked-button
                             [disabled]="provider.state.loading"

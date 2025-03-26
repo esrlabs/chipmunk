@@ -3,14 +3,17 @@ use std::io;
 use stypes::{NativeError, NativeErrorKind, Severity};
 use thiserror::Error;
 
-use crate::wasm_host::WasmHostInitError;
+use crate::{wasm_host::WasmHostInitError, PluginHostError};
 
 /// Plugins manager initialization Error.
 #[derive(Debug, Error)]
-pub enum InitError {
+pub enum PluginsManagerError {
     /// Errors while initializing wasm host for plugins.
     #[error("Initialization of WASM host failed. {0}")]
-    WasmHost(#[from] WasmHostInitError),
+    WasmHostInit(#[from] WasmHostInitError),
+    /// Error related to plugins host.
+    #[error("Plugins Host Error: {0}")]
+    PluginHost(#[from] PluginHostError),
     /// Errors from WASM runtime.
     #[error(transparent)]
     WasmRunTimeError(#[from] anyhow::Error),
@@ -25,8 +28,8 @@ pub enum InitError {
     Other(String),
 }
 
-impl From<InitError> for NativeError {
-    fn from(err: InitError) -> Self {
+impl From<PluginsManagerError> for NativeError {
+    fn from(err: PluginsManagerError) -> Self {
         Self {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Plugins,

@@ -201,6 +201,13 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
             },
         };
     }
+
+    public async removePlugin(): Promise<void> {
+        if (this.plugin.path === undefined) {
+            return;
+        }
+        await this.provider.removePlugin(this.plugin.path.filename);
+    }
 }
 
 export interface Details extends IlcInterface {}

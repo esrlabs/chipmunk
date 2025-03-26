@@ -155,6 +155,24 @@ export class Service extends Implementation {
                     RequestHandlers.Plugins.Relaod.handler,
                 ),
         );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.AddPlugin.Request,
+                    RequestHandlers.Plugins.AddPlugin.handler,
+                ),
+        );
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Plugins.RemovePlugin.Request,
+                    RequestHandlers.Plugins.RemovePlugin.handler,
+                ),
+        );
         return Promise.resolve();
     }
 

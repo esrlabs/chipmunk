@@ -307,4 +307,35 @@ impl UnboundSessionAPI {
         self.process_command(id, rx_results, Command::ReloadPlugins(tx_results))
             .await
     }
+
+    /// Adds a plugin with the given directory path and optional plugin type.
+    pub async fn add_plugin(
+        &self,
+        id: u64,
+        plugin_path: String,
+        plugin_type: Option<stypes::PluginType>,
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::AddPlugin(plugin_path, plugin_type, tx_results),
+        )
+        .await
+    }
+
+    /// Removes the plugin with the given directory path.
+    pub async fn remove_plugin(
+        &self,
+        id: u64,
+        plugin_path: String,
+    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
+        let (tx_results, rx_results) = oneshot::channel();
+        self.process_command(
+            id,
+            rx_results,
+            Command::RemovePlugin(plugin_path, tx_results),
+        )
+        .await
+    }
 }

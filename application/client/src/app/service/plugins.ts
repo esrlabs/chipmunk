@@ -133,6 +133,34 @@ export class Service extends Implementation {
                 .catch(reject);
         });
     }
+
+    public addPlugin(pluginPath: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.AddPlugin.Response,
+                new Requests.Plugins.AddPlugin.Request({ pluginPath }),
+            )
+                .then(() => {
+                    // To drop a cache to update list.
+                    this.ready().catch(reject).finally(resolve);
+                })
+                .catch(reject);
+        });
+    }
+
+    public removePlugin(pluginPath: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Plugins.RemovePlugin.Response,
+                new Requests.Plugins.RemovePlugin.Request({ pluginPath }),
+            )
+                .then(() => {
+                    // To drop a cache to update list.
+                    this.ready().catch(reject).finally(resolve);
+                })
+                .catch(reject);
+        });
+    }
 }
 
 export interface Service extends Interface {}

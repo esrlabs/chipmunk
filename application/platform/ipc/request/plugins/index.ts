@@ -6,3 +6,5 @@ export * as InstalledPluginInfo from './installed_plugin_info';
 export * as InvalidPluginInfo from './invalid_plugin_info';
 export * as PluginRunData from './rundata';
 export * as Reload from './reload';
+export * as AddPlugin from './add_plugin';
+export * as RemovePlugin from './remove_plugin';

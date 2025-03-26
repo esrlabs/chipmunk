@@ -15,7 +15,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
 use crate::{
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
     wasm_host::get_wasm_host,
-    PluginGuestInitError, PluginHostInitError, PluginParseMessage,
+    PluginGuestError, PluginHostError, PluginParseMessage,
 };
 
 use self::{bindings::Parse, parser_plugin_state::ParserPluginState};
@@ -46,7 +46,7 @@ impl PluginParser {
     }
 
     /// Creates a new parser instance without initializing it with custom configurations.
-    async fn create(component: Component, ctx: WasiCtx) -> Result<Self, PluginHostInitError> {
+    async fn create(component: Component, ctx: WasiCtx) -> Result<Self, PluginHostError> {
         let engine = get_wasm_host()
             .map(|host| &host.engine)
             .map_err(|err| err.to_owned())?;
@@ -74,7 +74,7 @@ impl PluginParser {
         component: Component,
         general_config: &stypes::PluginParserGeneralSettings,
         plugin_configs: Vec<stypes::PluginConfigItem>,
-    ) -> Result<Self, PluginHostInitError> {
+    ) -> Result<Self, PluginHostError> {
         let mut ctx = get_wasi_ctx_builder(&plugin_configs)?;
         let ctx = ctx.build();
 
@@ -87,9 +87,7 @@ impl PluginParser {
             .chipmunk_parser_parser()
             .call_init(&mut parser.store, general_config.into(), &plugin_configs)
             .await?
-            .map_err(|guest_err| {
-                PluginHostInitError::GuestError(PluginGuestInitError::from(guest_err))
-            })?;
+            .map_err(|guest_err| PluginHostError::GuestError(PluginGuestError::from(guest_err)))?;
 
         Ok(parser)
     }
