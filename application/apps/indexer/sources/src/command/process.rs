@@ -215,7 +215,7 @@ impl ByteSource for ProcessSource {
 
     async fn income(
         &mut self,
-        request: stypes::SdeRequest,
+        request: &stypes::SdeRequest,
     ) -> Result<stypes::SdeResponse, SourceError> {
         let bytes = match request {
             stypes::SdeRequest::WriteText(ref str) => str.as_bytes(),
