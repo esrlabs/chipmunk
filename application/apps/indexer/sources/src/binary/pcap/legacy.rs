@@ -163,11 +163,12 @@ impl<R: Read + Send> components::Component for PcapLegacyByteSource<R> {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("PCAP Source"),
+            desc: String::from("PCAP Source"),
             uuid: PCAP_SOURCE_UUID,
         }
     }
 
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }

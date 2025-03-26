@@ -138,10 +138,11 @@ impl components::Component for UdpSource {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("UDP Source"),
+            desc: String::from("UDP Source"),
             uuid: UDP_SOURCE_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }
