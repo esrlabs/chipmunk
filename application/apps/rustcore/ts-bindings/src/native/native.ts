@@ -8,6 +8,7 @@ import * as fs from 'fs';
 export interface IRustModuleExports {
     RustSession: any;
     UnboundJobs: any;
+    Components: any;
     RustProgressTracker: any;
 }
 

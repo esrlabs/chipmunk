@@ -18,3 +18,4 @@ import '@service/cli';
 import '@service/menu';
 import '@service/unbound';
 import '@service/github';
+import '@service/components';

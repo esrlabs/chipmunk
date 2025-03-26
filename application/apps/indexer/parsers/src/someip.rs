@@ -323,10 +323,11 @@ impl components::Component for SomeipParser {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("SomeIP Parser"),
+            desc: String::from("SomeIP Parser"),
             uuid: SOMEIP_PARSER_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }

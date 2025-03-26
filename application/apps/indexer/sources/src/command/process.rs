@@ -234,10 +234,11 @@ impl components::Component for ProcessSource {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("Terminal Source"),
+            desc: String::from("Terminal Source"),
             uuid: TERM_SOURCE_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }

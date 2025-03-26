@@ -176,10 +176,11 @@ impl components::Component for TcpSource {
     fn ident() -> stypes::Ident {
         stypes::Ident {
             name: String::from("TCP Source"),
+            desc: String::from("TCP Source"),
             uuid: TCP_SOURCE_UUID,
         }
     }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
         Ok(())
     }
 }
