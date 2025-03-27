@@ -59,19 +59,20 @@ impl ComponentsSession {
                         origin,
                         tx,
                     } => {
-                        let options = match components.get_options(origin, source, parser) {
-                            Ok(options) => options,
-                            Err(err) => {
-                                log_if_err(tx.send(Err(err)));
-                                continue;
-                            }
-                        };
+                        let (source_options, parser_options) =
+                            match components.get_options(origin, source, parser) {
+                                Ok(options) => options,
+                                Err(err) => {
+                                    log_if_err(tx.send(Err(err)));
+                                    continue;
+                                }
+                            };
                         // Send static fields
                         log_if_err(tx.send(Ok(stypes::ComponentsOptions {
-                            source: options.source,
-                            parser: options.parser,
+                            source: source_options.statics,
+                            parser: parser_options.statics,
                         })));
-                        if let Some(mut source_loading_task) = options.lazy_source {
+                        if let Some(mut source_loading_task) = source_options.lazy {
                             // If exists, request lazy source fields
                             let meta = source_loading_task.get_meta();
                             let uuid = meta.uuid;
@@ -89,7 +90,7 @@ impl ComponentsSession {
                                 ),
                             );
                         }
-                        if let Some(mut parser_loading_task) = options.lazy_parser {
+                        if let Some(mut parser_loading_task) = parser_options.lazy {
                             // If exists, request lazy parser fields
                             let meta = parser_loading_task.get_meta();
                             let uuid = meta.uuid;
@@ -151,6 +152,7 @@ impl ComponentsSession {
                         });
                         tasks.clear();
                         log_if_err(tx.send(()));
+                        break;
                     }
                 }
             }
