@@ -180,7 +180,8 @@ impl components::Component for PluginParser {
         }
     }
 
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        components.register_parser(&Self::ident(), None, None)?;
         Ok(())
     }
 }
