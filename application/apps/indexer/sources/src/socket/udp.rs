@@ -143,7 +143,8 @@ impl components::Component for UdpSource {
             uuid: UDP_SOURCE_UUID,
         }
     }
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        components.register_source(&Self::ident(), None, None)?;
         Ok(())
     }
 }

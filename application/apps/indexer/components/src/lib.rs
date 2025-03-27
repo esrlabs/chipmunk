@@ -1,6 +1,6 @@
 mod tys;
 
-use tokio::{select, sync::oneshot};
+use tokio::select;
 use tokio_util::sync::CancellationToken;
 pub use tys::*;
 
@@ -10,11 +10,11 @@ use uuid::Uuid;
 type Metadata<'a> = (
     (
         &'a stypes::Ident,
-        &'a (Option<FieldsGetter>, Option<LazyFieldsGetter>),
+        &'a (Option<FieldsGetter>, Option<LazyFieldsTaskGetter>),
     ),
     (
         &'a stypes::Ident,
-        &'a (Option<FieldsGetter>, Option<LazyFieldsGetter>),
+        &'a (Option<FieldsGetter>, Option<LazyFieldsTaskGetter>),
     ),
 );
 
@@ -40,13 +40,13 @@ impl LazyLoadingTaskMeta {
 
 pub struct LazyLoadingTask {
     meta: LazyLoadingTaskMeta,
-    rx: Option<oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>>,
+    task: Option<LazyFieldsTask>,
 }
 
 impl LazyLoadingTask {
     pub fn new(
         ident: stypes::Ident,
-        rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
+        task: LazyFieldsTask,
         cancel: &CancellationToken,
         fields: Vec<String>,
     ) -> Self {
@@ -57,7 +57,7 @@ impl LazyLoadingTask {
                 cancel: cancel.clone(),
                 fields,
             },
-            rx: Some(rx),
+            task: Some(task),
         }
     }
 
@@ -66,7 +66,7 @@ impl LazyLoadingTask {
     }
 
     pub async fn wait(&mut self) -> Result<LazyLoadingResult, stypes::NativeError> {
-        let Some(rx) = self.rx.take() else {
+        let Some(task) = self.task.take() else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -81,7 +81,7 @@ impl LazyLoadingTask {
             _ = self.meta.cancel.cancelled() => {
                 Ok(LazyLoadingResult::Cancelled)
             }
-            fields = rx => {
+            fields = task => {
                 let fields = fields.map_err(|_| stypes::NativeError {
                     severity: stypes::Severity::ERROR,
                     kind: stypes::NativeErrorKind::ChannelError,
@@ -89,7 +89,7 @@ impl LazyLoadingTask {
                         "Fail to get settings for {}",
                         self.meta.ident.name
                     )),
-                })??;
+                })?;
                 Ok(LazyLoadingResult::Feilds(fields))
             }
         }
@@ -97,71 +97,33 @@ impl LazyLoadingTask {
 }
 
 pub struct Options {
-    pub source: Vec<stypes::FieldDesc>,
-    pub parser: Vec<stypes::FieldDesc>,
-    pub lazy_source: Option<LazyLoadingTask>,
-    pub lazy_parser: Option<LazyLoadingTask>,
+    pub statics: Vec<stypes::FieldDesc>,
+    pub lazy: Option<LazyLoadingTask>,
 }
 
 impl Options {
-    pub fn with_static(source: Vec<stypes::FieldDesc>, parser: Vec<stypes::FieldDesc>) -> Self {
+    pub fn new(statics: Vec<stypes::FieldDesc>) -> Self {
         Self {
-            source,
-            parser,
-            lazy_source: None,
-            lazy_parser: None,
+            statics,
+            lazy: None,
         }
     }
-    pub fn set_source_lazy_task(
+    pub fn set_lazy(
         &mut self,
         ident: stypes::Ident,
-        rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
+        task: LazyFieldsTask,
         cancel: &CancellationToken,
     ) {
-        self.lazy_source = Some(LazyLoadingTask::new(
-            ident,
-            rx,
-            cancel,
-            self.source_lazy_uuids(),
-        ));
+        self.lazy = Some(LazyLoadingTask::new(ident, task, cancel, self.lazy_uuids()));
     }
-    pub fn set_parser_lazy_task(
-        &mut self,
-        ident: stypes::Ident,
-        rx: oneshot::Receiver<Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>>,
-        cancel: &CancellationToken,
-    ) {
-        self.lazy_parser = Some(LazyLoadingTask::new(
-            ident,
-            rx,
-            cancel,
-            self.parser_lazy_uuids(),
-        ));
-    }
-    pub fn source_has_lazy(&self) -> bool {
-        self.source
+    pub fn has_lazy(&self) -> bool {
+        self.statics
             .iter()
             .any(|f| matches!(f, stypes::FieldDesc::Lazy(..)))
     }
-    pub fn parser_has_lazy(&self) -> bool {
-        self.parser
-            .iter()
-            .any(|f| matches!(f, stypes::FieldDesc::Lazy(..)))
-    }
-    pub fn source_lazy_uuids(&self) -> Vec<String> {
-        self.source
-            .iter()
-            .filter_map(|f| {
-                if let stypes::FieldDesc::Lazy(f) = f {
-                    Some(f.id.to_owned())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-    pub fn parser_lazy_uuids(&self) -> Vec<String> {
-        self.parser
+
+    fn lazy_uuids(&self) -> Vec<String> {
+        self.statics
             .iter()
             .filter_map(|f| {
                 if let stypes::FieldDesc::Lazy(f) = f {
@@ -177,7 +139,7 @@ impl Options {
 #[derive(Default)]
 pub struct Components {
     //TODO: "hot" validators also here
-    options: HashMap<Uuid, (Option<FieldsGetter>, Option<LazyFieldsGetter>)>,
+    options: HashMap<Uuid, (Option<FieldsGetter>, Option<LazyFieldsTaskGetter>)>,
     sources: HashMap<Uuid, stypes::Ident>,
     parsers: HashMap<Uuid, stypes::Ident>,
 }
@@ -187,9 +149,9 @@ impl Components {
         &mut self,
         ident: &stypes::Ident,
         static_fields_handle: Option<FieldsGetter>,
-        lazy_fields_handle: Option<LazyFieldsGetter>,
+        lazy_fields_handle: Option<LazyFieldsTaskGetter>,
     ) -> Result<(), stypes::NativeError> {
-        if self.options.contains_key(&ident.uuid) || self.sources.contains_key(&ident.uuid) {
+        if self.options.contains_key(&ident.uuid) {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -206,7 +168,7 @@ impl Components {
         &mut self,
         ident: &stypes::Ident,
         static_fields_handle: Option<FieldsGetter>,
-        lazy_fields_handle: Option<LazyFieldsGetter>,
+        lazy_fields_handle: Option<LazyFieldsTaskGetter>,
     ) -> Result<(), stypes::NativeError> {
         self.register(ident, static_fields_handle, lazy_fields_handle)?;
         self.sources.insert(ident.uuid, ident.to_owned());
@@ -218,7 +180,7 @@ impl Components {
         &mut self,
         ident: &stypes::Ident,
         static_fields_handle: Option<FieldsGetter>,
-        lazy_fields_handle: Option<LazyFieldsGetter>,
+        lazy_fields_handle: Option<LazyFieldsTaskGetter>,
     ) -> Result<(), stypes::NativeError> {
         self.register(ident, static_fields_handle, lazy_fields_handle)?;
         self.parsers.insert(ident.uuid, ident.to_owned());
@@ -246,7 +208,7 @@ impl Components {
         source_origin: stypes::SourceOrigin,
         source: Uuid,
         parser: Uuid,
-    ) -> Result<Options, stypes::NativeError> {
+    ) -> Result<(Options, Options), stypes::NativeError> {
         let (
             (source_ident, (source_static, source_lazy)),
             (parser_ident, (parser_static, parser_lazy)),
@@ -257,21 +219,18 @@ impl Components {
         let parser_fields = parser_static
             .map(|getter| getter(&source_origin))
             .unwrap_or(Ok(Vec::new()))?;
-        let mut options = Options::with_static(source_fields, parser_fields);
+        let mut source_options = Options::new(source_fields);
+        let mut parser_options = Options::new(parser_fields);
         // Check do we have some lazy settings
-        if let (Some(getter), true) = (source_lazy, options.source_has_lazy()) {
-            let (tx, rx) = oneshot::channel();
+        if let (Some(getter), true) = (source_lazy, source_options.has_lazy()) {
             let tk = CancellationToken::new();
-            getter(&source_origin, tx, &tk)?;
-            options.set_source_lazy_task(source_ident.clone(), rx, &tk);
+            source_options.set_lazy(source_ident.clone(), getter(&source_origin, &tk), &tk);
         }
-        if let (Some(getter), true) = (parser_lazy, options.source_has_lazy()) {
-            let (tx, rx) = oneshot::channel();
+        if let (Some(getter), true) = (parser_lazy, parser_options.has_lazy()) {
             let tk = CancellationToken::new();
-            getter(&source_origin, tx, &tk)?;
-            options.set_parser_lazy_task(parser_ident.clone(), rx, &tk);
+            parser_options.set_lazy(parser_ident.clone(), getter(&source_origin, &tk), &tk);
         }
-        Ok(options)
+        Ok((source_options, parser_options))
     }
 
     fn get<'a>(
