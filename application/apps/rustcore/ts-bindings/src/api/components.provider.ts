@@ -7,7 +7,7 @@ import * as protocol from 'protocol';
 export interface IComponentsEvents {
     Options: Subject<StaticFieldDesc[]>;
     Errors: Subject<[string, string][]>;
-    Destroy: Subject<void>;
+    Destroyed: Subject<void>;
 }
 
 export interface IComponentsEventsConvertors {}
@@ -15,25 +15,25 @@ export interface IComponentsEventsConvertors {}
 export interface IComponentsEventsSignatures {
     Options: 'Options';
     Errors: 'Errors';
-    Destroy: 'Destroy';
+    Destroyed: 'Destroyed';
 }
 
 const SessionEventsSignatures: IComponentsEventsSignatures = {
     Options: 'Options',
     Errors: 'Errors',
-    Destroy: 'Destroy',
+    Destroyed: 'Destroyed',
 };
 
 export interface IComponentsEventsInterfaces {
     Options: { self: ['object', null] };
     Errors: { self: [typeof Array, null] };
-    Destroy: { self: null };
+    Destroyed: { self: null };
 }
 
 const SessionEventsInterfaces: IComponentsEventsInterfaces = {
     Options: { self: ['object', null] },
     Errors: { self: [Array, null] },
-    Destroy: { self: null },
+    Destroyed: { self: null },
 };
 
 export class ComponentsEventProvider extends Computation<
@@ -44,13 +44,13 @@ export class ComponentsEventProvider extends Computation<
     private readonly _events: IComponentsEvents = {
         Options: new Subject<StaticFieldDesc[]>(),
         Errors: new Subject<[string, string][]>(),
-        Destroy: new Subject<void>(),
+        Destroyed: new Subject<void>(),
     };
 
     private readonly _convertors: IComponentsEventsConvertors = {};
 
     constructor(uuid: string) {
-        super(uuid, protocol.decodeCallbackEvent);
+        super(uuid, protocol.decodeCallbackOptionsEvent);
     }
 
     public getName(): string {
