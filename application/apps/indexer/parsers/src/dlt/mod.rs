@@ -1,5 +1,6 @@
 pub mod attachment;
 pub mod fmt;
+mod options;
 
 use crate::{
     Error, LogMessage, ParseYield, SingleParser, dlt::fmt::FormattableMessage,
@@ -241,23 +242,6 @@ impl Parser<RangeMessage> for DltRangeParser {
         let total_consumed = input.len() - rest.len();
         let item = (total_consumed, msg.map(|m| m.into()));
 
-const DLT_RANGE_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
-    0x01, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-]);
-
-impl components::Component for DltRangeParser {
-    fn ident() -> stypes::Ident {
-        stypes::Ident {
-            name: String::from("DLT Range Parser"),
-            desc: String::from("DLT Range Parser"),
-            uuid: DLT_RANGE_PARSER_UUID,
-        }
-    }
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        Ok(())
-    }
-}
-
 impl Parser<RawMessage> for DltRawParser {
     fn parse(
         &mut self,
@@ -267,22 +251,5 @@ impl Parser<RawMessage> for DltRawParser {
         parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
             self.parse_item(input, timestamp)
         })
-    }
-}
-
-const DLT_RAW_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
-    0x01, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-]);
-
-impl components::Component for DltRawParser {
-    fn ident() -> stypes::Ident {
-        stypes::Ident {
-            name: String::from("DLT Raw Parser"),
-            desc: String::from("DLT Raw Parser"),
-            uuid: DLT_RAW_PARSER_UUID,
-        }
-    }
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        Ok(())
     }
 }
