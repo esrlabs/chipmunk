@@ -185,9 +185,9 @@ export type PluginLogMessage = {
 };
 
 /**
- * Represents the plugins metadata like name, description...
+ * Represents the plugins metadata like title, description...
  */
-export type PluginMetadata = { name: string; description: string | null };
+export type PluginMetadata = { title: string; description: string | null };
 
 /**
  * General settings for all parsers as plugins

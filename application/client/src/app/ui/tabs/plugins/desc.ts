@@ -53,7 +53,7 @@ export class InstalledPluginDesc extends PluginDescription {
         } else if (!this.entity.metadata && this.path) {
             return this.path.name;
         } else if (this.entity.metadata) {
-            return this.entity.metadata.name;
+            return this.entity.metadata.title;
         } else {
             return this.entity.dir_path;
         }
