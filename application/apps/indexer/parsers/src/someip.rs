@@ -319,6 +319,20 @@ const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 ]);
 
+impl SomeipParser {
+    pub fn fields(
+        _origin: &stypes::SourceOrigin,
+    ) -> Result<Vec<stypes::FieldDesc>, stypes::NativeError> {
+        Ok(vec![stypes::FieldDesc::Static(stypes::StaticFieldDesc {
+            id: String::from("log_level"),
+            name: String::from("Log Level"),
+            desc: String::from("DLT Log Level"),
+            required: true,
+            default: Some(stypes::Value::Integer(1)),
+            interface: stypes::ValueInterface::DropList(Vec::new()),
+        })])
+    }
+}
 impl components::Component for SomeipParser {
     fn ident() -> stypes::Ident {
         stypes::Ident {
@@ -327,7 +341,8 @@ impl components::Component for SomeipParser {
             uuid: SOMEIP_PARSER_UUID,
         }
     }
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        components.register_parser(&Self::ident(), Some(SomeipParser::fields), None)?;
         Ok(())
     }
 }
