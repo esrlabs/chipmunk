@@ -90,7 +90,8 @@ impl<R: Read + Send> components::Component for BinaryByteSource<R> {
         }
     }
 
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        components.register_source(&Self::ident(), None, None)?;
         Ok(())
     }
 }

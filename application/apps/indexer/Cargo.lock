@@ -725,7 +725,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "stypes",
- "thiserror 2.0.3",
+ "thiserror 2.0.11",
  "tokio",
  "tokio-util",
  "uuid",
@@ -2586,7 +2586,10 @@ dependencies = [
  "someip-payload",
  "someip-tools",
  "stringreader",
+ "stypes",
  "thiserror 2.0.11",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]
@@ -2713,6 +2716,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "blake3",
+ "components",
  "criterion",
  "dir_checksum",
  "dirs 5.0.1",
