@@ -260,6 +260,7 @@ impl PluginsManager {
                             PluginLogLevel::Debug | PluginLogLevel::Info => false,
                         })
                         .for_each(|msg| {
+                            // Writing to a string never fails.
                             _ = writeln!(&mut err_msg, "{}", msg.msg);
                         });
 
