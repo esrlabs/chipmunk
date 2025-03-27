@@ -6,8 +6,9 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "node_modules/.bin/tsc -p tsconfig.json",
+    "build-jasmine": "node_modules/.bin/tsc -p ./spec/tsconfig.json",
     "prod": "node_modules/.bin/tsc -p tsconfig.json",
-    "test_cancel": "node_modules/.bin/electron node_modules/jasmine-ts/lib/index.js ./spec/session.cancel.spec.ts",
+    "test": "node_modules/.bin/jasmine ./spec/build/spec/session.components.spec.js",
     "lint": "node_modules/.bin/eslint . --max-warnings=0",
     "check": "node_modules/.bin/tsc -p tsconfig.json --noemit"
   },

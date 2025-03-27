@@ -68,14 +68,14 @@ export class Base extends Subscriber {
         this.logger.debug(`Rust Components native session is created`);
         this.provider = provider;
         this.register(
-            this.provider.getEvents().Destroy.subscribe(() => {
+            this.provider.getEvents().Destroyed.subscribe(() => {
                 this.state = State.Destroyed;
                 if (this.destroyResolver === undefined) {
                     this.logger.error(`Session has been destroyed before call of "destroy"`);
                     this.state = State.Unavailable;
                     return;
                 }
-                this.logger.error(`Destroy session confirmation has been gotten`);
+                this.logger.debug(`Destroy session confirmation has been gotten`);
                 // Confirm destroying
                 this.destroyResolver();
                 // Shutdown provider to drop all subscriptions
