@@ -54,10 +54,10 @@ export class WrappedParserRef {
         const plugin = this.as_plugin();
         if (plugin !== undefined) {
             return {
-                major: plugin.metadata.name,
+                major: plugin.metadata.title,
                 minor: plugin.metadata.description
                     ? plugin.metadata.description
-                    : plugin.metadata.name,
+                    : plugin.metadata.title,
                 icon: undefined,
             };
         }
@@ -225,8 +225,8 @@ export class State extends Subscriber {
                     instance instanceof FileOrigin.Configuration
                         ? [instance.filename()]
                         : instance instanceof ConcatOrigin.Configuration
-                        ? instance.files()
-                        : undefined;
+                          ? instance.files()
+                          : undefined;
                 if (files === undefined) {
                     return;
                 }

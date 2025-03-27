@@ -200,7 +200,7 @@ pub async fn load_plugin(
                     .unwrap_or("Unknown");
 
                 PluginMetadata {
-                    name: dir_name.into(),
+                    title: dir_name.into(),
                     description: None,
                 }
             }
@@ -213,7 +213,7 @@ pub async fn load_plugin(
                 .unwrap_or("Unknown");
 
             PluginMetadata {
-                name: dir_name.into(),
+                title: dir_name.into(),
                 description: None,
             }
         }

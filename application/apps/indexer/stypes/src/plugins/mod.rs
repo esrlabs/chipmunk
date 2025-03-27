@@ -230,7 +230,7 @@ pub struct InvalidPluginEntity {
     pub plugin_type: PluginType,
 }
 
-/// Represents the plugins metadata like name, description...
+/// Represents the plugins metadata like title, description...
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
 #[cfg_attr(
@@ -239,7 +239,7 @@ pub struct InvalidPluginEntity {
     ts(export, export_to = "plugins.ts")
 )]
 pub struct PluginMetadata {
-    pub name: String,
+    pub title: String,
     pub description: Option<String>,
 }
 
