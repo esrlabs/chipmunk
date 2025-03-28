@@ -330,6 +330,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
+name = "components"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "thiserror 2.0.11",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
 name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -914,6 +926,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
+ "components",
  "dlt-core",
  "lazy_static",
  "log",
@@ -924,7 +937,11 @@ dependencies = [
  "someip-messages",
  "someip-payload",
  "someip-tools",
+ "stypes",
  "thiserror 2.0.11",
+ "tokio",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]
@@ -1304,6 +1321,7 @@ dependencies = [
  "async-stream",
  "bufread",
  "bytes",
+ "components",
  "etherparse",
  "futures",
  "indexer_base",
@@ -1349,6 +1367,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.11",
  "tokio",
+ "tokio-util",
  "uuid",
  "walkdir",
 ]
