@@ -1,3 +1,10 @@
+# 3.16.5 (28.03.2025)
+
+## Changes
+- Upgrade DLT parser version
+- Add TCP reconnection support
+- Refactoring to fit cancel safe requirements
+
 # 3.16.4 (21.03.2025)
 
 ## Fixes
