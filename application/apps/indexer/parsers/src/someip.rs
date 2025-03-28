@@ -20,6 +20,11 @@ use lazy_static::lazy_static;
 use log::{debug, error};
 use regex::Regex;
 use serde::Serialize;
+use tokio::{
+    select,
+    time::{sleep, Duration},
+};
+use tokio_util::sync::CancellationToken;
 
 /// Marker for a column separator in the output string.
 const COLUMN_SEP: &str = "\u{0004}"; // EOT
@@ -319,18 +324,50 @@ const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 ]);
 
+// TODO: fields IDs could be same for diff parser/source... on level of Options event
+// we should also provide a master of field to prevent conflicts.
+const FIELD_LOG_LEVEL: &str = "log_level";
+const FIELD_STATISTICS: &str = "statistics";
+
 impl SomeipParser {
     pub fn fields(
         _origin: &stypes::SourceOrigin,
     ) -> Result<Vec<stypes::FieldDesc>, stypes::NativeError> {
         Ok(vec![stypes::FieldDesc::Static(stypes::StaticFieldDesc {
-            id: String::from("log_level"),
+            id: FIELD_LOG_LEVEL.to_owned(),
             name: String::from("Log Level"),
             desc: String::from("DLT Log Level"),
             required: true,
             default: Some(stypes::Value::Integer(1)),
             interface: stypes::ValueInterface::DropList(Vec::new()),
         })])
+    }
+    pub fn lazy(
+        _origin: &stypes::SourceOrigin,
+        cancel: &CancellationToken,
+    ) -> components::LazyFieldsTask {
+        let tk: CancellationToken = cancel.clone();
+        Box::pin(async move {
+            // Sleep a little to emulate loading
+            let duration = Duration::from_millis(100);
+            select! {
+                _ = sleep(duration) => {
+                    // no cancelation
+                },
+                _ = tk.cancelled() => {
+                    // cancelled
+                    return Ok(Vec::new());
+                }
+            };
+            Ok(vec![stypes::StaticFieldDesc {
+                id: FIELD_STATISTICS.to_owned(),
+                name: String::from("Example"),
+                desc: String::from("Example"),
+                required: true,
+                default: Some(stypes::Value::Integer(1)),
+                interface: stypes::ValueInterface::DropList(Vec::new()),
+            }])
+        })
     }
 }
 impl components::Component for SomeipParser {
@@ -342,7 +379,11 @@ impl components::Component for SomeipParser {
         }
     }
     fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_parser(&Self::ident(), Some(SomeipParser::fields), None)?;
+        components.register_parser(
+            &Self::ident(),
+            Some(SomeipParser::fields),
+            Some(SomeipParser::lazy),
+        )?;
         Ok(())
     }
 }
