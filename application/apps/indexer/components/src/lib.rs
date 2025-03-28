@@ -76,9 +76,11 @@ impl LazyLoadingTask {
                 )),
             });
         };
-        // TODO: something about cancel safe
+        // TODO: cancel safe
         select! {
             _ = self.meta.cancel.cancelled() => {
+                // TODO: the question - shell we controll cancellation about parser/source,
+                // or we can deligate it? I think we should controll it above.
                 Ok(LazyLoadingResult::Cancelled)
             }
             fields = task => {
@@ -90,7 +92,12 @@ impl LazyLoadingTask {
                         self.meta.ident.name
                     )),
                 })?;
-                Ok(LazyLoadingResult::Feilds(fields))
+                // Check one more time in case if cancel was catched first on level of parser/source
+                if self.meta.cancel.is_cancelled() {
+                    Ok(LazyLoadingResult::Cancelled)
+                } else {
+                    Ok(LazyLoadingResult::Feilds(fields))
+                }
             }
         }
     }
