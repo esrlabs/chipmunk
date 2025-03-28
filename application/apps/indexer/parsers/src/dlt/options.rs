@@ -1,3 +1,7 @@
+use tokio::{
+    select,
+    time::{sleep, Duration},
+};
 use tokio_util::sync::CancellationToken;
 
 use crate::dlt::*;
@@ -29,13 +33,24 @@ impl DltParser<'_> {
             }),
         ])
     }
-    pub fn statistits(
+    pub fn lazy(
         _origin: &stypes::SourceOrigin,
-        _cancel: &CancellationToken,
+        cancel: &CancellationToken,
     ) -> components::LazyFieldsTask {
-        Box::pin(async {
+        let tk: CancellationToken = cancel.clone();
+        Box::pin(async move {
+            let duration = Duration::from_millis(5000);
+            select! {
+                _ = sleep(duration) => {
+                    // no cancelation
+                },
+                _ = tk.cancelled() => {
+                    // cancelled
+                    return Ok(Vec::new());
+                }
+            };
             Ok(vec![stypes::StaticFieldDesc {
-                id: FIELD_LOG_LEVEL.to_owned(),
+                id: FIELD_STATISTICS.to_owned(),
                 name: String::from("Example"),
                 desc: String::from("Example"),
                 required: true,
@@ -58,7 +73,7 @@ impl components::Component for DltParser<'_> {
         components.register_parser(
             &Self::ident(),
             Some(DltParser::fields),
-            Some(DltParser::statistits),
+            Some(DltParser::lazy),
         )?;
         Ok(())
     }
