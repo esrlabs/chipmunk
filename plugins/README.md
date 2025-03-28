@@ -16,7 +16,10 @@ This guide provides an overview of how to develop plugins for Chipmunk applicati
   - [Parser Plugins](#parser-plugins)
   - [Byte-Source Plugins](#byte-source-plugins)
 - [Developing Plugins in Other Languages](#developing-plugins-in-other-languages)
-- [Useful Tools](#useful-tools)
+  - [Useful Tools](#useful-tools)
+- [Plugins Benchmarking](#plugins-benchmarking)
+  - [Plugin Initialization](#plugin-initialization)
+  - [Parser Plugin](#parser-plugin)
 - [Additional Resources](#additional-resources)
 
 ---
@@ -159,6 +162,37 @@ Plugins can also be developed in any language that supports compiling to WASM wi
 #### Wit-bindgen
 
 [wit-bindgen](https://github.com/bytecodealliance/wit-bindgen) is a bindings generator for WIT and the WASM Component Model. It supports multiple languages, including Rust, C/C++, C#, and Java, and can help generate the necessary bindings from your WIT files.
+
+---
+
+## Plugins Benchmarking:
+
+Chipmunk includes several benchmarks designed to measure the performance of various tasks within your plugins. Each benchmark requires a TOML configuration file that specifies the plugin’s path and other relevant settings. You can refer to the provided templates and examples for more details on how to structure the configuration.  
+
+To run the benchmarks, you first need to install the [Chipmunk development tool](./../cli/development-cli/README.md), which is required for managing and executing these benchmarks.  
+
+Once installed, you can explore the available benchmarking options with the following command to see detailed information about each benchmark:
+```sh
+cargo chipmunk bench core --help
+```
+
+### Plugin Initialization  
+This benchmark measures how much time it takes to initialize the plugin with the provided configuration. This is useful for gauging the overhead of loading and setting up the plugin before it begins processing actual data.  
+
+To run this benchmark within the Chipmunk repository, use the following command, substituting `{path_to_plugin_config_file}` with the path to your configuration file:  
+```sh
+cargo chipmunk bench core plugin_parser_init -c {path_to_plugin_conig_file}.toml
+```
+
+### Parser Plugin:
+This benchmark is designed to evaluate the performance of parser plugins when processing input files. It simulates the real-world scenario of parsing data and allows you to measure how well the plugin performs under various conditions.  
+
+Run the benchmark with the following command, replacing `{path_to_input_file}` with the path to the file you want to parse, and `{path_to_plugin_config_file}` with the path to the corresponding configuration file:  
+
+```sh
+cargo chipmunk bench core plugin_praser_producer -i {path_to_input_file} -c {path_to_plugin_conig_file}.toml 
+```
+For a working example of a parser plugin configuration, refer to the [DLT parser config file](./examples/dlt_parser/bench_config.toml). This example will help you understand how to structure your configuration for the parser plugin.
 
 ---
 

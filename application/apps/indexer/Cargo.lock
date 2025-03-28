@@ -3587,6 +3587,7 @@ dependencies = [
  "tokio-serial",
  "tokio-stream",
  "tokio-util",
+ "toml",
  "uuid",
 ]
 
