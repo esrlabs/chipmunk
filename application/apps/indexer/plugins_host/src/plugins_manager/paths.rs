@@ -73,10 +73,19 @@ impl PluginFiles {
 ///
 /// Paths for the plugin files when plugins directory is valid.
 pub fn extract_plugin_file_paths(plugin_dir: &Path) -> Option<PluginFiles> {
-    let dir_name = plugin_dir.file_name().and_then(|name| name.to_str())?;
-    let plugin_path = plugin_dir.join(format!("{dir_name}.wasm"));
-    let metadata_path = plugin_dir.join(format!("{dir_name}.toml"));
+    let plugin_name = get_plugin_name(plugin_dir)?;
+    let plugin_path = plugin_dir.join(format!("{plugin_name}.wasm"));
+    let metadata_path = plugin_dir.join(format!("{plugin_name}.toml"));
     let readme_path = plugin_dir.join(PLUGIN_README_FILENAME);
 
     Some(PluginFiles::new(plugin_path, metadata_path, readme_path))
+}
+
+/// Provide plugin name from its directory name according to conventions which
+/// stats that plugin name should be matching to the directory name.
+///
+/// # Returns:
+/// Plugin name when directory have a name, otherwise `None`
+pub fn get_plugin_name(plugin_dir: &Path) -> Option<&str> {
+    plugin_dir.file_name().and_then(|name| name.to_str())
 }

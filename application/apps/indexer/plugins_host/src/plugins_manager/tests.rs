@@ -30,7 +30,7 @@ fn create_manager() -> PluginsManager {
                 })),
             },
             metadata: PluginMetadata {
-                name: "parser_1".into(),
+                title: "parser_1".into(),
                 description: None,
             },
             readme_path: Some(PARSER_README_PATH.into()),
@@ -49,7 +49,7 @@ fn create_manager() -> PluginsManager {
                 })),
             },
             metadata: PluginMetadata {
-                name: "parser_2".into(),
+                title: "parser_2".into(),
                 description: None,
             },
             readme_path: None,
@@ -66,7 +66,7 @@ fn create_manager() -> PluginsManager {
                 render_options: RenderOptions::ByteSource,
             },
             metadata: PluginMetadata {
-                name: "source_1".into(),
+                title: "source_1".into(),
                 description: None,
             },
             readme_path: Some(SOURCE_README_PATH.into()),
@@ -83,7 +83,7 @@ fn create_manager() -> PluginsManager {
                 render_options: RenderOptions::ByteSource,
             },
             metadata: PluginMetadata {
-                name: "source_2".into(),
+                title: "source_2".into(),
                 description: None,
             },
             readme_path: None,

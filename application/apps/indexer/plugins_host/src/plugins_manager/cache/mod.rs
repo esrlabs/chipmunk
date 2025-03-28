@@ -102,7 +102,6 @@ impl CacheManager {
         &mut self,
         plug_dir: &Path,
         state: CachedPluginState,
-        persist: bool,
     ) -> Result<(), PluginsCacheError> {
         let calculated_hash = self.calc_plugin_hash(plug_dir)?;
 
@@ -121,10 +120,6 @@ impl CacheManager {
             }
         };
 
-        if persist {
-            self.persist()?;
-        }
-
         Ok(())
     }
 
@@ -141,6 +136,29 @@ impl CacheManager {
         let mut file = File::create(cache_path)?;
         let cached_json = serde_json::to_string_pretty(self)?;
         file.write_all(cached_json.as_bytes())?;
+
+        Ok(())
+    }
+
+    /// Remove plugin from cache registry of exists with the option to persist the current cache.
+    pub fn remove_plugin(
+        &mut self,
+        plugin_dir: &Path,
+        persist: bool,
+    ) -> Result<(), PluginsCacheError> {
+        let Some(plugin_idx) = self
+            .plugins_info
+            .iter()
+            .position(|plug| plug.plugin_dir == plugin_dir)
+        else {
+            return Ok(());
+        };
+
+        let _ = self.plugins_info.remove(plugin_idx);
+
+        if persist {
+            self.persist()?;
+        }
 
         Ok(())
     }

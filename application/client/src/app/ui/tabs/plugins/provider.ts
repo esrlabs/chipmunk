@@ -125,4 +125,10 @@ export class Provider {
         ].find((pl) => pl.entity.dir_path === path);
         this.subjects.get().selected.emit(path);
     }
+    public addPlugin(pluginPath: string): Promise<void> {
+        return plugins.addPlugin(pluginPath);
+    }
+    public removePlugin(pluginPath: string): Promise<void> {
+        return plugins.removePlugin(pluginPath);
+    }
 }

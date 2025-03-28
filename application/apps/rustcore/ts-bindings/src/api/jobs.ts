@@ -382,4 +382,32 @@ export class Jobs extends Base {
         );
         return job;
     }
+
+    public addPlugin(plugin_path: string): CancelablePromise<void> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<void> = this.execute(
+            (buf: Uint8Array): any | Error => {
+                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
+            },
+            this.native.addPlugin(sequence, plugin_path),
+            sequence,
+            'addPlugin',
+        );
+
+        return job;
+    }
+
+    public removePlugin(plugin_path: string): CancelablePromise<void> {
+        const sequence = this.sequence();
+        const job: CancelablePromise<void> = this.execute(
+            (buf: Uint8Array): any | Error => {
+                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
+            },
+            this.native.removePlugin(sequence, plugin_path),
+            sequence,
+            `removePlugin`,
+        );
+
+        return job;
+    }
 }

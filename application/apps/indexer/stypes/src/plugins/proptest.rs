@@ -192,7 +192,7 @@ impl Arbitrary for PluginMetadata {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         (any::<String>(), prop::option::of(any::<String>()))
-            .prop_map(|(name, description)| Self { name, description })
+            .prop_map(|(title, description)| Self { title, description })
             .boxed()
     }
 }

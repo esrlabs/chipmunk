@@ -133,6 +133,17 @@ pub enum Command {
     ),
     /// Reload all the plugins from their directory.
     ReloadPlugins(oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>),
+    /// Adds a plugin with the given directory path and optional plugin type.
+    AddPlugin(
+        String,
+        Option<stypes::PluginType>,
+        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
+    ),
+    /// Removes the plugin with the given directory path.
+    RemovePlugin(
+        String,
+        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
+    ),
 }
 
 impl std::fmt::Display for Command {
@@ -161,6 +172,8 @@ impl std::fmt::Display for Command {
                 Command::InvalidPluginInfo(..) => "Getting invalid plugin info",
                 Command::PluginRunData(..) => "Getting plugin run data",
                 Command::ReloadPlugins(..) => "Reloading plugins' information",
+                Command::AddPlugin(..) => "Adding plugin",
+                Command::RemovePlugin(..) => "Removing plugin",
             }
         )
     }
@@ -223,6 +236,12 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
         Command::ReloadPlugins(tx) => tx
             .send(plugins::reload_plugins(plugins_manager, signal).await)
             .is_err(),
+        Command::AddPlugin(path, typ, tx) => tx
+            .send(plugins::add_plugin(path, typ, plugins_manager, signal).await)
+            .is_err(),
+        Command::RemovePlugin(path, tx) => tx
+            .send(plugins::remove_plugin(path, plugins_manager, signal).await)
+            .is_err(),
     } {
         error!("Fail to send response for command: {cmd}");
     }
@@ -251,6 +270,8 @@ pub fn err(command: Command, err: stypes::ComputationError) {
         Command::InvalidPluginInfo(_, tx) => tx.send(Err(err)).is_err(),
         Command::PluginRunData(_, tx) => tx.send(Err(err)).is_err(),
         Command::ReloadPlugins(tx) => tx.send(Err(err)).is_err(),
+        Command::AddPlugin(_, _, tx) => tx.send(Err(err)).is_err(),
+        Command::RemovePlugin(_, tx) => tx.send(Err(err)).is_err(),
     } {
         error!("Fail to send error response for command: {cmd}");
     }
