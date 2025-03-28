@@ -2415,6 +2415,7 @@ dependencies = [
  "someip-tools",
  "thiserror 2.0.12",
  "stypes",
+ "tokio",
  "tokio-util",
  "uuid",
 ]
