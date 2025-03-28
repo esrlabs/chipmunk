@@ -2,7 +2,7 @@ import { Logger } from 'platform/log';
 import { scope } from 'platform/env/scope';
 import { v4 as uuid } from 'uuid';
 import { Base as Native } from '../native/native.components';
-import { ComponentsEventProvider } from '../api/components.provider';
+import { ComponentsEventProvider, IComponentsEvents } from '../api/components.provider';
 import { SessionStream } from '../api/session.stream';
 import { SessionSearch } from '../api/session.search';
 import { Subscriber } from 'platform/env/subscription';
@@ -39,11 +39,30 @@ export class Components extends Subscriber {
         });
     }
 
+    static create(): Promise<Components> {
+        return new Promise((resolve, reject) => {
+            const components = new Components((err: Error | undefined) => {
+                if (err instanceof Error) {
+                    reject(err);
+                } else {
+                    resolve(components);
+                }
+            });
+        });
+    }
+
     public destroy(): Promise<void> {
         return this.native.destroy().catch((err: Error) => {
             this.logger.error(`Fail to destroy session: ${err.message}`);
             return Promise.reject(err);
         });
+    }
+
+    public getEvents(): IComponentsEvents {
+        if (this.provider === undefined) {
+            throw new Error(`EventProvider wasn't created`);
+        }
+        return this.provider.getEvents();
     }
 
     public get(origin: SourceOrigin): {
