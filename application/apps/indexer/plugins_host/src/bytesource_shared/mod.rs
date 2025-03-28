@@ -7,12 +7,12 @@ use stypes::{PluginInfo, PluginType, RenderOptions, SemanticVersion};
 use wasmtime::component::Component;
 
 use crate::{
-    plugins_shared::plugin_errors::PluginError, v0_1_0, wasm_host::get_wasm_host,
-    PluginHostInitError, WasmPlugin,
+    plugins_shared::{
+        load::{load_and_inspect, WasmComponentInfo},
+        plugin_errors::PluginError,
+    },
+    v0_1_0, PluginHostError, WasmPlugin,
 };
-
-/// Interface name for the byte-source plugin with the package name as defined in WIT file.
-const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:bytesource/byte-source";
 
 /// The maximum number of consecutive returns with empty bytes allowed from a plugin.
 /// If a plugin exceeds this number, it may be considered harmful to the system.
@@ -45,7 +45,7 @@ impl PluginsByteSource {
                 patch: 0,
             } => v0_1_0::bytesource::PluginByteSource::get_info(component).await?,
             invalid_version => {
-                return Err(PluginHostInitError::PluginInvalid(format!(
+                return Err(PluginHostError::PluginInvalid(format!(
                     "Plugin version {invalid_version} is not supported"
                 ))
                 .into())
@@ -66,44 +66,18 @@ impl PluginsByteSource {
     /// Loads and validate a plugin returning the its [`Component`] and API [`SemanticVersion`]
     async fn load(
         plugin_path: impl AsRef<Path>,
-    ) -> Result<(Component, SemanticVersion), PluginHostInitError> {
-        let engine = get_wasm_host()
-            .map(|host| &host.engine)
-            .map_err(|err| PluginHostInitError::from(err.to_owned()))?;
-        let plugin_path = plugin_path.as_ref();
+    ) -> Result<(Component, SemanticVersion), PluginHostError> {
+        let WasmComponentInfo {
+            component,
+            plugin_type,
+            version,
+        } = load_and_inspect(&plugin_path).await?;
 
-        if !plugin_path.exists() {
-            return Err(PluginHostInitError::IO("Plugin path doesn't exist".into()));
+        if plugin_type != PluginType::ByteSource {
+            return Err(PluginHostError::PluginInvalid(format!(
+                "Invalid plugin type {plugin_type}"
+            )));
         }
-
-        if !plugin_path.is_file() {
-            return Err(PluginHostInitError::IO("Plugin path is not a file".into()));
-        }
-
-        let component = Component::from_file(engine, plugin_path)
-            .map_err(|err| PluginHostInitError::PluginInvalid(err.to_string()))?;
-
-        let component_types = component.component_type();
-
-        let export_info = component_types.exports(engine).next().ok_or_else(|| {
-            PluginHostInitError::PluginInvalid("Plugin doesn't have exports information".into())
-        })?;
-
-        let (interface_name, version) = export_info.0.split_once('@').ok_or_else(|| {
-            PluginHostInitError::PluginInvalid(
-                "Plugin package schema doesn't match `wit` file definitions".into(),
-            )
-        })?;
-
-        if interface_name != BYTESOURCE_INTERFACE_NAME {
-            return Err(PluginHostInitError::PluginInvalid(
-                "Plugin package name doesn't match `wit` file".into(),
-            ));
-        }
-
-        let version: SemanticVersion = version.parse().map_err(|err| {
-            PluginHostInitError::PluginInvalid(format!("Plugin version parsing failed: {err}"))
-        })?;
 
         Ok((component, version))
     }
@@ -113,7 +87,7 @@ impl PluginsByteSource {
         plugin_path: impl AsRef<Path>,
         general_config: &stypes::PluginByteSourceGeneralSettings,
         plugin_configs: Vec<stypes::PluginConfigItem>,
-    ) -> Result<Self, PluginHostInitError> {
+    ) -> Result<Self, PluginHostError> {
         let (component, version) = Self::load(&plugin_path).await?;
 
         match version {
@@ -134,7 +108,7 @@ impl PluginsByteSource {
                     empty_count: 0,
                 })
             }
-            invalid_version => Err(PluginHostInitError::PluginInvalid(format!(
+            invalid_version => Err(PluginHostError::PluginInvalid(format!(
                 "Plugin version {invalid_version} is not supported"
             ))),
         }

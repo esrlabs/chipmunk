@@ -61,6 +61,8 @@ export abstract class JobsNative {
     public abstract invalidPluginsInfo(sequence: number, plugin_path: string): Promise<Uint8Array>;
     public abstract getPluginRunData(sequence: number, plugin_path: string): Promise<Uint8Array>;
     public abstract reloadPlugins(sequence: number): Promise<Uint8Array>;
+    public abstract addPlugin(sequence: number, plugin_path: string): Promise<Uint8Array>;
+    public abstract removePlugin(sequence: number, plugin_path: string): Promise<Uint8Array>;
 }
 
 interface Job {

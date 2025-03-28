@@ -4,7 +4,7 @@ use crate::unbound::signal::Signal;
 use plugins_host::plugins_manager::PluginsManager;
 use stypes::{
     CommandOutcome, ComputationError, InvalidPluginEntity, InvalidPluginsList, PluginEntity,
-    PluginRunData, PluginsList, PluginsPathsList,
+    PluginRunData, PluginType, PluginsList, PluginsPathsList,
 };
 use tokio::sync::RwLock;
 
@@ -141,6 +141,45 @@ pub async fn reload_plugins(
 
     manager
         .reload()
+        .await
+        .map_err(|err| ComputationError::NativeError(err.into()))?;
+
+    Ok(CommandOutcome::Finished(()))
+}
+
+/// Adds a plugin with the given directory path and the optional plugin type.
+///
+/// * `plugin_path`: Path of the plugin directory to be copied into chipmunk plugins directory.
+/// * `plugin_type`: Type of the plugin, when not provided plugin type will be entered from plugin
+///   `WIT` signature in its binary file.
+pub async fn add_plugin(
+    plugin_path: String,
+    plugin_type: Option<PluginType>,
+    plugins_manager: &RwLock<PluginsManager>,
+    _signal: Signal,
+) -> Result<CommandOutcome<()>, ComputationError> {
+    let mut manager = plugins_manager.write().await;
+
+    manager
+        .add_plugin(plugin_path.into(), plugin_type)
+        .await
+        .map_err(|err| ComputationError::NativeError(err.into()))?;
+
+    Ok(CommandOutcome::Finished(()))
+}
+
+/// Removes the plugin with the given directory path.
+///
+/// * `plugin_path`: Path of the plugin Chipmunk plugins directory.
+pub async fn remove_plugin(
+    plugin_path: String,
+    plugins_manager: &RwLock<PluginsManager>,
+    _signal: Signal,
+) -> Result<CommandOutcome<()>, ComputationError> {
+    let mut manager = plugins_manager.write().await;
+
+    manager
+        .remove_plugin(PathBuf::from(plugin_path).as_path())
         .await
         .map_err(|err| ComputationError::NativeError(err.into()))?;
 

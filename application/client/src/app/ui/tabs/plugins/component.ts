@@ -4,6 +4,7 @@ import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Provider } from './provider';
 import { Target } from './list/component';
+import { bridge } from '@service/bridge';
 
 @Component({
     selector: 'app-tabs-plugins-manager',
@@ -41,6 +42,21 @@ export class PluginsManager extends ChangesDetector implements AfterContentInit,
 
     public async reload() {
         await this.provider.load(true);
+    }
+
+    public async addPlugin() {
+        await bridge
+            .folders()
+            .select()
+            .then((dirs: string[]) => {
+                if (dirs.length === 0) {
+                    return Promise.resolve();
+                }
+                return this.provider.addPlugin(dirs[0]);
+            })
+            .catch((err: Error) => {
+                console.error(`Error while opening folders: ${err.message}`);
+            });
     }
 }
 

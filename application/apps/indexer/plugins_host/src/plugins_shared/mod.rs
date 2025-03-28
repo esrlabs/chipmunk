@@ -2,15 +2,16 @@ use anyhow::Context;
 use stypes::{RenderOptions, SemanticVersion};
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
 
-use crate::PluginHostInitError;
+use crate::PluginHostError;
 
+pub mod load;
 pub mod plugin_errors;
 
 /// Creates [`WasiCtxBuilder`] with shared configurations, giving the plugin read access to
 /// their configuration files' directories.
 pub fn get_wasi_ctx_builder(
     plugin_configs: &[stypes::PluginConfigItem],
-) -> Result<WasiCtxBuilder, PluginHostInitError> {
+) -> Result<WasiCtxBuilder, PluginHostError> {
     use stypes::PluginConfigValue as ConfValue;
     let mut ctx = WasiCtxBuilder::new();
     ctx.inherit_stdout().inherit_stderr().inherit_env();
@@ -29,7 +30,7 @@ pub fn get_wasi_ctx_builder(
         })
         .flatten()
     {
-        let config_dir = config_path.parent().ok_or(PluginHostInitError::IO(format!(
+        let config_dir = config_path.parent().ok_or(PluginHostError::IO(format!(
             "Resolve config file parent failed. File path: {}",
             config_path.display()
         )))?;
@@ -51,7 +52,7 @@ pub fn get_wasi_ctx_builder(
     Ok(ctx)
 }
 
-// Represents the retrieved static information form parser WASM file.
+// Represents the retrieved static information form plugin WASM file.
 pub(crate) struct PluginInfo {
     /// The version of the plugins itself.
     /// # Note:

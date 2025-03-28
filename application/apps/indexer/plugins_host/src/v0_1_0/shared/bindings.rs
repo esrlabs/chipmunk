@@ -1,7 +1,7 @@
 use self::chipmunk::shared::shared_types::{
     ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
 };
-use crate::PluginGuestInitError;
+use crate::PluginGuestError;
 use stypes::{
     PluginConfigSchemaType as HostSchemaType, PluginConfigValue as HostConfValue,
     SemanticVersion as HostVersion,
@@ -17,9 +17,9 @@ wasmtime::component::bindgen!({
     }
 });
 
-impl From<InitError> for PluginGuestInitError {
+impl From<InitError> for PluginGuestError {
     fn from(value: InitError) -> Self {
-        use PluginGuestInitError as GuestErr;
+        use PluginGuestError as GuestErr;
         match value {
             InitError::Config(msg) => GuestErr::Config(msg),
             InitError::Io(msg) => GuestErr::IO(msg),

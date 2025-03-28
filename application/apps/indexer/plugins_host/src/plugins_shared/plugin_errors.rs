@@ -3,9 +3,9 @@ use thiserror::Error;
 
 use crate::wasm_host::WasmHostInitError;
 
-/// Initialization error of the host of a specific plugin.
+/// Error related to plugins host.
 #[derive(Debug, Error)]
-pub enum PluginHostInitError {
+pub enum PluginHostError {
     /// Error in WASM engine host.
     #[error("Error while initializing WASM Engine. {0}")]
     EngineError(#[from] WasmHostInitError),
@@ -15,7 +15,7 @@ pub enum PluginHostInitError {
     #[error("Error reported from the plugin. {0}")]
     /// Error reported from the plugin when calling initialize method on it with
     /// the provided configurations.
-    GuestError(PluginGuestInitError),
+    GuestError(PluginGuestError),
     /// IO Error while initializing the plugin.
     #[error("IO Error while initializing WASM Plugin. {0}")]
     IO(String),
@@ -24,19 +24,19 @@ pub enum PluginHostInitError {
     WasmRunTimeError(#[from] anyhow::Error),
 }
 
-impl From<PluginHostInitError> for NativeError {
-    fn from(err: PluginHostInitError) -> Self {
+impl From<PluginHostError> for NativeError {
+    fn from(err: PluginHostError) -> Self {
         NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Plugins,
-            message: Some(format!("Plugin initializations failed. Error: {err}")),
+            message: Some(format!("Plugin Host Error: {err}")),
         }
     }
 }
 
-/// Error reported from the plugin guest while calling initialization.
+/// Error reported from plugins guest.
 #[derive(Debug, Error)]
-pub enum PluginGuestInitError {
+pub enum PluginGuestError {
     /// Plugin configuration error. Configurations can be the defined one by the plugin
     /// itself or one of general configurations.
     #[error("Configuration Error: {0}")]
@@ -55,9 +55,9 @@ pub enum PluginGuestInitError {
 /// Represents general errors in communication with plugins.
 #[derive(Debug, Error)]
 pub enum PluginError {
-    /// Error while initialization wasm host for the plugin.
-    #[error("Error while initializing plugin host. {0}")]
-    HostInitError(#[from] PluginHostInitError),
+    /// Error related to plugins host.
+    #[error("Plugins Host Error: {0}")]
+    PluginHostError(#[from] PluginHostError),
     /// Error form WASM runtime.
     #[error(transparent)]
     WasmRunTimeError(#[from] anyhow::Error),

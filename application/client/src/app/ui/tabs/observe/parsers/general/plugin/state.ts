@@ -90,8 +90,8 @@ export class State extends Base {
         this.selectedParser && this.selected.emit(this.selectedParser);
     }
 
-    public getPluginName(parser: PluginEntity): string {
-        return parser.metadata?.name ?? getSafeFileName(parser.dir_path);
+    public getPluginTitle(parser: PluginEntity): string {
+        return parser.metadata?.title ?? getSafeFileName(parser.dir_path);
     }
 
     public getPluginConfigs(parser?: PluginEntity): PluginConfigSchemaItem[] {
