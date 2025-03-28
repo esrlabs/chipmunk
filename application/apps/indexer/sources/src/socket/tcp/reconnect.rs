@@ -88,13 +88,13 @@ impl TcpReconnecter {
             self.task_handle.is_none(),
             "There must be no spawned reconnect task when spawn reconnect is called"
         );
-        let hanlde = tokio::spawn(reconnect(
+        let handle = tokio::spawn(reconnect(
             self.reconnect_info.clone(),
             self.binding_address,
             self.keep_alive.clone(),
         ));
 
-        self.task_handle = Some(hanlde);
+        self.task_handle = Some(handle);
     }
 }
 
@@ -139,7 +139,7 @@ async fn reconnect(
                         // Make sure the message has been sent before returning.
                         yield_now().await;
                     }
-                    log::warn!("Reconnecting to TCP server failed after {attempts} attemps.");
+                    log::warn!("Reconnecting to TCP server failed after {attempts} attempts.");
 
                     return ReconnectResult::Error(err);
                 }

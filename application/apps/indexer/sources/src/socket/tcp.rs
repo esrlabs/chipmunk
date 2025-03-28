@@ -184,6 +184,21 @@ mod tests {
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
 
+    /// Accepts a connection from the provided listener and sends mock messages,  
+    /// sleeping for the specified duration (in milliseconds) between messages.
+    async fn accept_and_send(listener: &TcpListener, sleep_mili_sec: u64) {
+        let (stream, _) = listener.accept().await.unwrap();
+        let (_, mut send) = tokio::io::split(stream);
+        // stream.writable().await.unwrap();
+        for msg in MESSAGES {
+            send.write_all(msg.as_bytes())
+                .await
+                .expect("could not send on socket");
+            send.flush().await.expect("flush message should work");
+            sleep(Duration::from_millis(sleep_mili_sec)).await;
+        }
+    }
+
     #[tokio::test]
     async fn test_tcp_reload() -> Result<(), std::io::Error> {
         static SERVER: &str = "127.0.0.1:4000";
@@ -191,16 +206,7 @@ mod tests {
         // process_socket(socket).await;
         // let send_socket = TcpSocket::bind(SENDER).await?;
         let send_handle = tokio::spawn(async move {
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            // stream.writable().await.unwrap();
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(100)).await;
-            }
+            accept_and_send(&listener, 100).await;
         });
         let mut tcp_source = TcpSource::new(SERVER, None, None).await?;
         let receive_handle = tokio::spawn(async move {
@@ -229,16 +235,7 @@ mod tests {
         // process_socket(socket).await;
         // let send_socket = TcpSocket::bind(SENDER).await?;
         tokio::spawn(async move {
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            // stream.writable().await.unwrap();
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(100)).await;
-            }
+            accept_and_send(&listener, 100).await;
         });
         let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
 
@@ -285,33 +282,14 @@ mod tests {
         static SERVER: &str = "127.0.0.1:4003";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
         let send_handle = tokio::spawn(async move {
-            // Run server sending data for first time.
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
-
+            accept_and_send(&listener, 30).await;
             // Then disconnected the server and sleep.
-            drop(send);
             drop(listener);
             sleep(Duration::from_millis(150)).await;
 
             // Start new server sending data again.
             let listener = TcpListener::bind(&SERVER).await.unwrap();
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
+            accept_and_send(&listener, 30).await;
         });
 
         // Enable reconnect without configuring state channels.
@@ -343,33 +321,14 @@ mod tests {
         static SERVER: &str = "127.0.0.1:4004";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
         let send_handle = tokio::spawn(async move {
-            // Run server sending data for first time.
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
-
+            accept_and_send(&listener, 30).await;
             // Then disconnected the server and sleep.
-            drop(send);
             drop(listener);
             sleep(Duration::from_millis(160)).await;
 
             // Start new server sending data again.
             let listener = TcpListener::bind(&SERVER).await.unwrap();
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
+            accept_and_send(&listener, 30).await;
         });
 
         // Enable reconnect with state channels.
@@ -431,16 +390,7 @@ mod tests {
         static SERVER: &str = "127.0.0.1:4005";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
         let send_handle = tokio::spawn(async move {
-            // Run server sending some data then stop.
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
+            accept_and_send(&listener, 30).await;
         });
 
         // Enable reconnect with state channels.
@@ -498,33 +448,14 @@ mod tests {
         static SERVER: &str = "127.0.0.1:4006";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
         let send_handle = tokio::spawn(async move {
-            // Run server sending data for first time.
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
-
+            accept_and_send(&listener, 30).await;
             // Then disconnected the server and sleep.
-            drop(send);
             drop(listener);
             sleep(Duration::from_millis(150)).await;
 
             // Start new server sending data again.
             let listener = TcpListener::bind(&SERVER).await.unwrap();
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
+            accept_and_send(&listener, 30).await;
         });
 
         // Enable reconnect without configuring state channels.
@@ -584,33 +515,14 @@ mod tests {
         static SERVER: &str = "127.0.0.1:4007";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
         let send_handle = tokio::spawn(async move {
-            // Run server sending data for first time.
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
-
+            accept_and_send(&listener, 30).await;
             // Then disconnected the server and sleep.
-            drop(send);
             drop(listener);
             sleep(Duration::from_millis(150)).await;
 
             // Start new server sending data again.
             let listener = TcpListener::bind(&SERVER).await.unwrap();
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(30)).await;
-            }
+            accept_and_send(&listener, 30).await;
         });
 
         // Enable reconnect without configuring state channels.
