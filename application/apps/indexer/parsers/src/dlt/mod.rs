@@ -212,23 +212,6 @@ impl SingleParser<RangeMessage> for DltRangeParser {
 impl SingleParser<RawMessage> for DltRawParser {
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
-const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
-    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-]);
-
-impl components::Component for DltParser<'_> {
-    fn ident() -> stypes::Ident {
-        stypes::Ident {
-            name: String::from("DLT Parser"),
-            desc: String::from("DLT Parser"),
-            uuid: DLT_PARSER_UUID,
-        }
-    }
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        Ok(())
-    }
-}
-
 impl Parser<RangeMessage> for DltRangeParser {
     fn parse(
         &mut self,
