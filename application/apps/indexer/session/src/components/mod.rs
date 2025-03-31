@@ -84,6 +84,7 @@ impl ComponentsSession {
                                     task::spawn(async move {
                                         log_if_err(tx_api.send(Api::LazyTaskComplite(
                                             uuid,
+                                            source_loading_task.get_meta(),
                                             source_loading_task.wait().await,
                                         )));
                                     }),
@@ -102,6 +103,7 @@ impl ComponentsSession {
                                     task::spawn(async move {
                                         log_if_err(tx_api.send(Api::LazyTaskComplite(
                                             uuid,
+                                            parser_loading_task.get_meta(),
                                             parser_loading_task.wait().await,
                                         )));
                                     }),
@@ -110,22 +112,62 @@ impl ComponentsSession {
                         }
                     }
                     // Delivery lazy fields to client.
-                    Api::LazyTaskComplite(uuid, results) => {
+                    Api::LazyTaskComplite(uuid, meta, results) => {
                         tasks.remove(&uuid);
                         match results {
                             Ok(LazyLoadingResult::Feilds(fields)) => {
-                                log_if_err(
-                                    tx_callback_events
-                                        .send(stypes::CallbackOptionsEvent::Options(fields)),
-                                );
+                                let (success, fail): (Vec<_>, Vec<_>) =
+                                    fields.into_iter().partition(|(_, result)| result.is_ok());
+                                let fields: Vec<stypes::StaticFieldDesc> = success
+                                    .into_iter()
+                                    .filter_map(|(_, field)| field.ok())
+                                    .collect();
+                                let errors: Vec<stypes::FieldLoadingError> = fail
+                                    .into_iter()
+                                    .filter_map(|(id, err)| {
+                                        if let Err(err) = err {
+                                            Some(stypes::FieldLoadingError { id, err })
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect();
+                                if !fields.is_empty() {
+                                    log_if_err(tx_callback_events.send(
+                                        stypes::CallbackOptionsEvent::LoadingDone {
+                                            owner: meta.owner(),
+                                            fields,
+                                        },
+                                    ));
+                                }
+                                if !errors.is_empty() {
+                                    log_if_err(tx_callback_events.send(
+                                        stypes::CallbackOptionsEvent::LoadingErrors {
+                                            owner: meta.owner(),
+                                            errors,
+                                        },
+                                    ));
+                                }
                             }
                             Ok(..) => {
                                 // Task has been cancelled
+                                log_if_err(tx_callback_events.send(
+                                    stypes::CallbackOptionsEvent::LoadingCancelled {
+                                        owner: meta.owner(),
+                                        fields: meta.fields,
+                                    },
+                                ));
                                 continue;
                             }
                             Err(err) => {
-                                // TODO: Error should be delivered to client with bound field UUID
-                                error!("Fail to load lazy field with: {err:?}");
+                                error!("Fail to load lazy field with: {err}");
+                                log_if_err(tx_callback_events.send(
+                                    stypes::CallbackOptionsEvent::LoadingError {
+                                        owner: meta.owner(),
+                                        error: err.to_string(),
+                                        fields: meta.fields,
+                                    },
+                                ));
                             }
                         }
                     }
