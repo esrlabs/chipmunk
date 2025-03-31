@@ -124,7 +124,7 @@ Parser plugins receive an array of bytes, attempt to parse them, and return the 
 - Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](./plugins_api/) crate.
 - Use the `parser_export!()` macro to export your parser struct.
 
-The [`plugins-api`](./plugins_api/) crate also offers helper functions for logging and configuration management.
+The [`plugins-api`](./plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
 
 **Integration:**  
 - Create a directory at `<HOME>/.chipmunk/plugins/parser/<plugin-name>/`.
@@ -143,7 +143,7 @@ Byte-source plugins deliver arrays of bytes of a specified length during each lo
 - Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](./plugins_api/) crate.
 - Use the `bytesource_export!()` macro to export your byte-source struct.
 
-The [`plugins-api`](./plugins_api/) crate again provides helper functions for logging and configuration management.
+The [`plugins-api`](./plugins_api/) crate again provides helper functions for logging, access to temp directory and configuration management.
 
 **Integration:**  
 - Create a directory at `<HOME>/.chipmunk/plugins/bytesource/<plugin-name>/`.

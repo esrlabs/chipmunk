@@ -2706,6 +2706,7 @@ dependencies = [
  "futures",
  "log",
  "parsers",
+ "rand",
  "serde",
  "serde_json",
  "sources",

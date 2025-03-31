@@ -14,6 +14,7 @@ log.workspace = true
 dirs.workspace = true
 toml.workspace = true
 blake3.workspace = true
+rand.workspace = true
 
 wasmtime = "31.0"
 wasmtime-wasi = "31.0"

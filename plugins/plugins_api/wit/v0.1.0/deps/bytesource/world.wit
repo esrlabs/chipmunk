@@ -5,6 +5,7 @@ package chipmunk:bytesource@0.1.0;
 /// implemented with the byte-sources plugins.
 world bytesource {
   import chipmunk:shared/logging@0.1.0;
+  import chipmunk:shared/sandbox@0.1.0;
 
   export byte-source;
 }

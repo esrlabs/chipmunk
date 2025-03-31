@@ -13,7 +13,7 @@ use wasmtime::{
     component::{Component, Linker},
     Store,
 };
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiCtxBuilder};
+use wasmtime_wasi::{ResourceTable, WasiCtx};
 
 use crate::{
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
@@ -30,7 +30,8 @@ pub struct PluginByteSource {
 impl PluginByteSource {
     /// Load wasm file temporally to retrieve the static plugin information defined by `wit` file
     pub(crate) async fn get_info(component: Component) -> Result<PluginInfo, PluginError> {
-        let ctx = WasiCtxBuilder::new().build();
+        let mut ctx = get_wasi_ctx_builder(&[])?;
+        let ctx = ctx.build();
         let mut source = Self::create(component, ctx).await?;
 
         let version = source.plugin_version().await?;

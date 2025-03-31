@@ -18,6 +18,7 @@ wasmtime::component::bindgen!({
     with: {
         "chipmunk:shared/logging@0.1.0": crate::v0_1_0::shared::logging,
         "chipmunk:shared/shared-types@0.1.0": crate::v0_1_0::shared::shared_types,
+        "chipmunk:shared/sandbox@0.1.0": crate::v0_1_0::shared::sandbox,
     }
 });
 
