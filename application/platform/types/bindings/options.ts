@@ -4,8 +4,10 @@
  * Represents events sent to the client.
  */
 export type CallbackOptionsEvent =
-    | { Options: Array<StaticFieldDesc> }
-    | { Errors: [string, string][] }
+    | { LoadingDone: { owner: string; fields: Array<StaticFieldDesc> } }
+    | { LoadingErrors: { owner: string; errors: Array<FieldLoadingError> } }
+    | { LoadingError: { owner: string; error: string; fields: Array<string> } }
+    | { LoadingCancelled: { owner: string; fields: Array<string> } }
     | 'Destroyed';
 
 export type ComponentsOptions = { source: Array<FieldDesc>; parser: Array<FieldDesc> };
@@ -13,6 +15,8 @@ export type ComponentsOptions = { source: Array<FieldDesc>; parser: Array<FieldD
 export type Field = { id: string; value: Value };
 
 export type FieldDesc = { Static: StaticFieldDesc } | { Lazy: LazyFieldDesc };
+
+export type FieldLoadingError = { id: string; err: string };
 
 export type LazyFieldDesc = { id: string; name: string; desc: string };
 

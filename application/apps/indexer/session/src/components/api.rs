@@ -1,4 +1,4 @@
-use components::LazyLoadingResult;
+use components::{LazyLoadingResult, LazyLoadingTaskMeta};
 use stypes::{Ident, NativeError, SourceOrigin};
 use tokio::sync::oneshot;
 use uuid::Uuid;
@@ -6,7 +6,11 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub enum Api {
     Shutdown(oneshot::Sender<()>),
-    LazyTaskComplite(Uuid, Result<LazyLoadingResult, NativeError>),
+    LazyTaskComplite(
+        Uuid,
+        LazyLoadingTaskMeta,
+        Result<LazyLoadingResult, NativeError>,
+    ),
     CancelLoading(Vec<String>),
     GetOptions {
         parser: Uuid,

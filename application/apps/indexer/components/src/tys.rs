@@ -7,7 +7,8 @@ pub type FieldsResult = Result<Vec<stypes::FieldDesc>, stypes::NativeError>;
 
 pub type FieldsGetter = fn(&stypes::SourceOrigin) -> FieldsResult;
 
-pub type StaticFieldsResult = Result<Vec<stypes::StaticFieldDesc>, stypes::NativeError>;
+pub type StaticFieldResult = (String, Result<stypes::StaticFieldDesc, String>);
+pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError>;
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 pub type LazyFieldsTaskGetter = fn(&stypes::SourceOrigin, &CancellationToken) -> LazyFieldsTask;
 
