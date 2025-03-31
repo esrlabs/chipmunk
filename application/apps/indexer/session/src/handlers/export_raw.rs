@@ -88,9 +88,7 @@ async fn assing_source(
         message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
     })?;
     match file_format {
-        stypes::FileFormat::Binary
-        | stypes::FileFormat::Text
-        | stypes::FileFormat::ParserPlugin => {
+        stypes::FileFormat::Binary | stypes::FileFormat::Text => {
             export(
                 dest,
                 parser,
