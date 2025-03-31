@@ -353,14 +353,17 @@ impl SomeipParser {
                     return Ok(Vec::new());
                 }
             };
-            Ok(vec![stypes::StaticFieldDesc {
-                id: FIELD_STATISTICS.to_owned(),
-                name: String::from("Example"),
-                desc: String::from("Example"),
-                required: true,
-                default: Some(stypes::Value::Integer(1)),
-                interface: stypes::ValueInterface::DropList(Vec::new()),
-            }])
+            Ok(vec![(
+                FIELD_STATISTICS.to_owned(),
+                Ok(stypes::StaticFieldDesc {
+                    id: FIELD_STATISTICS.to_owned(),
+                    name: String::from("Example"),
+                    desc: String::from("Example"),
+                    required: true,
+                    default: Some(stypes::Value::Integer(1)),
+                    interface: stypes::ValueInterface::DropList(Vec::new()),
+                }),
+            )])
         })
     }
 }
