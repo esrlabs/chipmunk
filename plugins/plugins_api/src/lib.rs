@@ -10,7 +10,7 @@
 mod shared;
 pub use shared::{
     chipmunk::shared::{logging, shared_types},
-    config,
+    config, sandbox,
 };
 
 /// Contains re-exported logging macros from [`log`] crate to be used inside the plugins.

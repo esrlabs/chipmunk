@@ -1,14 +1,21 @@
+use std::path::PathBuf;
+
 use anyhow::Context;
+use rand::distributions::DistString;
 use stypes::{RenderOptions, SemanticVersion};
-use wasmtime_wasi::{DirPerms, FilePerms, WasiCtxBuilder};
+use wasmtime_wasi::{thread_rng, DirPerms, FilePerms, WasiCtxBuilder};
 
 use crate::PluginHostError;
 
 pub mod load;
 pub mod plugin_errors;
 
+/// The name of plugins directory in operating system temporary directory.
+const PLUGIN_TEMP_DIR_NAME: &str = "chipmunk_plugins";
+
 /// Creates [`WasiCtxBuilder`] with shared configurations, giving the plugin read access to
-/// their configuration files' directories.
+/// their configuration files' directories, and read and write access to the plugins
+/// temporary directory.
 pub fn get_wasi_ctx_builder(
     plugin_configs: &[stypes::PluginConfigItem],
 ) -> Result<WasiCtxBuilder, PluginHostError> {
@@ -49,7 +56,39 @@ pub fn get_wasi_ctx_builder(
         })?;
     }
 
+    // Gives permissions for plugins temporary directory.
+    let plug_temp_dir = plugins_temp_dir();
+    if !plug_temp_dir.exists() {
+        std::fs::create_dir_all(&plug_temp_dir).with_context(|| {
+            format!(
+                "Error while creating plugins temp directory. Path: {}",
+                plug_temp_dir.display(),
+            )
+        })?;
+    }
+    ctx.preopened_dir(
+        &plug_temp_dir,
+        plug_temp_dir.to_string_lossy(),
+        DirPerms::all(),
+        FilePerms::all(),
+    )?;
+
     Ok(ctx)
+}
+
+/// Creates directory for a plugin in chipmunk plugins temp directory with a random
+/// directory name, then returns it on successful.
+pub fn create_plug_temp_dir() -> std::io::Result<PathBuf> {
+    let dir_name = rand::distributions::Alphanumeric.sample_string(&mut thread_rng(), 16);
+    let temp_dir = plugins_temp_dir().join(dir_name);
+    std::fs::create_dir_all(&temp_dir)?;
+
+    Ok(temp_dir)
+}
+
+/// Provide the path for the plugin directory in the operating system temporary directory.
+pub fn plugins_temp_dir() -> PathBuf {
+    std::env::temp_dir().join(PLUGIN_TEMP_DIR_NAME)
 }
 
 // Represents the retrieved static information form plugin WASM file.

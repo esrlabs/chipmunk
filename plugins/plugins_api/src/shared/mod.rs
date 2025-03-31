@@ -3,6 +3,7 @@
 pub mod config;
 pub mod logging;
 pub mod plugin_logger;
+pub mod sandbox;
 
 wit_bindgen::generate!({
     path: "wit/v0.1.0",

@@ -10,6 +10,7 @@ use plugins_api::{
         Parser, ParserConfig, RenderOptions,
     },
     parser_export,
+    sandbox::temp_directory,
     shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
 };
 
@@ -95,7 +96,7 @@ impl Parser for StringTokenizer {
             ConfigSchemaItem::new(
                 FLOAT_ID,
                 "Example Float",
-                Some("Configuration item with flaoting number"),
+                Some("Configuration item with floating number"),
                 ConfigSchemaType::Float(1.55),
             ),
             ConfigSchemaItem::new(
@@ -168,6 +169,16 @@ impl Parser for StringTokenizer {
             general_configs.log_level
         );
 
+        // *** Demonstrates plugins temporary directory.
+        let temp_dir = temp_directory().map_err(|err| {
+            InitError::Io(format!(
+                "Getting temp directory failed. {}",
+                err.to_string()
+            ))
+        })?;
+
+        log::info!("Plugin temp directory path: {}", temp_dir.display());
+
         // *** Configurations validation using the provided helper functions ***
         let lossy = config::get_as_boolean(LOSSY_ID, &plugins_configs)?;
 
@@ -185,7 +196,7 @@ impl Parser for StringTokenizer {
                 DIRS_ID => println!("Dirs config value is: {:?}", item.value),
                 DROPDOWN_ID => println!("Drop-Down config value is: {:?}", item.value),
                 unknown => {
-                    let error_msg = format!("Unknow configuration ID: {unknown}");
+                    let error_msg = format!("Unknown configuration ID: {unknown}");
                     return Err(InitError::Config(error_msg));
                 }
             }
