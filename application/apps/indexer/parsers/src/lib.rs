@@ -5,10 +5,8 @@ pub mod someip;
 
 pub mod text;
 use serde::Serialize;
-use std::{fmt::Display, future::Future, io::Write, iter};
+use std::{fmt::Display, io::Write, iter};
 use thiserror::Error;
-
-extern crate log;
 
 #[derive(Error, Debug)]
 pub enum Error {
