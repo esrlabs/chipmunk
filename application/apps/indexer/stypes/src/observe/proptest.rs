@@ -222,7 +222,6 @@ impl Arbitrary for FileFormat {
             FileFormat::PcapLegacy => {}
             FileFormat::Text => {}
             FileFormat::Binary => {}
-            FileFormat::ParserPlugin => {}
         };
 
         prop_oneof![
@@ -230,7 +229,6 @@ impl Arbitrary for FileFormat {
             Just(FileFormat::PcapLegacy),
             Just(FileFormat::Text),
             Just(FileFormat::Binary),
-            Just(FileFormat::ParserPlugin),
         ]
         .boxed()
     }

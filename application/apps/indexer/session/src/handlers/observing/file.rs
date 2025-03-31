@@ -28,7 +28,7 @@ pub async fn observe_file(
         Receiver<Result<(), tail::Error>>,
     ) = channel(1);
     match file_format {
-        stypes::FileFormat::Binary | stypes::FileFormat::ParserPlugin => {
+        stypes::FileFormat::Binary => {
             let source = BinaryByteSource::new(input_file(filename)?);
             let (_, listening) = join!(
                 tail::track(filename, tx_tail, operation_api.cancellation_token()),

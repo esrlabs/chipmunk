@@ -40,7 +40,7 @@ pub async fn concat_files(
             )),
         })?;
         match file_type {
-            stypes::FileFormat::Binary | stypes::FileFormat::ParserPlugin => {
+            stypes::FileFormat::Binary => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
