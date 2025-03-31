@@ -12,6 +12,7 @@ import { SourceOrigin, FieldDesc, LazyFieldDesc, StaticFieldDesc } from 'platfor
 
 import * as runners from './runners';
 import { error } from 'platform/log/utils';
+import { LoadingDoneEvent } from '../src/api/components.provider';
 
 const config = readConfigurationFile().get().tests.components;
 
@@ -44,8 +45,8 @@ describe('Jobs', function () {
                 }
                 // Subscribe to events
                 let received_lazy: StaticFieldDesc[] | undefined = undefined;
-                components.getEvents().Options.subscribe((fields: StaticFieldDesc[]) => {
-                    received_lazy = fields;
+                components.getEvents().LoadingDone.subscribe((event: LoadingDoneEvent) => {
+                    received_lazy = event.fields;
                 });
                 // Request options scheme
                 const fields = await components.getOptions(
@@ -107,8 +108,8 @@ describe('Jobs', function () {
                 }
                 // Subscribe to events
                 let received_lazy: StaticFieldDesc[] | undefined = undefined;
-                components.getEvents().Options.subscribe((fields: StaticFieldDesc[]) => {
-                    received_lazy = fields;
+                components.getEvents().LoadingDone.subscribe((event: LoadingDoneEvent) => {
+                    received_lazy = event.fields;
                 });
                 // Request options scheme
                 const fields = await components.getOptions(

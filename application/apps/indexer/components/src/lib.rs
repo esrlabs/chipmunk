@@ -20,7 +20,7 @@ type Metadata<'a> = (
 
 #[derive(Debug)]
 pub enum LazyLoadingResult {
-    Feilds(Vec<stypes::StaticFieldDesc>),
+    Feilds(Vec<StaticFieldResult>),
     Cancelled,
 }
 
@@ -35,6 +35,9 @@ pub struct LazyLoadingTaskMeta {
 impl LazyLoadingTaskMeta {
     pub fn contains(&self, fields: &[String]) -> bool {
         self.fields.iter().any(|id| fields.contains(id))
+    }
+    pub fn owner(&self) -> Uuid {
+        self.ident.uuid
     }
 }
 
