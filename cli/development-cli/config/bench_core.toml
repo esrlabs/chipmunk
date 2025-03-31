@@ -27,23 +27,7 @@ name = "mocks_once_producer"
 library = "sources"
 
 [[bench]]
-name = "mocks_once_producer_jemalloc"
-library = "sources"
-
-[[bench]]
-name = "mocks_once_producer_mimalloc"
-library = "sources"
-
-[[bench]]
 name = "mocks_once_parallel"
-library = "sources"
-
-[[bench]]
-name = "mocks_once_parallel_jemalloc"
-library = "sources"
-
-[[bench]]
-name = "mocks_once_parallel_mimalloc"
 library = "sources"
 
 [[bench]]
@@ -51,23 +35,7 @@ name = "mocks_multi_producer"
 library = "sources"
 
 [[bench]]
-name = "mocks_multi_producer_jemalloc"
-library = "sources"
-
-[[bench]]
-name = "mocks_multi_producer_mimalloc"
-library = "sources"
-
-[[bench]]
 name = "mocks_multi_parallel"
-library = "sources"
-
-[[bench]]
-name = "mocks_multi_parallel_jemalloc"
-library = "sources"
-
-[[bench]]
-name = "mocks_multi_parallel_mimalloc"
 library = "sources"
 
 [[bench]]
