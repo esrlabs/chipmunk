@@ -136,6 +136,17 @@ pub enum ValueInterface {
     RequestFile,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub struct FieldLoadingError {
+    pub id: String,
+    pub err: String,
+}
+
 /// Represents events sent to the client.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
@@ -146,11 +157,24 @@ pub enum ValueInterface {
 )]
 pub enum CallbackOptionsEvent {
     /// Triggered when lazy field is ready
-    Options(Vec<StaticFieldDesc>),
+    LoadingDone {
+        owner: Uuid,
+        fields: Vec<StaticFieldDesc>,
+    },
 
     /// Triggered when a lazy fields wasn't loaded.
-    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "[string, string][]"))]
-    Errors(Vec<(String, String)>),
-
+    LoadingErrors {
+        owner: Uuid,
+        errors: Vec<FieldLoadingError>,
+    },
+    LoadingError {
+        owner: Uuid,
+        error: String,
+        fields: Vec<String>,
+    },
+    LoadingCancelled {
+        owner: Uuid,
+        fields: Vec<String>,
+    },
     Destroyed,
 }

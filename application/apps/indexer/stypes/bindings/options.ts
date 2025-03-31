@@ -3,51 +3,23 @@
 /**
  * Represents events sent to the client.
  */
-export type CallbackOptionsEvent =
-    | { Options: Array<StaticFieldDesc> }
-    | { Errors: [string, string][] }
-    | 'Destroyed';
+export type CallbackOptionsEvent = { "LoadingDone": { owner: string, fields: Array<StaticFieldDesc>, } } | { "LoadingErrors": { owner: string, errors: Array<FieldLoadingError>, } } | { "LoadingError": { owner: string, error: string, fields: Array<string>, } } | { "LoadingCancelled": { owner: string, fields: Array<string>, } } | "Destroyed";
 
-export type ComponentsOptions = { source: Array<FieldDesc>; parser: Array<FieldDesc> };
+export type ComponentsOptions = { source: Array<FieldDesc>, parser: Array<FieldDesc>, };
 
-export type Field = { id: string; value: Value };
+export type Field = { id: string, value: Value, };
 
-export type FieldDesc = { Static: StaticFieldDesc } | { Lazy: LazyFieldDesc };
+export type FieldDesc = { "Static": StaticFieldDesc } | { "Lazy": LazyFieldDesc };
 
-export type LazyFieldDesc = { id: string; name: string; desc: string };
+export type FieldLoadingError = { id: string, err: string, };
 
-export type StaticFieldDesc = {
-    id: string;
-    name: string;
-    desc: string;
-    required: boolean;
-    default: Value | null;
-    interface: ValueInterface;
-};
+export type LazyFieldDesc = { id: string, name: string, desc: string, };
 
-export type Value =
-    | { Boolean: boolean }
-    | { Integer: number }
-    | { Float: number }
-    | { Text: string }
-    | { List: Array<Value> }
-    | { Directories: Array<string> }
-    | { Files: Array<string> }
-    | { File: string }
-    | { Directory: string }
-    | { KeyValues: { [key in string]?: Array<string> } };
+export type StaticFieldDesc = { id: string, name: string, desc: string, required: boolean, default: Value | null, interface: ValueInterface, };
+
+export type Value = { "Boolean": boolean } | { "Integer": number } | { "Float": number } | { "Text": string } | { "List": Array<Value> } | { "Directories": Array<string> } | { "Files": Array<string> } | { "File": string } | { "Directory": string } | { "KeyValues": { [key in string]?: Array<string> } };
 
 /**
  * How value will be represented to user
  */
-export type ValueInterface =
-    | 'Boolean'
-    | 'Integer'
-    | 'Float'
-    | 'Text'
-    | { DropList: Array<Value> }
-    | { List: Array<Value> }
-    | 'RequestDirectories'
-    | 'RequestFiles'
-    | 'RequestDirectory'
-    | 'RequestFile';
+export type ValueInterface = "Boolean" | "Integer" | "Float" | "Text" | { "DropList": Array<Value> } | { "List": Array<Value> } | "RequestDirectories" | "RequestFiles" | "RequestDirectory" | "RequestFile";
