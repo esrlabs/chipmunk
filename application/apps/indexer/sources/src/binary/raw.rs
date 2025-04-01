@@ -3,6 +3,7 @@ use crate::{
     ReloadInfo, SourceFilter,
 };
 use bufread::BufReader;
+use components::ComponentDescriptor;
 use std::io::{BufRead, Read};
 
 pub struct BinaryByteSource<R>
@@ -80,17 +81,25 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
 ]);
 
-impl<R: Read + Send> components::Component for BinaryByteSource<R> {
-    fn ident() -> stypes::Ident {
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Binary Source"),
             desc: String::from("Binary Source"),
             uuid: BIN_SOURCE_UUID,
         }
     }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
 
+impl<R: Read + Send> components::Component for BinaryByteSource<R> {
     fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_source(&Self::ident(), None, None)?;
+        components.register(Descriptor::default())?;
         Ok(())
     }
 }
