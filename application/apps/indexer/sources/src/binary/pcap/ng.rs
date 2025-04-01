@@ -3,6 +3,7 @@ use crate::{
     binary::pcap::debug_block,
 };
 use bufread::DeqBuffer;
+use components::ComponentDescriptor;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
 use pcap_parser::{PcapBlockOwned, PcapError, PcapNGReader, traits::PcapReaderIterator};
@@ -164,17 +165,25 @@ const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,
 ]);
 
-impl<R: Read + Send> components::Component for PcapngByteSource<R> {
-    fn ident() -> stypes::Ident {
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("PCAP NG Source"),
             desc: String::from("PCAP NG Source"),
             uuid: PCAPNG_SOURCE_UUID,
         }
     }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
 
+impl<R: Read + Send> components::Component for PcapngByteSource<R> {
     fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_source(&Self::ident(), None, None)?;
+        components.register(Descriptor::default())?;
         Ok(())
     }
 }
