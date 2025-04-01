@@ -3,7 +3,11 @@ pub mod dlt;
 pub mod someip;
 pub mod text;
 use serde::Serialize;
-use std::{fmt::Display, io::Write, iter};
+use std::{
+    fmt::{Debug, Display},
+    io::Write,
+    iter,
+};
 use thiserror::Error;
 
 extern crate log;
@@ -100,55 +104,68 @@ pub enum MessageStreamItem<T: LogMessage> {
     Done,
 }
 
-/// Continuously applies the [`parse_fn`] function to the given [`input`] bytes,
-/// extracting all possible items until no more can be parsed.
+/// A trait for parsers that extract one item at a time from a byte slice.
 ///
-/// This function serves as a helper for parsing methods that return only the first
-/// successfully parsed item. It repeatedly invokes [`parse_fn`] as long as there
-/// are enough bytes remaining in [`input`] to parse another message.
+/// Any type implementing this trait will automatically implement the [`Parser`] trait
+/// due to a blanket implementation. This means that such types will support extracting
+/// all available items from an input slice by repeatedly calling [`SingleParser::parse_item()`]
+/// until no more items can be parsed.
 ///
 /// # Behavior
 ///
-/// - If the first invocation of [`parse_fn`] fails, the function returns an error immediately.
-/// - If the first invocation succeeds, parsing continues until either:
-///   - There are not enough remaining bytes to parse another message.
-///   - [`parse_fn`] returns an error, which will be ignored after the first success.
-///
-/// # Arguments
-///
-/// * `input`: A slice of bytes to be parsed.
-/// * `timestamp`: An optional timestamp associated with the message.
-/// * `min_bytes_count`: The minimum number of bytes likely required to parse a message.
-/// * `parse_fn`: A function that attempts to parse a message from a byte slice.
-///   - It takes a byte slice and an optional timestamp.
-///   - It returns a result containing:
-///     - The number of bytes consumed.
-///     - An optional parsed item [`ParseYield<T>`].
-///   - If parsing fails, it returns an [`Error`].
-fn parse_all<F, T>(
-    input: &[u8],
-    timestamp: Option<u64>,
-    min_bytes_count: usize,
-    mut parse_fn: F,
-) -> Result<impl Iterator<Item = (usize, Option<ParseYield<T>>)> + use<'_, F, T>, Error>
+/// - The blanket implementation of [`Parser`] will repeatedly invoke `parse_item()`,
+///   extracting as many items as possible.
+/// - If `parse_item()` fails on the first call, an error is returned immediately.
+/// - If `parse_item()` succeeds, parsing continues until:
+///   - The remaining input is too short to parse another item.
+///   - `parse_item()` returns an error, which is ignored after the first successful parse.
+pub trait SingleParser<T> {
+    /// The minimum number of bytes required to parse an item.
+    ///
+    /// # Notes:
+    /// - This value is used to prevent unnecessary parsing attempts when the remaining input
+    ///   is too short to contain a valid message.
+    /// - The default value (`1`) indicates that the parser has no minimum length requirement.
+    const MIN_MSG_LEN: usize = 1;
+
+    /// Parses a single item from the given byte slice.
+    ///
+    /// in case we could parse a message but the message was filtered out, `None` is returned on
+    /// that item.
+    fn parse_item(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<(usize, Option<ParseYield<T>>), Error>;
+}
+
+/// This blanket implementation repeatedly applies [`SingleParser::parse_item()`] function,
+/// extracting as many items as possible from the provided input until no more can be parsed.
+impl<P, T> Parser<T> for P
 where
-    F: FnMut(&[u8], Option<u64>) -> Result<(usize, Option<ParseYield<T>>), Error>,
+    P: SingleParser<T>,
 {
-    let mut slice = input;
+    fn parse(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<T>>)>, Error> {
+        let mut slice = input;
 
-    // return early if function errors on first parse call.
-    let first_res = parse_fn(slice, timestamp)?;
+        // return early if function errors on first parse call.
+        let first_res = self.parse_item(slice, timestamp)?;
 
-    // Otherwise keep parsing and stop on first error, returning the parsed items at the end.
-    let iter = iter::successors(Some(first_res), move |(consumed, _res)| {
-        slice = &slice[*consumed..];
+        // Otherwise keep parsing and stop on first error, returning the parsed items at the end.
+        let iter = iter::successors(Some(first_res), move |(consumed, _res)| {
+            slice = &slice[*consumed..];
 
-        if slice.len() < min_bytes_count {
-            return None;
-        }
+            if slice.len() < P::MIN_MSG_LEN {
+                return None;
+            }
 
-        parse_fn(slice, timestamp).ok()
-    });
+            self.parse_item(slice, timestamp).ok()
+        });
 
-    Ok(iter)
+        Ok(iter)
+    }
 }
