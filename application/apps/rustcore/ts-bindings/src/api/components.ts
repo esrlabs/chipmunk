@@ -6,7 +6,7 @@ import { ComponentsEventProvider, IComponentsEvents } from '../api/components.pr
 import { SessionStream } from '../api/session.stream';
 import { SessionSearch } from '../api/session.search';
 import { Subscriber } from 'platform/env/subscription';
-import { ComponentsOptions, Ident, SourceOrigin } from 'platform/types/bindings';
+import { ComponentsOptionsList, Ident, SourceOrigin } from 'platform/types/bindings';
 
 export {
     ISessionEvents,
@@ -71,20 +71,16 @@ export class Components extends Subscriber {
     } {
         return {
             sources: (): Promise<Ident[]> => {
-                return this.native.getSources(origin);
+                return this.native.getComponents(origin, 'Source');
             },
             parsers: (): Promise<Ident[]> => {
-                return this.native.getParsers(origin);
+                return this.native.getComponents(origin, 'Parser');
             },
         };
     }
 
-    public getOptions(
-        source: string,
-        parser: string,
-        origin: SourceOrigin,
-    ): Promise<ComponentsOptions> {
-        return this.native.getOptions(source, parser, origin);
+    public getOptions(origin: SourceOrigin, targets: string[]): Promise<ComponentsOptionsList> {
+        return this.native.getOptions(origin, targets);
     }
 
     public abort(fields: string[]): Error | undefined {

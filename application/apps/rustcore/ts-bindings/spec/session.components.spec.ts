@@ -49,12 +49,11 @@ describe('Jobs', function () {
                     received_lazy = event.fields;
                 });
                 // Request options scheme
-                const fields = await components.getOptions(
+                const fields = await components.getOptions(origin, [
                     TCP_SOURCE_UUID,
                     DLT_PARSER_UUID,
-                    origin,
-                );
-                const lazy_field: { Lazy: LazyFieldDesc } | undefined = fields.parser.find(
+                ]);
+                const lazy_field: { Lazy: LazyFieldDesc } | undefined = fields.options[1].find(
                     (field: FieldDesc) => 'Lazy' in field,
                 );
                 if (!lazy_field) {
@@ -112,14 +111,14 @@ describe('Jobs', function () {
                     received_lazy = event.fields;
                 });
                 // Request options scheme
-                const fields = await components.getOptions(
+                const fields = await components.getOptions(origin, [
                     TCP_SOURCE_UUID,
                     DLT_PARSER_UUID,
-                    origin,
-                );
-                const lazy_field: { Lazy: LazyFieldDesc } | undefined = fields.parser.find(
+                ]);
+                const lazy_field: { Lazy: LazyFieldDesc } | undefined = fields.options[1].find(
                     (field: FieldDesc) => 'Lazy' in field,
                 );
+                console.log(fields);
                 if (!lazy_field) {
                     return finish([components], done, new Error(`No lazy fields from DLT parser`));
                 }
