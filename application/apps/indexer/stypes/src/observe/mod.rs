@@ -52,6 +52,7 @@ pub struct Ident {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Hash)]
+#[extend::encode_decode]
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
