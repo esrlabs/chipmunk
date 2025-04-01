@@ -10,7 +10,7 @@ export type CallbackOptionsEvent =
     | { LoadingCancelled: { owner: string; fields: Array<string> } }
     | 'Destroyed';
 
-export type ComponentsOptions = { source: Array<FieldDesc>; parser: Array<FieldDesc> };
+export type ComponentsOptionsList = { options: Array<Array<FieldDesc>> };
 
 export type Field = { id: string; value: Value };
 
