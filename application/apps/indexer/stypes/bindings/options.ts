@@ -5,7 +5,7 @@
  */
 export type CallbackOptionsEvent = { "LoadingDone": { owner: string, fields: Array<StaticFieldDesc>, } } | { "LoadingErrors": { owner: string, errors: Array<FieldLoadingError>, } } | { "LoadingError": { owner: string, error: string, fields: Array<string>, } } | { "LoadingCancelled": { owner: string, fields: Array<string>, } } | "Destroyed";
 
-export type ComponentsOptions = { source: Array<FieldDesc>, parser: Array<FieldDesc>, };
+export type ComponentsOptionsList = { options: Array<Array<FieldDesc>>, };
 
 export type Field = { id: string, value: Value, };
 

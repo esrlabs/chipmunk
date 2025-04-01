@@ -59,10 +59,12 @@ impl Components {
     }
 
     #[node_bindgen]
-    async fn get_sources(
+    async fn get_components(
         &self,
         origin: JSArrayBuffer,
+        ty: JSArrayBuffer,
     ) -> Result<stypes::IdentList, stypes::ComputationError> {
+        let ty = stypes::ComponentType::decode(&ty).map_err(stypes::ComputationError::Decoding)?;
         let origin =
             stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
         let session = self
@@ -70,25 +72,7 @@ impl Components {
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         session
-            .get_sources(origin)
-            .await
-            .map(|idents| idents.into())
-            .map_err(stypes::ComputationError::NativeError)
-    }
-
-    #[node_bindgen]
-    async fn get_parsers(
-        &self,
-        origin: JSArrayBuffer,
-    ) -> Result<stypes::IdentList, stypes::ComputationError> {
-        let origin =
-            stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
-        let session = self
-            .session
-            .as_ref()
-            .ok_or(stypes::ComputationError::SessionUnavailable)?;
-        session
-            .get_parsers(origin)
+            .get_components(origin, ty)
             .await
             .map(|idents| idents.into())
             .map_err(stypes::ComputationError::NativeError)
@@ -97,12 +81,13 @@ impl Components {
     #[node_bindgen]
     async fn get_options(
         &self,
-        source: String,
-        parser: String,
         origin: JSArrayBuffer,
-    ) -> Result<stypes::ComponentsOptions, stypes::ComputationError> {
-        let source = Uuid::from_str(&source).map_err(|_| stypes::ComputationError::InvalidData)?;
-        let parser = Uuid::from_str(&parser).map_err(|_| stypes::ComputationError::InvalidData)?;
+        targets: Vec<String>,
+    ) -> Result<stypes::ComponentsOptionsList, stypes::ComputationError> {
+        let targets: Vec<Uuid> = targets
+            .into_iter()
+            .map(|uuid| Uuid::from_str(&uuid).map_err(|_| stypes::ComputationError::InvalidData))
+            .collect::<Result<_, _>>()?;
         let origin =
             stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
         let session = self
@@ -110,7 +95,7 @@ impl Components {
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         session
-            .get_options(source, parser, origin)
+            .get_options(targets, origin)
             .await
             .map_err(stypes::ComputationError::NativeError)
     }

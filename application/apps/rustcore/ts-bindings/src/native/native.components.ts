@@ -1,7 +1,12 @@
 import { scope } from 'platform/env/scope';
 import { getNativeModule } from '../native/native';
 import { Type, Source, NativeError } from '../interfaces/errors';
-import { SourceOrigin, IdentList, ComponentsOptions } from 'platform/types/bindings';
+import {
+    SourceOrigin,
+    IdentList,
+    ComponentsOptionsList,
+    ComponentType,
+} from 'platform/types/bindings';
 import { Logger, utils } from 'platform/log';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
@@ -19,15 +24,9 @@ export abstract class ComponentsNative {
 
     public abstract destroy(): Promise<void>;
 
-    public abstract getSources(origin: Uint8Array): Promise<Uint8Array>;
+    public abstract getComponents(origin: Uint8Array, ty: Uint8Array): Promise<Uint8Array>;
 
-    public abstract getParsers(origin: Uint8Array): Promise<Uint8Array>;
-
-    public abstract getOptions(
-        source: string,
-        parser: string,
-        origin: Uint8Array,
-    ): Promise<Uint8Array>;
+    public abstract getOptions(origin: Uint8Array, targets: string[]): Promise<Uint8Array>;
 
     public abstract abort(fields: string[]): void;
 }
@@ -139,69 +138,48 @@ export class Base extends Subscriber {
         });
     }
 
-    public getSources(origin: SourceOrigin): Promise<IdentList> {
-        const err = this.getSessionAccessErr();
-        if (err instanceof Error) {
-            return Promise.reject(err);
-        }
-        return new Promise((resolve, reject) => {
-            this.native.getSources(protocol.encodeSourceOrigin(origin)).then((buf: Uint8Array) => {
-                try {
-                    resolve(protocol.decodeIdentList(buf));
-                } catch (err) {
-                    reject(
-                        new NativeError(
-                            new Error(
-                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
-                            ),
-                            Type.InvalidOutput,
-                            Source.IdentList,
-                        ),
-                    );
-                }
-            });
-        });
-    }
-
-    public getParsers(origin: SourceOrigin): Promise<IdentList> {
-        const err = this.getSessionAccessErr();
-        if (err instanceof Error) {
-            return Promise.reject(err);
-        }
-        return new Promise((resolve, reject) => {
-            this.native.getParsers(protocol.encodeSourceOrigin(origin)).then((buf: Uint8Array) => {
-                try {
-                    resolve(protocol.decodeIdentList(buf));
-                } catch (err) {
-                    reject(
-                        new NativeError(
-                            new Error(
-                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
-                            ),
-                            Type.InvalidOutput,
-                            Source.IdentList,
-                        ),
-                    );
-                }
-            });
-        });
-    }
-
-    public getOptions(
-        source: string,
-        parser: string,
-        origin: SourceOrigin,
-    ): Promise<ComponentsOptions> {
+    public getComponents(origin: SourceOrigin, ty: ComponentType): Promise<IdentList> {
         const err = this.getSessionAccessErr();
         if (err instanceof Error) {
             return Promise.reject(err);
         }
         return new Promise((resolve, reject) => {
             this.native
-                .getOptions(source, parser, protocol.encodeSourceOrigin(origin))
+                .getComponents(
+                    protocol.encodeSourceOrigin(origin),
+                    protocol.encodeComponentType(ty),
+                )
                 .then((buf: Uint8Array) => {
                     try {
-                        resolve(protocol.decodeComponentsOptions(buf));
+                        resolve(protocol.decodeIdentList(buf));
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this.logger.error(
+                                        `Fail to decode message: ${utils.error(err)}`,
+                                    ),
+                                ),
+                                Type.InvalidOutput,
+                                Source.IdentList,
+                            ),
+                        );
+                    }
+                });
+        });
+    }
+
+    public getOptions(origin: SourceOrigin, targets: string[]): Promise<ComponentsOptionsList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return new Promise((resolve, reject) => {
+            this.native
+                .getOptions(protocol.encodeSourceOrigin(origin), targets)
+                .then((buf: Uint8Array) => {
+                    try {
+                        resolve(protocol.decodeComponentsOptionsList(buf));
                     } catch (err) {
                         reject(
                             new NativeError(

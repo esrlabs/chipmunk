@@ -6,4 +6,4 @@ try_into_js!(LazyFieldDesc);
 try_into_js!(Value);
 try_into_js!(ValueInterface);
 try_into_js!(CallbackOptionsEvent);
-try_into_js!(ComponentsOptions);
+try_into_js!(ComponentsOptionsList);
