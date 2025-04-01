@@ -3,6 +3,7 @@ use crate::{
     TransportProtocol,
 };
 use bufread::DeqBuffer;
+use components::ComponentDescriptor;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
@@ -161,17 +162,25 @@ const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
 ]);
 
-impl<R: Read + Send> components::Component for PcapLegacyByteSource<R> {
-    fn ident() -> stypes::Ident {
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("PCAP Source"),
             desc: String::from("PCAP Source"),
             uuid: PCAP_SOURCE_UUID,
         }
     }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
 
+impl<R: Read + Send> components::Component for PcapLegacyByteSource<R> {
     fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_source(&Self::ident(), None, None)?;
+        components.register(Descriptor::default())?;
         Ok(())
     }
 }

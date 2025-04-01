@@ -1,4 +1,5 @@
-use crate::{Error, LogMessage, ParseYield, SingleParser};
+mod options;
+use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
 use std::{fmt, io::Write};
 
@@ -68,24 +69,6 @@ where
         parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
             self.parse_item(input, timestamp)
         })
-    }
-}
-
-const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
-    0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
-]);
-
-impl components::Component for StringTokenizer {
-    fn ident() -> stypes::Ident {
-        stypes::Ident {
-            name: String::from("Text Parser"),
-            desc: String::from("Text Parser"),
-            uuid: TEXT_PARSER_UUID,
-        }
-    }
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_parser(&Self::ident(), None, None)?;
-        Ok(())
     }
 }
 
