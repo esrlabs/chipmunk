@@ -1,4 +1,10 @@
+use crate::{
+    socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+};
+use bufread::DeqBuffer;
+use components::ComponentDescriptor;
 use std::{net::SocketAddr, time::Duration};
+use tokio::{net::TcpStream, task::yield_now};
 
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
@@ -172,16 +178,25 @@ const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
 ]);
 
-impl components::Component for TcpSource {
-    fn ident() -> stypes::Ident {
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("TCP Source"),
             desc: String::from("TCP Source"),
             uuid: TCP_SOURCE_UUID,
         }
     }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
+
+impl components::Component for TcpSource {
     fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_source(&Self::ident(), None, None)?;
+        components.register(Descriptor::default())?;
         Ok(())
     }
 }

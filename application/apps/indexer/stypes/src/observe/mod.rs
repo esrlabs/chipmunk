@@ -51,6 +51,16 @@ pub struct Ident {
     pub uuid: Uuid,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Hash)]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub enum ComponentType {
+    Parser,
+    Source,
+}
 /// Multicast configuration information.
 /// - `multiaddr`: A valid multicast address.
 /// - `interface`: The address of the local interface used to join the multicast group.
