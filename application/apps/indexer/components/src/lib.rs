@@ -7,17 +7,6 @@ pub use tys::*;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-type Metadata<'a> = (
-    (
-        &'a stypes::Ident,
-        &'a (Option<FieldsGetter>, Option<LazyFieldsTaskGetter>),
-    ),
-    (
-        &'a stypes::Ident,
-        &'a (Option<FieldsGetter>, Option<LazyFieldsTaskGetter>),
-    ),
-);
-
 #[derive(Debug)]
 pub enum LazyLoadingResult {
     Feilds(Vec<StaticFieldResult>),
@@ -148,132 +137,89 @@ impl Options {
 
 #[derive(Default)]
 pub struct Components {
-    //TODO: "hot" validators also here
-    options: HashMap<Uuid, (Option<FieldsGetter>, Option<LazyFieldsTaskGetter>)>,
-    sources: HashMap<Uuid, stypes::Ident>,
-    parsers: HashMap<Uuid, stypes::Ident>,
+    components: HashMap<Uuid, Box<dyn ComponentDescriptor + Send + 'static>>,
 }
 
 impl Components {
-    pub fn register(
+    pub fn register<D: ComponentDescriptor + Send + 'static>(
         &mut self,
-        ident: &stypes::Ident,
-        static_fields_handle: Option<FieldsGetter>,
-        lazy_fields_handle: Option<LazyFieldsTaskGetter>,
+        descriptor: D,
     ) -> Result<(), stypes::NativeError> {
-        if self.options.contains_key(&ident.uuid) {
+        let ident = descriptor.ident();
+        if self.components.contains_key(&ident.uuid) {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
             });
         }
-        self.options
-            .insert(ident.uuid, (static_fields_handle, lazy_fields_handle));
+        self.components.insert(ident.uuid, Box::new(descriptor));
         Ok(())
     }
 
-    /// Register source metadata and set options getter
-    pub fn register_source(
-        &mut self,
-        ident: &stypes::Ident,
-        static_fields_handle: Option<FieldsGetter>,
-        lazy_fields_handle: Option<LazyFieldsTaskGetter>,
-    ) -> Result<(), stypes::NativeError> {
-        self.register(ident, static_fields_handle, lazy_fields_handle)?;
-        self.sources.insert(ident.uuid, ident.to_owned());
-        Ok(())
-    }
-
-    /// Register parser metadata and set options getter
-    pub fn register_parser(
-        &mut self,
-        ident: &stypes::Ident,
-        static_fields_handle: Option<FieldsGetter>,
-        lazy_fields_handle: Option<LazyFieldsTaskGetter>,
-    ) -> Result<(), stypes::NativeError> {
-        self.register(ident, static_fields_handle, lazy_fields_handle)?;
-        self.parsers.insert(ident.uuid, ident.to_owned());
-        Ok(())
-    }
-
-    pub fn get_sources(
+    pub fn get_components(
         &self,
+        target: &stypes::ComponentType,
         _source_origin: stypes::SourceOrigin,
     ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
-        // TODO: "ask" source based on origin
-        Ok(self.sources.values().cloned().collect())
-    }
-
-    pub fn get_parsers(
-        &self,
-        _source_origin: stypes::SourceOrigin,
-    ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
-        // TODO: "ask" parser based on origin
-        Ok(self.parsers.values().cloned().collect())
+        // TODO: "ask" source/parser based on origin
+        Ok(self
+            .components
+            .iter()
+            .filter_map(|(_, desc)| {
+                if desc.is_ty(target) {
+                    Some(desc.ident())
+                } else {
+                    None
+                }
+            })
+            .collect())
     }
 
     pub fn get_options(
         &self,
-        source_origin: stypes::SourceOrigin,
-        source: Uuid,
-        parser: Uuid,
-    ) -> Result<(Options, Options), stypes::NativeError> {
-        let (
-            (source_ident, (source_static, source_lazy)),
-            (parser_ident, (parser_static, parser_lazy)),
-        ) = self.get(&source, &parser)?;
-        let source_fields = source_static
-            .map(|getter| getter(&source_origin))
-            .unwrap_or(Ok(Vec::new()))?;
-        let parser_fields = parser_static
-            .map(|getter| getter(&source_origin))
-            .unwrap_or(Ok(Vec::new()))?;
-        let mut source_options = Options::new(source_fields);
-        let mut parser_options = Options::new(parser_fields);
-        // Check do we have some lazy settings
-        if let (Some(getter), true) = (source_lazy, source_options.has_lazy()) {
-            let tk = CancellationToken::new();
-            source_options.set_lazy(source_ident.clone(), getter(&source_origin, &tk), &tk);
+        origin: stypes::SourceOrigin,
+        mut targets: Vec<Uuid>,
+    ) -> Result<Vec<Options>, stypes::NativeError> {
+        let descriptors: Vec<&Box<dyn ComponentDescriptor + Send + 'static>> = self
+            .components
+            .iter()
+            .filter_map(|(uuid, desc)| {
+                if targets.contains(uuid) {
+                    targets.retain(|v| v != uuid);
+                    Some(desc)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !targets.is_empty() {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!(
+                    "Fail to find: {}",
+                    targets
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                )),
+            });
         }
-        if let (Some(getter), true) = (parser_lazy, parser_options.has_lazy()) {
-            let tk = CancellationToken::new();
-            parser_options.set_lazy(parser_ident.clone(), getter(&source_origin, &tk), &tk);
+        let mut list: Vec<Options> = Vec::new();
+        for desc in descriptors.into_iter() {
+            let mut options = Options::new(desc.fields_getter(&origin)?);
+            if options.has_lazy() {
+                let cancel = CancellationToken::new();
+                options.set_lazy(
+                    desc.ident(),
+                    desc.lazy_fields_getter(origin.clone(), cancel.clone()),
+                    &cancel,
+                );
+            }
+            list.push(options);
         }
-        Ok((source_options, parser_options))
-    }
-
-    fn get<'a>(
-        &'a self,
-        source: &Uuid,
-        parser: &Uuid,
-    ) -> Result<Metadata<'a>, stypes::NativeError> {
-        let source_ident = self.sources.get(source).ok_or(stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Configuration,
-            message: Some(format!("Source {} not found", source)),
-        })?;
-        let source_getter = self.options.get(source).ok_or(stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Configuration,
-            message: Some(format!(
-                "Source options of {} ({}) not found",
-                source_ident.name, source
-            )),
-        })?;
-        let parser_ident = self.parsers.get(parser).ok_or(stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Configuration,
-            message: Some(format!("Parser {} not found", parser)),
-        })?;
-        let parser_getter = self.options.get(parser).ok_or(stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Configuration,
-            message: Some(format!(
-                "Parser options of {} ({}) not found",
-                parser_ident.name, parser
-            )),
-        })?;
-        Ok(((source_ident, source_getter), (parser_ident, parser_getter)))
+        Ok(list)
     }
 }

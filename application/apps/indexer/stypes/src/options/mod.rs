@@ -18,9 +18,8 @@ use crate::*;
     derive(TS),
     ts(export, export_to = "options.ts")
 )]
-pub struct ComponentsOptions {
-    pub source: Vec<FieldDesc>,
-    pub parser: Vec<FieldDesc>,
+pub struct ComponentsOptionsList {
+    pub options: Vec<Vec<FieldDesc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -1,6 +1,7 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
+use components::ComponentDescriptor;
 use futures::{
     stream::{SplitSink, SplitStream, StreamExt},
     SinkExt,
@@ -223,16 +224,25 @@ const SERIAL_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
 ]);
 
-impl components::Component for SerialSource {
-    fn ident() -> stypes::Ident {
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Serial Source"),
             desc: String::from("Serial Source"),
             uuid: SERIAL_SOURCE_UUID,
         }
     }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
+
+impl components::Component for SerialSource {
     fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register_source(&Self::ident(), None, None)?;
+        components.register(Descriptor::default())?;
         Ok(())
     }
 }

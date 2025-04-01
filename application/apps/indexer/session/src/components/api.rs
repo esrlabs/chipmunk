@@ -13,17 +13,13 @@ pub enum Api {
     ),
     CancelLoading(Vec<String>),
     GetOptions {
-        parser: Uuid,
-        source: Uuid,
         origin: SourceOrigin,
-        tx: oneshot::Sender<Result<stypes::ComponentsOptions, NativeError>>,
+        targets: Vec<Uuid>,
+        tx: oneshot::Sender<Result<stypes::ComponentsOptionsList, NativeError>>,
     },
-    GetSources(
+    GetComponents(
         SourceOrigin,
-        oneshot::Sender<Result<Vec<Ident>, NativeError>>,
-    ),
-    GetParsers(
-        SourceOrigin,
+        stypes::ComponentType,
         oneshot::Sender<Result<Vec<Ident>, NativeError>>,
     ),
 }

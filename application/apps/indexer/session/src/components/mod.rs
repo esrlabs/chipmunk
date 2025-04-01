@@ -54,61 +54,47 @@ impl ComponentsSession {
             while let Some(msg) = rx_api.recv().await {
                 match msg {
                     Api::GetOptions {
-                        parser,
-                        source,
                         origin,
+                        targets,
                         tx,
                     } => {
-                        let (source_options, parser_options) =
-                            match components.get_options(origin, source, parser) {
-                                Ok(options) => options,
-                                Err(err) => {
-                                    log_if_err(tx.send(Err(err)));
-                                    continue;
-                                }
-                            };
+                        let mut options = match components.get_options(origin, targets) {
+                            Ok(options) => options,
+                            Err(err) => {
+                                log_if_err(tx.send(Err(err)));
+                                continue;
+                            }
+                        };
                         // Send static fields
-                        log_if_err(tx.send(Ok(stypes::ComponentsOptions {
-                            source: source_options.statics,
-                            parser: parser_options.statics,
-                        })));
-                        if let Some(mut source_loading_task) = source_options.lazy {
-                            // If exists, request lazy source fields
-                            let meta = source_loading_task.get_meta();
-                            let uuid = meta.uuid;
-                            let tx_api = tx_api_inner.clone();
-                            tasks.insert(
-                                uuid,
-                                (
-                                    meta,
-                                    task::spawn(async move {
-                                        log_if_err(tx_api.send(Api::LazyTaskComplite(
-                                            uuid,
-                                            source_loading_task.get_meta(),
-                                            source_loading_task.wait().await,
-                                        )));
-                                    }),
-                                ),
-                            );
-                        }
-                        if let Some(mut parser_loading_task) = parser_options.lazy {
-                            // If exists, request lazy parser fields
-                            let meta = parser_loading_task.get_meta();
-                            let uuid = meta.uuid;
-                            let tx_api = tx_api_inner.clone();
-                            tasks.insert(
-                                uuid,
-                                (
-                                    meta,
-                                    task::spawn(async move {
-                                        log_if_err(tx_api.send(Api::LazyTaskComplite(
-                                            uuid,
-                                            parser_loading_task.get_meta(),
-                                            parser_loading_task.wait().await,
-                                        )));
-                                    }),
-                                ),
-                            );
+                        log_if_err(
+                            tx.send(Ok(stypes::ComponentsOptionsList {
+                                options: options
+                                    .iter_mut()
+                                    .map(|opt| opt.statics.drain(..).collect())
+                                    .collect(),
+                            })),
+                        );
+                        // Loading lazy if exist
+                        for opt in options.into_iter() {
+                            if let Some(mut loading_task) = opt.lazy {
+                                // If exists, request lazy source fields
+                                let meta = loading_task.get_meta();
+                                let uuid = meta.uuid;
+                                let tx_api = tx_api_inner.clone();
+                                tasks.insert(
+                                    uuid,
+                                    (
+                                        meta,
+                                        task::spawn(async move {
+                                            log_if_err(tx_api.send(Api::LazyTaskComplite(
+                                                uuid,
+                                                loading_task.get_meta(),
+                                                loading_task.wait().await,
+                                            )));
+                                        }),
+                                    ),
+                                );
+                            }
                         }
                     }
                     // Delivery lazy fields to client.
@@ -171,11 +157,8 @@ impl ComponentsSession {
                             }
                         }
                     }
-                    Api::GetParsers(origin, tx) => {
-                        log_if_err(tx.send(components.get_parsers(origin)));
-                    }
-                    Api::GetSources(origin, tx) => {
-                        log_if_err(tx.send(components.get_sources(origin)));
+                    Api::GetComponents(origin, ty, tx) => {
+                        log_if_err(tx.send(components.get_components(&ty, origin)));
                     }
                     // Client doesn't need any more field data. Loading task should be cancelled
                     Api::CancelLoading(fields) => {
@@ -205,15 +188,13 @@ impl ComponentsSession {
 
     pub async fn get_options(
         &self,
-        source: Uuid,
-        parser: Uuid,
+        targets: Vec<Uuid>,
         origin: stypes::SourceOrigin,
-    ) -> Result<stypes::ComponentsOptions, stypes::NativeError> {
+    ) -> Result<stypes::ComponentsOptionsList, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         send(
             self.tx_api.send(Api::GetOptions {
-                parser,
-                source,
+                targets,
                 origin,
                 tx,
             }),
@@ -222,28 +203,17 @@ impl ComponentsSession {
         response(rx.await, "Fail to get response from Api::GetOptions")?
     }
 
-    pub async fn get_sources(
+    pub async fn get_components(
         &self,
         origin: stypes::SourceOrigin,
+        ty: stypes::ComponentType,
     ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         send(
-            self.tx_api.send(Api::GetSources(origin, tx)),
-            "Fail to send Api::GetSources",
-        )?;
-        response(rx.await, "Fail to get response from Api::GetSources")?
-    }
-
-    pub async fn get_parsers(
-        &self,
-        origin: stypes::SourceOrigin,
-    ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        send(
-            self.tx_api.send(Api::GetParsers(origin, tx)),
+            self.tx_api.send(Api::GetComponents(origin, ty, tx)),
             "Fail to send Api::GetParsers",
         )?;
-        response(rx.await, "Fail to get response from Api::GetParsers")?
+        response(rx.await, "Fail to get response from Api::GetComponents")?
     }
 
     pub fn abort(&self, fields: Vec<String>) -> Result<(), stypes::NativeError> {
