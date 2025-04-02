@@ -1,4 +1,12 @@
-import { Jobs, Tracker, Session, SessionStream, ISessionEvents, SessionSearch } from '../src/index';
+import {
+    Jobs,
+    Tracker,
+    Session,
+    SessionStream,
+    ISessionEvents,
+    SessionSearch,
+    Components,
+} from '../src/index';
 import { Logger, getLogger } from './logger';
 import { error } from 'platform/log/utils';
 import { IRegularTests } from './config';
@@ -118,11 +126,13 @@ export function unbound(
     test: (
         logger: Logger,
         done: () => void,
-        add: ScopeInjector<Session | Tracker | Jobs>,
+        add: ScopeInjector<Session | Tracker | Jobs | Components>,
     ) => Promise<void>,
 ): Promise<void> {
-    const scope: Array<Session | Tracker | Jobs> = [];
-    const injector: ScopeInjector<Session | Tracker | Jobs> = (obj: Session | Tracker | Jobs) => {
+    const scope: Array<Session | Tracker | Jobs | Components> = [];
+    const injector: ScopeInjector<Session | Tracker | Jobs | Components> = (
+        obj: Session | Tracker | Jobs | Components,
+    ) => {
         scope.push(obj);
         return obj;
     };

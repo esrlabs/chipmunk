@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use components::ComponentDescriptor;
 use stypes::{PluginInfo, SemanticVersion};
 use wasmtime::component::Component;
 
@@ -165,5 +166,29 @@ impl p::Parser<PluginParseMessage> for PluginsParser {
         }
 
         res
+    }
+}
+
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    /// **ATTANTION** That's placeholder. Should be another way to delivery data
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Plugin"),
+            desc: String::from("Plugin"),
+            uuid: uuid::Uuid::new_v4(),
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Parser
+    }
+}
+
+impl components::Component for PluginsParser {
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        components.register(Descriptor::default())?;
+        Ok(())
     }
 }

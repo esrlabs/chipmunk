@@ -1,5 +1,6 @@
 pub mod attachment;
 pub mod fmt;
+mod options;
 
 use crate::{
     dlt::fmt::FormattableMessage, parse_all, someip::FibexMetadata as FibexSomeipMetadata, Error,

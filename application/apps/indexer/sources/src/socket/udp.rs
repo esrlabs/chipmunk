@@ -1,4 +1,5 @@
 use bufread::DeqBuffer;
+use components::ComponentDescriptor;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
 use thiserror::Error;
@@ -128,6 +129,33 @@ impl ByteSource for UdpSource {
 
     fn len(&self) -> usize {
         self.buffer.read_available()
+    }
+}
+
+const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+]);
+
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("UDP Source"),
+            desc: String::from("UDP Source"),
+            uuid: UDP_SOURCE_UUID,
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
+
+impl components::Component for UdpSource {
+    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+        components.register(Descriptor::default())?;
+        Ok(())
     }
 }
 
