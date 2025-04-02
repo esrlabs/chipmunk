@@ -17,12 +17,36 @@ use tokio::{
 };
 use uuid::Uuid;
 
+/// A controller responsible for managing all available components in the system (such as parsers, sources, etc.).
+///
+/// This structure acts as a central registry that stores and manages the state of all components throughout
+/// the entire application lifecycle. It is instantiated only once and remains active for the application's duration.
+///
+/// # Fields
+///
+/// * `tx_api` - An unbounded sender used for communicating with the API. It allows sending API-related messages
+///   or commands to manage components or respond to client requests.
 pub struct ComponentsSession {
     tx_api: UnboundedSender<Api>,
 }
 
 impl ComponentsSession {
-    /// Starts a global components session
+    /// Creates a new components session.
+    ///
+    /// This method initializes the `ComponentsSession` and returns a tuple containing the session instance
+    /// and an unbounded receiver. The receiver acts as a feedback channel, allowing the delivery of
+    /// asynchronous operation results to the client.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok((Self, UnboundedReceiver<stypes::CallbackOptionsEvent>))` - A tuple containing the newly created
+    ///   session and the receiver for asynchronous callbacks.
+    /// * `Err(stypes::NativeError)` - An error if the session could not be created.
+    ///
+    /// # Usage
+    ///
+    /// This method is asynchronous and should be awaited when called. The returned receiver can be used
+    /// to listen for callback events related to the components' operations.
     pub async fn new(
     ) -> Result<(Self, UnboundedReceiver<stypes::CallbackOptionsEvent>), stypes::NativeError> {
         let (tx_api, mut rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) =
@@ -70,12 +94,12 @@ impl ComponentsSession {
                             tx.send(Ok(stypes::ComponentsOptionsList {
                                 options: options
                                     .iter_mut()
-                                    .map(|opt| opt.statics.drain(..).collect())
+                                    .map(|(uuid, opt)| (*uuid, opt.extract_spec()))
                                     .collect(),
                             })),
                         );
                         // Loading lazy if exist
-                        for opt in options.into_iter() {
+                        for (_, opt) in options.into_iter() {
                             if let Some(mut loading_task) = opt.lazy {
                                 // If exists, request lazy source fields
                                 let meta = loading_task.get_meta();
@@ -86,7 +110,7 @@ impl ComponentsSession {
                                     (
                                         meta,
                                         task::spawn(async move {
-                                            log_if_err(tx_api.send(Api::LazyTaskComplite(
+                                            log_if_err(tx_api.send(Api::LazyTaskComplete(
                                                 uuid,
                                                 loading_task.get_meta(),
                                                 loading_task.wait().await,
@@ -98,10 +122,10 @@ impl ComponentsSession {
                         }
                     }
                     // Delivery lazy fields to client.
-                    Api::LazyTaskComplite(uuid, meta, results) => {
+                    Api::LazyTaskComplete(uuid, meta, results) => {
                         tasks.remove(&uuid);
                         match results {
-                            Ok(LazyLoadingResult::Feilds(fields)) => {
+                            Ok(LazyLoadingResult::Fields(fields)) => {
                                 let (success, fail): (Vec<_>, Vec<_>) =
                                     fields.into_iter().partition(|(_, result)| result.is_ok());
                                 let fields: Vec<stypes::StaticFieldDesc> = success
@@ -186,6 +210,26 @@ impl ComponentsSession {
         Ok((session, rx_callback_events))
     }
 
+    /// Retrieves the configuration options for a list of components.
+    ///
+    /// This method sends an asynchronous request to obtain the settings of the specified components.
+    /// It uses the `Api::GetOptions` command to communicate with the underlying system.
+    ///
+    /// # Arguments
+    ///
+    /// * `targets` - A vector of UUIDs representing the components whose settings are being requested.
+    /// * `origin` - The source origin within which the components are being used.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(stypes::ComponentsOptionsList)` - The list of component configuration options.
+    /// * `Err(stypes::NativeError)` - An error if the request fails or the response is not received.
+    ///
+    /// # Errors
+    ///
+    /// The method returns an error if:
+    /// - The API request could not be sent.
+    /// - The response from the API could not be retrieved.
     pub async fn get_options(
         &self,
         targets: Vec<Uuid>,
@@ -203,6 +247,26 @@ impl ComponentsSession {
         response(rx.await, "Fail to get response from Api::GetOptions")?
     }
 
+    /// Retrieves the list of available components of a specified type.
+    ///
+    /// This method sends an asynchronous request to get the list of components, filtered by type.
+    /// It uses the `Api::GetComponents` command to query the system.
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` - The source origin within which the components are being used.
+    /// * `ty` - The type of components to retrieve (e.g., parser, source).
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<stypes::Ident>)` - A vector of component identifiers.
+    /// * `Err(stypes::NativeError)` - An error if the request fails or the response is not received.
+    ///
+    /// # Errors
+    ///
+    /// The method returns an error if:
+    /// - The API request could not be sent.
+    /// - The response from the API could not be retrieved.
     pub async fn get_components(
         &self,
         origin: stypes::SourceOrigin,
@@ -216,6 +280,19 @@ impl ComponentsSession {
         response(rx.await, "Fail to get response from Api::GetComponents")?
     }
 
+    /// Aborts the lazy loading tasks for the specified fields.
+    ///
+    /// This method sends a cancellation request for ongoing lazy loading tasks associated with the given field IDs.
+    /// It uses the `Api::CancelLoading` command to perform the operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `fields` - A vector of field IDs for which the lazy loading should be aborted.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the cancellation request was successfully sent.
+    /// * `Err(stypes::NativeError)` - An error if the API request could not be sent.
     pub fn abort(&self, fields: Vec<String>) -> Result<(), stypes::NativeError> {
         send(
             self.tx_api.send(Api::CancelLoading(fields)),
@@ -223,6 +300,21 @@ impl ComponentsSession {
         )
     }
 
+    /// Initiates the shutdown process for the components session.
+    ///
+    /// This method sends a shutdown command to gracefully terminate the session.
+    /// It uses the `Api::Shutdown` command to initiate the shutdown.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the shutdown request was successfully sent and acknowledged.
+    /// * `Err(stypes::NativeError)` - An error if the shutdown process fails.
+    ///
+    /// # Errors
+    ///
+    /// The method returns an error if:
+    /// - The API request could not be sent.
+    /// - The response from the API could not be retrieved.
     pub async fn shutdown(&self) -> Result<(), stypes::NativeError> {
         let (tx, rx): (oneshot::Sender<()>, oneshot::Receiver<()>) = oneshot::channel();
         send(
@@ -233,11 +325,35 @@ impl ComponentsSession {
     }
 }
 
+/// Logs an error if the given result contains an error.
+///
+/// This function is a simple utility to reduce boilerplate when handling errors
+/// that should be logged but do not require further processing. If the result is
+/// an error, a log message will be recorded.
+///
+/// # Arguments
+///
+/// * `res` - A `Result` that may contain an error. If `Err`, it will be logged.
 fn log_if_err<E>(res: Result<(), E>) {
     if res.is_err() {
-        error!("[Components] Fail to send responce to Api");
+        error!("[Components] Fail to send response to Api");
     }
 }
+
+/// Wraps the result of sending a message and converts a sending error into a native error.
+///
+/// This function simplifies error handling when sending messages between asynchronous tasks.
+/// It converts a `SendError` into a standardized `NativeError` format.
+///
+/// # Arguments
+///
+/// * `res` - A result from attempting to send a message via a channel.
+/// * `msg` - A string slice providing context for the error message.
+///
+/// # Returns
+///
+/// * `Ok(())` - If the message was sent successfully.
+/// * `Err(stypes::NativeError)` - If there was a failure during message sending.
 fn send<T, S: AsRef<str>>(
     res: Result<(), SendError<T>>,
     msg: S,
@@ -249,6 +365,20 @@ fn send<T, S: AsRef<str>>(
     })
 }
 
+/// Wraps the result of receiving a message and converts a receiving error into a native error.
+///
+/// This function simplifies error handling when awaiting a response from an asynchronous channel.
+/// It converts a `RecvError` into a standardized `NativeError` format with a detailed message.
+///
+/// # Arguments
+///
+/// * `res` - A result from awaiting a response from a channel.
+/// * `msg` - A string slice providing context for the error message.
+///
+/// # Returns
+///
+/// * `Ok(T)` - The successfully received value.
+/// * `Err(stypes::NativeError)` - If there was a failure during message reception.
 fn response<T, S: AsRef<str>>(res: Result<T, RecvError>, msg: S) -> Result<T, stypes::NativeError> {
     res.map_err(|e| stypes::NativeError {
         severity: stypes::Severity::ERROR,
