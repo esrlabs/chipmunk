@@ -153,32 +153,32 @@ impl PluginRunData {
     /// Adds a debug-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn debug<S: AsRef<str>>(&mut self, msg: S) {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn debug<S: Into<String>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::debug(msg));
     }
 
     /// Adds an info-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn info<S: AsRef<str>>(&mut self, msg: S) {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn info<S: Into<String>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::info(msg));
     }
 
     /// Adds an error-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn err<S: AsRef<str>>(&mut self, msg: S) {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn err<S: Into<String>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::err(msg));
     }
 
     /// Adds a warning-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn warn<S: AsRef<str>>(&mut self, msg: S) {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn warn<S: Into<String>>(&mut self, msg: S) {
         self.logs.push(PluginLogMessage::warn(msg));
     }
 }
@@ -197,10 +197,10 @@ impl PluginLogMessage {
     /// Creates a debug-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn debug<S: AsRef<str>>(msg: S) -> Self {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn debug<S: Into<String>>(msg: S) -> Self {
         Self {
-            msg: msg.as_ref().to_string(),
+            msg: msg.into(),
             level: PluginLogLevel::Debug,
             timestamp: Self::timestamp(),
         }
@@ -209,10 +209,10 @@ impl PluginLogMessage {
     /// Creates an info-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn info<S: AsRef<str>>(msg: S) -> Self {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn info<S: Into<String>>(msg: S) -> Self {
         Self {
-            msg: msg.as_ref().to_string(),
+            msg: msg.into(),
             level: PluginLogLevel::Info,
             timestamp: Self::timestamp(),
         }
@@ -221,10 +221,10 @@ impl PluginLogMessage {
     /// Creates an error-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn err<S: AsRef<str>>(msg: S) -> Self {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn err<S: Into<String>>(msg: S) -> Self {
         Self {
-            msg: msg.as_ref().to_string(),
+            msg: msg.into(),
             level: PluginLogLevel::Err,
             timestamp: Self::timestamp(),
         }
@@ -233,10 +233,10 @@ impl PluginLogMessage {
     /// Creates a warning-level log message.
     ///
     /// # Arguments
-    /// * `msg` - The message to log. Accepts any type that implements `AsRef<str>`.
-    pub fn warn<S: AsRef<str>>(msg: S) -> Self {
+    /// * `msg` - The message to log. Accepts any type that implements `Into<String>`.
+    pub fn warn<S: Into<String>>(msg: S) -> Self {
         Self {
-            msg: msg.as_ref().to_string(),
+            msg: msg.into(),
             level: PluginLogLevel::Warn,
             timestamp: Self::timestamp(),
         }
