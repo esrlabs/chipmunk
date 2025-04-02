@@ -19,7 +19,11 @@ use crate::*;
     ts(export, export_to = "options.ts")
 )]
 pub struct ComponentsOptionsList {
-    pub options: Vec<Vec<FieldDesc>>,
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, FieldDesc[]>")
+    )]
+    pub options: HashMap<Uuid, Vec<FieldDesc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
