@@ -53,7 +53,11 @@ describe('Jobs', function () {
                     TCP_SOURCE_UUID,
                     DLT_PARSER_UUID,
                 ]);
-                const lazy_field: { Lazy: LazyFieldDesc } | undefined = fields.options[1].find(
+                const dlt_opts: FieldDesc[] | undefined = fields.options.get(DLT_PARSER_UUID);
+                if (!dlt_opts) {
+                    return finish([components], done, new Error(`No fields from DLT parser`));
+                }
+                const lazy_field: { Lazy: LazyFieldDesc } | undefined = dlt_opts.find(
                     (field: FieldDesc) => 'Lazy' in field,
                 );
                 if (!lazy_field) {
@@ -115,10 +119,13 @@ describe('Jobs', function () {
                     TCP_SOURCE_UUID,
                     DLT_PARSER_UUID,
                 ]);
-                const lazy_field: { Lazy: LazyFieldDesc } | undefined = fields.options[1].find(
+                const dlt_opts: FieldDesc[] | undefined = fields.options.get(DLT_PARSER_UUID);
+                if (!dlt_opts) {
+                    return finish([components], done, new Error(`No fields from DLT parser`));
+                }
+                const lazy_field: { Lazy: LazyFieldDesc } | undefined = dlt_opts.find(
                     (field: FieldDesc) => 'Lazy' in field,
                 );
-                console.log(fields);
                 if (!lazy_field) {
                     return finish([components], done, new Error(`No lazy fields from DLT parser`));
                 }
