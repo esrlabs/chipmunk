@@ -16,10 +16,6 @@ pub mod plugin_parse_message;
 /// Marker for a column separator in the output string.
 pub const COLUMN_SEP: &str = "\u{0004}";
 
-/// The maximum number of consecutive recoverable errors allowed from a plugin.
-/// If a plugin exceeds this number, it may be considered harmful to the system.
-const MAX_ALLOWED_CONSECUTIVE_ERRORS: u8 = 20;
-
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
 pub struct PluginsParser {
     /// The actual parser for each supported version in plugins API.
@@ -27,7 +23,7 @@ pub struct PluginsParser {
     /// Tracks the number of consecutive recoverable errors sent by a plugin.
     /// This helps prevent plugins from causing harm to the Chipmunk system
     /// by sending too many recoverable errors in a row.
-    errors_counter: u8,
+    errors_counter: usize,
 }
 
 /// Represents the plugin parser for each supported version in plugins API.
@@ -136,6 +132,17 @@ impl WasmPlugin for PluginsParser {
     }
 }
 
+/// The maximum number of consecutive recoverable errors allowed from a plugin.
+/// If a plugin exceeds this number, it may be considered harmful to the system.
+struct PluginErrorLimits;
+
+impl PluginErrorLimits {
+    /// Limit for consecutive [`parsers::Error::Parse`] errors.
+    const PARSE_ERROR_LIMIT: usize = 2000;
+    /// Limit for consecutive [`parsers::Error::Incomplete`] errors.
+    const INCOMPLETE_ERROR_LIMIT: usize = 50;
+}
+
 use parsers as p;
 impl p::Parser<PluginParseMessage> for PluginsParser {
     fn parse(
@@ -148,17 +155,30 @@ impl p::Parser<PluginParseMessage> for PluginsParser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
 
+        // Check for consecutive errors.
         match &res {
-            Ok(_) | Err(p::Error::Unrecoverable(_)) => {
+            Ok(_) | Err(p::Error::Unrecoverable(_)) | Err(p::Error::Eof) => {
                 self.errors_counter = 0;
             }
-            Err(p::Error::Parse(_)) | Err(p::Error::Incomplete) | Err(p::Error::Eof) => {
+            Err(p::Error::Parse(err)) => {
                 self.errors_counter += 1;
-                if self.errors_counter > MAX_ALLOWED_CONSECUTIVE_ERRORS {
+                if self.errors_counter > PluginErrorLimits::PARSE_ERROR_LIMIT {
                     self.errors_counter = 0;
                     return Err(p::Error::Unrecoverable(format!(
                         "Plugin parser returned more than \
-                        {MAX_ALLOWED_CONSECUTIVE_ERRORS} recoverable errors consecutively"
+                        {} recoverable parse errors consecutively\n. Parse Error: {err}",
+                        PluginErrorLimits::PARSE_ERROR_LIMIT
+                    )));
+                }
+            }
+            Err(p::Error::Incomplete) => {
+                self.errors_counter += 1;
+                if self.errors_counter > PluginErrorLimits::INCOMPLETE_ERROR_LIMIT {
+                    self.errors_counter = 0;
+                    return Err(p::Error::Unrecoverable(format!(
+                        "Plugin parser returned more than \
+                        {} recoverable incomplete errors consecutively",
+                        PluginErrorLimits::INCOMPLETE_ERROR_LIMIT
                     )));
                 }
             }
