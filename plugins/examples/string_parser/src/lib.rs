@@ -14,9 +14,11 @@ use plugins_api::{
     shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
 };
 
+// IDs for configurations needed for this plugin.
 const LOSSY_ID: &str = "lossy";
 const PREFIX_ID: &str = "prefix";
-// TODO AAZ: Remove after debugging.
+
+// IDs for configurations used as show-case only.
 const INTEGER_ID: &str = "integer_idx";
 const FLOAT_ID: &str = "float_idx";
 const FILES_ID: &str = "files_idx";
@@ -129,7 +131,7 @@ impl Parser for StringTokenizer {
     }
 
     fn get_render_options() -> RenderOptions {
-        // Demonstration of render options.
+        // *** Demonstration of render options ***
         let columns = vec![
             ColumnInfo::new("Length", "The length of the log message", 30),
             ColumnInfo::new("Message", "The log message", -1),
