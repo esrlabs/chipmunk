@@ -37,8 +37,7 @@ fn mocks_once_parallel(c: &mut Criterion) {
                         for _ in 0..tasks_count {
                             let parser = MockParser::new_once(max);
                             let byte_source = MockByteSource::new();
-                            let producer =
-                                MessageProducer::new(parser, byte_source, black_box(None));
+                            let producer = MessageProducer::new(parser, byte_source);
                             producers.push(producer);
                         }
                         producers

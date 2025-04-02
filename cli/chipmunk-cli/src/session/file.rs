@@ -35,7 +35,7 @@ where
     D: ByteSource,
     W: MessageFormatter,
 {
-    let mut producer = MessageProducer::new(parser, bytesource, None);
+    let mut producer = MessageProducer::new(parser, bytesource);
 
     let mut file_writer = create_append_file_writer(&output_path)?;
 

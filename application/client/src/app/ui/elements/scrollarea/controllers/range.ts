@@ -100,4 +100,8 @@ export class Range {
     public hash(): string {
         return `${this.getLength()}:${this.get().start}-${this.get().end}`;
     }
+
+    public isEmpty(): boolean {
+        return this.range.max === 0;
+    }
 }

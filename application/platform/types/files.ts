@@ -96,6 +96,7 @@ export interface ParsedPath {
 
 const FILE_NAME_REG = /[^/\\]*$/gi;
 const FILE_EXT_REG = /[^/\\.]*$/gi;
+
 export function getFileName(filename: string): string {
     const match = FILE_NAME_REG.exec(filename);
     if (match === null) {

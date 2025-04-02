@@ -144,7 +144,7 @@ async fn export<S: ByteSource>(
                 settings.plugin_configs.clone(),
             )
             .await?;
-            let producer = MessageProducer::new(parser, source, None);
+            let producer = MessageProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::SomeIp(settings) => {
@@ -153,7 +153,7 @@ async fn export<S: ByteSource>(
             } else {
                 SomeipParser::new()
             };
-            let producer = MessageProducer::new(parser, source, None);
+            let producer = MessageProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::Dlt(settings) => {
@@ -165,11 +165,11 @@ async fn export<S: ByteSource>(
                 None,
                 settings.with_storage_header,
             );
-            let producer = MessageProducer::new(parser, source, None);
+            let producer = MessageProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source, None);
+            let producer = MessageProducer::new(StringTokenizer {}, source);
             export_runner(producer, dest, sections, read_to_end, true, cancel).await
         }
     }

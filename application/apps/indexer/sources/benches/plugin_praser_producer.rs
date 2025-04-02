@@ -47,7 +47,7 @@ fn plugin_parser_producer(c: &mut Criterion) {
                     .unwrap();
 
                     let source = create_binary_bytesource(data);
-                    let producer = MessageProducer::new(parser, source, black_box(None));
+                    let producer = MessageProducer::new(parser, source);
 
                     producer
                 },

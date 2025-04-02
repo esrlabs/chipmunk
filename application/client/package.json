@@ -1,6 +1,6 @@
 {
   "name": "chipmunk",
-  "version": "3.16.3",
+  "version": "3.16.5",
   "description": "Logs analyzer tool",
   "author": "Dmitry Astafyev",
   "scripts": {

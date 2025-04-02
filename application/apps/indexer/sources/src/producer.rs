@@ -1,22 +1,10 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{sde::SdeMsg, ByteSource, ReloadInfo, SourceFilter};
+use crate::{ByteSource, ReloadInfo, SourceFilter};
 use log::warn;
 use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
 use std::marker::PhantomData;
-use tokio::{
-    select,
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-};
-
-pub type SdeSender = UnboundedSender<SdeMsg>;
-pub type SdeReceiver = UnboundedReceiver<SdeMsg>;
-
-enum Next {
-    Read((usize, usize, usize)),
-    Sde(Option<SdeMsg>),
-}
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
@@ -36,13 +24,12 @@ where
     total_loaded: usize,
     total_skipped: usize,
     done: bool,
-    rx_sde: Option<SdeReceiver>,
     buffer: Vec<(usize, MessageStreamItem<T>)>,
 }
 
 impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// create a new producer by plugging into a byte source
-    pub fn new(parser: P, source: D, rx_sde: Option<SdeReceiver>) -> Self {
+    pub fn new(parser: P, source: D) -> Self {
         MessageProducer {
             byte_source: source,
             parser,
@@ -52,7 +39,6 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             total_loaded: 0,
             total_skipped: 0,
             done: false,
-            rx_sde,
             buffer: Vec::new(),
         }
     }
@@ -61,7 +47,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// The caller can choose whether to consume the items or not.
     ///
     /// # Cancel Safety:
-    /// This function is cancel safe
+    /// This function is cancel safe as long [`ByteSource::load()`] method on used byte source is
+    /// safe as well.
     ///
     /// # Return:
     /// Return a mutable reference for the newly parsed items when there are more data available,
@@ -80,47 +67,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             debug!("done...no next segment");
             return None;
         }
-        let (_newly_loaded, mut available, mut skipped_bytes) = 'outer: loop {
-            //TODO: Not Cancel Safe.
-            if let Some(mut rx_sde) = self.rx_sde.take() {
-                'inner: loop {
-                    // SDE mode: listening next chunk and possible incoming message for source
-                    match select! {
-                        msg = rx_sde.recv() => Next::Sde(msg),
-                        read = self.load() => Next::Read(read.unwrap_or((0, 0, 0))),
-                    } {
-                        Next::Read(next) => {
-                            self.rx_sde = Some(rx_sde);
-                            break 'outer next;
-                        }
-                        Next::Sde(msg) => {
-                            if let Some((msg, tx_response)) = msg {
-                                if tx_response
-                                    .send(
-                                        self.byte_source
-                                            .income(msg)
-                                            .await
-                                            .map_err(|e| e.to_string()),
-                                    )
-                                    .is_err()
-                                {
-                                    warn!("Fail to send back message from source");
-                                }
-                            } else {
-                                // Means - no more senders; but it isn't an error as soon as implementation of
-                                // source could just do not use a data exchanging
-                                self.rx_sde = None;
-                                // Exiting from inner loop to avoid select! and go to NoSDE mode
-                                break 'inner;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // NoSDE mode: listening only next chunk
-                break 'outer self.load().await.unwrap_or((0, 0, 0));
-            };
-        };
+        let (_newly_loaded, mut available, mut skipped_bytes) =
+            self.load().await.unwrap_or((0, 0, 0));
+
         // 1. buffer loaded? if not, fill buffer with frame data
         // 2. try to parse message from buffer
         // 3a. if message, pop it of the buffer and deliver
@@ -353,10 +302,18 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     }
 
     /// Checks if the producer have already produced any parsed items in the current session.
-    pub fn did_produce_items(&self) -> bool {
+    fn did_produce_items(&self) -> bool {
         // Produced items will be added to the internal buffer increasing its capacity.
         // This isn't straight forward way, but used to avoid having to introduce a new field
         // and keep track on its state.
         self.buffer.capacity() > 0
+    }
+
+    /// Append incoming (SDE) Source-Data-Exchange to the underline byte source data.
+    pub async fn sde_income(
+        &mut self,
+        msg: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, super::Error> {
+        self.byte_source.income(msg).await
     }
 }

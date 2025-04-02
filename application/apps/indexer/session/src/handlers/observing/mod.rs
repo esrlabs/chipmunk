@@ -14,7 +14,8 @@ use parsers::{
 };
 use plugins_host::PluginsParser;
 use sources::{
-    producer::{MessageProducer, SdeReceiver},
+    producer::MessageProducer,
+    sde::{SdeMsg, SdeReceiver},
     ByteSource,
 };
 use tokio::{
@@ -27,6 +28,7 @@ enum Next<'a, T: LogMessage> {
     Items(&'a mut Vec<(usize, MessageStreamItem<T>)>),
     Timeout,
     Waiting,
+    Sde(SdeMsg),
 }
 
 pub mod concat;
@@ -84,8 +86,8 @@ async fn run_source_intern<S: ByteSource>(
                 settings.plugin_configs.clone(),
             )
             .await?;
-            let producer = MessageProducer::new(parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            let producer = MessageProducer::new(parser, source);
+            run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
@@ -94,12 +96,12 @@ async fn run_source_intern<S: ByteSource>(
                 }
                 None => SomeipParser::new(),
             };
-            let producer = MessageProducer::new(someip_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            let producer = MessageProducer::new(someip_parser, source);
+            run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            let producer = MessageProducer::new(StringTokenizer {}, source);
+            run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
@@ -113,8 +115,8 @@ async fn run_source_intern<S: ByteSource>(
                 someip_metadata.as_ref(),
                 settings.with_storage_header,
             );
-            let producer = MessageProducer::new(dlt_parser, source, rx_sde);
-            run_producer(operation_api, state, source_id, producer, rx_tail).await
+            let producer = MessageProducer::new(dlt_parser, source);
+            run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
     }
 }
@@ -125,6 +127,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     source_id: u16,
     mut producer: MessageProducer<T, P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
+    mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     use log::debug;
     state.set_session_file(None).await?;
@@ -145,6 +148,14 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                 Err(_) => Some(Next::Timeout),
             }
         } => next_from_stream,
+        Some(sde_msg) = async {
+            if let Some(rx_sde) = rx_sde.as_mut() {
+                rx_sde.recv().await
+            } else {
+                None
+            }
+        } => Some(Next::Sde(sde_msg)),
+
         _ = cancel.cancelled() => None,
     } {
         match next {
@@ -224,6 +235,12 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                     }
                 } else {
                     break;
+                }
+            }
+            Next::Sde((msg, tx_response)) => {
+                let sde_res = producer.sde_income(msg).await.map_err(|e| e.to_string());
+                if tx_response.send(sde_res).is_err() {
+                    log::warn!("Fail to send back message from source");
                 }
             }
         }

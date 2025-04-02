@@ -37,6 +37,7 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
         this.columns = bound instanceof Columns ? bound : undefined;
         this.env().subscriber.register(
             this.session.getTabAPI().subjects.onTitleContextMenu.subscribe((event: MouseEvent) => {
+                const filename = this.session.stream.observe().getSourceFileName();
                 this.ilc().emitter.ui.contextmenu.open({
                     items: [
                         {
@@ -61,6 +62,80 @@ export class ViewWorkspace implements AfterContentInit, OnDestroy {
                                         }),
                                     );
                                 }
+                            },
+                        },
+                        {},
+                        {
+                            caption: 'Copy Path',
+                            disabled: filename === undefined,
+                            handler: () => {
+                                if (!filename) {
+                                    return;
+                                }
+                                this.ilc()
+                                    .services.system.bridge.files()
+                                    .name(filename)
+                                    .then((info) => {
+                                        navigator.clipboard.writeText(info.parent);
+                                    })
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail get file info for ${filename}: ${err.message}`,
+                                        );
+                                    });
+                            },
+                        },
+                        {
+                            caption: 'Copy Full Path',
+                            disabled: filename === undefined,
+                            handler: () => {
+                                filename && navigator.clipboard.writeText(filename);
+                            },
+                        },
+                        {
+                            caption: 'Copy File Name',
+                            disabled: filename === undefined,
+                            handler: () => {
+                                if (!filename) {
+                                    return;
+                                }
+                                this.ilc()
+                                    .services.system.bridge.files()
+                                    .name(filename)
+                                    .then((info) => {
+                                        navigator.clipboard.writeText(info.name);
+                                    })
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail get file info for ${filename}: ${err.message}`,
+                                        );
+                                    });
+                            },
+                        },
+                        {},
+                        {
+                            caption: 'Open Containing Folder',
+                            disabled: filename === undefined,
+                            handler: () => {
+                                if (!filename) {
+                                    return;
+                                }
+                                this.ilc()
+                                    .services.system.bridge.files()
+                                    .name(filename)
+                                    .then((info) => {
+                                        this.ilc()
+                                            .services.system.bridge.folders()
+                                            .open(info.parent)
+                                            .catch((err: Error) => {
+                                                this.log().error(`Fail to open: ${err.message}`);
+                                            });
+                                    })
+                                    .catch((err: Error) => {
+                                        this.log().error(
+                                            `Fail get file info for ${filename}: ${err.message}`,
+                                        );
+                                    });
                             },
                         },
                         {},

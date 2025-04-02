@@ -130,8 +130,7 @@ pub trait ByteSource: Send {
     ///
     /// # Note:
     ///
-    /// This function must be **Cancel-Safe** if for structs which support [`stypes::SdeRequest`] by
-    /// implementing the method [`ByteSource::income()`].
+    /// This function must be **Cancel-Safe**
     async fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
     /// In case the ByteSource is some kind of connection that does not end,
@@ -142,11 +141,6 @@ pub trait ByteSource: Send {
     }
 
     /// Append incoming (SDE) Source-Data-Exchange to the data.
-    ///
-    /// # Note:
-    ///
-    /// The method [`ByteSource::reload()`] must be **Cancel-Safe** for structs that support this
-    /// method
     async fn income(&mut self, _msg: stypes::SdeRequest) -> Result<stypes::SdeResponse, Error> {
         Err(Error::NotSupported)
     }

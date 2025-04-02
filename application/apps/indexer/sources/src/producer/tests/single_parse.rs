@@ -1,14 +1,12 @@
 //! Tests for parsers returning single value always
 
 use std::collections::VecDeque;
-use std::time::Duration;
 
 use super::mock_byte_source::*;
 use super::mock_parser::*;
 use super::*;
 
 use parsers::{Error as ParseError, ParseYield};
-use tokio::sync::{mpsc::unbounded_channel, oneshot};
 
 use crate::{producer::MessageProducer, Error};
 
@@ -17,7 +15,7 @@ async fn empty_byte_source() {
     let parser = MockParser::new([]);
     let source = MockByteSource::new(0, [Ok(None)]);
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
@@ -32,7 +30,7 @@ async fn byte_source_fail() {
     let parser = MockParser::new([]);
     let source = MockByteSource::new(0, [Err(Error::NotSupported)]);
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Done message should be sent
     let next = producer.read_next_segment().await.unwrap();
@@ -62,7 +60,7 @@ async fn parse_item_then_skip() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // First results should be one message with content
     let next = producer.read_next_segment().await.unwrap();
@@ -115,7 +113,7 @@ async fn parse_incomplete() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // First message should be message with content
     let next = producer.read_next_segment().await.unwrap();
@@ -160,7 +158,7 @@ async fn parse_incomplete_with_err_reload() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Stream should be closed directly if reload failed after parser returning Incomplete error
     let next = producer.read_next_segment().await;
@@ -172,7 +170,7 @@ async fn parse_err_eof() {
     let parser = MockParser::new([Err(ParseError::Eof)]);
     let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0)))]);
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Stream should be closed directly if parse returns `Error::Eof`
     let next = producer.read_next_segment().await;
@@ -199,7 +197,7 @@ async fn initial_parsing_error() {
 
     let source = MockByteSource::new(0, source_seeds);
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Initial error should abort the session.
     let next = producer.read_next_segment().await.unwrap();
@@ -240,7 +238,7 @@ async fn success_parse_err_success() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Message with content should be yielded consuming all the bytes.
     let next = producer.read_next_segment().await.unwrap();
@@ -301,7 +299,7 @@ async fn success_parse_err_done() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Message with content should be yielded consuming all the bytes.
     let next = producer.read_next_segment().await.unwrap();
@@ -351,7 +349,7 @@ async fn success_parsing_error_then_fail_reload() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Message with content should be yielded consuming all the bytes.
     let next = producer.read_next_segment().await.unwrap();
@@ -401,7 +399,7 @@ async fn parse_with_skipped_bytes() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // Message with content 1 should be yielded considering skipped bytes
     let next = producer.read_next_segment().await.unwrap();
@@ -474,7 +472,7 @@ async fn success_parsi_err_success_drain_bytes() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source, None);
+    let mut producer = MessageProducer::new(parser, source);
 
     // First successful parse
     let next = producer.read_next_segment().await.unwrap();
@@ -519,69 +517,4 @@ async fn success_parsi_err_success_drain_bytes() {
     // Then the stream should be closed
     let next = producer.read_next_segment().await;
     assert!(next.is_none());
-}
-
-#[tokio::test]
-/// This function tests the sde SDE Communication in the producer loop
-async fn sde_communication() {
-    let parser = MockParser::new([Ok(vec![MockParseSeed::new(
-        5,
-        Some(ParseYield::Message(MockMessage::from(1))),
-    )])]);
-
-    // The duration which `reload()` should wait for before delivering the data.
-    const SLEEP_DURATION: Duration = Duration::from_millis(50);
-
-    let source = MockByteSource::new(
-        0,
-        [
-            // This value must never be delivered because `reload()` on `MockByteSource`
-            // isn't cancel safe, and the value here will be dropped with the `reload()` future
-            // within the `select!()` macro in producer loop.
-            Ok(Some(
-                MockReloadSeed::new(5, 0).sleep_duration(SLEEP_DURATION),
-            )),
-            // This value should be delivered because the first one must be dropped because of the
-            // cancel safety issue
-            Ok(Some(MockReloadSeed::new(10, 0))),
-        ],
-    );
-
-    // Create producer with sde channels
-    let (tx_sde, rx_sde) = unbounded_channel();
-    let mut producer = MessageProducer::new(parser, source, Some(rx_sde));
-
-    // Send message to sde receiver before calling next.
-    let (tx_sde_response, mut rx_sde_response) = oneshot::channel();
-    const SDE_TEXT: &str = "sde_msg";
-    tx_sde
-        .send((
-            stypes::SdeRequest::WriteText(String::from(SDE_TEXT)),
-            tx_sde_response,
-        ))
-        .unwrap();
-
-    // The first source seed has a delay and won't be picked in the `select!` macro in the producer
-    // loop, and it will be dropped because `reload()` in `MockByteSource` isn't cancel safe.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(
-        next[0],
-        (
-            5,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
-    ));
-
-    // Producer loop must have called `income()` and sent the message by now.
-    // The bytes length must match the sent message length as it implemented and tested in `MockByteSource`
-    let sde_response_res = rx_sde_response
-        .try_recv()
-        .expect("Sde Response must be sent by now because of the delay");
-
-    let sde_response =
-        sde_response_res.expect("`income()` method on `MockByteSource` should never fail");
-
-    // Returned bytes' length must match the length of the sent data.
-    assert_eq!(sde_response.bytes, SDE_TEXT.len());
 }

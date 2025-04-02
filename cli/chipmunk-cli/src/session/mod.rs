@@ -12,7 +12,13 @@ use tokio_util::sync::CancellationToken;
 use parsers::LogMessage;
 use sources::{
     binary::raw::BinaryByteSource,
-    socket::{tcp::TcpSource, udp::UdpSource, ReconnectInfo, ReconnectStateMsg},
+    socket::{
+        tcp::{
+            reconnect::{ReconnectInfo, ReconnectStateMsg},
+            KeepAliveConfig, TcpSource,
+        },
+        udp::UdpSource,
+    },
 };
 
 use crate::cli_args::InputSource;
@@ -48,22 +54,25 @@ where
             update_interval,
             max_reconnect_count,
             reconnect_interval,
+            keep_alive,
         } => {
             let (state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
 
             let reconnect = max_reconnect_count.and_then(|max| {
                 // provide reconnect infos when max count exists and bigger than zero.
                 (max > 0).then(|| {
-                    ReconnectInfo::new(
-                        max,
-                        Duration::from_millis(reconnect_interval),
-                        Some(state_tx),
-                    )
+                    ReconnectInfo::new(max, Duration::from_secs(reconnect_interval), Some(state_tx))
                 })
             });
 
-            let update_interval = Duration::from_millis(update_interval);
-            let source = TcpSource::new(address, reconnect)
+            let update_interval = Duration::from_secs(update_interval);
+
+            let keepalive = keep_alive.map(|keepalive_secs| {
+                let keep_duration = Duration::from_secs(keepalive_secs);
+                KeepAliveConfig::new(keep_duration, keep_duration)
+            });
+
+            let source = TcpSource::new(&address, keepalive, reconnect)
                 .await
                 .context("Initializing TCP connection failed")?;
 
@@ -78,7 +87,10 @@ where
             )
             .await?
         }
-        InputSource::Udp { address } => {
+        InputSource::Udp {
+            address,
+            update_interval,
+        } => {
             // UDP connections inherently support auto-connecting by design.
             let (_state_tx, state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
 
@@ -86,7 +98,7 @@ where
                 .await
                 .context("Initializing UDP connection failed")?;
 
-            let temp_interval = Duration::from_millis(1000);
+            let temp_interval = Duration::from_secs(update_interval);
 
             socket::run_session(
                 parser,

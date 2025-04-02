@@ -1,8 +1,8 @@
 use crate::*;
-use dlt_core::statistics;
+use dlt_core::statistics::common::{LevelDistribution, StatisticInfo};
 
-impl From<statistics::LevelDistribution> for DltLevelDistribution {
-    fn from(v: statistics::LevelDistribution) -> Self {
+impl From<LevelDistribution> for DltLevelDistribution {
+    fn from(v: LevelDistribution) -> Self {
         DltLevelDistribution {
             non_log: v.non_log,
             log_fatal: v.log_fatal,
@@ -20,16 +20,14 @@ trait InnerInto<T> {
     fn inner_into(self) -> T;
 }
 
-impl InnerInto<Vec<(String, DltLevelDistribution)>>
-    for Vec<(String, statistics::LevelDistribution)>
-{
+impl InnerInto<Vec<(String, DltLevelDistribution)>> for Vec<(String, LevelDistribution)> {
     fn inner_into(self) -> Vec<(String, DltLevelDistribution)> {
         self.into_iter().map(|(k, l)| (k, l.into())).collect()
     }
 }
 
-impl From<statistics::StatisticInfo> for DltStatisticInfo {
-    fn from(v: statistics::StatisticInfo) -> Self {
+impl From<StatisticInfo> for DltStatisticInfo {
+    fn from(v: StatisticInfo) -> Self {
         DltStatisticInfo {
             app_ids: v.app_ids.inner_into(),
             context_ids: v.context_ids.inner_into(),

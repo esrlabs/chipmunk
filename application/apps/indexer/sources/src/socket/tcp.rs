@@ -1,90 +1,70 @@
-use crate::{
-    socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
-use bufread::DeqBuffer;
-use tokio::{net::TcpStream, task::yield_now};
+use std::{net::SocketAddr, time::Duration};
 
-use super::{
-    handle_buff_capacity, BuffCapacityState, ReconnectInfo, ReconnectResult, ReconnectToServer,
-    MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE,
-};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use bufread::DeqBuffer;
+use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
+use socket2::{SockRef, TcpKeepalive};
+use tokio::net::TcpStream;
+
+use super::{handle_buff_capacity, BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
+
+pub mod reconnect;
+
+/// Configurations for keep-alive probes in TCP communication.
+#[derive(Debug, Clone)]
+pub struct KeepAliveConfig {
+    /// Set the amount of time after which TCP keep-alive probes will be sent on
+    /// idle connections.
+    time: Duration,
+    /// Sets the time interval between TCP keep-alive probes.
+    interval: Duration,
+}
+
+impl KeepAliveConfig {
+    pub fn new(time: Duration, interval: Duration) -> Self {
+        Self { time, interval }
+    }
+}
 
 pub struct TcpSource {
     buffer: DeqBuffer,
     socket: TcpStream,
     tmp_buffer: Vec<u8>,
-    binding_address: String,
-    reconnect_info: Option<ReconnectInfo>,
+    reconnecter: Option<TcpReconnecter>,
 }
 
 impl TcpSource {
-    pub async fn new<A: Into<String>>(
-        addr: A,
+    pub async fn new(
+        addr: &str,
+        keepalive: Option<KeepAliveConfig>,
         reconnect_info: Option<ReconnectInfo>,
     ) -> Result<Self, std::io::Error> {
-        let binding_address: String = addr.into();
+        let binding_address = addr.parse().map_err(std::io::Error::other)?;
+        let socket = Self::create_socket(binding_address, keepalive.as_ref()).await?;
+        let reconnecter =
+            reconnect_info.map(|rec| TcpReconnecter::new(rec, binding_address, keepalive));
         Ok(Self {
             buffer: DeqBuffer::new(MAX_BUFF_SIZE),
-            socket: TcpStream::connect(&binding_address).await?,
+            socket,
             tmp_buffer: vec![0u8; MAX_DATAGRAM_SIZE],
-            binding_address,
-            reconnect_info,
+            reconnecter,
         })
     }
-}
 
-impl ReconnectToServer for TcpSource {
-    async fn reconnect(&mut self) -> ReconnectResult {
-        let Some(reconnect_info) = self.reconnect_info.as_ref() else {
-            log::debug!("No reconnect info provided. Skipping reconnecting");
-            return ReconnectResult::NotConfigured;
-        };
-
-        if let Some(sender) = &reconnect_info.state_sender {
-            sender.send_replace(ReconnectStateMsg::Reconnecting { attempts: 0 });
-            // Give receivers a chance to get the initial reconnecting state before sending
-            // the first attempt update.
-            yield_now().await;
+    async fn create_socket(
+        binding_address: SocketAddr,
+        keep_alive: Option<&KeepAliveConfig>,
+    ) -> std::io::Result<TcpStream> {
+        let socket = TcpStream::connect(binding_address).await?;
+        if let Some(keepalive_config) = keep_alive {
+            let socket_ref = SockRef::from(&socket);
+            let keepalive = TcpKeepalive::new()
+                .with_time(keepalive_config.time)
+                .with_interval(keepalive_config.interval);
+            socket_ref.set_tcp_keepalive(&keepalive)?;
         }
 
-        let mut attempts = 0;
-        loop {
-            attempts += 1;
-            if let Some(sender) = &reconnect_info.state_sender {
-                sender.send_replace(ReconnectStateMsg::Reconnecting { attempts });
-            }
-            log::info!("Reconnecting to TCP server. Attempt: {attempts}");
-            tokio::time::sleep(reconnect_info.interval).await;
-
-            match TcpStream::connect(&self.binding_address).await {
-                Ok(socket) => {
-                    self.socket = socket;
-
-                    if let Some(sender) = &reconnect_info.state_sender {
-                        if let Err(err) = sender.send(ReconnectStateMsg::Connected) {
-                            log::error!("Failed to send connected state with err: {err}");
-                        }
-                    }
-                    return ReconnectResult::Reconnected;
-                }
-                Err(err) => {
-                    log::debug!("Got following error while trying to reconnect: {err}");
-                    if attempts >= reconnect_info.max_attempts {
-                        if let Some(sender) = &reconnect_info.state_sender {
-                            sender.send_replace(ReconnectStateMsg::Failed {
-                                attempts,
-                                err_msg: Some(err.to_string()),
-                            });
-                            // Make sure the message has been sent before returning.
-                            yield_now().await;
-                        }
-                        log::warn!("Reconnecting to TCP server failed after {attempts} attemps.");
-
-                        return ReconnectResult::Error(err);
-                    }
-                }
-            }
-        }
+        Ok(socket)
     }
 }
 
@@ -106,6 +86,25 @@ impl ByteSource for TcpSource {
 
         // TODO use filter
         loop {
+            if let Some(reconnecter) = self.reconnecter.as_mut() {
+                if let Some(handle) = reconnecter.task_handle.as_mut() {
+                    match handle.await {
+                        Ok(ReconnectResult::Reconnected(socket)) => self.socket = socket,
+                        Ok(ReconnectResult::Error(err)) => {
+                            return Err(SourceError::Unrecoverable(format!(
+                                "Reconnect to TCP failed. Error: {err}"
+                            )))
+                        }
+                        Err(err) => {
+                            return Err(SourceError::Unrecoverable(format!(
+                                "Reconnect to TCP task panicked. Error: {err}"
+                            )))
+                        }
+                    }
+                    reconnecter.task_handle = None;
+                }
+            }
+
             debug!("Wait for tcp socket to become readable");
             self.socket
                 .readable()
@@ -118,13 +117,14 @@ impl ByteSource for TcpSource {
                     if len == 0 {
                         // No data were received -> Server may be temporally down
                         // then try to reconnect.
-                        match self.reconnect().await {
-                            ReconnectResult::Reconnected => continue,
-                            ReconnectResult::NotConfigured => {}
-                            ReconnectResult::Error(error) => {
-                                return Err(SourceError::Unrecoverable(error.to_string()));
-                            }
-                        };
+                        if let Some(rec) = self.reconnecter.as_mut() {
+                            rec.spawn_reconnect();
+                            continue;
+                        } else {
+                            let available_bytes = self.buffer.read_available();
+
+                            return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
+                        }
                     }
                     let added = self.buffer.write_from(&self.tmp_buffer[..len]);
                     if added < len {
@@ -142,29 +142,17 @@ impl ByteSource for TcpSource {
                 }
                 Err(e) => {
                     // Server may be temporally down -> Try to reconnect.
-                    match self.reconnect().await {
-                        ReconnectResult::Reconnected => {
-                            continue;
-                        }
-                        ReconnectResult::NotConfigured => {
-                            // Continue with the original error.
-                            return Err(SourceError::Setup(format!("{e}")));
-                        }
-                        ReconnectResult::Error(err) => {
-                            // return both errors.
-                            return Err(SourceError::Setup(format!(
-                                " Reconnection failed with error: {e}.\
-                                \nAfter recieving original error: {err}"
-                            )));
-                        }
-                    };
+                    if let Some(rec) = self.reconnecter.as_mut() {
+                        rec.spawn_reconnect();
+                        continue;
+                    } else {
+                        return Err(SourceError::Setup(format!(
+                            " Reconnection failed with error: {e}"
+                        )));
+                    }
                 }
             }
         }
-        // let len = self
-        //     .socket
-        //     .try_read(&mut self.tmp_buffer)
-        //     .map_err(|e| SourceError::Setup(format!("{}", e)))?;
     }
 
     fn current_slice(&self) -> &[u8] {
@@ -185,10 +173,31 @@ mod tests {
     use super::*;
 
     use crate::tests::general_source_reload_test;
+    use reconnect::ReconnectStateMsg;
     use std::time::Duration;
-    use tokio::{io::AsyncWriteExt, net::TcpListener, time::sleep};
+    use tokio::{
+        io::AsyncWriteExt,
+        net::TcpListener,
+        task::yield_now,
+        time::{sleep, timeout},
+    };
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
+
+    /// Accepts a connection from the provided listener and sends mock messages,  
+    /// sleeping for the specified duration (in milliseconds) between messages.
+    async fn accept_and_send(listener: &TcpListener, sleep_mili_sec: u64) {
+        let (stream, _) = listener.accept().await.unwrap();
+        let (_, mut send) = tokio::io::split(stream);
+        // stream.writable().await.unwrap();
+        for msg in MESSAGES {
+            send.write_all(msg.as_bytes())
+                .await
+                .expect("could not send on socket");
+            send.flush().await.expect("flush message should work");
+            sleep(Duration::from_millis(sleep_mili_sec)).await;
+        }
+    }
 
     #[tokio::test]
     async fn test_tcp_reload() -> Result<(), std::io::Error> {
@@ -197,18 +206,9 @@ mod tests {
         // process_socket(socket).await;
         // let send_socket = TcpSocket::bind(SENDER).await?;
         let send_handle = tokio::spawn(async move {
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            // stream.writable().await.unwrap();
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(100)).await;
-            }
+            accept_and_send(&listener, 100).await;
         });
-        let mut tcp_source = TcpSource::new(SERVER, None).await?;
+        let mut tcp_source = TcpSource::new(SERVER, None, None).await?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
                 tcp_source.load(None).await.expect("reload failed");
@@ -235,18 +235,9 @@ mod tests {
         // process_socket(socket).await;
         // let send_socket = TcpSocket::bind(SENDER).await?;
         tokio::spawn(async move {
-            let (stream, _) = listener.accept().await.unwrap();
-            let (_, mut send) = tokio::io::split(stream);
-            // stream.writable().await.unwrap();
-            for msg in MESSAGES {
-                send.write_all(msg.as_bytes())
-                    .await
-                    .expect("could not send on socket");
-                send.flush().await.expect("flush message should work");
-                sleep(Duration::from_millis(100)).await;
-            }
+            accept_and_send(&listener, 100).await;
         });
-        let mut tcp_source = TcpSource::new(SERVER, None).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
 
         general_source_reload_test(&mut tcp_source).await;
     }
@@ -276,7 +267,7 @@ mod tests {
             }
         });
 
-        let mut tcp_source = TcpSource::new(SERVER, None).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
 
         while let Ok(Some(info)) = tcp_source.load(None).await {
             if info.available_bytes == 0 {
@@ -284,5 +275,285 @@ mod tests {
             }
             tcp_source.consume(info.available_bytes.min(CONSUME_LEN));
         }
+    }
+
+    #[tokio::test]
+    async fn reconnect_no_msgs() {
+        static SERVER: &str = "127.0.0.1:4003";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let send_handle = tokio::spawn(async move {
+            accept_and_send(&listener, 30).await;
+            // Then disconnected the server and sleep.
+            drop(listener);
+            sleep(Duration::from_millis(150)).await;
+
+            // Start new server sending data again.
+            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            accept_and_send(&listener, 30).await;
+        });
+
+        // Enable reconnect without configuring state channels.
+        let rec_info = ReconnectInfo::new(1000, Duration::from_millis(20), None);
+
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let receive_handle = tokio::spawn(async move {
+            // Byte source must receive same data twice without errors with active reconnect
+            for _ in 0..2 {
+                for msg in MESSAGES {
+                    tcp_source.load(None).await.expect("reload failed");
+                    println!(
+                        "receive: {:02X?}",
+                        std::str::from_utf8(tcp_source.current_slice())
+                    );
+                    assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                    tcp_source.consume(msg.len());
+                }
+            }
+        });
+
+        let (_, rec_res) = tokio::join!(send_handle, receive_handle);
+
+        assert!(rec_res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn reconnect_with_state_msgs() {
+        static SERVER: &str = "127.0.0.1:4004";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let send_handle = tokio::spawn(async move {
+            accept_and_send(&listener, 30).await;
+            // Then disconnected the server and sleep.
+            drop(listener);
+            sleep(Duration::from_millis(160)).await;
+
+            // Start new server sending data again.
+            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            accept_and_send(&listener, 30).await;
+        });
+
+        // Enable reconnect with state channels.
+        let (state_tx, mut state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
+
+        let rec_info = ReconnectInfo::new(1000, Duration::from_millis(50), Some(state_tx));
+
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+
+        // Tests reconnecting state messages.
+        let reconnect_handler = tokio::spawn(async move {
+            let mut attempts = 0;
+            loop {
+                state_rx.changed().await.unwrap();
+                match *state_rx.borrow_and_update() {
+                    ReconnectStateMsg::Connected => break,
+                    ReconnectStateMsg::Reconnecting { attempts: atts } => attempts = atts,
+                    ReconnectStateMsg::Failed {
+                        attempts,
+                        ref err_msg,
+                    } => {
+                        panic!(
+                            "Reconnect failed. attempts: {attempts}, Error: {}",
+                            err_msg.to_owned().unwrap_or_default()
+                        )
+                    }
+                };
+            }
+
+            // In 160 Milliseconds Down time and reconnect interval of 50 Milliseconds
+            // we must get 5 reconnect attempts.
+            assert_eq!(attempts, 5);
+        });
+
+        let receive_handle = tokio::spawn(async move {
+            // Byte source must receive same data twice without errors with active reconnect
+            for _ in 0..2 {
+                for msg in MESSAGES {
+                    tcp_source.load(None).await.expect("reload failed");
+                    println!(
+                        "receive: {:02X?}",
+                        std::str::from_utf8(tcp_source.current_slice())
+                    );
+                    assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                    tcp_source.consume(msg.len());
+                }
+            }
+        });
+
+        let (_, rec_res, reconnect_res) =
+            tokio::join!(send_handle, receive_handle, reconnect_handler);
+
+        assert!(rec_res.is_ok());
+        assert!(reconnect_res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn reconnect_fail() {
+        static SERVER: &str = "127.0.0.1:4005";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let send_handle = tokio::spawn(async move {
+            accept_and_send(&listener, 30).await;
+        });
+
+        // Enable reconnect with state channels.
+        let (state_tx, mut state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
+
+        const MAX_ATTEMPTS: usize = 7;
+        let rec_info = ReconnectInfo::new(MAX_ATTEMPTS, Duration::from_millis(10), Some(state_tx));
+
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+
+        // Tests reconnecting state messages.
+        // Failed state message with MAX_ATTEMPTS is expected.
+        let reconnect_handler = tokio::spawn(async move {
+            loop {
+                state_rx.changed().await.unwrap();
+                match *state_rx.borrow_and_update() {
+                    ReconnectStateMsg::Connected => panic!("Connected state not expected"),
+                    ReconnectStateMsg::Reconnecting { attempts: _ } => {}
+                    ReconnectStateMsg::Failed {
+                        attempts,
+                        err_msg: _,
+                    } => {
+                        assert_eq!(attempts, MAX_ATTEMPTS);
+                        break;
+                    }
+                };
+            }
+        });
+
+        let receive_handle = tokio::spawn(async move {
+            // Byte source must receive some data then receive and error on failing reconnect.
+            for msg in MESSAGES {
+                tcp_source.load(None).await.expect("reload failed");
+                println!(
+                    "receive: {:02X?}",
+                    std::str::from_utf8(tcp_source.current_slice())
+                );
+                assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                tcp_source.consume(msg.len());
+            }
+            assert!(tcp_source.load(None).await.is_err());
+        });
+
+        let (_, rec_res, reconnect_res) =
+            tokio::join!(send_handle, receive_handle, reconnect_handler);
+
+        assert!(rec_res.is_ok());
+        assert!(reconnect_res.is_ok());
+    }
+
+    /// Ensure load and reconnect functions are cancel safe by keep sending notifications
+    /// in rapid interval while calling them.
+    #[tokio::test]
+    async fn load_reconnect_cancel_safe() {
+        static SERVER: &str = "127.0.0.1:4006";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let send_handle = tokio::spawn(async move {
+            accept_and_send(&listener, 30).await;
+            // Then disconnected the server and sleep.
+            drop(listener);
+            sleep(Duration::from_millis(150)).await;
+
+            // Start new server sending data again.
+            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            accept_and_send(&listener, 30).await;
+        });
+
+        // Enable reconnect without configuring state channels.
+        let rec_info = ReconnectInfo::new(1000, Duration::from_millis(30), None);
+
+        let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
+
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+
+        let cancel_handle = tokio::spawn(async move {
+            // Keep sending notifications causing load method to be dropped while both
+            // receiving data and reconnecting to ensure their cancel safety.
+            let mut sent = 0;
+            while cancel_tx.send(()).await.is_ok() {
+                sent += 1;
+                sleep(Duration::from_millis(2)).await;
+            }
+
+            // Ensure messages are actually sent.
+            assert!(sent > 50);
+        });
+
+        let receive_handle = tokio::spawn(async move {
+            // TCP source must receive three messages, reconnect then receive three
+            // more messages while receiving notifications with 2 milliseconds interval
+            // to prove its cancel safety while loading and reconnecting.
+            let mut idx = 0;
+            let mut received_cancels = 0;
+            while idx < MESSAGES.len() * 2 {
+                tokio::select! {
+                    _ = cancel_rx.recv() => {
+                        received_cancels += 1;
+                    }
+                    Ok(Some(_)) = tcp_source.load(None) => {
+                        let msg = MESSAGES[idx % MESSAGES.len()];
+                        assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                        tcp_source.consume(msg.len());
+                        idx += 1;
+                    }
+                };
+            }
+
+            // Ensure cancel messages are actually received.
+            assert!(received_cancels > 50);
+        });
+
+        let (_, rec_res, can_res) = tokio::join!(send_handle, receive_handle, cancel_handle);
+
+        assert!(rec_res.is_ok());
+        assert!(can_res.is_ok());
+    }
+
+    /// Ensure load and reconnect functions are cancel safe by keep calling it within a timeout
+    /// function with rapid interval.
+    #[tokio::test]
+    async fn load_reconnect_cancel_safe_timeout() {
+        static SERVER: &str = "127.0.0.1:4007";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let send_handle = tokio::spawn(async move {
+            accept_and_send(&listener, 30).await;
+            // Then disconnected the server and sleep.
+            drop(listener);
+            sleep(Duration::from_millis(150)).await;
+
+            // Start new server sending data again.
+            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            accept_and_send(&listener, 30).await;
+        });
+
+        // Enable reconnect without configuring state channels.
+        let rec_info = ReconnectInfo::new(1000, Duration::from_millis(30), None);
+
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+
+        let receive_handle = tokio::spawn(async move {
+            // TCP source must receive three messages, reconnect then receive three
+            // more messages while receiving notifications with 2 milliseconds interval
+            // to prove its cancel safety while loading and reconnecting.
+            let mut idx = 0;
+            let mut received_timeout = 0;
+            while idx < MESSAGES.len() * 2 {
+                match timeout(Duration::from_millis(2), tcp_source.load(None)).await {
+                    Ok(_) => {
+                        let msg = MESSAGES[idx % MESSAGES.len()];
+                        assert_eq!(tcp_source.current_slice(), msg.as_bytes());
+                        tcp_source.consume(msg.len());
+                        idx += 1;
+                    }
+                    Err(_elapsed) => received_timeout += 1,
+                }
+            }
+
+            // Ensure cancel messages are actually received.
+            assert!(received_timeout > 50);
+        });
+
+        let (_, rec_res) = tokio::join!(send_handle, receive_handle);
+
+        assert!(rec_res.is_ok());
     }
 }
