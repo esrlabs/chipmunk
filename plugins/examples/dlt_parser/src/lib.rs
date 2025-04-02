@@ -98,8 +98,8 @@ impl Parser for DltParser {
             ))
         })?;
 
-        // TODO AAZ: Filter config set to none for now. Currently we have the log level
-        // but we still need other values.
+        // Filter config won't be used within this plugin. Since its main purpose is
+        // comparing performance between plugin and native DLT parser.
         let filter_config = None;
 
         let fibex_files = config::get_as_files(FIBEX_ID, &plugins_configs)?;
@@ -111,7 +111,7 @@ impl Parser for DltParser {
             None
         };
 
-        //TODO AAZ: Format Options are skipped for now.
+        // Format options won't be used within the plugin as well.
         let fmt_options = None;
 
         Ok(Self::new(

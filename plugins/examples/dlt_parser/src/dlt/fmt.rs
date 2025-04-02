@@ -324,9 +324,6 @@ impl FormattableMessage<'_> {
         match &self.message.payload {
             PayloadContent::Verbose(arguments) => {
                 self.add_app_id_context_id_and_message_type(&mut columns);
-                //TODO AAZ: Select one approach for concatenating string with benchmarks.
-                // Skip the first memory system calls.
-                // let mut payload = String::with_capacity(8);
                 let mut payload = String::new();
                 arguments.iter().for_each(|arg| {
                     _ = write!(

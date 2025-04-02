@@ -73,16 +73,8 @@ impl ByteSource for FileSource {
     }
 
     fn read(&mut self, len: usize) -> Result<Vec<u8>, SourceError> {
-        //TODO AAZ: Remove unsafe code if this binary will not used for benchmarking.
         // Initialize a vector with the given length to use as buffer for reading from the file
-        let mut buf = Vec::with_capacity(len);
-
-        // SAFETY: truncate is called on the buffer after read call with the read amount of bytes.
-        // Even with unwind after panic, this shouldn't cause undefined behavior since the vector has only bytes which
-        // don't have a special drop implementation.
-        unsafe {
-            buf.set_len(len);
-        }
+        let mut buf = vec![0; len];
 
         let bytes_read = self
             .reader

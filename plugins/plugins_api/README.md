@@ -1,11 +1,10 @@
-<!--TODO AAZ: Update links once merged into master by removing `plugins_support`-->
 # Chipmunk Plugins API Crate
 
 This crate simplifies the development of plugins for [Chipmunk](https://github.com/esrlabs/chipmunk) in Rust.  
 
 Chipmunk supports plugins using [WebAssembly (Wasm)](https://webassembly.org/) and the [WebAssembly Component Model](https://component-model.bytecodealliance.org/). It exposes its public API via the [WASM Interface Format (WIT)](https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md), enabling developers to write plugins in any language that supports Wasm and the Component Model.
 
-For a detailed guide on developing plugins, refer to the [Plugins Development Guide](https://github.com/esrlabs/chipmunk/blob/plugins_support/plugins/README.md).
+For a detailed guide on developing plugins, refer to the [Plugins Development Guide](https://github.com/esrlabs/chipmunk/blob/master/plugins/README.md).
 
 ## What This Crate Provides
 
@@ -24,7 +23,7 @@ Each plugin type is associated with a feature in this crate. A feature must be e
 * To develop a parser plugin, enable the `parser` feature in `Cargo.toml`.
 * Implement `Parser` trait on your struct to define a parser plugin.
 * Use `parser_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
-* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/plugins_support/plugins/examples) and [parser template](https://github.com/esrlabs/chipmunk/blob/plugins_support/plugins/templates/parser_template) provided in Chipmunk repo to get started.
+* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples) and [parser template](https://github.com/esrlabs/chipmunk/blob/master/plugins/templates/parser_template) provided in Chipmunk repo to get started.
 
 
 ### Byte-Source Plugins:
@@ -35,4 +34,4 @@ Each plugin type is associated with a feature in this crate. A feature must be e
 * Implement `ByteSource` trait on your struct to define a byte-source plugin.
 * Use `bytesource_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
 <!--TODO: Update here once template for byte-source is done. -->
-* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/plugins_support/plugins/examples) provided in Chipmunk repo to get started.
+* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples) provided in Chipmunk repo to get started.
