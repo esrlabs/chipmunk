@@ -39,9 +39,7 @@ impl DltParser {
 
 fn dlt_error_into_parse(error: DltParseError) -> ParseError {
     match error {
-        DltParseError::Unrecoverable(e) | DltParseError::ParsingHickup(e) => {
-            ParseError::Unrecoverable(e)
-        }
+        DltParseError::Unrecoverable(e) | DltParseError::ParsingHickup(e) => ParseError::Parse(e),
         DltParseError::IncompleteParse { needed: _ } => ParseError::Incomplete,
     }
 }

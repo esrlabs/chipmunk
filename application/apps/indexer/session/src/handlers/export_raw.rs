@@ -134,10 +134,6 @@ async fn export<S: ByteSource>(
 ) -> Result<Option<usize>, stypes::NativeError> {
     match parser {
         stypes::ParserType::Plugin(settings) => {
-            println!("------------------------------------------------------");
-            println!("-------------    WASM parser used    -----------------");
-            println!("------------------------------------------------------");
-            println!("DEBUG: Plugin Path: {}", settings.plugin_path.display());
             let parser = PluginsParser::initialize(
                 &settings.plugin_path,
                 &settings.general_settings,
