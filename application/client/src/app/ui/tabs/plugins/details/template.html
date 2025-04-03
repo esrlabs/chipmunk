@@ -16,7 +16,11 @@
     >
         Inspect
     </button>
-    <button class="flat-codicon-button" [disabled]="loading" (click)="removePlugin()">
+    <button
+        class="flat-codicon-button"
+        [disabled]="loading || provider.isBusy()"
+        (click)="removePlugin()"
+    >
         Remove
     </button>
 </div>

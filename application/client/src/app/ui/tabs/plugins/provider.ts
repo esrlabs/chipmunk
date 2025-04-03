@@ -5,6 +5,7 @@ import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
 import { InstalledPluginDesc, InvalidPluginDesc, PluginDescription } from './desc';
 import { bridge } from '@service/bridge';
+import { error } from '@platform/log/utils';
 
 export class Provider {
     protected log: Logger;
@@ -22,17 +23,27 @@ export class Provider {
         load: Subject<void>;
         state: Subject<void>;
         selected: Subject<string>;
+        // true - add starting; false - finished
+        add: Subject<boolean>;
+        // true - add starting; false - finished
+        remove: Subject<boolean>;
     }> = new Subjects({
         load: new Subject<void>(),
         state: new Subject<void>(),
         selected: new Subject<string>(),
+        add: new Subject<boolean>(),
+        remove: new Subject<boolean>(),
     });
     public selected: PluginDescription | undefined;
     public state: {
         loading: boolean;
+        adding: boolean;
+        removing: boolean;
         error: string | undefined;
     } = {
         loading: false,
+        adding: false,
+        removing: false,
         error: undefined,
     };
 
@@ -126,9 +137,56 @@ export class Provider {
         this.subjects.get().selected.emit(path);
     }
     public addPlugin(pluginPath: string): Promise<void> {
-        return plugins.addPlugin(pluginPath);
+        if (this.isBusy()) {
+            return Promise.reject(
+                new Error(
+                    `Cannot add plugin, because previous plugin operation is still in progress.`,
+                ),
+            );
+        }
+        this.state.adding = true;
+        this.subjects.get().add.emit(this.state.adding);
+        return plugins.addPlugin(pluginPath).finally(() => {
+            this.state.adding = false;
+            this.subjects.get().add.emit(this.state.adding);
+        });
     }
-    public removePlugin(pluginPath: string): Promise<void> {
-        return plugins.removePlugin(pluginPath);
+    public async removePlugin(pluginPath: string): Promise<void> {
+        if (this.isBusy()) {
+            return Promise.reject(
+                new Error(
+                    `Cannot add plugin, because previous plugin operation is still in progress.`,
+                ),
+            );
+        }
+        this.state.removing = true;
+        this.subjects.get().remove.emit(this.state.removing);
+        try {
+            await plugins.removePlugin(pluginPath);
+            await this.load(true);
+            const selected = this.selected;
+            if (selected !== undefined) {
+                if (
+                    [
+                        ...this.plugins.installed,
+                        ...this.plugins.available,
+                        ...this.plugins.invalid,
+                    ].find((pl) => pl.entity.dir_path === selected.getPath()) !== undefined
+                ) {
+                    this.selected = undefined;
+                }
+            }
+            this.state.removing = false;
+            this.subjects.get().remove.emit(this.state.removing);
+            this.subjects.get().state.emit();
+            return Promise.resolve();
+        } catch (err) {
+            this.state.removing = false;
+            this.subjects.get().remove.emit(this.state.removing);
+            return Promise.reject(new Error(error(err)));
+        }
+    }
+    public isBusy(): boolean {
+        return this.state.adding || this.state.loading || this.state.removing;
     }
 }
