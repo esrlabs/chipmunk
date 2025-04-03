@@ -16,6 +16,8 @@ import { micromark } from 'micromark';
 import { PluginDescription } from '../desc';
 import { Provider } from '../provider';
 import { PluginRunData, PluginLogLevel } from '@platform/types/bindings/plugins';
+import { lockers, Locker } from '@ui/service/lockers';
+import { Notification, notifications } from '@ui/service/notifications';
 
 import * as dom from '@ui/env/dom';
 
@@ -164,10 +166,7 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         // TODO: safe openening URL
     }
 
-    constructor(
-        cdRef: ChangeDetectorRef,
-        protected readonly sanitizer: DomSanitizer,
-    ) {
+    constructor(cdRef: ChangeDetectorRef, protected readonly sanitizer: DomSanitizer) {
         super(cdRef);
     }
 
@@ -202,11 +201,35 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         };
     }
 
-    public async removePlugin(): Promise<void> {
+    public removePlugin() {
         if (this.plugin.path === undefined) {
             return;
         }
-        await this.provider.removePlugin(this.plugin.path.filename);
+        const lock = lockers.lock(new Locker(true, `Removing plugin...`), {
+            closable: false,
+        });
+        this.provider
+            .removePlugin(this.plugin.path.filename)
+            .then(() => {
+                notifications.notify(
+                    new Notification({
+                        message: `Plugin has been removed`,
+                        actions: [],
+                    }),
+                );
+            })
+            .catch((err: Error) => {
+                notifications.notify(
+                    new Notification({
+                        message: `Fail to remove plugin: ${err.message}`,
+                        actions: [],
+                        pinned: true,
+                    }),
+                );
+            })
+            .finally(() => {
+                lock.popup.close();
+            });
     }
 }
 

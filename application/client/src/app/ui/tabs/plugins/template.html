@@ -27,14 +27,18 @@
                     <div class="controlls">
                         <button
                             mat-stroked-button
-                            [disabled]="provider.state.loading"
+                            [disabled]="provider.state.loading || provider.state.adding"
                             (click)="addPlugin()"
                         >
+                            <mat-spinner
+                                *ngIf="provider.state.adding"
+                                [diameter]="16"
+                            ></mat-spinner>
                             Add
                         </button>
                         <button
                             mat-stroked-button
-                            [disabled]="provider.state.loading"
+                            [disabled]="provider.state.loading || provider.state.adding"
                             (click)="reload()"
                         >
                             Reload
