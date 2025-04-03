@@ -1,0 +1,41 @@
+<app-tabs-config-schema-bool
+    *ngIf="state.isBooleanItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-integer
+    *ngIf="state.isIntegerItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-float
+    *ngIf="state.isFloatItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-string
+    *ngIf="state.isTextItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-dropdown
+    *ngIf="state.isDropdownItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-files
+    *ngIf="state.isFilesPicker(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>
+
+<app-tabs-config-schema-dirs
+    *ngIf="state.isDirectoriesItem(config.input_type)"
+    [config]="config"
+    [state]="state"
+/>

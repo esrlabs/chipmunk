@@ -27,6 +27,7 @@ CLEAN_COMMAND = [
     "updater",
     "app",
     "cli-chipmunk",
+    "plugins-api",
     # Set UI mode to immediate.
     "-u",
     "immediate",
@@ -64,6 +65,8 @@ PATHS_TO_CHECK = [
     "application/holder/node_modules",
     # Chipmunk CLI
     "cli/chipmunk-cli/target",
+    # Plugins API
+    "plugins/plugins_api/target",
 ]
 
 

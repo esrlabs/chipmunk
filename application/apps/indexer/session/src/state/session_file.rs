@@ -251,10 +251,10 @@ impl SessionFile {
     ///
     /// * `writer` - This is where the copied content will be written.
     /// * `line_range` - A reference to a `LineRange` struct that specifies the range of lines
-    ///                  to be copied from the source.
+    ///   to be copied from the source.
     /// * `modifier` - An optional function that takes a `String` as input and returns a modified
-    ///                `String`. If provided, this function will be applied to each line before
-    ///                writing it to the writer.
+    ///   `String`. If provided, this function will be applied to each line before
+    ///   writing it to the writer.
     ///
     /// # Returns
     ///

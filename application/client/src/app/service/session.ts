@@ -300,7 +300,7 @@ export class Service extends Implementation {
                 });
             },
             observe: async (observe: Observe, existed?: Session): Promise<string> => {
-                const render = getRender(observe);
+                const render = await getRender(observe);
                 if (render instanceof Error) {
                     throw render;
                 }
