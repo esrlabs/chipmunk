@@ -67,7 +67,6 @@ export function getScrollAreaService(session: Session): Service {
                 return getRows(session, range);
             },
             setFrame: (range: Range) => {
-                service.setLen(session.indexed.len());
                 getRows(session, range)
                     .then((packet) => {
                         service.setRows(packet);
