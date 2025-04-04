@@ -72,3 +72,17 @@ pub fn release_build_dir() -> &'static str {
         );
     }
 }
+
+/// Provides the path for release directory Chipmunk CLI binary file.
+pub fn cli_binary_dir() -> PathBuf {
+    Target::CliChipmunk.cwd().join("target").join("release")
+}
+
+/// Filename of Chipmunk CLI binary file.
+pub fn cli_binary_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "chipmunk-cli.exe"
+    } else {
+        "chipmunk-cli"
+    }
+}
