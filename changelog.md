@@ -6,6 +6,8 @@
 ## Changes
 - Refactoring an infrastructure of parsers
 
+# 3.16.5 (28.03.2025)
+
 ## Changes
 - Upgrade DLT parser version
 - Add TCP reconnection support
