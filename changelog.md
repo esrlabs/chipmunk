@@ -1,4 +1,10 @@
-# 3.16.5 (28.03.2025)
+# 3.16.6 (06.04.2025)
+
+## Fixes
+- Fix sticky scrolling issue
+
+## Changes
+- Refactoring an infrastructure of parsers
 
 ## Changes
 - Upgrade DLT parser version
