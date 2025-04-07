@@ -5,6 +5,8 @@
  */
 export type CallbackOptionsEvent = { "LoadingDone": { owner: string, fields: Array<StaticFieldDesc>, } } | { "LoadingErrors": { owner: string, errors: Array<FieldLoadingError>, } } | { "LoadingError": { owner: string, error: string, fields: Array<string>, } } | { "LoadingCancelled": { owner: string, fields: Array<string>, } } | "Destroyed";
 
+export type ComponentOptions = { fields: Array<Field>, uuid: string, };
+
 export type ComponentsOptionsList = { options: Map<string, FieldDesc[]>, };
 
 export type Field = { id: string, value: Value, };
@@ -12,6 +14,8 @@ export type Field = { id: string, value: Value, };
 export type FieldDesc = { "Static": StaticFieldDesc } | { "Lazy": LazyFieldDesc };
 
 export type FieldLoadingError = { id: string, err: string, };
+
+export type FieldsValidationErrors = { errors: Map<string, string>, };
 
 export type LazyFieldDesc = { id: string, name: string, desc: string, };
 
