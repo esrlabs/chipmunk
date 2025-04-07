@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use components::{LazyLoadingResult, LazyLoadingTaskMeta};
 use stypes::{Ident, NativeError, SourceOrigin};
 use tokio::sync::oneshot;
@@ -77,5 +79,27 @@ pub enum Api {
         SourceOrigin,
         stypes::ComponentType,
         oneshot::Sender<Result<Vec<Ident>, NativeError>>,
+    ),
+    /// Validates the configuration for correctness.
+    ///
+    /// # Arguments
+    ///
+    /// * `SourceOrigin` - The origin type indicating the context in which the validation is performed.
+    /// * `Uuid` - The identifier of the component (parser, source).
+    /// * `Vec<stypes::Field>` - A list of configuration field values.
+    /// * `oneshot::Sender<Result<HashMap<String, String>, NativeError>>` - A sender channel for delivering validation results to the client.
+    ///
+    /// # Returns
+    ///
+    /// `HashMap<String, String>`:
+    /// * Key (`String`) - The field's identifier.
+    /// * Value (`String`) - The error message related to the field.
+    ///
+    /// If all fields are valid and have no errors, an empty `HashMap` will be returned.
+    Validate(
+        SourceOrigin,
+        Uuid,
+        Vec<stypes::Field>,
+        oneshot::Sender<Result<HashMap<String, String>, NativeError>>,
     ),
 }

@@ -1,15 +1,9 @@
-use crate::{
-    socket::ReconnectStateMsg, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
-use bufread::DeqBuffer;
-use components::ComponentDescriptor;
-use std::{net::SocketAddr, time::Duration};
-use tokio::{net::TcpStream, task::yield_now};
-
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
+use components::ComponentDescriptor;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
+use std::{net::SocketAddr, time::Duration};
 use tokio::net::TcpStream;
 
 use super::{handle_buff_capacity, BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};

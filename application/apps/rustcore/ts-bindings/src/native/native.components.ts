@@ -6,6 +6,9 @@ import {
     IdentList,
     ComponentsOptionsList,
     ComponentType,
+    Field,
+    ComponentOptions,
+    FieldsValidationErrors,
 } from 'platform/types/bindings';
 import { Logger, utils } from 'platform/log';
 import { TEventEmitter } from '../provider/provider.general';
@@ -27,6 +30,8 @@ export abstract class ComponentsNative {
     public abstract getComponents(origin: Uint8Array, ty: Uint8Array): Promise<Uint8Array>;
 
     public abstract getOptions(origin: Uint8Array, targets: string[]): Promise<Uint8Array>;
+
+    public abstract validate(origin: Uint8Array, fields: Uint8Array): Promise<Uint8Array>;
 
     public abstract abort(fields: string[]): void;
 }
@@ -190,6 +195,42 @@ export class Base extends Subscriber {
                                 ),
                                 Type.InvalidOutput,
                                 Source.ComponentsOptions,
+                            ),
+                        );
+                    }
+                });
+        });
+    }
+
+    public validate(
+        origin: SourceOrigin,
+        target: string,
+        fields: Field[],
+    ): Promise<FieldsValidationErrors> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        const options: ComponentOptions = { fields: fields, uuid: target };
+        return new Promise((resolve, reject) => {
+            this.native
+                .validate(
+                    protocol.encodeSourceOrigin(origin),
+                    protocol.encodeComponentOptions(options),
+                )
+                .then((buf: Uint8Array) => {
+                    try {
+                        resolve(protocol.decodeFieldsValidationErrors(buf));
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this.logger.error(
+                                        `Fail to decode message: ${utils.error(err)}`,
+                                    ),
+                                ),
+                                Type.InvalidOutput,
+                                Source.ComponentsValidate,
                             ),
                         );
                     }

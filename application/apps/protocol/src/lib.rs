@@ -213,3 +213,5 @@ gen_encode_decode_fns!(LazyFieldDesc);
 gen_encode_decode_fns!(StaticFieldDesc);
 gen_encode_decode_fns!(CallbackOptionsEvent);
 gen_encode_decode_fns!(ComponentType);
+gen_encode_decode_fns!(FieldsValidationErrors);
+gen_encode_decode_fns!(ComponentOptions);

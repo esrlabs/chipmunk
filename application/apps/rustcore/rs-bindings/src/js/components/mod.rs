@@ -101,6 +101,28 @@ impl Components {
     }
 
     #[node_bindgen]
+    async fn validate(
+        &self,
+        origin: JSArrayBuffer,
+        options: JSArrayBuffer,
+    ) -> Result<stypes::FieldsValidationErrors, stypes::ComputationError> {
+        let origin =
+            stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+        let options = stypes::ComponentOptions::decode(&options)
+            .map_err(stypes::ComputationError::Decoding)?;
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?;
+        Ok(stypes::FieldsValidationErrors {
+            errors: session
+                .validate(origin, options.uuid, options.fields)
+                .await
+                .map_err(stypes::ComputationError::NativeError)?,
+        })
+    }
+
+    #[node_bindgen]
     fn abort(&self, fields: Vec<String>) -> Result<(), stypes::ComputationError> {
         let session = self
             .session
