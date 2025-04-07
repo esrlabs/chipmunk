@@ -192,6 +192,9 @@ impl ComponentsSession {
                             }
                         }
                     }
+                    Api::Validate(origin, target, fields, tx) => {
+                        log_if_err(tx.send(components.validate(&origin, &target, &fields)));
+                    }
                     Api::Shutdown(tx) => {
                         // Cancel / kill pending tasks
                         tasks.iter().for_each(|(_, (meta, handle))| {
@@ -298,6 +301,42 @@ impl ComponentsSession {
             self.tx_api.send(Api::CancelLoading(fields)),
             "Fail to send Api::CancelLoading",
         )
+    }
+
+    /// Asynchronously validates the configuration of a specific component.
+    ///
+    /// This method sends a validation request to the system and waits for the response asynchronously.
+    ///
+    /// # Arguments
+    ///
+    /// * `source` - The origin type indicating the context in which the validation is performed.
+    /// * `target` - The identifier of the component (parser, source).
+    /// * `fields` - A list of configuration field values to be validated.
+    ///
+    /// # Returns
+    ///
+    /// `Result<HashMap<String, String>, stypes::NativeError>`:
+    /// * On success: A `HashMap` where the key is the field's identifier (`String`) and the value is the error message (`String`).
+    /// * If all fields are valid and have no errors, an empty `HashMap` is returned.
+    /// * On failure: A `stypes::NativeError` indicating the reason for the validation failure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// * The API call to validate the configuration fails to send.
+    /// * The response from the validation API cannot be retrieved.
+    pub async fn validate(
+        &self,
+        source: stypes::SourceOrigin,
+        target: Uuid,
+        fields: Vec<stypes::Field>,
+    ) -> Result<HashMap<String, String>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::Validate(source, target, fields, tx)),
+            "Fail to send Api::Validate",
+        )?;
+        response(rx.await, "Fail to get response from Api::Validate")?
     }
 
     /// Initiates the shutdown process for the components session.

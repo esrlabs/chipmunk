@@ -95,4 +95,18 @@ impl Components {
         }
         Ok(list)
     }
+
+    pub fn validate(
+        &self,
+        origin: &stypes::SourceOrigin,
+        target: &Uuid,
+        fields: &[stypes::Field],
+    ) -> Result<HashMap<String, String>, stypes::NativeError> {
+        let descriptor = self.components.get(target).ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Configuration,
+            message: Some(format!("Fail to find component {target}")),
+        })?;
+        Ok(descriptor.validate(origin, fields))
+    }
 }
