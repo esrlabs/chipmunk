@@ -2,14 +2,6 @@
 mod nodejs;
 
 use crate::*;
-// TODOs and open topics
-// ## Validation of fields?
-// Probably parser/source traites has to be update to have validation method
-//
-// ## Settings actions (like DLT stats)?
-// Problematic places:
-// - dlt stat
-// - envvars (terminal command)
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
@@ -24,6 +16,30 @@ pub struct ComponentsOptionsList {
         ts(type = "Map<string, FieldDesc[]>")
     )]
     pub options: HashMap<Uuid, Vec<FieldDesc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub struct FieldsValidationErrors {
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, string>"))]
+    pub errors: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub struct ComponentOptions {
+    pub fields: Vec<Field>,
+    pub uuid: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

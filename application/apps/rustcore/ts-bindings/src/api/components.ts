@@ -6,7 +6,13 @@ import { ComponentsEventProvider, IComponentsEvents } from '../api/components.pr
 import { SessionStream } from '../api/session.stream';
 import { SessionSearch } from '../api/session.search';
 import { Subscriber } from 'platform/env/subscription';
-import { ComponentsOptionsList, Ident, SourceOrigin } from 'platform/types/bindings';
+import {
+    ComponentsOptionsList,
+    Field,
+    FieldsValidationErrors,
+    Ident,
+    SourceOrigin,
+} from 'platform/types/bindings';
 
 export {
     ISessionEvents,
@@ -81,6 +87,14 @@ export class Components extends Subscriber {
 
     public getOptions(origin: SourceOrigin, targets: string[]): Promise<ComponentsOptionsList> {
         return this.native.getOptions(origin, targets);
+    }
+
+    public validate(
+        origin: SourceOrigin,
+        target: string,
+        fields: Field[],
+    ): Promise<FieldsValidationErrors> {
+        return this.native.validate(origin, target, fields);
     }
 
     public abort(fields: string[]): Error | undefined {
