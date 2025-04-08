@@ -56,6 +56,8 @@ pub enum ParserType {
     SomeIp(SomeIpParserSettings),
     /// A pseudo-parser for reading plain text data without processing.
     Text(()),
+    /// Parser using plugins system.
+    Plugin(PluginParserSettings),
 }
 
 /// Settings for the DLT parser.

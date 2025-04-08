@@ -1,0 +1,24 @@
+# Configuration required to run the parser in Chipmunk benchmarks.
+
+# Example command to run parsing benchmarks using Chipmunk development tool
+# ```sh
+#  cargo chipmunk bench core plugin_praser_producer -i {input_file_path}.dlt -c {path_to_this_file}.toml 
+# ```
+
+# Path to the plugin WebAssembly (WASM) file.
+# Can be absolute or relative to the `indexer` directory within the Chipmunk repository.
+binary_path = "../../../../plugins/examples/dlt_parser/target/wasm32-wasip1/release/dlt_parser.wasm"
+
+# Plugin-specific configurations:
+
+[[config]]
+id = "log_level"
+value.Dropdown = "Verbose"
+
+[[config]]
+id = "fibex_id"
+value.Files = []
+
+[[config]]
+id = "storage_header_id"
+value.Boolean = true

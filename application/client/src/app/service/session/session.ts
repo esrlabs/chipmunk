@@ -482,6 +482,7 @@ export class Session extends Base {
                         (() => {
                             switch (current.parser.alias()) {
                                 case Parsers.Protocol.Text:
+                                case Parsers.Protocol.Plugin:
                                     return Types.File.FileType.Text;
                                 case Parsers.Protocol.Dlt:
                                 case Parsers.Protocol.SomeIp:
