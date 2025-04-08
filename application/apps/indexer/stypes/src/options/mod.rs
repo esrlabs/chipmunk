@@ -66,7 +66,7 @@ pub struct StaticFieldDesc {
     pub desc: String,
     pub required: bool,
     pub default: Option<Value>,
-    pub interface: ValueInterface,
+    pub interface: ValueInput,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -101,30 +101,36 @@ pub struct Field {
     derive(TS),
     ts(export, export_to = "options.ts")
 )]
-pub enum Value {
-    // Bool value field
-    Boolean(bool),
-    // Integer field
-    Integer(i32),
-    // Float number field
-    Float(f32),
-    // Text field
-    Text(String),
-    // List with value
-    List(Vec<Value>),
-    // List of folders
-    Directories(Vec<PathBuf>),
-    // List of files
-    Files(Vec<PathBuf>),
-    // Path to file
-    File(PathBuf),
-    // Path to directory
-    Directory(PathBuf),
-    // Keys with multiple values per key
-    KeyValues(HashMap<String, Vec<String>>),
+pub enum ValueInput {
+    Checkbox,
+    Number,
+    String,
+    Numbers(Vec<i64>),
+    Strings(Vec<String>),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, number>"))]
+    KeyNumber(HashMap<String, i64>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, number[]>")
+    )]
+    KeyNumbers(HashMap<String, Vec<i64>>),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, string>"))]
+    KeyString(HashMap<String, String>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, string[]>")
+    )]
+    KeyStrings(HashMap<String, Vec<String>>),
+    Directories,
+    Files,
+    File,
+    Directory,
+    Bound {
+        output: Box<ValueInput>,
+        inputs: Vec<ValueInput>,
+    },
 }
 
-/// How value will be represented to user
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
 #[cfg_attr(
@@ -132,27 +138,30 @@ pub enum Value {
     derive(TS),
     ts(export, export_to = "options.ts")
 )]
-pub enum ValueInterface {
-    // Bool value field
-    Boolean,
-    // Integer field
-    Integer,
-    // Float number field
-    Float,
-    // Text field
-    Text,
-    // Dropdown list with known values
-    DropList(Vec<Value>),
-    // List with known values
-    List(Vec<Value>),
-    // Request to get list of folders
-    RequestDirectories,
-    // Request to get list of files
-    RequestFiles,
-    // Request to get folder's path
-    RequestDirectory,
-    // Request to get a file's path
-    RequestFile,
+pub enum Value {
+    Boolean(bool),
+    Number(i64),
+    Numbers(Vec<i64>),
+    String(String),
+    Strings(Vec<String>),
+    Directories(Vec<PathBuf>),
+    Files(Vec<PathBuf>),
+    File(PathBuf),
+    Directory(PathBuf),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, number>"))]
+    KeyNumber(HashMap<String, i64>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, number[]>")
+    )]
+    KeyNumbers(HashMap<String, Vec<i64>>),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, string>"))]
+    KeyString(HashMap<String, String>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, string[]>")
+    )]
+    KeyStrings(HashMap<String, Vec<String>>),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
