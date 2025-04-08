@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use components::ComponentDescriptor;
 use tokio::{
     select,
@@ -25,8 +27,8 @@ impl ComponentDescriptor for Descriptor {
                 name: String::from("Log Level"),
                 desc: String::from("DLT Log Level"),
                 required: true,
-                default: Some(stypes::Value::Integer(1)),
-                interface: stypes::ValueInterface::DropList(Vec::new()),
+                default: Some(stypes::Value::Number(1)),
+                interface: stypes::ValueInput::KeyString(HashMap::new()),
             }),
             stypes::FieldDesc::Lazy(stypes::LazyFieldDesc {
                 id: FIELD_STATISTICS.to_owned(),
@@ -65,8 +67,8 @@ impl ComponentDescriptor for Descriptor {
                     name: String::from("Example"),
                     desc: String::from("Example"),
                     required: true,
-                    default: Some(stypes::Value::Integer(1)),
-                    interface: stypes::ValueInterface::DropList(Vec::new()),
+                    default: Some(stypes::Value::Number(1)),
+                    interface: stypes::ValueInput::KeyString(HashMap::new()),
                 }),
             )])
         })
