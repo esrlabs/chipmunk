@@ -30,32 +30,36 @@ export type StaticFieldDesc = {
     desc: string;
     required: boolean;
     default: Value | null;
-    interface: ValueInterface;
+    interface: ValueInput;
 };
 
 export type Value =
     | { Boolean: boolean }
-    | { Integer: number }
-    | { Float: number }
-    | { Text: string }
-    | { List: Array<Value> }
+    | { Number: bigint }
+    | { Numbers: Array<bigint> }
+    | { String: string }
+    | { Strings: Array<string> }
     | { Directories: Array<string> }
     | { Files: Array<string> }
     | { File: string }
     | { Directory: string }
-    | { KeyValues: { [key in string]?: Array<string> } };
+    | { KeyStrings: { [key in string]?: Array<string> } }
+    | { KeyString: { [key in string]?: string } }
+    | { KeyNumbers: { [key in string]?: Array<bigint> } }
+    | { KeyNumber: { [key in string]?: bigint } };
 
-/**
- * How value will be represented to user
- */
-export type ValueInterface =
-    | 'Boolean'
-    | 'Integer'
-    | 'Float'
-    | 'Text'
-    | { DropList: Array<Value> }
-    | { List: Array<Value> }
-    | 'RequestDirectories'
-    | 'RequestFiles'
-    | 'RequestDirectory'
-    | 'RequestFile';
+export type ValueInput =
+    | 'Checkbox'
+    | 'Number'
+    | 'String'
+    | { Numbers: Array<bigint> }
+    | { Strings: Array<string> }
+    | { KeyNumber: Map<string, number> }
+    | { KeyNumbers: Map<string, number[]> }
+    | { KeyString: Map<string, string> }
+    | { KeyStrings: Map<string, string[]> }
+    | 'Directories'
+    | 'Files'
+    | 'File'
+    | 'Directory'
+    | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };
