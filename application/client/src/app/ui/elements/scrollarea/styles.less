@@ -24,19 +24,19 @@
         overflow-x: auto;
         overflow-y: hidden;
         &::-webkit-scrollbar:horizontal {
-            background-color: @scheme-color-5-15;
+            background-color: var(--scheme-color-5-15);
             transition: background 250ms;
         }
         &::-webkit-scrollbar-thumb:horizontal {
-            background-color: @scheme-color-3-15;
+            background-color: var(--scheme-color-3-15);
             transition: background 250ms;
         }
         &:hover {
             &::-webkit-scrollbar:horizontal {
-                background-color: @scheme-color-5;
+                background-color: var(--scheme-color-5);
             }
             &::-webkit-scrollbar-thumb:horizontal {
-                background-color: @scheme-color-3;
+                background-color: var(--scheme-color-3);
             }
         }
     }
@@ -71,7 +71,7 @@
                 left: 0;
                 width: 100%;
                 border-top: thin dashed;
-                border-top-color: @scheme-color-accent;
+                border-top-color: var(--scheme-color-accent);
             }
         }
     }

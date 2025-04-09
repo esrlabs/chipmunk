@@ -12,22 +12,22 @@ app-elements-timezone-selector {
         flex-direction: row;
         padding: 6px 12px;
         font-size: 15px;
-        color: @scheme-color-2;
+        color: var(--scheme-color-2);
         &:hover {
-            background-color: @scheme-color-4;
+            background-color: var(--scheme-color-4);
         }
         & span.spacer {
             flex: auto;
             margin: 0 12px;
         }
         & span.utc{
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
         }
         & span.name,
         & span.utc{
             & > span {
-                background-color: @scheme-color-3;
-                color: @scheme-color-0;
+                background-color: var(--scheme-color-3);
+                color: var(--scheme-color-0);
             }
         }
     }
@@ -35,7 +35,7 @@ app-elements-timezone-selector {
         position: absolute;
         z-index: 1000;
         padding: 6px 12px;
-        background: @scheme-color-warning-light;
+        background: var(--scheme-color-warning-light);
         top: 6px;
         right: 6px;
         box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);

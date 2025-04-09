@@ -21,7 +21,7 @@
             width: 100%;
             white-space: nowrap;
             &:hover{
-                background: @scheme-color-4;
+                background: var(--scheme-color-4);
             }
             &.selected {
                 &::after{
@@ -32,7 +32,7 @@
                     left: -2px;
                     top: 0;
                     height: 100%;
-                    background: @scheme-color-accent;
+                    background: var(--scheme-color-accent);
                 }
             }
 
@@ -64,7 +64,7 @@
                 vertical-align: top;
                 &:hover,
                 &.selected {
-                    border: 1px solid @scheme-color-0;
+                    border: 1px solid var(--scheme-color-0);
                     &::after{
                         position: absolute;
                         content: '';
@@ -72,7 +72,7 @@
                         left:0;
                         width: 0;
                         height: 0;
-                        border-top: 6px solid @scheme-color-0;
+                        border-top: 6px solid var(--scheme-color-0);
                         border-right: 6px solid transparent;
                     }
                     &:hover{
@@ -93,7 +93,7 @@
         display: inline-block;
         padding: 2px 0px 0px 4px;
         cursor: default;
-        color: @scheme-color-1;
+        color: var(--scheme-color-1);
         vertical-align: top;
     }
 }

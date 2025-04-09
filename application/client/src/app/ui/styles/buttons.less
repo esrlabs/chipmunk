@@ -1,7 +1,7 @@
 @import './variables.less';
 
 button.major-button {
-    background-color: @scheme-color-active;
+    background-color: var(--scheme-color-active);
 }
 
 button.flat-codicon-button {
@@ -12,11 +12,11 @@ button.flat-codicon-button {
     padding: 0 6px;
     white-space: nowrap;
     background: none;
-    color: @scheme-color-1;
+    color: var(--scheme-color-1);
     height: 24px;
     outline: none;
     &:hover {
-        background: @scheme-color-4;
+        background: var(--scheme-color-4);
     }
     & span {
         padding-right: 6px;
@@ -27,12 +27,12 @@ button.flat-codicon-button {
     display: inline-block;
     font-size: 12px;
     cursor: pointer;
-    color: @scheme-color-2;
-    border-bottom: dashed thin @scheme-color-4;
+    color: var(--scheme-color-2);
+    border-bottom: dashed thin var(--scheme-color-4);
     padding: 2px;
     &:hover {
-        color: @scheme-color-1;
-        border-bottom: dashed thin @scheme-color-2;
+        color: var(--scheme-color-1);
+        border-bottom: dashed thin var(--scheme-color-2);
     }
 }
 
@@ -40,7 +40,7 @@ button.flat-codicon-button {
     display: inline-block;
     height: 24px;
     width: 24px;
-    color: @scheme-color-1;
+    color: var(--scheme-color-1);
     text-align: center;
     padding-top: 4px;
     box-sizing: border-box;
@@ -51,23 +51,23 @@ button.flat-codicon-button {
         margin-right: 0px;
     }
     &:hover{
-        color: @scheme-color-3;
+        color: var(--scheme-color-3);
     }
     &.disabled {
-        color: @scheme-color-3;
+        color: var(--scheme-color-3);
         &:hover{
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
         }    
     }
     &.with-background {
         &:hover{
-            background-color: @scheme-color-4;
-            color: @scheme-color-0;
+            background-color: var(--scheme-color-4);
+            color: var(--scheme-color-0);
         }
         &.disabled {
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
             &:hover{
-                color: @scheme-color-3;
+                color: var(--scheme-color-3);
                 background: none;
             }
             &.active {
@@ -78,9 +78,9 @@ button.flat-codicon-button {
             }   
         }
         &.active {
-            background-color: @scheme-color-active;
+            background-color: var(--scheme-color-active);
             &:hover{
-                background-color: @scheme-color-active;
+                background-color: var(--scheme-color-active);
             }
         }    
     }

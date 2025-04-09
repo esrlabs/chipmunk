@@ -6,7 +6,7 @@ app-views-search-input {
     flex-direction: row;
     height: 41px;
     width: 100%;
-    background: @scheme-color-5;
+    background: var(--scheme-color-5);
     overflow: hidden;
     justify-content: center;
     align-items: center;
@@ -26,18 +26,18 @@ app-views-search-input {
             display: inline-block;
             height: 24px;
             width: 24px;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
             text-align: center;
             padding-top: 4px;
             box-sizing: border-box;
             &:hover{
-                background: @scheme-color-4;
+                background: var(--scheme-color-4);
             }
             &.active{
-                background: @scheme-color-active;
+                background: var(--scheme-color-active);
             }
             &.invalid {
-                color: @scheme-color-error;
+                color: var(--scheme-color-error);
             }
         }
     }
@@ -55,14 +55,14 @@ app-views-search-input {
             align-items: center;
             padding-right: 6px;
             & span.message {
-                color: @scheme-color-error;
+                color: var(--scheme-color-error);
                 max-width: 150px;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;    
             }
             & mat-icon {
-                color: @scheme-color-error;
+                color: var(--scheme-color-error);
                 height: 16px;
                 width: 16px;
                 font-size: 16px;
@@ -76,7 +76,7 @@ app-views-search-input {
         display: flex;
         flex-direction: row;
         border-radius: 2px;
-        background: @scheme-color-active;
+        background: var(--scheme-color-active);
         height: 20px;
         overflow: hidden;
         flex: none;
@@ -86,7 +86,7 @@ app-views-search-input {
             position: relative;
             display: inline-block;
             padding: 5px 6px;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
             font-weight: 500;
         }
         & button {
@@ -97,7 +97,7 @@ app-views-search-input {
             border:none;
             &.enabled {
                 &:hover{
-                    background: @scheme-color-4;
+                    background: var(--scheme-color-4);
                 }
             }
             & mat-icon{
@@ -105,10 +105,10 @@ app-views-search-input {
                 width: 20px;
                 font-size: 16px;
                 text-align: center;
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
                 padding-top: 2px;
                 &.disabled {
-                    color: @scheme-color-2;
+                    color: var(--scheme-color-2);
                 }
             }
         }

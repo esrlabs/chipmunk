@@ -11,11 +11,11 @@ app-tabs-help {
     & mat-card {
         margin: 12px 6px 12px 12px;
         & mat-card-title {
-            color: @scheme-color-1;
+            color: var(--scheme-color-1);
             font-size: 16px;
         }
         & mat-card-subtitle {
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
             font-size: 12px;
         }
     }
@@ -78,14 +78,14 @@ app-tabs-help {
                 padding-top: 2px;
             }
             &:hover {
-                background: @scheme-color-4;
+                background: var(--scheme-color-4);
                 &::after,
                 &::before {
                     position: absolute;
                     content: '';
                     width: 16px;
                     height: 100%;
-                    background: @scheme-color-4;
+                    background: var(--scheme-color-4);
                     top: 0;
                 }
                 &::after {
