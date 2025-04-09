@@ -22,3 +22,4 @@ export * as System from './system';
 export * as Values from './values';
 export * as GitHub from './github';
 export * as Plugins from './plugins';
+export * as Components from './components';

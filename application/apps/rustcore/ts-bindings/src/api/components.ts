@@ -3,29 +3,15 @@ import { scope } from 'platform/env/scope';
 import { v4 as uuid } from 'uuid';
 import { Base as Native } from '../native/native.components';
 import { ComponentsEventProvider, IComponentsEvents } from '../api/components.provider';
-import { SessionStream } from '../api/session.stream';
-import { SessionSearch } from '../api/session.search';
 import { Subscriber } from 'platform/env/subscription';
 import {
     ComponentsOptionsList,
     Field,
+    FieldDesc,
     FieldsValidationErrors,
     Ident,
     SourceOrigin,
 } from 'platform/types/bindings';
-
-export {
-    ISessionEvents,
-    IProgressEvent,
-    IProgressState,
-    IEventMapUpdated,
-    IEventMatchesUpdated,
-    IEventIndexedMapUpdated,
-} from '../api/session.provider';
-export { ComponentsEventProvider, SessionStream, SessionSearch };
-
-export * as $ from 'platform/types/observe';
-export * as Factory from 'platform/types/observe/factory';
 
 export class Components extends Subscriber {
     private readonly native: Native;
@@ -85,16 +71,20 @@ export class Components extends Subscriber {
         };
     }
 
-    public getOptions(origin: SourceOrigin, targets: string[]): Promise<ComponentsOptionsList> {
-        return this.native.getOptions(origin, targets);
+    public getOptions(origin: SourceOrigin, targets: string[]): Promise<Map<string, FieldDesc[]>> {
+        return this.native
+            .getOptions(origin, targets)
+            .then((list: ComponentsOptionsList) => list.options);
     }
 
     public validate(
         origin: SourceOrigin,
         target: string,
         fields: Field[],
-    ): Promise<FieldsValidationErrors> {
-        return this.native.validate(origin, target, fields);
+    ): Promise<Map<string, string>> {
+        return this.native
+            .validate(origin, target, fields)
+            .then((list: FieldsValidationErrors) => list.errors);
     }
 
     public abort(fields: string[]): Error | undefined {

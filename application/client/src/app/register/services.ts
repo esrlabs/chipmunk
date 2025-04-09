@@ -30,6 +30,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Jobs',
         uuid: v4(),
     },
+    components: {
+        name: 'Components',
+        uuid: v4(),
+    },
     files: {
         name: 'Files',
         uuid: v4(),
