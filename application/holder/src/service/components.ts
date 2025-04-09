@@ -7,9 +7,108 @@ import {
 } from 'platform/entity/service';
 import { services } from '@register/services';
 import { electron } from '@service/electron';
+import { Components } from 'rustcore';
+import { Mutable } from 'platform/types/unity/mutable';
+
+import * as RequestHandlers from './components/index';
+import * as Requests from 'platform/ipc/request';
+import * as Events from 'platform/ipc/event';
+
+import {
+    LoadingCancelledEvent,
+    LoadingDoneEvent,
+    LoadingErrorEvent,
+    LoadingErrorsEvent,
+} from 'platform/types/components';
 
 @DependOn(electron)
 @SetupService(services['components'])
-export class Service extends Implementation {}
+export class Service extends Implementation {
+    public readonly components!: Components;
+
+    public override async ready(): Promise<void> {
+        (this as Mutable<Service>).components = await Components.create();
+        this.register(
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Components.Abort.Request,
+                    RequestHandlers.Abort.handler,
+                ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Components.GetOptions.Request,
+                    RequestHandlers.GetOptions.handler,
+                ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Components.GetParsers.Request,
+                    RequestHandlers.GetParsers.handler,
+                ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Components.GetSources.Request,
+                    RequestHandlers.GetSources.handler,
+                ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
+                    Requests.Components.Validate.Request,
+                    RequestHandlers.Validate.handler,
+                ),
+            this.components.getEvents().LoadingDone.subscribe((event: LoadingDoneEvent) => {
+                Events.IpcEvent.emit(
+                    new Events.Components.LoadingDone.Event({
+                        event,
+                    }),
+                );
+            }),
+            this.components.getEvents().LoadingError.subscribe((event: LoadingErrorEvent) => {
+                Events.IpcEvent.emit(
+                    new Events.Components.LoadingError.Event({
+                        event,
+                    }),
+                );
+            }),
+            this.components.getEvents().LoadingErrors.subscribe((event: LoadingErrorsEvent) => {
+                Events.IpcEvent.emit(
+                    new Events.Components.LoadingErrors.Event({
+                        event,
+                    }),
+                );
+            }),
+            this.components
+                .getEvents()
+                .LoadingCancelled.subscribe((event: LoadingCancelledEvent) => {
+                    Events.IpcEvent.emit(
+                        new Events.Components.LoadingCancelled.Event({
+                            event,
+                        }),
+                    );
+                }),
+            this.components.getEvents().Destroyed.subscribe(() => {
+                // Stop getting incoming requests
+                this.unsubscribe();
+            }),
+        );
+
+        return Promise.resolve();
+    }
+
+    public override destroy(): Promise<void> {
+        this.unsubscribe();
+        return this.components.destroy().catch((err: Error) => {
+            this.log().error(`Fail to shutdown Components: ${err.message}`);
+        });
+    }
+}
 export interface Service extends Interface {}
 export const components = register(new Service());
