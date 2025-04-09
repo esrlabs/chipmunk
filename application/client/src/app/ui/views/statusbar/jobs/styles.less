@@ -13,14 +13,14 @@ app-statusbar-jobs {
         flex-direction: row;
         align-items: center;
         align-content: center;
-        border-left: 1px solid @scheme-color-4;
+        border-left: 1px solid var(--scheme-color-4);
         padding: 0 6px;
     }
     & mat-spinner {
         margin-right: 6px;
     }
     & .mat-progress-spinner circle, .mat-spinner circle {
-        stroke: @scheme-color-accent;
+        stroke: var(--scheme-color-accent);
     }
     & span.pinned-job {
         position: relative;
@@ -34,14 +34,14 @@ app-statusbar-jobs {
         & mat-icon {
             height: 16px;
             width: 16px;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
             font-size: 16px;
             padding-right: 6px;
         }
     }
     & span.name{
         font-size: 10px;
-        color: @scheme-color-2;
+        color: var(--scheme-color-2);
     }
     & span.indicator {
         position: relative;
@@ -49,7 +49,7 @@ app-statusbar-jobs {
         width: 8px;
         height: 8px;
         border-radius: 4px;
-        background-color: @scheme-color-accent;
+        background-color: var(--scheme-color-accent);
         margin-right: 6px;
     }
 
@@ -70,7 +70,7 @@ app-statusbar-jobs {
         & mat-icon {
             height: 16px;
             width: 16px;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
             font-size: 16px;
             padding-right: 6px;
         }
@@ -79,13 +79,13 @@ app-statusbar-jobs {
             & span.name {
                 position: relative;
                 display: block;
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
                 line-height: 16px;
             }
             & span.desc {
                 position: relative;
                 display: block;    
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
                 line-height: 16px;
             }    
         }

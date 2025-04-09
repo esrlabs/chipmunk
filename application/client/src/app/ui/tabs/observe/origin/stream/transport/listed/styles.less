@@ -6,7 +6,7 @@
     padding: 12px 12px;
     flex-direction: row;
     & div.icon {
-        color: @scheme-color-2;
+        color: var(--scheme-color-2);
         padding-right: 12px;
         display: flex;
         flex-direction: column;
@@ -24,7 +24,7 @@
         }
         &.running {
             & mat-icon {
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
             }
         }
         & span.type {
@@ -33,10 +33,10 @@
         & span.state {
             font-size: 12px;
             &.running {
-                color: @scheme-color-accent;
+                color: var(--scheme-color-accent);
             }
             &.stopped {
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
             }
         }
     }

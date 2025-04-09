@@ -11,10 +11,10 @@
     cursor: default;
     width: calc(100% - 36px);
     &:hover{
-        background: @scheme-color-5;
+        background: var(--scheme-color-5);
     }
     &.selected{
-        background: fadeout(@scheme-color-accent, 50%);
+        background: var(--scheme-color-accent-fadeout-50);
     }
     span.icon {
         flex: 0;
@@ -36,7 +36,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         padding-left: 6px;
-        color: @scheme-color-0;
+        color: var(--scheme-color-0);
         cursor: default;
     }
     &.cdk-drag-preview {

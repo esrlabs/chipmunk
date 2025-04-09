@@ -547,6 +547,23 @@ export class Service extends Implementation {
                     { role: 'zoomOut' },
                     { type: 'separator' },
                     { role: 'togglefullscreen' },
+                    { type: 'separator' },
+                    {
+                        label: 'Dark Theme',
+                        click: async () => {
+                            Actions.themeDark().catch((err: Error) => {
+                                this.log().error(`Fail call action ThemeDark: ${err.message}`);
+                            });
+                        },
+                    },
+                    {
+                        label: 'Light Theme',
+                        click: async () => {
+                            Actions.themeLight().catch((err: Error) => {
+                                this.log().error(`Fail call action ThemeLight: ${err.message}`);
+                            });
+                        },
+                    },
                 ],
             },
             {

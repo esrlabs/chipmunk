@@ -12,13 +12,13 @@
         position: absolute;
         height: 100%;
         top: 0;
-        background: @scheme-color-accent-50;
+        background: var(--scheme-color-accent-50);
     }
     & div.cover {
         position: absolute;
         height: 100%;
         top: 0;
-        background: @scheme-color-active-75;
+        background: var(--scheme-color-active-75);
         cursor: default;
         pointer-events: none;
         &.left {
@@ -32,8 +32,8 @@
         position: absolute;
         height: 100%;
         top: 0;
-        border-left: thin solid @scheme-color-0;
-        border-right: thin solid @scheme-color-0;
+        border-left: thin solid var(--scheme-color-0);
+        border-right: thin solid var(--scheme-color-0);
         background: none;
         cursor: default;
         & div.move-trigger {
@@ -54,9 +54,9 @@
                 position: absolute;
                 display: none;
                 font-size: 12px;
-                color: @scheme-color-1;
+                color: var(--scheme-color-1);
                 content: attr(row);
-                background: @scheme-color-active-75;
+                background: var(--scheme-color-active-75);
                 padding: 2px 4px;
                 border-radius: 2px;
                 top: 0;
@@ -67,7 +67,7 @@
                 height: 16px;
                 width: 3px;
                 content: '';
-                background: @scheme-color-0;
+                background: var(--scheme-color-0);
                 top: 0;
                 right: 0;
             }

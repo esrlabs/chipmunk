@@ -18,7 +18,7 @@
         top: 0;
         left: 0;
         z-index: 1;
-        background: @scheme-color-5;
+        background: var(--scheme-color-5);
         display: flex;
         padding: 0 24px;
         margin: 0;
@@ -28,11 +28,11 @@
         font-size: 0.9rem;
         font-weight: 400;
         span.title{
-            color: @scheme-color-2;
+            color: var(--scheme-color-2);
         }
         span.subtitle{
             padding-left: 6px;
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
         }
         & span.filler {
             flex: auto;
@@ -41,7 +41,7 @@
     }
     & p.info {
         font-size: 13px;
-        color: @scheme-color-2;
+        color: var(--scheme-color-2);
         margin: 16px 24px;
     }
     & div.controls {
@@ -62,9 +62,9 @@
         list-style: none;
         overflow-y: auto;
         & li.error {
-            border-bottom: dashed thin @scheme-color-3;
+            border-bottom: dashed thin var(--scheme-color-3);
             & > p.t-small {
-                color: @scheme-color-3;
+                color: var(--scheme-color-3);
             }
             & > p {
                 word-break: break-all;
@@ -84,12 +84,12 @@
         overflow-x: hidden;
         & mat-expansion-panel-header {
             position: sticky;
-            background-color: @scheme-bk-color-0;
+            background-color: var(--scheme-bk-color-0);
             z-index: 1;
             top: 0;
         }
         & app-views-teamwork-repository.selected {
-            background: @scheme-color-4;
+            background: var(--scheme-color-4);
             &::after {
                 position: absolute;
                 content: '';
@@ -98,11 +98,11 @@
                 height: 100%;
                 width: 4px;
                 left:0;
-                background: @scheme-color-active;
+                background: var(--scheme-color-active);
             }
         }
         & app-views-teamwork-repository:hover {
-            background: @scheme-color-5;
+            background: var(--scheme-color-5);
         }
     }
 

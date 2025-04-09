@@ -12,7 +12,7 @@
     align-items: center;
     width: calc(100% - 24px);
     &.notvalid {
-        background: fadeout(@scheme-color-warning, 50%);
+        background: var(--scheme-color-warning-fadeout-50);
         &::after {
             display: block;
             content: '⚠';
@@ -23,15 +23,15 @@
             position: absolute;
         }
         input.request {
-            color: @scheme-color-error;
-            border-bottom: dashed 1px @scheme-color-error;
+            color: var(--scheme-color-error);
+            border-bottom: dashed 1px var(--scheme-color-error);
         }
     }
     &:hover{
-        background: @scheme-color-5;
+        background: var(--scheme-color-5);
     }
     &.selected{
-        background: fadeout(@scheme-color-accent, 50%);
+        background: var(--scheme-color-accent-fadeout-50);
     }
     div.doubleclick {
         display: contents;
@@ -63,28 +63,28 @@
         overflow: hidden;
         text-overflow: ellipsis;
         padding-left: 6px;
-        color: @scheme-color-0;
+        color: var(--scheme-color-0);
         cursor: default;
     }
     span.found {
         flex: 0;
         white-space: nowrap;
-        color: @scheme-color-0;
+        color: var(--scheme-color-0);
         padding: 0 6px;
         font-size: 12px;
         margin: 0;
-        border: thin solid @scheme-color-active;
-        background: @scheme-color-active;
+        border: thin solid var(--scheme-color-active);
+        background: var(--scheme-color-active);
         border-radius: 6px;
     }
     input.request {
         margin: 0 8px;
         padding: 0;
         border: none;
-        border-bottom: dashed 1px @scheme-color-1;
+        border-bottom: dashed 1px var(--scheme-color-1);
         flex: auto;
         white-space: nowrap;
-        color: @scheme-color-0;
+        color: var(--scheme-color-0);
         background: none;
         outline: none;
     }
@@ -100,13 +100,13 @@
             vertical-align: bottom;
             cursor: default;
             &.active{
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
             }
             &.inactive{
-                color: @scheme-color-3;
+                color: var(--scheme-color-3);
             }
             &.invalid {
-                color: @scheme-color-error;
+                color: var(--scheme-color-error);
             }
         }
     }
@@ -115,7 +115,7 @@
             display: none;
         }
         padding-left: 0;
-        background: @scheme-color-6;
+        background: var(--scheme-color-6);
         mat-checkbox {
             display: none;
         }

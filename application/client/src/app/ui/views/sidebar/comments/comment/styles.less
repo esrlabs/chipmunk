@@ -5,10 +5,10 @@ app-views-comments-item {
     & div.wrapper {
         &.black {
             & * {
-                color: @scheme-color-7!important;
+                color: var(--scheme-color-7)!important;
             }
             .mat-expansion-indicator::after{
-                color: @scheme-color-7!important;
+                color: var(--scheme-color-7)!important;
             }
         }
         & div.signature {
@@ -28,7 +28,7 @@ app-views-comments-item {
                 justify-content: end;
                 transition: 250ms ease-in-out all;
                 & span.small-icon-button {
-                    color: @scheme-color-5;
+                    color: var(--scheme-color-5);
                 }
             }
             & mat-expansion-panel {
@@ -43,7 +43,7 @@ app-views-comments-item {
                 }
             }
             & mat-card-subtitle {
-                color: @scheme-color-5;
+                color: var(--scheme-color-5);
                 & span.position-label:hover {
                     cursor: pointer;
                     text-decoration: underline;
