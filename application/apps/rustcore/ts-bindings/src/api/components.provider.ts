@@ -1,28 +1,13 @@
 import { Subject } from 'platform/env/subscription';
 import { Computation } from '../provider/provider';
-import { StaticFieldDesc, FieldLoadingError } from 'platform/types/bindings';
+import {
+    LoadingDoneEvent,
+    LoadingErrorsEvent,
+    LoadingErrorEvent,
+    LoadingCancelledEvent,
+} from 'platform/types/components';
 
 import * as protocol from 'protocol';
-
-export interface LoadingDoneEvent {
-    owner: string;
-    fields: StaticFieldDesc[];
-}
-
-export interface LoadingErrorsEvent {
-    owner: string;
-    errors: FieldLoadingError[];
-}
-
-export interface LoadingErrorEvent {
-    owner: string;
-    error: string;
-    fields: string[];
-}
-export interface LoadingCancelledEvent {
-    owner: string;
-    fields: string[];
-}
 
 export interface IComponentsEvents {
     LoadingDone: Subject<LoadingDoneEvent>;

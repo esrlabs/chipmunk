@@ -9,3 +9,4 @@ export * as Cli from './cli';
 export * as Logs from './logs';
 export * as Values from './values';
 export * as GitHub from './github';
+export * as Components from './components';
