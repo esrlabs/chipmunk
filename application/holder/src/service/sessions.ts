@@ -7,6 +7,7 @@ import {
 } from 'platform/entity/service';
 import { electron } from '@service/electron';
 import { jobs } from '@service/jobs';
+import { components } from '@service/components';
 import { services } from '@register/services';
 import { Session } from 'rustcore';
 import { Active } from './sessions/active';
@@ -19,6 +20,7 @@ import * as Requests from 'platform/ipc/request';
 export { Jobs } from './sessions/holder';
 
 @DependOn(jobs)
+@DependOn(components)
 @DependOn(electron)
 @SetupService(services['sessions'])
 export class Service extends Implementation {

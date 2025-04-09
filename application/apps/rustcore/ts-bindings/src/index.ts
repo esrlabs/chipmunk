@@ -24,6 +24,7 @@ export {
 } from './api/session';
 export { Jobs } from './api/jobs';
 export { Tracker } from './api/tracker';
+export { Components } from './api/components';
 export { Units, Events, Interfaces };
 
 export * as $ from 'platform/types/observe';
