@@ -1,5 +1,5 @@
 import { Subject } from '@platform/env/subscription';
-import { getContrastColor, scheme_color_match, getNextColor } from '@styles/colors';
+import { getContrastColor, getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { IFilter, IFilterFlags, FilterDefinition, FilterStyle } from '@platform/types/filter';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
@@ -13,6 +13,7 @@ import { UpdateEvent } from './store.update';
 import { getFilterError } from '@module/util';
 import { serializeHtml } from '@platform/env/str';
 import { settings } from '@service/settings';
+import { styles } from '@ui/service/styles';
 
 import * as regexFilters from '@platform/env/filters';
 import * as obj from '@platform/env/obj';
@@ -148,7 +149,7 @@ export class FilterRequest
         super();
         const defaultMatchColor =
             settings.defaults['general.colors.default_filter'] === undefined
-                ? scheme_color_match
+                ? styles.colors().scheme_color_match
                 : settings.defaults['general.colors.default_filter'];
         this.definition = {
             filter: {

@@ -2,7 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { ISettingsEntry } from '@platform/types/settings/entry';
 import { IDescription } from '@platform/types/settings/entry.description';
-import { scheme_color_2, scheme_color_match } from '@styles/colors';
+import { styles } from '@ui/service/styles';
 
 import * as Requests from '@platform/ipc/request/index';
 
@@ -12,9 +12,9 @@ export interface ILocalDefaults {
     'general.colors.default_chart': string;
 }
 export const DEFAULTS: ILocalDefaults = {
-    'general.colors.match': scheme_color_2,
-    'general.colors.default_filter': scheme_color_match,
-    'general.colors.default_chart': scheme_color_match,
+    'general.colors.match': styles.colors().scheme_color_2,
+    'general.colors.default_filter': styles.colors().scheme_color_match,
+    'general.colors.default_chart': styles.colors().scheme_color_match,
 };
 
 @SetupService(services['settings'])
