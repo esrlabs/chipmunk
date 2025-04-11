@@ -8,7 +8,8 @@ import {
 import { ChartRequest, ChartType } from '@service/session/dependencies/search/charts/request';
 import { ProviderCharts } from '../provider';
 import { Entity } from '../../providers/definitions/entity';
-import { CColors, scheme_color_accent } from '@styles/colors';
+import { CColors } from '@styles/colors';
+import { styles } from '@ui/service/styles';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
@@ -26,7 +27,7 @@ export class ChartrDetails extends ChangesDetector implements AfterContentInit {
     @Input() provider!: ProviderCharts;
 
     public request: string | undefined;
-    public color: string = scheme_color_accent;
+    public color: string = styles.colors().scheme_color_accent;
     public line: number = ChartRequest.DEFAULT_LINE_WIDTH;
     public point: number = ChartRequest.DEFAULT_POINT_RADIUS;
     public colors: string[] = [];
@@ -95,7 +96,7 @@ export class ChartrDetails extends ChangesDetector implements AfterContentInit {
         this._entity = this.provider.select().single();
         if (this._entity === undefined) {
             this.request = undefined;
-            this.color = scheme_color_accent;
+            this.color = styles.colors().scheme_color_accent;
             this.type = ChartType.Linear;
         } else {
             const def = this._entity.extract().definition;

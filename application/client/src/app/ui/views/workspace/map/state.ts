@@ -1,6 +1,6 @@
 import { ISearchMap } from '@platform/types/filter';
 import { Session } from '@service/session';
-import { scheme_color_5, scheme_color_match, scheme_color_2 } from '@styles/colors';
+import { styles } from '@ui/service/styles';
 import { settings } from '@service/settings';
 
 export class State {
@@ -60,7 +60,7 @@ export class State {
     public draw(): State {
         const activeSearchMatchColor =
             settings.defaults['general.colors.match'] === undefined
-                ? scheme_color_2
+                ? styles.colors().scheme_color_2
                 : settings.defaults['general.colors.match'];
         const filters = this.session.search
             .store()
@@ -68,7 +68,7 @@ export class State {
             .get()
             .filter((f) => f.definition.active);
         const isActive = this.session.search.state().getActive() !== undefined;
-        this.context.fillStyle = scheme_color_5;
+        this.context.fillStyle = styles.colors().scheme_color_5;
         this.context.fillRect(0, 0, this.width, this.height);
         const scale = (() => {
             if (this.map.length === 0 || this.height === 0) {
@@ -104,7 +104,7 @@ export class State {
                     const filter = filters[matches[0]];
                     this.context.fillStyle =
                         filter === undefined
-                            ? scheme_color_match
+                            ? styles.colors().scheme_color_match
                             : filter.definition.colors.background;
                 }
                 this.context.fillRect(

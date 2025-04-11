@@ -1,5 +1,5 @@
 import { IRange } from '@platform/types/range';
-import { scheme_color_5 } from '@styles/colors';
+import { styles } from '@ui/service/styles';
 
 export abstract class Base {
     protected context: CanvasRenderingContext2D;
@@ -33,7 +33,7 @@ export abstract class Base {
     }
 
     public clear(): Base {
-        this.context.fillStyle = scheme_color_5;
+        this.context.fillStyle = styles.colors().scheme_color_5;
         this.context.fillRect(0, 0, this.canvasElementRef.width, this.canvasElementRef.height);
         return this;
     }

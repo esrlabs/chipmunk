@@ -7,6 +7,7 @@ import {
     EAlias,
 } from '../modifier';
 import { ChartRequest } from '../../charts/request';
+import { styles } from '@ui/service/styles';
 
 import * as Colors from '@styles/colors';
 import * as ModifiersTools from '../tools';
@@ -90,9 +91,9 @@ export class ChartsModifier extends Modifier {
                     end: offset + match.length,
                     bgcl:
                         request.definition.color === Colors.CColors[0]
-                            ? Colors.scheme_color_4
+                            ? styles.colors().scheme_color_4
                             : request.definition.color === undefined
-                            ? Colors.scheme_color_4
+                            ? styles.colors().scheme_color_4
                             : Colors.shadeColor(request.definition.color, 30),
                 });
                 this._matched = request;

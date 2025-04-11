@@ -1,5 +1,5 @@
 import { ISearchMap } from '@platform/types/filter';
-import { scheme_color_2, scheme_color_match } from '@styles/colors';
+import { styles } from '@ui/service/styles';
 import { Base } from './render';
 import { FilterRequest } from '@service/session/dependencies/search/filters/request';
 
@@ -50,9 +50,9 @@ export class Render extends Base {
         this.map.forEach((matches: [number, number][], left: number) => {
             matches.forEach((pair: [number, number]) => {
                 const color = this.active
-                    ? scheme_color_2
+                    ? styles.colors().scheme_color_2
                     : this.filters[pair[0]] === undefined
-                    ? scheme_color_match
+                    ? styles.colors().scheme_color_match
                     : this.filters[pair[0]].definition.colors.background;
                 const h = Math.round(pair[1] * rateByY);
                 this.context.fillStyle = color;

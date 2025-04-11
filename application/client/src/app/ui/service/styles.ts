@@ -86,6 +86,53 @@ export class Service extends Implementation {
             },
         };
     }
+
+    public colors(): {
+        scheme_color_0: string;
+        scheme_color_1: string;
+        scheme_color_2: string;
+        scheme_color_3: string;
+        scheme_color_4: string;
+        scheme_color_5: string;
+        scheme_color_6: string;
+        scheme_color_error: string;
+        scheme_color_accent: string;
+        scheme_color_warning: string;
+        scheme_color_match: string;
+        scheme_search_match: string;
+    } {
+        if (this._theme === 'dark-theme') {
+            return {
+                scheme_color_0: '#FFFFFF',
+                scheme_color_1: '#eaeaea',
+                scheme_color_2: '#c0c0c0',
+                scheme_color_3: '#979797',
+                scheme_color_4: '#555555',
+                scheme_color_5: '#333333',
+                scheme_color_6: '#111111',
+                scheme_color_error: 'rgb(253, 21, 21)',
+                scheme_color_accent: '#74b9ff',
+                scheme_color_warning: '#fffd71',
+                scheme_color_match: '#e4e15b',
+                scheme_search_match: '#AA0000',
+            };
+        } else {
+            return {
+                scheme_color_0: '#000000',
+                scheme_color_1: '#151515',
+                scheme_color_2: '#3f3f3f',
+                scheme_color_3: '#686868',
+                scheme_color_4: '#aaaaaa',
+                scheme_color_5: '#efefef',
+                scheme_color_6: '#fafafa',
+                scheme_color_error: 'rgb(253, 21, 21)',
+                scheme_color_accent: '#74b9ff',
+                scheme_color_warning: '#fffd71',
+                scheme_color_match: '#e4e15b',
+                scheme_search_match: '#AA0000',
+            };
+        }
+    }
 }
 
 export interface Service extends Interface {}
