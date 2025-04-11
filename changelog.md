@@ -1,3 +1,13 @@
+# 3.17.0 (12.04.2025)
+
+## Fixes
+- Fix the scrollbar issue (disappeared on tab switch)
+- Fix local storage (on save)
+
+## Features
+- Add support of multiple themes
+- Add Light Theme
+
 # 3.16.6 (06.04.2025)
 
 ## Fixes
