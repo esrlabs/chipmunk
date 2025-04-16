@@ -8,14 +8,14 @@ use super::*;
 
 use parsers::{Error as ParseError, ParseYield};
 
-use crate::{producer::MessageProducer, Error};
+use crate::{producer::CombinedProducer, Error};
 
 #[tokio::test]
 async fn empty_byte_source() {
     let parser = MockParser::new([]);
     let source = MockByteSource::new(0, [Ok(None)]);
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     let next = producer.read_next_segment().await.unwrap();
     assert_eq!(next.len(), 1);
@@ -30,7 +30,7 @@ async fn byte_source_fail() {
     let parser = MockParser::new([]);
     let source = MockByteSource::new(0, [Err(Error::NotSupported)]);
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Done message should be sent
     let next = producer.read_next_segment().await.unwrap();
@@ -60,7 +60,7 @@ async fn parse_item_then_skip() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // First results should be one message with content
     let next = producer.read_next_segment().await.unwrap();
@@ -113,7 +113,7 @@ async fn parse_incomplete() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // First message should be message with content
     let next = producer.read_next_segment().await.unwrap();
@@ -158,7 +158,7 @@ async fn parse_incomplete_with_err_reload() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Stream should be closed directly if reload failed after parser returning Incomplete error
     let next = producer.read_next_segment().await;
@@ -170,7 +170,7 @@ async fn parse_err_eof() {
     let parser = MockParser::new([Err(ParseError::Eof)]);
     let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0)))]);
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Stream should be closed directly if parse returns `Error::Eof`
     let next = producer.read_next_segment().await;
@@ -197,7 +197,7 @@ async fn initial_parsing_error() {
 
     let source = MockByteSource::new(0, source_seeds);
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Initial error should abort the session.
     let next = producer.read_next_segment().await.unwrap();
@@ -238,7 +238,7 @@ async fn success_parse_err_success() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Message with content should be yielded consuming all the bytes.
     let next = producer.read_next_segment().await.unwrap();
@@ -299,7 +299,7 @@ async fn success_parse_err_done() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Message with content should be yielded consuming all the bytes.
     let next = producer.read_next_segment().await.unwrap();
@@ -349,7 +349,7 @@ async fn success_parsing_error_then_fail_reload() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Message with content should be yielded consuming all the bytes.
     let next = producer.read_next_segment().await.unwrap();
@@ -399,7 +399,7 @@ async fn parse_with_skipped_bytes() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Message with content 1 should be yielded considering skipped bytes
     let next = producer.read_next_segment().await.unwrap();
@@ -472,7 +472,7 @@ async fn success_parsi_err_success_drain_bytes() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // First successful parse
     let next = producer.read_next_segment().await.unwrap();

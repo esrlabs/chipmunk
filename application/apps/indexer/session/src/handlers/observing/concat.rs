@@ -13,7 +13,7 @@ pub async fn concat_files(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     files: &[(String, stypes::FileFormat, PathBuf)],
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
 ) -> OperationResult<()> {
     for file in files.iter() {
         let (uuid, _file_type, _filename) = file;
@@ -39,6 +39,7 @@ pub async fn concat_files(
                 e
             )),
         })?;
+        //TODO AAZ: Check if we can avoid cloning the parser here.
         match file_type {
             stypes::FileFormat::Binary => {
                 super::run_source(
@@ -46,7 +47,7 @@ pub async fn concat_files(
                     state.clone(),
                     BinaryByteSource::new(input_file),
                     source_id,
-                    parser,
+                    parser.clone(),
                     None,
                     None,
                 )
@@ -58,7 +59,7 @@ pub async fn concat_files(
                     state.clone(),
                     PcapLegacyByteSource::new(input_file)?,
                     source_id,
-                    parser,
+                    parser.clone(),
                     None,
                     None,
                 )
@@ -70,7 +71,7 @@ pub async fn concat_files(
                     state.clone(),
                     PcapngByteSource::new(input_file)?,
                     source_id,
-                    parser,
+                    parser.clone(),
                     None,
                     None,
                 )
@@ -82,7 +83,7 @@ pub async fn concat_files(
                     state.clone(),
                     BinaryByteSource::new(input_file),
                     source_id,
-                    parser,
+                    parser.clone(),
                     None,
                     None,
                 )

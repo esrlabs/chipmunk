@@ -26,13 +26,8 @@ pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
 
             let fibex_metadata = session::parser::dlt::create_fibex_metadata(fibex_files);
 
-            let parser = parsers::dlt::DltParser::new(
-                None,
-                fibex_metadata.as_ref(),
-                None,
-                None,
-                with_storage_header,
-            );
+            let parser =
+                parsers::dlt::DltParser::new(None, fibex_metadata, None, None, with_storage_header);
 
             // Move to next part initializing the input source and starting the session.
             match cli.output_format {

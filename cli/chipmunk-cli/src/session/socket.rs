@@ -6,7 +6,11 @@ use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
-use sources::{producer::MessageProducer, socket::tcp::reconnect::ReconnectStateMsg, ByteSource};
+use sources::{
+    producer::{CombinedProducer, MessageProducer},
+    socket::tcp::reconnect::ReconnectStateMsg,
+    ByteSource,
+};
 
 use crate::session::create_append_file_writer;
 
@@ -32,12 +36,12 @@ pub async fn run_session<T, P, D, W>(
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
-    T: LogMessage,
+    T: LogMessage + 'static,
     P: Parser<T>,
     D: ByteSource,
     W: MessageFormatter,
 {
-    let mut producer = MessageProducer::new(parser, bytesource);
+    let mut producer = CombinedProducer::new(parser, bytesource);
 
     let mut update_interval = tokio::time::interval(update_interval);
 

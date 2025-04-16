@@ -39,7 +39,7 @@ pub async fn start_observing(
                         operation_api,
                         state,
                         &[(uuid.clone(), file_origin.clone(), filename.clone())],
-                        &options.parser,
+                        options.parser,
                     )
                     .await
                 }
@@ -50,7 +50,7 @@ pub async fn start_observing(
                         uuid,
                         file_origin,
                         filename,
-                        &options.parser,
+                        options.parser,
                     )
                     .await
                 }
@@ -64,7 +64,7 @@ pub async fn start_observing(
                     message: Some(String::from("No files are defined for Concat operation")),
                 })
             } else {
-                observing::concat::concat_files(operation_api, state, files, &options.parser).await
+                observing::concat::concat_files(operation_api, state, files, options.parser).await
             }
         }
         stypes::ObserveOrigin::Stream(uuid, transport) => {
@@ -73,7 +73,7 @@ pub async fn start_observing(
                 state,
                 uuid,
                 transport,
-                &options.parser,
+                options.parser,
                 rx_sde,
             )
             .await

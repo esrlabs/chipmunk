@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 use bench_utls::{bench_standrad_config, create_binary_bytesource, read_binary, run_producer};
 use parsers::text::StringTokenizer;
-use sources::producer::MessageProducer;
+use sources::producer::CombinedProducer;
 
 mod bench_utls;
 
@@ -18,7 +18,7 @@ fn text_producer(c: &mut Criterion) {
                 || {
                     let parser = StringTokenizer {};
                     let source = create_binary_bytesource(data);
-                    MessageProducer::new(parser, source)
+                    CombinedProducer::new(parser, source)
                 },
                 run_producer,
                 BatchSize::SmallInput,

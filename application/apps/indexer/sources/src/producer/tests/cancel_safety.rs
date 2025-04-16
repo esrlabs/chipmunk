@@ -44,7 +44,7 @@ async fn cancel_safe_no_errors() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
     let cancel_handel = tokio::spawn(async move {
@@ -162,7 +162,7 @@ async fn cancel_safe_incomplete() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
     let cancel_handel = tokio::spawn(async move {
@@ -273,7 +273,7 @@ async fn cancel_safe_eof() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
     let cancel_handel = tokio::spawn(async move {
@@ -386,7 +386,7 @@ async fn cancel_safe_parse_err_no_load() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
     let cancel_handel = tokio::spawn(async move {
@@ -507,7 +507,7 @@ async fn cancel_safe_parse_err_with_load() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
     let cancel_handel = tokio::spawn(async move {
@@ -618,7 +618,7 @@ async fn cancel_safe_timeout() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     let mut timeout_received = 0;
     let mut read_idx = 0;

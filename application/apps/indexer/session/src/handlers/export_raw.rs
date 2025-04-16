@@ -5,7 +5,7 @@ use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, Parser,
+    LogMessage,
 };
 use plugins_host::PluginsParser;
 use processor::export::{export_raw, ExportError};
@@ -14,7 +14,7 @@ use sources::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
         raw::BinaryByteSource,
     },
-    producer::MessageProducer,
+    producer::{CombinedProducer, MessageProducer},
     ByteSource,
 };
 use std::{
@@ -45,15 +45,15 @@ pub async fn execute_export(
         .map(IndexSection::from)
         .collect::<Vec<IndexSection>>();
     let count = observed.get_files().len();
-    for (i, (parser, file_format, filename)) in observed.get_files().iter().enumerate() {
+    for (i, (parser, file_format, filename)) in observed.get_files().into_iter().enumerate() {
         if indexes.is_empty() {
             break;
         }
         let read = if let Some(read) = assing_source(
-            filename,
+            &filename,
             &out_path,
             parser,
-            file_format,
+            &file_format,
             &indexes,
             i != (count - 1),
             cancel,
@@ -76,7 +76,7 @@ pub async fn execute_export(
 async fn assing_source(
     src: &PathBuf,
     dest: &Path,
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
     file_format: &stypes::FileFormat,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -126,7 +126,7 @@ async fn assing_source(
 
 async fn export<S: ByteSource>(
     dest: &Path,
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
     source: S,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -140,7 +140,7 @@ async fn export<S: ByteSource>(
                 settings.plugin_configs.clone(),
             )
             .await?;
-            let producer = MessageProducer::new(parser, source);
+            let producer = CombinedProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::SomeIp(settings) => {
@@ -149,30 +149,30 @@ async fn export<S: ByteSource>(
             } else {
                 SomeipParser::new()
             };
-            let producer = MessageProducer::new(parser, source);
+            let producer = CombinedProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
-                settings.fibex_metadata.as_ref(),
-                fmt_options.as_ref(),
+                settings.fibex_metadata,
+                fmt_options,
                 None,
                 settings.with_storage_header,
             );
-            let producer = MessageProducer::new(parser, source);
+            let producer = CombinedProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source);
+            let producer = CombinedProducer::new(StringTokenizer {}, source);
             export_runner(producer, dest, sections, read_to_end, true, cancel).await
         }
     }
 }
 
-pub async fn export_runner<P, D, T>(
-    producer: MessageProducer<T, P, D>,
+pub async fn export_runner<T, P>(
+    producer: P,
     dest: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -180,9 +180,8 @@ pub async fn export_runner<P, D, T>(
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, stypes::NativeError>
 where
-    T: LogMessage + Sized,
-    P: Parser<T>,
-    D: ByteSource,
+    T: LogMessage + Sized + 'static,
+    P: MessageProducer<T>,
 {
     export_raw(producer, dest, sections, read_to_end, text_file, cancel)
         .await

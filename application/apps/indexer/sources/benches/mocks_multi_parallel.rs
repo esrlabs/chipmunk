@@ -10,7 +10,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 use bench_utls::{bench_standrad_config, run_producer};
 use mocks::{mock_parser::MockParser, mock_source::MockByteSource};
-use sources::producer::MessageProducer;
+use sources::producer::CombinedProducer;
 
 mod bench_utls;
 mod mocks;
@@ -40,7 +40,7 @@ fn mocks_multi_parallel(c: &mut Criterion) {
                         for _ in 0..tasks_count {
                             let parser = MockParser::new_multi(max);
                             let byte_source = MockByteSource::new();
-                            let producer = MessageProducer::new(parser, byte_source);
+                            let producer = CombinedProducer::new(parser, byte_source);
                             producers.push(producer);
                         }
                         producers

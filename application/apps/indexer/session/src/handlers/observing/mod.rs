@@ -10,11 +10,11 @@ use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
     someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
     text::StringTokenizer,
-    LogMessage, MessageStreamItem, ParseYield, Parser,
+    LogMessage, MessageStreamItem, ParseYield,
 };
 use plugins_host::PluginsParser;
 use sources::{
-    producer::MessageProducer,
+    producer::{CombinedProducer, MessageProducer},
     sde::{SdeMsg, SdeReceiver},
     ByteSource,
 };
@@ -42,7 +42,7 @@ pub async fn run_source<S: ByteSource>(
     state: SessionStateAPI,
     source: S,
     source_id: u16,
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -74,7 +74,7 @@ async fn run_source_intern<S: ByteSource>(
     state: SessionStateAPI,
     source: S,
     source_id: u16,
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -86,7 +86,7 @@ async fn run_source_intern<S: ByteSource>(
                 settings.plugin_configs.clone(),
             )
             .await?;
-            let producer = MessageProducer::new(parser, source);
+            let producer = CombinedProducer::new(parser, source);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::SomeIp(settings) => {
@@ -96,11 +96,11 @@ async fn run_source_intern<S: ByteSource>(
                 }
                 None => SomeipParser::new(),
             };
-            let producer = MessageProducer::new(someip_parser, source);
+            let producer = CombinedProducer::new(someip_parser, source);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source);
+            let producer = CombinedProducer::new(StringTokenizer {}, source);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Dlt(settings) => {
@@ -110,22 +110,22 @@ async fn run_source_intern<S: ByteSource>(
             });
             let dlt_parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
-                settings.fibex_metadata.as_ref(),
-                fmt_options.as_ref(),
-                someip_metadata.as_ref(),
+                settings.fibex_metadata,
+                fmt_options,
+                someip_metadata,
                 settings.with_storage_header,
             );
-            let producer = MessageProducer::new(dlt_parser, source);
+            let producer = CombinedProducer::new(dlt_parser, source);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
     }
 }
 
-async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
+async fn run_producer<T: LogMessage + 'static, P: MessageProducer<T>>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u16,
-    mut producer: MessageProducer<T, P, S>,
+    mut producer: P,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {

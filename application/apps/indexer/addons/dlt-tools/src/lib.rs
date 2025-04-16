@@ -17,7 +17,10 @@ extern crate log;
 
 use dlt_core::filtering::DltFilterConfig;
 use parsers::{dlt::DltParser, Attachment, MessageStreamItem, ParseYield};
-use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
+use sources::{
+    binary::raw::BinaryByteSource,
+    producer::{CombinedProducer, MessageProducer},
+};
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Write},
@@ -42,8 +45,7 @@ pub async fn scan_dlt_ft(
                 None,
                 with_storage_header,
             );
-
-            let mut producer = MessageProducer::new(parser, source);
+            let mut producer = CombinedProducer::new(parser, source);
 
             let mut canceled = false;
 

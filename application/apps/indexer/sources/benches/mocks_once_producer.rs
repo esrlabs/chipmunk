@@ -6,7 +6,7 @@
 use bench_utls::{bench_standrad_config, run_producer};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use mocks::{mock_parser::MockParser, mock_source::MockByteSource};
-use sources::producer::MessageProducer;
+use sources::producer::CombinedProducer;
 mod bench_utls;
 mod mocks;
 
@@ -32,7 +32,7 @@ fn mocks_once_producer(c: &mut Criterion) {
                     || {
                         let parser = MockParser::new_once(max);
                         let byte_source = MockByteSource::new();
-                        let producer = MessageProducer::new(parser, byte_source);
+                        let producer = CombinedProducer::new(parser, byte_source);
                         producer
                     },
                     |producer| run_producer(producer),

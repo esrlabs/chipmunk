@@ -3,7 +3,7 @@ use std::{io::Cursor, path::PathBuf};
 use bench_utls::{bench_standrad_config, get_config, read_binary, run_producer};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 use parsers::someip::SomeipParser;
-use sources::{binary::pcap::ng::PcapngByteSource, producer::MessageProducer};
+use sources::{binary::pcap::ng::PcapngByteSource, producer::CombinedProducer};
 
 mod bench_utls;
 
@@ -32,7 +32,7 @@ fn someip_producer(c: &mut Criterion) {
                 || {
                     let parser = create_someip_parser(fibex_path.as_ref());
                     let source = PcapngByteSource::new(Cursor::new(data)).unwrap();
-                    MessageProducer::new(parser, source)
+                    CombinedProducer::new(parser, source)
                 },
                 run_producer,
                 BatchSize::SmallInput,
