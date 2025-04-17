@@ -70,14 +70,19 @@ impl LogMessage for RawMessage {
     }
 }
 
+/// Represents the meta data related to parsing DLT messages.
+struct DltSharedMeta {
+    fibex_dlt_metadata: Option<FibexDltMetadata>,
+    fmt_options: Option<FormatOptions>,
+    fibex_someip_metadata: Option<FibexSomeipMetadata>,
+}
+
 #[derive(Default)]
 pub struct DltParser {
     pub filter_config: Option<ProcessedDltFilterConfig>,
-    pub fibex_dlt_metadata: Option<Arc<FibexDltMetadata>>,
-    pub fmt_options: Option<Arc<FormatOptions>>,
     pub with_storage_header: bool,
+    shared_meta: Option<Arc<DltSharedMeta>>,
     ft_scanner: FtScanner,
-    fibex_someip_metadata: Option<Arc<FibexSomeipMetadata>>,
     offset: usize,
 }
 
@@ -112,13 +117,23 @@ impl DltParser {
         fibex_someip_metadata: Option<FibexSomeipMetadata>,
         with_storage_header: bool,
     ) -> Self {
+        // avoid creating an Arc when no meta data are provided.
+        let has_meta = fibex_dlt_metadata.is_some()
+            || fmt_options.is_some()
+            || fibex_someip_metadata.is_some();
+        let shared_meta = has_meta.then(|| {
+            Arc::new(DltSharedMeta {
+                fibex_dlt_metadata,
+                fmt_options,
+                fibex_someip_metadata,
+            })
+        });
+
         Self {
             filter_config,
-            fibex_dlt_metadata: fibex_dlt_metadata.map(Arc::new),
             with_storage_header,
-            fmt_options: fmt_options.map(Arc::new),
+            shared_meta,
             ft_scanner: FtScanner::new(),
-            fibex_someip_metadata: fibex_someip_metadata.map(Arc::new),
             offset: 0,
         }
     }
@@ -160,12 +175,8 @@ impl SingleParser<FormattableMessage> for DltParser {
                     i.add_storage_header(timestamp.map(dlt::DltTimeStamp::from_ms))
                 };
 
-                let msg = FormattableMessage {
-                    message: msg_with_storage_header,
-                    fibex_dlt_metadata: self.fibex_dlt_metadata.clone(),
-                    options: self.fmt_options.clone(),
-                    fibex_someip_metadata: self.fibex_someip_metadata.clone(),
-                };
+                let msg =
+                    FormattableMessage::new(msg_with_storage_header, self.shared_meta.clone());
                 let consumed = input.len() - rest.len();
                 self.offset += consumed;
                 let item = (
