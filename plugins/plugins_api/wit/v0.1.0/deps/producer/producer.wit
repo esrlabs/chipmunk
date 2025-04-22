@@ -1,0 +1,31 @@
+package chipmunk:producer@0.1.0;
+
+interface producer {
+  use chipmunk:shared/shared-types@0.1.0.{version, init-error, config-item, config-schema-item};
+  use chipmunk:parser/parse-types@0.1.0.{render-options};
+  use producer-types.{producer-config, produce-return, produce-error};
+
+  /// Provides the current semantic version of the plugin.
+  /// This version is for the plugin only and is different from the plugin's API version.
+  get-version: func() -> version;
+
+  /// Provides the schemas for the configurations required by the plugin, which
+  /// will be specified by the users.
+  ///
+  /// These schemas define the expected structure, types, and constraints
+  /// for plugin-specific configurations. The values of these configurations
+  /// will be passed to the initializing method of the producer.
+  get-config-schemas: func() -> list<config-schema-item>;
+
+  /// Provides the custom render options to be rendered in log view, enabling the users to 
+  /// change the visibility on the log columns when provided.
+  /// This function can be called before initializing the plugin instance.
+  get-render-options: func() -> render-options;
+
+  /// Initialize the producer with the given configurations
+  init: func(general-configs: producer-config, plugin-configs: list<config-item>) -> result<_, init-error>;
+
+  /// Provide the next chunk of log results when producing success,
+  /// otherwise returns the produce error.
+  produce-next: func() -> result<list<produce-return>, produce-error>;
+}

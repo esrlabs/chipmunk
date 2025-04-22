@@ -1,0 +1,33 @@
+package chipmunk:producer@0.1.0;
+
+/// Contains the types definitions used for the development of producer plugins. 
+interface producer-types {
+  use chipmunk:shared/logging@0.1.0.{level};
+  use chipmunk:parser/parse-types@0.1.0.{parse-yield};
+  
+  /// General configurations related to all producers.
+  record producer-config {
+    log-level: level,
+  }
+
+  /// Outcome of one producer processing cycle.
+  variant produce-return {
+    /// Successfully produced item (`parse-yield` payload).
+    item(parse-yield),
+    /// Input processed, item skipped (e.g., filtered).
+    skipped,
+    /// More data needed to complete the current item.
+    incomplete,
+    /// Processed input yielded no relevant item.
+    empty,
+    /// End of input source reached; no more items.
+    done,
+  }
+
+  /// Represents errors while producing log items.
+  variant produce-error {
+    unrecoverable(string),
+    produce(string),
+    other(string),
+  }
+}
