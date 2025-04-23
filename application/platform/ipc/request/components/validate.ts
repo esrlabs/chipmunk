@@ -13,7 +13,8 @@ export class Request extends SignatureRequirement {
         super();
         validator.isObject(input);
         this.target = validator.getAsNotEmptyString(input, 'target');
-        this.origin = validator.getAsObj(input, 'origin');
+        this.origin =
+            typeof input.origin === 'string' ? input.origin : validator.getAsObj(input, 'origin');
         this.fields = validator.getAsArray(input, 'fields');
     }
 }

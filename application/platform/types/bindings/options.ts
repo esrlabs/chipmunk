@@ -22,7 +22,7 @@ export type FieldLoadingError = { id: string; err: string };
 
 export type FieldsValidationErrors = { errors: Map<string, string> };
 
-export type LazyFieldDesc = { id: string; name: string; desc: string };
+export type LazyFieldDesc = { id: string; name: string; desc: string; binding: string | null };
 
 export type StaticFieldDesc = {
     id: string;
@@ -31,6 +31,7 @@ export type StaticFieldDesc = {
     required: boolean;
     default: Value | null;
     interface: ValueInput;
+    binding: string | null;
 };
 
 export type Value =
@@ -43,10 +44,10 @@ export type Value =
     | { Files: Array<string> }
     | { File: string }
     | { Directory: string }
-    | { KeyStrings: { [key in string]?: Array<string> } }
-    | { KeyString: { [key in string]?: string } }
-    | { KeyNumbers: { [key in string]?: Array<bigint> } }
-    | { KeyNumber: { [key in string]?: bigint } };
+    | { KeyNumber: Map<string, number> }
+    | { KeyNumbers: Map<string, number[]> }
+    | { KeyString: Map<string, string> }
+    | { KeyStrings: Map<string, string[]> };
 
 export type ValueInput =
     | 'Checkbox'
@@ -54,6 +55,7 @@ export type ValueInput =
     | 'String'
     | { Numbers: Array<bigint> }
     | { Strings: Array<string> }
+    | { NamedValues: Array<[string, Value]> }
     | { KeyNumber: Map<string, number> }
     | { KeyNumbers: Map<string, number[]> }
     | { KeyString: Map<string, string> }
