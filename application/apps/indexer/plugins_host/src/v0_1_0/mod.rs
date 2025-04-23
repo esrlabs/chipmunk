@@ -3,4 +3,5 @@
 
 pub mod bytesource;
 pub mod parser;
+pub mod prodcuer;
 pub mod shared;

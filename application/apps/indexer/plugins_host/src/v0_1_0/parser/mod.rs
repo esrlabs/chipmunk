@@ -1,7 +1,7 @@
 //! Include structures and implementation of parser plugins for API version 0.1.0
 //! as defined in WIT files.
 
-mod bindings;
+pub mod bindings;
 mod parser_plugin_state;
 
 use futures::executor::block_on;
@@ -13,7 +13,7 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, WasiCtx};
 
 use crate::{
-    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
+    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginStaticInfo},
     wasm_host::get_wasm_host,
     PluginGuestError, PluginHostError, PluginParseMessage,
 };
@@ -28,7 +28,7 @@ pub struct PluginParser {
 
 impl PluginParser {
     /// Load wasm file temporally to retrieve the static plugin information defined by `wit` file
-    pub(crate) async fn get_info(component: Component) -> Result<PluginInfo, PluginError> {
+    pub(crate) async fn get_info(component: Component) -> Result<PluginStaticInfo, PluginError> {
         let mut ctx = get_wasi_ctx_builder(&[])?;
         let ctx = ctx.build();
 
@@ -40,7 +40,7 @@ impl PluginParser {
 
         let config_schemas = parser.get_config_schemas().await?;
 
-        Ok(PluginInfo {
+        Ok(PluginStaticInfo {
             version,
             config_schemas,
             render_options: RenderOptions::Parser(Box::new(render_options)),

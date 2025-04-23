@@ -11,7 +11,7 @@ use stypes::{
 
 use crate::{
     plugins_manager::paths::extract_plugin_file_paths, plugins_shared::plugin_errors::PluginError,
-    PluginHostError, PluginType, PluginsByteSource, PluginsParser,
+    PluginHostError, PluginType, PluginsByteSource, PluginsParser, PluginsProducer,
 };
 
 use super::{
@@ -154,6 +154,7 @@ pub async fn load_plugin(
         let plug_info_res = match plug_type {
             PluginType::Parser => PluginsParser::get_info(wasm_file).await,
             PluginType::ByteSource => PluginsByteSource::get_info(wasm_file).await,
+            PluginType::Producer => PluginsProducer::get_info(wasm_file).await,
         };
 
         match plug_info_res {

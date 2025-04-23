@@ -206,9 +206,15 @@ impl Arbitrary for PluginType {
         _ = match Self::ByteSource {
             PluginType::Parser => (),
             PluginType::ByteSource => (),
+            PluginType::Producer => (),
         };
 
-        prop_oneof![Just(Self::Parser), Just(Self::ByteSource)].boxed()
+        prop_oneof![
+            Just(Self::Parser),
+            Just(Self::ByteSource),
+            Just(Self::Producer)
+        ]
+        .boxed()
     }
 }
 

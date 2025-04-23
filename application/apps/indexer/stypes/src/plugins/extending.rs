@@ -145,6 +145,7 @@ impl Display for PluginType {
         match self {
             PluginType::Parser => f.write_str("Parser"),
             PluginType::ByteSource => f.write_str("Byte-Source"),
+            PluginType::Producer => f.write_str("Producer"),
         }
     }
 }

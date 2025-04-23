@@ -68,6 +68,36 @@ pub struct PluginByteSourceGeneralSettings {
     pub placeholder: String,
 }
 
+//TODO AAZ: Add prop tests for the new types.
+/// Settings for the Plugins parser.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct PluginProducerSettings {
+    pub plugin_path: PathBuf,
+    // General setting doesn't exist in front-end since it doesn't have real fields yet.
+    #[serde(default)]
+    pub general_settings: PluginProducerGeneralSettings,
+    pub plugin_configs: Vec<PluginConfigItem>,
+}
+
+//TODO: This struct is a place holder currently and doesn't provide any value yet.
+/// General settings for all parsers as plugins
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct PluginProducerGeneralSettings {
+    pub placeholder: String,
+}
+
 /// Represents a configuration item, which includes an identifier and its corresponding value.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[extend::encode_decode]
@@ -254,6 +284,7 @@ pub struct PluginMetadata {
 pub enum PluginType {
     Parser,
     ByteSource,
+    Producer,
 }
 
 /// Contains the infos and options for a valid plugin.

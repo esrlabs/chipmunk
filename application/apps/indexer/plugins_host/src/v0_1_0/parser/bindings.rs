@@ -1,4 +1,4 @@
-use crate::{parser_shared::COLUMN_SEP, PluginParseMessage};
+use crate::{plugins_shared::PLUGIN_MSG_COLUMN_SEP, PluginParseMessage};
 
 pub use self::chipmunk::parser::parse_types::*;
 
@@ -83,7 +83,7 @@ impl From<ParsedMessage> for PluginParseMessage {
     fn from(msg: ParsedMessage) -> Self {
         let content = match msg {
             ParsedMessage::Line(msg) => msg,
-            ParsedMessage::Columns(columns) => columns.join(COLUMN_SEP),
+            ParsedMessage::Columns(columns) => columns.join(PLUGIN_MSG_COLUMN_SEP),
         };
 
         Self { content }

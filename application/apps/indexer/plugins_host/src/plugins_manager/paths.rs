@@ -12,6 +12,9 @@ const PARSER_DIR: &str = "parsers";
 /// The name of the byte-source plugins directory in plugins directory.
 const BYTESOURCE_DIR: &str = "bytesources";
 
+/// The name of the producer plugins directory in plugins directory.
+const PRODUCER_DIR: &str = "producers";
+
 /// The name of the plugins README file.
 const PLUGIN_README_FILENAME: &str = "README.md";
 
@@ -33,6 +36,11 @@ pub fn parser_dir() -> Option<PathBuf> {
 /// Returns byte-source plugins directory within Chipmunk home directory.
 pub fn bytesource_dir() -> Option<PathBuf> {
     plugins_dir().map(|plugins| plugins.join(BYTESOURCE_DIR))
+}
+
+/// Returns producer plugins directory within Chipmunk home directory.
+pub fn producer_dir() -> Option<PathBuf> {
+    plugins_dir().map(|plugins| plugins.join(PRODUCER_DIR))
 }
 
 /// Represents the paths for plugin files.

@@ -13,6 +13,9 @@ const PARSER_INTERFACE_NAME: &str = "chipmunk:parser/parser";
 /// Interface name for the byte-source plugin with the package name as defined in WIT file.
 const BYTESOURCE_INTERFACE_NAME: &str = "chipmunk:bytesource/byte-source";
 
+/// Interface name for the producer plugin with the package name as defined in WIT file.
+const PRODUCER_INTERFACE_NAME: &str = "chipmunk:producer/producer";
+
 /// Represents a WASM plugin [`Component`] alongside with extracted information from it.
 pub(crate) struct WasmComponentInfo {
     /// The compiled component from plugin WASM file.
@@ -63,9 +66,17 @@ pub(crate) async fn load_and_inspect(
         )
     })?;
 
+    // Reminder to add new plugin types below.
+    match PluginType::Parser {
+        PluginType::Parser => {}
+        PluginType::ByteSource => {}
+        PluginType::Producer => {}
+    }
+
     let plugin_type = match interface_name {
         PARSER_INTERFACE_NAME => PluginType::Parser,
         BYTESOURCE_INTERFACE_NAME => PluginType::ByteSource,
+        PRODUCER_INTERFACE_NAME => PluginType::Producer,
         invalid => {
             return Err(PluginHostError::PluginInvalid(format!(
                 "Unknown plugin interface name '{invalid}'",

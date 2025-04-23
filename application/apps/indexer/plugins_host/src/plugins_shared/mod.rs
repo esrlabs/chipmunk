@@ -9,6 +9,10 @@ use crate::PluginHostError;
 
 pub mod load;
 pub mod plugin_errors;
+pub mod plugin_parse_message;
+
+/// Marker for a column separator in the output messages of plugins.
+pub const PLUGIN_MSG_COLUMN_SEP: &str = "\u{0004}";
 
 /// The name of plugins directory in operating system temporary directory.
 const PLUGIN_TEMP_DIR_NAME: &str = "chipmunk_plugins";
@@ -92,7 +96,7 @@ pub fn plugins_temp_dir() -> PathBuf {
 }
 
 // Represents the retrieved static information form plugin WASM file.
-pub(crate) struct PluginInfo {
+pub(crate) struct PluginStaticInfo {
     /// The version of the plugins itself.
     /// # Note:
     /// This is different than the API version defined in WIT files that are used by the plugin.

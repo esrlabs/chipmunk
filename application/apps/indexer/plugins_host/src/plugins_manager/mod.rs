@@ -319,6 +319,7 @@ fn plugin_root_dir(plug_type: PluginType) -> Result<PathBuf, PluginsManagerError
     let plugins_dir = match plug_type {
         PluginType::Parser => paths::parser_dir(),
         PluginType::ByteSource => paths::bytesource_dir(),
+        PluginType::Producer => paths::producer_dir(),
     };
     plugins_dir
         .ok_or_else(|| PluginsManagerError::Other(String::from("Failed to find home directory")))
