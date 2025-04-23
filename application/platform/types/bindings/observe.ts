@@ -145,7 +145,7 @@ export type SourceOrigin =
     | { Files: Array<string> }
     | { Folder: string }
     | { Folders: Array<string> }
-    | { Stream: Ident };
+    | 'Source';
 
 /**
  * Configuration for TCP connections.
