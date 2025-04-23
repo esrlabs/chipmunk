@@ -11,15 +11,30 @@ use tokio_util::sync::CancellationToken;
 /// * `Err(stypes::NativeError)` - An error indicating a problem while retrieving the fields.
 pub type FieldsResult = Result<Vec<stypes::FieldDesc>, stypes::NativeError>;
 
+#[derive(Debug)]
 /// A type alias representing the result of obtaining a single static field description.
-///
-/// The tuple contains:
-///
-/// * `String` - The name or identifier of the static field.
-/// * `Result<stypes::StaticFieldDesc, String>` - A result that contains either:
-///     - `stypes::StaticFieldDesc` on success.
-///     - A `String` representing an error message on failure.
-pub type StaticFieldResult = (String, Result<stypes::StaticFieldDesc, String>);
+pub enum StaticFieldResult {
+    Success(stypes::StaticFieldDesc),
+    Failed(stypes::FieldLoadingError),
+}
+
+impl StaticFieldResult {
+    pub fn is_ok(&self) -> bool {
+        matches!(self, StaticFieldResult::Success(..))
+    }
+    pub fn ok(self) -> Option<stypes::StaticFieldDesc> {
+        match self {
+            Self::Success(desc) => Some(desc),
+            Self::Failed(..) => None,
+        }
+    }
+    pub fn err(self) -> Option<stypes::FieldLoadingError> {
+        match self {
+            Self::Success(..) => None,
+            Self::Failed(err) => Some(err),
+        }
+    }
+}
 
 /// A type alias for a result containing a vector of static field results or a native error.
 ///
