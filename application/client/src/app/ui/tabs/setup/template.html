@@ -1,0 +1,43 @@
+<div class="title">
+    <div class="entity filler">
+        <p class="t-normal info">Source:</p>
+        <mat-form-field class="material-mofication-normal black">
+            <mat-select
+                [(ngModel)]="state.selected.source"
+                (ngModelChange)="state.change().stream()"
+            >
+                <mat-option
+                    *ngFor="let source of state.sources"
+                    [value]="source.uuid"
+                    [disabled]="false"
+                >
+                    {{source.desc}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    <div class="entity">
+        <p class="t-normal info">Used Parser:</p>
+        <mat-form-field class="material-mofication-normal black">
+            <mat-select
+                [(ngModel)]="state.selected.parser"
+                (ngModelChange)="state.change().parser()"
+            >
+                <mat-option
+                    *ngFor="let parser of state.parsers"
+                    [value]="parser.uuid"
+                    [disabled]="false"
+                >
+                    {{parser.desc}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    <div class="entity">
+        <!-- <button class="major-button" mat-stroked-button (click)="state.finish()" [disabled]="state.action.disabled">{{state.action.caption}}</button>
+        <button mat-stroked-button (click)="state.cancel()">Cancel</button> -->
+    </div>
+</div>
+<div class="preset-container">
+    <div class="preset-container-content w-1400"></div>
+</div>

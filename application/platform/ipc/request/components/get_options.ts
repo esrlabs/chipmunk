@@ -12,7 +12,8 @@ export class Request extends SignatureRequirement {
         super();
         validator.isObject(input);
         this.targets = validator.getAsArray(input, 'targets');
-        this.origin = validator.getAsObj(input, 'origin');
+        this.origin =
+            typeof input.origin === 'string' ? input.origin : validator.getAsObj(input, 'origin');
     }
 }
 export interface Request extends Interface {}

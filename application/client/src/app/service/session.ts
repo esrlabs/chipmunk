@@ -21,6 +21,7 @@ import { File } from '@platform/types/files';
 import { Observe } from '@platform/types/observe';
 import { getRender } from '@schema/render/tools';
 import { TabObserve } from '@tabs/observe/component';
+import { SetupObserve } from '@tabs/setup/component';
 import { recent } from '@service/recent';
 import { bridge } from '@service/bridge';
 
@@ -267,9 +268,8 @@ export class Service extends Implementation {
                     const api = this.add().tab({
                         name: observe.origin.title(),
                         content: {
-                            factory: TabObserve,
-                            inputs: TabObserve.inputs({
-                                observe,
+                            factory: SetupObserve,
+                            inputs: {
                                 api: {
                                     finish: (observe: Observe): Promise<void> => {
                                         return new Promise((success, failed) => {
@@ -293,7 +293,7 @@ export class Service extends Implementation {
                                         return api as unknown as TabControls;
                                     },
                                 },
-                            }),
+                            },
                         },
                         active: true,
                     });
