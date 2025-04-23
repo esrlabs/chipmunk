@@ -107,13 +107,3 @@ impl From<ColumnsRenderOptions> for stypes::ColumnsRenderOptions {
         }
     }
 }
-
-impl From<ColumnInfo> for stypes::ColumnInfo {
-    fn from(value: ColumnInfo) -> Self {
-        Self {
-            caption: value.caption,
-            description: value.description,
-            width: value.width,
-        }
-    }
-}

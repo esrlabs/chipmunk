@@ -82,7 +82,7 @@ impl PluginsProducer {
         general_config: &stypes::PluginProducerGeneralSettings,
         plugin_configs: Vec<stypes::PluginConfigItem>,
     ) -> Result<Self, PluginHostError> {
-        let (component, version) = Self::load(&plugin_path).await?;
+        let (component, version) = Self::load(plugin_path).await?;
 
         match version {
             SemanticVersion {

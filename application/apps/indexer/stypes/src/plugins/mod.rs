@@ -68,7 +68,6 @@ pub struct PluginByteSourceGeneralSettings {
     pub placeholder: String,
 }
 
-//TODO AAZ: Add prop tests for the new types.
 /// Settings for the Plugins parser.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
@@ -83,6 +82,22 @@ pub struct PluginProducerSettings {
     #[serde(default)]
     pub general_settings: PluginProducerGeneralSettings,
     pub plugin_configs: Vec<PluginConfigItem>,
+}
+
+/// Provides additional information to be rendered in the log view.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "plugins.ts")
+)]
+pub struct ProducerRenderOptions {
+    /// Rendering information for the column if log messages have multiple columns.
+    ///
+    /// # Note:
+    /// The count of the provided columns must match the count of the columns of each log message as well.
+    pub columns_options: Option<ColumnsRenderOptions>,
 }
 
 //TODO: This struct is a place holder currently and doesn't provide any value yet.
@@ -328,6 +343,7 @@ pub struct SemanticVersion {
 pub enum RenderOptions {
     Parser(Box<ParserRenderOptions>),
     ByteSource,
+    Producer(Box<ProducerRenderOptions>),
 }
 
 /// Provides additional information to be rendered in the log view.

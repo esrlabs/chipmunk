@@ -140,6 +140,24 @@ impl Display for SemanticVersion {
     }
 }
 
+impl PluginType {
+    /// Provides all plugin types.
+    pub fn all() -> &'static [PluginType] {
+        // Reminder to update this function when new plugin types are added.
+        match PluginType::Parser {
+            PluginType::Parser => {}
+            PluginType::ByteSource => {}
+            PluginType::Producer => {}
+        }
+
+        &[
+            PluginType::Parser,
+            PluginType::ByteSource,
+            PluginType::Producer,
+        ]
+    }
+}
+
 impl Display for PluginType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

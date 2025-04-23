@@ -2,8 +2,7 @@ package chipmunk:producer@0.1.0;
 
 interface producer {
   use chipmunk:shared/shared-types@0.1.0.{version, init-error, config-item, config-schema-item};
-  use chipmunk:parser/parse-types@0.1.0.{render-options};
-  use producer-types.{producer-config, produce-return, produce-error};
+  use producer-types.{producer-config, produce-return, produce-error, render-options};
 
   /// Provides the current semantic version of the plugin.
   /// This version is for the plugin only and is different from the plugin's API version.

@@ -1,4 +1,5 @@
 use parsers::MessageStreamItem;
+use stypes::ProducerRenderOptions;
 
 use crate::{producer_shared::PluginProduceError, PluginParseMessage};
 
@@ -57,6 +58,14 @@ impl From<ProduceError> for PluginProduceError {
             ProduceError::Unrecoverable(msg) => PluginProduceError::Unrecoverable(msg),
             ProduceError::Produce(msg) => PluginProduceError::Produce(msg),
             ProduceError::Other(msg) => PluginProduceError::Other(msg),
+        }
+    }
+}
+
+impl From<RenderOptions> for ProducerRenderOptions {
+    fn from(value: RenderOptions) -> Self {
+        Self {
+            columns_options: value.columns_options.map(|o| o.into()),
         }
     }
 }

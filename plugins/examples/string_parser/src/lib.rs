@@ -6,12 +6,14 @@ use plugins_api::{
     config::{self, get_as_text},
     log,
     parser::{
-        ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield, ParsedMessage,
-        Parser, ParserConfig, RenderOptions,
+        ColumnsRenderOptions, ParseError, ParseReturn, ParseYield, ParsedMessage, Parser,
+        ParserConfig, RenderOptions,
     },
     parser_export,
     sandbox::temp_directory,
-    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
+    shared_types::{
+        ColumnInfo, ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version,
+    },
 };
 
 // IDs for configurations needed for this plugin.
@@ -172,12 +174,8 @@ impl Parser for StringTokenizer {
         );
 
         // *** Demonstrates plugins temporary directory.
-        let temp_dir = temp_directory().map_err(|err| {
-            InitError::Io(format!(
-                "Getting temp directory failed. {}",
-                err.to_string()
-            ))
-        })?;
+        let temp_dir = temp_directory()
+            .map_err(|err| InitError::Io(format!("Getting temp directory failed. {}", err)))?;
 
         log::info!("Plugin temp directory path: {}", temp_dir.display());
 

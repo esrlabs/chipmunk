@@ -141,6 +141,9 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     CommandOutcome_Option_InvalidPluginEntity:
         protocol.decodeCommandOutcomeWithOptionInvalidPluginEntity,
     CommandOutcome_Option_PluginRunData: protocol.decodeCommandOutcomeWithOptionPluginRunData,
+    ProducerRenderOptions: protocol.decodeProducerRenderOptions,
+    PluginProducerSettings: protocol.decodePluginProducerSettings,
+    PluginProducerGeneralSettings: protocol.decodePluginProducerGeneralSettings,
 };
 
 const OUTPUT_PATH_ENVVAR = 'CHIPMUNK_PROTOCOL_TEST_OUTPUT';

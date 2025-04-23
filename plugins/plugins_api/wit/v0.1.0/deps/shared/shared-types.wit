@@ -85,4 +85,27 @@ interface shared-types {
     /// Represents Drop-down input type with a list of selectable options and the default value.
     dropdown(tuple<list<string>, string>)
   }
+
+  /// Represents the options needs to render columns information if they exist.
+  record columns-render-options {
+    /// List of columns infos providing the needed information for each column in log view.
+    /// 
+    /// Note: The count of this list must match the count of the column of each log message.
+    columns: list<column-info>,
+    /// Minimum column width.
+    min-width: u16,
+    /// Maximum column width.
+    max-width: u16,
+  }
+
+  /// Represents the infos of a column that will be used in the render options.
+  record column-info {
+    /// Header title to be rendered on the top of the column in log view.
+    caption: string,
+    /// Description to be shown as tooltip for the column.
+    description: string,
+    /// Width of column (-1) for unlimited.
+    width: s16,
+  }
+
 }

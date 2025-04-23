@@ -81,7 +81,7 @@ impl Arbitrary for PluginConfigValue {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to add new items to proptests here.
-        _ = match PluginConfigValue::Boolean(true) {
+        match PluginConfigValue::Boolean(true) {
             PluginConfigValue::Boolean(_) => (),
             PluginConfigValue::Integer(_) => (),
             PluginConfigValue::Float(_) => (),
@@ -111,7 +111,7 @@ impl Arbitrary for PluginConfigSchemaType {
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         use PluginConfigSchemaType as T;
         // Reminder to add new items to proptests here.
-        _ = match T::Boolean(true) {
+        match T::Boolean(true) {
             T::Boolean(_) => (),
             T::Integer(_) => (),
             T::Float(_) => (),
@@ -203,7 +203,7 @@ impl Arbitrary for PluginType {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to add new fields here.
-        _ = match Self::ByteSource {
+        match Self::ByteSource {
             PluginType::Parser => (),
             PluginType::ByteSource => (),
             PluginType::Producer => (),
@@ -284,14 +284,16 @@ impl Arbitrary for RenderOptions {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to update here on newly added items.
-        _ = match Self::ByteSource {
+        match Self::ByteSource {
             RenderOptions::Parser(_) => (),
             RenderOptions::ByteSource => (),
+            RenderOptions::Producer(_) => (),
         };
 
         prop_oneof![
             any::<Box<ParserRenderOptions>>().prop_map(Self::Parser),
             Just(Self::ByteSource),
+            any::<Box<ProducerRenderOptions>>().prop_map(Self::Producer)
         ]
         .boxed()
     }
@@ -346,7 +348,7 @@ impl Arbitrary for PluginsList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<PluginEntity>(), 0..7)
-            .prop_map(|plugins| Self(plugins))
+            .prop_map(Self)
             .boxed()
     }
 }
@@ -357,7 +359,7 @@ impl Arbitrary for InvalidPluginsList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<InvalidPluginEntity>(), 0..7)
-            .prop_map(|plugins| Self(plugins))
+            .prop_map(Self)
             .boxed()
     }
 }
@@ -409,7 +411,48 @@ impl Arbitrary for PluginsPathsList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<String>(), 0..7)
-            .prop_map(|paths| Self(paths))
+            .prop_map(Self)
+            .boxed()
+    }
+}
+
+impl Arbitrary for ProducerRenderOptions {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        prop::option::of(any::<ColumnsRenderOptions>())
+            .prop_map(|columns_options| Self { columns_options })
+            .boxed()
+    }
+}
+
+impl Arbitrary for PluginProducerSettings {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (
+            any::<PathBuf>(),
+            any::<PluginProducerGeneralSettings>(),
+            prop::collection::vec(any::<PluginConfigItem>(), 0..10),
+        )
+            .prop_map(|(plugin_path, general_settings, plugin_configs)| Self {
+                plugin_path,
+                general_settings,
+                plugin_configs,
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for PluginProducerGeneralSettings {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        any::<String>()
+            .prop_map(|placeholder| Self { placeholder })
             .boxed()
     }
 }
@@ -436,3 +479,6 @@ test_msg!(PluginsList, TESTS_USECASE_COUNT);
 test_msg!(InvalidPluginsList, TESTS_USECASE_COUNT);
 test_msg!(PluginsPathsList, TESTS_USECASE_COUNT);
 test_msg!(PluginLogMessage, TESTS_USECASE_COUNT);
+test_msg!(ProducerRenderOptions, TESTS_USECASE_COUNT);
+test_msg!(PluginProducerSettings, TESTS_USECASE_COUNT);
+test_msg!(PluginProducerGeneralSettings, TESTS_USECASE_COUNT);

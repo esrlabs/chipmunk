@@ -4,11 +4,10 @@ use dlt::DltParser;
 use log_level::LogLevel;
 use plugins_api::{
     config, log,
-    parser::{
-        ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, Parser, ParserConfig,
-        RenderOptions,
+    parser::{ColumnsRenderOptions, ParseError, ParseReturn, Parser, ParserConfig, RenderOptions},
+    shared_types::{
+        ColumnInfo, ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version,
     },
-    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
 };
 
 mod dlt;

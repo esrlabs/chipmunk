@@ -35,12 +35,10 @@ pub mod __internal_bindings {
 }
 
 pub use __internal_bindings::chipmunk::producer::producer_types::{
-    ParseYield, ProduceError, ProduceReturn, ProducerConfig,
+    ParseYield, ProduceError, ProduceReturn, ProducerConfig, RenderOptions,
 };
 
-pub use crate::parser::{
-    Attachment, ColumnInfo, ColumnsRenderOptions, ParsedMessage, RenderOptions,
-};
+pub use crate::parser::{Attachment, ColumnsRenderOptions, ParsedMessage};
 
 /// Trait representing a producer for Chipmunk plugins. Types that need to be
 /// exported as producer plugins for use within Chipmunk must implement this trait.
@@ -192,7 +190,7 @@ macro_rules! producer_export {
                 <$par as $crate::producer::Producer>::get_config_schemas()
             }
 
-            fn get_render_options() -> $crate::parser::RenderOptions {
+            fn get_render_options() -> $crate::producer::RenderOptions {
                 <$par as $crate::producer::Producer>::get_render_options()
             }
 

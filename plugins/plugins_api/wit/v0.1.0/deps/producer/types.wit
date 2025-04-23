@@ -3,6 +3,7 @@ package chipmunk:producer@0.1.0;
 /// Contains the types definitions used for the development of producer plugins. 
 interface producer-types {
   use chipmunk:shared/logging@0.1.0.{level};
+  use chipmunk:shared/shared-types@0.1.0.{columns-render-options};
   use chipmunk:parser/parse-types@0.1.0.{parse-yield};
   
   /// General configurations related to all producers.
@@ -29,5 +30,12 @@ interface producer-types {
     unrecoverable(string),
     produce(string),
     other(string),
+  }
+
+  /// Provides additional information to be rendered in the log view.
+  record render-options {
+    /// Rendering information for the column if log messages have multiple columns.
+    /// The count of the provided columns must match the count of the columns of each log message as well.
+    columns-options: option<columns-render-options>,
   }
 }

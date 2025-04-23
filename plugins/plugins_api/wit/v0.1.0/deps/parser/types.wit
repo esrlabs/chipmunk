@@ -3,6 +3,7 @@ package chipmunk:parser@0.1.0;
 /// Contains the types definitions used for the development of parser plugins. 
 interface parse-types {
   use chipmunk:shared/logging@0.1.0.{level};
+  use chipmunk:shared/shared-types@0.1.0.{columns-render-options};
 
   /// General configurations related to all parsers
   record parser-config {
@@ -56,28 +57,6 @@ interface parse-types {
     /// Rendering information for the column if log messages have multiple columns.
     /// The count of the provided columns must match the count of the columns of each log message as well.
     columns-options: option<columns-render-options>,
-  }
-
-  /// Represents the options needs to render columns information if they exist.
-  record columns-render-options {
-    /// List of columns infos providing the needed information for each column in log view.
-    /// 
-    /// Note: The count of this list must match the count of the column of each log message.
-    columns: list<column-info>,
-    /// Minimum column width.
-    min-width: u16,
-    /// Maximum column width.
-    max-width: u16,
-  }
-
-  /// Represents the infos of a column that will be used in the render options.
-  record column-info {
-    /// Header title to be rendered on the top of the column in log view.
-    caption: string,
-    /// Description to be shown as tooltip for the column.
-    description: string,
-    /// Width of column (-1) for unlimited.
-    width: s16,
   }
 }
 

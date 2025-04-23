@@ -40,14 +40,15 @@ pub async fn load_all_plugins(
         fs::create_dir_all(plugins_dir)?;
     }
 
-    let (mut valid_plugins, mut invalid_plugs) =
-        load_plugins(PluginType::Parser, cache_manager).await?;
+    let mut valid_plugins = Vec::new();
+    let mut invalid_plugs = Vec::new();
 
-    let (valid_sources, invalid_soruces) =
-        load_plugins(PluginType::ByteSource, cache_manager).await?;
+    for plugin in PluginType::all() {
+        let (valid, invalid) = load_plugins(*plugin, cache_manager).await?;
 
-    valid_plugins.extend(valid_sources);
-    invalid_plugs.extend(invalid_soruces);
+        valid_plugins.extend(valid);
+        invalid_plugs.extend(invalid);
+    }
 
     Ok((valid_plugins, invalid_plugs))
 }
