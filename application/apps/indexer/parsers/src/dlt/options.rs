@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use components::ComponentDescriptor;
+use components::{ComponentDescriptor, StaticFieldResult};
 use tokio::{
     select,
     time::{sleep, Duration},
@@ -29,11 +29,13 @@ impl ComponentDescriptor for Descriptor {
                 required: true,
                 default: Some(stypes::Value::Number(1)),
                 interface: stypes::ValueInput::KeyString(HashMap::new()),
+                binding: None,
             }),
             stypes::FieldDesc::Lazy(stypes::LazyFieldDesc {
                 id: FIELD_STATISTICS.to_owned(),
                 name: String::from("Statistics"),
                 desc: String::from("Collected Statistis Data"),
+                binding: None,
             }),
         ])
     }
@@ -60,17 +62,15 @@ impl ComponentDescriptor for Descriptor {
                     return Ok(Vec::new());
                 }
             };
-            Ok(vec![(
-                FIELD_STATISTICS.to_owned(),
-                Ok(stypes::StaticFieldDesc {
-                    id: FIELD_STATISTICS.to_owned(),
-                    name: String::from("Example"),
-                    desc: String::from("Example"),
-                    required: true,
-                    default: Some(stypes::Value::Number(1)),
-                    interface: stypes::ValueInput::KeyString(HashMap::new()),
-                }),
-            )])
+            Ok(vec![StaticFieldResult::Success(stypes::StaticFieldDesc {
+                id: FIELD_STATISTICS.to_owned(),
+                name: String::from("Example"),
+                desc: String::from("Example"),
+                required: true,
+                default: Some(stypes::Value::Number(1)),
+                interface: stypes::ValueInput::KeyString(HashMap::new()),
+                binding: None,
+            })])
         })
     }
     fn ty(&self) -> stypes::ComponentType {
