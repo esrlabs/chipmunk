@@ -25,8 +25,7 @@ pub enum SourceOrigin {
     Files(Vec<PathBuf>),
     Folder(PathBuf),
     Folders(Vec<PathBuf>),
-    /// `String` - stream identificator
-    Stream(Ident),
+    Source,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

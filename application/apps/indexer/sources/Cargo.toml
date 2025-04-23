@@ -27,6 +27,7 @@ shellexpand = "3.1"
 stypes = { path = "../stypes", features=["rustcore"] }
 socket2 = "0.5.8"
 components = { path = "../components" }
+serialport.workspace = true
 
 [dev-dependencies]
 env_logger.workspace = true

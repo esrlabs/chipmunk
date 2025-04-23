@@ -67,6 +67,7 @@ pub struct StaticFieldDesc {
     pub required: bool,
     pub default: Option<Value>,
     pub interface: ValueInput,
+    pub binding: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -80,6 +81,7 @@ pub struct LazyFieldDesc {
     pub id: String,
     pub name: String,
     pub desc: String,
+    pub binding: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -107,6 +109,7 @@ pub enum ValueInput {
     String,
     Numbers(Vec<i64>),
     Strings(Vec<String>),
+    NamedValues(Vec<(String, Value)>),
     #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, number>"))]
     KeyNumber(HashMap<String, i64>),
     #[cfg_attr(

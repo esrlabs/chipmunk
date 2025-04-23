@@ -127,7 +127,7 @@ export type SomeIpParserSettings = {
  */
 fibex_file_paths: Array<string> | null, };
 
-export type SourceOrigin = { "File": string } | { "Files": Array<string> } | { "Folder": string } | { "Folders": Array<string> } | { "Stream": Ident };
+export type SourceOrigin = { "File": string } | { "Files": Array<string> } | { "Folder": string } | { "Folders": Array<string> } | "Source";
 
 /**
  * Configuration for TCP connections.

@@ -127,21 +127,13 @@ impl ComponentsSession {
                         match results {
                             Ok(LazyLoadingResult::Fields(fields)) => {
                                 let (success, fail): (Vec<_>, Vec<_>) =
-                                    fields.into_iter().partition(|(_, result)| result.is_ok());
+                                    fields.into_iter().partition(|result| result.is_ok());
                                 let fields: Vec<stypes::StaticFieldDesc> = success
                                     .into_iter()
-                                    .filter_map(|(_, field)| field.ok())
+                                    .filter_map(|result| result.ok())
                                     .collect();
-                                let errors: Vec<stypes::FieldLoadingError> = fail
-                                    .into_iter()
-                                    .filter_map(|(id, err)| {
-                                        if let Err(err) = err {
-                                            Some(stypes::FieldLoadingError { id, err })
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .collect();
+                                let errors: Vec<stypes::FieldLoadingError> =
+                                    fail.into_iter().filter_map(|result| result.err()).collect();
                                 if !fields.is_empty() {
                                     log_if_err(tx_callback_events.send(
                                         stypes::CallbackOptionsEvent::LoadingDone {
