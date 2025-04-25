@@ -660,7 +660,6 @@ version = "0.1.0"
 dependencies = [
  "log",
  "wit-bindgen",
- "wit-bindgen-rt",
 ]
 
 [[package]]

@@ -4,6 +4,9 @@ use std::future::Future;
 
 use crate::shared_types::{ConfigItem, ConfigSchemaItem, InitError, Version};
 
+// Futures crate is used in the export macro and needed to be re-exported
+pub use futures;
+
 // Module must be public because the generated types and macros are used within `producer_export!`
 // macro + macros can't be re-exported via pub use
 /// Generated types from producer world in WIT file by the macro [`wit_bindgen::generate`]
@@ -39,6 +42,13 @@ pub use __internal_bindings::chipmunk::producer::producer_types::{
 };
 
 pub use crate::parser::{Attachment, ColumnsRenderOptions, ParsedMessage};
+
+impl RenderOptions {
+    /// Creates a new instance of render options with the given arguments
+    pub fn new(columns_options: Option<ColumnsRenderOptions>) -> Self {
+        Self { columns_options }
+    }
+}
 
 /// Trait representing a producer for Chipmunk plugins. Types that need to be
 /// exported as producer plugins for use within Chipmunk must implement this trait.
@@ -162,7 +172,7 @@ macro_rules! producer_export {
     ($par:ty) => {
         // Define producer instance as static field to make it reachable from
         // within `produce_next()` function
-        static PRODUCER: ::std::sync::OnceLock<::futures::lock::Mutex<$par>> =
+        static PRODUCER: ::std::sync::OnceLock<$crate::producer::futures::lock::Mutex<$par>> =
             ::std::sync::OnceLock::new();
 
         // Define logger as static field to use it with macro initialization
@@ -209,7 +219,7 @@ macro_rules! producer_export {
                 let producer =
                     <$par as $crate::producer::Producer>::create(general_configs, plugin_configs)
                         .await?;
-                let producer_mutex = ::futures::lock::Mutex::new(producer);
+                let producer_mutex = $crate::producer::futures::lock::Mutex::new(producer);
                 PRODUCER
                     .set(producer_mutex)
                     .expect("Acquiring global producer failed");
