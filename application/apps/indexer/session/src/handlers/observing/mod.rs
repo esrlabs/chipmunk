@@ -33,6 +33,7 @@ enum Next<'a, T: LogMessage> {
 
 pub mod concat;
 pub mod file;
+pub mod plugin;
 pub mod stream;
 
 pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;

@@ -20,6 +20,24 @@ pub async fn start_observing(
     }
     match &options.origin {
         stypes::ObserveOrigin::File(uuid, file_origin, filename) => {
+            //TODO AAZ: Temp solutions
+            const FORCE_PLUGIN_PRODUCER: &str = "CHIP_PLUG_PRODUCER";
+            if let Ok(plugin_path) = std::env::var(FORCE_PLUGIN_PRODUCER) {
+                if !filename.to_string_lossy().ends_with(".js") {
+                    println!("-----------------------------------------------------");
+                    println!("-------------- ENTERED PRODUCER PLUGIN --------------");
+                    println!("-----------------------------------------------------");
+                    return observing::plugin::run_producer_plugin(
+                        operation_api,
+                        state,
+                        uuid,
+                        plugin_path.into(),
+                        filename,
+                    )
+                    .await;
+                }
+            }
+
             let (is_text, session_file_origin) = (
                 matches!(options.parser, stypes::ParserType::Text(())),
                 state.get_session_file_origin().await?,
