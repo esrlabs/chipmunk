@@ -27,8 +27,7 @@ export class SettingsScheme
 {
     @Input() provider!: SchemeProvider;
 
-    public single: FieldDesc[] = [];
-    public bound: Map<string, FieldDesc[]> = new Map();
+    public fields: FieldDesc[] = [];
 
     protected id: string | undefined;
 
@@ -52,33 +51,7 @@ export class SettingsScheme
         this.provider
             .get()
             .then((fields) => {
-                let bindings: string[] = [];
-                fields.forEach((field) => {
-                    const wrapped = new WrappedField(field);
-                    if (wrapped.binding) {
-                        bindings.push(wrapped.id);
-                        if (!bindings.includes(wrapped.binding)) {
-                            bindings.push(wrapped.binding);
-                        }
-                        let bound = this.bound.get(wrapped.binding);
-                        bound = bound ? bound : [];
-                        this.bound.set(wrapped.binding, bound);
-                        if (bound.length === 0) {
-                            const master = fields.find(
-                                (field) => new WrappedField(field).id == wrapped.binding,
-                            );
-                            if (master === undefined) {
-                                // TODO: report error
-                                return;
-                            }
-                            bound.push(master);
-                        }
-                        bound.push(field);
-                    }
-                });
-                this.single = fields.filter(
-                    (field) => !bindings.includes(new WrappedField(field).id),
-                );
+                this.fields = fields;
                 this.detectChanges();
             })
             .catch((err: Error) => {
