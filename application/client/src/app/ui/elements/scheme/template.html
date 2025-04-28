@@ -1,0 +1,11 @@
+<app-settings-scheme-entry
+    *ngFor="let field of single"
+    [field]="field"
+    [provider]="provider"
+></app-settings-scheme-entry>
+<app-settings-scheme-entry-bound
+    *ngFor="let fields of bound | keyvalue"
+    [fields]="fields.value"
+    [provider]="provider"
+>
+</app-settings-scheme-entry-bound>

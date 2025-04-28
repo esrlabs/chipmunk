@@ -49,6 +49,9 @@ export class SetupObserve
             this.state.subjects.get().sources.subscribe(() => {
                 this.detectChanges();
             }),
+            this.state.subjects.get().updated.subscribe(() => {
+                this.detectChanges();
+            }),
         );
     }
 }
