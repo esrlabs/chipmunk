@@ -41,8 +41,15 @@ pub(crate) async fn load_and_inspect(
         return Err(PluginHostError::IO("Plugin path is not a file".into()));
     }
 
-    let component = Component::from_file(engine, plugin_path)
-        .map_err(|err| PluginHostError::PluginInvalid(err.to_string()))?;
+    let component = Component::from_file(engine, plugin_path).map_err(|err| {
+        log::warn!(
+            "Compiling plugin failed. Path: {}. Error: {err:?}",
+            plugin_path.display()
+        );
+        // Wasmtime uses anyhow error, which provides error context in debug print only.
+        // Errors here will be presented to plugin developers making the context important.
+        PluginHostError::PluginInvalid(format!("{err:?}"))
+    })?;
 
     let component_types = component.component_type();
 

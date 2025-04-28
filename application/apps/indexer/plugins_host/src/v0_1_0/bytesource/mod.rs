@@ -133,7 +133,8 @@ impl PluginByteSource {
             .map_err(|err| {
                 io::Error::new(
                     io::ErrorKind::Other,
-                    format!("WASM Error while calling read on bytesource plugin. Error {err}"),
+                    // Wasmtime uses anyhow error, which provides error context in debug print only.
+                    format!("WASM Error while calling read on bytesource plugin. Error {err:?}"),
                 )
             })?;
 
