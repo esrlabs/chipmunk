@@ -22,7 +22,7 @@ export class Provider {
     public subjects: Subjects<{
         load: Subject<void>;
         state: Subject<void>;
-        selected: Subject<string>;
+        selected: Subject<string | undefined>;
         // true - add starting; false - finished
         add: Subject<boolean>;
         // true - add starting; false - finished
@@ -30,7 +30,7 @@ export class Provider {
     }> = new Subjects({
         load: new Subject<void>(),
         state: new Subject<void>(),
-        selected: new Subject<string>(),
+        selected: new Subject<string | undefined>(),
         add: new Subject<boolean>(),
         remove: new Subject<boolean>(),
     });
@@ -55,6 +55,7 @@ export class Provider {
         if (this.state.loading) {
             return Promise.resolve();
         }
+        this.select(undefined);
         this.state.loading = true;
         if (reload) {
             await plugins
@@ -128,12 +129,12 @@ export class Provider {
     public getRunData(path: string): Promise<PluginRunData | undefined> {
         return plugins.getPluginRunData(path);
     }
-    public select(path: string) {
-        this.selected = [
-            ...this.plugins.installed,
-            ...this.plugins.available,
-            ...this.plugins.invalid,
-        ].find((pl) => pl.entity.dir_path === path);
+    public select(path: string | undefined) {
+        this.selected = !path
+            ? undefined
+            : [...this.plugins.installed, ...this.plugins.available, ...this.plugins.invalid].find(
+                  (pl) => pl.entity.dir_path === path,
+              );
         this.subjects.get().selected.emit(path);
     }
     public addPlugin(pluginPath: string): Promise<void> {

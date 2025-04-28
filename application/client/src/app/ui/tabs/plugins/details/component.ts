@@ -51,16 +51,32 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
     }
     public readme: SafeHtml = '';
     public logs: ParsedLogMessage[] = [];
-    public loading: boolean = false;
+    public loading: {
+        readme: boolean;
+        logs: boolean;
+    } = {
+        readme: false,
+        logs: false,
+    };
     public tab: Tab = Tab.ReadMe;
+    public stats: {
+        errors: number;
+        warns: number;
+    } = {
+        errors: 0,
+        warns: 0,
+    };
 
-    protected async load(): Promise<void> {
+    protected async fetchReadMe(): Promise<void> {
         const drop = () => {
-            this.loading = false;
+            this.loading.readme = false;
             this.readme = '';
             this.detectChanges();
         };
-        this.loading = true;
+        if (this.loading.readme) {
+            return;
+        }
+        this.loading.readme = true;
         this.links().unbind();
         this.detectChanges();
         if (!this.plugin.path) {
@@ -83,7 +99,7 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
                     this.readme = '';
                 })
                 .finally(() => {
-                    this.loading = false;
+                    this.loading.readme = false;
                     this.detectChanges();
                 });
         } else {
@@ -92,14 +108,21 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
     }
 
     protected fetchRunData() {
-        this.loading = true;
+        if (this.loading.logs) {
+            return;
+        }
+        this.loading.logs = true;
         this.logs = [];
         this.detectChanges();
         this.provider
             .getRunData(this.plugin.getPath())
             .then((rd: PluginRunData | undefined) => {
                 if (rd !== undefined) {
+                    this.stats.errors = 0;
+                    this.stats.warns = 0;
                     this.logs = rd.logs.map((log) => {
+                        this.stats.errors += log.level === 'Err' ? 1 : 0;
+                        this.stats.warns += log.level === 'Warn' ? 1 : 0;
                         return {
                             msg: log.msg,
                             level: log.level,
@@ -112,7 +135,7 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
                 this.log().error(`Fail fetch run data: ${err.message}`);
             })
             .finally(() => {
-                this.loading = false;
+                this.loading.logs = false;
                 this.detectChanges();
             });
     }
@@ -150,15 +173,18 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
     }
 
     protected safeLoad(): void {
-        this.load()
+        this.fetchReadMe()
             .catch((err: Error) => {
                 this.log().error(`Fail to load plugin's details: ${err.message}`);
             })
             .finally(() => {
                 if (!this.plugin.isValid()) {
                     this.goto().inspect();
+                } else {
+                    this.goto().readme();
                 }
             });
+        this.fetchRunData();
     }
 
     protected redirect(event: MouseEvent): void {
@@ -184,6 +210,10 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
 
     public ngOnDestroy(): void {
         this.links().unbind();
+    }
+
+    public isLoading(): boolean {
+        return this.loading.logs || this.loading.readme;
     }
 
     public goto(): { readme(): void; inspect(): void } {
