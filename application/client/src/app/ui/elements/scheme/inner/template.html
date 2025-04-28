@@ -22,9 +22,19 @@
         </mat-select>
     </ng-container>
     <ng-container *ngIf="element.string_input !== undefined">
-        <input type="text" matInput [(ngModel)]="element.string_input.value" />
+        <input
+            type="text"
+            matInput
+            [(ngModel)]="element.string_input.value"
+            (ngModelChange)="element.change()"
+        />
     </ng-container>
     <ng-container *ngIf="element.number_input !== undefined">
-        <input type="number" matInput [(ngModel)]="element.number_input.value" />
+        <input
+            type="number"
+            matInput
+            [(ngModel)]="element.number_input.value"
+            (ngModelChange)="element.change()"
+        />
     </ng-container>
 </mat-form-field>
