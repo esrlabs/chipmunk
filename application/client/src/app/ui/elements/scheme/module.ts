@@ -11,7 +11,6 @@ import { MatSelectModule } from '@angular/material/select';
 
 import { SettingsScheme } from './component';
 import { SchemeEntry } from './entry/component';
-import { SchemeEntryBound } from './bound/component';
 import { SchemeEntryElement } from './inner/component';
 
 @NgModule({
@@ -27,8 +26,8 @@ import { SchemeEntryElement } from './inner/component';
         MatButtonModule,
         MatSelectModule,
     ],
-    declarations: [SettingsScheme, SchemeEntry, SchemeEntryBound, SchemeEntryElement],
+    declarations: [SettingsScheme, SchemeEntry, SchemeEntryElement],
     exports: [SettingsScheme],
-    bootstrap: [SettingsScheme, SchemeEntry, SchemeEntryBound, SchemeEntryElement],
+    bootstrap: [SettingsScheme, SchemeEntry, SchemeEntryElement],
 })
 export class SettingsSchemeModule {}
