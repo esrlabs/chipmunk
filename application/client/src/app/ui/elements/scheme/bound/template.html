@@ -1,0 +1,5 @@
+<p>{{name}}</p>
+<app-settings-scheme-element
+    *ngFor="let element of elements | keyvalue"
+    [element]="element.value"
+></app-settings-scheme-element>

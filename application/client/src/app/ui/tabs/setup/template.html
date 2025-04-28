@@ -4,7 +4,7 @@
         <mat-form-field class="material-mofication-normal black">
             <mat-select
                 [(ngModel)]="state.selected.source"
-                (ngModelChange)="state.change().stream()"
+                (ngModelChange)="state.change().source()"
             >
                 <mat-option
                     *ngFor="let source of state.sources"
@@ -39,5 +39,14 @@
     </div>
 </div>
 <div class="preset-container">
-    <div class="preset-container-content w-1400"></div>
+    <div class="preset-container-content w-1400">
+        <app-settings-scheme
+            *ngIf="state.providers.source !== undefined"
+            [provider]="state.providers.source"
+        ></app-settings-scheme>
+        <app-settings-scheme
+            *ngIf="state.providers.parser !== undefined"
+            [provider]="state.providers.parser"
+        ></app-settings-scheme>
+    </div>
 </div>
