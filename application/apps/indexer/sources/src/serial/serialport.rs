@@ -265,8 +265,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Path to dev".to_owned(),
                 desc: "Full path to serial device/port".to_owned(),
                 required: true,
-                default: None,
-                interface: ValueInput::String,
+                interface: ValueInput::String(String::new()),
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
@@ -274,12 +273,14 @@ impl ComponentDescriptor for Descriptor {
                 name: "Boud rate".to_owned(),
                 desc: "Boud rate".to_owned(),
                 required: true,
-                default: Some(Value::Number(115200)),
-                interface: ValueInput::Numbers(vec![
-                    50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200,
-                    38400, 57600, 115200, 230400, 460800, 500000, 576000, 921600, 1000000, 1152000,
-                    1500000, 2000000, 2500000, 3000000, 3500000, 4000000,
-                ]),
+                interface: ValueInput::Numbers(
+                    vec![
+                        50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800, 9600, 19200,
+                        38400, 57600, 115200, 230400, 460800, 500000, 576000, 921600, 1000000,
+                        1152000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000,
+                    ],
+                    115200,
+                ),
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
@@ -287,8 +288,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Data bits".to_owned(),
                 desc: "Data bits".to_owned(),
                 required: true,
-                default: Some(Value::Number(8)),
-                interface: ValueInput::Numbers(vec![8, 7, 6, 5]),
+                interface: ValueInput::Numbers(vec![8, 7, 6, 5], 8),
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
@@ -296,8 +296,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Stop bits".to_owned(),
                 desc: "Stop bits".to_owned(),
                 required: true,
-                default: Some(Value::Number(1)),
-                interface: ValueInput::Numbers(vec![1, 2]),
+                interface: ValueInput::Numbers(vec![1, 2], 1),
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
@@ -305,12 +304,14 @@ impl ComponentDescriptor for Descriptor {
                 name: "Flow control".to_owned(),
                 desc: "Flow control".to_owned(),
                 required: true,
-                default: Some(Value::String(String::from("None"))),
-                interface: ValueInput::Strings(vec![
+                interface: ValueInput::Strings(
+                    vec![
+                        String::from("None"),
+                        String::from("Hardware"),
+                        String::from("Software"),
+                    ],
                     String::from("None"),
-                    String::from("Hardware"),
-                    String::from("Software"),
-                ]),
+                ),
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
@@ -318,12 +319,14 @@ impl ComponentDescriptor for Descriptor {
                 name: "Parity".to_owned(),
                 desc: "Parity".to_owned(),
                 required: true,
-                default: Some(Value::String(String::from("None"))),
-                interface: ValueInput::Strings(vec![
+                interface: ValueInput::Strings(
+                    vec![
+                        String::from("None"),
+                        String::from("Odd"),
+                        String::from("Even"),
+                    ],
                     String::from("None"),
-                    String::from("Odd"),
-                    String::from("Even"),
-                ]),
+                ),
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
@@ -331,10 +334,9 @@ impl ComponentDescriptor for Descriptor {
                 name: "Exclusive".to_owned(),
                 desc: "Exclusive".to_owned(),
                 required: true,
-                default: Some(Value::Boolean(false)),
-                interface: ValueInput::NamedValues(vec![
-                    (String::from("Yes"), Value::Boolean(true)),
-                    (String::from("No"), Value::Boolean(false)),
+                interface: ValueInput::NamedBools(vec![
+                    (String::from("Yes"), true),
+                    (String::from("No"), false),
                 ]),
                 binding: None,
             }),
@@ -343,8 +345,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Send delay, ms".to_owned(),
                 desc: "Data sending delay (between bytes), ms".to_owned(),
                 required: true,
-                default: Some(Value::Number(0)),
-                interface: ValueInput::Numbers(vec![10, 20, 30, 40, 50]),
+                interface: ValueInput::Numbers(vec![0, 10, 20, 30, 40, 50], 0),
                 binding: None,
             }),
             FieldDesc::Lazy(LazyFieldDesc {
@@ -371,8 +372,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Ports".to_string(),
                 desc: "List of available ports".to_string(),
                 required: false,
-                default: None,
-                interface: ValueInput::Strings(ports),
+                interface: ValueInput::Strings(ports, String::new()),
                 binding: Some(FIELD_PATH.to_string()),
             })])
         })
