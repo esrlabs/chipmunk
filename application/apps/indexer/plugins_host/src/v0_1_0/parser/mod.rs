@@ -147,9 +147,10 @@ impl p::Parser<PluginParseMessage> for PluginParser {
         let parse_results = match call_res {
             Ok(results) => results?,
             Err(call_err) => {
+                // Wasmtime uses anyhow error, which provides error context in debug print only.
                 return Err(p::Error::Unrecoverable(format!(
-                    "Call parse on the plugin failed. Error: {call_err}"
-                )))
+                    "Call parse on the plugin failed. Error: {call_err:?}"
+                )));
             }
         };
 
