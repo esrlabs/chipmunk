@@ -6,7 +6,7 @@ use futures::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
 };
-use std::{io, str};
+use std::{collections::HashMap, io, str};
 use stypes::{FieldDesc, LazyFieldDesc, StaticFieldDesc, Value, ValueInput};
 use tokio::time::{Duration, sleep};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
@@ -265,6 +265,12 @@ impl ComponentDescriptor for Descriptor {
                 interface: ValueInput::String(String::new()),
                 binding: None,
             }),
+            FieldDesc::Lazy(LazyFieldDesc {
+                id: FIELD_PORTS_LIST.to_string(),
+                name: "Ports".to_string(),
+                desc: "List of available ports".to_string(),
+                binding: Some(FIELD_PATH.to_string()),
+            }),
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_BAUD_RATE.to_owned(),
                 name: "Boud rate".to_owned(),
@@ -345,12 +351,6 @@ impl ComponentDescriptor for Descriptor {
                 interface: ValueInput::Numbers(vec![0, 10, 20, 30, 40, 50], 0),
                 binding: None,
             }),
-            FieldDesc::Lazy(LazyFieldDesc {
-                id: FIELD_PORTS_LIST.to_string(),
-                name: "Ports".to_string(),
-                desc: "List of available ports".to_string(),
-                binding: Some(FIELD_PATH.to_string()),
-            }),
         ])
     }
     fn lazy_fields_getter(
@@ -373,6 +373,23 @@ impl ComponentDescriptor for Descriptor {
                 binding: Some(FIELD_PATH.to_string()),
             })])
         })
+    }
+    fn validate(
+        &self,
+        _origin: &stypes::SourceOrigin,
+        fields: &[stypes::Field],
+    ) -> HashMap<String, String> {
+        let mut errors = HashMap::new();
+        fields.iter().for_each(|field| {
+            if field.id == FIELD_PATH {
+                if let Value::String(path) = &field.value {
+                    if path.trim().is_empty() {
+                        errors.insert(field.id.clone(), "Path cannot be empty".to_owned());
+                    }
+                }
+            }
+        });
+        errors
     }
 }
 
