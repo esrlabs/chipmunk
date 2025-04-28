@@ -330,6 +330,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 
 [[package]]
+name = "components"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "thiserror 2.0.11",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
 name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -748,6 +760,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "libudev"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78b324152da65df7bb95acfcaab55e3097ceaab02fb19b228a9eb74d55f135e0"
+dependencies = [
+ "libc",
+ "libudev-sys",
+]
+
+[[package]]
+name = "libudev-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c8469b4a23b962c1396b9b451dda50ef5b283e8dd309d69033475fa9b334324"
+dependencies = [
+ "libc",
+ "pkg-config",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -920,6 +952,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
+ "components",
  "dlt-core",
  "humantime",
  "lazy_static",
@@ -931,7 +964,11 @@ dependencies = [
  "someip-messages",
  "someip-payload",
  "someip-tools",
+ "stypes",
  "thiserror 2.0.11",
+ "tokio",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]
@@ -994,6 +1031,12 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "ppv-lite86"
@@ -1210,6 +1253,7 @@ dependencies = [
  "core-foundation",
  "core-foundation-sys",
  "io-kit-sys",
+ "libudev",
  "mach2",
  "nix 0.26.4",
  "scopeguard",
@@ -1311,6 +1355,7 @@ dependencies = [
  "async-stream",
  "bufread",
  "bytes",
+ "components",
  "etherparse",
  "futures",
  "indexer_base",
@@ -1320,6 +1365,7 @@ dependencies = [
  "pcap-parser",
  "regex",
  "serde",
+ "serialport",
  "shellexpand",
  "socket2",
  "stypes",
@@ -1356,6 +1402,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.11",
  "tokio",
+ "tokio-util",
  "uuid",
  "walkdir",
 ]

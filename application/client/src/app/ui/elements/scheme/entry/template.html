@@ -1,0 +1,6 @@
+<p class="title t-medium" *ngIf="error === undefined">{{name}}</p>
+<p class="title t-medium error" *ngIf="error !== undefined">{{error}}</p>
+<app-settings-scheme-element
+    *ngIf="element !== undefined"
+    [element]="element"
+></app-settings-scheme-element>

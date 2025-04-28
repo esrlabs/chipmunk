@@ -6,6 +6,7 @@ import { SettingsModule } from '@ui/tabs/settings/module';
 import { ChangelogModule } from '@ui/tabs/changelogs/module';
 import { HelpModule } from '@ui/tabs/help/module';
 import { PluginsManagerModule } from '@ui/tabs/plugins/module';
+import { SetupModule } from '@ui/tabs/setup/module';
 
 @NgModule({
     imports: [
@@ -16,6 +17,7 @@ import { PluginsManagerModule } from '@ui/tabs/plugins/module';
         ChangelogModule,
         HelpModule,
         PluginsManagerModule,
+        SetupModule,
     ],
     declarations: [],
     exports: [ObserveModule, MultipleFilesModule, SettingsModule, ChangelogModule, HelpModule],

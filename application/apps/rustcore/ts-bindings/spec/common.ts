@@ -1,6 +1,6 @@
 // tslint:disable
 
-import { Jobs, Tracker, Session } from '../src/index';
+import { Jobs, Tracker, Session, Components } from '../src/index';
 import { Logger } from './logger';
 import { error, numToLogLevel } from 'platform/log/utils';
 import { state } from 'platform/log';
@@ -70,7 +70,13 @@ export function readConfigFile<T>(filenameEnvVar: string, defaultPaths: string[]
 }
 
 export function finish(
-    sessions: Array<Session | Jobs | Tracker | undefined> | Session | Jobs | Tracker | undefined,
+    sessions:
+        | Array<Session | Jobs | Tracker | Components | undefined>
+        | Session
+        | Jobs
+        | Tracker
+        | Components
+        | undefined,
     done: (...args: any[]) => void,
     err?: Error,
 ): void {

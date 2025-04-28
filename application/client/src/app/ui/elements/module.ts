@@ -19,6 +19,7 @@ import { TeamworkAppletModule } from '@elements/teamwork/module';
 import { TimezoneSelectorModule } from '@elements/timezones/module';
 import { ComTooltipComponent } from '@elements/tooltip/component';
 import { TreeModule } from '@elements/tree/module';
+import { SettingsSchemeModule } from '@elements/scheme/module';
 
 @NgModule({
     imports: [
@@ -28,6 +29,7 @@ import { TreeModule } from '@elements/tree/module';
         TabsModule,
         RecentActionsModule,
         TreeModule,
+        SettingsSchemeModule,
         LocksHistoryModule,
         AutocompleteModule,
         FolderInputModule,
@@ -48,6 +50,7 @@ import { TreeModule } from '@elements/tree/module';
         TabsModule,
         RecentActionsModule,
         TreeModule,
+        SettingsSchemeModule,
         LocksHistoryModule,
         AutocompleteModule,
         FolderInputModule,

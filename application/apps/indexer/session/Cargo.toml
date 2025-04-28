@@ -23,7 +23,7 @@ rustc-hash = "2.1"
 stypes = { path = "../stypes", features=["rustcore"] }
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
-serialport = "4.6"
+serialport.workspace = true
 sources = { path = "../sources" }
 thiserror.workspace = true
 tokio = { workspace = true , features = ["full"] }
@@ -32,6 +32,7 @@ tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
 plugins_host = {path = "../plugins_host/"}
+components = { path = "../components" }
 
 [dev-dependencies]
 lazy_static.workspace = true

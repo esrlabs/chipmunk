@@ -1,3 +1,4 @@
+mod options;
 use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
 use serde::Serialize;
 use std::{fmt, io::Write};

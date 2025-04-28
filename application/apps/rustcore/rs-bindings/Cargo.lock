@@ -551,6 +551,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
+name = "components"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "thiserror 2.0.3",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -951,13 +963,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys 0.5.0",
+]
+
+[[package]]
 name = "dirs-sys"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
 dependencies = [
  "libc",
- "redox_users",
+ "redox_users 0.4.6",
  "winapi",
 ]
 
@@ -969,8 +990,20 @@ checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.4.6",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.5.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -980,7 +1013,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ebda144c4fe02d1f7ea1a7d9641b6fc6b580adcfa024ae48797ecdeb6825b4d"
 dependencies = [
  "libc",
- "redox_users",
+ "redox_users 0.4.6",
  "winapi",
 ]
 
@@ -2420,6 +2453,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "chrono-tz",
+ "components",
  "dlt-core",
  "humantime",
  "lazy_static",
@@ -2431,7 +2465,11 @@ dependencies = [
  "someip-messages",
  "someip-payload",
  "someip-tools",
+ "stypes",
  "thiserror 2.0.3",
+ "tokio",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]
@@ -2530,8 +2568,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "blake3",
+ "components",
  "dir_checksum",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "futures",
  "log",
  "parsers",
@@ -2543,6 +2582,7 @@ dependencies = [
  "thiserror 2.0.3",
  "tokio",
  "toml",
+ "uuid",
  "wasmtime",
  "wasmtime-wasi",
 ]
@@ -2733,6 +2773,17 @@ dependencies = [
  "getrandom",
  "libredox",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "redox_users"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
+dependencies = [
+ "getrandom",
+ "libredox",
+ "thiserror 2.0.3",
 ]
 
 [[package]]
@@ -2979,8 +3030,9 @@ name = "session"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "components",
  "crossbeam-channel",
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "dlt-core",
  "envvars",
  "file-tools",
@@ -3133,6 +3185,7 @@ dependencies = [
  "async-stream",
  "bufread",
  "bytes",
+ "components",
  "etherparse",
  "futures",
  "indexer_base",
@@ -3142,6 +3195,7 @@ dependencies = [
  "pcap-parser",
  "regex",
  "serde",
+ "serialport",
  "shellexpand 3.1.0",
  "socket2",
  "stypes",
@@ -3191,6 +3245,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.3",
  "tokio",
+ "tokio-util",
  "uuid",
  "walkdir",
 ]
