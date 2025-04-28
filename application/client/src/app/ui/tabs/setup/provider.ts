@@ -1,6 +1,6 @@
 import { SchemeProvider } from '@elements/scheme/provider';
-import { FieldDesc, StaticFieldDesc } from '@platform/types/bindings';
-import { SourceOrigin, Ident, LazyFieldDesc } from '@platform/types/bindings';
+import { Field, FieldDesc, Value } from '@platform/types/bindings';
+import { SourceOrigin, LazyFieldDesc } from '@platform/types/bindings';
 import { components } from '@service/components';
 import { Logger } from '@env/logs';
 import {
@@ -9,18 +9,14 @@ import {
     LoadingErrorEvent,
     LoadingErrorsEvent,
 } from '@platform/types/components';
-import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
+import { WrappedField } from '@ui/elements/scheme/field';
 
 export class Proivder extends SchemeProvider {
     protected pending: string[] = [];
     protected readonly logger = new Logger(`ObserveSetupProivder`);
-    protected readonly subs: Subjects<{
-        loaded: Subject<StaticFieldDesc>;
-        error: Subject<Map<string, string>>;
-    }> = new Subjects({
-        loaded: new Subject(),
-        error: new Subject(),
-    });
+    protected readonly values: Map<string, Value> = new Map();
+    protected fields: string[] = [];
+
     constructor(protected readonly origin: SourceOrigin, protected readonly target: string) {
         super();
         this.register(
@@ -33,12 +29,6 @@ export class Proivder extends SchemeProvider {
         );
     }
 
-    public override subjects(): Subjects<{
-        loaded: Subject<StaticFieldDesc>;
-        error: Subject<Map<string, string>>;
-    }> {
-        return this.subs;
-    }
     public override get(): Promise<FieldDesc[]> {
         this.pending.length === 0 && components.abort(this.pending);
         this.pending = [];
@@ -49,6 +39,7 @@ export class Proivder extends SchemeProvider {
                 if (!fields) {
                     return Promise.resolve([]);
                 }
+                this.fields = fields.map((field) => new WrappedField(field).id);
                 this.pending = fields
                     .map((field: FieldDesc) => {
                         const lazy = field as { Lazy: LazyFieldDesc };
@@ -63,9 +54,30 @@ export class Proivder extends SchemeProvider {
             });
     }
 
+    public override setValue(uuid: string, value: Value): void {
+        if (!this.fields.includes(uuid)) {
+            this.logger.error(`Field ${uuid} doesn't belong to current provider`);
+            return;
+        }
+        this.values.set(uuid, value);
+        const fields: Field[] = [];
+        this.values.forEach((value, id) => {
+            fields.push({ id, value });
+        });
+        components
+            .validate(this.origin, this.target, fields)
+            .then((errs: Map<string, string>) => {
+                // Always forward errors info, even no errors
+                this.subjects.get().error.emit(errs);
+            })
+            .catch((err: Error) => {
+                this.logger.error(`Fail to validate settings: ${err.message}`);
+            });
+    }
+
     public override destroy(): Promise<void> {
         this.unsubscribe();
-        this.subs.destroy();
+        this.subjects.destroy();
         if (this.pending.length === 0) {
             return Promise.resolve();
         } else {
@@ -80,7 +92,7 @@ export class Proivder extends SchemeProvider {
             if (!this.pending.includes(field.id)) {
                 return;
             }
-            this.subs.get().loaded.emit(field);
+            this.subjects.get().loaded.emit(field);
         });
     }
     protected onLoadingError(event: LoadingErrorEvent) {
@@ -91,7 +103,7 @@ export class Proivder extends SchemeProvider {
             }
             errors.set(id, event.error);
         });
-        errors.size > 0 && this.subs.get().error.emit(errors);
+        errors.size > 0 && this.subjects.get().error.emit(errors);
     }
     protected onLoadingErrors(event: LoadingErrorsEvent) {
         const errors = new Map();
@@ -101,7 +113,7 @@ export class Proivder extends SchemeProvider {
             }
             errors.set(error.id, error.err);
         });
-        errors.size > 0 && this.subs.get().error.emit(errors);
+        errors.size > 0 && this.subjects.get().error.emit(errors);
     }
     protected onLoadingCancelled(event: LoadingCancelledEvent) {}
 }

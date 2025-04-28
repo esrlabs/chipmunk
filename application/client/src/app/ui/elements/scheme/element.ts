@@ -1,4 +1,4 @@
-import { ValueInput } from '@platform/types/bindings';
+import { Value, ValueInput } from '@platform/types/bindings';
 import { Subject } from '@platform/env/subscription';
 /**
 export type ValueInput =
@@ -19,46 +19,64 @@ export type ValueInput =
     | 'File'
     | 'Directory'
     | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };
-
-
-
  */
 
-export class CheckboxElement {
+interface ValueGetter {
+    getValue(): Value;
+}
+
+export class CheckboxElement implements ValueGetter {
     public value: boolean;
     constructor(public defaults: boolean = false) {
         this.value = defaults;
     }
-}
-
-export class InputElement<T> {
-    public value: T | undefined;
-    constructor(public defaults: T) {
-        this.value = defaults;
+    public getValue(): Value {
+        return { Boolean: this.value };
     }
 }
 
-export class ListElement<T> {
-    public value: T | undefined;
+export class InputElement<T> implements ValueGetter {
+    public value: T;
+    constructor(public defaults: T, protected readonly getter: (value: T) => Value) {
+        this.value = defaults;
+    }
+    public getValue(): Value {
+        return this.getter(this.value);
+    }
+}
+
+export class ListElement<T> implements ValueGetter {
+    public value: T;
     public items: T[];
-    constructor(defaults: T | undefined, items: T[]) {
+    constructor(defaults: T, items: T[], protected readonly getter: (value: T) => Value) {
         this.value = defaults;
         this.items = items;
     }
+    public getValue(): Value {
+        return this.getter(this.value);
+    }
 }
 
-export class NamedValuesElement<T> {
-    public value: T | undefined;
+export class NamedValuesElement<T> implements ValueGetter {
+    public value: T;
     public items: { key: string; value: T }[];
-    constructor(defaults: T | undefined, items: { key: string; value: T }[]) {
+    constructor(
+        defaults: T,
+        items: { key: string; value: T }[],
+        protected readonly getter: (value: T) => Value,
+    ) {
         this.value = defaults;
         this.items = items;
+    }
+    public getValue(): Value {
+        return this.getter(this.value);
     }
 }
 
 export interface ChangeEvent {
     uuid: string;
-    value: any;
+    inner: any;
+    value: Value;
 }
 
 export class Element {
@@ -81,18 +99,22 @@ export class Element {
     }
 
     public change() {
+        const value = this.getValue();
+        if (!value) {
+            return;
+        }
         if (this.checkbox !== undefined) {
-            this.changed.emit({ uuid: this.uuid, value: this.checkbox.value });
+            this.changed.emit({ uuid: this.uuid, inner: this.checkbox.value, value });
         } else if (this.numeric_list !== undefined) {
-            this.changed.emit({ uuid: this.uuid, value: this.numeric_list.value });
+            this.changed.emit({ uuid: this.uuid, inner: this.numeric_list.value, value });
         } else if (this.strings_list !== undefined) {
-            this.changed.emit({ uuid: this.uuid, value: this.strings_list.value });
+            this.changed.emit({ uuid: this.uuid, inner: this.strings_list.value, value });
         } else if (this.string_input !== undefined) {
-            this.changed.emit({ uuid: this.uuid, value: this.string_input.value });
+            this.changed.emit({ uuid: this.uuid, inner: this.string_input.value, value });
         } else if (this.number_input !== undefined) {
-            this.changed.emit({ uuid: this.uuid, value: this.number_input.value });
+            this.changed.emit({ uuid: this.uuid, inner: this.number_input.value, value });
         } else if (this.named !== undefined) {
-            this.changed.emit({ uuid: this.uuid, value: this.named.value });
+            this.changed.emit({ uuid: this.uuid, inner: this.named.value, value });
         }
     }
 
@@ -112,6 +134,35 @@ export class Element {
         }
     }
 
+    /*
+    | { Numbers: Array<number> }
+    | { Strings: Array<string> }
+    | { Directories: Array<string> }
+    | { Files: Array<string> }
+    | { File: string }
+    | { Directory: string }
+    | { KeyNumber: Map<string, number> }
+    | { KeyNumbers: Map<string, number[]> }
+    | { KeyString: Map<string, string> }
+    | { KeyStrings: Map<string, string[]> };
+*/
+    public getValue(): Value | undefined {
+        if (this.checkbox !== undefined) {
+            return this.checkbox.getValue();
+        } else if (this.numeric_list !== undefined) {
+            return this.numeric_list.getValue();
+        } else if (this.strings_list !== undefined) {
+            return this.strings_list.getValue();
+        } else if (this.string_input !== undefined) {
+            return this.string_input.getValue();
+        } else if (this.number_input !== undefined) {
+            return this.number_input.getValue();
+        } else if (this.named !== undefined) {
+            return this.named.getValue();
+        }
+        return undefined;
+    }
+
     static as_checkbox(origin: ValueInput): CheckboxElement | undefined {
         const vl = origin as { Checkbox: boolean };
         return typeof vl.Checkbox === 'boolean' ? new CheckboxElement(vl.Checkbox) : undefined;
@@ -119,22 +170,54 @@ export class Element {
 
     static as_string(origin: ValueInput): InputElement<string> | undefined {
         const vl = origin as { String: string };
-        return typeof vl.String === 'string' ? new InputElement<string>(vl.String) : undefined;
+        return typeof vl.String === 'string'
+            ? new InputElement<string>(vl.String, (value: string): Value => {
+                  return { String: value };
+              })
+            : undefined;
     }
 
     static as_number(origin: ValueInput): InputElement<number> | undefined {
         const vl = origin as { Number: number };
-        return typeof vl.Number === 'number' ? new InputElement<number>(vl.Number) : undefined;
+        return typeof vl.Number === 'number'
+            ? new InputElement<number>(vl.Number, (value: number): Value => {
+                  return {
+                      Number:
+                          typeof value === 'number'
+                              ? value
+                              : typeof value === 'string'
+                              ? parseInt(value, 10)
+                              : 0,
+                  };
+              })
+            : undefined;
     }
 
     static as_numbers_list(origin: ValueInput): ListElement<number> | undefined {
         const vl = origin as { Numbers: [Array<number>, number] };
-        return vl.Numbers ? new ListElement(vl.Numbers[1], vl.Numbers[0]) : undefined;
+        return vl.Numbers
+            ? new ListElement(vl.Numbers[1], vl.Numbers[0], (value: number): Value => {
+                  return {
+                      Number:
+                          typeof value === 'number'
+                              ? value
+                              : typeof value === 'string'
+                              ? parseInt(value, 10)
+                              : 0,
+                  };
+              })
+            : undefined;
     }
 
     static as_string_list(origin: ValueInput): ListElement<string> | undefined {
         const vl = origin as { Strings: [Array<string>, string] };
-        return vl.Strings ? new ListElement(vl.Strings[1], vl.Strings[0]) : undefined;
+        return vl.Strings
+            ? new ListElement(vl.Strings[1], vl.Strings[0], (value: string): Value => {
+                  return {
+                      String: value,
+                  };
+              })
+            : undefined;
     }
 
     static as_named_bools(origin: ValueInput): NamedValuesElement<boolean> | undefined {
@@ -146,6 +229,11 @@ export class Element {
                       vl.NamedBools.map((item) => {
                           return { key: item[0], value: item[1] };
                       }),
+                      (value: boolean): Value => {
+                          return {
+                              Boolean: value,
+                          };
+                      },
                   )
                 : undefined
             : undefined;
