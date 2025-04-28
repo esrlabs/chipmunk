@@ -1,0 +1,30 @@
+<mat-form-field class="material-mofication-normal">
+    <!-- <mat-label>{{loaded.name}}</mat-label> -->
+    <ng-container *ngIf="element.numeric_list !== undefined">
+        <mat-select [(ngModel)]="element.numeric_list.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of element.numeric_list.items" [value]="item">
+                {{item}}
+            </mat-option>
+        </mat-select>
+    </ng-container>
+    <ng-container *ngIf="element.strings_list !== undefined">
+        <mat-select [(ngModel)]="element.strings_list.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of element.strings_list.items" [value]="item">
+                {{item}}
+            </mat-option>
+        </mat-select>
+    </ng-container>
+    <ng-container *ngIf="element.named !== undefined">
+        <mat-select [(ngModel)]="element.named.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of element.named.items" [value]="item.value">
+                {{item.key}}
+            </mat-option>
+        </mat-select>
+    </ng-container>
+    <ng-container *ngIf="element.string_input !== undefined">
+        <input type="text" matInput [(ngModel)]="element.string_input.value" />
+    </ng-container>
+    <ng-container *ngIf="element.number_input !== undefined">
+        <input type="number" matInput [(ngModel)]="element.number_input.value" />
+    </ng-container>
+</mat-form-field>
