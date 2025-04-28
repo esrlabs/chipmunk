@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-
+import { SettingsSchemeModule } from '@elements/scheme/module';
 import { SetupObserve } from './component';
 
 @NgModule({
@@ -15,6 +15,7 @@ import { SetupObserve } from './component';
         MatButtonModule,
         MatFormFieldModule,
         MatSelectModule,
+        SettingsSchemeModule,
     ],
     declarations: [SetupObserve],
     exports: [SetupObserve],

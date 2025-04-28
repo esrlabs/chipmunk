@@ -27,7 +27,6 @@ impl ComponentDescriptor for Descriptor {
             name: String::from("Log Level"),
             desc: String::from("DLT Log Level"),
             required: true,
-            default: Some(stypes::Value::Number(1)),
             interface: stypes::ValueInput::KeyString(HashMap::new()),
             binding: None,
         })])
@@ -61,7 +60,6 @@ impl ComponentDescriptor for Descriptor {
                 name: String::from("Example"),
                 desc: String::from("Example"),
                 required: true,
-                default: Some(stypes::Value::Number(1)),
                 interface: stypes::ValueInput::KeyString(HashMap::new()),
                 binding: None,
             })])

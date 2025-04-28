@@ -29,15 +29,14 @@ export type StaticFieldDesc = {
     name: string;
     desc: string;
     required: boolean;
-    default: Value | null;
     interface: ValueInput;
     binding: string | null;
 };
 
 export type Value =
     | { Boolean: boolean }
-    | { Number: bigint }
-    | { Numbers: Array<bigint> }
+    | { Number: number }
+    | { Numbers: Array<number> }
     | { String: string }
     | { Strings: Array<string> }
     | { Directories: Array<string> }
@@ -50,12 +49,14 @@ export type Value =
     | { KeyStrings: Map<string, string[]> };
 
 export type ValueInput =
-    | 'Checkbox'
-    | 'Number'
-    | 'String'
-    | { Numbers: Array<bigint> }
-    | { Strings: Array<string> }
-    | { NamedValues: Array<[string, Value]> }
+    | { Checkbox: boolean }
+    | { Number: number }
+    | { String: string }
+    | { Numbers: [Array<number>, number] }
+    | { Strings: [Array<string>, string] }
+    | { NamedBools: Array<[string, boolean]> }
+    | { NamedNumbers: Array<[string, number]> }
+    | { NamedStrings: Array<[string, string]> }
     | { KeyNumber: Map<string, number> }
     | { KeyNumbers: Map<string, number[]> }
     | { KeyString: Map<string, string> }

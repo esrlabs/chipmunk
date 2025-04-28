@@ -19,8 +19,8 @@ export type FieldsValidationErrors = { errors: Map<string, string>, };
 
 export type LazyFieldDesc = { id: string, name: string, desc: string, binding: string | null, };
 
-export type StaticFieldDesc = { id: string, name: string, desc: string, required: boolean, default: Value | null, interface: ValueInput, binding: string | null, };
+export type StaticFieldDesc = { id: string, name: string, desc: string, required: boolean, interface: ValueInput, binding: string | null, };
 
-export type Value = { "Boolean": boolean } | { "Number": bigint } | { "Numbers": Array<bigint> } | { "String": string } | { "Strings": Array<string> } | { "Directories": Array<string> } | { "Files": Array<string> } | { "File": string } | { "Directory": string } | { "KeyNumber": Map<string, number> } | { "KeyNumbers": Map<string, number[]> } | { "KeyString": Map<string, string> } | { "KeyStrings": Map<string, string[]> };
+export type Value = { "Boolean": boolean } | { "Number": number } | { "Numbers": Array<number> } | { "String": string } | { "Strings": Array<string> } | { "Directories": Array<string> } | { "Files": Array<string> } | { "File": string } | { "Directory": string } | { "KeyNumber": Map<string, number> } | { "KeyNumbers": Map<string, number[]> } | { "KeyString": Map<string, string> } | { "KeyStrings": Map<string, string[]> };
 
-export type ValueInput = "Checkbox" | "Number" | "String" | { "Numbers": Array<bigint> } | { "Strings": Array<string> } | { "NamedValues": Array<[string, Value]> } | { "KeyNumber": Map<string, number> } | { "KeyNumbers": Map<string, number[]> } | { "KeyString": Map<string, string> } | { "KeyStrings": Map<string, string[]> } | "Directories" | "Files" | "File" | "Directory" | { "Bound": { output: ValueInput, inputs: Array<ValueInput>, } };
+export type ValueInput = { "Checkbox": boolean } | { "Number": number } | { "String": string } | { "Numbers": [Array<number>, number] } | { "Strings": [Array<string>, string] } | { "NamedBools": Array<[string, boolean]> } | { "NamedNumbers": Array<[string, number]> } | { "NamedStrings": Array<[string, string]> } | { "KeyNumber": Map<string, number> } | { "KeyNumbers": Map<string, number[]> } | { "KeyString": Map<string, string> } | { "KeyStrings": Map<string, string[]> } | "Directories" | "Files" | "File" | "Directory" | { "Bound": { output: ValueInput, inputs: Array<ValueInput>, } };

@@ -65,7 +65,6 @@ pub struct StaticFieldDesc {
     pub name: String,
     pub desc: String,
     pub required: bool,
-    pub default: Option<Value>,
     pub interface: ValueInput,
     pub binding: Option<String>,
 }
@@ -104,12 +103,23 @@ pub struct Field {
     ts(export, export_to = "options.ts")
 )]
 pub enum ValueInput {
-    Checkbox,
-    Number,
-    String,
-    Numbers(Vec<i64>),
-    Strings(Vec<String>),
-    NamedValues(Vec<(String, Value)>),
+    Checkbox(bool),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
+    Number(i64),
+    String(String),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "[Array<number>, number]")
+    )]
+    Numbers(Vec<i64>, i64),
+    Strings(Vec<String>, String),
+    NamedBools(Vec<(String, bool)>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Array<[string, number]>")
+    )]
+    NamedNumbers(Vec<(String, i64)>),
+    NamedStrings(Vec<(String, String)>),
     #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, number>"))]
     KeyNumber(HashMap<String, i64>),
     #[cfg_attr(
@@ -143,7 +153,9 @@ pub enum ValueInput {
 )]
 pub enum Value {
     Boolean(bool),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
     Number(i64),
+    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Array<number>"))]
     Numbers(Vec<i64>),
     String(String),
     Strings(Vec<String>),
