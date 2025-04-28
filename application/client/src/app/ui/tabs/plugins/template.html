@@ -1,12 +1,8 @@
 <div class="preset-container">
     <div class="preset-container-content">
         <div class="left">
-            <mat-card class="fill sticky">
-                <ng-container *ngIf="!provider.selected ">
-                    <p class="t-normal color-scheme-2">Select plugin to see details</p>
-                </ng-container>
+            <mat-card class="fill sticky" *ngIf="provider.selected">
                 <app-plugins-manager-details
-                    *ngIf="provider.selected "
                     [plugin]="provider.selected"
                     [provider]="provider"
                 ></app-plugins-manager-details>

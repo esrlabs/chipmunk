@@ -15,21 +15,29 @@
         (click)="goto().inspect()"
     >
         Inspect
+        <span
+            *ngIf="stats.errors + stats.warns > 0"
+            [attr.class]="'stats ' + (stats.errors > 0 ? 'err' : 'warns')"
+            >({{stats.errors + stats.warns}})</span
+        >
     </button>
     <button
         class="flat-codicon-button"
-        [disabled]="loading || provider.isBusy()"
+        [disabled]="isLoading() || provider.isBusy()"
         (click)="removePlugin()"
     >
         Remove
     </button>
 </div>
 <div class="readme">
-    <ng-container *ngIf="loading">
+    <ng-container *ngIf="isLoading()">
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </ng-container>
     <ng-container *ngIf="tab == Tab.ReadMe">
         <div #content class="markdown" [innerHTML]="readme"></div>
+        <p class="t-normal color-scheme-2" *ngIf="(readme === '')">
+            Seems this plugins doesn't have yet any kind of description.
+        </p>
     </ng-container>
     <ng-container *ngIf="tab == Tab.Inspecting">
         <ul class="logs">

@@ -34,6 +34,21 @@
                 background-color: @scheme-color-accent;
             }
         }
+        & button { 
+            & span.stats {
+                position: relative;
+                display: inline-block;
+                font-size: 12px;
+                line-height: 0px;
+                margin: -8px 0 0 6px;
+                &.err {
+                    color: @scheme-color-error;
+                }
+                &.warns {
+                    color: @scheme-color-warning;
+                }
+            }
+        }
         & button[disabled] {
             &:hover {
                 background: none;
