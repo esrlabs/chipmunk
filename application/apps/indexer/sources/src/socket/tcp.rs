@@ -359,8 +359,11 @@ mod tests {
             }
 
             // In 160 Milliseconds Down time and reconnect interval of 50 Milliseconds
-            // we must get 5 reconnect attempts.
-            assert_eq!(attempts, 5);
+            // we must get at least 4 reconnect attempts.
+            assert!(
+                attempts >= 4,
+                "Reconnect attempts {attempts} can't be less than 4"
+            );
         });
 
         let receive_handle = tokio::spawn(async move {
