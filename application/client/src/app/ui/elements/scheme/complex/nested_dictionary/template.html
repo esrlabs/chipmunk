@@ -1,0 +1,21 @@
+<mat-card class="fill sticky" *ngIf="state !== undefined">
+    <mat-card-content>
+        <ng-container>
+            <p class="t-medium color-scheme-2">
+                Summary ({{state.summary.total.count()}} / {{state.summary.selected.count()}})
+            </p>
+            <table class="table-fill">
+                <tr class="info" *ngFor="let selected of state.summary.selected| keyvalue">
+                    <td class="caption t-medium color-scheme-3">{{selected.key}}</td>
+                    <td class="value t-medium color-scheme-2">{{selected.value}}</td>
+                </tr>
+            </table>
+        </ng-container>
+        <app-settings-scheme-nested-dictionary-structure
+            *ngFor="let section of state.structure"
+            (contextmenu)="ngContextMenu($event)"
+            (select)="ngOnEntitySelect()"
+            [section]="section"
+        ></app-settings-scheme-nested-dictionary-structure>
+    </mat-card-content>
+</mat-card>

@@ -1,5 +1,4 @@
-<mat-form-field class="material-mofication-normal">
-    <!-- <mat-label>{{loaded.name}}</mat-label> -->
+<mat-form-field class="material-mofication-normal" *ngIf="field">
     <ng-container *ngIf="element.numeric_list !== undefined">
         <mat-select [(ngModel)]="element.numeric_list.value" (ngModelChange)="element.change()">
             <mat-option *ngFor="let item of element.numeric_list.items" [value]="item">
