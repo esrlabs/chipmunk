@@ -1,11 +1,5 @@
 //! Provides types, methods and macros to write plugins that provide producer functionality.
-
-use std::future::Future;
-
 use crate::shared_types::{ConfigItem, ConfigSchemaItem, InitError, Version};
-
-// Futures crate is used in the export macro and needed to be re-exported
-pub use futures;
 
 // Module must be public because the generated types and macros are used within `producer_export!`
 // macro + macros can't be re-exported via pub use
@@ -21,12 +15,6 @@ pub mod __internal_bindings {
             "chipmunk:shared/shared-types@0.1.0": crate::shared_types,
             "chipmunk:shared/sandbox@0.1.0": crate::sandbox,
             "chipmunk:parser/parse-types@0.1.0": crate::parser,
-        },
-        async: {
-            exports: [
-            "chipmunk:producer/producer@0.1.0#init",
-            "chipmunk:producer/producer@0.1.0#produce-next",
-            ]
         },
         additional_derives: [Clone],
         // Export macro is used withing the exported `producer_export!` macro and must be public
@@ -98,7 +86,7 @@ pub trait Producer {
     fn create(
         general_configs: ProducerConfig,
         plugins_configs: Vec<ConfigItem>,
-    ) -> impl Future<Output = Result<Self, InitError>> + 'static
+    ) -> Result<Self, InitError>
     where
         Self: Sized;
 
@@ -112,9 +100,7 @@ pub trait Producer {
     ///
     /// * `Ok(Vec<ProduceReturn>)` - A vector containing the next batch of produced results.
     /// * `Err(ProduceError)` - A production error occurred, detailed in the `ProduceError`.
-    fn produce_next(
-        &mut self,
-    ) -> impl Future<Output = Result<impl Iterator<Item = ProduceReturn>, ProduceError>>;
+    fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError>;
 }
 
 #[macro_export]
@@ -148,7 +134,7 @@ pub trait Producer {
 ///  #      todo!()
 ///  #  }
 ///  #
-///  #  async fn create(
+///  #  fn create(
 ///  #      _general_configs: ProducerConfig,
 ///  #      _plugins_configs: Vec<ConfigItem>,
 ///  #  ) -> Result<Self, InitError>
@@ -158,7 +144,7 @@ pub trait Producer {
 ///  #      Ok(MyProducer)
 ///  #  }
 ///  #
-///  #  async fn produce_next(
+///  #  fn produce_next(
 ///  #      &mut self,
 ///  #  ) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
 ///  #      Ok(std::iter::empty())
@@ -172,8 +158,8 @@ macro_rules! producer_export {
     ($par:ty) => {
         // Define producer instance as static field to make it reachable from
         // within `produce_next()` function
-        static PRODUCER: ::std::sync::OnceLock<$crate::producer::futures::lock::Mutex<$par>> =
-            ::std::sync::OnceLock::new();
+        static PRODUCER: std::sync::Mutex<::std::option::Option<$par>> =
+            std::sync::Mutex::new(::std::option::Option::None);
 
         // Define logger as static field to use it with macro initialization
         use $crate::__PluginLogSend;
@@ -205,7 +191,7 @@ macro_rules! producer_export {
             }
 
             /// Initialize the producer with the given configurations
-            async fn init(
+            fn init(
                 general_configs: $crate::producer::ProducerConfig,
                 plugin_configs: ::std::vec::Vec<$crate::shared_types::ConfigItem>,
             ) -> ::std::result::Result<(), $crate::shared_types::InitError> {
@@ -217,27 +203,26 @@ macro_rules! producer_export {
 
                 // Initializing the given producer
                 let producer =
-                    <$par as $crate::producer::Producer>::create(general_configs, plugin_configs)
-                        .await?;
-                let producer_mutex = $crate::producer::futures::lock::Mutex::new(producer);
-                PRODUCER
-                    .set(producer_mutex)
-                    .expect("Acquiring global producer failed");
+                    <$par as $crate::producer::Producer>::create(general_configs, plugin_configs)?;
+                *PRODUCER.lock().expect("Acquiring global producer failed") =
+                    ::std::option::Option::Some(producer);
 
                 Ok(())
             }
 
             /// Provide the next chunk of log results when producing success,
             /// otherwise returns the produce error.
-            async fn produce_next() -> ::std::result::Result<
+            fn produce_next() -> ::std::result::Result<
                 ::std::vec::Vec<$crate::producer::ProduceReturn>,
                 $crate::producer::ProduceError,
             > {
                 use $crate::parser::{ParseYield, ParsedMessage};
                 use $crate::producer::{ProduceReturn, Producer};
 
-                let producer_guard = PRODUCER.get().expect("Acquiring global producer failed");
-                let mut producer = producer_guard.lock().await;
+                let mut producer_guard = PRODUCER.lock().expect("Acquiring global producer failed");
+                let producer = producer_guard
+                    .as_mut()
+                    .expect("producer already initialized");
 
                 // HACK:
                 // Combine the columns of each message on the plugin side before sending them
@@ -253,7 +238,7 @@ macro_rules! producer_export {
                 // Same separator is used in Chipmunk host.
                 pub const COLUMN_SEP: &str = "\u{0004}";
 
-                producer.produce_next().await.map(|items| {
+                producer.produce_next().map(|items| {
                     items
                         .map(|mut item| {
                             match &mut item {
@@ -311,7 +296,7 @@ mod prototyping {
             todo!()
         }
 
-        async fn create(
+        fn create(
             _general_configs: crate::producer::ProducerConfig,
             _plugins_configs: Vec<crate::shared_types::ConfigItem>,
         ) -> Result<Self, crate::shared_types::InitError>
@@ -321,9 +306,7 @@ mod prototyping {
             Ok(Dummy)
         }
 
-        async fn produce_next(
-            &mut self,
-        ) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
+        fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
             Ok(std::iter::empty())
         }
     }

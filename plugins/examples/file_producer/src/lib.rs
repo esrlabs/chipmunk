@@ -52,7 +52,7 @@ impl Producer for FileProducer {
         RenderOptions::new(Some(columns_opts))
     }
 
-    async fn create(
+    fn create(
         general_configs: ProducerConfig,
         plugins_configs: Vec<ConfigItem>,
     ) -> Result<Self, InitError>
@@ -88,7 +88,7 @@ impl Producer for FileProducer {
         })
     }
 
-    async fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
+    fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
         for _ in 0..self.items_buffer.capacity() {
             self.line_buffer.clear();
             self.reader

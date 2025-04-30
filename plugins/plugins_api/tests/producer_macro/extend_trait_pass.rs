@@ -15,7 +15,7 @@ impl plugins_api::producer::Producer for Dummy {
         todo!()
     }
 
-    async fn create(
+    fn create(
         _general_configs: plugins_api::producer::ProducerConfig,
         _plugins_configs: Vec<plugins_api::shared_types::ConfigItem>,
     ) -> Result<Self, plugins_api::shared_types::InitError>
@@ -25,7 +25,7 @@ impl plugins_api::producer::Producer for Dummy {
         Ok(Dummy)
     }
 
-    async fn produce_next(
+    fn produce_next(
         &mut self,
     ) -> Result<
         impl Iterator<Item = plugins_api::producer::ProduceReturn>,

@@ -17,7 +17,7 @@ impl Producer for Dummy {
         todo!()
     }
 
-    async fn create(
+    fn create(
         _general_configs: ProducerConfig,
         _plugins_configs: Vec<ConfigItem>,
     ) -> Result<Self, InitError>
@@ -27,7 +27,7 @@ impl Producer for Dummy {
         Ok(Dummy)
     }
 
-    async fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
+    fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
         Ok(std::iter::empty())
     }
 }

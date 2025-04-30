@@ -8,12 +8,6 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 wit-bindgen = "0.41"
-# TODO AAZ: This is needed to provide async interface for functions.
-# Ensure this is still needed when plugins are fully implemented.
-wit-bindgen-rt = { version = "0.41", optional = true}
-# This is needed only for the async case because holding the lock of std Mutex
-# across await calls is unsound.
-futures = {version = "0.3", optional = true}
 
 [dev-dependencies]
 trybuild = "1.0"
@@ -22,7 +16,7 @@ trybuild = "1.0"
 default = []
 parser =[]
 bytesource = []
-producer = ["parser", "dep:futures", "dep:wit-bindgen-rt"]
+producer = ["parser"]
 
 [[test]]
 name = "parser"
