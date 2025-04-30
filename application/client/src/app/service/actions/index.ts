@@ -26,6 +26,8 @@ import * as Exit from './exit';
 import * as Help from './help';
 import * as ExportSession from './export.session.state';
 import * as ImportSession from './import.session.state';
+import * as ThemeDark from './theme.dark';
+import * as ThemeLight from './theme.light';
 import * as PluginsManager from './plugins_manager';
 import * as StdoutPlugin from './stdout.plugin';
 
@@ -59,6 +61,8 @@ export * as Exit from './exit';
 export * as Help from './help';
 export * as ExportSession from './export.session.state';
 export * as ImportSession from './import.session.state';
+export * as ThemeDark from './theme.dark';
+export * as ThemeLight from './theme.light';
 export * as PluginsManager from './plugins_manager';
 export * as StdoutPlugin from './stdout.plugin';
 
@@ -93,6 +97,8 @@ export const all = [
     [Exit.ACTION_UUID, Exit.Action],
     [ExportSession.ACTION_UUID, ExportSession.Action],
     [ImportSession.ACTION_UUID, ImportSession.Action],
+    [ThemeDark.ACTION_UUID, ThemeDark.Action],
+    [ThemeLight.ACTION_UUID, ThemeLight.Action],
     [PluginsManager.ACTION_UUID, PluginsManager.Action],
     [StdoutPlugin.ACTION_UUID, StdoutPlugin.Action],
 ];

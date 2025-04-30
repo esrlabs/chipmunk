@@ -2437,7 +2437,6 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "dlt-core",
- "humantime",
  "lazy_static",
  "log",
  "memchr",

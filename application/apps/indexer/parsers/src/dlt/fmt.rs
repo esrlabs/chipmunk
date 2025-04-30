@@ -12,7 +12,10 @@
 
 //! # Formatting dlt messages as text
 use crate::someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser};
-use chrono::prelude::{DateTime, Utc};
+use chrono::{
+    prelude::{DateTime, Utc},
+    TimeZone,
+};
 use chrono_tz::Tz;
 use dlt_core::{
     dlt::{
@@ -143,8 +146,7 @@ impl fmt::Display for DltDltTimeStamp<'_> {
             DateTime::from_timestamp(i64::from(self.0.seconds), self.0.microseconds * 1000);
         match dt {
             Some(dt) => {
-                let system_time: std::time::SystemTime = std::time::SystemTime::from(dt);
-                write!(f, "{}", humantime::format_rfc3339(system_time))
+                write!(f, "{}", format_time_rfc3339(&dt))
             }
             None => write!(
                 f,
@@ -153,6 +155,11 @@ impl fmt::Display for DltDltTimeStamp<'_> {
             ),
         }
     }
+}
+
+/// Formats the provided date time according to `RFC3339`
+fn format_time_rfc3339<Tz: TimeZone>(dt: &DateTime<Tz>) -> String {
+    dt.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
 }
 
 //   EColumn.DATETIME,
@@ -650,20 +657,17 @@ fn write_tz_string(
 }
 
 pub fn utc_string(time_stamp: &DltTimeStamp) -> String {
-    let dt: Option<DateTime<Utc>> = DateTime::from_timestamp(
+    DateTime::from_timestamp(
         i64::from(time_stamp.seconds),
         time_stamp.microseconds * 1000,
-    );
-    match dt {
-        Some(dt) => {
-            let system_time: std::time::SystemTime = std::time::SystemTime::from(dt);
-            humantime::format_rfc3339(system_time).to_string()
-        }
-        None => format!(
+    )
+    .map(|dt| format_time_rfc3339(&dt))
+    .unwrap_or_else(|| {
+        format!(
             "no valid timestamp for {}s/{}us",
             time_stamp.seconds, time_stamp.microseconds,
-        ),
-    }
+        )
+    })
 }
 
 fn message_type(msg: &Message, message_info: Option<&str>) -> Option<MessageType> {

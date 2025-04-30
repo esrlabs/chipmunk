@@ -1,9 +1,9 @@
 import { Subject } from '@platform/env/subscription';
-import { scheme_color_match, getNextColor } from '@styles/colors';
+import { getNextColor } from '@styles/colors';
 import { DisableConvertable } from '../disabled/converting';
 import { Hash, Recognizable } from '@platform/types/storage/entry';
 import { ChartDefinition, ChartType } from '@platform/types/chart';
-
+import { styles } from '@ui/service/styles';
 import { Json } from '@platform/types/storage/json';
 import { unique } from '@platform/env/sequence';
 import { error } from '@platform/log/utils';
@@ -136,7 +136,7 @@ export class ChartRequest
         super();
         const defaultMatchColor =
             settings.defaults['general.colors.default_chart'] === undefined
-                ? scheme_color_match
+                ? styles.colors().scheme_color_match
                 : settings.defaults['general.colors.default_chart'];
         this.definition = {
             filter: def.filter,

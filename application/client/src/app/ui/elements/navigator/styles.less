@@ -12,10 +12,10 @@ app-navigator {
         width: 100%;
         overflow: hidden;
         & div.collection-actions{
-            border-top: thin solid @scheme-color-4;
+            border-top: thin solid var(--scheme-color-4);
             & p.warning {
                 padding: 6px 12px;
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
                 overflow: hidden;
             }
         }
@@ -30,8 +30,8 @@ app-navigator {
             position: absolute;
             right: 12px;
             font-size: 11px;
-            background: @scheme-color-4;
-            color: @scheme-color-0;
+            background: var(--scheme-color-4);
+            color: var(--scheme-color-0);
             z-index: 1;
             padding: 3px 6px;
             min-width: 78px;
@@ -41,7 +41,7 @@ app-navigator {
             left:12px;
             right: 12px;
             height: 1px;
-            border-top: thin solid @scheme-color-4;
+            border-top: thin solid var(--scheme-color-4);
             z-index: 1;
         }
     
@@ -50,19 +50,19 @@ app-navigator {
         padding-bottom: 12px;
         text-align: center;
         & button {
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
         }
     }
     & p.info {
         padding: 3px 12px;
-        color: @scheme-color-1;
+        color: var(--scheme-color-1);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     & p.sub-info {
         padding: 3px 12px 3px 24px;
-        color: @scheme-color-2;
+        color: var(--scheme-color-2);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -70,7 +70,7 @@ app-navigator {
     & div.filter {
         height: 41px;
         width: 100%;
-        background: @scheme-color-5;
+        background: var(--scheme-color-5);
         overflow: hidden;
     }
     & div.actions {
@@ -87,16 +87,16 @@ app-navigator {
         overflow: hidden;
         text-overflow: ellipsis;
         &:hover {
-            background: @scheme-color-hover;
+            background: var(--scheme-color-hover);
             &::before {
-                background: @scheme-color-hover;
+                background: var(--scheme-color-hover);
             }
         }
         &.selected,
         &.selected:hover {
-            background: @scheme-color-accent-50;
+            background: var(--scheme-color-accent-50);
             &::before {
-                background: @scheme-color-accent-50;
+                background: var(--scheme-color-accent-50);
             }
         }
         &::before {
@@ -113,7 +113,7 @@ app-navigator {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
             padding: 0 12px;
             & span.major {
                 margin-right: 12px;
@@ -121,18 +121,18 @@ app-navigator {
             & span.major,
             & span.minor {
                 & > span {
-                    background-color: @scheme-color-3;
+                    background-color: var(--scheme-color-3);
                 }
             }
         }        
     }
     & div.stat {
         padding-bottom: 12px;
-        border-top: thin solid @scheme-color-4;
+        border-top: thin solid var(--scheme-color-4);
     }
     & div.progress {
         & p {
-            color: @scheme-color-1;
+            color: var(--scheme-color-1);
             display: block;
             text-align: center;
         }

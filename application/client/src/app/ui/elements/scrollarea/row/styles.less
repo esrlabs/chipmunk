@@ -13,13 +13,13 @@
     cursor: text;
     position: relative;
     &[data-selected="true"] {
-        background: @scheme-color-4;
+        background: var(--scheme-color-4);
     }
     & span.tooltip {
         position: absolute;
         display: none;
-        background: @scheme-color-accent;
-        color: @scheme-color-0;
+        background: var(--scheme-color-accent);
+        color: var(--scheme-color-0);
         padding: 3px 6px;
         border-radius: 2px;
         z-index: 10;
@@ -44,7 +44,7 @@
                     width: 4px;
                     height: 4px;
                     border-radius: 2px;
-                    background: @scheme-color-accent;
+                    background: var(--scheme-color-accent);
                 }
             }
         }
@@ -55,7 +55,7 @@
         white-space: nowrap;
         left:0;
         z-index: 1;
-        background-color: @scheme-color-5;
+        background-color: var(--scheme-color-5);
         & span.icon{
             position: absolute;
             display: inline-block;
@@ -64,7 +64,7 @@
             font-size: 12px;
             width: 16px;
             height: 16px;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
             cursor: default;
         }
         & span.next-match-distance {
@@ -75,10 +75,10 @@
             & span.codicon {
                 font-size: 14px;
                 padding-top: 2px;
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
                 cursor: default;
                 &:hover{
-                    color: @scheme-color-accent;
+                    color: var(--scheme-color-accent);
                 }
             }
         }
@@ -87,7 +87,7 @@
             display: inline-block;
             top: 2px;
             margin-left: -14px;
-            color: @scheme-color-warning;
+            color: var(--scheme-color-warning);
             font-size: 10px;
             line-height: 10px;
         }
@@ -129,7 +129,7 @@
                 z-index: 1;
                 font-size: 0.8rem;
                 line-height: 0.9rem;
-                color: @scheme-color-6;
+                color: var(--scheme-color-6);
                 padding: 0 0.5rem;
                 opacity: 0;
                 pointer-events: none;
@@ -153,9 +153,9 @@
             vertical-align: top;
             margin: 0 8px;
             padding: 0 8px 0 0;
-            border-right: thin @scheme-color-4 solid;
+            border-right: thin var(--scheme-color-4) solid;
             cursor: default;
-            color: @scheme-color-2;
+            color: var(--scheme-color-2);
             user-select: none;
             &[data-bookmarked="true"] {
                 &::after {
@@ -166,14 +166,14 @@
                     bottom: 0;
                     right: 0;
                     width: 4px;
-                    background: @scheme-color-accent;
+                    background: var(--scheme-color-accent);
                 }
                 &:hover::after {
-                    background: lighten(@scheme-color-accent, 20%);
+                    background: var(--scheme-color-accent-lighten-20);
                 }
             }
             & span.filler {
-                color: @scheme-color-4;
+                color: var(--scheme-color-4);
                 font-variant-numeric: inherit;
                 line-height: inherit;
                 height: inherit;
@@ -225,7 +225,7 @@
                     height: 0;
                     border-right: none;
                     border-top: 4px solid transparent;
-                    border-left: 8px solid @scheme-color-accent;
+                    border-left: 8px solid var(--scheme-color-accent);
                     border-bottom: 4px solid transparent;
                     top: 4px;
                 }
@@ -244,7 +244,7 @@
                 bottom: 0;
                 right: 0;
                 width: 4px;
-                .gradient(linear; @scheme-color-2, lighten(@scheme-color-2, 4%));
+                background: var(--scheme-color-5-darken-5);
             }
         }
     }
@@ -259,8 +259,8 @@
     &.bookmarked {
         & div.signature {
             & span.number {
-                background: @scheme-color-warning;
-                color: @scheme-color-7;
+                background: var(--scheme-color-warning);
+                color: var(--scheme-color-7);
                 &::after {
                     position: absolute;
                     display: block;
@@ -269,13 +269,13 @@
                     bottom: 0;
                     left: -4px;
                     width: 4px;
-                    background: @scheme-color-warning;
+                    background: var(--scheme-color-warning);
                 }
             }
         }
     }
     &.selected {
-        /*background: @scheme-color-3;*/
+        /*background: var(--scheme-color-3);*/
         &::after {
             position: absolute;
             content: '';
@@ -283,7 +283,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: fade(@scheme-color-0, 35%);
+            background: var(--scheme-color-0-fade-35);
             pointer-events: none;
         }
     }
@@ -299,7 +299,7 @@
         vertical-align: top;
         &.pending {
             width: 100%;
-            background: @scheme-color-4;
+            background: var(--scheme-color-4);
             margin-top: 3px;
             line-height: 10px;
             height: 10px;

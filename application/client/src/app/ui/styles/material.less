@@ -7,7 +7,7 @@ mat-form-field.material-mofication-normal {
     }
     &.black {
         & div.mat-mdc-text-field-wrapper {
-            background: @scheme-color-5;
+            background: var(--scheme-color-5);
         }
     }
     &.row {
@@ -30,7 +30,7 @@ mat-form-field.material-mofication-normal {
                 font-size: 14px;
                 font-weight: 400;
                 top: 24px!important;
-                color: @scheme-color-2!important;
+                color: var(--scheme-color-2)!important;
             }
         }    
     }
@@ -44,7 +44,7 @@ mat-form-field.material-mofication-normal {
                 font-size: 14px;
                 font-weight: 400;
                 top: 24px!important;
-                color: @scheme-color-2!important;
+                color: var(--scheme-color-2)!important;
             }
         }
     }
@@ -57,17 +57,17 @@ mat-form-field.material-mofication-normal {
     & .mdc-text-field--invalid:not(.mdc-text-field--disabled) {
         & .mdc-line-ripple::before,
         & .mdc-line-ripple::after {
-            border-color: @scheme-color-warning!important;
+            border-color: var(--scheme-color-warning)!important;
         }
     }
 }
 
 button[mat-stroked-button][disabled] {
-    background: @scheme-color-3-15;
-    border-color: @scheme-color-3-15;
+    background: var(--scheme-color-3-15);
+    border-color: var(--scheme-color-3-15);
     cursor: default;
     & * {
-        color: @scheme-color-3;
+        color: var(--scheme-color-3);
     }
     & .mat-mdc-button-persistent-ripple,
     & .mat-mdc-focus-indicator,
@@ -76,10 +76,10 @@ button[mat-stroked-button][disabled] {
         display: none;
     }
     &:hover {
-        background: @scheme-color-3-15;
-        border-color: @scheme-color-3-15;
+        background: var(--scheme-color-3-15);
+        border-color: var(--scheme-color-3-15);
         & * {
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
         }
     }
 }
@@ -96,10 +96,10 @@ button[mat-stroked-button] {
 }
 
 & mat-error {
-    color: @scheme-color-warning!important;
+    color: var(--scheme-color-warning)!important;
     line-height: 12px;
     & * {
-        color: @scheme-color-warning!important;
+        color: var(--scheme-color-warning)!important;
         font-weight: 400;
     }
 }
@@ -127,7 +127,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             height: 24px;
             & div.mdc-notched-outline {
                 & * {
-                    border: thin solid @scheme-color-3;
+                    border: thin solid var(--scheme-color-3);
                     border-radius: 0;
                 }
                 & div.mdc-notched-outline__leading {
@@ -150,7 +150,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             & div.mat-mdc-form-field-flex {
                 & div.mdc-notched-outline {
                     & * {
-                        border-color: @scheme-color-active!important;
+                        border-color: var(--scheme-color-active)!important;
                     }
                 }    
             }
@@ -161,7 +161,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             & div.mat-mdc-form-field-flex {
                 & div.mdc-notched-outline {
                     & * {
-                        border-color: @scheme-color-accent!important;
+                        border-color: var(--scheme-color-accent)!important;
                     }
                 }    
             }
@@ -172,7 +172,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             & div.mat-mdc-form-field-flex {
                 & div.mdc-notched-outline {
                     & * {
-                        border-color: @scheme-color-warning!important;
+                        border-color: var(--scheme-color-warning)!important;
                     }
                 }    
             }
@@ -189,7 +189,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
                 }
                 & div.mdc-notched-outline {
                     & * {
-                        border-color: @scheme-color-5-00;
+                        border-color: var(--scheme-color-5-00);
                     }
                 }
             }
@@ -197,7 +197,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
                 & div.mat-mdc-form-field-flex {
                     & div.mdc-notched-outline {
                         & * {
-                            border-color: @scheme-color-5-00!important;
+                            border-color: var(--scheme-color-5-00)!important;
                         }
                     }    
                 }
@@ -213,7 +213,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
                     }
                     & div.mdc-notched-outline {
                         & * {
-                            border-color: @scheme-color-accent!important;
+                            border-color: var(--scheme-color-accent)!important;
                         }
                     }    
                 }
@@ -222,7 +222,7 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
                 & div.mat-mdc-form-field-flex {
                     & div.mdc-notched-outline {
                         & * {
-                            border-color: @scheme-color-accent!important;
+                            border-color: var(--scheme-color-accent)!important;
                         }
                     }    
                 }
@@ -267,17 +267,17 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
 }
 
 *.input-outside-border:has(mat-form-field) {
-    border: thin solid @scheme-color-3;
+    border: thin solid var(--scheme-color-3);
     transition: border-color 50ms;
     &:hover {
-        border-color: @scheme-color-active;
+        border-color: var(--scheme-color-active);
     }
 }
 
 *.input-outside-border:has(.mat-focused) {
-    border-color: @scheme-color-accent;
+    border-color: var(--scheme-color-accent);
     &:hover {
-        border-color: @scheme-color-accent;
+        border-color: var(--scheme-color-accent);
     }
 }
 
@@ -289,11 +289,11 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             font-size: 14px;
             width: 100%;
             & span {
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
                 white-space: nowrap;
                 & span {
                     font-weight: 700;
-                    color: @scheme-color-0;
+                    color: var(--scheme-color-0);
                 }
             }
         }
@@ -305,11 +305,11 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
             & span.caption {
                 flex: auto;
                 font-size: 14px;
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
                 white-space: nowrap;
                 & span {
                     font-weight: 700;
-                    color: @scheme-color-0;
+                    color: var(--scheme-color-0);
                 }
             }
             & mat-icon {
@@ -317,9 +317,9 @@ mat-form-field.mat-mdc-form-field-type-mat-input.material-mofication-outline {
                 height: 16px;
                 width: 16px;
                 margin: 0;
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
                 &:hover {
-                    color: @scheme-color-0;
+                    color: var(--scheme-color-0);
                 }
             }
         }
@@ -379,7 +379,7 @@ mat-card {
     margin: 6px;
     & mat-card-title {
         padding: 8px 16px;
-        color: @scheme-color-1;
+        color: var(--scheme-color-1);
         font-size: 15px!important;
         letter-spacing: normal!important;
     }
@@ -391,14 +391,14 @@ mat-card {
     }
     & mat-card-subtitle {
         padding: 0 16px 8px 16px;
-        color: @scheme-color-3;
+        color: var(--scheme-color-3);
         font-size: 13px!important;
         letter-spacing: normal!important;
     }
     & mat-card-content {
         padding: 0 16px;
         & * {
-            color: @scheme-color-1;
+            color: var(--scheme-color-1);
         }
     }
     &.no-left-margin {
@@ -434,7 +434,7 @@ button.small {
     padding: 0;
     font-size: 12px;
     height: 24px!important;
-    color: @scheme-color-1!important;
+    color: var(--scheme-color-1)!important;
     display: inline-block;
     margin: 0px 6px;
 }
@@ -468,15 +468,15 @@ table[mat-table] {
 p.material-menu-label {
     font-size: 13px;
     padding: 0 16px;
-    color: @scheme-color-3;
+    color: var(--scheme-color-3);
 }
 
 mat-snack-bar-container {
     & .mdc-snackbar__surface {
-        background-color: @scheme-color-4!important;
+        background-color: var(--scheme-color-4)!important;
     }
     & * {
-        color: @scheme-color-1;
+        color: var(--scheme-color-1);
     }
 }
 

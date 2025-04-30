@@ -255,7 +255,7 @@ export class Service extends Implementation {
         if (!this._files.has(key)) {
             this._files.set(
                 key,
-                new FileController(path.join(paths.getStorage(), `${key}.storage`)),
+                new FileController(path.join(paths.getStorage(), `${key}.storage`)).init(),
             );
         }
         const accessor = this._files.get(key);

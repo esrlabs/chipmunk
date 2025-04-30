@@ -1,3 +1,21 @@
+# 3.17.0 (12.04.2025)
+
+## Fixes
+- Fix the scrollbar issue (disappeared on tab switch)
+- Fix local storage (on save)
+
+## Features
+- Add support of multiple themes
+- Add Light Theme
+
+# 3.16.6 (06.04.2025)
+
+## Fixes
+- Fix sticky scrolling issue
+
+## Changes
+- Refactoring an infrastructure of parsers
+
 # 3.16.5 (28.03.2025)
 
 ## Changes

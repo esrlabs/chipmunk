@@ -15,24 +15,24 @@
     vertical-align: top;
     font-weight: 500;
     &.match{
-        background: @scheme-color-2;
-        color: @scheme-color-5;
+        background: var(--scheme-color-2);
+        color: var(--scheme-color-5);
         font-weight: 600;
 
     }
     &.accent{
-        background: @scheme-color-accent;
-        color: @scheme-color-0;
+        background: var(--scheme-color-accent);
+        color: var(--scheme-color-0);
         font-weight: 600;
     }
     &.timestampmatch{
         color:inherit;
-        background: fade(@scheme-color-accent, 30%);
+        background: var(--scheme-color-accent-fade-30);
         cursor: default;
         position: relative;
         &:hover{
-            background: fade(@scheme-color-accent, 60%);
-            color: @scheme-color-0;
+            background: var(--scheme-color-accent-fade-60);
+            color: var(--scheme-color-0);
             font-weight: 600;
         }
         
@@ -41,16 +41,16 @@
 app-scrollarea-row {
     &[data-selected="true"] {
         & span.nested{
-            background:  @scheme-color-accent;
-            color: @scheme-color-7;
+            background:  var(--scheme-color-accent);
+            color: var(--scheme-color-7);
         }
     }
 }
 & span.injected-row-comment {
-    background: @scheme-color-warning-light;
-    color: @scheme-color-0;
+    background: var(--scheme-color-warning-light);
+    color: var(--scheme-color-0);
     &.pending {
-        background: @scheme-color-warning-dark;
+        background: var(--scheme-color-warning-dark);
     }
 }
 & .console-content,

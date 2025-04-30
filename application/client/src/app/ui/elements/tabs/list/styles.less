@@ -1,14 +1,12 @@
 @import '../../../styles/variables.less';
 
-@background: lighten(@scheme-color-5, 15%);
-
 :host {
     position: absolute;
     display: block;
-    background: @background;
+    background: var(--scheme-color-5-lighten-15);
     & div.arrow-left {
         position: absolute;
-        background: @background;
+        background: var(--scheme-color-5-lighten-15);
         display: none;
         &.top {
             display: block;
@@ -23,14 +21,14 @@
                 width: 100%;
                 left: 0;
                 padding: 7px 0 0 5px;
-                color: @scheme-color-1;
+                color: var(--scheme-color-1);
             }
         }
     }
     & div.arrow-right {
         position: absolute;
         display: none;
-        background: @background;
+        background: var(--scheme-color-5-lighten-15);
         &.top {
             display: block;
             width: 1rem;
@@ -44,7 +42,7 @@
                 width: 100%;
                 left: 0;
                 padding: 7px 0 0 5px;
-                color: @scheme-color-1;
+                color: var(--scheme-color-1);
             }
         }
     }
@@ -75,13 +73,13 @@
                 cursor: default;
                 overflow: hidden;
                 & mat-icon {
-                    color: @scheme-color-0;
+                    color: var(--scheme-color-0);
                     padding: 3px 6px 3px 2px;
                 }
                 & p.title {
                     display: inline-block;
                     white-space: nowrap;
-                    color: @scheme-color-1;
+                    color: var(--scheme-color-1);
                     opacity: 0.5;
                     max-width: 10rem;
                     overflow: hidden;
@@ -103,10 +101,10 @@
                 & mat-icon.close {
                     font-size: 18px;
                     opacity: 0;
-                    color: @scheme-color-3;
+                    color: var(--scheme-color-3);
                     vertical-align: top;
                     &:hover {
-                        color: @scheme-color-1;
+                        color: var(--scheme-color-1);
                     }
                 }
                 &:hover {
@@ -116,18 +114,18 @@
                 }
                 &.active {
                     box-sizing: content-box !important;
-                    background: @scheme-color-5;
+                    background: var(--scheme-color-5);
                     &::after {
                         position: absolute;
                         display: block;
                         content: '';
-                        background: @scheme-color-5;
+                        background: var(--scheme-color-5);
                     }
                     & mat-icon.close {
                         opacity: 1;
                     }
                     & p.title {
-                        color: @scheme-color-1;
+                        color: var(--scheme-color-1);
                         opacity: 1;
                     }
                 }
@@ -162,12 +160,12 @@
                     }
                     &.active {
                         box-sizing: content-box !important;
-                        background: @scheme-color-5;
+                        background: var(--scheme-color-5);
                         &::after {
                             width: 100%;
                             height: 2px;
                             bottom: -1px;
-                            background: @scheme-color-5;
+                            background: var(--scheme-color-5);
                         }
                         & mat-icon.close {
                             transform: translateY(0);
@@ -211,12 +209,12 @@
                         }
                     }
                     &.active {
-                        background: @scheme-color-5;
+                        background: var(--scheme-color-5);
                         &::after {
                             width: 100%;
                             height: 2px;
                             bottom: -1px;
-                            background: @scheme-color-5;
+                            background: var(--scheme-color-5);
                         }
                         & mat-icon.close {
                             transform: translateY(0);

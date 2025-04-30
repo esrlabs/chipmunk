@@ -10,4 +10,6 @@ export * as JumpTo from './jumpto';
 export * as FindInSearch from './find';
 export * as ExportSessionState from './export.session.state';
 export * as ImportSessionState from './import.session.state';
+export * as ThemeLight from './theme.light';
+export * as ThemeDark from './theme.dark';
 export * as PluginsManager from './plugins_manager';

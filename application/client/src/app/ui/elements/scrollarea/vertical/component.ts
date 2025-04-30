@@ -38,7 +38,6 @@ export class ScrollAreaVerticalComponent
 
     private _height: number = 0;
     private _fillerHeight: number = 0;
-    private _count: number = 0;
     private _rowsInView: number = 0;
     private _scrollEventLockToken: LockToken = new LockToken(-1);
 
@@ -53,7 +52,7 @@ export class ScrollAreaVerticalComponent
             return;
         }
         const rate = target.scrollTop / (target.scrollHeight - target.offsetHeight);
-        const position = Math.round((this._count - this._rowsInView) * rate);
+        const position = Math.round((this.service.getLen() - this._rowsInView) * rate);
         this.scrolling.next(position > this.service.getLen() ? this.service.getLen() : position);
     }
 
@@ -76,13 +75,8 @@ export class ScrollAreaVerticalComponent
 
     public ngAfterContentInit() {
         this._scrollEventLockToken.lock();
-        this._count = this.service.getLen();
         this.env().subscriber.register(
-            this.service.onLen((len: number) => {
-                if (this._count === len) {
-                    return;
-                }
-                this._count = len;
+            this.service.onLen((_len: number) => {
                 this._calculate();
             }),
             this.holder.onHeightChange((height: number) => {
@@ -100,7 +94,7 @@ export class ScrollAreaVerticalComponent
                     return;
                 }
                 this.detectChanges();
-                const position = event.range.start / this._count;
+                const position = event.range.start / this.service.getLen();
                 this.elRef.nativeElement.scrollTop =
                     this.elRef.nativeElement.scrollHeight * position;
             }),
@@ -118,7 +112,7 @@ export class ScrollAreaVerticalComponent
     }
 
     private _calculate() {
-        const fillerHeight: number = this._count * this.service.getItemHeight();
+        const fillerHeight: number = this.service.getLen() * this.service.getItemHeight();
         this._rowsInView = Math.floor(this._height / this.service.getItemHeight());
         if (fillerHeight === 0 || this._height === 0 || this._height > fillerHeight) {
             this._fillerHeight = 0;

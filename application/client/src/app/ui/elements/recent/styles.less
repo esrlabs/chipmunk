@@ -7,7 +7,7 @@ app-recent-actions {
     width: 100%;
     & div.action {
         position: relative;
-        border-bottom: thin solid @scheme-color-4;
+        border-bottom: thin solid var(--scheme-color-4);
         padding: 6px 0;
         display: flex;
         width: 100%;
@@ -20,9 +20,9 @@ app-recent-actions {
             flex: auto;
         }
         &:hover {
-            background: @scheme-color-hover;
+            background: var(--scheme-color-hover);
             &::before {
-                background: @scheme-color-hover;
+                background: var(--scheme-color-hover);
             }
         }
         &::before {
@@ -42,7 +42,7 @@ app-recent-actions {
             & span.major,
             & span.minor {
                 & > span {
-                    background-color: @scheme-color-3;
+                    background-color: var(--scheme-color-3);
                 }
             }
         }        
@@ -51,7 +51,7 @@ app-recent-actions {
         position: absolute;
         z-index: 1000;
         padding: 6px 12px;
-        background: @scheme-color-warning-light;
+        background: var(--scheme-color-warning-light);
         top: 6px;
         right: 6px;
         box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);

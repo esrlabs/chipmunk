@@ -8,13 +8,13 @@ app-elements-tree {
     div.greeting {
         padding: 12px;
         & p {
-            color: @scheme-color-1;
+            color: var(--scheme-color-1);
         }
         & div.buttons {
             padding-top: 12px;
             text-align: center;
             & button {
-                color: @scheme-color-0;
+                color: var(--scheme-color-0);
             }
         }
     }
@@ -69,11 +69,11 @@ app-elements-tree {
                     height: 100%;
                     right: 0;
                     top:0;
-                    background: @scheme-color-active;
+                    background: var(--scheme-color-active);
                 }
             }
             &[data-exists="false"] {
-                color: @scheme-color-4;
+                color: var(--scheme-color-4);
             }
             &:hover {
                 &:before {
@@ -84,7 +84,7 @@ app-elements-tree {
                     height: 100%;
                     left: -16px;
                     top:0;
-                    background: @scheme-color-hover;
+                    background: var(--scheme-color-hover);
                     z-index: -1;
                 }
             }
@@ -121,7 +121,7 @@ app-elements-tree {
                 }
                 & span.ext {
                     margin-right: 6px;
-                    color: @scheme-color-2;
+                    color: var(--scheme-color-2);
                     flex: none;
                     font-size: 10px;
                     line-height: 10px;
@@ -130,7 +130,7 @@ app-elements-tree {
                     margin-left: 12px;
                 }
                 & span.match {
-                    background: @scheme-color-active;
+                    background: var(--scheme-color-active);
                 }
             }
         }

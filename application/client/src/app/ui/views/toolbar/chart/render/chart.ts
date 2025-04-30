@@ -1,5 +1,6 @@
 import { ResultSearchValues, Point } from '@platform/types/bindings';
-import { scheme_color_0, scheme_color_5_75, shadeColor } from '@styles/colors';
+import { shadeColor } from '@styles/colors';
+import { styles } from '@ui/service/styles';
 import { Base } from './render';
 import { ChartRequest, ChartType } from '@service/session/dependencies/search/charts/request';
 import { ChartCoors } from './chart.coors';
@@ -34,11 +35,11 @@ export class Render extends Base {
             this.context.lineTo(size.width, y);
         }
         this.context.lineWidth = 1;
-        this.context.strokeStyle = scheme_color_0;
+        this.context.strokeStyle = styles.colors().scheme_color_0;
         this.context.setLineDash([1, 1]);
         this.context.stroke();
         this.context.closePath();
-        this.context.fillStyle = scheme_color_0;
+        this.context.fillStyle = styles.colors().scheme_color_0;
         this.context.font = '10px sans-serif';
         this.context.textAlign = 'right';
         const diffStep = diff / GRID_LINES_COUNT;
@@ -47,7 +48,7 @@ export class Render extends Base {
             const text = (min + diffStep * (GRID_LINES_COUNT - s)).toFixed(2);
             const box = this.context.measureText(text);
             let yOffset = -2;
-            this.context.fillStyle = scheme_color_5_75;
+            this.context.fillStyle = shadeColor(styles.colors().scheme_color_5, 75);
             if (s === 0) {
                 this.context.textBaseline = 'top';
                 yOffset = 2;
@@ -56,7 +57,7 @@ export class Render extends Base {
                 this.context.textBaseline = 'bottom';
                 this.context.fillRect(size.width - 18 - box.width - 6, y - 16, box.width + 12, 16);
             }
-            this.context.fillStyle = scheme_color_0;
+            this.context.fillStyle = styles.colors().scheme_color_0;
             this.context.fillText(text, size.width - 18, y + yOffset);
         }
         this.context.setLineDash([]);
@@ -158,7 +159,8 @@ export class Render extends Base {
                     coors.push([x, y]);
                     this.coors.add(x, value, position, point.min, point.max, chart);
                 });
-                const color = chart === undefined ? scheme_color_0 : chart.definition.color;
+                const color =
+                    chart === undefined ? styles.colors().scheme_color_0 : chart.definition.color;
                 const lineWidth =
                     chart === undefined
                         ? ChartRequest.DEFAULT_LINE_WIDTH
@@ -201,7 +203,8 @@ export class Render extends Base {
                     coors.push([x, y]);
                     this.coors.add(x, value, position, point.min, point.max, chart);
                 });
-                const color = chart === undefined ? scheme_color_0 : chart.definition.color;
+                const color =
+                    chart === undefined ? styles.colors().scheme_color_0 : chart.definition.color;
                 const lineWidth =
                     chart === undefined
                         ? ChartRequest.DEFAULT_LINE_WIDTH
@@ -249,7 +252,8 @@ export class Render extends Base {
                     coors.push([x, y]);
                     this.coors.add(x, value, position, point.min, point.max, chart);
                 });
-                const color = chart === undefined ? scheme_color_0 : chart.definition.color;
+                const color =
+                    chart === undefined ? styles.colors().scheme_color_0 : chart.definition.color;
                 const lineWidth =
                     chart === undefined
                         ? ChartRequest.DEFAULT_LINE_WIDTH

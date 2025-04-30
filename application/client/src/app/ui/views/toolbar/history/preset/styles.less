@@ -6,31 +6,31 @@
     div.section {
         position: relative;
         padding: 3px 0;
-        border-bottom: solid thin @scheme-color-4;
+        border-bottom: solid thin var(--scheme-color-4);
     }
     & input {
         margin: 0 6px;
         padding: 0;
-        border-bottom: dashed 1px @scheme-color-1;
+        border-bottom: dashed 1px var(--scheme-color-1);
         flex: auto;
         white-space: nowrap;
-        color: @scheme-color-0;
+        color: var(--scheme-color-0);
     }
     & mat-card {
         margin: 12px 6px 12px 12px;
         & mat-card-title {
-            color: @scheme-color-1;
+            color: var(--scheme-color-1);
             font-size: 12px;
         }
         & mat-card-subtitle {
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
             font-size: 12px;
         }
         &.no-left-margin {
             margin-left: 6px;
         }
         &::hover {
-            background: @scheme-color-4;
+            background: var(--scheme-color-4);
         }
         & div.more {
             position: relative;

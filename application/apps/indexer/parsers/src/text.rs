@@ -1,9 +1,6 @@
-use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
+use crate::{Error, LogMessage, ParseYield, SingleParser};
 use serde::Serialize;
 use std::{fmt, io::Write};
-
-/// The most likely minimal bytes count needed to parse a text message.
-const MIN_MSG_LEN: usize = 1;
 
 pub struct StringTokenizer {}
 
@@ -26,7 +23,10 @@ impl LogMessage for StringMessage {
     }
 }
 
-impl StringTokenizer {
+impl SingleParser<StringMessage> for StringTokenizer
+where
+    StringMessage: LogMessage,
+{
     fn parse_item(
         &mut self,
         input: &[u8],
@@ -56,43 +56,30 @@ impl StringTokenizer {
     }
 }
 
-impl Parser<StringMessage> for StringTokenizer
-where
-    StringMessage: LogMessage,
-{
-    fn parse(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<StringMessage>>)>, Error> {
-        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
-            self.parse_item(input, timestamp)
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::Parser;
+
     use super::*;
 
     #[test]
     fn multiple_parse_calls() {
         let mut parser = StringTokenizer {};
         let content = b"hello\nworld\n";
-        let (consumed_1, first_msg) = parser.parse(content, None).unwrap().next().unwrap();
+        let (consumed_1, first_msg) = parser.parse_item(content, None).unwrap();
         match first_msg {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
             _ => panic!("First message did not match"),
         }
         let rest_1 = &content[consumed_1..];
         println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
-        let (consumed_2, second_msg) = parser.parse(rest_1, None).unwrap().next().unwrap();
+        let (consumed_2, second_msg) = parser.parse_item(rest_1, None).unwrap();
         match second_msg {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
             _ => panic!("Second message did not match"),
         }
         let rest_2 = &rest_1[consumed_2..];
-        let (consumed_3, third_msg) = parser.parse(rest_2, None).unwrap().next().unwrap();
+        let (consumed_3, third_msg) = parser.parse_item(rest_2, None).unwrap();
         println!(
             "rest_3 = {:?}",
             String::from_utf8_lossy(&rest_2[consumed_3..])

@@ -53,8 +53,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -97,8 +95,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -180,8 +176,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -202,8 +196,50 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.ThemeDark.Request,
+                    (
+                        _request: Requests.Actions.ThemeDark.Request,
+                    ): CancelablePromise<Requests.Actions.ThemeDark.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.ThemeDark.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call ThemeDark action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.ThemeDark.Response());
+                                });
+                        });
+                    },
+                ),
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.ThemeLight.Request,
+                    (
+                        _request: Requests.Actions.ThemeLight.Request,
+                    ): CancelablePromise<Requests.Actions.ThemeLight.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.ThemeLight.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call ThemeLight action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.ThemeLight.Response());
+                                });
+                        });
+                    },
+                ),
             api
                 .transport()
                 .respondent(
@@ -224,8 +260,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -248,8 +282,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -270,8 +302,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -294,8 +324,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -316,8 +344,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(
@@ -340,8 +366,6 @@ export class Service extends Implementation {
                         });
                     },
                 ),
-        );
-        this.register(
             api
                 .transport()
                 .respondent(

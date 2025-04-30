@@ -11,7 +11,7 @@
     & div.frame-holder {
         position: relative;
         display: block;
-        background: @scheme-color-5;
+        background: var(--scheme-color-5);
         overflow: hidden;
         box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.4);
         height: 100%;
@@ -25,7 +25,7 @@
             height: @status-bar-height;
             width: 100%;
             overflow: hidden;
-            .gradient(linear; darken(@scheme-color-5, 2%), lighten(@scheme-color-5, 2%));
+            background: var(--scheme-color-2-lighten-5);
             & p.caption {
                 position: absolute;
                 display: block;
@@ -34,7 +34,7 @@
                 left: 0;
                 right: @status-bar-height;
                 font-size: 0.75rem;
-                color: @scheme-color-1;
+                color: var(--scheme-color-1);
                 padding: 0.15rem 0.5rem;
             }
             & span.close-button {

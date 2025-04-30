@@ -10,7 +10,7 @@
         top: 0;
         right: 16px;
         height: 42px;
-        background: lighten(@scheme-color-5, 15%);
+        background: var(--scheme-color-5-lighten-15);
         padding: 3px 12px 6px 12px;
     }
     & div.controlls {
@@ -18,10 +18,10 @@
         bottom: 0;
         right: 0;
         padding: 6px 0 6px 12px;
-        background: lighten(@scheme-color-5, 15%);
+        background: var(--scheme-color-5-lighten-15);
         & button {
             margin-right: 12px;
-            color: @scheme-color-0;
+            color: var(--scheme-color-0);
         }
     }
     & div.collection {
@@ -34,8 +34,8 @@
             padding: 4px;
             right: 0;
             border-radius: 8px;
-            background: lighten(@scheme-color-5, 15%);
-            box-shadow: 3px 3px 3px @scheme-color-6;
+            background: var(--scheme-color-5-lighten-15);
+            box-shadow: 3px 3px 3px rgba(0,0,0,0.4);
     
         }    
     }
@@ -47,7 +47,7 @@
         overflow-y: auto;    
         & p.no-content {
             margin: 12px 12px 0px 12px;
-            border-bottom: dotted thin @scheme-color-4;
+            border-bottom: dotted thin var(--scheme-color-4);
             padding-bottom: 3px;
         }
         & div.group {

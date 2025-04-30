@@ -9,4 +9,6 @@ export { handler as jumpto } from './jumpto';
 export { handler as find } from './find';
 export { handler as exportSessionState } from './export.session.state';
 export { handler as importSessionState } from './import.session.state';
+export { handler as themeDark } from './theme.dark';
+export { handler as themeLight } from './theme.light';
 export { handler as pluginsManager } from './plugins_manager';

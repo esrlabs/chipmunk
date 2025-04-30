@@ -19,7 +19,7 @@ import { Notification } from '@ui/service/notifications';
 import { Selecting } from '../controllers/selection';
 import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { components } from '@env/decorators/initial';
-import { scheme_color_1 } from '@ui/styles/colors';
+import { styles } from '@ui/service/styles';
 import { TextExportOptions } from '@platform/types/exporting';
 
 import * as dom from '@ui/env/dom';
@@ -470,7 +470,10 @@ export class RowComponent
             const attachment = attachments.getByPos(this.row.position);
             if (attachment !== undefined) {
                 this.attachment = {
-                    color: attachment.color === undefined ? scheme_color_1 : attachment.color,
+                    color:
+                        attachment.color === undefined
+                            ? styles.colors().scheme_color_1
+                            : attachment.color,
                     name: attachment.name,
                 };
             } else {

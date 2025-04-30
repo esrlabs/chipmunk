@@ -6,7 +6,11 @@
     <span class="label range" *ngIf="((range !== undefined) && (range.start === range.end))"
         >{{range.start}}</span
     >
-    <span class="label" [ngStyle]="{'background': label.color}" *ngFor="let label of labels">
+    <span
+        class="label"
+        [ngStyle]="{'background': label.bk, 'color': label.color }"
+        *ngFor="let label of labels"
+    >
         <span class="wrapped" *ngIf="!label.candle">
             <span class="row">{{label.position}}:</span>
             <span class="value"> {{label.value}}</span>
