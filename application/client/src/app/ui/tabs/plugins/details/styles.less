@@ -30,11 +30,11 @@
                 height: 2px;
                 bottom: 0;
                 width: 100%;
-                left:0px;
-                background-color: @scheme-color-accent;
+                left: 0px;
+                background-color: var(--scheme-color-accent);
             }
         }
-        & button { 
+        & button {
             & span.stats {
                 position: relative;
                 display: inline-block;
@@ -42,10 +42,10 @@
                 line-height: 0px;
                 margin: -8px 0 0 6px;
                 &.err {
-                    color: @scheme-color-error;
+                    color: var(--scheme-color-error);
                 }
                 &.warns {
-                    color: @scheme-color-warning;
+                    color: var(--scheme-color-warning);
                 }
             }
         }
@@ -53,7 +53,7 @@
             &:hover {
                 background: none;
             }
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
         }
     }
     & div.readme {
@@ -61,7 +61,6 @@
         overflow-y: auto;
         overflow-x: hidden;
         flex: auto;
-
     }
     & ul.logs {
         position: relative;
@@ -84,14 +83,15 @@
             & span.level {
                 min-width: 40px;
             }
-            &.Info, &.Debug {
-                color: @scheme-color-1,
+            &.Info,
+            &.Debug {
+                color: var(--scheme-color-1);
             }
             &.Err {
-                color: @scheme-color-error-light;
+                color: var(--scheme-color-error-light);
             }
             &.Warn {
-                color:@scheme-color-warning-light;
+                color: var(--scheme-color-warning-light);
             }
         }
     }

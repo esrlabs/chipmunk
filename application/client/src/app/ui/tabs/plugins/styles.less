@@ -11,11 +11,11 @@
     & mat-card {
         margin: 12px 6px 12px 12px;
         & mat-card-title {
-            color: @scheme-color-1;
+            color: var(--scheme-color-1);
             font-size: 16px;
         }
         & mat-card-subtitle {
-            color: @scheme-color-3;
+            color: var(--scheme-color-3);
             font-size: 12px;
         }
         &.no-left-margin {
@@ -37,7 +37,7 @@
             position: absolute;
             z-index: 1000;
             padding: 6px 12px;
-            background: @scheme-color-warning-light;
+            background: var(--scheme-color-warning-light);
             top: 6px;
             right: 6px;
             box-shadow: 3px 3px 3px rgb(0 0 0 / 40%);
@@ -73,7 +73,7 @@
     & button {
         min-width: 150px;
     }
-    & div.controlls{
+    & div.controlls {
         position: relative;
         width: 100%;
         overflow: hidden;
@@ -82,7 +82,7 @@
         height: auto;
         & button {
             margin-left: 8px;
-            min-width:auto;
+            min-width: auto;
         }
     }
 }

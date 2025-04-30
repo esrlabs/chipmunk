@@ -7,13 +7,13 @@
     flex-direction: row;
     cursor: default;
     &.selected {
-        &::after{
+        &::after {
             position: absolute;
             content: '';
             height: 100%;
             left: -2px;
             width: 2px;
-            background: @scheme-color-accent;
+            background: var(--scheme-color-accent);
         }
     }
     & div.icon {
@@ -31,6 +31,6 @@
         }
     }
     &:hover {
-        background: @scheme-color-3-75;
+        background: var(--scheme-color-3-75);
     }
 }
