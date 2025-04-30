@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { NestedDictionaryModule } from './complex/nested_dictionary/module';
 
 import { SettingsScheme } from './component';
 import { SchemeEntry } from './entry/component';
@@ -25,6 +26,7 @@ import { SchemeEntryElement } from './inner/component';
         MatInputModule,
         MatButtonModule,
         MatSelectModule,
+        NestedDictionaryModule,
     ],
     declarations: [SettingsScheme, SchemeEntry, SchemeEntryElement],
     exports: [SettingsScheme],

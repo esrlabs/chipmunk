@@ -14,6 +14,7 @@ export type ValueInput =
     | { KeyNumbers: Map<string, number[]> }
     | { KeyString: Map<string, string> }
     | { KeyStrings: Map<string, string[]> }
+    | { NestedNumbersMap: Map<string, Map<string, Map<string, number>>> }
     | 'Directories'
     | 'Files'
     | 'File'
@@ -23,6 +24,22 @@ export type ValueInput =
 
 interface ValueGetter {
     getValue(): Value;
+}
+
+export type NestedDictionaryStructure = Map<string, Map<string, Map<string, number | string>>>;
+
+export class NestedDictionary<V> implements ValueGetter {
+    public value: V;
+    constructor(
+        public defaults: V,
+        public readonly items: NestedDictionaryStructure,
+        protected readonly getter: (value: V) => Value,
+    ) {
+        this.value = defaults;
+    }
+    public getValue(): Value {
+        return this.getter(this.value);
+    }
 }
 
 export class CheckboxElement implements ValueGetter {
@@ -86,6 +103,7 @@ export class Element {
     public string_input: InputElement<string> | undefined;
     public number_input: InputElement<number> | undefined;
     public named: NamedValuesElement<boolean> | undefined;
+    public nested_dictionary: NestedDictionary<string[]> | undefined;
 
     public readonly changed: Subject<ChangeEvent> = new Subject();
 
@@ -96,6 +114,18 @@ export class Element {
         this.string_input = Element.as_string(origin);
         this.number_input = Element.as_number(origin);
         this.named = Element.as_named_bools(origin);
+        this.nested_dictionary = Element.as_nested_dictionary_numeric(origin);
+    }
+
+    public isField(): boolean {
+        return (
+            this.checkbox !== undefined ||
+            this.numeric_list !== undefined ||
+            this.strings_list !== undefined ||
+            this.string_input !== undefined ||
+            this.number_input !== undefined ||
+            this.named !== undefined
+        );
     }
 
     public change() {
@@ -236,6 +266,17 @@ export class Element {
                       },
                   )
                 : undefined
+            : undefined;
+    }
+
+    static as_nested_dictionary_numeric(
+        origin: ValueInput,
+    ): NestedDictionary<string[]> | undefined {
+        const vl = origin as { NestedNumbersMap: Map<string, Map<string, Map<string, number>>> };
+        return vl.NestedNumbersMap instanceof Map
+            ? new NestedDictionary<string[]>([], vl.NestedNumbersMap, (selections: string[]) => {
+                  return { Strings: selections };
+              })
             : undefined;
     }
 }
