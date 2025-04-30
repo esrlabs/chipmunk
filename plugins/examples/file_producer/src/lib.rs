@@ -21,8 +21,11 @@ const FILE_PATH_ID: &str = "file_path";
 
 /// Simple struct that opens a text file returning its content line by line.
 pub struct FileProducer {
+    /// The buffer read from the underline file.
     reader: BufReader<File>,
+    /// Internal buffer for text read from file to avoid allocating memory on each line.
     line_buffer: String,
+    /// Buffer for produced item from file to avoid allocating memory.
     items_buffer: Vec<ProduceReturn>,
 }
 
@@ -91,16 +94,31 @@ impl Producer for FileProducer {
     fn produce_next(&mut self) -> Result<impl Iterator<Item = ProduceReturn>, ProduceError> {
         for _ in 0..self.items_buffer.capacity() {
             self.line_buffer.clear();
-            self.reader
+            let byte_read = self
+                .reader
                 .read_line(&mut self.line_buffer)
                 .map_err(|err| {
                     ProduceError::Produce(format!("IO error while reading file: {err}"))
                 })?;
 
-            let msg = ParseYield::Message(ParsedMessage::Columns(vec![
-                self.line_buffer.len().to_string(),
-                self.line_buffer.to_owned(),
-            ]));
+            // No more bytes available.
+            if byte_read == 0 {
+                self.items_buffer.push(ProduceReturn::Done);
+                break;
+            }
+
+            // Trim line-break characters.
+            let line = self.line_buffer.trim_end();
+
+            // NOTE: Commented out until Chipmunk host can process render options from
+            // producer plugins.
+            // let msg = ParseYield::Message(ParsedMessage::Columns(vec![
+            //     line.len().to_string(),
+            //     line.to_owned(),
+            // ]));
+
+            let msg = ParseYield::Message(ParsedMessage::Line(line.to_owned()));
+
             self.items_buffer.push(ProduceReturn::Item(msg));
         }
 

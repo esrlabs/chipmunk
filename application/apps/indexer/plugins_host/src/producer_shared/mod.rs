@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use parsers::MessageStreamItem;
 use sources::producer::MessageProducer;
 use stypes::{PluginConfigSchemaItem, PluginInfo, PluginType, SemanticVersion};
 use wasmtime::component::Component;
@@ -19,14 +20,16 @@ mod producer_error;
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM producer plugin.
 pub struct PluginsProducer {
     /// The underline producer plugin for the matching API version.
-    prodcuer: PlugVerProducer,
-    /// Internal beffer for prdouced restuls to avoid allocating memory on each call.
+    producer: PlugVerProducer,
+    /// Internal buffer for produced results to avoid allocating memory on each call.
     items_buffer: Vec<(usize, parsers::MessageStreamItem<PluginParseMessage>)>,
+    /// Specifies if the produce is done producing items for the session.
+    done: bool,
 }
 
-/// Represents the prodcuer plugin for each supported version in plugins API.
+/// Represents the producer plugin for each supported version in plugins API.
 enum PlugVerProducer {
-    Ver010(v0_1_0::prodcuer::PluginProducer),
+    Ver010(v0_1_0::producer::PluginProducer),
 }
 
 impl PluginsProducer {
@@ -39,7 +42,7 @@ impl PluginsProducer {
                 major: 0,
                 minor: 1,
                 patch: 0,
-            } => v0_1_0::prodcuer::PluginProducer::get_info(component).await?,
+            } => v0_1_0::producer::PluginProducer::get_info(component).await?,
             invalid_version => {
                 return Err(PluginHostError::PluginInvalid(format!(
                     "Plugin Version {invalid_version} is not supported"
@@ -90,15 +93,16 @@ impl PluginsProducer {
                 minor: 1,
                 patch: 0,
             } => {
-                let producer = v0_1_0::prodcuer::PluginProducer::initialize(
+                let producer = v0_1_0::producer::PluginProducer::initialize(
                     component,
                     general_config,
                     plugin_configs,
                 )
                 .await?;
                 Ok(Self {
-                    prodcuer: PlugVerProducer::Ver010(producer),
+                    producer: PlugVerProducer::Ver010(producer),
                     items_buffer: Vec::new(),
+                    done: false,
                 })
             }
             invalid_version => Err(PluginHostError::PluginInvalid(format!(
@@ -114,13 +118,13 @@ impl WasmPlugin for PluginsProducer {
     }
 
     async fn plugin_version(&mut self) -> Result<SemanticVersion, PluginError> {
-        match &mut self.prodcuer {
+        match &mut self.producer {
             PlugVerProducer::Ver010(producer) => producer.plugin_version().await,
         }
     }
 
     async fn get_config_schemas(&mut self) -> Result<Vec<PluginConfigSchemaItem>, PluginError> {
-        match &mut self.prodcuer {
+        match &mut self.producer {
             PlugVerProducer::Ver010(producer) => producer.get_config_schemas().await,
         }
     }
@@ -130,15 +134,35 @@ impl MessageProducer<PluginParseMessage> for PluginsProducer {
     async fn read_next_segment(
         &mut self,
     ) -> Option<&mut Vec<(usize, parsers::MessageStreamItem<PluginParseMessage>)>> {
+        if self.done {
+            return None;
+        }
         self.items_buffer.clear();
-        match &mut self.prodcuer {
+        match &mut self.producer {
             PlugVerProducer::Ver010(producer) => {
                 match producer.produce_next(&mut self.items_buffer).await {
-                    Ok(()) => Some(&mut self.items_buffer),
+                    Ok(()) => {
+                        //TODO AAZ: Check if this check impacts the performance.
+                        // Alternatively we can stop the session on Done message inside
+                        // `run_producer()` method in `observing/mod.rs`
+                        //
+                        // Mark the session as done to prevent calling the plugin again
+                        // once it's done.
+                        // The plugin is considered finished if it returns `MessageStreamItem::Done`
+                        // or if it returns no items.
+                        if self
+                            .items_buffer
+                            .last()
+                            .is_none_or(|item| matches!(item.1, MessageStreamItem::Done))
+                        {
+                            self.done = true;
+                        }
+                        Some(&mut self.items_buffer)
+                    }
                     Err(err) => {
                         // TODO: Show errors to user when read_next_segment() signature changes
                         // to provide the errors instead of logging them silently.
-                        log::error!("Producing log items from plagin failed. Error: {err}");
+                        log::error!("Producing log items from plugin failed. Error: {err}");
                         None
                     }
                 }
