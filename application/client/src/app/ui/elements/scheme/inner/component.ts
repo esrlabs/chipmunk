@@ -24,11 +24,15 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
     @Input() provider!: SchemeProvider;
     @Input() element!: Element;
 
+    public field: boolean = false;
+
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
-    public ngAfterContentInit(): void {}
+    public ngAfterContentInit(): void {
+        this.field = this.element.isField();
+    }
 
     public ngAfterViewInit(): void {
         this.detectChanges();

@@ -134,9 +134,19 @@ pub enum ValueInput {
         ts(type = "Map<string, string[]>")
     )]
     KeyStrings(HashMap<String, Vec<String>>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, Map<string, Map<string, number>>>")
+    )]
+    NestedNumbersMap(HashMap<String, HashMap<String, HashMap<String, usize>>>),
+    #[cfg_attr(
+        all(test, feature = "test_and_gen"),
+        ts(type = "Map<string, Map<string, Map<string, string>>>")
+    )]
+    NestedStringsMap(HashMap<String, HashMap<String, HashMap<String, usize>>>),
     Directories,
-    Files,
-    File,
+    Files(Vec<String>),
+    File(Vec<String>),
     Directory,
     Bound {
         output: Box<ValueInput>,

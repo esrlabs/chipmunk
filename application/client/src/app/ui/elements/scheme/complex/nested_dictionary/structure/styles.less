@@ -1,0 +1,40 @@
+@import '../../../../../styles/variables.less';
+
+
+app-el-dlt-extra-structure {
+    position: relative;
+    display: block;
+    width: 100%;
+    & p.title {
+        margin: 8px 0 0px 16px;
+        color: @scheme-color-2;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    & tr{
+        position: relative;
+        &:hover {
+            background-color: @scheme-color-4!important;
+        }
+    }
+    & tr[dataselected="true"] {
+        background: @scheme-color-active;
+        &::after {
+            position: absolute;
+            display: block;
+            content: '';
+            width: 4px;
+            height: 100%;
+            background: @scheme-color-accent;
+            left: 0;
+        }
+        &:hover {
+            background-color: @scheme-color-active-75!important;
+        }
+    }
+    & span.id{
+        & > span {
+            background-color: @scheme-color-3;
+        }
+    }
+}
