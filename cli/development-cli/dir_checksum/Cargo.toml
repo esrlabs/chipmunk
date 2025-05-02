@@ -9,7 +9,7 @@ description = "A Library which provides methods to calculate the checksum of the
 blake3 = { version = "1", features = ["rayon"] }
 ignore = "0.4"
 memmap2 = "0.9"
-rayon = "1"
+rayon.workspace = true
 thiserror = "2"
 log = "0.4"
 
