@@ -54,8 +54,9 @@ pub fn init_location() -> Result<(), Error> {
     Ok(())
 }
 
-/// Return the path for the configuration directory of the Build CLI Tool.
-pub fn config_path() -> PathBuf {
+/// Return the path for the global configuration directory of the Development CLI Tool
+/// within Chipmunk repo.
+pub fn global_configs_path() -> PathBuf {
     Target::CliDev.cwd().join("config")
 }
 
