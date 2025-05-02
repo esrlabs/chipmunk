@@ -6,9 +6,10 @@
 use core::str;
 use std::{fmt::Write, io};
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use console::style;
 use min_versions::MinVersions;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::{dev_tools::DevTool, shell::shell_std_command, version::Version};
 
@@ -41,51 +42,57 @@ enum ToolValidationResult {
 /// messages for all tools.
 pub fn validate_dev_tools() -> anyhow::Result<()> {
     let min_versions = MinVersions::load().context("Loading minimal required versions failed")?;
-    let mut errors = None;
-    for tool in DevTool::all() {
-        let error_msg = match validate_tool(*tool, &min_versions) {
-            ToolValidationResult::Valid | ToolValidationResult::Skipped => continue,
-            ToolValidationResult::CommandFailed(cmd_error) => {
-                let mut err_msg = format!("Required dependency '{tool}' is not installed.");
-                if let Some(cmd_error) = cmd_error {
-                    writeln!(&mut err_msg)?;
-                    write!(&mut err_msg, "Command Error info: {cmd_error}")?;
+
+    // Running the validation in parallel improved the performance significantly since
+    // each tool will spawn a process command and have a regex validation afterward.
+    let validation_errors: Vec<String> = DevTool::all()
+        .into_par_iter()
+        .filter_map(|tool| {
+            let mut error_msg = match validate_tool(*tool, &min_versions) {
+                ToolValidationResult::Valid | ToolValidationResult::Skipped => return None,
+                ToolValidationResult::CommandFailed(cmd_error) => {
+                    let mut err_msg = format!("Required dependency '{tool}' is not installed.\n");
+                    if let Some(cmd_error) = cmd_error {
+                        let _ = writeln!(&mut err_msg, "Command Error info: {cmd_error}");
+                    }
+                    err_msg
                 }
-                err_msg
+                ToolValidationResult::VersionOutdated {
+                    installed,
+                    required,
+                } => {
+                    format!(
+                        "Installed version for '{tool}' is outdated.\n\
+                    Installed Version: {installed}. Minimum Required: {required}\n"
+                    )
+                }
+            };
+
+            if let Some(install_hint) = tool.install_hint() {
+                let _ = writeln!(
+                    error_msg,
+                    "Consider installing/updating it using the command '{install_hint}'"
+                );
             }
-            ToolValidationResult::VersionOutdated {
-                installed,
-                required,
-            } => {
-                format!(
-                    "Installed version for '{tool}' is outdated.\n\
-                    Installed Version: {installed}. Minimum Required: {required}"
-                )
-            }
-        };
 
-        let error_lines =
-            errors.get_or_insert(String::from("Following dependencies are missing:\n"));
+            Some(error_msg)
+        })
+        .collect();
 
-        writeln!(error_lines, "{error_msg}")?;
+    if validation_errors.is_empty() {
+        return Ok(());
+    }
 
-        if let Some(install_hint) = tool.install_hint() {
-            writeln!(
-                error_lines,
-                "Consider installing/updating it using the command '{install_hint}'"
-            )?;
-        }
-
+    let mut error_lines = String::from("Following dependencies are missing/outdated:\n");
+    for err_msg in validation_errors {
+        write!(error_lines, "{err_msg}")?;
         writeln!(
             error_lines,
             "------------------------------------------------------------------"
         )?;
     }
 
-    match errors {
-        Some(err_text) => bail!("{}", err_text.trim_end()),
-        None => Ok(()),
-    }
+    Err(anyhow!("{error_lines}"))
 }
 
 /// Checks if tool is installed by calling for its version then verify that
