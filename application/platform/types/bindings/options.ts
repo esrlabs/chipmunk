@@ -61,8 +61,8 @@ export type ValueInput =
     | { KeyNumbers: Map<string, number[]> }
     | { KeyString: Map<string, string> }
     | { KeyStrings: Map<string, string[]> }
-    | { NestedNumbersMap: Map<string, Map<string, Map<string, number>>> }
-    | { NestedStringsMap: Map<string, Map<string, Map<string, string>>> }
+    | { NestedNumbersMap: [Map<string, Map<string, Map<string, number>>>, Map<string, string>] }
+    | { NestedStringsMap: [Map<string, Map<string, Map<string, string>>>, Map<string, string>] }
     | 'Directories'
     | { Files: Array<string> }
     | { File: Array<string> }

@@ -166,6 +166,9 @@ impl p::Parser<PluginParseMessage> for PluginParser {
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
+        true
+    }
     /// **ATTANTION** That's placeholder. Should be another way to delivery data
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {

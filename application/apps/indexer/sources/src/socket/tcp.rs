@@ -4,6 +4,7 @@ use components::ComponentDescriptor;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{net::SocketAddr, time::Duration};
+use stypes::SourceOrigin;
 use tokio::net::TcpStream;
 
 use super::{handle_buff_capacity, BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
@@ -176,6 +177,15 @@ const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        match origin {
+            SourceOrigin::File(..)
+            | SourceOrigin::Files(..)
+            | SourceOrigin::Folder(..)
+            | SourceOrigin::Folders(..) => false,
+            SourceOrigin::Source => true,
+        }
+    }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("TCP Source"),

@@ -1,7 +1,7 @@
 use crate::serial::serialport::SerialSource;
 use components::{ComponentDescriptor, StaticFieldResult};
 use std::{collections::HashMap, str};
-use stypes::{FieldDesc, LazyFieldDesc, StaticFieldDesc, Value, ValueInput};
+use stypes::{FieldDesc, LazyFieldDesc, SourceOrigin, StaticFieldDesc, Value, ValueInput};
 
 const SERIAL_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
@@ -30,6 +30,15 @@ const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        match origin {
+            SourceOrigin::File(..)
+            | SourceOrigin::Files(..)
+            | SourceOrigin::Folder(..)
+            | SourceOrigin::Folders(..) => false,
+            SourceOrigin::Source => true,
+        }
+    }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Serial"),

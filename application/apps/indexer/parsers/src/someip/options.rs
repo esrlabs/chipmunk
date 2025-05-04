@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use super::SomeipParser;
 use components::{ComponentDescriptor, StaticFieldResult};
+use stypes::SourceOrigin;
 use tokio::{
     select,
     time::{sleep, Duration},
@@ -21,7 +22,26 @@ const FIELD_STATISTICS: &str = "statistics";
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
-    fn fields_getter(&self, _origin: &stypes::SourceOrigin) -> components::FieldsResult {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        let files = match origin {
+            SourceOrigin::File(filepath) => {
+                vec![filepath]
+            }
+            SourceOrigin::Files(files) => files.iter().collect(),
+            SourceOrigin::Source | SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => {
+                return true
+            }
+        };
+        files.iter().any(|fp| {
+            fp.extension()
+                .map(|ext| {
+                    ["dlt", "pcap", "pcapng"]
+                        .contains(&ext.to_string_lossy().to_lowercase().as_str())
+                })
+                .unwrap_or_default()
+        })
+    }
+    fn fields_getter(&self, _origin: &SourceOrigin) -> components::FieldsResult {
         Ok(vec![stypes::FieldDesc::Static(stypes::StaticFieldDesc {
             id: FIELD_LOG_LEVEL.to_owned(),
             name: String::from("Log Level"),
@@ -40,7 +60,7 @@ impl ComponentDescriptor for Descriptor {
     }
     fn lazy_fields_getter(
         &self,
-        _origin: stypes::SourceOrigin,
+        _origin: SourceOrigin,
         cancel: CancellationToken,
     ) -> components::LazyFieldsTask {
         Box::pin(async move {

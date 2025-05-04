@@ -8,6 +8,7 @@ use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
 use std::io::Read;
+use stypes::SourceOrigin;
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
@@ -166,6 +167,22 @@ const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        let files = match origin {
+            SourceOrigin::File(filepath) => {
+                vec![filepath]
+            }
+            SourceOrigin::Files(files) => files.iter().collect(),
+            SourceOrigin::Source | SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => {
+                return true
+            }
+        };
+        files.iter().any(|fp| {
+            fp.extension()
+                .map(|ext| ext.to_ascii_lowercase() == "pcap")
+                .unwrap_or_default()
+        })
+    }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("PCAP Source"),

@@ -1,13 +1,38 @@
 <mat-card class="fill sticky" *ngIf="state !== undefined">
     <mat-card-content>
-        <ng-container>
-            <p class="t-medium color-scheme-2">
-                Summary ({{state.summary.total.count()}} / {{state.summary.selected.count()}})
-            </p>
-            <table class="table-fill">
-                <tr class="info" *ngFor="let selected of state.summary.selected| keyvalue">
-                    <td class="caption t-medium color-scheme-3">{{selected.key}}</td>
-                    <td class="value t-medium color-scheme-2">{{selected.value}}</td>
+        <ng-container *ngIf="state.summary !== undefined">
+            <table>
+                <tr>
+                    <td>
+                        <p class="t-medium color-scheme-2">
+                            Summary: {{state.summary.total.count()}}
+                        </p>
+                        <table class="table-fill">
+                            <tr class="info" *ngFor="let rows of state.summary.total.rows">
+                                <ng-container *ngFor="let column of rows | keyvalue">
+                                    <td class="caption t-medium color-scheme-3">
+                                        {{state.getName(column.key)}}
+                                    </td>
+                                    <td class="value t-medium color-scheme-2">{{column.value}}</td>
+                                </ng-container>
+                            </tr>
+                        </table>
+                    </td>
+                    <td>
+                        <p class="t-medium color-scheme-2">
+                            Selected: {{state.summary.selected.count()}}
+                        </p>
+                        <table class="table-fill">
+                            <tr class="info" *ngFor="let rows of state.summary.selected.rows">
+                                <ng-container *ngFor="let column of rows | keyvalue">
+                                    <td class="caption t-medium color-scheme-3">
+                                        {{state.getName(column.key)}}
+                                    </td>
+                                    <td class="value t-medium color-scheme-2">{{column.value}}</td>
+                                </ng-container>
+                            </tr>
+                        </table>
+                    </td>
                 </tr>
             </table>
         </ng-container>
@@ -16,6 +41,7 @@
             (contextmenu)="ngContextMenu($event)"
             (select)="ngOnEntitySelect()"
             [section]="section"
+            [state]="state"
         ></app-settings-scheme-nested-dictionary-structure>
     </mat-card-content>
 </mat-card>
