@@ -12,7 +12,9 @@ export interface IApi {
 }
 
 export class State extends Subscriber {
-    public origin: SourceOrigin = 'Source';
+    public origin: SourceOrigin = {
+        File: '/storage/projects/esrlabs/logs-examples/dlt/images.dlt',
+    };
     public sources: Ident[] = [];
     public parsers: Ident[] = [];
     public subjects: Subjects<{

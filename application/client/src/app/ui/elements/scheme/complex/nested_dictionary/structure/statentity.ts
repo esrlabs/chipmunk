@@ -4,7 +4,7 @@ import * as wasm from '@loader/wasm';
 
 export class DictionaryEntities extends Matchee {
     public selected: boolean = false;
-
+    public values: { [key: string]: string | number } = {};
     constructor(
         public readonly id: string,
         public readonly parent: string,
@@ -12,13 +12,13 @@ export class DictionaryEntities extends Matchee {
         protected readonly matcher: wasm.Matcher,
     ) {
         super(matcher, { id: id });
+        data.forEach((value, key) => {
+            this.values[key] = value;
+        });
     }
 
     public keys(): string[] {
         return Array.from(this.data.keys());
-    }
-    public value(key: string): string | number | undefined {
-        return this.data.get(key);
     }
 
     public html(): string {

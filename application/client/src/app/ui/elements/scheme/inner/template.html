@@ -37,3 +37,7 @@
         />
     </ng-container>
 </mat-form-field>
+<ng-container *ngIf="element.nested_dictionary !== undefined">
+    <app-settings-scheme-nested-dictionary [element]="element">
+    </app-settings-scheme-nested-dictionary>
+</ng-container>

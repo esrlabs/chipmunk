@@ -4,6 +4,7 @@ import {
     Input,
     AfterViewInit,
     AfterContentInit,
+    HostBinding,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -24,6 +25,8 @@ import { WrappedField } from '../field';
 export class SchemeEntry extends ChangesDetector implements AfterViewInit, AfterContentInit {
     @Input() provider!: SchemeProvider;
     @Input() field!: FieldDesc;
+
+    @HostBinding('class') classes = 'field';
 
     public pending: LazyFieldDesc | undefined;
     public loaded: StaticFieldDesc | undefined;
@@ -64,7 +67,7 @@ export class SchemeEntry extends ChangesDetector implements AfterViewInit, After
         if (this.loaded) {
             this.element = new Element(this.loaded.id, this.loaded.interface);
             this.env().subscriber.register(
-                this.element.changed.subscribe(this.onSelfChanges.bind(this)),
+                this.element.subjects.get().changed.subscribe(this.onSelfChanges.bind(this)),
             );
             this.env().subscriber.register(
                 this.provider.subjects.get().forced.subscribe(this.onFieldsChanges.bind(this)),
@@ -74,6 +77,8 @@ export class SchemeEntry extends ChangesDetector implements AfterViewInit, After
             );
             const value = this.element.getValue();
             value && this.provider.setValue(this.loaded.id, value);
+            this.element.loaded();
+            this.classes = this.element.isField() ? 'field' : 'panel';
             return;
         }
     }
