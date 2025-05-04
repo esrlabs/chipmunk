@@ -35,7 +35,11 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
     }
 
     public ngAfterViewInit(): void {
-        this.detectChanges();
+        this.env().subscriber.register(
+            this.element.subjects.get().loaded.subscribe(() => {
+                this.detectChanges();
+            }),
+        );
     }
 }
 export interface SchemeEntryElement extends IlcInterface {}

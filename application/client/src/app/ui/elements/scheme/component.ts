@@ -11,7 +11,6 @@ import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { SchemeProvider } from './provider';
 import { FieldDesc } from '@platform/types/bindings';
-import { WrappedField } from './field';
 
 @Component({
     selector: 'app-settings-scheme',

@@ -4,6 +4,7 @@ use components::ComponentDescriptor;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
+use stypes::SourceOrigin;
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -235,6 +236,15 @@ const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        match origin {
+            SourceOrigin::File(..)
+            | SourceOrigin::Files(..)
+            | SourceOrigin::Folder(..)
+            | SourceOrigin::Folders(..) => false,
+            SourceOrigin::Source => true,
+        }
+    }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Terminal Source"),

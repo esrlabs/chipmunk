@@ -10,6 +10,9 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
+        true
+    }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Text Parser"),

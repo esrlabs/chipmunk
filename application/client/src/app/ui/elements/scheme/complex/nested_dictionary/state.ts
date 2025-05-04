@@ -19,16 +19,24 @@ export const NAMES: { [key: string]: string } = {
 
 export class State extends MatcherHolder {
     public structure: Section[] = [];
-    public summary: {
-        total: Summary;
-        selected: Summary;
-    } = {
-        total: new Summary(),
-        selected: new Summary(),
-    };
+    public summary:
+        | {
+              total: Summary;
+              selected: Summary;
+          }
+        | undefined;
 
-    constructor(protected readonly data: NestedDictionaryStructure) {
+    constructor(
+        protected readonly data: NestedDictionaryStructure,
+        protected readonly dictionary: Map<string, string>,
+    ) {
         super();
+        this.struct().build(new Map());
+    }
+
+    public getName(key: string): string {
+        const label = this.dictionary.get(key);
+        return label ? label : key;
     }
 
     public getSelectedEntities(): DictionaryEntities[] {
@@ -50,6 +58,13 @@ export class State extends MatcherHolder {
                     const selected = preselection.get(key_section);
                     const entities: DictionaryEntities[] = [];
                     section.forEach((values, key_entity) => {
+                        if (!this.summary) {
+                            const map = new Map();
+                            values.keys().forEach((key) => {
+                                map.set(key, 0);
+                            });
+                            this.summary = { total: new Summary(map), selected: new Summary(map) };
+                        }
                         const entity = new DictionaryEntities(
                             key_entity,
                             key_section,
@@ -86,18 +101,26 @@ export class State extends MatcherHolder {
     } {
         return {
             total: (): void => {
-                this.summary.total.reset();
+                const total = this.summary ? this.summary.total : undefined;
+                if (!total) {
+                    return;
+                }
+                total.reset();
                 this.structure.forEach((structure) => {
                     structure.entities.forEach((entity) => {
-                        this.summary.total.inc(entity);
+                        total.inc(entity);
                     });
                 });
             },
             selected: (): void => {
-                this.summary.selected.reset();
+                const selected = this.summary ? this.summary.selected : undefined;
+                if (!selected) {
+                    return;
+                }
+                selected.reset();
                 this.structure.forEach((structure) => {
                     structure.entities.forEach((entity) => {
-                        entity.selected && this.summary.selected.inc(entity);
+                        entity.selected && selected.inc(entity);
                     });
                 });
                 // const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
