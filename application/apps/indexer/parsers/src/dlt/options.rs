@@ -47,6 +47,22 @@ impl fmt::Display for StatFields {
 }
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        let files = match origin {
+            SourceOrigin::File(filepath) => {
+                vec![filepath]
+            }
+            SourceOrigin::Files(files) => files.iter().collect(),
+            SourceOrigin::Source | SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => {
+                return true
+            }
+        };
+        files.iter().any(|fp| {
+            fp.extension()
+                .map(|ext| ext.to_ascii_lowercase() == "dlt")
+                .unwrap_or_default()
+        })
+    }
     fn fields_getter(&self, origin: &SourceOrigin) -> components::FieldsResult {
         let mut options = vec![
             FieldDesc::Static(StaticFieldDesc {
@@ -195,7 +211,21 @@ impl ComponentDescriptor for Descriptor {
                 name: String::from("Statistics"),
                 desc: String::from("Dlt File(s) Statistics data"),
                 required: true,
-                interface: ValueInput::NestedNumbersMap(converted),
+                interface: ValueInput::NestedNumbersMap(
+                    converted,
+                    vec![
+                        (String::from("non_log"), String::from("NON LOG")),
+                        (String::from("log_fatal"), String::from("FATAL")),
+                        (String::from("log_error"), String::from("ERROR")),
+                        (String::from("log_warning"), String::from("WARNING")),
+                        (String::from("log_info"), String::from("INFO")),
+                        (String::from("log_debug"), String::from("DEBUG")),
+                        (String::from("log_verbose"), String::from("VERBOSE")),
+                        (String::from("log_invalid"), String::from("INVALID")),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
                 binding: None,
             })])
         })

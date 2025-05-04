@@ -85,6 +85,16 @@ pub trait Component {
 /// This trait provides a standardized way to describe a component, including its type,
 /// identifier, field getters, lazy field loaders, and optional validation logic.
 pub trait ComponentDescriptor {
+    /// Check is component is campatible with given origin
+    ///
+    /// * `origin` - The source origin
+    ///
+    /// # Returns
+    ///
+    /// * `true` - if component can be used with origin
+    /// * `false` - if component can not be used with origin
+    fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool;
+
     /// Retrieves the unique identifier of the component.
     ///
     /// # Returns

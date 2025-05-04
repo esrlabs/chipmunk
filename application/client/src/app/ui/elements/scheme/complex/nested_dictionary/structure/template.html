@@ -10,9 +10,9 @@
     </ng-container>
     <ng-container *ngFor="let key of keys" [matColumnDef]="key">
         <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by kind">
-            {{key}}
+            {{state.getName(key)}}
         </th>
-        <td mat-cell *matCellDef="let element">{{element.value(key)}}</td>
+        <td mat-cell *matCellDef="let element">{{element.values[key]}}</td>
     </ng-container>
     <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
     <tr

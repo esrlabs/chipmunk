@@ -33,14 +33,14 @@ impl Components {
     pub fn get_components(
         &self,
         target: &stypes::ComponentType,
-        _source_origin: stypes::SourceOrigin,
+        origin: stypes::SourceOrigin,
     ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
         // TODO: "ask" source/parser based on origin
         Ok(self
             .components
             .iter()
             .filter_map(|(_, desc)| {
-                if desc.is_ty(target) {
+                if desc.is_ty(target) && desc.is_compatible(&origin) {
                     Some(desc.ident())
                 } else {
                     None
