@@ -5,6 +5,7 @@ use crate::{
 use bufread::BufReader;
 use components::ComponentDescriptor;
 use std::io::{BufRead, Read};
+use stypes::SourceOrigin;
 
 pub struct BinaryByteSource<R>
 where
@@ -85,6 +86,9 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &SourceOrigin) -> bool {
+        true
+    }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Binary Source"),

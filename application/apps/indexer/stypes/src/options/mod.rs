@@ -136,14 +136,24 @@ pub enum ValueInput {
     KeyStrings(HashMap<String, Vec<String>>),
     #[cfg_attr(
         all(test, feature = "test_and_gen"),
-        ts(type = "Map<string, Map<string, Map<string, number>>>")
+        ts(type = "[Map<string, Map<string, Map<string, number>>>, Map<string, string>]")
     )]
-    NestedNumbersMap(HashMap<String, HashMap<String, HashMap<String, usize>>>),
+    /// `HashMap<String, HashMap<String, HashMap<String, usize>>>` - table of data
+    /// `HashMap<String, String>` - dictionary of headers
+    NestedNumbersMap(
+        HashMap<String, HashMap<String, HashMap<String, usize>>>,
+        HashMap<String, String>,
+    ),
     #[cfg_attr(
         all(test, feature = "test_and_gen"),
-        ts(type = "Map<string, Map<string, Map<string, string>>>")
+        ts(type = "[Map<string, Map<string, Map<string, string>>>, Map<string, string>]")
     )]
-    NestedStringsMap(HashMap<String, HashMap<String, HashMap<String, usize>>>),
+    /// `HashMap<String, HashMap<String, HashMap<String, String>>>` - table of data
+    /// `HashMap<String, String>` - dictionary of headers
+    NestedStringsMap(
+        HashMap<String, HashMap<String, HashMap<String, String>>>,
+        HashMap<String, String>,
+    ),
     Directories,
     Files(Vec<String>),
     File(Vec<String>),

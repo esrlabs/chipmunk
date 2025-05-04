@@ -17,6 +17,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { DictionaryEntities } from './statentity';
 import { Section } from './section';
 import { MatTable } from '@angular/material/table';
+import { State } from '../state';
 
 @Component({
     selector: 'app-settings-scheme-nested-dictionary-structure',
@@ -31,6 +32,7 @@ export class NestedDictionaryStructure
     implements AfterContentInit, AfterViewInit
 {
     @Input() section!: Section;
+    @Input() state!: State;
 
     @Output() select: EventEmitter<DictionaryEntities> = new EventEmitter();
 
@@ -48,7 +50,7 @@ export class NestedDictionaryStructure
     public ngAfterContentInit(): void {
         this.data = new MatTableDataSource<DictionaryEntities>(this.section.entities);
         this.keys = this.section.keys();
-        this.columns = this.section.keys().concat(['id']);
+        this.columns = ['id'].concat(this.section.keys());
         this.env().subscriber.register(
             this.section.update.subscribe(() => {
                 this.data.data = this.section.entities.filter(
@@ -62,6 +64,10 @@ export class NestedDictionaryStructure
 
     public ngAfterViewInit(): void {
         this.data.sort = this.sort;
+        this.data.sortingDataAccessor = (item, property) => {
+            const value = property === 'id' ? item.id : item.values[property];
+            return typeof value === 'string' ? value.toLowerCase() : value;
+        };
     }
 
     public ngOnSortChange() {

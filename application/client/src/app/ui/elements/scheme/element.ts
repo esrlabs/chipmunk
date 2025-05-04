@@ -1,5 +1,5 @@
 import { Value, ValueInput } from '@platform/types/bindings';
-import { Subject } from '@platform/env/subscription';
+import { Subject, Subjects } from '@platform/env/subscription';
 /**
 export type ValueInput =
     | { Checkbox: boolean }
@@ -33,6 +33,7 @@ export class NestedDictionary<V> implements ValueGetter {
     constructor(
         public defaults: V,
         public readonly items: NestedDictionaryStructure,
+        public readonly dictionary: Map<string, string>,
         protected readonly getter: (value: V) => Value,
     ) {
         this.value = defaults;
@@ -105,7 +106,13 @@ export class Element {
     public named: NamedValuesElement<boolean> | undefined;
     public nested_dictionary: NestedDictionary<string[]> | undefined;
 
-    public readonly changed: Subject<ChangeEvent> = new Subject();
+    public readonly subjects: Subjects<{
+        changed: Subject<ChangeEvent>;
+        loaded: Subject<void>;
+    }> = new Subjects({
+        changed: new Subject<ChangeEvent>(),
+        loaded: new Subject<void>(),
+    });
 
     constructor(protected readonly uuid: string, protected readonly origin: ValueInput) {
         this.checkbox = Element.as_checkbox(origin);
@@ -115,6 +122,10 @@ export class Element {
         this.number_input = Element.as_number(origin);
         this.named = Element.as_named_bools(origin);
         this.nested_dictionary = Element.as_nested_dictionary_numeric(origin);
+    }
+
+    public loaded() {
+        this.subjects.get().loaded.emit();
     }
 
     public isField(): boolean {
@@ -134,17 +145,31 @@ export class Element {
             return;
         }
         if (this.checkbox !== undefined) {
-            this.changed.emit({ uuid: this.uuid, inner: this.checkbox.value, value });
+            this.subjects
+                .get()
+                .changed.emit({ uuid: this.uuid, inner: this.checkbox.value, value });
         } else if (this.numeric_list !== undefined) {
-            this.changed.emit({ uuid: this.uuid, inner: this.numeric_list.value, value });
+            this.subjects
+                .get()
+                .changed.emit({ uuid: this.uuid, inner: this.numeric_list.value, value });
         } else if (this.strings_list !== undefined) {
-            this.changed.emit({ uuid: this.uuid, inner: this.strings_list.value, value });
+            this.subjects
+                .get()
+                .changed.emit({ uuid: this.uuid, inner: this.strings_list.value, value });
         } else if (this.string_input !== undefined) {
-            this.changed.emit({ uuid: this.uuid, inner: this.string_input.value, value });
+            this.subjects
+                .get()
+                .changed.emit({ uuid: this.uuid, inner: this.string_input.value, value });
         } else if (this.number_input !== undefined) {
-            this.changed.emit({ uuid: this.uuid, inner: this.number_input.value, value });
+            this.subjects
+                .get()
+                .changed.emit({ uuid: this.uuid, inner: this.number_input.value, value });
         } else if (this.named !== undefined) {
-            this.changed.emit({ uuid: this.uuid, inner: this.named.value, value });
+            this.subjects.get().changed.emit({ uuid: this.uuid, inner: this.named.value, value });
+        } else if (this.nested_dictionary !== undefined) {
+            this.subjects
+                .get()
+                .changed.emit({ uuid: this.uuid, inner: this.nested_dictionary.value, value });
         }
     }
 
@@ -161,6 +186,8 @@ export class Element {
             this.number_input.value = value;
         } else if (this.named !== undefined) {
             this.named.value = value;
+        } else if (this.nested_dictionary !== undefined) {
+            this.nested_dictionary.value = value;
         }
     }
 
@@ -189,6 +216,8 @@ export class Element {
             return this.number_input.getValue();
         } else if (this.named !== undefined) {
             return this.named.getValue();
+        } else if (this.nested_dictionary !== undefined) {
+            return this.nested_dictionary.getValue();
         }
         return undefined;
     }
@@ -272,11 +301,18 @@ export class Element {
     static as_nested_dictionary_numeric(
         origin: ValueInput,
     ): NestedDictionary<string[]> | undefined {
-        const vl = origin as { NestedNumbersMap: Map<string, Map<string, Map<string, number>>> };
-        return vl.NestedNumbersMap instanceof Map
-            ? new NestedDictionary<string[]>([], vl.NestedNumbersMap, (selections: string[]) => {
-                  return { Strings: selections };
-              })
+        const vl = origin as {
+            NestedNumbersMap: [Map<string, Map<string, Map<string, number>>>, Map<string, string>];
+        };
+        return vl.NestedNumbersMap instanceof Array && vl.NestedNumbersMap.length === 2
+            ? new NestedDictionary<string[]>(
+                  [],
+                  vl.NestedNumbersMap[0],
+                  vl.NestedNumbersMap[1],
+                  (selections: string[]) => {
+                      return { Strings: selections };
+                  },
+              )
             : undefined;
     }
 }

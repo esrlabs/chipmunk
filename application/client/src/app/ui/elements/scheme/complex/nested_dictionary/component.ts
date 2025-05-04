@@ -16,7 +16,6 @@ import { Element } from '../../element';
 @Ilc()
 export class NestedDictionary extends ChangesDetector implements AfterContentInit {
     @Input() element!: Element;
-
     protected state: State | undefined;
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -25,7 +24,10 @@ export class NestedDictionary extends ChangesDetector implements AfterContentIni
 
     public ngAfterContentInit(): void {
         this.state = this.element.nested_dictionary
-            ? new State(this.element.nested_dictionary.items)
+            ? new State(
+                  this.element.nested_dictionary.items,
+                  this.element.nested_dictionary.dictionary,
+              )
             : undefined;
     }
 
