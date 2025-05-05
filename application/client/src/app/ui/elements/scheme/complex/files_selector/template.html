@@ -1,0 +1,14 @@
+<button mat-stroked-button (click)="ngAddTarget()">
+    <mat-icon aria-hidden="false" class="mini-button">note_add</mat-icon>
+    Add
+</button>
+<div *ngIf="paths.length > 0">
+    <mat-chip-listbox aria-label="Files">
+        <mat-chip-option *ngFor="let path of paths" (removed)="ngOnRemovePath(path.path)">
+            <span [title]="path.path"> {{path.name}} </span>
+            <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+            </button>
+        </mat-chip-option>
+    </mat-chip-listbox>
+</div>
