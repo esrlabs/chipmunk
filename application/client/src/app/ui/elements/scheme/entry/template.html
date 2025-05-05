@@ -1,5 +1,9 @@
 <p class="title t-medium" *ngIf="error === undefined">{{name}}</p>
 <p class="title t-medium error" *ngIf="error !== undefined">{{error}}</p>
+<div class="loading" *ngIf="element === undefined">
+    <p class="t-small">Loading...</p>
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</div>
 <app-settings-scheme-element
     *ngIf="element !== undefined"
     [element]="element"
