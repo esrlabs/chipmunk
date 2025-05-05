@@ -8,7 +8,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { NestedDictionaryModule } from './complex/nested_dictionary/module';
+import { FilesSelectorModule } from './complex/files_selector/module';
 
 import { SettingsScheme } from './component';
 import { SchemeEntry } from './entry/component';
@@ -26,7 +28,9 @@ import { SchemeEntryElement } from './inner/component';
         MatInputModule,
         MatButtonModule,
         MatSelectModule,
+        MatProgressBarModule,
         NestedDictionaryModule,
+        FilesSelectorModule,
     ],
     declarations: [SettingsScheme, SchemeEntry, SchemeEntryElement],
     exports: [SettingsScheme],
