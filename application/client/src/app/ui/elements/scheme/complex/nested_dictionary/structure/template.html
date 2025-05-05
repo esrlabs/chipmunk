@@ -1,4 +1,4 @@
-<p class="title">{{section.name}}</p>
+<p class="title">{{state.getName(section.name)}}</p>
 <table mat-table [dataSource]="data" matSort (matSortChange)="ngOnSortChange()">
     <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef mat-sort-header sortActionDescription="Sort by ID">

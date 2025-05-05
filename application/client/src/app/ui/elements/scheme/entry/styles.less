@@ -11,16 +11,20 @@
     }
     &.panel {
         display: block;
-        width: 100%;
+        width: auto;
+        height: auto;
     }
     p.title {
         display: block;
-        position: absolute;
         color: @scheme-color-2;
-        z-index: 1;
         padding: 3px 0px 0 16px;
     }
     p.error {
         color: @scheme-color-error-light;
+    }
+    div.loading {
+        position: relative;
+        height: 2px;
+        width: 100%;
     }
 }
