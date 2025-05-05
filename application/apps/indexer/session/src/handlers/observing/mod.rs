@@ -123,6 +123,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     operation_api.processing();
     let cancel = operation_api.cancellation_token();
     let cancel_on_tail = cancel.clone();
+    let mut timer = crate::Timer::new("message stream");
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), producer.read_next_segment()).await {
@@ -172,6 +173,7 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
                             state.add_attachment(attachment.to_owned())?;
                         }
                         MessageStreamItem::Done => {
+                            timer.done();
                             trace!("observe, message stream is done");
                             state.flush_session_file().await?;
                             state.file_read().await?;
