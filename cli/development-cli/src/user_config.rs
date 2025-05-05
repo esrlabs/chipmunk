@@ -23,6 +23,9 @@ pub struct UserConfiguration {
     pub shell: UserShell,
     #[serde(default)]
     pub ui_mode: UiMode,
+    /// Skip environment checks before running development commands.
+    #[serde(default)]
+    pub skip_env_checks: bool,
     #[serde(default)]
     pub additional_features: Vec<AdditionalFeatures>,
 }
