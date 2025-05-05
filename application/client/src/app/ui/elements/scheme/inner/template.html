@@ -1,43 +1,32 @@
 <mat-form-field class="material-mofication-normal" *ngIf="field">
-    <ng-container *ngIf="element.numeric_list !== undefined">
-        <mat-select [(ngModel)]="element.numeric_list.value" (ngModelChange)="element.change()">
-            <mat-option *ngFor="let item of element.numeric_list.items" [value]="item">
+    <ng-container *ngIf="elListElement !== undefined">
+        <mat-select [(ngModel)]="elListElement.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of elListElement.items" [value]="item">
                 {{item}}
             </mat-option>
         </mat-select>
     </ng-container>
-    <ng-container *ngIf="element.strings_list !== undefined">
-        <mat-select [(ngModel)]="element.strings_list.value" (ngModelChange)="element.change()">
-            <mat-option *ngFor="let item of element.strings_list.items" [value]="item">
-                {{item}}
-            </mat-option>
-        </mat-select>
-    </ng-container>
-    <ng-container *ngIf="element.named !== undefined">
-        <mat-select [(ngModel)]="element.named.value" (ngModelChange)="element.change()">
-            <mat-option *ngFor="let item of element.named.items" [value]="item.value">
+    <ng-container *ngIf="elNamedValuesElement !== undefined">
+        <mat-select [(ngModel)]="elNamedValuesElement.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of elNamedValuesElement.items" [value]="item.value">
                 {{item.key}}
             </mat-option>
         </mat-select>
     </ng-container>
-    <ng-container *ngIf="element.string_input !== undefined">
+    <ng-container *ngIf="elInputElement !== undefined">
         <input
-            type="text"
+            [attr.type]="(elInputElement.isString() ? 'text' : 'number')"
             matInput
-            [(ngModel)]="element.string_input.value"
-            (ngModelChange)="element.change()"
-        />
-    </ng-container>
-    <ng-container *ngIf="element.number_input !== undefined">
-        <input
-            type="number"
-            matInput
-            [(ngModel)]="element.number_input.value"
+            [(ngModel)]="elInputElement.value"
             (ngModelChange)="element.change()"
         />
     </ng-container>
 </mat-form-field>
-<ng-container *ngIf="element.nested_dictionary !== undefined">
-    <app-settings-scheme-nested-dictionary [element]="element">
+<ng-container *ngIf="elNestedDictionaryElement !== undefined">
+    <app-settings-scheme-nested-dictionary [element]="element" [inner]="elNestedDictionaryElement">
     </app-settings-scheme-nested-dictionary>
+</ng-container>
+<ng-container *ngIf="elFilesFolderSelectorElement !== undefined">
+    <app-settings-scheme-files-selector [element]="element" [inner]="elFilesFolderSelectorElement">
+    </app-settings-scheme-files-selector>
 </ng-container>
