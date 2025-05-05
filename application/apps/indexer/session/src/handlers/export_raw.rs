@@ -7,6 +7,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, Parser,
 };
+use plugins_host::PluginsParser;
 use processor::export::{export_raw, ExportError};
 use sources::{
     binary::{
@@ -132,6 +133,16 @@ async fn export<S: ByteSource>(
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, stypes::NativeError> {
     match parser {
+        stypes::ParserType::Plugin(settings) => {
+            let parser = PluginsParser::initialize(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.plugin_configs.clone(),
+            )
+            .await?;
+            let producer = MessageProducer::new(parser, source);
+            export_runner(producer, dest, sections, read_to_end, false, cancel).await
+        }
         stypes::ParserType::SomeIp(settings) => {
             let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
                 SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())

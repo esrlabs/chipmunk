@@ -187,6 +187,17 @@ export class State extends Holder {
                                         .files(files)
                                         .get(),
                                 );
+                        case FileType.ParserPlugin:
+                            return this._ref
+                                .ilc()
+                                .services.system.session.initialize()
+                                .configure(
+                                    new Factory.Concat()
+                                        .asParserPlugin()
+                                        .type(Factory.FileType.ParserPlugin)
+                                        .files(files)
+                                        .get(),
+                                );
                         default:
                             return Promise.reject(
                                 new Error(`Unsupported type ${this.files[0].type}`),
@@ -288,6 +299,25 @@ export class State extends Holder {
                                         .ilc()
                                         .logger.error(
                                             `Fail to open dlt file; error: ${err.message}`,
+                                        );
+                                });
+                            break;
+                        case FileType.ParserPlugin:
+                            this._ref
+                                .ilc()
+                                .services.system.session.initialize()
+                                .configure(
+                                    new Factory.File()
+                                        .asParserPlugin()
+                                        .type(Factory.FileType.ParserPlugin)
+                                        .file(file.filename)
+                                        .get(),
+                                )
+                                .catch((err: Error) => {
+                                    this._ref
+                                        .ilc()
+                                        .logger.error(
+                                            `Fail to open file with plugins; error: ${err.message}`,
                                         );
                                 });
                             break;

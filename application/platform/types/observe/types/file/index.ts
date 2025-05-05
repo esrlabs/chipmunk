@@ -7,6 +7,7 @@ export enum FileType {
     PcapLegacy = 'PcapLegacy',
     Text = 'Text',
     Binary = 'Binary',
+    ParserPlugin = 'ParserPlugin',
 }
 
 export function getFileTypeFrom(smth: unknown): FileType | Error {
@@ -19,6 +20,8 @@ export function getFileTypeFrom(smth: unknown): FileType | Error {
             return FileType.PcapLegacy;
         case FileType.Text:
             return FileType.Text;
+        case FileType.ParserPlugin:
+            return FileType.ParserPlugin;
         default:
             return new Error(`${smth} isn't FileType`);
     }

@@ -1,0 +1,15 @@
+# Configuration required to run the parser in Chipmunk benchmarks.
+
+# Path to the plugin WebAssembly (WASM) file.
+# Can be absolute or relative to the `indexer` directory within the Chipmunk repository.
+binary_path = "../../../../plugins/examples/string_parser/target/wasm32-wasip1/release/string_parser.wasm"
+
+# Plugin-specific configurations:
+
+[[config]]
+id = "lossy"
+value.Boolean = true
+
+[[config]]
+id = "prefix"
+value.Text = ""

@@ -3,18 +3,18 @@ use crate::{
     DEFAULT_READER_CAPACITY,
 };
 use bufread::BufReader;
-use std::io::{BufRead, Read, Seek};
+use std::io::{BufRead, Read};
 
 pub struct BinaryByteSource<R>
 where
-    R: Read + Seek,
+    R: Read,
 {
     reader: BufReader<R>,
 }
 
 impl<R> BinaryByteSource<R>
 where
-    R: Read + Seek + Unpin,
+    R: Read + Unpin,
 {
     /// create a new `BinaryByteSource` with default buffer settings for reading
     pub fn new(input: R) -> BinaryByteSource<R> {
@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<R: Read + Send + Sync + Seek> ByteSource for BinaryByteSource<R> {
+impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     async fn load(&mut self, _: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
         let initial_buf_len = self.reader.len();
         trace!(

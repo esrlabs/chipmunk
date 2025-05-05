@@ -56,6 +56,8 @@ BUILD_COMMAND = [
     "app",
     # Chipmunk CLI tool isn't included with app target.
     "cli-chipmunk",
+    # Plugin API isn't included with app target.
+    "plugins-api",
 ]
 
 # These paths must exist after build command has been finished.
@@ -88,6 +90,8 @@ APP_PATHS_FOR_BUILD_CHECK = [
     "application/holder/node_modules",
     # Chipmunk CLI
     "cli/chipmunk-cli/target",
+    # Plugins API
+    "plugins/plugins_api/target",
 ]
 
 # The name of the file where the states of the latest build are saved.

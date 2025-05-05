@@ -1,0 +1,47 @@
+<div class="preset-container">
+    <div class="preset-container-content">
+        <div class="left">
+            <mat-card class="fill sticky" *ngIf="provider.selected">
+                <app-plugins-manager-details
+                    [plugin]="provider.selected"
+                    [provider]="provider"
+                ></app-plugins-manager-details>
+            </mat-card>
+        </div>
+        <div class="right">
+            <app-plugins-manager-list
+                [provider]="provider"
+                [target]="Target.Installed"
+            ></app-plugins-manager-list>
+            <app-plugins-manager-list
+                *ngIf="provider.get().invalid().length > 0"
+                [provider]="provider"
+                [target]="Target.Invalid"
+            ></app-plugins-manager-list>
+            <mat-card>
+                <mat-card-content>
+                    <div class="controlls">
+                        <button
+                            mat-stroked-button
+                            [disabled]="provider.state.loading || provider.state.adding"
+                            (click)="addPlugin()"
+                        >
+                            <mat-spinner
+                                *ngIf="provider.state.adding"
+                                [diameter]="16"
+                            ></mat-spinner>
+                            Add
+                        </button>
+                        <button
+                            mat-stroked-button
+                            [disabled]="provider.state.loading || provider.state.adding"
+                            (click)="reload()"
+                        >
+                            Reload
+                        </button>
+                    </div>
+                </mat-card-content>
+            </mat-card>
+        </div>
+    </div>
+</div>

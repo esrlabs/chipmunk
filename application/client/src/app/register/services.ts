@@ -78,6 +78,10 @@ export const services: { [key: string]: Inputs } = {
         name: 'Changelogs',
         uuid: v4(),
     },
+    plugins: {
+        name: 'Plugins',
+        uuid: v4(),
+    },
 };
 
 export const ui: { [key: string]: Inputs } = {
