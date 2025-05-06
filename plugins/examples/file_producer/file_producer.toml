@@ -1,0 +1,4 @@
+# This is example of the plugin metadata file which should placed in the plugin directory 
+# next to plugin wasm file.
+title = "File Producer"
+description = "An example of a Chipmunk producer plugins opening a text file and returning its content line by line"

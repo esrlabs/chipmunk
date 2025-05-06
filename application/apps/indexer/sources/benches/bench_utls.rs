@@ -11,7 +11,10 @@ use std::{
 
 use criterion::Criterion;
 use parsers::{LogMessage, MessageStreamItem};
-use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
+use sources::{
+    binary::raw::BinaryByteSource,
+    producer::{CombinedProducer, MessageProducer},
+};
 
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
 pub const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";
@@ -73,11 +76,10 @@ pub struct ProducerCounter {
 
 /// Run producer until the end converting messages into strings too, while counting all the
 /// different types of producer outputs to avoid unwanted compiler optimizations.
-pub async fn run_producer<P, B, T>(mut producer: MessageProducer<T, P, B>) -> ProducerCounter
+pub async fn run_producer<P, T>(mut producer: P) -> ProducerCounter
 where
-    P: parsers::Parser<T>,
-    B: sources::ByteSource,
-    T: LogMessage,
+    P: MessageProducer<T>,
+    T: LogMessage + 'static,
 {
     let mut counter = ProducerCounter::default();
 

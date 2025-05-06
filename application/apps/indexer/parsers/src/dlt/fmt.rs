@@ -10,8 +10,7 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 
-//! # Formatting dlt messages as text
-use crate::someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser};
+use crate::someip::SomeipParser;
 use chrono::{
     prelude::{DateTime, Utc},
     TimeZone,
@@ -23,7 +22,7 @@ use dlt_core::{
         NetworkTraceType, PayloadContent, StandardHeader, StorageHeader, StringCoding, TypeInfo,
         TypeInfoKind, Value,
     },
-    fibex::{extract_metadata, FibexMetadata as FibexDltMetadata},
+    fibex::extract_metadata,
     parse::construct_arguments,
     service_id::service_id_lookup,
 };
@@ -35,7 +34,10 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::{
     fmt::{self, Formatter},
     str,
+    sync::Arc,
 };
+
+use super::DltSharedMeta;
 
 /// Separator to used between the columns in DLT [`FormattableMessage`].
 pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
@@ -206,14 +208,12 @@ impl From<Option<&String>> for FormatOptions {
 }
 
 /// A dlt message that can be formatted with optional FIBEX data support
-pub struct FormattableMessage<'a> {
+pub struct FormattableMessage {
     pub message: Message,
-    pub fibex_dlt_metadata: Option<&'a FibexDltMetadata>,
-    pub fibex_someip_metadata: Option<&'a FibexSomeipMetadata>,
-    pub options: Option<&'a FormatOptions>,
+    shared_meta: Option<Arc<DltSharedMeta>>,
 }
 
-impl Serialize for FormattableMessage<'_> {
+impl Serialize for FormattableMessage {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -310,13 +310,11 @@ impl Serialize for FormattableMessage<'_> {
     }
 }
 
-impl From<Message> for FormattableMessage<'_> {
+impl From<Message> for FormattableMessage {
     fn from(message: Message) -> Self {
         FormattableMessage {
             message,
-            fibex_dlt_metadata: None,
-            fibex_someip_metadata: None,
-            options: None,
+            shared_meta: None,
         }
     }
 }
@@ -344,7 +342,14 @@ impl<'a> PrintableMessage<'a> {
     }
 }
 
-impl FormattableMessage<'_> {
+impl FormattableMessage {
+    pub(super) fn new(message: Message, shared_meta: Option<Arc<DltSharedMeta>>) -> Self {
+        Self {
+            message,
+            shared_meta,
+        }
+    }
+
     pub fn printable_parts<'b>(
         &'b self,
         ext_h_app_id: &'b str,
@@ -500,7 +505,10 @@ impl FormattableMessage<'_> {
     }
 
     fn info_from_metadata<'b>(&'b self, id: u32, data: &[u8]) -> Option<NonVerboseInfo<'b>> {
-        let fibex = self.fibex_dlt_metadata?;
+        let fibex = self
+            .shared_meta
+            .as_ref()
+            .and_then(|m| m.fibex_dlt_metadata.as_ref())?;
         let md = extract_metadata(fibex, id, self.message.extended_header.as_ref())?;
         let msg_type: Option<MessageType> = message_type(&self.message, md.message_info.as_deref());
         let app_id = md.application_id.as_deref().or_else(|| {
@@ -549,7 +557,7 @@ impl FormattableMessage<'_> {
     }
 }
 
-impl fmt::Display for FormattableMessage<'_> {
+impl fmt::Display for FormattableMessage {
     /// will format dlt Message with those fields:
     /// ********* storage-header ********
     /// date-time
@@ -568,7 +576,11 @@ impl fmt::Display for FormattableMessage<'_> {
     /// payload
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         if let Some(h) = &self.message.storage_header {
-            let tz = self.options.map(|o| o.tz);
+            let tz = self
+                .shared_meta
+                .as_ref()
+                .and_then(|m| m.fmt_options.as_ref())
+                .map(|o| o.tz);
             match tz {
                 Some(Some(tz)) => {
                     write_tz_string(f, &h.timestamp, &tz)?;
@@ -613,7 +625,13 @@ impl fmt::Display for FormattableMessage<'_> {
                     })
                 {
                     if let Some(slice) = slices.get(1) {
-                        match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
+                        match SomeipParser::parse_message(
+                            self.shared_meta
+                                .as_ref()
+                                .and_then(|m| m.fibex_someip_metadata.as_ref()),
+                            slice,
+                            None,
+                        ) {
                             Ok((_, message)) => {
                                 let prefix = slices.first().map_or_else(String::default, |s| {
                                     parse_prefix(s)

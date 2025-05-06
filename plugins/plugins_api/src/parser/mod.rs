@@ -1,7 +1,7 @@
 //! Provides types, methods and macros to write plugins that provide parser functionality.
 //!
 
-use crate::shared_types::{ConfigItem, ConfigSchemaItem, InitError, Version};
+use crate::shared_types::{ColumnInfo, ConfigItem, ConfigSchemaItem, InitError, Version};
 
 // Module must be public because the generated types and macros are used within `parser_export!`
 // macro + macros can't be re-exported via pub use
@@ -28,8 +28,8 @@ pub mod __internal_bindings {
 
 // External exports for users
 pub use __internal_bindings::chipmunk::parser::parse_types::{
-    Attachment, ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield,
-    ParsedMessage, ParserConfig, RenderOptions,
+    Attachment, ColumnsRenderOptions, ParseError, ParseReturn, ParseYield, ParsedMessage,
+    ParserConfig, RenderOptions,
 };
 
 impl RenderOptions {

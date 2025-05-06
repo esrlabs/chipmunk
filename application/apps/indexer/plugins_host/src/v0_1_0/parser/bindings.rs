@@ -1,4 +1,4 @@
-use crate::{parser_shared::COLUMN_SEP, PluginParseMessage};
+use crate::{plugins_shared::PLUGIN_MSG_COLUMN_SEP, PluginParseMessage};
 
 pub use self::chipmunk::parser::parse_types::*;
 
@@ -83,7 +83,7 @@ impl From<ParsedMessage> for PluginParseMessage {
     fn from(msg: ParsedMessage) -> Self {
         let content = match msg {
             ParsedMessage::Line(msg) => msg,
-            ParsedMessage::Columns(columns) => columns.join(COLUMN_SEP),
+            ParsedMessage::Columns(columns) => columns.join(PLUGIN_MSG_COLUMN_SEP),
         };
 
         Self { content }
@@ -104,16 +104,6 @@ impl From<ColumnsRenderOptions> for stypes::ColumnsRenderOptions {
             columns: value.columns.into_iter().map(|c| c.into()).collect(),
             min_width: value.min_width,
             max_width: value.max_width,
-        }
-    }
-}
-
-impl From<ColumnInfo> for stypes::ColumnInfo {
-    fn from(value: ColumnInfo) -> Self {
-        Self {
-            caption: value.caption,
-            description: value.description,
-            width: value.width,
         }
     }
 }

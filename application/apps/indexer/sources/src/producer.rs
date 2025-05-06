@@ -4,13 +4,35 @@ mod tests;
 use crate::{ByteSource, ReloadInfo, SourceFilter};
 use log::warn;
 use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
-use std::marker::PhantomData;
+use std::{future::Future, marker::PhantomData};
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
+pub trait MessageProducer<T> {
+    /// Loads the next segment of bytes, parses them, and returns the items in a mutable vector.
+    /// The caller can choose whether to consume the items or not.
+    ///
+    /// # Cancel Safety:
+    /// This function must be cancel safe.
+    ///
+    /// # Return:
+    /// Return a mutable reference for the newly parsed items when there are more data available,
+    /// otherwise it returns None when there are no more data available in the source.
+    fn read_next_segment(
+        &mut self,
+    ) -> impl Future<Output = Option<&mut Vec<(usize, MessageStreamItem<T>)>>>
+    where
+        T: LogMessage + 'static;
+
+    fn sde_income(
+        &mut self,
+        msg: stypes::SdeRequest,
+    ) -> impl Future<Output = Result<stypes::SdeResponse, super::Error>>;
+}
+
 #[derive(Debug)]
-pub struct MessageProducer<T, P, D>
+pub struct CombinedProducer<T, P, D>
 where
     T: LogMessage,
     P: Parser<T>,
@@ -27,10 +49,10 @@ where
     buffer: Vec<(usize, MessageStreamItem<T>)>,
 }
 
-impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
+impl<T: LogMessage, P: Parser<T>, D: ByteSource> CombinedProducer<T, P, D> {
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: D) -> Self {
-        MessageProducer {
+        CombinedProducer {
             byte_source: source,
             parser,
             filter: None,
@@ -43,17 +65,105 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
-    /// Loads the next segment of bytes, parses them, and returns the items in a mutable vector.
-    /// The caller can choose whether to consume the items or not.
-    ///
-    /// # Cancel Safety:
-    /// This function is cancel safe as long [`ByteSource::load()`] method on used byte source is
-    /// safe as well.
+    /// Calls load on the underline byte source filling it with more bytes.
+    /// Returning information about the state of the byte counts, Or None if
+    /// the reload call fails.
     ///
     /// # Return:
-    /// Return a mutable reference for the newly parsed items when there are more data available,
-    /// otherwise it returns None when there are no more data available in the source.
-    pub async fn read_next_segment(&mut self) -> Option<&mut Vec<(usize, MessageStreamItem<T>)>> {
+    ///
+    /// Option<(newly_loaded_bytes, available_bytes, skipped_bytes)>
+    async fn load(&mut self) -> Option<(usize, usize, usize)> {
+        match self.byte_source.load(self.filter.as_ref()).await {
+            Ok(Some(ReloadInfo {
+                newly_loaded_bytes,
+                available_bytes,
+                skipped_bytes,
+                last_known_ts,
+            })) => {
+                self.total_loaded += newly_loaded_bytes;
+                self.total_skipped += skipped_bytes;
+                if let Some(ts) = last_known_ts {
+                    self.last_seen_ts = Some(ts);
+                }
+                trace!(
+                    "did a do_reload, skipped {} bytes, loaded {} more bytes (total loaded and skipped: {})",
+                    skipped_bytes, newly_loaded_bytes, self.total_loaded + self.total_skipped
+                );
+                Some((newly_loaded_bytes, available_bytes, skipped_bytes))
+            }
+            Ok(None) => {
+                trace!("byte_source.reload result was None");
+                if self.byte_source.current_slice().is_empty() {
+                    trace!("byte_source.current_slice() is empty. Returning None");
+
+                    None
+                } else {
+                    trace!("byte_source still have some bytes. Returning them");
+
+                    Some((0, self.byte_source.len(), 0))
+                }
+            }
+            Err(e) => {
+                // In error case we don't need to consider the available bytes.
+                warn!("Error reloading content: {}", e);
+                None
+            }
+        }
+    }
+
+    /// Drops one byte from the available bytes and loads more bytes if no more bytes are
+    /// available.
+    ///
+    /// # Note:
+    /// This function is intended for internal use in producer loop only.
+    ///
+    /// # Return:
+    /// `true` when there are available bytes to be parsed, otherwise it'll return `false`
+    /// indicating that the session should be terminated.
+    async fn drop_and_load(&mut self, available: &mut usize, skipped_bytes: &mut usize) -> bool {
+        if *available > 0 {
+            trace!("Dropping one byte from loaded ones.");
+            const DROP_STEP: usize = 1;
+            *available -= DROP_STEP;
+            *skipped_bytes += DROP_STEP;
+            self.byte_source.consume(DROP_STEP);
+
+            // we still have bytes -> call parse on the remaining bytes without loading.
+            if *available > 0 {
+                return true;
+            }
+        }
+
+        // Load more bytes.
+        trace!("No more bytes are available. Loading more bytes");
+        match self.load().await {
+            Some((newly_loaded, _available_bytes, skipped)) => {
+                *available += newly_loaded;
+                *skipped_bytes += skipped;
+
+                newly_loaded > 0
+            }
+            None => false,
+        }
+    }
+
+    /// Checks if the producer have already produced any parsed items in the current session.
+    fn did_produce_items(&self) -> bool {
+        // Produced items will be added to the internal buffer increasing its capacity.
+        // This isn't straight forward way, but used to avoid having to introduce a new field
+        // and keep track on its state.
+        self.buffer.capacity() > 0
+    }
+}
+
+impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T> for CombinedProducer<T, P, D> {
+    // # Cancel Safety:
+    // This function is cancel safe as long [`ByteSource::load()`] method on used byte source is
+    // safe as well.
+    async fn read_next_segment(&mut self) -> Option<&mut Vec<(usize, MessageStreamItem<T>)>>
+    where
+        T: 'static,
+    {
         // ### Cancel Safety ###:
         // This function is cancel safe because:
         // * there is no await calls or any function causing yielding between filling the internal
@@ -220,98 +330,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
-    /// Calls load on the underline byte source filling it with more bytes.
-    /// Returning information about the state of the byte counts, Or None if
-    /// the reload call fails.
-    ///
-    /// # Return:
-    ///
-    /// Option<(newly_loaded_bytes, available_bytes, skipped_bytes)>
-    async fn load(&mut self) -> Option<(usize, usize, usize)> {
-        match self.byte_source.load(self.filter.as_ref()).await {
-            Ok(Some(ReloadInfo {
-                newly_loaded_bytes,
-                available_bytes,
-                skipped_bytes,
-                last_known_ts,
-            })) => {
-                self.total_loaded += newly_loaded_bytes;
-                self.total_skipped += skipped_bytes;
-                if let Some(ts) = last_known_ts {
-                    self.last_seen_ts = Some(ts);
-                }
-                trace!(
-                    "did a do_reload, skipped {} bytes, loaded {} more bytes (total loaded and skipped: {})",
-                    skipped_bytes, newly_loaded_bytes, self.total_loaded + self.total_skipped
-                );
-                Some((newly_loaded_bytes, available_bytes, skipped_bytes))
-            }
-            Ok(None) => {
-                trace!("byte_source.reload result was None");
-                if self.byte_source.current_slice().is_empty() {
-                    trace!("byte_source.current_slice() is empty. Returning None");
-
-                    None
-                } else {
-                    trace!("byte_source still have some bytes. Returning them");
-
-                    Some((0, self.byte_source.len(), 0))
-                }
-            }
-            Err(e) => {
-                // In error case we don't need to consider the available bytes.
-                warn!("Error reloading content: {}", e);
-                None
-            }
-        }
-    }
-
-    /// Drops one byte from the available bytes and loads more bytes if no more bytes are
-    /// available.
-    ///
-    /// # Note:
-    /// This function is intended for internal use in producer loop only.
-    ///
-    /// # Return:
-    /// `true` when there are available bytes to be parsed, otherwise it'll return `false`
-    /// indicating that the session should be terminated.
-    async fn drop_and_load(&mut self, available: &mut usize, skipped_bytes: &mut usize) -> bool {
-        if *available > 0 {
-            trace!("Dropping one byte from loaded ones.");
-            const DROP_STEP: usize = 1;
-            *available -= DROP_STEP;
-            *skipped_bytes += DROP_STEP;
-            self.byte_source.consume(DROP_STEP);
-
-            // we still have bytes -> call parse on the remaining bytes without loading.
-            if *available > 0 {
-                return true;
-            }
-        }
-
-        // Load more bytes.
-        trace!("No more bytes are available. Loading more bytes");
-        match self.load().await {
-            Some((newly_loaded, _available_bytes, skipped)) => {
-                *available += newly_loaded;
-                *skipped_bytes += skipped;
-
-                newly_loaded > 0
-            }
-            None => false,
-        }
-    }
-
-    /// Checks if the producer have already produced any parsed items in the current session.
-    fn did_produce_items(&self) -> bool {
-        // Produced items will be added to the internal buffer increasing its capacity.
-        // This isn't straight forward way, but used to avoid having to introduce a new field
-        // and keep track on its state.
-        self.buffer.capacity() > 0
-    }
-
-    /// Append incoming (SDE) Source-Data-Exchange to the underline byte source data.
-    pub async fn sde_income(
+    async fn sde_income(
         &mut self,
         msg: stypes::SdeRequest,
     ) -> Result<stypes::SdeResponse, super::Error> {

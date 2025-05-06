@@ -16,7 +16,7 @@ pub async fn observe_stream(
     state: SessionStateAPI,
     uuid: &str,
     transport: &stypes::Transport,
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     let source_id = state.add_source(uuid).await?;

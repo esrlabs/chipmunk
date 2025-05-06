@@ -8,7 +8,7 @@ use super::*;
 
 use parsers::{Error as ParseError, ParseYield};
 
-use crate::producer::MessageProducer;
+use crate::producer::CombinedProducer;
 
 #[tokio::test]
 async fn parse_items_then_skip() {
@@ -31,7 +31,7 @@ async fn parse_items_then_skip() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // First results should be two messages with content
     let next = producer.read_next_segment().await.unwrap();
@@ -87,7 +87,7 @@ async fn parse_incomplete() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // First message should be two messages with content
     let next = producer.read_next_segment().await.unwrap();
@@ -144,7 +144,7 @@ async fn success_parse_err_success() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // First two messages succeed.
     let next = producer.read_next_segment().await.unwrap();
@@ -217,7 +217,7 @@ async fn parse_with_skipped_bytes() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Two Messages with content 1 should be yielded considering skipped bytes on the first item
     // only
@@ -294,7 +294,7 @@ async fn initial_parsing_error() {
 
     let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(LOADED_BYTES_COUNT, 0)))]);
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Done message should be sent on initial parsing with unused bytes,
     // considering the skipped bytes.
@@ -340,7 +340,7 @@ async fn success_parse_error_success_err_skipped_bytes() {
         ],
     );
 
-    let mut producer = MessageProducer::new(parser, source);
+    let mut producer = CombinedProducer::new(parser, source);
 
     // Two Messages with content should be yielded considering the skipped bytes on the first item
     // only with both reload calls.

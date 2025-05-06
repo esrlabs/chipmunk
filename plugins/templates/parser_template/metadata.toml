@@ -1,4 +1,4 @@
 # This is the template of parser plugin metadata file which should placed in the plugin directory 
 # and renamed to the plugin's name.
-name = "parser_template"
+name = "Parser Template"
 description = "Optional description of the parser plugin"

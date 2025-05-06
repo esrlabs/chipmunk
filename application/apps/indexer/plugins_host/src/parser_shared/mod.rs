@@ -11,11 +11,6 @@ use crate::{
     v0_1_0, PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
 };
 
-pub mod plugin_parse_message;
-
-/// Marker for a column separator in the output string.
-pub const COLUMN_SEP: &str = "\u{0004}";
-
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
 pub struct PluginsParser {
     /// The actual parser for each supported version in plugins API.

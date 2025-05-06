@@ -16,6 +16,7 @@ trybuild = "1.0"
 default = []
 parser =[]
 bytesource = []
+producer = ["parser"]
 
 [[test]]
 name = "parser"
@@ -24,6 +25,10 @@ required-features = ["parser"]
 [[test]]
 name = "bytesource"
 required-features = ["bytesource"]
+
+[[test]]
+name = "producer"
+required-features = ["producer"]
 
 [package.metadata.docs.rs]
 # Activate all features when generating the code on docs.rs

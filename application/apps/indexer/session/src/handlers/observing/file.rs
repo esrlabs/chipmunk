@@ -20,7 +20,7 @@ pub async fn observe_file(
     uuid: &str,
     file_format: &stypes::FileFormat,
     filename: &Path,
-    parser: &stypes::ParserType,
+    parser: stypes::ParserType,
 ) -> OperationResult<()> {
     let source_id = state.add_source(uuid).await?;
     let (tx_tail, mut rx_tail): (

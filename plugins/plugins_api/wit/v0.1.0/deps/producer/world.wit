@@ -1,0 +1,12 @@
+package chipmunk:producer@0.1.0;
+
+/// World represent the relation between interfaces for the producer plugin.
+/// It contains the provided type definitions besides the interfaces that must be
+/// implemented with the producer plugins.
+world produce {
+  import chipmunk:shared/logging@0.1.0;
+  import chipmunk:shared/sandbox@0.1.0;
+  import chipmunk:parser/parse-types@0.1.0;
+
+  export producer;
+}

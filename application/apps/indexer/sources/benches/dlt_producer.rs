@@ -5,7 +5,7 @@ use bench_utls::{
     bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,
 };
 use parsers::dlt::{self, DltParser};
-use sources::producer::MessageProducer;
+use sources::producer::CombinedProducer;
 
 mod bench_utls;
 
@@ -34,9 +34,9 @@ fn dlt_producer(c: &mut Criterion) {
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter_batched(
                 || {
-                    let parser = DltParser::new(None, fibex.as_ref(), None, None, true);
+                    let parser = DltParser::new(None, fibex.clone(), None, None, true);
                     let source = create_binary_bytesource(data);
-                    MessageProducer::new(parser, source)
+                    CombinedProducer::new(parser, source)
                 },
                 run_producer,
                 BatchSize::SmallInput,

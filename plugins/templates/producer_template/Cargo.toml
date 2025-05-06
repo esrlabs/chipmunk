@@ -1,0 +1,26 @@
+[workspace]
+
+[package]
+name = "producer_template"
+version = "0.1.0"
+edition = "2021"
+description = "Template for producer plugins in Chipmunk"
+
+[dependencies]
+# TODO AAZ: Points currently to my fork. Update upon merge into master.
+plugins_api = { git = "https://github.com/AmmarAbouZor/chipmunk", branch = "producer-plugin", features = ["producer"]}
+# Alternatively, local path can be used to avoid cloning chipmunk multiple times.
+# plugins_api = { path = "{path_for_chipmunk}/plugins/plugins_api", features = ["producer"]}
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+debug = false
+strip = true
+lto = true
+
+[package.metadata.component]
+package = "component:producer-template"

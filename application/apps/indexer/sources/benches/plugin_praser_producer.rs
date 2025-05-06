@@ -3,7 +3,7 @@ use plugins_host::PluginsParser;
 use std::hint::black_box;
 
 use bench_utls::{bench_standrad_config, create_binary_bytesource, read_binary, run_producer};
-use sources::producer::MessageProducer;
+use sources::producer::CombinedProducer;
 
 mod bench_utls;
 
@@ -47,7 +47,7 @@ fn plugin_parser_producer(c: &mut Criterion) {
                     .unwrap();
 
                     let source = create_binary_bytesource(data);
-                    let producer = MessageProducer::new(parser, source);
+                    let producer = CombinedProducer::new(parser, source);
 
                     producer
                 },

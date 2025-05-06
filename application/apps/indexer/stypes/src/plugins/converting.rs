@@ -33,11 +33,13 @@ impl FromStr for PluginType {
         match Self::Parser {
             PluginType::Parser => (),
             PluginType::ByteSource => (),
+            PluginType::Producer => (),
         }
 
         match s {
             "Parser" => Ok(Self::Parser),
             "ByteSource" => Ok(Self::ByteSource),
+            "Producer" => Ok(Self::Producer),
             invalid => Err(format!("Invalid plugin type: '{invalid}'")),
         }
     }

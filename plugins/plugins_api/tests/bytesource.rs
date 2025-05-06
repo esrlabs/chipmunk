@@ -13,6 +13,7 @@ fn bytesource_macro_tests() {
     t.pass("tests/bytesource_macro/imp_bytesource_pass.rs");
     t.pass("tests/bytesource_macro/imp_bytesource_diff_mod_pass.rs");
     t.pass("tests/bytesource_macro/extend_trait_pass.rs");
+    t.pass("tests/bytesource_macro/glob_import_pass.rs");
 
     t.compile_fail("tests/bytesource_macro/not_imp_bytesource_fail.rs");
     t.compile_fail("tests/bytesource_macro/expression_fail.rs");

@@ -4,8 +4,8 @@ use std::{
 };
 
 use indexer_base::config::IndexSection;
-use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
-use sources::{producer::MessageProducer, ByteSource};
+use parsers::{LogMessage, MessageStreamItem, ParseYield};
+use sources::producer::MessageProducer;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
@@ -39,8 +39,8 @@ pub enum ExportError {
 ///
 /// # Errors
 /// In case of cancellation will return ExportError::Cancelled
-pub async fn export_raw<T, P, D>(
-    mut producer: MessageProducer<T, P, D>,
+pub async fn export_raw<T, P>(
+    mut producer: P,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -48,9 +48,8 @@ pub async fn export_raw<T, P, D>(
     cancel: &CancellationToken,
 ) -> Result<usize, ExportError>
 where
-    T: LogMessage + Sized,
-    P: Parser<T>,
-    D: ByteSource,
+    T: LogMessage + Sized + 'static,
+    P: MessageProducer<T>,
 {
     trace!("export_raw, sections: {sections:?}");
     if !sections_valid(sections) {

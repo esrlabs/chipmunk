@@ -1,10 +1,13 @@
 mod protobuf;
 
-use plugins_api::parser::{ColumnInfo, ColumnsRenderOptions, ParseYield, ParsedMessage};
 pub(crate) use plugins_api::{
     config, log,
     parser::{ParseError, ParseReturn, Parser, ParserConfig, RenderOptions},
     shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
+};
+use plugins_api::{
+    parser::{ColumnsRenderOptions, ParseYield, ParsedMessage},
+    shared_types::ColumnInfo,
 };
 use std::iter;
 

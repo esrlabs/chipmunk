@@ -44,7 +44,7 @@ pub async fn start_session<T, P, W>(
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
-    T: LogMessage,
+    T: LogMessage + 'static,
     P: parsers::Parser<T>,
     W: MessageFormatter,
 {

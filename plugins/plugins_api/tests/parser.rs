@@ -13,6 +13,8 @@ fn parser_macro_tests() {
     t.pass("tests/parser_macro/imp_parser_pass.rs");
     t.pass("tests/parser_macro/imp_parser_diff_mod_pass.rs");
     t.pass("tests/parser_macro/extend_trait_pass.rs");
+    t.pass("tests/parser_macro/glob_import_pass.rs");
+
     t.compile_fail("tests/parser_macro/not_imp_parser_fail.rs");
     t.compile_fail("tests/parser_macro/expression_fail.rs");
 }

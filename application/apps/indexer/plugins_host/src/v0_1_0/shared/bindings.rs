@@ -1,5 +1,5 @@
 use self::chipmunk::shared::shared_types::{
-    ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
+    ColumnInfo, ConfigItem, ConfigSchemaItem, ConfigSchemaType, ConfigValue, InitError, Version,
 };
 use crate::PluginGuestError;
 use stypes::{
@@ -88,5 +88,15 @@ impl From<ConfigSchemaItem> for stypes::PluginConfigSchemaItem {
 impl From<Version> for HostVersion {
     fn from(value: Version) -> Self {
         Self::new(value.major, value.minor, value.patch)
+    }
+}
+
+impl From<ColumnInfo> for stypes::ColumnInfo {
+    fn from(value: ColumnInfo) -> Self {
+        Self {
+            caption: value.caption,
+            description: value.description,
+            width: value.width,
+        }
     }
 }

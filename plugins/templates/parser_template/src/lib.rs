@@ -1,11 +1,10 @@
 use plugins_api::{
     config, log,
-    parser::{
-        ColumnInfo, ColumnsRenderOptions, ParseError, ParseReturn, Parser, ParserConfig,
-        RenderOptions,
-    },
+    parser::{ColumnsRenderOptions, ParseError, ParseReturn, Parser, ParserConfig, RenderOptions},
     parser_export,
-    shared_types::{ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version},
+    shared_types::{
+        ColumnInfo, ConfigItem, ConfigSchemaItem, ConfigSchemaType, InitError, Version,
+    },
 };
 
 // IDs for plugin configurations

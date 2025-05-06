@@ -38,6 +38,10 @@ pub mod bytesource;
 #[cfg_attr(docsrs, doc(cfg(feature = "parser")))]
 pub mod parser;
 
+#[cfg(feature = "producer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "producer")))]
+pub mod producer;
+
 // This is a temporary reminder to include `--all-features` flag with cargo test in CI pipelines.
 // This code is activated in tests only if no features is activated, since almost all tests are
 // included within the features.

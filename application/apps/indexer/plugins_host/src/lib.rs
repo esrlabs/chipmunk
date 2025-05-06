@@ -6,16 +6,22 @@ mod bytesource_shared;
 mod parser_shared;
 pub mod plugins_manager;
 mod plugins_shared;
+mod producer_shared;
 mod v0_1_0;
 mod wasm_host;
 
 use plugins_shared::plugin_errors::PluginError;
 
-pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginsParser};
+pub use parser_shared::PluginsParser;
 
 pub use bytesource_shared::PluginsByteSource;
 
-pub use plugins_shared::plugin_errors::{PluginGuestError, PluginHostError};
+pub use producer_shared::PluginsProducer;
+
+pub use plugins_shared::{
+    plugin_errors::{PluginGuestError, PluginHostError},
+    plugin_parse_message::PluginParseMessage,
+};
 use stypes::{PluginType, SemanticVersion};
 
 /// Provided needed method and definitions for all WASM plugins in Chipmunk.
