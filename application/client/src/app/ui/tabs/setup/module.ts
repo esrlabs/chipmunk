@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { SettingsSchemeModule } from '@elements/scheme/module';
 import { SetupObserve } from './component';
+import { SourceOriginComponent } from './origin/component';
 
 @NgModule({
     imports: [
@@ -17,8 +18,8 @@ import { SetupObserve } from './component';
         MatSelectModule,
         SettingsSchemeModule,
     ],
-    declarations: [SetupObserve],
+    declarations: [SetupObserve, SourceOriginComponent],
     exports: [SetupObserve],
-    bootstrap: [SetupObserve],
+    bootstrap: [SetupObserve, SourceOriginComponent],
 })
 export class SetupModule {}

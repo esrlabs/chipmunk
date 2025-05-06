@@ -8,6 +8,7 @@ import { FolderEntityType } from '@platform/types/bindings';
 
 import * as Factory from '@platform/types/observe/factory';
 import { IMenuItem } from '@ui/service/contextmenu';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 const DEFAULT_DEEP = 5;
 const DEFAULT_LEN = 20000;
@@ -83,13 +84,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(
-                        new Factory.File()
-                            .asDlt()
-                            .type(Factory.FileType.Binary)
-                            .file(item.filename)
-                            .get(),
-                    )
+                    .configure(SessionSourceOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -98,13 +93,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(
-                        new Factory.File()
-                            .asDlt()
-                            .type(Factory.FileType.PcapNG)
-                            .file(item.filename)
-                            .get(),
-                    )
+                    .configure(SessionSourceOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -113,13 +102,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(
-                        new Factory.File()
-                            .asDlt()
-                            .type(Factory.FileType.PcapLegacy)
-                            .file(item.filename)
-                            .get(),
-                    )
+                    .configure(SessionSourceOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -128,13 +111,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .observe(
-                        new Factory.File()
-                            .asText()
-                            .type(Factory.FileType.Text)
-                            .file(item.filename)
-                            .get(),
-                    )
+                    .observe(SessionSourceOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -143,13 +120,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .observe(
-                        new Factory.File()
-                            .asParserPlugin()
-                            .type(Factory.FileType.ParserPlugin)
-                            .file(item.filename)
-                            .get(),
-                    )
+                    .observe(SessionSourceOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc
                             .log()
@@ -170,13 +141,7 @@ export class Provider extends Base<IFileDescription> {
                             this.ilc
                                 .ilc()
                                 .services.system.session.initialize()
-                                .observe(
-                                    new Factory.File()
-                                        .asText()
-                                        .type(filetype)
-                                        .file(item.filename)
-                                        .get(),
-                                )
+                                .observe(SessionSourceOrigin.file(item.filename))
                                 .catch((err: Error) => {
                                     this.ilc
                                         .log()
@@ -186,13 +151,7 @@ export class Provider extends Base<IFileDescription> {
                             this.ilc
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.File()
-                                        .type(filetype)
-                                        .file(item.filename)
-                                        .guessParser()
-                                        .get(),
-                                )
+                                .configure(SessionSourceOrigin.file(item.filename))
                                 .catch((err: Error) => {
                                     this.ilc
                                         .log()
