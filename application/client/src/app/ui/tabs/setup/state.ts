@@ -4,6 +4,7 @@ import { Logger } from '@env/logs';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
 import { TabControls } from '@service/session';
 import { Proivder } from './provider';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 export interface IApi {
     finish(): Promise<void>;
@@ -12,9 +13,6 @@ export interface IApi {
 }
 
 export class State extends Subscriber {
-    public origin: SourceOrigin = {
-        File: '/storage/projects/esrlabs/logs-examples/dlt/images.dlt',
-    };
     public sources: Ident[] = [];
     public parsers: Ident[] = [];
     public subjects: Subjects<{
@@ -45,28 +43,39 @@ export class State extends Subscriber {
 
     protected readonly logger = new Logger(`Setup`);
 
+    constructor(protected readonly origin: SessionSourceOrigin) {
+        super();
+    }
     public destroy() {
         this.unsubscribe();
         this.subjects.destroy();
     }
     public load() {
         components
-            .get(this.origin)
+            .get(this.origin.getDef())
             .sources()
             .then((sources: Ident[]) => {
                 this.sources = sources;
+                if (this.sources.length > 0) {
+                    this.selected.source = this.sources[0].uuid;
+                }
                 this.subjects.get().sources.emit(this.sources);
+                this.change().source();
             })
             .catch((err: Error) => {
                 this.logger.error(`Fail to get sources list: ${err.message}`);
                 this.subjects.get().error.emit(err.message);
             });
         components
-            .get(this.origin)
+            .get(this.origin.getDef())
             .parsers()
             .then((parsers: Ident[]) => {
                 this.parsers = parsers;
+                if (this.parsers.length > 0) {
+                    this.selected.parser = this.parsers[0].uuid;
+                }
                 this.subjects.get().parsers.emit(this.sources);
+                this.change().parser();
             })
             .catch((err: Error) => {
                 this.logger.error(`Fail to get parsers list: ${err.message}`);
@@ -80,6 +89,9 @@ export class State extends Subscriber {
     } {
         return {
             source: (): void => {
+                if (this.selected.source === undefined) {
+                    return;
+                }
                 if (this.providers.source !== undefined) {
                     this.providers.source.destroy().catch((err: Error) => {
                         this.logger.error(`Fail to destroy source provider: ${err.message}`);
@@ -89,6 +101,9 @@ export class State extends Subscriber {
                 this.subjects.get().updated.emit();
             },
             parser: (): void => {
+                if (this.selected.parser === undefined) {
+                    return;
+                }
                 if (this.providers.parser !== undefined) {
                     this.providers.parser.destroy().catch((err: Error) => {
                         this.logger.error(`Fail to destroy parser provider: ${err.message}`);

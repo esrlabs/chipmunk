@@ -108,9 +108,11 @@ export abstract class Provider {
     }
 
     public openAsNew(source: ObserveSource | Observe): Promise<string | undefined> {
-        return session
-            .initialize()
-            .configure(source instanceof ObserveSource ? source.observe : source);
+        console.error(`Not implemented`);
+        return Promise.reject(new Error(`Not implemented`));
+        // return session
+        //     .initialize()
+        //     .configure(source instanceof ObserveSource ? source.observe : source);
     }
 
     public setPanels(): Provider {
