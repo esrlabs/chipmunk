@@ -5,6 +5,7 @@ use crate::{
 use bufread::DeqBuffer;
 use components::ComponentDescriptor;
 use etherparse::{SlicedPacket, TransportSlice};
+use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{PcapBlockOwned, PcapError, PcapNGReader, traits::PcapReaderIterator};
 use std::io::Read;
@@ -175,15 +176,22 @@ impl ComponentDescriptor for Descriptor {
                 vec![filepath]
             }
             SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source | SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => {
+            SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => {
                 return true
+            }
+            SourceOrigin::Source => {
+                return false;
             }
         };
         files.iter().any(|fp| {
             fp.extension()
                 .map(|ext| ext.to_ascii_lowercase() == "pcapng")
                 .unwrap_or_default()
-        })
+        }) &&        
+        // If at least some file doesn't exist or not binary - do not recommend this source
+        !files
+            .into_iter()
+            .any(|f| !f.exists() || !is_binary(f.to_string_lossy().to_string()).unwrap_or_default())
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {

@@ -4,6 +4,7 @@ use crate::{
 };
 use bufread::BufReader;
 use components::ComponentDescriptor;
+use file_tools::is_binary;
 use std::io::{BufRead, Read};
 use stypes::SourceOrigin;
 
@@ -86,8 +87,21 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, _origin: &SourceOrigin) -> bool {
-        true
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        let files = match origin {
+            SourceOrigin::File(filepath) => {
+                vec![filepath]
+            }
+            SourceOrigin::Files(files) => files.iter().collect(),
+            SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => return false,
+            SourceOrigin::Source => {
+                return false;
+            }
+        };
+        // If at least some file doesn't exist or not binary - do not recommend this source
+        !files
+            .into_iter()
+            .any(|f| !f.exists() || !is_binary(f.to_string_lossy().to_string()).unwrap_or_default())
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
