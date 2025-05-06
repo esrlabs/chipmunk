@@ -30,34 +30,36 @@ export async function action(
     }
     let uuid: string | undefined = undefined;
     for (const observe of request.observe) {
-        if (uuid === undefined) {
-            uuid = await session
-                .initialize()
-                .auto(new Observe(observe).locker().guess())
-                .catch((err: Error) => {
-                    cli.log().warn(
-                        `Fail to apply action (Events.Cli.Observe.Event): ${err.message}`,
-                    );
-                    return undefined;
-                });
-            if (uuid === undefined) {
-                return Promise.resolve(undefined);
-            }
-        } else {
-            const instance = session.get(uuid);
-            if (instance === undefined) {
-                return Promise.resolve(undefined);
-            }
-            await session
-                .initialize()
-                .auto(new Observe(observe).locker().guess(), instance)
-                .catch((err: Error) => {
-                    cli.log().warn(
-                        `Fail to apply action (Events.Cli.Observe.Event): ${err.message}`,
-                    );
-                    return undefined;
-                });
-        }
+        console.error(`Not implemented`);
+        return Promise.reject(new Error(`Not implemented`));
+        // if (uuid === undefined) {
+        //     uuid = await session
+        //         .initialize()
+        //         .auto(new Observe(observe).locker().guess())
+        //         .catch((err: Error) => {
+        //             cli.log().warn(
+        //                 `Fail to apply action (Events.Cli.Observe.Event): ${err.message}`,
+        //             );
+        //             return undefined;
+        //         });
+        //     if (uuid === undefined) {
+        //         return Promise.resolve(undefined);
+        //     }
+        // } else {
+        //     const instance = session.get(uuid);
+        //     if (instance === undefined) {
+        //         return Promise.resolve(undefined);
+        //     }
+        //     await session
+        //         .initialize()
+        //         .auto(new Observe(observe).locker().guess(), instance)
+        //         .catch((err: Error) => {
+        //             cli.log().warn(
+        //                 `Fail to apply action (Events.Cli.Observe.Event): ${err.message}`,
+        //             );
+        //             return undefined;
+        //         });
+        // }
     }
     return Promise.resolve(uuid);
 }

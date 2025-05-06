@@ -2,6 +2,7 @@ import { Base } from './action';
 import { session } from '@service/session';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'stream_dlt_on_udp';
 
@@ -18,7 +19,7 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        session.initialize().configure(new Factory.Stream().udp().asDlt().get());
+        session.initialize().configure(SessionSourceOrigin.source());
         return Promise.resolve();
     }
 }

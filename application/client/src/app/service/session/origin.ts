@@ -1,0 +1,78 @@
+import { SourceOrigin, Ident } from '@platform/types/bindings';
+
+export class SessionOptionsPreset {
+    public parser: Ident | undefined;
+    public source: Ident | undefined;
+}
+
+export class SessionSourceOrigin {
+    static file(path: string): SessionSourceOrigin {
+        return new SessionSourceOrigin({ File: path }, undefined);
+    }
+    static files(paths: string[]): SessionSourceOrigin {
+        return new SessionSourceOrigin({ Files: paths }, undefined);
+    }
+    static folder(path: string): SessionSourceOrigin {
+        return new SessionSourceOrigin({ Folder: path }, undefined);
+    }
+    static folders(paths: string[]): SessionSourceOrigin {
+        return new SessionSourceOrigin({ Folders: paths }, undefined);
+    }
+    static source(): SessionSourceOrigin {
+        return new SessionSourceOrigin('Source', undefined);
+    }
+    constructor(
+        public readonly origin: SourceOrigin,
+        public options: SessionOptionsPreset | undefined,
+    ) {}
+
+    public getDef(): SourceOrigin {
+        return this.origin;
+    }
+    public getTitle(): string {
+        if (this.origin === 'Source') {
+            // TODO: Check idents
+            return `Source`;
+        } else if ((this.origin as { File: string }).File) {
+            return (this.origin as { File: string }).File;
+        } else if ((this.origin as { Folder: string }).Folder) {
+            return (this.origin as { Folder: string }).Folder;
+        } else if ((this.origin as { Files: string[] }).Files) {
+            return `${(this.origin as { Files: string[] }).Files.length} files`;
+        } else if ((this.origin as { Folders: string[] }).Folders) {
+            return `${(this.origin as { Folders: string[] }).Folders.length} folders`;
+        } else {
+            return `unknown`;
+        }
+    }
+    public getDescription(): { title: string; desctiption: string | undefined } {
+        if (this.origin === 'Source') {
+            // TODO: Check idents
+            return {
+                title: 'Custom Source',
+                desctiption: `Data comes from selected source provider`,
+            };
+        } else if ((this.origin as { File: string }).File) {
+            return { title: `Selected File`, desctiption: (this.origin as { File: string }).File };
+        } else if ((this.origin as { Folder: string }).Folder) {
+            return {
+                title: `Selected Folder`,
+                desctiption: (this.origin as { Folder: string }).Folder,
+            };
+        } else if ((this.origin as { Files: string[] }).Files) {
+            return {
+                title: `Collection of Files`,
+                desctiption: `${(this.origin as { Files: string[] }).Files.length} files`,
+            };
+        } else if ((this.origin as { Folders: string[] }).Folders) {
+            return {
+                title: 'Collection of Folder',
+                desctiption: `${
+                    (this.origin as { Folders: string[] }).Folders.length
+                } folders selected`,
+            };
+        } else {
+            return { title: 'Unknown', desctiption: undefined };
+        }
+    }
+}
