@@ -23,6 +23,7 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 components = { path = "../components" }
 tokio-util.workspace = true
 tokio.workspace = true
+file-tools = { path = "../addons/file-tools" }
 
 [dev-dependencies]
 stringreader = "0.1"
