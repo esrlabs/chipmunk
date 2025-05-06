@@ -1,16 +1,13 @@
 <div class="title">
+    <app-tabs-setup-origin [origin]="origin"></app-tabs-setup-origin>
     <div class="entity filler">
-        <p class="t-normal info">Source:</p>
         <mat-form-field class="material-mofication-normal black">
             <mat-select
                 [(ngModel)]="state.selected.source"
                 (ngModelChange)="state.change().source()"
+                [disabled]="state.sources.length <= 1"
             >
-                <mat-option
-                    *ngFor="let source of state.sources"
-                    [value]="source.uuid"
-                    [disabled]="false"
-                >
+                <mat-option *ngFor="let source of state.sources" [value]="source.uuid">
                     {{source.desc}}
                 </mat-option>
             </mat-select>
@@ -22,12 +19,9 @@
             <mat-select
                 [(ngModel)]="state.selected.parser"
                 (ngModelChange)="state.change().parser()"
+                [disabled]="state.parsers.length <= 1"
             >
-                <mat-option
-                    *ngFor="let parser of state.parsers"
-                    [value]="parser.uuid"
-                    [disabled]="false"
-                >
+                <mat-option *ngFor="let parser of state.parsers" [value]="parser.uuid">
                     {{parser.desc}}
                 </mat-option>
             </mat-select>

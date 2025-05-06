@@ -10,6 +10,7 @@ import {
     LoadingErrorsEvent,
 } from '@platform/types/components';
 import { WrappedField } from '@ui/elements/scheme/field';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 export class Proivder extends SchemeProvider {
     protected pending: string[] = [];
@@ -17,7 +18,7 @@ export class Proivder extends SchemeProvider {
     protected readonly values: Map<string, Value> = new Map();
     protected fields: string[] = [];
 
-    constructor(protected readonly origin: SourceOrigin, protected readonly target: string) {
+    constructor(protected readonly origin: SessionSourceOrigin, protected readonly target: string) {
         super();
         this.register(
             components.subjects.get().LoadingDone.subscribe(this.onLoadingDone.bind(this)),
@@ -33,7 +34,7 @@ export class Proivder extends SchemeProvider {
         this.pending.length === 0 && components.abort(this.pending);
         this.pending = [];
         return components
-            .getOptions(this.origin, [this.target])
+            .getOptions(this.origin.getDef(), [this.target])
             .then((map: Map<string, FieldDesc[]>) => {
                 const fields = map.get(this.target);
                 if (!fields) {
@@ -65,7 +66,7 @@ export class Proivder extends SchemeProvider {
             fields.push({ id, value });
         });
         components
-            .validate(this.origin, this.target, fields)
+            .validate(this.origin.getDef(), this.target, fields)
             .then((errs: Map<string, string>) => {
                 // Always forward errors info, even no errors
                 this.subjects.get().error.emit(errs);

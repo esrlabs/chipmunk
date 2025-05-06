@@ -75,17 +75,18 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                         {
                             caption: 'Restart',
                             handler: () => {
-                                this.ilc()
-                                    .services.system.session.initialize()
-                                    .observe(this.observe, this.session)
-                                    .catch((err: Error) => {
-                                        this.log().error(
-                                            `Fail to restart observe operation: ${err.message}`,
-                                        );
-                                    })
-                                    .finally(() => {
-                                        this.detectChanges();
-                                    });
+                                console.log(`Not implemented`);
+                                // this.ilc()
+                                //     .services.system.session.initialize()
+                                //     .observe(this.observe, this.session)
+                                //     .catch((err: Error) => {
+                                //         this.log().error(
+                                //             `Fail to restart observe operation: ${err.message}`,
+                                //         );
+                                //     })
+                                //     .finally(() => {
+                                //         this.detectChanges();
+                                //     });
                             },
                         },
                     ],
@@ -98,9 +99,10 @@ export class Transport extends ChangesDetector implements AfterContentInit {
                     {
                         caption: 'Parameters',
                         handler: () => {
-                            this.ilc()
-                                .services.system.session.initialize()
-                                .configure(this.observe, this.session);
+                            console.log(`Not implemented`);
+                            // this.ilc()
+                            //     .services.system.session.initialize()
+                            //     .configure(this.observe, this.session);
                         },
                     },
                 ],

@@ -11,6 +11,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, IApi } from './state';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 @Component({
     selector: 'app-tabs-setup',
@@ -26,8 +27,9 @@ export class SetupObserve
     implements AfterViewInit, AfterContentInit, OnDestroy
 {
     @Input() api!: IApi;
+    @Input() origin!: SessionSourceOrigin;
 
-    public state: State = new State();
+    public state!: State;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -38,6 +40,7 @@ export class SetupObserve
     }
 
     public ngAfterContentInit(): void {
+        this.state = new State(this.origin);
         this.state.load();
     }
 
