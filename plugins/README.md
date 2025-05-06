@@ -15,6 +15,7 @@ This guide provides an overview of how to develop plugins for Chipmunk applicati
 - [Plugin Types](#plugin-types)
   - [Parser Plugins](#parser-plugins)
   - [Byte-Source Plugins](#byte-source-plugins)
+  - [Producer Plugins](#producer-plugins)
 - [Developing Plugins in Other Languages](#developing-plugins-in-other-languages)
   - [Useful Tools](#useful-tools)
 - [Plugins Benchmarking](#plugins-benchmarking)
@@ -150,6 +151,34 @@ The [`plugins-api`](./plugins_api/) crate again provides helper functions for lo
 - Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
 
 For further details, refer to the `file_source` example.
+
+### Producer Plugins
+
+**Purpose:**  
+Producer plugins combine the roles of both a byte-source and a parser. They are responsible for reading data from a source *and* parsing it internally, delivering the resulting parsed items in chunks. Like other plugin types, they can define configuration schemas and specify rendering options if needed.
+
+**Development in Rust:**  
+- Create a struct that implements to the `Producer` trait defined in the [`plugins-api`](./plugins_api/) crate.
+- Use the `producer_export!()` macro to export your parser struct.
+
+The [`plugins-api`](./plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
+
+<!--TODO AAZ: Remove Temporary integrations and reactivate the commented out integrations section-->
+
+**Temporary Integration:**
+- Producer plugins currently lack direct UI support and are activated solely via an environment variable.
+- To activate a Producer plugin, set the `CHIP_PLUG_PRODUCER` environment variable to the path of the plugin's compiled WASM binary file.
+- When a user opens a file (e.g., a `*.mdf` file) in Chipmunk App, the file path is passed to the activated plugin as a configuration value. This configuration has the ID `file_path` and type `ConfigValue::Files`. Refer to the producer template and examples for accessing this value.
+* Configuration schemas and render options defined by Producer plugins are currently temporarily ignored.
+
+<!--**Integration:**  -->
+<!--- Create a directory at `<HOME>/.chipmunk/plugins/producer/<plugin-name>/`.-->
+<!--- Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.-->
+
+
+To get started quickly, you can use the provided [producer template](./templates/producer_template). Simply copy the `producer_template` directory and modify it to implement your custom producer.  
+
+For reference, see the `file_producer` example.
 
 ---
 

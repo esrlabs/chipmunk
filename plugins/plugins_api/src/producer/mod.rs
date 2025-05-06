@@ -96,6 +96,10 @@ pub trait Producer {
     /// and returns a collection of successfully produced results. It should be called
     /// repeatedly to consume all available data.
     ///
+    /// The host will consider the production session from this plugin as done
+    /// once this method returns an empty iterator (i.e., the iterator yields no items)
+    /// or yields an item with the variant [`ProduceReturn::Done`].
+    ///
     /// # Returns
     ///
     /// * `Ok(Vec<ProduceReturn>)` - A vector containing the next batch of produced results.

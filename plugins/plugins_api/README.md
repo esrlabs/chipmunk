@@ -35,3 +35,14 @@ Each plugin type is associated with a feature in this crate. A feature must be e
 * Use `bytesource_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
 <!--TODO: Update here once template for byte-source is done. -->
 * Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples) provided in Chipmunk repo to get started.
+
+
+### Producer Plugins:
+
+> **NOTE:** Producer plugins are still work-in-progress in Chipmunk. 
+
+* To develop a producer plugin, enable the `producer` feature in `Cargo.toml`.
+* Implement `Producer` trait on your struct to define a producer plugin.
+* Use `producer_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
+<!--TODO AAZ: Links referring to a branch on my fork temporally -->
+* Please refer to the [examples](https://github.com/AmmarAbouZor/chipmunk/tree/producer-plugin/plugins/examples) and [producer template](https://github.com/AmmarAbouZor/chipmunk/tree/producer-plugin/plugins/templates/producer_template) provided in Chipmunk repo to get started.

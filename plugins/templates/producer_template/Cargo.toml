@@ -1,16 +1,16 @@
 [workspace]
 
 [package]
-name = "parser_template"
+name = "producer_template"
 version = "0.1.0"
 edition = "2021"
-description = "Template for parser plugins in Chipmunk"
+description = "Template for producer plugins in Chipmunk"
 
 [dependencies]
 # TODO AAZ: Points currently to my fork. Update upon merge into master.
-plugins_api = { git = "https://github.com/AmmarAbouZor/chipmunk", branch = "producer-plugin", features = ["parser"]}
+plugins_api = { git = "https://github.com/AmmarAbouZor/chipmunk", branch = "producer-plugin", features = ["producer"]}
 # Alternatively, local path can be used to avoid cloning chipmunk multiple times.
-# plugins_api = { path = "{path_for_chipmunk}/plugins/plugins_api", features = ["parser"]}
+# plugins_api = { path = "{path_for_chipmunk}/plugins/plugins_api", features = ["producer"]}
 
 [lib]
 crate-type = ["cdylib"]
@@ -23,4 +23,4 @@ strip = true
 lto = true
 
 [package.metadata.component]
-package = "component:parser-template"
+package = "component:producer-template"
