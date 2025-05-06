@@ -28,6 +28,7 @@ stypes = { path = "../stypes", features=["rustcore"] }
 socket2 = "0.5.8"
 components = { path = "../components" }
 serialport.workspace = true
+file-tools = { path = "../addons/file-tools" }
 
 [dev-dependencies]
 env_logger.workspace = true
