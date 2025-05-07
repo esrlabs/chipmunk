@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Context;
 use rand::distributions::DistString;
@@ -23,6 +23,8 @@ pub fn get_wasi_ctx_builder(
     let mut ctx = WasiCtxBuilder::new();
     ctx.inherit_stdout().inherit_stderr().inherit_env();
 
+    let mut read_dirs = HashSet::new();
+
     // Gives read access to parent directories of the plugin configuration files.
     for config_path in plugin_configs
         .iter()
@@ -41,6 +43,11 @@ pub fn get_wasi_ctx_builder(
             "Resolve config file parent failed. File path: {}",
             config_path.display()
         )))?;
+
+        // Avoid giving permissions for the same directory multiple times.
+        if !read_dirs.insert(config_dir) {
+            continue;
+        }
 
         ctx.preopened_dir(
             config_dir,
