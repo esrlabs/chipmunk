@@ -7,11 +7,12 @@ use console::style;
 use serde::Deserialize;
 
 use crate::{
-    location::config_path, log_print::print_log_separator, shell::shell_std_command, target::Target,
+    location::global_configs_path, log_print::print_log_separator, shell::shell_std_command,
+    target::Target,
 };
 
 /// Filename for rust core benchmarks configurations.
-pub const CONFIG_FILENAME: &str = "bench_core.toml";
+pub const BENCHES_CONFIG_FILENAME: &str = "bench_core.toml";
 
 /// Environment variables to pass input source to benchmarks.
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
@@ -30,7 +31,7 @@ pub struct ConfigsInfos {
 impl ConfigsInfos {
     /// Loads benchmarks infos from configuration file.
     pub fn load() -> anyhow::Result<Self> {
-        let config_file_path = config_path().join(CONFIG_FILENAME);
+        let config_file_path = global_configs_path().join(BENCHES_CONFIG_FILENAME);
         ensure!(
             config_file_path.exists(),
             "Benchmarks Configuration file doesn't exist. Path: {}",

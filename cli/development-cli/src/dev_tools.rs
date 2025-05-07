@@ -9,7 +9,6 @@ pub enum DevTool {
     Node,
     Npm,
     Yarn,
-    RustUp,
     Cargo,
     WasmPack,
     NjCli,
@@ -21,7 +20,6 @@ impl Display for DevTool {
             DevTool::Node => write!(f, "NodeJS"),
             DevTool::Npm => write!(f, "npm"),
             DevTool::Yarn => write!(f, "yarn"),
-            DevTool::RustUp => write!(f, "Rust"),
             DevTool::Cargo => write!(f, "cargo"),
             DevTool::WasmPack => write!(f, "wasm-pack"),
             DevTool::NjCli => write!(f, "nj-cl"),
@@ -38,7 +36,6 @@ impl DevTool {
                 DevTool::Node => (),
                 DevTool::Npm => (),
                 DevTool::Yarn => (),
-                DevTool::RustUp => (),
                 DevTool::Cargo => (),
                 DevTool::WasmPack => (),
                 DevTool::NjCli => (),
@@ -49,7 +46,6 @@ impl DevTool {
             DevTool::Node,
             DevTool::Npm,
             DevTool::Yarn,
-            DevTool::RustUp,
             DevTool::Cargo,
             DevTool::WasmPack,
             DevTool::NjCli,
@@ -60,7 +56,7 @@ impl DevTool {
     /// Provide the suggested way to install the tool
     pub fn install_hint(self) -> Option<&'static str> {
         match self {
-            DevTool::Node | DevTool::Npm | DevTool::RustUp | DevTool::Cargo => None,
+            DevTool::Node | DevTool::Npm | DevTool::Cargo => None,
             DevTool::Yarn => Some("npm install --global yarn"),
             DevTool::WasmPack => Some("cargo install wasm-pack"),
             DevTool::NjCli => Some("cargo install nj-cli"),
@@ -73,7 +69,6 @@ impl DevTool {
             DevTool::Node => "node",
             DevTool::Npm => "npm",
             DevTool::Yarn => "yarn",
-            DevTool::RustUp => "rustup",
             DevTool::Cargo => "cargo",
             DevTool::WasmPack => "wasm-pack",
             DevTool::NjCli => "nj-cli",

@@ -38,12 +38,12 @@ We recommend using NVM (Node Version Manager) to install and manage Node.js vers
 
 Once NVM is installed and configured, you can install the latest Long Term Support (LTS) version of Node.js by running:
 
-```
+```sh
 nvm install --lts
 ```
 Verify that Node.js is installed correctly by running:
 
-```
+```sh
 node -v
 ```
 
@@ -51,16 +51,29 @@ This will print the installed Node.js version in your terminal.
 
 ### Installing Yarn
 
-Chipmunk uses [Yarn](https://yarnpkg.com/) for managing frontend dependencies. If you don't have it installed, you can install it globally using npm:
+Chipmunk uses [Yarn](https://yarnpkg.com/) for managing frontend dependencies. While the project specifies a particular Yarn version via Corepack, our current setup still checks for a global Yarn installation.
 
-`npm install -g yarn`
+First, install Yarn globally using `npm`:
 
+```sh
+npm install -g yarn
+```
+
+Additionally, this project enforces a required Yarn version specified in its `package.json` file to ensure consistent dependency management across all development environments. To automatically use this project-defined version, you need to enable **Corepack**:
+
+```sh
+corepack enable
+```
+
+Enabling Corepack ensures that when you run `yarn` commands within the Chipmunk project directory, NodeJS will automatically use the version specified by the project, even if a different version is installed globally.
 
 ### Installing Project Dependencies
 
 This project relies on external dependencies for both the Rust backend and the Electron/Node.js frontend. To install all necessary project dependencies and tools, run the following script from the repository root:
 
-`sh developing/scripts/install.sh`
+```sh
+sh developing/scripts/install.sh
+```
 
 This script will handle installing dependencies required for building and running Chipmunk.
 
@@ -109,10 +122,14 @@ The run command automatically performs any necessary builds of modified componen
 To explore the full range of commands and options available with the `cargo chipmunk` development tool, use the `--help` flag:
 
 To list all top-level commands:
-`cargo chipmunk --help`
+```sh
+cargo chipmunk --help
+```
 
 To view options for a specific command (for example, the `build` command):
-`cargo chipmunk build --help`
+```sh
+cargo chipmunk build --help
+```
 
 ## Creating your first PR
 
@@ -139,7 +156,7 @@ cargo chipmunk lint shared wrapper client app
 
 Ensure your changes are covered by appropriate test cases. Run all test cases to verify that everything is working as expected:
 
-```
+```sh
 cargo chipmunk test
 ```
 
