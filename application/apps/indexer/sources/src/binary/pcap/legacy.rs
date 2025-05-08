@@ -1,7 +1,5 @@
-use crate::{
-    binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    TransportProtocol,
-};
+use crate::{binary::pcap::debug_block};
+use definitions::*;
 use bufread::DeqBuffer;
 use components::ComponentDescriptor;
 use etherparse::{SlicedPacket, TransportSlice};
@@ -10,6 +8,7 @@ use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
 use std::io::Read;
 use stypes::SourceOrigin;
+use async_trait::async_trait;
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
@@ -30,6 +29,7 @@ impl<R: Read> PcapLegacyByteSource<R> {
     }
 }
 
+#[async_trait]
 impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
     async fn load(
         &mut self,

@@ -1,9 +1,7 @@
-use crate::{
-    ByteSource, Error as SourceError, ReloadInfo, SourceFilter, DEFAULT_MIN_BUFFER_SPACE,
-    DEFAULT_READER_CAPACITY,
-};
+use async_trait::async_trait;
 use bufread::BufReader;
 use components::ComponentDescriptor;
+use definitions::*;
 use file_tools::is_binary;
 use std::io::{BufRead, Read};
 use stypes::SourceOrigin;
@@ -34,6 +32,7 @@ where
     }
 }
 
+#[async_trait]
 impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     async fn load(&mut self, _: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
         let initial_buf_len = self.reader.len();
@@ -88,6 +87,16 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
+    fn to_source<R: definitions::InnerReader>(
+        inner: R,
+        _origin: SourceOrigin,
+        _options: Vec<stypes::Field>,
+    ) -> Result<Option<Box<dyn definitions::ByteSource>>, stypes::NativeError>
+    where
+        Self: Sized,
+    {
+        Ok(Some(Box::new(BinaryByteSource::new(inner))))
+    }
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {

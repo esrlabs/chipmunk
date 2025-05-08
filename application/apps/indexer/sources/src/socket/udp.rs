@@ -1,16 +1,14 @@
+use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
+use crate::socket::{handle_buff_capacity, BuffCapacityState};
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use components::ComponentDescriptor;
+use definitions::*;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
 use stypes::SourceOrigin;
 use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
-
-use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
-use crate::{
-    socket::{handle_buff_capacity, BuffCapacityState},
-    ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
 
 #[derive(Error, Debug)]
 pub enum UdpSourceError {
@@ -78,6 +76,7 @@ impl UdpSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for UdpSource {
     async fn load(
         &mut self,

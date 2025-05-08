@@ -131,14 +131,13 @@ impl PluginParser {
     }
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginParser {
+use definitions as defs;
+impl defs::Parser<PluginParseMessage> for PluginParser {
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<Vec<(usize, Option<defs::ParseYield<PluginParseMessage>>)>, defs::ParserError> {
         let call_res = block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
             &mut self.store,
             input,
@@ -155,10 +154,10 @@ impl p::Parser<PluginParseMessage> for PluginParser {
             }
         };
 
-        let res = parse_results
+        Ok(parse_results
             .into_iter()
-            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())));
-        Ok(res)
+            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
+            .collect())
     }
 }
 

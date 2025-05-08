@@ -712,6 +712,7 @@ checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
 name = "components"
 version = "0.1.0"
 dependencies = [
+ "definitions",
  "log",
  "stypes",
  "thiserror 2.0.12",
@@ -1088,6 +1089,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "definitions"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "etherparse",
+ "serde",
+ "stypes",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1263,6 +1275,7 @@ dependencies = [
 name = "dlt-tools"
 version = "0.1.0"
 dependencies = [
+ "definitions",
  "dlt-core",
  "indexer_base",
  "log",
@@ -1373,9 +1386,9 @@ dependencies = [
 
 [[package]]
 name = "etherparse"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8d8a704b617484e9d867a0423cd45f7577f008c4068e2e33378f8d3860a6d73"
+checksum = "3ff83a5facf1a7cbfef93cfb48d6d4fb6a1f42d8ac2341a96b3255acb4d4f860"
 dependencies = [
  "arrayvec",
 ]
@@ -2591,6 +2604,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "components",
+ "definitions",
  "dlt-core",
  "file-tools",
  "humantime",
@@ -2737,6 +2751,7 @@ dependencies = [
  "blake3",
  "components",
  "criterion",
+ "definitions",
  "dir_checksum",
  "dirs 6.0.0",
  "futures",
@@ -2818,6 +2833,7 @@ dependencies = [
  "bufread",
  "bytecount",
  "criterion",
+ "definitions",
  "futures",
  "grep-regex",
  "grep-searcher",
@@ -3239,6 +3255,7 @@ dependencies = [
  "blake3",
  "components",
  "crossbeam-channel",
+ "definitions",
  "dirs 6.0.0",
  "dlt-core",
  "envvars",
@@ -3398,10 +3415,12 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
+ "async-trait",
  "bufread",
  "bytes",
  "components",
  "criterion",
+ "definitions",
  "env_logger",
  "etherparse",
  "file-tools",

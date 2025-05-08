@@ -13,17 +13,18 @@ log.workspace = true
 regex.workspace = true
 memchr = "2.7"
 serde = { workspace = true , features = ["derive"] }
-thiserror.workspace = true
 rand.workspace = true
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
-someip-tools = { path = "../addons/someip-tools" }
-stypes = { path = "../stypes", features=["rustcore"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
 components = { path = "../components" }
 tokio-util.workspace = true
 tokio.workspace = true
+
+stypes = { path = "../stypes", features=["rustcore"] }
+definitions = { path = "../definitions" }
 file-tools = { path = "../addons/file-tools" }
+someip-tools = { path = "../addons/someip-tools" }
 
 [dev-dependencies]
 stringreader = "0.1"

@@ -1,11 +1,11 @@
 use crate::{operations::OperationResult, state::SessionStateAPI};
+use definitions::{ByteSource, LogMessage, Parser};
 use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, Parser,
 };
 use plugins_host::PluginsParser;
 use processor::export::{export_raw, ExportError};
@@ -15,7 +15,6 @@ use sources::{
         raw::BinaryByteSource,
     },
     producer::MessageProducer,
-    ByteSource,
 };
 use std::{
     fs::File,
@@ -156,8 +155,9 @@ async fn export<S: ByteSource>(
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
             let parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
-                settings.fibex_metadata.as_ref(),
-                fmt_options.as_ref(),
+                // TODO: find a way to avoid clonning of MD
+                settings.fibex_metadata.as_ref().map(|md| md.clone()),
+                fmt_options,
                 None,
                 settings.with_storage_header,
             );

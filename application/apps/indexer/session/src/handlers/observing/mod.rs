@@ -5,18 +5,17 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
+use definitions::{ByteSource, LogMessage, MessageStreamItem, ParseYield, Parser};
 use log::trace;
 use parsers::{
     dlt::{fmt::FormatOptions, DltParser},
     someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
     text::StringTokenizer,
-    LogMessage, MessageStreamItem, ParseYield, Parser,
 };
 use plugins_host::PluginsParser;
 use sources::{
     producer::MessageProducer,
     sde::{SdeMsg, SdeReceiver},
-    ByteSource,
 };
 use tokio::{
     select,
@@ -110,9 +109,10 @@ async fn run_source_intern<S: ByteSource>(
             });
             let dlt_parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
-                settings.fibex_metadata.as_ref(),
-                fmt_options.as_ref(),
-                someip_metadata.as_ref(),
+                // TODO: find a way to avoid clonning of MD
+                settings.fibex_metadata.as_ref().map(|md| md.clone()),
+                fmt_options,
+                someip_metadata,
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source);

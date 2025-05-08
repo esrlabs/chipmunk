@@ -1,6 +1,7 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
+use definitions::*;
 use futures::{
     stream::{SplitSink, SplitStream, StreamExt},
     SinkExt,
@@ -128,6 +129,7 @@ impl SerialSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for SerialSource {
     async fn load(
         &mut self,

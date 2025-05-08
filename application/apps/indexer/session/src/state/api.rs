@@ -7,7 +7,6 @@ use crate::{
     tracker::OperationTrackerAPI,
 };
 use log::error;
-use parsers;
 use processor::{
     grabber::LineRange,
     map::{FiltersStats, ScaledDistribution},
@@ -193,7 +192,7 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
-    AddAttachment(parsers::Attachment),
+    AddAttachment(definitions::Attachment),
     GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
     // Used for tests of error handeling
     ShutdownWithError,
@@ -688,7 +687,10 @@ impl SessionStateAPI {
         })
     }
 
-    pub fn add_attachment(&self, origin: parsers::Attachment) -> Result<(), stypes::NativeError> {
+    pub fn add_attachment(
+        &self,
+        origin: definitions::Attachment,
+    ) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
             stypes::NativeError::channel(
                 &format!("fail to send to Api::AddAttachment; error: {e}",),
