@@ -41,23 +41,23 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
     }
 }
 
-use parsers as p;
+use definitions as defs;
 
-impl From<ParseYield> for p::ParseYield<PluginParseMessage> {
+impl From<ParseYield> for defs::ParseYield<PluginParseMessage> {
     fn from(yld: ParseYield) -> Self {
         match yld {
-            ParseYield::Message(msg) => p::ParseYield::Message(msg.into()),
-            ParseYield::Attachment(att) => p::ParseYield::Attachment(att.into()),
+            ParseYield::Message(msg) => defs::ParseYield::Message(msg.into()),
+            ParseYield::Attachment(att) => defs::ParseYield::Attachment(att.into()),
             ParseYield::MessageAndAttachment((msg, att)) => {
-                p::ParseYield::MessageAndAttachment((msg.into(), att.into()))
+                defs::ParseYield::MessageAndAttachment((msg.into(), att.into()))
             }
         }
     }
 }
 
-impl From<Attachment> for p::Attachment {
+impl From<Attachment> for defs::Attachment {
     fn from(att: Attachment) -> Self {
-        p::Attachment {
+        defs::Attachment {
             data: att.data,
             name: att.name,
             size: att.size as usize,
@@ -68,13 +68,13 @@ impl From<Attachment> for p::Attachment {
     }
 }
 
-impl From<ParseError> for p::Error {
+impl From<ParseError> for defs::ParserError {
     fn from(err: ParseError) -> Self {
         match err {
-            ParseError::Unrecoverable(msg) => p::Error::Unrecoverable(msg),
-            ParseError::Parse(msg) => p::Error::Parse(msg),
-            ParseError::Incomplete => p::Error::Incomplete,
-            ParseError::Eof => p::Error::Eof,
+            ParseError::Unrecoverable(msg) => defs::ParserError::Unrecoverable(msg),
+            ParseError::Parse(msg) => defs::ParserError::Parse(msg),
+            ParseError::Incomplete => defs::ParserError::Incomplete,
+            ParseError::Eof => defs::ParserError::Eof,
         }
     }
 }

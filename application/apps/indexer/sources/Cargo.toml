@@ -8,7 +8,7 @@ edition = "2024"
 async-stream = "0.3"
 bufread = { path = "../addons/bufread" }
 bytes = "1.3"
-etherparse = "0.16"
+etherparse.workspace = true
 futures.workspace = true
 indexer_base = { path = "../indexer_base" }
 log.workspace = true
@@ -23,12 +23,14 @@ serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
 regex.workspace = true
 lazy_static.workspace = true
+async-trait.workspace = true
 shellexpand = "3.1"
-stypes = { path = "../stypes", features=["rustcore"] }
 socket2 = "0.5.8"
-components = { path = "../components" }
 serialport.workspace = true
 file-tools = { path = "../addons/file-tools" }
+stypes = { path = "../stypes", features=["rustcore"] }
+components = { path = "../components" }
+definitions = { path = "../definitions" }
 
 [dev-dependencies]
 env_logger.workspace = true

@@ -137,39 +137,38 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginsParser {
+use definitions as defs;
+impl defs::Parser<PluginParseMessage> for PluginsParser {
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<Vec<(usize, Option<defs::ParseYield<PluginParseMessage>>)>, defs::ParserError> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
 
         // Check for consecutive errors.
         match &res {
-            Ok(_) | Err(p::Error::Unrecoverable(_)) | Err(p::Error::Eof) => {
+            Ok(_) | Err(defs::ParserError::Unrecoverable(_)) | Err(defs::ParserError::Eof) => {
                 self.errors_counter = 0;
             }
-            Err(p::Error::Parse(err)) => {
+            Err(defs::ParserError::Parse(err)) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::PARSE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(p::Error::Unrecoverable(format!(
+                    return Err(defs::ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable parse errors consecutively\n. Parse Error: {err}",
                         PluginErrorLimits::PARSE_ERROR_LIMIT
                     )));
                 }
             }
-            Err(p::Error::Incomplete) => {
+            Err(defs::ParserError::Incomplete) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::INCOMPLETE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(p::Error::Unrecoverable(format!(
+                    return Err(defs::ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable incomplete errors consecutively",
                         PluginErrorLimits::INCOMPLETE_ERROR_LIMIT

@@ -1,5 +1,5 @@
 mod options;
-use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
+use definitions::*;
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -206,7 +206,7 @@ impl SomeipParser {
         fibex_metadata: Option<&FibexMetadata>,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, SomeipLogMessage), Error> {
+    ) -> Result<(usize, SomeipLogMessage), ParserError> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
@@ -274,11 +274,11 @@ impl SomeipParser {
             }
 
             Err(e) => match e {
-                someip_messages::Error::NotEnoughData { .. } => Err(Error::Incomplete),
+                someip_messages::Error::NotEnoughData { .. } => Err(ParserError::Incomplete),
                 e => {
                     let msg = e.to_string();
                     error!("at {} : {}", time, msg);
-                    Err(Error::Parse(msg))
+                    Err(ParserError::Parse(msg))
                 }
             },
         }
@@ -295,7 +295,7 @@ impl SingleParser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), ParserError> {
         SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
             .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
     }
@@ -309,7 +309,7 @@ impl Parser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<SomeipLogMessage>>)>, Error> {
+    ) -> Result<Vec<(usize, Option<ParseYield<SomeipLogMessage>>)>, ParserError> {
         parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
             self.parse_item(input, timestamp)
         })
@@ -609,7 +609,7 @@ mod test {
         let result = parser.parse_item(input, None);
 
         match result {
-            Err(crate::Error::Incomplete) => {}
+            Err(ParserError::Incomplete) => {}
             Err(err) => panic!("unexpected error: {err}"),
             _ => panic!("unexpected parse result"),
         }
@@ -628,7 +628,7 @@ mod test {
         let result = parser.parse_item(input, None);
 
         match result {
-            Err(crate::Error::Incomplete) => {}
+            Err(ParserError::Incomplete) => {}
             Err(err) => panic!("unexpected error: {err}"),
             _ => panic!("unexpected parse result"),
         }
