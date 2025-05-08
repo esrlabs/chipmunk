@@ -111,6 +111,7 @@ impl FibexMetadata {
     }
 }
 
+//TODO: Unsafe without Safety comments.
 unsafe impl Send for FibexMetadata {}
 unsafe impl Sync for FibexMetadata {}
 
@@ -283,9 +284,6 @@ impl SomeipParser {
         }
     }
 }
-
-unsafe impl Send for SomeipParser {}
-unsafe impl Sync for SomeipParser {}
 
 impl SingleParser<SomeipLogMessage> for SomeipParser {
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
