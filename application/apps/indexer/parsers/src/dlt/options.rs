@@ -7,11 +7,12 @@ use dlt_core::{
         common::{StatisticInfo, StatisticInfoCollector},
     },
 };
-use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
+use std::{collections::HashMap, path::PathBuf};
 use stypes::{
-    FieldDesc, NativeError, NativeErrorKind, Severity, SourceOrigin, StaticFieldDesc, ValueInput,
+    FieldDesc, NativeError, NativeErrorKind, Severity, SourceOrigin, StaticFieldDesc, Value,
+    ValueInput,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -22,6 +23,7 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 const FIELD_LOG_LEVEL: &str = "DLT_PARSER_FIELD_LOG_LEVEL";
 const FIELD_FIBEX_FILES: &str = "DLT_PARSER_FIELD_FIBEX_FILES";
 const FIELD_STATISTICS: &str = "DLT_PARSER_FIELD_STATISTICS";
+const FIELD_TZ: &str = "DLT_PARSER_FIELD_TIMEZONE";
 
 #[derive(Default)]
 struct Descriptor {}
@@ -46,7 +48,56 @@ impl fmt::Display for StatFields {
     }
 }
 
+fn to_native_cfg_err<S: ToString>(msg: S) -> NativeError {
+    NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::Configuration,
+        message: Some(msg.to_string()),
+    }
+}
 impl ComponentDescriptor for Descriptor {
+    fn to_parser<T: definitions::LogMessage + Sized>(
+        options: Vec<stypes::Field>,
+        origin: SourceOrigin,
+    ) -> Result<Option<Box<dyn definitions::Parser<T>>>, NativeError>
+    where
+        Self: Sized,
+    {
+        let mut filter_config: Option<ProcessedDltFilterConfig> = None;
+        let mut someip_metadata: Option<FibexSomeipMetadata> = None;
+        let mut dlt_metadata: Option<FibexDltMetadata> = None;
+        for field in options.into_iter() {
+            if field.id == FIELD_FIBEX_FILES {
+                let Value::Files(paths) = field.value else {
+                    return Err(to_native_cfg_err("Invalid settings for Fibex files paths"));
+                };
+                someip_metadata = if paths.is_empty() {
+                    None
+                } else {
+                    FibexSomeipMetadata::from_fibex_files(paths.clone())
+                };
+                dlt_metadata = if paths.is_empty() {
+                    None
+                } else {
+                    dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
+                        fibex_file_paths: paths
+                            .iter()
+                            .map(|p| p.to_string_lossy().to_string())
+                            .collect(),
+                    })
+                };
+            }
+        }
+        let parser = Box::new(DltParser::new(
+            None,
+            dlt_metadata,
+            None,
+            someip_metadata,
+            // If it's source - no storage header expected
+            !matches!(origin, SourceOrigin::Source),
+        ));
+        Ok(None)
+    }
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
@@ -235,21 +286,21 @@ impl ComponentDescriptor for Descriptor {
     }
 }
 
-impl components::Component for DltParser<'_> {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
+impl components::Component for DltParser {
+    fn register(components: &mut components::Components) -> Result<(), NativeError> {
         components.register(Descriptor::default())?;
         Ok(())
     }
 }
 
 impl components::Component for DltRangeParser {
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), NativeError> {
         Ok(())
     }
 }
 
 impl components::Component for DltRawParser {
-    fn register(_components: &mut components::Components) -> Result<(), stypes::NativeError> {
+    fn register(_components: &mut components::Components) -> Result<(), NativeError> {
         Ok(())
     }
 }

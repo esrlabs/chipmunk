@@ -1,6 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use crate::*;
+use stypes::SourceOrigin;
 use tokio_util::sync::CancellationToken;
 
 /// A type alias for a result containing a vector of field descriptors or a native error.
@@ -85,6 +86,25 @@ pub trait Component {
 /// This trait provides a standardized way to describe a component, including its type,
 /// identifier, field getters, lazy field loaders, and optional validation logic.
 pub trait ComponentDescriptor {
+    fn to_source<R: definitions::InnerReader>(
+        _inner: R,
+        _origin: SourceOrigin,
+        _options: Vec<stypes::Field>,
+    ) -> Result<Option<Box<dyn definitions::ByteSource>>, stypes::NativeError>
+    where
+        Self: Sized,
+    {
+        Ok(None)
+    }
+    fn to_parser<T: definitions::LogMessage + Sized>(
+        _options: Vec<stypes::Field>,
+        _origin: SourceOrigin,
+    ) -> Result<Option<Box<dyn definitions::Parser<T>>>, stypes::NativeError>
+    where
+        Self: Sized,
+    {
+        Ok(None)
+    }
     /// Check is component is campatible with given origin
     ///
     /// * `origin` - The source origin

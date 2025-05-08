@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{ByteSource, ReloadInfo, SourceFilter};
+use definitions::*;
 use log::warn;
-use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
 use std::marker::PhantomData;
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
@@ -105,8 +104,8 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             match self
                 .parser
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
-                .map(|iter| {
-                    iter.for_each(|item| match item {
+                .map(|items| {
+                    items.into_iter().for_each(|item| match item {
                         (consumed, Some(m)) => {
                             let total_used_bytes = consumed + skipped_bytes;
                             // Reset skipped bytes since it had been counted here.
@@ -312,7 +311,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     pub async fn sde_income(
         &mut self,
         msg: stypes::SdeRequest,
-    ) -> Result<stypes::SdeResponse, super::Error> {
+    ) -> Result<stypes::SdeResponse, SourceError> {
         self.byte_source.income(msg).await
     }
 }

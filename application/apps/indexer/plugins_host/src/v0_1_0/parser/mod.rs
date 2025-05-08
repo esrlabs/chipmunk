@@ -131,8 +131,8 @@ impl PluginParser {
     }
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginParser {
+use definitions as defs;
+impl defs::Parser<PluginParseMessage> for PluginParser {
     fn parse(
         &mut self,
         input: &[u8],
@@ -164,10 +164,10 @@ impl p::Parser<PluginParseMessage> for PluginParser {
             }
         };
 
-        let res = parse_results
+        Ok(parse_results
             .into_iter()
-            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())));
-        Ok(res)
+            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
+            .collect())
     }
 }
 

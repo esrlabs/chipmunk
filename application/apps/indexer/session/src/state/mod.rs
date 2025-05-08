@@ -1,5 +1,4 @@
 use log::{debug, error};
-use parsers;
 use processor::{
     grabber::LineRange,
     map::SearchMap,
@@ -496,7 +495,7 @@ impl SessionState {
 
     fn handle_add_attachment(
         &mut self,
-        origin: parsers::Attachment,
+        origin: definitions::Attachment,
         tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
     ) -> Result<(), stypes::NativeError> {
         let attachment = self.attachments.add(origin)?;

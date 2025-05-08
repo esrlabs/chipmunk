@@ -1,7 +1,7 @@
 use dlt_core::dlt::{Argument, LogLevel, Message, MessageType, PayloadContent, Value};
 use std::{collections::HashMap, path::PathBuf};
 
-use crate::Attachment;
+use definitions::*;
 
 const FT_START_TAG: &str = "FLST";
 const FT_DATA_TAG: &str = "FLDA";
