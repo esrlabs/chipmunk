@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["esrlabs.com"]
 edition = "2024"
 
+[lints]
+workspace = true 
+
 [dependencies]
 blake3.workspace = true
 crossbeam-channel.workspace = true
