@@ -6,13 +6,27 @@ import { Signature } from '../env/types';
 import * as Parser from './parser';
 import * as Origin from './origin';
 import * as Sde from './sde';
+import * as Bindings from '../bindings';
 
 export * as Parser from './parser';
 export * as Origin from './origin';
 export * as Types from './types';
 export * as Description from './description';
+export * as Bindings from '../bindings';
 
 export { IList, IOriginDetails, IJob } from './description';
+
+export interface ISessionSetup {
+    origin: Bindings.SourceOrigin;
+    parser: {
+        uuid: string;
+        options: Bindings.Field[];
+    };
+    source: {
+        uuid: string;
+        options: Bindings.Field[];
+    };
+}
 
 export interface IObserve {
     origin: Origin.IConfiguration;

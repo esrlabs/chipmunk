@@ -3,9 +3,9 @@ use std::{
     path::Path,
 };
 
+use definitions::{ByteSource, LogMessage, MessageStreamItem, ParseYield, Parser};
 use indexer_base::config::IndexSection;
-use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
-use sources::{ByteSource, producer::MessageProducer};
+use sources::producer::MessageProducer;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 

@@ -1,5 +1,5 @@
 mod options;
-use crate::{parse_all, Error, LogMessage, ParseYield, Parser};
+use definitions::*;
 use serde::Serialize;
 use std::{fmt, io::Write};
 
@@ -32,7 +32,7 @@ where
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<StringMessage>>), Error> {
+    ) -> Result<(usize, Option<ParseYield<StringMessage>>), ParserError> {
         // TODO: support non-utf8 encodings
         use memchr::memchr;
         if input.is_empty() {
@@ -65,7 +65,7 @@ where
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<StringMessage>>)>, Error> {
+    ) -> Result<Vec<(usize, Option<ParseYield<StringMessage>>)>, ParserError> {
         parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
             self.parse_item(input, timestamp)
         })

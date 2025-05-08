@@ -1,6 +1,7 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use components::ComponentDescriptor;
+use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{net::SocketAddr, time::Duration};
@@ -69,6 +70,7 @@ impl TcpSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for TcpSource {
     async fn load(
         &mut self,

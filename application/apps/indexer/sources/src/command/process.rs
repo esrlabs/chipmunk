@@ -1,6 +1,7 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use components::ComponentDescriptor;
+use definitions::*;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
@@ -157,6 +158,7 @@ impl ProcessSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for ProcessSource {
     async fn load(
         &mut self,

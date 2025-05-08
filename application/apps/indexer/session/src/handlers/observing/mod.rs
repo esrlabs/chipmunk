@@ -5,6 +5,7 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
+use definitions::{ByteSource, LogMessage, MessageStreamItem, ParseYield, Parser};
 use log::trace;
 use parsers::{
     LogMessage, MessageStreamItem, ParseYield, Parser,
@@ -110,9 +111,10 @@ async fn run_source_intern<S: ByteSource>(
             });
             let dlt_parser = DltParser::new(
                 settings.filter_config.as_ref().map(|f| f.into()),
-                settings.fibex_metadata.as_ref(),
-                fmt_options.as_ref(),
-                someip_metadata.as_ref(),
+                // TODO: find a way to avoid clonning of MD
+                settings.fibex_metadata.as_ref().map(|md| md.clone()),
+                fmt_options,
+                someip_metadata,
                 settings.with_storage_header,
             );
             let producer = MessageProducer::new(dlt_parser, source);
