@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use parsers::LogMessage;
+use definitions::LogMessage;
 use serde::Serialize;
 
 /// Represent the message of the parsed item returned by plugins.
