@@ -3,30 +3,27 @@ mod tests;
 
 use definitions::*;
 use log::warn;
-use std::marker::PhantomData;
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
 #[derive(Debug)]
-pub struct MessageProducer<T, P, D>
+pub struct MessageProducer<P, D>
 where
-    T: LogMessage,
-    P: Parser<T>,
+    P: Parser,
     D: ByteSource,
 {
     byte_source: D,
     parser: P,
     filter: Option<SourceFilter>,
     last_seen_ts: Option<u64>,
-    _phantom_data: Option<PhantomData<T>>,
     total_loaded: usize,
     total_skipped: usize,
     done: bool,
-    buffer: Vec<(usize, MessageStreamItem<T>)>,
+    buffer: Vec<(usize, MessageStreamItem)>,
 }
 
-impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
+impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: D) -> Self {
         MessageProducer {
@@ -34,7 +31,6 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             parser,
             filter: None,
             last_seen_ts: None,
-            _phantom_data: None,
             total_loaded: 0,
             total_skipped: 0,
             done: false,
@@ -52,7 +48,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// # Return:
     /// Return a mutable reference for the newly parsed items when there are more data available,
     /// otherwise it returns None when there are no more data available in the source.
-    pub async fn read_next_segment(&mut self) -> Option<&mut Vec<(usize, MessageStreamItem<T>)>> {
+    pub async fn read_next_segment(&mut self) -> Option<&mut Vec<(usize, MessageStreamItem)>> {
         // ### Cancel Safety ###:
         // This function is cancel safe because:
         // * there is no await calls or any function causing yielding between filling the internal
