@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-byteorder = "1.5"
+# byteorder = "1.5"
 chrono = "0.4"
 chrono-tz = "0.10"
 dlt-core.workspace = true

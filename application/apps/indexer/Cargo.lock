@@ -2600,7 +2600,6 @@ dependencies = [
 name = "parsers"
 version = "0.1.0"
 dependencies = [
- "byteorder",
  "chrono",
  "chrono-tz",
  "components",

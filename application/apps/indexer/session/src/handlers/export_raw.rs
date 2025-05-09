@@ -1,5 +1,5 @@
 use crate::{operations::OperationResult, state::SessionStateAPI};
-use definitions::{ByteSource, LogMessage, Parser};
+use definitions::{ByteSource, Parser};
 use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
@@ -171,8 +171,8 @@ async fn export<S: ByteSource>(
     }
 }
 
-pub async fn export_runner<P, D, T>(
-    producer: MessageProducer<T, P, D>,
+pub async fn export_runner<P, D>(
+    producer: MessageProducer<P, D>,
     dest: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -180,8 +180,7 @@ pub async fn export_runner<P, D, T>(
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, stypes::NativeError>
 where
-    T: LogMessage + Sized,
-    P: Parser<T>,
+    P: Parser,
     D: ByteSource,
 {
     export_raw(producer, dest, sections, read_to_end, text_file, cancel)

@@ -9,13 +9,10 @@ use crate::{
         load::{load_and_inspect, WasmComponentInfo},
         plugin_errors::PluginError,
     },
-    v0_1_0, PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
+    v0_1_0, PluginHostError, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
-
-/// Marker for a column separator in the output string.
-pub const COLUMN_SEP: &str = "\u{0004}";
 
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
 pub struct PluginsParser {
@@ -145,12 +142,12 @@ impl PluginErrorLimits {
 }
 
 use definitions as defs;
-impl defs::Parser<PluginParseMessage> for PluginsParser {
+impl defs::Parser for PluginsParser {
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<defs::ParseYield<PluginParseMessage>>)>, defs::ParserError> {
+    ) -> Result<Vec<(usize, Option<defs::ParseYield>)>, defs::ParserError> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };

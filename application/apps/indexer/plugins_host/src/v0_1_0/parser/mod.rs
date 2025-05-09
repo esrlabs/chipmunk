@@ -132,12 +132,12 @@ impl PluginParser {
 }
 
 use definitions as defs;
-impl defs::Parser<PluginParseMessage> for PluginParser {
+impl defs::Parser for PluginParser {
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<defs::ParseYield<PluginParseMessage>>)>, defs::ParserError> {
+    ) -> Result<Vec<(usize, Option<defs::ParseYield>)>, defs::ParserError> {
         let call_res = block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
             &mut self.store,
             input,
