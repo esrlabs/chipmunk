@@ -35,7 +35,6 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 use std::{
     fmt::{self, Formatter},
     str,
-    sync::Arc,
 };
 
 /// Separator to used between the columns in DLT [`FormattableMessage`].
@@ -207,14 +206,14 @@ impl From<Option<&String>> for FormatOptions {
 }
 
 /// A dlt message that can be formatted with optional FIBEX data support
-pub struct FormattableMessage {
+pub struct FormattableMessage<'a> {
     pub message: Message,
-    pub fibex_dlt_metadata: Option<Arc<FibexDltMetadata>>,
-    pub fibex_someip_metadata: Option<Arc<FibexSomeipMetadata>>,
-    pub options: Option<Arc<FormatOptions>>,
+    pub fibex_dlt_metadata: Option<&'a FibexDltMetadata>,
+    pub fibex_someip_metadata: Option<&'a FibexSomeipMetadata>,
+    pub options: Option<&'a FormatOptions>,
 }
 
-impl Serialize for FormattableMessage {
+impl<'a> Serialize for FormattableMessage<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -311,7 +310,7 @@ impl Serialize for FormattableMessage {
     }
 }
 
-impl From<Message> for FormattableMessage {
+impl<'a> From<Message> for FormattableMessage<'a> {
     fn from(message: Message) -> Self {
         FormattableMessage {
             message,
@@ -345,7 +344,7 @@ impl<'a> PrintableMessage<'a> {
     }
 }
 
-impl FormattableMessage {
+impl<'a> FormattableMessage<'a> {
     pub fn printable_parts<'b>(
         &'b self,
         ext_h_app_id: &'b str,
@@ -550,7 +549,7 @@ impl FormattableMessage {
     }
 }
 
-impl fmt::Display for FormattableMessage {
+impl<'a> fmt::Display for FormattableMessage<'a> {
     /// will format dlt Message with those fields:
     /// ********* storage-header ********
     /// date-time
