@@ -132,7 +132,7 @@ impl PluginParser {
 }
 
 use definitions as defs;
-impl defs::Parser<PluginParseMessage> for PluginParser {
+impl defs::Parser for PluginParser {
     fn parse(
         &mut self,
         input: &[u8],

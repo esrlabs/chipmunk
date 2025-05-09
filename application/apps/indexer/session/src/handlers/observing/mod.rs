@@ -5,7 +5,7 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use definitions::{ByteSource, LogMessage, MessageStreamItem, ParseYield, Parser};
+use definitions::{ByteSource, MessageStreamItem, ParseYield, Parser};
 use log::trace;
 use parsers::{
     LogMessage, MessageStreamItem, ParseYield, Parser,
@@ -25,8 +25,8 @@ use tokio::{
     time::{Duration, timeout},
 };
 
-enum Next<'a, T: LogMessage> {
-    Items(&'a mut Vec<(usize, MessageStreamItem<T>)>),
+enum Next<'a> {
+    Items(&'a mut Vec<(usize, MessageStreamItem)>),
     Timeout,
     Waiting,
     Sde(SdeMsg),
@@ -123,11 +123,11 @@ async fn run_source_intern<S: ByteSource>(
     }
 }
 
-async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
+async fn run_producer<P: Parser, S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u16,
-    mut producer: MessageProducer<T, P, S>,
+    mut producer: MessageProducer<P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {

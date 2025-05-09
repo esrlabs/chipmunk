@@ -295,21 +295,27 @@ impl SingleParser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), ParserError> {
-        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
-            .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
+    ) -> Result<(usize, Option<ParseYield>), ParserError> {
+        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp).map(
+            |(rest, message)| {
+                (
+                    rest,
+                    Some(LogMessage::PlainText(message.to_string()).into()),
+                )
+            },
+        )
     }
 }
 
 unsafe impl Send for SomeipParser {}
 unsafe impl Sync for SomeipParser {}
 
-impl Parser<SomeipLogMessage> for SomeipParser {
+impl Parser for SomeipParser {
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<ParseYield<SomeipLogMessage>>)>, ParserError> {
+    ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError> {
         parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
             self.parse_item(input, timestamp)
         })
@@ -512,12 +518,12 @@ impl SomeipLogMessage {
     }
 }
 
-impl LogMessage for SomeipLogMessage {
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
-        writer.write_all(&self.bytes)?;
-        Ok(self.bytes.len())
-    }
-}
+// impl LogMessage for SomeipLogMessage {
+//     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
+//         writer.write_all(&self.bytes)?;
+//         Ok(self.bytes.len())
+//     }
+// }
 
 impl Display for SomeipLogMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
