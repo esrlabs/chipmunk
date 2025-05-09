@@ -111,10 +111,6 @@ impl FibexMetadata {
     }
 }
 
-//TODO: Unsafe without Safety comments.
-unsafe impl Send for FibexMetadata {}
-unsafe impl Sync for FibexMetadata {}
-
 /// A cache for service indexes within a model.
 #[derive(Default)]
 struct FibexServiceCache {
@@ -160,11 +156,14 @@ impl FibexServiceCache {
 /// A cache for payload types within a model.
 #[derive(Default)]
 struct FibexTypeCache {
-    map: HashMap<String, Box<dyn SOMType>>,
+    map: HashMap<String, Box<dyn SOMType + Send>>,
 }
 
 impl FibexTypeCache {
-    fn get_som_type(&mut self, fibex_type: &FibexTypeDeclaration) -> Option<&mut Box<dyn SOMType>> {
+    fn get_som_type(
+        &mut self,
+        fibex_type: &FibexTypeDeclaration,
+    ) -> Option<&mut Box<dyn SOMType + Send>> {
         if !self.map.contains_key(&fibex_type.id) {
             if let Ok(som_type) = FibexTypes::build(fibex_type) {
                 self.map.insert(fibex_type.id.clone(), som_type);
