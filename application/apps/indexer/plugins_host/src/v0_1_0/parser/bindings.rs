@@ -1,5 +1,3 @@
-use crate::{PluginParseMessage, parser_shared::COLUMN_SEP};
-
 pub use self::chipmunk::parser::parse_types::*;
 
 use stypes::ParserRenderOptions;
@@ -43,7 +41,7 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
 
 use definitions as defs;
 
-impl From<ParseYield> for defs::ParseYield<PluginParseMessage> {
+impl From<ParseYield> for defs::ParseYield {
     fn from(yld: ParseYield) -> Self {
         match yld {
             ParseYield::Message(msg) => defs::ParseYield::Message(msg.into()),
@@ -79,14 +77,12 @@ impl From<ParseError> for defs::ParserError {
     }
 }
 
-impl From<ParsedMessage> for PluginParseMessage {
+impl From<ParsedMessage> for defs::LogMessage {
     fn from(msg: ParsedMessage) -> Self {
-        let content = match msg {
-            ParsedMessage::Line(msg) => msg,
-            ParsedMessage::Columns(columns) => columns.join(COLUMN_SEP),
-        };
-
-        Self { content }
+        match msg {
+            ParsedMessage::Line(msg) => defs::LogMessage::PlainText(msg),
+            ParsedMessage::Columns(columns) => defs::LogMessage::Columns(columns),
+        }
     }
 }
 

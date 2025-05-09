@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use definitions::{ByteSource, LogMessage, MessageStreamItem, ParseYield, Parser};
+use definitions::{ByteSource, MessageStreamItem, ParseYield, Parser};
 use indexer_base::config::IndexSection;
 use sources::producer::MessageProducer;
 use thiserror::Error;
@@ -39,8 +39,8 @@ pub enum ExportError {
 ///
 /// # Errors
 /// In case of cancellation will return ExportError::Cancelled
-pub async fn export_raw<T, P, D>(
-    mut producer: MessageProducer<T, P, D>,
+pub async fn export_raw<P, D>(
+    mut producer: MessageProducer<P, D>,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -48,8 +48,7 @@ pub async fn export_raw<T, P, D>(
     cancel: &CancellationToken,
 ) -> Result<usize, ExportError>
 where
-    T: LogMessage + Sized,
-    P: Parser<T>,
+    P: Parser,
     D: ByteSource,
 {
     trace!("export_raw, sections: {sections:?}");

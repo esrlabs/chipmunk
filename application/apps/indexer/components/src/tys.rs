@@ -96,10 +96,10 @@ pub trait ComponentDescriptor {
     {
         Ok(None)
     }
-    fn to_parser<T: definitions::LogMessage + Sized>(
+    fn to_parser(
         _options: Vec<stypes::Field>,
         _origin: SourceOrigin,
-    ) -> Result<Option<Box<dyn definitions::Parser<T>>>, stypes::NativeError>
+    ) -> Result<Option<Box<dyn definitions::Parser>>, stypes::NativeError>
     where
         Self: Sized,
     {

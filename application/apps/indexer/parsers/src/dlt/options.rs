@@ -56,10 +56,10 @@ fn to_native_cfg_err<S: ToString>(msg: S) -> NativeError {
     }
 }
 impl ComponentDescriptor for Descriptor {
-    fn to_parser<T: definitions::LogMessage + Sized>(
+    fn to_parser(
         options: Vec<stypes::Field>,
         origin: SourceOrigin,
-    ) -> Result<Option<Box<dyn definitions::Parser<T>>>, NativeError>
+    ) -> Result<Option<Box<dyn definitions::Parser>>, NativeError>
     where
         Self: Sized,
     {
@@ -293,11 +293,11 @@ impl components::Component for DltParser {
     }
 }
 
-impl components::Component for DltRangeParser {
-    fn register(_components: &mut components::Components) -> Result<(), NativeError> {
-        Ok(())
-    }
-}
+// impl components::Component for DltRangeParser {
+//     fn register(_components: &mut components::Components) -> Result<(), NativeError> {
+//         Ok(())
+//     }
+// }
 
 impl components::Component for DltRawParser {
     fn register(_components: &mut components::Components) -> Result<(), NativeError> {

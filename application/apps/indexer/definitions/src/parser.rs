@@ -1,6 +1,9 @@
+use std::{fmt, io::Write};
+
 use serde::Serialize;
-use std::{fmt::Display, io::Write};
 use thiserror::Error;
+
+pub const COLUMN_SENTINAL: char = '\u{0004}';
 
 #[derive(Error, Debug)]
 pub enum ParserError {
@@ -15,21 +18,15 @@ pub enum ParserError {
 }
 
 #[derive(Debug)]
-pub enum ParseYield<T> {
-    Message(T),
+pub enum ParseYield {
+    Message(LogMessage),
     Attachment(Attachment),
-    MessageAndAttachment((T, Attachment)),
-}
-
-impl<T> From<T> for ParseYield<T> {
-    fn from(item: T) -> Self {
-        Self::Message(item)
-    }
+    MessageAndAttachment((LogMessage, Attachment)),
 }
 
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
-pub trait Parser<T> {
+pub trait Parser {
     /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
     /// it will return iterator of items each with the consumed bytes count along with `Some(log_message)`
     ///
@@ -47,7 +44,7 @@ pub trait Parser<T> {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<ParseYield<T>>)>, ParserError>;
+    ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError>;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,15 +78,44 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
-pub trait LogMessage: Display + Serialize {
-    /// Serializes a message directly into a Writer
-    /// returns the size of the serialized message
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
+#[derive(Debug)]
+pub enum LogMessage {
+    Raw(Vec<u8>),
+    PlainText(String),
+    Columns(Vec<String>),
+}
+
+impl LogMessage {
+    pub fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
+        match self {
+            Self::PlainText(msg) => writer.write(msg.as_bytes()),
+            Self::Columns(columns) => {
+                writer.write(columns.join(&COLUMN_SENTINAL.to_string()).as_bytes())
+            }
+            Self::Raw(raw) => writer.write(&raw),
+        }
+    }
+}
+
+impl fmt::Display for LogMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::PlainText(msg) => write!(f, "{}", msg),
+            Self::Columns(columns) => write!(f, "{}", columns.join(";")),
+            Self::Raw(raw) => write!(f, "[{:02X?}]", raw),
+        }
+    }
+}
+
+impl From<LogMessage> for ParseYield {
+    fn from(msg: LogMessage) -> Self {
+        ParseYield::Message(msg)
+    }
 }
 
 #[derive(Debug)]
-pub enum MessageStreamItem<T: LogMessage> {
-    Item(ParseYield<T>),
+pub enum MessageStreamItem {
+    Item(ParseYield),
     Skipped,
     Incomplete,
     Empty,
@@ -179,14 +205,14 @@ pub enum MessageStreamItem<T: LogMessage> {
 ///     - The number of bytes consumed.
 ///     - An optional parsed item [`ParseYield<T>`].
 ///   - If parsing fails, it returns an [`ParserError`].
-pub fn parse_all<F, T>(
+pub fn parse_all<F>(
     input: &[u8],
     timestamp: Option<u64>,
     min_bytes_count: usize,
     mut parse_fn: F,
-) -> Result<Vec<(usize, Option<ParseYield<T>>)>, ParserError>
+) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError>
 where
-    F: FnMut(&[u8], Option<u64>) -> Result<(usize, Option<ParseYield<T>>), ParserError>,
+    F: FnMut(&[u8], Option<u64>) -> Result<(usize, Option<ParseYield>), ParserError>,
 {
     let mut slice = input;
     let mut results = Vec::new();
