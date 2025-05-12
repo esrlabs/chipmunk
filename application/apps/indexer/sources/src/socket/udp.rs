@@ -2,10 +2,13 @@ use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::socket::{handle_buff_capacity, BuffCapacityState};
 use async_trait::async_trait;
 use bufread::DeqBuffer;
-use components::ComponentDescriptor;
+use components::{ComponentDescriptor, MetadataDescriptor};
 use definitions::*;
 use log::trace;
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    io::Read,
+    net::{IpAddr, Ipv4Addr},
+};
 use stypes::SourceOrigin;
 use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
@@ -137,9 +140,19 @@ const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 ]);
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         match origin {
             SourceOrigin::File(..)
@@ -158,13 +171,6 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
-    }
-}
-
-impl components::Component for UdpSource {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }
 

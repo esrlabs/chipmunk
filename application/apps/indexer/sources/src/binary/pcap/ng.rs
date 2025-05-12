@@ -1,7 +1,7 @@
 use crate::{binary::pcap::debug_block};
 use definitions::*;
 use bufread::DeqBuffer;
-use components::ComponentDescriptor;
+use components::{ComponentDescriptor,MetadataDescriptor};
 use etherparse::{SlicedPacket, TransportSlice};
 use file_tools::is_binary;
 use log::{debug, error, trace};
@@ -169,9 +169,19 @@ const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 ]);
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
@@ -204,13 +214,6 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
-    }
-}
-
-impl<R: Read + Send> components::Component for PcapngByteSource<R> {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }
 

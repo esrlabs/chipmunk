@@ -121,7 +121,7 @@ async fn run_source_intern<S: ByteSource>(
     }
 }
 
-async fn run_producer<P: Parser, S: ByteSource>(
+pub async fn run_producer<P: Parser, S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u16,
