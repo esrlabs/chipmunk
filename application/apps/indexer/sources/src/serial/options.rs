@@ -1,6 +1,6 @@
 use crate::serial::serialport::SerialSource;
-use components::{ComponentDescriptor, StaticFieldResult};
-use std::{collections::HashMap, str};
+use components::{ComponentDescriptor, MetadataDescriptor, StaticFieldResult};
+use std::{collections::HashMap, io::Read, str};
 use stypes::{FieldDesc, LazyFieldDesc, SourceOrigin, StaticFieldDesc, Value, ValueInput};
 
 const SERIAL_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
@@ -27,9 +27,19 @@ const FIELD_EXCLUSIVE: &str = "SERIAL_SOURCE_FIELD_EXCLUSIVE";
 const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         match origin {
             SourceOrigin::File(..)
@@ -184,12 +194,5 @@ impl ComponentDescriptor for Descriptor {
             }
         });
         errors
-    }
-}
-
-impl components::Component for SerialSource {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }

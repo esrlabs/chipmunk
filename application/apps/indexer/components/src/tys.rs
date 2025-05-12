@@ -44,7 +44,6 @@ impl StaticFieldResult {
 /// * `Ok(Vec<StaticFieldResult>)` - A vector containing static field results.
 /// * `Err(stypes::NativeError)` - An error indicating a problem while retrieving static fields.
 pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError>;
-
 /// A type alias for an asynchronous task that yields a static fields result.
 ///
 /// Represents a future that will eventually produce a `StaticFieldsResult`.
@@ -56,55 +55,76 @@ pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError
 /// * `StaticFieldsResult` - A result containing static field data or a native error.
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 
-/// A trait responsible for registering a component within the system.
-///
-/// Registration of a component is performed only once during the application's lifetime.
-/// Implementors of this trait define the mechanism for adding their component to the system registry.
-pub trait Component {
-    /// Registers the component in the system.
-    ///
-    /// This method is responsible for adding the component to the given collection of components.
-    /// It should be called only once per application runtime.
-    ///
-    /// # Arguments
-    ///
-    /// * `components` - A mutable reference to the system's component registry.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` if the registration was successful.
-    /// * `Err(stypes::NativeError)` if an error occurred during registration.
-    fn register(components: &mut Components) -> Result<(), stypes::NativeError>;
+pub enum Entry<S, P> {
+    Parser(Box<dyn ComponentDescriptor<P>>),
+    Source(Box<dyn ComponentDescriptor<S>>),
 }
 
-/// A trait that defines the characteristics and behavior of a component.
-///
-/// Each component (such as a parser, source, etc.) must specify its type and identifier.
-/// Additional parameters are optional, meaning a component might have no settings at all
-/// or only static settings. Similarly, the validation procedure for settings is optional.
-///
-/// This trait provides a standardized way to describe a component, including its type,
-/// identifier, field getters, lazy field loaders, and optional validation logic.
-pub trait ComponentDescriptor {
-    fn to_source<R: definitions::InnerReader>(
-        _inner: R,
-        _origin: SourceOrigin,
-        _options: Vec<stypes::Field>,
-    ) -> Result<Option<Box<dyn definitions::ByteSource>>, stypes::NativeError>
-    where
-        Self: Sized,
-    {
+impl<S, P> MetadataDescriptor for Entry<S, P> {
+    fn fields_getter(&self, origin: &stypes::SourceOrigin) -> FieldsResult {
+        match self {
+            Self::Source(inner) => inner.fields_getter(origin),
+            Self::Parser(inner) => inner.fields_getter(origin),
+        }
+    }
+
+    fn ident(&self) -> stypes::Ident {
+        match self {
+            Self::Source(inner) => inner.ident(),
+            Self::Parser(inner) => inner.ident(),
+        }
+    }
+    fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool {
+        match self {
+            Self::Source(inner) => inner.is_compatible(origin),
+            Self::Parser(inner) => inner.is_compatible(origin),
+        }
+    }
+    fn is_ty(&self, ty: &stypes::ComponentType) -> bool {
+        match self {
+            Self::Source(inner) => inner.is_ty(ty),
+            Self::Parser(inner) => inner.is_ty(ty),
+        }
+    }
+    fn lazy_fields_getter(
+        &self,
+        origin: stypes::SourceOrigin,
+        cancel: CancellationToken,
+    ) -> LazyFieldsTask {
+        match self {
+            Self::Source(inner) => inner.lazy_fields_getter(origin, cancel),
+            Self::Parser(inner) => inner.lazy_fields_getter(origin, cancel),
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        match self {
+            Self::Source(inner) => inner.ty(),
+            Self::Parser(inner) => inner.ty(),
+        }
+    }
+    fn validate(
+        &self,
+        origin: &stypes::SourceOrigin,
+        fields: &[stypes::Field],
+    ) -> HashMap<String, String> {
+        match self {
+            Self::Source(inner) => inner.validate(origin, fields),
+            Self::Parser(inner) => inner.validate(origin, fields),
+        }
+    }
+}
+
+pub trait ComponentDescriptor<T>: MetadataDescriptor + Sync + Send {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<T>, stypes::NativeError> {
         Ok(None)
     }
-    fn to_parser(
-        _options: Vec<stypes::Field>,
-        _origin: SourceOrigin,
-    ) -> Result<Option<Box<dyn definitions::Parser>>, stypes::NativeError>
-    where
-        Self: Sized,
-    {
-        Ok(None)
-    }
+}
+
+pub trait MetadataDescriptor {
     /// Check is component is campatible with given origin
     ///
     /// * `origin` - The source origin

@@ -4,7 +4,7 @@
 mod bindings;
 mod parser_plugin_state;
 
-use components::ComponentDescriptor;
+use components::MetadataDescriptor;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use tokio::runtime::Handle;
 use wasmtime::{
@@ -174,7 +174,7 @@ impl defs::Parser for PluginParser {
 #[derive(Default)]
 struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
         true
     }
@@ -188,12 +188,5 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Parser
-    }
-}
-
-impl components::Component for PluginParser {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }

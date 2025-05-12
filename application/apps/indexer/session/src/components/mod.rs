@@ -1,13 +1,11 @@
 mod api;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 
 use api::*;
 
-use components::{Component, Components, LazyLoadingResult, LazyLoadingTaskMeta};
+use components::{Components, LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
-use parsers::prelude as parsers;
-use sources::prelude as sources;
 use tokio::{
     sync::{
         mpsc::{error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -55,21 +53,12 @@ impl ComponentsSession {
             UnboundedSender<stypes::CallbackOptionsEvent>,
             UnboundedReceiver<stypes::CallbackOptionsEvent>,
         ) = unbounded_channel();
-        let mut components = Components::default();
-        {
-            parsers::DltParser::register(&mut components)?;
-            parsers::SomeipParser::register(&mut components)?;
-            parsers::StringTokenizer::register(&mut components)?;
-        }
-        {
-            sources::BinaryByteSource::<std::io::Empty>::register(&mut components)?;
-            sources::PcapLegacyByteSource::<std::io::Empty>::register(&mut components)?;
-            sources::PcapngByteSource::<std::io::Empty>::register(&mut components)?;
-            sources::TcpSource::register(&mut components)?;
-            sources::UdpSource::register(&mut components)?;
-            sources::SerialSource::register(&mut components)?;
-            sources::ProcessSource::register(&mut components)?;
-        }
+        let mut components: Components<sources::Source<std::io::Empty>, parsers::Parser> =
+            Components::new();
+        // Registre parsers
+        parsers::registration(&mut components)?;
+        // Registre sources
+        sources::registration(&mut components)?;
         let tx_api_inner = tx_api.clone();
         let session = Self { tx_api };
         task::spawn(async move {

@@ -47,9 +47,10 @@ pub enum ComponentDef {
     derive(TS),
     ts(export, export_to = "observe.ts")
 )]
-struct SessionSetup {
-    origin: SourceOrigin,
-    components: Vec<ComponentDef>,
+pub struct SessionSetup {
+    pub origin: SourceOrigin,
+    pub parser: ComponentOptions,
+    pub source: ComponentOptions,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

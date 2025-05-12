@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::SomeipParser;
-use components::{ComponentDescriptor, StaticFieldResult};
+use components::{ComponentDescriptor, MetadataDescriptor, StaticFieldResult};
 use stypes::SourceOrigin;
 use tokio::{
     select,
@@ -19,9 +19,19 @@ const FIELD_LOG_LEVEL: &str = "log_level";
 const FIELD_STATISTICS: &str = "statistics";
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl ComponentDescriptor<crate::Parser> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
@@ -87,12 +97,5 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Parser
-    }
-}
-
-impl components::Component for SomeipParser {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }

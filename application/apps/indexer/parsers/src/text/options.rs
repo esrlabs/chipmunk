@@ -1,4 +1,4 @@
-use components::ComponentDescriptor;
+use components::{ComponentDescriptor, MetadataDescriptor};
 use file_tools::is_binary;
 use stypes::SourceOrigin;
 
@@ -9,9 +9,19 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 ]);
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl ComponentDescriptor<crate::Parser> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
@@ -35,12 +45,5 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Parser
-    }
-}
-
-impl components::Component for StringTokenizer {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }
