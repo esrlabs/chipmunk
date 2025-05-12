@@ -1,4 +1,3 @@
-use crate::serial::serialport::SerialSource;
 use components::{ComponentDescriptor, MetadataDescriptor, StaticFieldResult};
 use std::{collections::HashMap, io::Read, str};
 use stypes::{FieldDesc, LazyFieldDesc, SourceOrigin, StaticFieldDesc, Value, ValueInput};
