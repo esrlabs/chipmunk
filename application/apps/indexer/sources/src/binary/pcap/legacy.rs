@@ -8,7 +8,6 @@ use log::{debug, error, trace};
 use pcap_parser::{LegacyPcapReader, PcapBlockOwned, PcapError, traits::PcapReaderIterator};
 use std::io::Read;
 use stypes::SourceOrigin;
-use async_trait::async_trait;
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
@@ -29,7 +28,6 @@ impl<R: Read> PcapLegacyByteSource<R> {
     }
 }
 
-#[async_trait]
 impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
     async fn load(
         &mut self,

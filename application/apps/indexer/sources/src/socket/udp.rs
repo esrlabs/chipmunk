@@ -1,6 +1,5 @@
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::socket::{BuffCapacityState, handle_buff_capacity};
-use async_trait::async_trait;
 use bufread::DeqBuffer;
 use components::{ComponentDescriptor, MetadataDescriptor};
 use definitions::*;
@@ -78,7 +77,6 @@ impl UdpSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for UdpSource {
     async fn load(
         &mut self,

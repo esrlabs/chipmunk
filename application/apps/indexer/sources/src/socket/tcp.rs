@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use bufread::DeqBuffer;
 use components::{ComponentDescriptor, MetadataDescriptor};
 use definitions::*;
@@ -70,7 +69,6 @@ impl TcpSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for TcpSource {
     async fn load(
         &mut self,
