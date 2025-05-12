@@ -1,6 +1,6 @@
 pub mod attachment;
 pub mod fmt;
-mod options;
+pub mod options;
 
 use crate::{dlt::fmt::FormattableMessage, someip::FibexMetadata as FibexSomeipMetadata};
 // use byteorder::{BigEndian, WriteBytesExt};
