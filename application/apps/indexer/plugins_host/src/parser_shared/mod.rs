@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use components::ComponentDescriptor;
+use components::{ComponentDescriptor, MetadataDescriptor};
 use stypes::{PluginInfo, SemanticVersion};
 use wasmtime::component::Component;
 
@@ -181,7 +181,7 @@ impl defs::Parser for PluginsParser {
 #[derive(Default)]
 struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
         true
     }
@@ -195,12 +195,5 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Parser
-    }
-}
-
-impl components::Component for PluginsParser {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }

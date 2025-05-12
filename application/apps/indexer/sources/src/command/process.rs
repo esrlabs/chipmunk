@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use bufread::DeqBuffer;
-use components::ComponentDescriptor;
+use components::{ComponentDescriptor, MetadataDescriptor};
 use definitions::*;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
-use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
+use std::{collections::HashMap, ffi::OsString, io::Read, path::PathBuf, process::Stdio};
 use stypes::SourceOrigin;
 use thiserror::Error;
 use tokio::{
@@ -235,9 +235,19 @@ const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 ]);
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         match origin {
             SourceOrigin::File(..)
@@ -256,13 +266,6 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
-    }
-}
-
-impl components::Component for ProcessSource {
-    fn register(components: &mut components::Components) -> Result<(), stypes::NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
     }
 }
 
