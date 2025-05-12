@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use bufread::DeqBuffer;
 use components::{ComponentDescriptor, MetadataDescriptor};
 use definitions::*;
@@ -158,7 +157,6 @@ impl ProcessSource {
     }
 }
 
-#[async_trait]
 impl ByteSource for ProcessSource {
     async fn load(
         &mut self,

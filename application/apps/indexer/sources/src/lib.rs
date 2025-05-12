@@ -1,6 +1,5 @@
 use std::io::Read;
 
-use async_trait::async_trait;
 use components::Components;
 use definitions::{ReloadInfo, SourceError, SourceFilter};
 
@@ -33,7 +32,6 @@ pub enum Source<R: Read + Send> {
     Process(command::process::ProcessSource),
 }
 
-#[async_trait]
 impl<R: Read + Send + Sync> definitions::ByteSource for Source<R> {
     fn consume(&mut self, offset: usize) {
         match self {
