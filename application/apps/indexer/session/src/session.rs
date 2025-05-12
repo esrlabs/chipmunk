@@ -6,10 +6,11 @@ use crate::{
     tracker,
     tracker::OperationTrackerAPI,
 };
+use components::Components;
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
-use std::{ops::RangeInclusive, path::PathBuf};
+use std::{ops::RangeInclusive, path::PathBuf, sync::Arc};
 use tokio::{
     join,
     sync::{
@@ -31,6 +32,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
+    components: Arc<Components<sources::Source<std::io::Empty>, parsers::Parser>>,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -54,11 +56,21 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
+        let mut components: Components<sources::Source<std::io::Empty>, parsers::Parser> =
+            Components::new();
+        // Registre parsers
+        parsers::registration(&mut components)
+            .map_err(|err| stypes::ComputationError::NativeError(err))?;
+        // Registre sources
+        sources::registration(&mut components)
+            .map_err(|err| stypes::ComputationError::NativeError(err))?;
+        // Create a session
         let session = Self {
             uuid,
             tx_operations: tx_operations.clone(),
             destroyed: CancellationToken::new(),
             destroying: CancellationToken::new(),
+            components: Arc::new(components),
             state: state_api.clone(),
             tracker: tracker_api.clone(),
         };
@@ -376,12 +388,12 @@ impl Session {
     pub fn observe(
         &self,
         operation_id: Uuid,
-        options: stypes::ObserveOptions,
+        options: stypes::SessionSetup,
     ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Observe(options),
+                operations::OperationKind::Observe(options, self.components.clone()),
             ))
             .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }

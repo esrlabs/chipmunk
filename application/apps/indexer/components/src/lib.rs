@@ -1,20 +1,24 @@
 mod scheme;
 mod tys;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub use scheme::*;
 pub use tys::*;
 
-#[derive(Default)]
-pub struct Components {
-    components: HashMap<Uuid, Box<dyn ComponentDescriptor + Send + 'static>>,
+pub struct Components<S, P> {
+    components: HashMap<Uuid, Entry<S, P>>,
 }
 
-impl Components {
-    pub fn register<D: ComponentDescriptor + Send + 'static>(
+impl<S, P> Components<S, P> {
+    pub fn new() -> Self {
+        Self {
+            components: HashMap::new(),
+        }
+    }
+    pub fn add_parser<D: ComponentDescriptor<P> + 'static>(
         &mut self,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {
@@ -26,7 +30,24 @@ impl Components {
                 message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
             });
         }
-        self.components.insert(ident.uuid, Box::new(descriptor));
+        self.components
+            .insert(ident.uuid, Entry::Parser(Box::new(descriptor)));
+        Ok(())
+    }
+    pub fn add_source<D: ComponentDescriptor<S> + 'static>(
+        &mut self,
+        descriptor: D,
+    ) -> Result<(), stypes::NativeError> {
+        let ident = descriptor.ident();
+        if self.components.contains_key(&ident.uuid) {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
+            });
+        }
+        self.components
+            .insert(ident.uuid, Entry::Source(Box::new(descriptor)));
         Ok(())
     }
 
@@ -39,11 +60,28 @@ impl Components {
         Ok(self
             .components
             .iter()
-            .filter_map(|(_, desc)| {
-                if desc.is_ty(target) && desc.is_compatible(&origin) {
-                    Some(desc.ident())
-                } else {
-                    None
+            .filter_map(|(_, desc)| match target {
+                stypes::ComponentType::Parser => {
+                    if let Entry::Parser(desc) = desc {
+                        if desc.is_compatible(&origin) {
+                            Some(desc.ident())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                }
+                stypes::ComponentType::Source => {
+                    if let Entry::Source(desc) = desc {
+                        if desc.is_compatible(&origin) {
+                            Some(desc.ident())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
                 }
             })
             .collect())
@@ -54,7 +92,7 @@ impl Components {
         origin: stypes::SourceOrigin,
         mut targets: Vec<Uuid>,
     ) -> Result<HashMap<Uuid, OptionsScheme>, stypes::NativeError> {
-        let descriptors: Vec<&Box<dyn ComponentDescriptor + Send + 'static>> = self
+        let descriptors: Vec<&Entry<S, P>> = self
             .components
             .iter()
             .filter_map(|(uuid, desc)| {
@@ -108,5 +146,43 @@ impl Components {
             message: Some(format!("Fail to find component {target}")),
         })?;
         Ok(descriptor.validate(origin, fields))
+    }
+
+    pub fn setup(&self, options: &stypes::SessionSetup) -> Result<(S, P), stypes::NativeError> {
+        let Some(Entry::Parser(parser)) = self.components.get(&options.parser.uuid) else {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!("Fail to find parser {}", options.parser.uuid)),
+            });
+        };
+        let Some(Entry::Source(source)) = self.components.get(&options.source.uuid) else {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!("Fail to find source {}", options.source.uuid)),
+            });
+        };
+        let Some(parser) = parser.create(&options.origin, &options.parser.fields)? else {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!("Fail to init parser {}", options.parser.uuid)),
+            });
+        };
+        let Some(source) = source.create(&options.origin, &options.source.fields)? else {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!("Fail to init source {}", options.source.uuid)),
+            });
+        };
+        Ok((source, parser))
+    }
+}
+
+impl<S, P> fmt::Debug for Components<S, P> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Components")
     }
 }

@@ -1,5 +1,5 @@
 use crate::dlt::*;
-use components::{ComponentDescriptor, StaticFieldResult};
+use components::{ComponentDescriptor, MetadataDescriptor, StaticFieldResult};
 use dlt_core::{
     read::DltMessageReader,
     statistics::{
@@ -26,7 +26,7 @@ const FIELD_STATISTICS: &str = "DLT_PARSER_FIELD_STATISTICS";
 const FIELD_TZ: &str = "DLT_PARSER_FIELD_TIMEZONE";
 
 #[derive(Default)]
-struct Descriptor {}
+pub struct Descriptor {}
 
 enum StatFields {
     AppIds,
@@ -55,20 +55,19 @@ fn to_native_cfg_err<S: ToString>(msg: S) -> NativeError {
         message: Some(msg.to_string()),
     }
 }
-impl ComponentDescriptor for Descriptor {
-    fn to_parser(
-        options: Vec<stypes::Field>,
-        origin: SourceOrigin,
-    ) -> Result<Option<Box<dyn definitions::Parser>>, NativeError>
-    where
-        Self: Sized,
-    {
+
+impl ComponentDescriptor<crate::Parser> for Descriptor {
+    fn create(
+        &self,
+        origin: &SourceOrigin,
+        options: &[stypes::Field],
+    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
         let mut filter_config: Option<ProcessedDltFilterConfig> = None;
         let mut someip_metadata: Option<FibexSomeipMetadata> = None;
         let mut dlt_metadata: Option<FibexDltMetadata> = None;
         for field in options.into_iter() {
             if field.id == FIELD_FIBEX_FILES {
-                let Value::Files(paths) = field.value else {
+                let Value::Files(paths) = &field.value else {
                     return Err(to_native_cfg_err("Invalid settings for Fibex files paths"));
                 };
                 someip_metadata = if paths.is_empty() {
@@ -88,16 +87,17 @@ impl ComponentDescriptor for Descriptor {
                 };
             }
         }
-        let parser = Box::new(DltParser::new(
+        Ok(Some(crate::Parser::Dlt(DltParser::new(
             None,
             dlt_metadata,
             None,
             someip_metadata,
             // If it's source - no storage header expected
             !matches!(origin, SourceOrigin::Source),
-        ));
-        Ok(None)
+        ))))
     }
+}
+impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
@@ -283,24 +283,5 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Parser
-    }
-}
-
-impl components::Component for DltParser {
-    fn register(components: &mut components::Components) -> Result<(), NativeError> {
-        components.register(Descriptor::default())?;
-        Ok(())
-    }
-}
-
-// impl components::Component for DltRangeParser {
-//     fn register(_components: &mut components::Components) -> Result<(), NativeError> {
-//         Ok(())
-//     }
-// }
-
-impl components::Component for DltRawParser {
-    fn register(_components: &mut components::Components) -> Result<(), NativeError> {
-        Ok(())
     }
 }
