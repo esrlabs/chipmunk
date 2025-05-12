@@ -1091,7 +1091,6 @@ dependencies = [
 name = "definitions"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "etherparse",
  "serde",
  "stypes",
@@ -3413,7 +3412,6 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
- "async-trait",
  "bufread",
  "bytes",
  "components",

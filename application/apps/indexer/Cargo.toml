@@ -46,7 +46,6 @@ toml = "0.8"
 blake3 = "1.5"
 serialport = "4.6"
 etherparse = "0.18"
-async-trait = "0.1"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.

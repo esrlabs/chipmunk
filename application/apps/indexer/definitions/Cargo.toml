@@ -7,5 +7,4 @@ edition = "2021"
 thiserror.workspace = true
 etherparse.workspace = true
 serde = { workspace = true , features = ["derive"] }
-async-trait.workspace = true
 stypes = { path = "../stypes", features=["rustcore"] }
