@@ -10,7 +10,7 @@ import { GrabbedElement } from 'platform/types/bindings/miscellaneous';
 import { IRange } from 'platform/types/range';
 import { ISourceLink } from 'platform/types/observe/types';
 import { Attachment, IndexingMode } from 'platform/types/content';
-import { IObserve } from 'platform/types/observe';
+import { SessionSetup } from 'platform/types/bindings';
 import { TextExportOptions } from 'platform/types/exporting';
 
 export class SessionStream {
@@ -81,7 +81,7 @@ export class SessionStream {
         return this._session.getSourcesDefinitions();
     }
 
-    public observe(source: IObserve): ICancelablePromise<void> {
+    public observe(source: SessionSetup): ICancelablePromise<void> {
         return Executors.observe(this._session, this._provider, this._logger, source);
     }
 

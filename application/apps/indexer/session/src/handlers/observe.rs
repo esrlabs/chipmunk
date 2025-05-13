@@ -7,6 +7,7 @@ use crate::{
 };
 use components::Components;
 use log::error;
+use parsers::Parser;
 use sources::{producer::MessageProducer, sde::SdeReceiver};
 
 use super::observing::run_producer;
@@ -22,6 +23,7 @@ pub async fn start_observing(
     // let source_id = state.add_source(uuid).await?;
     let producer = MessageProducer::new(parser, source);
     run_producer(operation_api, state, 0, producer, None, rx_sde).await
+
     // if let stypes::ParserType::Dlt(ref mut settings) = options.parser {
     //     settings.load_fibex_metadata();
     // };

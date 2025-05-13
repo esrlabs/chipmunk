@@ -23,7 +23,7 @@ pub mod serial;
 pub mod socket;
 
 pub enum Source<R: Read + Send> {
-    Raw(binary::raw::BinaryByteSource<R>),
+    Raw(binary::raw::BinaryByteSourceFromFile),
     Pcap(binary::pcap::legacy::PcapLegacyByteSource<R>),
     PcapNg(binary::pcap::ng::PcapngByteSource<R>),
     Tcp(socket::tcp::TcpSource),
