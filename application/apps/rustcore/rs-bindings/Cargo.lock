@@ -875,6 +875,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "definitions"
+version = "0.1.0"
+dependencies = [
+ "etherparse",
+ "serde",
+ "stypes",
+ "thiserror 2.0.3",
+]
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1129,9 +1139,9 @@ dependencies = [
 
 [[package]]
 name = "etherparse"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8d8a704b617484e9d867a0423cd45f7577f008c4068e2e33378f8d3860a6d73"
+checksum = "3ff83a5facf1a7cbfef93cfb48d6d4fb6a1f42d8ac2341a96b3255acb4d4f860"
 dependencies = [
  "arrayvec",
 ]
@@ -1410,8 +1420,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2466,10 +2478,10 @@ dependencies = [
 name = "parsers"
 version = "0.1.0"
 dependencies = [
- "byteorder",
  "chrono",
  "chrono-tz",
  "components",
+ "definitions",
  "dlt-core",
  "file-tools",
  "humantime",
@@ -2580,6 +2592,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "components",
+ "definitions",
  "dir_checksum",
  "dirs 6.0.0",
  "futures",
@@ -2650,6 +2663,7 @@ dependencies = [
  "bincode",
  "bufread",
  "bytecount",
+ "definitions",
  "futures",
  "grep-regex",
  "grep-searcher",
@@ -3056,6 +3070,7 @@ dependencies = [
  "blake3",
  "components",
  "crossbeam-channel",
+ "definitions",
  "dirs 6.0.0",
  "dlt-core",
  "envvars",
@@ -3210,6 +3225,7 @@ dependencies = [
  "bufread",
  "bytes",
  "components",
+ "definitions",
  "etherparse",
  "file-tools",
  "futures",
@@ -3732,6 +3748,7 @@ checksum = "f8c5f0a0af699448548ad1a2fbf920fb4bee257eae39953ba95cb84891a0446a"
 dependencies = [
  "getrandom",
  "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]

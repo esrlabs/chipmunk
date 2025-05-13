@@ -129,35 +129,36 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
         if (lastFile === undefined) {
             return;
         }
-        this.ilc()
-            .services.system.bridge.files()
-            .select.any()
-            .then((files: File[]) => {
-                if (files.length === 0) {
-                    return;
-                }
-                this.provider.session.stream
-                    .observe()
-                    .start(
-                        files.length === 1
-                            ? new Factory.File()
-                                  .type(lastFile.configuration[1])
-                                  .file(files[0].filename)
-                                  .protocol(last.parser.instance.alias())
-                                  .get()
-                            : new Factory.Concat()
-                                  .type(lastFile.configuration[1])
-                                  .files(files.map((f) => f.filename))
-                                  .protocol(last.parser.instance.alias())
-                                  .get(),
-                    )
-                    .catch((err: Error) => {
-                        this.log().error(`Fail to observe: ${err.message}`);
-                    });
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to select file(s): ${err.message}`);
-            });
+        console.error(`Not implemented`);
+        // this.ilc()
+        //     .services.system.bridge.files()
+        //     .select.any()
+        //     .then((files: File[]) => {
+        //         if (files.length === 0) {
+        //             return;
+        //         }
+        //         this.provider.session.stream
+        //             .observe()
+        //             .start(
+        //                 files.length === 1
+        //                     ? new Factory.File()
+        //                           .type(lastFile.configuration[1])
+        //                           .file(files[0].filename)
+        //                           .protocol(last.parser.instance.alias())
+        //                           .get()
+        //                     : new Factory.Concat()
+        //                           .type(lastFile.configuration[1])
+        //                           .files(files.map((f) => f.filename))
+        //                           .protocol(last.parser.instance.alias())
+        //                           .get(),
+        //             )
+        //             .catch((err: Error) => {
+        //                 this.log().error(`Fail to observe: ${err.message}`);
+        //             });
+        //     })
+        //     .catch((err: Error) => {
+        //         this.log().error(`Fail to select file(s): ${err.message}`);
+        //     });
     }
 }
 export interface List extends IlcInterface {}

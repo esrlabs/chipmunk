@@ -18,7 +18,7 @@ import { unique } from '@platform/env/sequence';
 import { history } from '@service/history';
 import { Render } from '@schema/render';
 import { File } from '@platform/types/files';
-import { getRender } from '@schema/render/tools';
+import { getRender, getDltRender } from '@schema/render/tools';
 import { SetupObserve } from '@tabs/setup/component';
 import { recent } from '@service/recent';
 import { bridge } from '@service/bridge';
@@ -292,8 +292,42 @@ export class Service extends Implementation {
                 });
             },
             observe: async (origin: SessionSourceOrigin, existed?: Session): Promise<string> => {
-                console.error(`Not implemented`);
-                return Promise.reject(new Error(`Not implemented`));
+                const session =
+                    existed !== undefined ? existed : await this.add(false).empty(getDltRender());
+                return new Promise((resolve, reject) => {
+                    session.stream
+                        .observe()
+                        .start(origin.getSessionSetup())
+                        .then((uuid: string) => {
+                            const error = this.bind(session.uuid(), uuid, true);
+                            if (error instanceof Error) {
+                                this.log().error(`Fail to bind session: ${error.message}`);
+                            }
+                            // if (existed === undefined) {
+                            //     const error = this.bind(
+                            //         session.uuid(),
+                            //         observe.origin.desc().major,
+                            //         true,
+                            //     );
+                            //     if (error instanceof Error) {
+                            //         this.log().error(`Fail to bind session: ${error.message}`);
+                            //     }
+                            // }
+                            resolve(uuid);
+                        })
+                        .catch((err: Error) => {
+                            if (existed !== undefined) {
+                                return reject(err);
+                            }
+                            this.kill(session.uuid())
+                                .catch((closeErr: Error) => {
+                                    this.log().error(`Fail to close session: ${closeErr.message}`);
+                                })
+                                .finally(() => {
+                                    reject(err);
+                                });
+                        });
+                });
 
                 // const render = await getRender(observe);
                 // if (render instanceof Error) {

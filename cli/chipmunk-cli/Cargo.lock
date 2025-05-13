@@ -399,6 +399,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "definitions"
+version = "0.1.0"
+dependencies = [
+ "etherparse",
+ "serde",
+ "stypes",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -489,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "etherparse"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8d8a704b617484e9d867a0423cd45f7577f008c4068e2e33378f8d3860a6d73"
+checksum = "3ff83a5facf1a7cbfef93cfb48d6d4fb6a1f42d8ac2341a96b3255acb4d4f860"
 dependencies = [
  "arrayvec",
 ]
@@ -620,8 +630,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -950,10 +962,10 @@ dependencies = [
 name = "parsers"
 version = "0.1.0"
 dependencies = [
- "byteorder",
  "chrono",
  "chrono-tz",
  "components",
+ "definitions",
  "dlt-core",
  "file-tools",
  "humantime",
@@ -967,7 +979,6 @@ dependencies = [
  "someip-payload",
  "someip-tools",
  "stypes",
- "thiserror 2.0.11",
  "tokio",
  "tokio-util",
  "uuid",
@@ -1358,6 +1369,7 @@ dependencies = [
  "bufread",
  "bytes",
  "components",
+ "definitions",
  "etherparse",
  "file-tools",
  "futures",
@@ -1567,6 +1579,7 @@ checksum = "b3758f5e68192bb96cc8f9b7e2c2cfdabb435499a28499a42f8f984092adad4b"
 dependencies = [
  "getrandom",
  "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]

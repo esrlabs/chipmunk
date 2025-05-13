@@ -6,7 +6,7 @@ use etherparse::{SlicedPacket, TransportSlice};
 use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
-use std::io::Read;
+use std::{fs::File, io::Read};
 use stypes::SourceOrigin;
 
 pub struct PcapLegacyByteSource<R: Read> {
@@ -14,6 +14,10 @@ pub struct PcapLegacyByteSource<R: Read> {
     buffer: DeqBuffer,
     last_know_timestamp: Option<u64>,
     total: usize,
+}
+
+pub struct PcapLegacyByteSourceFile {
+    inner: PcapLegacyByteSource<File>
 }
 
 impl<R: Read> PcapLegacyByteSource<R> {
