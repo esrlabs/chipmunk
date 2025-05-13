@@ -447,7 +447,7 @@ impl RustSession {
         operation_id: String,
     ) -> Result<(), stypes::ComputationError> {
         let options =
-            stypes::ObserveOptions::decode(&options).map_err(stypes::ComputationError::Decoding)?;
+            stypes::SessionSetup::decode(&options).map_err(stypes::ComputationError::Decoding)?;
         self.session
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?

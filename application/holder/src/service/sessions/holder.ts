@@ -5,7 +5,7 @@ import { scope } from 'platform/env/scope';
 import { Logger } from 'platform/log';
 import { jobs } from '@service/jobs';
 import { ICancelablePromise } from 'platform/env/promise';
-import { $ } from 'rustcore';
+import { Tys } from 'rustcore';
 
 import * as Events from 'platform/ipc/event';
 import * as path from 'path';
@@ -20,8 +20,8 @@ export class Holder {
     public readonly subscriber: Subscriber;
     protected readonly jobs: Map<string, JobsTracker> = new Map();
     protected readonly observing: {
-        active: Map<string, { source: $.Observe; observer: ICancelablePromise }>;
-        finished: Map<string, $.Observe>;
+        active: Map<string, { options: Tys.bindings.SessionSetup; observer: ICancelablePromise }>;
+        finished: Map<string, Tys.bindings.SessionSetup>;
     } = {
         active: new Map(),
         finished: new Map(),
@@ -69,17 +69,17 @@ export class Holder {
     }
 
     public observe(): {
-        start(observe: $.IObserve): Promise<string>;
+        start(options: Tys.bindings.SessionSetup): Promise<string>;
         cancel(uuid: string): Promise<void>;
         list(): { [key: string]: string };
     } {
         return {
-            start: (cfg: $.IObserve): Promise<string> => {
-                const observe = new $.Observe(cfg);
+            start: (options: Tys.bindings.SessionSetup): Promise<string> => {
+                const holder = new Tys.sessionsetup.SessionSetupHolder(options);
                 if (this.shutdown) {
                     return Promise.reject(new Error(`Session is closing`));
                 }
-                let jobDesc = observe.origin.asJob();
+                let jobDesc = holder.asJob();
                 if (jobDesc instanceof Error) {
                     this.logger.error(`Fail to get job description: ${jobDesc.message}`);
                     jobDesc = {
@@ -99,13 +99,13 @@ export class Holder {
                 return new Promise((resolve, reject) => {
                     const observer = this.session
                         .getStream()
-                        .observe(cfg)
+                        .observe(options)
                         .on('confirmed', () => {
                             Events.IpcEvent.emit(
                                 new Events.Observe.Started.Event({
                                     session: this.session.getUUID(),
                                     operation: observer.uuid(),
-                                    source: observe.json().to(),
+                                    options,
                                 }),
                             );
                         })
@@ -119,22 +119,22 @@ export class Holder {
                         .finally(() => {
                             job.done();
                             this.observing.active.delete(observer.uuid());
-                            this.observing.finished.set(observer.uuid(), observe);
+                            this.observing.finished.set(observer.uuid(), options);
                             Events.IpcEvent.emit(
                                 new Events.Observe.Finished.Event({
                                     session: this.session.getUUID(),
                                     operation: observer.uuid(),
-                                    source: observe.json().to(),
+                                    options,
                                 }),
                             );
                         });
-                    this.observing.active.set(observer.uuid(), { source: observe, observer });
+                    this.observing.active.set(observer.uuid(), { options, observer });
                 });
             },
             cancel: (uuid: string): Promise<void> => {
                 const operation = this.observing.active.get(uuid);
                 if (operation === undefined) {
-                    return Promise.reject(new Error(`AAA Operation isn't found`));
+                    return Promise.reject(new Error(`Operation isn't found`));
                 }
                 return new Promise((resolve) => {
                     operation.observer
@@ -146,55 +146,57 @@ export class Holder {
             },
             list: (): { [key: string]: string } => {
                 const list: { [key: string]: string } = {};
-                this.observing.active.forEach((operation, uuid) => {
-                    list[uuid] = operation.source.json().to();
-                });
+                console.error(`Not implemented`);
+                // this.observing.active.forEach((operation, uuid) => {
+                //     list[uuid] = operation.source.json().to();
+                // });
                 return list;
             },
         };
     }
 
     public getFileExt(): string | Error {
-        const all = [
-            Array.from(this.observing.active.values()).map((o) => o.source),
-            Array.from(this.observing.finished.values()),
-        ].flat();
-        const files: Array<string | undefined> = all
-            .map((o) => o.origin.files())
-            .filter((f) => f !== undefined)
-            .flat();
-        if (files.filter((f) => f === undefined).length > 0) {
-            return new Error(`Streams arn't supported yet`);
-        }
-        const parsers: $.Parser.Protocol[] = [];
-        all.forEach((observe) => {
-            if (parsers.includes(observe.parser.alias())) {
-                return;
-            }
-            parsers.push(observe.parser.alias());
-        });
-        if (parsers.length > 1) {
-            return new Error(`Multiple parsers are used`);
-        } else if (parsers.length === 0) {
-            return new Error(`No parsers has been found`);
-        }
-        const exts: string[] = files
-            .map((f) => path.extname(f as string))
-            .filter((ex) => ex.trim() !== '');
-        switch (parsers[0]) {
-            case $.Parser.Protocol.Text:
-                return `.txt`;
-            case $.Parser.Protocol.Plugin:
-                return exts.length === 0 ? '.plg' : exts[0];
-            case $.Parser.Protocol.Dlt:
-            case $.Parser.Protocol.SomeIp:
-                if (files.length === 0) {
-                    return new Error(
-                        `No assigned files are found. Exporting from stream into new session arn't supported`,
-                    );
-                }
-                return exts.length === 0 ? '' : exts[0];
-        }
+        return new Error(`Not implemented`);
+        // const all = [
+        //     Array.from(this.observing.active.values()).map((o) => o.source),
+        //     Array.from(this.observing.finished.values()),
+        // ].flat();
+        // const files: Array<string | undefined> = all
+        //     .map((o) => o.origin.files())
+        //     .filter((f) => f !== undefined)
+        //     .flat();
+        // if (files.filter((f) => f === undefined).length > 0) {
+        //     return new Error(`Streams arn't supported yet`);
+        // }
+        // const parsers: $.Parser.Protocol[] = [];
+        // all.forEach((observe) => {
+        //     if (parsers.includes(observe.parser.alias())) {
+        //         return;
+        //     }
+        //     parsers.push(observe.parser.alias());
+        // });
+        // if (parsers.length > 1) {
+        //     return new Error(`Multiple parsers are used`);
+        // } else if (parsers.length === 0) {
+        //     return new Error(`No parsers has been found`);
+        // }
+        // const exts: string[] = files
+        //     .map((f) => path.extname(f as string))
+        //     .filter((ex) => ex.trim() !== '');
+        // switch (parsers[0]) {
+        //     case $.Parser.Protocol.Text:
+        //         return `.txt`;
+        //     case $.Parser.Protocol.Plugin:
+        //         return exts.length === 0 ? '.plg' : exts[0];
+        //     case $.Parser.Protocol.Dlt:
+        //     case $.Parser.Protocol.SomeIp:
+        //         if (files.length === 0) {
+        //             return new Error(
+        //                 `No assigned files are found. Exporting from stream into new session arn't supported`,
+        //             );
+        //         }
+        //         return exts.length === 0 ? '' : exts[0];
+        // }
     }
 
     public isShutdowning(): boolean {

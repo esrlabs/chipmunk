@@ -11,7 +11,8 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, IApi } from './state';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionComponents, SessionSourceOrigin } from '@service/session/origin';
+import { session } from '@service/session';
 
 @Component({
     selector: 'app-tabs-setup',
@@ -56,6 +57,26 @@ export class SetupObserve
                 this.detectChanges();
             }),
         );
+    }
+
+    public test() {
+        this.origin.options.setSource({
+            uuid: '08080808-0808-0808-0808-080808080808',
+            fields: [],
+        });
+        this.origin.options.setParser({
+            uuid: '01010101-0101-0101-0101-010101010101',
+            fields: [],
+        });
+        session
+            .initialize()
+            .observe(this.origin)
+            .then((uuid: string) => {
+                console.log(`Session has been created: ${uuid}`);
+            })
+            .catch((err: Error) => {
+                console.error(err.message);
+            });
     }
 }
 export interface SetupObserve extends IlcInterface {}
