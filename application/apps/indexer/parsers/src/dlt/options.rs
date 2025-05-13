@@ -93,7 +93,8 @@ impl ComponentDescriptor<crate::Parser> for Descriptor {
             None,
             someip_metadata,
             // If it's source - no storage header expected
-            !matches!(origin, SourceOrigin::Source),
+            // !matches!(origin, SourceOrigin::Source),
+            true,
         ))))
     }
 }
@@ -273,6 +274,7 @@ impl MetadataDescriptor for Descriptor {
                         (String::from("log_debug"), String::from("DEBUG")),
                         (String::from("log_verbose"), String::from("VERBOSE")),
                         (String::from("log_invalid"), String::from("INVALID")),
+                        (String::from("context_ids"), String::from("CONTEXT LIST")),
                     ]
                     .into_iter()
                     .collect(),

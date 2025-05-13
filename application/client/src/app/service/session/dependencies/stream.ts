@@ -11,6 +11,7 @@ import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
 import { TextExportOptions } from '@platform/types/exporting';
+import { SessionSetup } from '@platform/types/bindings';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -80,37 +81,39 @@ export class Stream extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                const observe = Observe.from(event.source);
-                if (observe instanceof Error) {
-                    this.log().error(`Fail to parse Observe: ${observe.message}`);
-                    return;
-                }
-                this.observed.running.set(
-                    event.operation,
-                    new ObserveOperation(
-                        event.operation,
-                        observe,
-                        this.sde.send.bind(this.sde, event.operation),
-                        this.observe().restart.bind(this, event.operation),
-                        this.observe().abort.bind(this, event.operation),
-                    ),
-                );
-                this.observe()
-                    .descriptions.request()
-                    .then((sources) => {
-                        let updated = false;
-                        sources.forEach((source) => {
-                            if (!this.observed.map.has(source.id)) {
-                                this.observed.map.set(source.id, source);
-                                updated = true;
-                            }
-                        });
-                        updated && this.subjects.get().sources.emit();
-                    })
-                    .catch((err: Error) => {
-                        this.log().error(`Fail get sources description: ${err.message}`);
-                    });
-                this.sde.overwrite(this.observed.running);
+                console.error(`Not implemented`);
+                // const observe = Observe.from(event.source);
+                // if (observe instanceof Error) {
+                //     this.log().error(`Fail to parse Observe: ${observe.message}`);
+                //     return;
+                // }
+                // this.observed.running.set(
+                //     event.operation,
+                //     new ObserveOperation(
+                //         event.operation,
+                //         observe,
+                //         this.sde.send.bind(this.sde, event.operation),
+                //         this.observe().restart.bind(this, event.operation),
+                //         this.observe().abort.bind(this, event.operation),
+                //     ),
+                // );
+                // this.observe()
+                //     .descriptions.request()
+                //     .then((sources) => {
+                //         let updated = false;
+                //         sources.forEach((source) => {
+                //             if (!this.observed.map.has(source.id)) {
+                //                 this.observed.map.set(source.id, source);
+                //                 updated = true;
+                //             }
+                //         });
+                //         updated && this.subjects.get().sources.emit();
+                //     })
+                //     .catch((err: Error) => {
+                //         this.log().error(`Fail get sources description: ${err.message}`);
+                //     });
+                // this.sde.overwrite(this.observed.running);
+                let observe = Observe.new();
                 this.subjects.get().started.emit(observe);
             }),
         );
@@ -142,9 +145,9 @@ export class Stream extends Subscriber {
     }
 
     public observe(): {
-        start(observe: Observe): Promise<string>;
+        start(options: SessionSetup): Promise<string>;
         abort(uuid: string): Promise<void>;
-        restart(uuid: string, source: Observe): Promise<string>;
+        restart(uuid: string, options: SessionSetup): Promise<string>;
         list(): Promise<Map<string, Observe>>;
         sources(): ObserveSource[];
         isFileSource(): boolean;
@@ -157,19 +160,19 @@ export class Stream extends Subscriber {
         };
     } {
         return {
-            start: (observe: Observe): Promise<string> => {
+            start: (options: SessionSetup): Promise<string> => {
                 return Requests.IpcRequest.send<Requests.Observe.Start.Response>(
                     Requests.Observe.Start.Response,
                     new Requests.Observe.Start.Request({
                         session: this._uuid,
-                        observe: observe.sterilized(),
+                        options,
                     }),
                 )
                     .then((response) => {
                         if (typeof response.error === 'string' && response.error !== '') {
                             return Promise.reject(new Error(response.error));
                         }
-                        this._info.fromObserveInfo(observe);
+                        // this._info.fromObserveInfo(observe);
                         return response.session;
                     })
                     .finally(lockers.progress(`Creating session...`));
@@ -196,11 +199,11 @@ export class Stream extends Subscriber {
                         });
                 });
             },
-            restart: (uuid: string, observe: Observe): Promise<string> => {
+            restart: (uuid: string, options: SessionSetup): Promise<string> => {
                 return this.observe()
                     .abort(uuid)
                     .then(() => {
-                        return this.observe().start(observe);
+                        return this.observe().start(options);
                     });
             },
             list: (): Promise<Map<string, Observe>> => {

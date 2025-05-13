@@ -1,8 +1,21 @@
-import { SourceOrigin, Ident } from '@platform/types/bindings';
+import { SourceOrigin, Ident, SessionSetup, ComponentOptions } from '@platform/types/bindings';
 
-export class SessionOptionsPreset {
+export class SessionComponents {
     public parser: Ident | undefined;
     public source: Ident | undefined;
+}
+
+export class ComponentsOptions {
+    public parser: ComponentOptions | undefined;
+    public source: ComponentOptions | undefined;
+    public setParser(options: ComponentOptions): ComponentsOptions {
+        this.parser = options;
+        return this;
+    }
+    public setSource(options: ComponentOptions): ComponentsOptions {
+        this.source = options;
+        return this;
+    }
 }
 
 export class SessionSourceOrigin {
@@ -21,10 +34,33 @@ export class SessionSourceOrigin {
     static source(): SessionSourceOrigin {
         return new SessionSourceOrigin('Source', undefined);
     }
+
+    public readonly options: ComponentsOptions;
+
     constructor(
         public readonly origin: SourceOrigin,
-        public options: SessionOptionsPreset | undefined,
-    ) {}
+        public components: SessionComponents | undefined,
+    ) {
+        this.options = new ComponentsOptions();
+    }
+
+    public setComponents(components: SessionComponents) {
+        this.components = components;
+    }
+
+    public getSessionSetup(): SessionSetup {
+        if (!this.options.parser) {
+            throw new Error(`Parser isn't defined`);
+        }
+        if (!this.options.source) {
+            throw new Error(`Source isn't defined`);
+        }
+        return {
+            origin: this.origin,
+            source: this.options.source,
+            parser: this.options.parser,
+        };
+    }
 
     public getDef(): SourceOrigin {
         return this.origin;

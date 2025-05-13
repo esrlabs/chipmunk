@@ -2,7 +2,11 @@ use bufread::BufReader;
 use components::{ComponentDescriptor, MetadataDescriptor};
 use definitions::*;
 use file_tools::is_binary;
-use std::io::{BufRead, Read};
+use std::{
+    fs::File,
+    io::{BufRead, Read},
+    path::Path,
+};
 use stypes::SourceOrigin;
 
 pub struct BinaryByteSource<R>
@@ -77,6 +81,36 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     }
 }
 
+pub struct BinaryByteSourceFromFile {
+    inner: BinaryByteSource<File>,
+}
+
+impl BinaryByteSourceFromFile {
+    pub fn new(inner: BinaryByteSource<File>) -> Self {
+        Self { inner }
+    }
+}
+
+impl ByteSource for BinaryByteSourceFromFile {
+    async fn load(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
+        self.inner.load(filter).await
+    }
+
+    fn current_slice(&self) -> &[u8] {
+        self.inner.current_slice()
+    }
+    fn consume(&mut self, offset: usize) {
+        self.inner.consume(offset)
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
 const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
 ]);
@@ -87,10 +121,34 @@ pub struct Descriptor {}
 impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        origin: &SourceOrigin,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
-        Ok(None)
+        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+            File::open(filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail open file {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            })
+        }
+        let filename = match origin {
+            SourceOrigin::File(filename) => filename,
+            _ => {
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Configuration,
+                    message: Some(
+                        "origin isn't supported by this source (BinaryByteSource)".to_owned(),
+                    ),
+                })
+            }
+        };
+        let source = BinaryByteSourceFromFile::new(BinaryByteSource::new(input_file(filename)?));
+        Ok(Some(crate::Source::Raw(source)))
     }
 }
 

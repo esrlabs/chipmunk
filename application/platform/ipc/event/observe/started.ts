@@ -1,4 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
+import { SessionSetup } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
@@ -6,14 +7,14 @@ import * as validator from '../../../env/obj';
 export class Event extends SignatureRequirement {
     public session: string;
     public operation: string;
-    public source: string;
+    public options: SessionSetup;
 
-    constructor(input: { session: string; operation: string; source: string }) {
+    constructor(input: { session: string; operation: string; options: SessionSetup }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
         this.operation = validator.getAsNotEmptyString(input, 'operation');
-        this.source = validator.getAsNotEmptyString(input, 'source');
+        this.options = validator.getAsObj(input, 'options');
     }
 }
 

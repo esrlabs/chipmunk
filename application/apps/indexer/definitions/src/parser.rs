@@ -47,6 +47,16 @@ pub trait Parser {
     ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError>;
 }
 
+/**
+ * 1 - 10 message ?
+ * 100+ message   ?
+ * Vec Aloc: |....|....|....|....|
+ * Iter    : |....|xxx |....|xxxxxxxxx |....|
+ * Many items - vec is bad - ALOC
+ * Not many items - iter is bad - addition calls inside iter.
+ *
+ */
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Attachment {
     pub name: String,
@@ -78,6 +88,16 @@ pub enum ByteRepresentation {
     Range((usize, usize)),
 }
 
+/*
+TODO/NOTE:
+Problems here:
+- actually with return any fixed value - we are cloning data in fact and loosing performance
+- additon allocation
+
+TODO:
+- back to trait
+- still remove 'lt but with Arc only for DLT parser
+*/
 #[derive(Debug)]
 pub enum LogMessage {
     Raw(Vec<u8>),
@@ -205,6 +225,8 @@ pub enum MessageStreamItem {
 ///     - The number of bytes consumed.
 ///     - An optional parsed item [`ParseYield<T>`].
 ///   - If parsing fails, it returns an [`ParserError`].
+///
+
 pub fn parse_all<F>(
     input: &[u8],
     timestamp: Option<u64>,

@@ -12,6 +12,12 @@ pub enum Parser {
     Text(text::StringTokenizer),
 }
 
+/**
+ * NOTE/TODO:
+ * Using of the whole enum inside MessageProducer might give performance impact because it's massive.
+ * Into MessageProducer we should put exact instances of parsers instead enum-wrapper
+ */
+
 impl definitions::Parser for Parser {
     fn parse(
         &mut self,

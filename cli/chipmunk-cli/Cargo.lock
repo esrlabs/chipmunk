@@ -399,6 +399,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "definitions"
+version = "0.1.0"
+dependencies = [
+ "etherparse",
+ "serde",
+ "stypes",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "derive_builder"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -489,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "etherparse"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8d8a704b617484e9d867a0423cd45f7577f008c4068e2e33378f8d3860a6d73"
+checksum = "3ff83a5facf1a7cbfef93cfb48d6d4fb6a1f42d8ac2341a96b3255acb4d4f860"
 dependencies = [
  "arrayvec",
 ]
@@ -620,20 +630,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "335ff9f135e4384c8150d6f27c6daed433577f86b4750418338c01a1a2528592"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
-]
-
-[[package]]
-name = "getrandom"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26145e563e54f2cadc477553f1ec5ee650b00862f0a58bcd12cbdc5f0ea2d2f4"
-dependencies = [
- "cfg-if",
- "libc",
- "r-efi",
- "wasi 0.14.2+wasi-0.2.4",
+ "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -969,10 +969,10 @@ dependencies = [
 name = "parsers"
 version = "0.1.0"
 dependencies = [
- "byteorder",
  "chrono",
  "chrono-tz",
  "components",
+ "definitions",
  "dlt-core",
  "file-tools",
  "humantime",
@@ -986,7 +986,6 @@ dependencies = [
  "someip-payload",
  "someip-tools",
  "stypes",
- "thiserror 2.0.11",
  "tokio",
  "tokio-util",
  "uuid",
@@ -1397,6 +1396,7 @@ dependencies = [
  "bufread",
  "bytes",
  "components",
+ "definitions",
  "etherparse",
  "file-tools",
  "futures",
