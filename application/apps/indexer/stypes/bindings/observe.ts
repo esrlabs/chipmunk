@@ -121,7 +121,7 @@ send_data_delay: number,
  */
 exclusive: boolean, };
 
-export type SessionSetup = { origin: SourceOrigin, components: Array<ComponentDef>, };
+export type SessionSetup = { origin: SourceOrigin, parser: ComponentOptions, source: ComponentOptions, };
 
 /**
  * Settings for the SomeIp parser.
