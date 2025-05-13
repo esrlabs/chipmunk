@@ -25,6 +25,12 @@ impl MinVersions {
     /// Chipmunk repository.
     pub fn load() -> anyhow::Result<Self> {
         let min_versions_path = global_configs_path().join(MIN_VERSIONS_FILENAME);
+        // Don't break if versions file doesn't exist, to avoid forcing developers to merge
+        // master into their branches once they updated the development tool.
+        if !min_versions_path.exists() {
+            let mock_min_versions = Self::get_mock();
+            return Ok(mock_min_versions);
+        }
         let file_content = std::fs::read_to_string(&min_versions_path).with_context(|| {
             format!(
                 "Reading min versions file content failed. Path: {}",
@@ -37,6 +43,20 @@ impl MinVersions {
                 min_versions_path.display(),
             )
         })
+    }
+
+    /// Provides an instance of [`MinVersions`] with the lowest version for each of its fields.
+    /// It can be used as fallback when there is no configuration files for min versions exist.
+    fn get_mock() -> Self {
+        let version = Version::new(0, 1, 0);
+        Self {
+            cargo: version,
+            node: version,
+            npm: version,
+            yarn: version,
+            wasm_pack: version,
+            nj_cli: version,
+        }
     }
 
     /// Provides the minimum required version for the provided development tool
