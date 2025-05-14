@@ -5,8 +5,8 @@ use components::{ComponentDescriptor,MetadataDescriptor};
 use etherparse::{SlicedPacket, TransportSlice};
 use file_tools::is_binary;
 use log::{debug, error, trace};
-use pcap_parser::{PcapBlockOwned, PcapError, PcapNGReader, traits::PcapReaderIterator};
-use std::io::Read;
+use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
+use std::{fs::File, io::Read, path::Path};
 use stypes::SourceOrigin;
 
 pub struct PcapngByteSource<R: Read> {
@@ -160,6 +160,54 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
     }
 }
 
+pub struct PcapngByteSourceFromFile {
+    inner: PcapngByteSource<File>,
+}
+
+impl PcapngByteSourceFromFile {
+    pub fn new<P: AsRef<Path>>(filename: P) -> Result<Self, stypes::NativeError> {
+        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+            File::open(filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail open file {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            })
+        }
+        Ok(Self {
+            inner: PcapngByteSource::new(input_file(filename.as_ref())?).map_err(|err|stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(err.to_string()),
+            })?,
+        })
+    }
+}
+
+
+impl ByteSource for PcapngByteSourceFromFile {
+    async fn load(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
+        self.inner.load(filter).await
+    }
+
+    fn current_slice(&self) -> &[u8] {
+        self.inner.current_slice()
+    }
+    fn consume(&mut self, offset: usize) {
+        self.inner.consume(offset)
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
 const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,
 ]);
@@ -167,12 +215,12 @@ const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+impl ComponentDescriptor<crate::Source> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
     }
 }

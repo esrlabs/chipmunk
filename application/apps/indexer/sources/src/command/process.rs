@@ -235,12 +235,12 @@ const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+impl ComponentDescriptor<crate::Source> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
     }
 }
