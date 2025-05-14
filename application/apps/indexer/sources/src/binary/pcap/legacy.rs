@@ -6,18 +6,15 @@ use etherparse::{SlicedPacket, TransportSlice};
 use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
-use std::{fs::File, io::Read};
+use std::{fs::File, io::Read, path::Path};
 use stypes::SourceOrigin;
+
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
     buffer: DeqBuffer,
     last_know_timestamp: Option<u64>,
     total: usize,
-}
-
-pub struct PcapLegacyByteSourceFile {
-    inner: PcapLegacyByteSource<File>
 }
 
 impl<R: Read> PcapLegacyByteSource<R> {
@@ -162,6 +159,55 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
     }
 }
 
+pub struct PcapLegacyByteSourceFromFile {
+    inner: PcapLegacyByteSource<File>,
+}
+
+impl PcapLegacyByteSourceFromFile {
+    pub fn new<P: AsRef<Path>>(filename: P) -> Result<Self, stypes::NativeError> {
+        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+            File::open(filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail open file {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            })
+        }
+        Ok(Self {
+            inner: PcapLegacyByteSource::new(input_file(filename.as_ref())?).map_err(|err|stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(err.to_string()),
+            })?,
+        })
+    }
+}
+
+
+impl ByteSource for PcapLegacyByteSourceFromFile {
+    async fn load(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
+        self.inner.load(filter).await
+    }
+
+    fn current_slice(&self) -> &[u8] {
+        self.inner.current_slice()
+    }
+    fn consume(&mut self, offset: usize) {
+        self.inner.consume(offset)
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+
 const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
 ]);
@@ -169,12 +215,12 @@ const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+impl ComponentDescriptor<crate::Source> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
     }
 }
