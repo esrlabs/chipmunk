@@ -86,8 +86,21 @@ pub struct BinaryByteSourceFromFile {
 }
 
 impl BinaryByteSourceFromFile {
-    pub fn new(inner: BinaryByteSource<File>) -> Self {
-        Self { inner }
+    pub fn new<P: AsRef<Path>>(filename: P) -> Result<Self, stypes::NativeError> {
+        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+            File::open(filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail open file {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            })
+        }
+        Ok(Self {
+            inner: BinaryByteSource::new(input_file(filename.as_ref())?),
+        })
     }
 }
 
@@ -118,23 +131,12 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
+impl ComponentDescriptor<crate::Source> for Descriptor {
     fn create(
         &self,
         origin: &SourceOrigin,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source<R>>, stypes::NativeError> {
-        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
-            File::open(filename).map_err(|e| stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Io,
-                message: Some(format!(
-                    "Fail open file {}: {}",
-                    filename.to_string_lossy(),
-                    e
-                )),
-            })
-        }
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
         let filename = match origin {
             SourceOrigin::File(filename) => filename,
             _ => {
@@ -147,8 +149,9 @@ impl<R: Read + Send> ComponentDescriptor<crate::Source<R>> for Descriptor {
                 })
             }
         };
-        let source = BinaryByteSourceFromFile::new(BinaryByteSource::new(input_file(filename)?));
-        Ok(Some(crate::Source::Raw(source)))
+        Ok(Some(crate::Source::Raw(BinaryByteSourceFromFile::new(
+            filename,
+        )?)))
     }
 }
 
