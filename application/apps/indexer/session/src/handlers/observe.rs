@@ -16,7 +16,7 @@ pub async fn start_observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     options: stypes::SessionSetup,
-    components: Arc<Components<sources::Source<std::io::Empty>, parsers::Parser>>,
+    components: Arc<Components<sources::Source, parsers::Parser>>,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     let (source, parser) = components.setup(&options)?;

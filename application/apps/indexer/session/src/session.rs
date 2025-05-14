@@ -32,7 +32,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
-    components: Arc<Components<sources::Source<std::io::Empty>, parsers::Parser>>,
+    components: Arc<Components<sources::Source, parsers::Parser>>,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -56,8 +56,7 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
-        let mut components: Components<sources::Source<std::io::Empty>, parsers::Parser> =
-            Components::new();
+        let mut components: Components<sources::Source, parsers::Parser> = Components::new();
         // Registre parsers
         parsers::registration(&mut components)
             .map_err(|err| stypes::ComputationError::NativeError(err))?;

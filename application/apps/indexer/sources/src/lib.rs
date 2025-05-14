@@ -22,17 +22,17 @@ pub mod sde;
 pub mod serial;
 pub mod socket;
 
-pub enum Source<R: Read + Send> {
+pub enum Source {
     Raw(binary::raw::BinaryByteSourceFromFile),
-    Pcap(binary::pcap::legacy::PcapLegacyByteSource<R>),
-    PcapNg(binary::pcap::ng::PcapngByteSource<R>),
+    Pcap(binary::pcap::legacy::PcapLegacyByteSourceFromFile),
+    PcapNg(binary::pcap::ng::PcapngByteSourceFromFile),
     Tcp(socket::tcp::TcpSource),
     Udp(socket::udp::UdpSource),
     Serial(serial::serialport::SerialSource),
     Process(command::process::ProcessSource),
 }
 
-impl<R: Read + Send + Sync> definitions::ByteSource for Source<R> {
+impl definitions::ByteSource for Source {
     fn consume(&mut self, offset: usize) {
         match self {
             Self::Raw(inner) => inner.consume(offset),
@@ -112,9 +112,7 @@ impl<R: Read + Send + Sync> definitions::ByteSource for Source<R> {
     }
 }
 
-pub fn registration<R: Read + Send, P>(
-    components: &mut Components<Source<R>, P>,
-) -> Result<(), stypes::NativeError> {
+pub fn registration<P>(components: &mut Components<Source, P>) -> Result<(), stypes::NativeError> {
     components.add_source(binary::raw::Descriptor::default())?;
     components.add_source(binary::pcap::legacy::Descriptor::default())?;
     components.add_source(binary::pcap::ng::Descriptor::default())?;
