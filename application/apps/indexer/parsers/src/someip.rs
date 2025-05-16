@@ -2,7 +2,7 @@ use crate::{Error, LogMessage, ParseYield, SingleParser};
 use std::{
     borrow::Cow,
     cmp::Ordering,
-    collections::HashMap,
+    collections::{hash_map::Entry, HashMap},
     fmt::{self, Display},
     io::Write,
     path::PathBuf,
@@ -127,26 +127,32 @@ impl FibexServiceCache {
         id: usize,
         version: usize,
     ) -> Option<usize> {
-        if !self.map.contains_key(&(id, version)) {
-            let mut scan = true;
-            let mut result: Option<usize> = None;
-            for (index, service) in model.services.iter().enumerate() {
-                if service.service_id == id {
-                    scan = false;
-                    if service.major_version == version {
-                        result = Some(index);
+        match self.map.entry((id, version)) {
+            Entry::Occupied(occupied_index) => Some(*occupied_index.get()),
+            Entry::Vacant(vacant_index) => {
+                let mut scan = true;
+                let mut result: Option<usize> = None;
+                for (index, service) in model.services.iter().enumerate() {
+                    if service.service_id == id {
+                        scan = false;
+                        if service.major_version == version {
+                            result = Some(index);
+                            break;
+                        } else if result.is_none() {
+                            result = Some(index);
+                        }
+                    } else if !scan {
                         break;
-                    } else if result.is_none() {
-                        result = Some(index);
                     }
-                } else if !scan {
-                    break;
                 }
-            }
-            result.and_then(|index| self.map.insert((id, version), index));
-        }
 
-        self.map.get(&(id, version)).copied()
+                if let Some(index) = result {
+                    vacant_index.insert(index);
+                };
+
+                result
+            }
+        }
     }
 }
 

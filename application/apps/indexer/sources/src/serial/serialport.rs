@@ -20,10 +20,7 @@ impl Decoder for LineCodec {
         match &src.iter().position(|b| *b == b'\n') {
             Some(n) => match str::from_utf8(&src.split_to(n + 1)) {
                 Ok(s) => Ok(Some(s.to_string())),
-                Err(err) => Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to format string: {err}"),
-                )),
+                Err(err) => Err(io::Error::other(format!("Failed to format string: {err}"))),
             },
             None => Ok(None),
         }

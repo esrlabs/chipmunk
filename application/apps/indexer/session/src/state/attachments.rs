@@ -48,17 +48,13 @@ fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> 
             .collect()
     }
     let origin_path = PathBuf::from(origin);
-    let origin_file_name = PathBuf::from(origin_path.file_name().ok_or(io::Error::new(
-        io::ErrorKind::Other,
+    let origin_file_name = PathBuf::from(origin_path.file_name().ok_or(io::Error::other(
         format!("Cannot get file name from {origin:?}"),
     ))?);
     let basename = sanitize(
         origin_file_name
             .file_stem()
-            .ok_or(io::Error::new(
-                io::ErrorKind::Other,
-                "Fail to parse origin attachment path",
-            ))?
+            .ok_or(io::Error::other("Fail to parse origin attachment path"))?
             .to_string_lossy(),
     );
     let extension = origin_file_name.extension();
@@ -82,10 +78,9 @@ fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> 
             index += 1;
         }
         if index > FILE_NAME_INDEXES_LIMIT {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Cannot find suitable file name for {origin}"),
-            ));
+            return Err(io::Error::other(format!(
+                "Cannot find suitable file name for {origin}"
+            )));
         }
     }
 }
