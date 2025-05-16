@@ -15,6 +15,7 @@ const UI_LOG_OPTION_HELP_TEXT: &str =
     "Specifies the UI options for displaying command logs and progress in the terminal";
 const ADDITIONAL_FEATURES_HELP_TEXT: &str =
     "Specifies additional features to be enabled in the build process";
+const SKIP_ENV_CHECKS_TEXT: &str = "Skip development environment checks.";
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{about}
@@ -96,6 +97,9 @@ pub enum Command {
 
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
+
+        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        skip_env_checks: bool,
     },
     /// Build all or the specified targets
     Build {
@@ -113,6 +117,9 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
+        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        skip_env_checks: bool,
+
         #[arg(short, long, help = ADDITIONAL_FEATURES_HELP_TEXT)]
         additional_features: Option<Vec<AdditionalFeatures>>,
     },
@@ -124,6 +131,9 @@ pub enum Command {
 
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
+
+        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        skip_env_checks: bool,
     },
     /// Run tests for all or the specified targets
     Test {
@@ -140,6 +150,9 @@ pub enum Command {
 
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
+
+        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        skip_env_checks: bool,
 
         /// Accepts the new results in all snapshot tests.
         #[arg(short, long, default_value_t = false)]
@@ -161,6 +174,9 @@ pub enum Command {
 
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
+
+        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        skip_env_checks: bool,
 
         #[arg(short, long, help = ADDITIONAL_FEATURES_HELP_TEXT)]
         additional_features: Option<Vec<AdditionalFeatures>>,

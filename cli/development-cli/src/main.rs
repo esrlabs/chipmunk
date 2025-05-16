@@ -124,10 +124,13 @@ async fn main_process(command: Command) -> Result<(), Error> {
             target,
             fail_fast,
             ui_mode,
+            skip_env_checks,
         } => {
             JobsState::init(JobsConfig::new(fail_fast));
             init_tracker(ui_mode);
-            validate_dev_tools()?;
+            if !skip_env_checks && !UserConfiguration::get().skip_env_checks {
+                validate_dev_tools()?;
+            }
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Lint).await?;
             (JobType::Lint, results)
@@ -137,21 +140,30 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             fail_fast,
             ui_mode,
+            skip_env_checks,
             additional_features,
         } => {
             let features = additional_features
                 .unwrap_or_else(|| UserConfiguration::get().additional_features.clone());
             JobsState::init(JobsConfig::new(fail_fast).additional_features(features));
             init_tracker(ui_mode);
-            validate_dev_tools()?;
+            if !skip_env_checks && !UserConfiguration::get().skip_env_checks {
+                validate_dev_tools()?;
+            }
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Build { production }).await?;
             (JobType::Build { production }, results)
         }
-        Command::Clean { target, ui_mode } => {
+        Command::Clean {
+            target,
+            ui_mode,
+            skip_env_checks,
+        } => {
             JobsState::init(JobsConfig::new(false));
             init_tracker(ui_mode);
-            validate_dev_tools()?;
+            if !skip_env_checks && !UserConfiguration::get().skip_env_checks {
+                validate_dev_tools()?;
+            }
 
             BuildStateRecords::remove_records_file()?;
             let targets = get_targets_or_all(target);
@@ -163,6 +175,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             fail_fast,
             ui_mode,
+            skip_env_checks,
             accept_snapshots,
             specifications,
         } => {
@@ -172,7 +185,9 @@ async fn main_process(command: Command) -> Result<(), Error> {
                     .accept_snapshots(accept_snapshots),
             );
             init_tracker(ui_mode);
-            validate_dev_tools()?;
+            if !skip_env_checks && !UserConfiguration::get().skip_env_checks {
+                validate_dev_tools()?;
+            }
             let targets = get_targets_or_all(target);
             let results = jobs_runner::run(&targets, JobType::Test { production }).await?;
             (JobType::Test { production }, results)
@@ -181,13 +196,16 @@ async fn main_process(command: Command) -> Result<(), Error> {
             production,
             no_fail_fast,
             ui_mode,
+            skip_env_checks,
             additional_features,
         } => {
             let features = additional_features
                 .unwrap_or_else(|| UserConfiguration::get().additional_features.clone());
             JobsState::init(JobsConfig::new(!no_fail_fast).additional_features(features));
             init_tracker(ui_mode);
-            validate_dev_tools()?;
+            if !skip_env_checks && !UserConfiguration::get().skip_env_checks {
+                validate_dev_tools()?;
+            }
             let results = jobs_runner::run(&[Target::App], JobType::Build { production }).await?;
             (JobType::Run { production }, results)
         }
