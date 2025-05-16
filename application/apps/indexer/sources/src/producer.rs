@@ -10,10 +10,11 @@ use log::warn;
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
 #[derive(Debug)]
-pub struct MessageProducer<P, D>
+pub struct MessageProducer<P, D, W>
 where
     P: Parser,
     D: ByteSource,
+    W: LogRecordWriter,
 {
     byte_source: D,
     parser: P,
@@ -23,11 +24,12 @@ where
     total_skipped: usize,
     done: bool,
     buffer: Vec<(usize, MessageStreamItem)>,
+    writer: W,
 }
 
-impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
+impl<P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<P, D, W> {
     /// create a new producer by plugging into a byte source
-    pub fn new(parser: P, source: D) -> Self {
+    pub fn new(parser: P, source: D, writer: W) -> Self {
         MessageProducer {
             byte_source: source,
             parser,
@@ -37,6 +39,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
             total_skipped: 0,
             done: false,
             buffer: Vec::new(),
+            writer,
         }
     }
 
@@ -50,7 +53,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     /// # Return:
     /// Return a mutable reference for the newly parsed items when there are more data available,
     /// otherwise it returns None when there are no more data available in the source.
-    pub async fn read_next_segment(&mut self) -> Option<&mut Vec<(usize, MessageStreamItem)>> {
+    pub async fn read_next_segment(&mut self) -> Option<(usize, MessageStreamItem)> {
         // ### Cancel Safety ###:
         // This function is cancel safe because:
         // * there is no await calls or any function causing yielding between filling the internal
@@ -91,52 +94,63 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
-                self.buffer.push((0, MessageStreamItem::Done));
-                return Some(&mut self.buffer);
+                // self.buffer.push((0, MessageStreamItem::Done));
+                return Some((0, MessageStreamItem::Done));
             }
 
             // we can call consume only after all parse results are collected because of its
             // reference to self.
             let mut total_consumed = 0;
-
             match self
                 .parser
-                .parse(self.byte_source.current_slice(), self.last_seen_ts)
-                .map(|items| {
-                    items.into_iter().for_each(|item| match item {
-                        (consumed, Some(m)) => {
-                            let total_used_bytes = consumed + skipped_bytes;
-                            // Reset skipped bytes since it had been counted here.
-                            skipped_bytes = 0;
-                            debug!(
-                            "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                            consumed, total_used_bytes
-                        );
-                            total_consumed += consumed;
-                            self.buffer
-                                .push((total_used_bytes, MessageStreamItem::Item(m)));
-                        }
-                        (consumed, None) => {
-                            total_consumed += consumed;
-                            trace!("None, consumed {} bytes", consumed);
-                            let total_used_bytes = consumed + skipped_bytes;
-                            // Reset skipped bytes since it had been counted here.
-                            skipped_bytes = 0;
-                            self.buffer
-                                .push((total_used_bytes, MessageStreamItem::Skipped));
-                        }
-                    })
-                }) {
-                Ok(()) => {
-                    // Ensure `did_produce_items()` correctness over time.
-                    if cfg!(debug_assertions) && !self.buffer.is_empty() {
-                        assert!(self.did_produce_items());
+                .parse(
+                    self.byte_source.current_slice(),
+                    self.last_seen_ts,
+                    &mut self.writer,
+                )
+                .await
+                .map(|results| {
+                    println!(">>>>>>>>>>>>>>>>>> parsing 00000");
+                    if results.parsed_any_msg() {
+                        (results.consumed, MessageStreamItem::Parsed(results))
+                    } else {
+                        (results.consumed, MessageStreamItem::Skipped)
                     }
-
-                    self.byte_source.consume(total_consumed);
-                    return Some(&mut self.buffer);
+                    // items.into_iter().for_each(|item| match item {
+                    //     (consumed, Some(m)) => {
+                    //         let total_used_bytes = consumed + skipped_bytes;
+                    //         // Reset skipped bytes since it had been counted here.
+                    //         skipped_bytes = 0;
+                    //         debug!(
+                    //             "Extracted a valid message, consumed {} bytes (total used {} bytes)",
+                    //             consumed, total_used_bytes
+                    //         );
+                    //         total_consumed += consumed;
+                    //         self.buffer
+                    //             .push((total_used_bytes, MessageStreamItem::Item(m)));
+                    //     }
+                    //     (consumed, None) => {
+                    //         total_consumed += consumed;
+                    //         trace!("None, consumed {} bytes", consumed);
+                    //         let total_used_bytes = consumed + skipped_bytes;
+                    //         // Reset skipped bytes since it had been counted here.
+                    //         skipped_bytes = 0;
+                    //         self.buffer
+                    //             .push((total_used_bytes, MessageStreamItem::Skipped));
+                    //     }
+                    // })
+                }) {
+                Ok((consumed, results)) => {
+                    println!(">>>>>>>>>>>>>>>>>> parsing 00001");
+                    // Ensure `did_produce_items()` correctness over time.
+                    // if cfg!(debug_assertions) && !self.buffer.is_empty() {
+                    //     assert!(self.did_produce_items());
+                    // }
+                    self.byte_source.consume(consumed);
+                    return Some((consumed, results));
                 }
                 Err(ParserError::Incomplete) => {
+                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00000");
                     trace!("not enough bytes to parse a message. Load more data");
                     let (newly_loaded, _available_bytes, skipped) = self.load().await?;
 
@@ -154,12 +168,13 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                             let unused = skipped_bytes + available;
                             self.done = true;
 
-                            self.buffer.push((unused, MessageStreamItem::Done));
-                            return Some(&mut self.buffer);
+                            // self.buffer.push((unused, MessageStreamItem::Done));
+                            return Some((unused, MessageStreamItem::Done));
                         }
                     }
                 }
                 Err(ParserError::Eof) => {
+                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00001");
                     trace!(
                         "EOF reached...no more messages (skipped_bytes={})",
                         skipped_bytes
@@ -169,6 +184,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
+                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00002");
                     // TODO: This is temporary solution. We need to inform the user each time we
                     // hit the `INITIAL_PARSE_ERROR_LIMIT` and not break the session.
                     // We may need the new item `MessageStreamItem::Skipped(bytes_count)`
@@ -184,8 +200,8 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                         let unused = skipped_bytes + available;
                         self.done = true;
 
-                        self.buffer.push((unused, MessageStreamItem::Done));
-                        return Some(&mut self.buffer);
+                        // self.buffer.push((unused, MessageStreamItem::Done));
+                        return Some((unused, MessageStreamItem::Done));
                     }
 
                     trace!("No parse possible, skip one byte and retry. Error: {s}");
@@ -198,20 +214,25 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                         let unused = skipped_bytes + available;
                         self.done = true;
 
-                        self.buffer.push((unused, MessageStreamItem::Done));
-                        return Some(&mut self.buffer);
+                        // self.buffer.push((unused, MessageStreamItem::Done));
+                        return Some((unused, MessageStreamItem::Done));
                     }
                 }
                 Err(ParserError::Unrecoverable(err)) => {
+                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00003");
                     //TODO: Errors like this must be visible to users.
                     // Current producer loop swallows the errors after logging them,
                     // returning that the session is ended after encountering such errors.
                     error!("Parsing failed: Error {err}");
                     eprintln!("Parsing failed: Error: {err}");
                     self.done = true;
-                    self.buffer.push((0, MessageStreamItem::Done));
+                    // self.buffer.push((0, MessageStreamItem::Done));
 
-                    return Some(&mut self.buffer);
+                    return Some((0, MessageStreamItem::Done));
+                }
+                Err(ParserError::Native(err)) => {
+                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00004");
+                    todo!("Not Implemented")
                 }
             }
         }

@@ -3,7 +3,7 @@ use std::{
     path::Path,
 };
 
-use definitions::{ByteSource, MessageStreamItem, ParseYield, Parser};
+use definitions::{ByteSource, LogRecordWriter, MessageStreamItem, Parser};
 use indexer_base::config::IndexSection;
 use sources::producer::MessageProducer;
 use thiserror::Error;
@@ -39,8 +39,8 @@ pub enum ExportError {
 ///
 /// # Errors
 /// In case of cancellation will return ExportError::Cancelled
-pub async fn export_raw<P, D>(
-    mut producer: MessageProducer<P, D>,
+pub async fn export_raw<P, D, W>(
+    mut producer: MessageProducer<P, D, W>,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -50,125 +50,127 @@ pub async fn export_raw<P, D>(
 where
     P: Parser,
     D: ByteSource,
+    W: LogRecordWriter,
 {
-    trace!("export_raw, sections: {sections:?}");
-    if !sections_valid(sections) {
-        return Err(ExportError::Config("Invalid sections".to_string()));
-    }
-    let out_file = if destination_path.exists() {
-        std::fs::OpenOptions::new()
-            .append(true)
-            .open(destination_path)?
-    } else {
-        std::fs::File::create(destination_path)?
-    };
-    let mut out_writer = BufWriter::new(out_file);
-    let mut section_index = 0usize;
-    let mut current_index = 0usize;
-    let mut inside = false;
-    let mut exported = 0usize;
-    if sections.is_empty() {
-        debug!("no sections configured");
-        // export everything
-        'outer: while let Some(items) = producer.read_next_segment().await {
-            if cancel.is_cancelled() {
-                return Err(ExportError::Cancelled);
-            }
+    todo!("Not implemented")
+    // trace!("export_raw, sections: {sections:?}");
+    // if !sections_valid(sections) {
+    //     return Err(ExportError::Config("Invalid sections".to_string()));
+    // }
+    // let out_file = if destination_path.exists() {
+    //     std::fs::OpenOptions::new()
+    //         .append(true)
+    //         .open(destination_path)?
+    // } else {
+    //     std::fs::File::create(destination_path)?
+    // };
+    // let mut out_writer = BufWriter::new(out_file);
+    // let mut section_index = 0usize;
+    // let mut current_index = 0usize;
+    // let mut inside = false;
+    // let mut exported = 0usize;
+    // if sections.is_empty() {
+    //     debug!("no sections configured");
+    //     // export everything
+    //     'outer: while let Some(items) = producer.read_next_segment().await {
+    //         if cancel.is_cancelled() {
+    //             return Err(ExportError::Cancelled);
+    //         }
 
-            for (_, item) in items {
-                let written = match item {
-                    MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                        msg.to_writer(&mut out_writer)?;
-                        true
-                    }
-                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
-                        msg.to_writer(&mut out_writer)?;
-                        true
-                    }
-                    MessageStreamItem::Done => break 'outer,
-                    _ => false,
-                };
-                if written && text_file {
-                    out_writer.write_all("\n".as_bytes())?;
-                }
-                if written {
-                    exported += 1;
-                }
-            }
-        }
-        return Ok(exported);
-    }
+    //         for (_, item) in items {
+    //             let written = match item {
+    //                 MessageStreamItem::Item(ParseYield::Message(msg)) => {
+    //                     msg.to_writer(&mut out_writer)?;
+    //                     true
+    //                 }
+    //                 MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
+    //                     msg.to_writer(&mut out_writer)?;
+    //                     true
+    //                 }
+    //                 MessageStreamItem::Done => break 'outer,
+    //                 _ => false,
+    //             };
+    //             if written && text_file {
+    //                 out_writer.write_all("\n".as_bytes())?;
+    //             }
+    //             if written {
+    //                 exported += 1;
+    //             }
+    //         }
+    //     }
+    //     return Ok(exported);
+    // }
 
-    'outer: while let Some(items) = producer.read_next_segment().await {
-        if cancel.is_cancelled() {
-            return Err(ExportError::Cancelled);
-        }
-        for (_, item) in items {
-            if !inside {
-                if sections[section_index].first_line == current_index {
-                    inside = true;
-                }
-            } else if sections[section_index].last_line < current_index {
-                inside = false;
-                section_index += 1;
-                if sections.len() <= section_index {
-                    // no more sections
-                    if matches!(item, MessageStreamItem::Item(_)) {
-                        current_index += 1;
-                    }
-                    break 'outer;
-                }
-                // check if we are in next section again
-                if sections[section_index].first_line == current_index {
-                    inside = true;
-                }
-            }
-            let written = match item {
-                MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                    if inside {
-                        msg.to_writer(&mut out_writer)?;
-                    }
-                    current_index += 1;
-                    inside
-                }
-                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
-                    if inside {
-                        msg.to_writer(&mut out_writer)?;
-                    }
-                    current_index += 1;
-                    inside
-                }
-                MessageStreamItem::Done => {
-                    debug!("No more messages to export");
-                    break 'outer;
-                }
-                _ => false,
-            };
-            if written && text_file {
-                out_writer.write_all("\n".as_bytes())?;
-            }
-        }
-    }
-    if read_to_end {
-        'outer: while let Some(items) = producer.read_next_segment().await {
-            if cancel.is_cancelled() {
-                return Err(ExportError::Cancelled);
-            }
-            for (_, item) in items {
-                match item {
-                    MessageStreamItem::Item(_) => {
-                        current_index += 1;
-                    }
-                    MessageStreamItem::Done => {
-                        break 'outer;
-                    }
-                    _ => {}
-                }
-            }
-        }
-    }
-    debug!("export_raw done ({current_index} messages)");
-    Ok(current_index)
+    // 'outer: while let Some(items) = producer.read_next_segment().await {
+    //     if cancel.is_cancelled() {
+    //         return Err(ExportError::Cancelled);
+    //     }
+    //     for (_, item) in items {
+    //         if !inside {
+    //             if sections[section_index].first_line == current_index {
+    //                 inside = true;
+    //             }
+    //         } else if sections[section_index].last_line < current_index {
+    //             inside = false;
+    //             section_index += 1;
+    //             if sections.len() <= section_index {
+    //                 // no more sections
+    //                 if matches!(item, MessageStreamItem::Item(_)) {
+    //                     current_index += 1;
+    //                 }
+    //                 break 'outer;
+    //             }
+    //             // check if we are in next section again
+    //             if sections[section_index].first_line == current_index {
+    //                 inside = true;
+    //             }
+    //         }
+    //         let written = match item {
+    //             MessageStreamItem::Item(ParseYield::Message(msg)) => {
+    //                 if inside {
+    //                     msg.to_writer(&mut out_writer)?;
+    //                 }
+    //                 current_index += 1;
+    //                 inside
+    //             }
+    //             MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
+    //                 if inside {
+    //                     msg.to_writer(&mut out_writer)?;
+    //                 }
+    //                 current_index += 1;
+    //                 inside
+    //             }
+    //             MessageStreamItem::Done => {
+    //                 debug!("No more messages to export");
+    //                 break 'outer;
+    //             }
+    //             _ => false,
+    //         };
+    //         if written && text_file {
+    //             out_writer.write_all("\n".as_bytes())?;
+    //         }
+    //     }
+    // }
+    // if read_to_end {
+    //     'outer: while let Some(items) = producer.read_next_segment().await {
+    //         if cancel.is_cancelled() {
+    //             return Err(ExportError::Cancelled);
+    //         }
+    //         for (_, item) in items {
+    //             match item {
+    //                 MessageStreamItem::Item(_) => {
+    //                     current_index += 1;
+    //                 }
+    //                 MessageStreamItem::Done => {
+    //                     break 'outer;
+    //                 }
+    //                 _ => {}
+    //             }
+    //         }
+    //     }
+    // }
+    // debug!("export_raw done ({current_index} messages)");
+    // Ok(current_index)
 }
 
 fn sections_valid(sections: &[IndexSection]) -> bool {
