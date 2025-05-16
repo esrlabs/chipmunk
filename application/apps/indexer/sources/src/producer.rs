@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests;
 
-use crate::Source;
 use definitions::Parser;
 use definitions::*;
 use log::warn;
@@ -94,63 +93,47 @@ impl<P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<P, D, W> {
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
-                // self.buffer.push((0, MessageStreamItem::Done));
+                if let Err(err) = self.writer.finalize() {
+                    error!("Fail to write data into writer: {err}");
+                }
                 return Some((0, MessageStreamItem::Done));
             }
 
             // we can call consume only after all parse results are collected because of its
             // reference to self.
-            let mut total_consumed = 0;
             match self
                 .parser
-                .parse(
-                    self.byte_source.current_slice(),
-                    self.last_seen_ts,
-                    &mut self.writer,
-                )
-                .await
-                .map(|results| {
-                    println!(">>>>>>>>>>>>>>>>>> parsing 00000");
-                    if results.parsed_any_msg() {
-                        (results.consumed, MessageStreamItem::Parsed(results))
-                    } else {
-                        (results.consumed, MessageStreamItem::Skipped)
+                .iter(self.byte_source.current_slice(), self.last_seen_ts)
+            {
+                Ok(mut iterator) => {
+                    let mut bytes_processed = 0;
+                    let mut messages_received = 0;
+                    while let Some((consumed, msg)) = iterator.next() {
+                        bytes_processed += consumed;
+                        if let Some(msg) = msg {
+                            if let Err(err) = self.writer.write(msg) {
+                                error!("Fail to write data into writer: {err}");
+                                return None;
+                            }
+                            messages_received += 1;
+                        } else {
+                            self.byte_source.consume(bytes_processed);
+                            if let Err(err) = self.writer.finalize() {
+                                error!("Fail to write data into writer: {err}");
+                            }
+                            return None;
+                        }
                     }
-                    // items.into_iter().for_each(|item| match item {
-                    //     (consumed, Some(m)) => {
-                    //         let total_used_bytes = consumed + skipped_bytes;
-                    //         // Reset skipped bytes since it had been counted here.
-                    //         skipped_bytes = 0;
-                    //         debug!(
-                    //             "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                    //             consumed, total_used_bytes
-                    //         );
-                    //         total_consumed += consumed;
-                    //         self.buffer
-                    //             .push((total_used_bytes, MessageStreamItem::Item(m)));
-                    //     }
-                    //     (consumed, None) => {
-                    //         total_consumed += consumed;
-                    //         trace!("None, consumed {} bytes", consumed);
-                    //         let total_used_bytes = consumed + skipped_bytes;
-                    //         // Reset skipped bytes since it had been counted here.
-                    //         skipped_bytes = 0;
-                    //         self.buffer
-                    //             .push((total_used_bytes, MessageStreamItem::Skipped));
-                    //     }
-                    // })
-                }) {
-                Ok((consumed, results)) => {
-                    println!(">>>>>>>>>>>>>>>>>> parsing 00001");
-                    // Ensure `did_produce_items()` correctness over time.
-                    // if cfg!(debug_assertions) && !self.buffer.is_empty() {
-                    //     assert!(self.did_produce_items());
-                    // }
-                    self.byte_source.consume(consumed);
-                    return Some((consumed, results));
+                    self.byte_source.consume(bytes_processed);
+                    return Some((
+                        bytes_processed,
+                        MessageStreamItem::Parsed(ParseOperationResult::new(
+                            bytes_processed,
+                            messages_received,
+                        )),
+                    ));
                 }
                 Err(ParserError::Incomplete) => {
-                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00000");
                     trace!("not enough bytes to parse a message. Load more data");
                     let (newly_loaded, _available_bytes, skipped) = self.load().await?;
 
@@ -167,24 +150,22 @@ impl<P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<P, D, W> {
                             );
                             let unused = skipped_bytes + available;
                             self.done = true;
-
-                            // self.buffer.push((unused, MessageStreamItem::Done));
+                            if let Err(err) = self.writer.finalize() {
+                                error!("Fail to write data into writer: {err}");
+                            }
                             return Some((unused, MessageStreamItem::Done));
                         }
                     }
                 }
                 Err(ParserError::Eof) => {
-                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00001");
                     trace!(
                         "EOF reached...no more messages (skipped_bytes={})",
                         skipped_bytes
                     );
                     self.done = true;
-
                     return None;
                 }
                 Err(ParserError::Parse(s)) => {
-                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00002");
                     // TODO: This is temporary solution. We need to inform the user each time we
                     // hit the `INITIAL_PARSE_ERROR_LIMIT` and not break the session.
                     // We may need the new item `MessageStreamItem::Skipped(bytes_count)`
@@ -199,8 +180,9 @@ impl<P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<P, D, W> {
                         );
                         let unused = skipped_bytes + available;
                         self.done = true;
-
-                        // self.buffer.push((unused, MessageStreamItem::Done));
+                        if let Err(err) = self.writer.finalize() {
+                            error!("Fail to write data into writer: {err}");
+                        }
                         return Some((unused, MessageStreamItem::Done));
                     }
 
@@ -213,25 +195,25 @@ impl<P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<P, D, W> {
                         );
                         let unused = skipped_bytes + available;
                         self.done = true;
-
-                        // self.buffer.push((unused, MessageStreamItem::Done));
+                        if let Err(err) = self.writer.finalize() {
+                            error!("Fail to write data into writer: {err}");
+                        }
                         return Some((unused, MessageStreamItem::Done));
                     }
                 }
                 Err(ParserError::Unrecoverable(err)) => {
-                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00003");
                     //TODO: Errors like this must be visible to users.
                     // Current producer loop swallows the errors after logging them,
                     // returning that the session is ended after encountering such errors.
                     error!("Parsing failed: Error {err}");
                     eprintln!("Parsing failed: Error: {err}");
                     self.done = true;
-                    // self.buffer.push((0, MessageStreamItem::Done));
-
+                    if let Err(err) = self.writer.finalize() {
+                        error!("Fail to write data into writer: {err}");
+                    }
                     return Some((0, MessageStreamItem::Done));
                 }
                 Err(ParserError::Native(err)) => {
-                    println!(">>>>>>>>>>>>>>>>>> parsing ERR 00004");
                     todo!("Not Implemented")
                 }
             }

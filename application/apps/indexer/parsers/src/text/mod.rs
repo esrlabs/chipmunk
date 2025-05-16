@@ -48,59 +48,14 @@ impl StringTokenizer {
     }
 }
 
-impl StringTokenizer {
-    fn test<'a>(
-        &'a mut self,
+impl Parser for StringTokenizer {
+    fn parse<'a>(
+        &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
         let (consumed, data) = self.parse_item(input, timestamp)?;
         Ok((consumed, data.map(|msg| LogRecordOutput::Cow(msg))))
-    }
-}
-
-impl Parser for StringTokenizer {
-    async fn parse<W: LogRecordWriter>(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-        writer: &mut W,
-    ) -> Result<ParseOperationResult, ParserError> {
-        async fn write<W: LogRecordWriter>(
-            data: Option<Cow<'_, str>>,
-            writer: &mut W,
-        ) -> Result<usize, NativeError> {
-            match data {
-                Some(msg) => writer.write(LogRecordOutput::Cow(msg)).await.map(|_| 1),
-                None => Ok(0),
-            }
-        }
-        let mut slice = input;
-        // Parsing of the first item should be sensentive to errors
-        let mut total_consumed = 0;
-        let (consumed, data) = self.parse_item(slice, timestamp)?;
-        let mut count = write(data, writer).await?;
-        total_consumed += consumed;
-        // Continue parsing until end (or error)
-        loop {
-            slice = &slice[consumed..];
-
-            if slice.len() < MIN_MSG_LEN {
-                break;
-            }
-
-            match self.parse_item(slice, timestamp) {
-                Ok((consumed, data)) => {
-                    total_consumed += consumed;
-                    count += write(data, writer).await?;
-                    if consumed == 0 {
-                        break;
-                    }
-                }
-                Err(_) => break,
-            }
-        }
-        Ok(ParseOperationResult::new(total_consumed, count))
     }
 }
 
