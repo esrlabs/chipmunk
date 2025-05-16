@@ -41,17 +41,17 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
 
 use definitions as defs;
 
-impl From<ParseYield> for defs::ParseYield {
-    fn from(yld: ParseYield) -> Self {
-        match yld {
-            ParseYield::Message(msg) => defs::ParseYield::Message(msg.into()),
-            ParseYield::Attachment(att) => defs::ParseYield::Attachment(att.into()),
-            ParseYield::MessageAndAttachment((msg, att)) => {
-                defs::ParseYield::MessageAndAttachment((msg.into(), att.into()))
-            }
-        }
-    }
-}
+// impl From<ParseYield> for defs::ParseYield {
+//     fn from(yld: ParseYield) -> Self {
+//         match yld {
+//             ParseYield::Message(msg) => defs::ParseYield::Message(msg.into()),
+//             ParseYield::Attachment(att) => defs::ParseYield::Attachment(att.into()),
+//             ParseYield::MessageAndAttachment((msg, att)) => {
+//                 defs::ParseYield::MessageAndAttachment((msg.into(), att.into()))
+//             }
+//         }
+//     }
+// }
 
 impl From<Attachment> for defs::Attachment {
     fn from(att: Attachment) -> Self {
@@ -77,14 +77,14 @@ impl From<ParseError> for defs::ParserError {
     }
 }
 
-impl From<ParsedMessage> for defs::LogMessage {
-    fn from(msg: ParsedMessage) -> Self {
-        match msg {
-            ParsedMessage::Line(msg) => defs::LogMessage::PlainText(msg),
-            ParsedMessage::Columns(columns) => defs::LogMessage::Columns(columns),
-        }
-    }
-}
+// impl From<ParsedMessage> for defs::LogMessage {
+//     fn from(msg: ParsedMessage) -> Self {
+//         match msg {
+//             ParsedMessage::Line(msg) => defs::LogMessage::PlainText(msg),
+//             ParsedMessage::Columns(columns) => defs::LogMessage::Columns(columns),
+//         }
+//     }
+// }
 
 impl From<RenderOptions> for ParserRenderOptions {
     fn from(value: RenderOptions) -> Self {

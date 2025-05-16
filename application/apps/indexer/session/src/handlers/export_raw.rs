@@ -1,5 +1,5 @@
 use crate::{operations::OperationResult, state::SessionStateAPI};
-use definitions::{ByteSource, Parser};
+use definitions::{ByteSource, LogRecordWriter, Parser};
 use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
@@ -133,48 +133,49 @@ async fn export<S: ByteSource>(
     read_to_end: bool,
     cancel: &CancellationToken,
 ) -> Result<Option<usize>, stypes::NativeError> {
-    match parser {
-        stypes::ParserType::Plugin(settings) => {
-            let parser = PluginsParser::initialize(
-                &settings.plugin_path,
-                &settings.general_settings,
-                settings.plugin_configs.clone(),
-            )
-            .await?;
-            let producer = MessageProducer::new(parser, source);
-            export_runner(producer, dest, sections, read_to_end, false, cancel).await
-        }
-        stypes::ParserType::SomeIp(settings) => {
-            let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
-                SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
-            } else {
-                SomeipParser::new()
-            };
-            let producer = MessageProducer::new(parser, source);
-            export_runner(producer, dest, sections, read_to_end, false, cancel).await
-        }
-        stypes::ParserType::Dlt(settings) => {
-            let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
-            let parser = DltParser::new(
-                settings.filter_config.as_ref().map(|f| f.into()),
-                // TODO: find a way to avoid clonning of MD
-                settings.fibex_metadata.as_ref().map(|md| md.clone()),
-                fmt_options,
-                None,
-                settings.with_storage_header,
-            );
-            let producer = MessageProducer::new(parser, source);
-            export_runner(producer, dest, sections, read_to_end, false, cancel).await
-        }
-        stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source);
-            export_runner(producer, dest, sections, read_to_end, true, cancel).await
-        }
-    }
+    todo!("Not implemented");
+    // match parser {
+    //     stypes::ParserType::Plugin(settings) => {
+    //         let parser = PluginsParser::initialize(
+    //             &settings.plugin_path,
+    //             &settings.general_settings,
+    //             settings.plugin_configs.clone(),
+    //         )
+    //         .await?;
+    //         let producer = MessageProducer::new(parser, source);
+    //         export_runner(producer, dest, sections, read_to_end, false, cancel).await
+    //     }
+    //     stypes::ParserType::SomeIp(settings) => {
+    //         let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
+    //             SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
+    //         } else {
+    //             SomeipParser::new()
+    //         };
+    //         let producer = MessageProducer::new(parser, source);
+    //         export_runner(producer, dest, sections, read_to_end, false, cancel).await
+    //     }
+    //     stypes::ParserType::Dlt(settings) => {
+    //         let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
+    //         let parser = DltParser::new(
+    //             settings.filter_config.as_ref().map(|f| f.into()),
+    //             // TODO: find a way to avoid clonning of MD
+    //             settings.fibex_metadata.as_ref().map(|md| md.clone()),
+    //             fmt_options,
+    //             None,
+    //             settings.with_storage_header,
+    //         );
+    //         let producer = MessageProducer::new(parser, source);
+    //         export_runner(producer, dest, sections, read_to_end, false, cancel).await
+    //     }
+    //     stypes::ParserType::Text(()) => {
+    //         let producer = MessageProducer::new(StringTokenizer {}, source);
+    //         export_runner(producer, dest, sections, read_to_end, true, cancel).await
+    //     }
+    // }
 }
 
-pub async fn export_runner<P, D>(
-    producer: MessageProducer<P, D>,
+pub async fn export_runner<P, D, W>(
+    producer: MessageProducer<P, D, W>,
     dest: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -184,6 +185,7 @@ pub async fn export_runner<P, D>(
 where
     P: Parser,
     D: ByteSource,
+    W: LogRecordWriter,
 {
     export_raw(producer, dest, sections, read_to_end, text_file, cancel)
         .await

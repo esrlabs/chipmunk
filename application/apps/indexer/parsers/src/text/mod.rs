@@ -1,6 +1,9 @@
 pub mod options;
+use std::{borrow::Cow, io};
+
 use definitions::*;
 use serde::Serialize;
+use stypes::NativeError;
 
 pub struct StringTokenizer {}
 
@@ -23,15 +26,12 @@ pub struct StringMessage {
 //     }
 // }
 
-impl SingleParser<StringMessage> for StringTokenizer
-where
-    StringMessage: LogMessage,
-{
-    fn parse_item(
+impl StringTokenizer {
+    fn parse_item<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield>), ParserError> {
+    ) -> Result<(usize, Option<Cow<'a, str>>), ParserError> {
         // TODO: support non-utf8 encodings
         use memchr::memchr;
         if input.is_empty() {
@@ -39,30 +39,68 @@ where
         }
         let item = if let Some(msg_size) = memchr(b'\n', input) {
             let content = String::from_utf8_lossy(&input[..msg_size]);
-            (
-                msg_size + 1,
-                Some(LogMessage::PlainText(content.to_string()).into()),
-            )
+            (msg_size + 1, Some(content))
         } else {
-            (
-                input.len(),
-                Some(LogMessage::PlainText(String::new()).into()),
-            )
+            (input.len(), Some(Cow::Borrowed("")))
         };
 
         Ok(item)
     }
 }
 
+impl StringTokenizer {
+    fn test<'a>(
+        &'a mut self,
+        input: &'a [u8],
+        timestamp: Option<u64>,
+    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
+        let (consumed, data) = self.parse_item(input, timestamp)?;
+        Ok((consumed, data.map(|msg| LogRecordOutput::Cow(msg))))
+    }
+}
+
 impl Parser for StringTokenizer {
-    fn parse(
+    async fn parse<W: LogRecordWriter>(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError> {
-        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
-            self.parse_item(input, timestamp)
-        })
+        writer: &mut W,
+    ) -> Result<ParseOperationResult, ParserError> {
+        async fn write<W: LogRecordWriter>(
+            data: Option<Cow<'_, str>>,
+            writer: &mut W,
+        ) -> Result<usize, NativeError> {
+            match data {
+                Some(msg) => writer.write(LogRecordOutput::Cow(msg)).await.map(|_| 1),
+                None => Ok(0),
+            }
+        }
+        let mut slice = input;
+        // Parsing of the first item should be sensentive to errors
+        let mut total_consumed = 0;
+        let (consumed, data) = self.parse_item(slice, timestamp)?;
+        let mut count = write(data, writer).await?;
+        total_consumed += consumed;
+        // Continue parsing until end (or error)
+        loop {
+            slice = &slice[consumed..];
+
+            if slice.len() < MIN_MSG_LEN {
+                break;
+            }
+
+            match self.parse_item(slice, timestamp) {
+                Ok((consumed, data)) => {
+                    total_consumed += consumed;
+                    count += write(data, writer).await?;
+                    if consumed == 0 {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        Ok(ParseOperationResult::new(total_consumed, count))
     }
 }
 
