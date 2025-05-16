@@ -133,12 +133,11 @@ impl PluginParser {
 
 use definitions as defs;
 impl defs::Parser for PluginParser {
-    async fn parse<W: defs::LogRecordWriter>(
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
-        writer: &mut W,
-    ) -> Result<defs::ParseOperationResult, defs::ParserError> {
+    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
         let call_res = block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
             &mut self.store,
             input,

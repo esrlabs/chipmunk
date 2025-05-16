@@ -144,14 +144,13 @@ impl PluginErrorLimits {
 use definitions::{self as defs};
 
 impl defs::Parser for PluginsParser {
-    async fn parse<W: defs::LogRecordWriter>(
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
-        writer: &mut W,
-    ) -> Result<defs::ParseOperationResult, defs::ParserError> {
+    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
         let res = match &mut self.parser {
-            PlugVerParser::Ver010(parser) => parser.parse(input, timestamp, writer).await,
+            PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
 
         // Check for consecutive errors.

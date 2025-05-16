@@ -48,7 +48,10 @@ pub enum LogRecordOutput<'a> {
     Multiple(Vec<LogRecordOutput<'a>>),
 }
 
-#[allow(async_fn_in_trait)]
+// Write has to be sync to keep MessageProducer cancel-safe
 pub trait LogRecordWriter {
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
+    /// Writes data from buffer if buffer exists
+    fn finalize(&mut self) -> Result<(), stypes::NativeError>;
+    fn get_id(&self) -> u16;
 }
