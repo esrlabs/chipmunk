@@ -133,11 +133,12 @@ impl PluginParser {
 
 use definitions as defs;
 impl defs::Parser for PluginParser {
-    fn parse(
+    async fn parse<W: defs::LogRecordWriter>(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<defs::ParseYield>)>, defs::ParserError> {
+        writer: &mut W,
+    ) -> Result<defs::ParseOperationResult, defs::ParserError> {
         let call_res = block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
             &mut self.store,
             input,
@@ -153,11 +154,13 @@ impl defs::Parser for PluginParser {
                 )));
             }
         };
+        // TODO: write in iteration
+        todo!("Not implemented");
 
-        Ok(parse_results
-            .into_iter()
-            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
-            .collect())
+        // Ok(parse_results
+        //     .into_iter()
+        //     .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
+        //     .collect())
     }
 }
 
