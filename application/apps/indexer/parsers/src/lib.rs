@@ -1,6 +1,7 @@
 #![deny(unused_crate_dependencies)]
 
 use components::Components;
+use definitions::{LogRecordWriter, ParseOperationResult, ParserError};
 pub mod dlt;
 pub mod prelude;
 pub mod someip;
@@ -19,15 +20,16 @@ pub enum Parser {
  */
 
 impl definitions::Parser for Parser {
-    fn parse(
+    async fn parse<W: LogRecordWriter>(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<definitions::ParseYield>)>, definitions::ParserError> {
+        writer: &mut W,
+    ) -> Result<ParseOperationResult, ParserError> {
         match self {
-            Self::Dlt(inst) => inst.parse(input, timestamp),
-            Self::SomeIp(inst) => inst.parse(input, timestamp),
-            Self::Text(inst) => inst.parse(input, timestamp),
+            Self::Dlt(inst) => inst.parse(input, timestamp, writer).await,
+            Self::SomeIp(inst) => inst.parse(input, timestamp, writer).await,
+            Self::Text(inst) => inst.parse(input, timestamp, writer).await,
         }
     }
 }

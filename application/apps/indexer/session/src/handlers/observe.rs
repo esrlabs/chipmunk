@@ -6,12 +6,66 @@ use crate::{
     state::SessionStateAPI,
 };
 use components::Components;
+use definitions::{LogRecordOutput, LogRecordWriter};
 use log::error;
 use parsers::Parser;
 use sources::{producer::MessageProducer, sde::SdeReceiver};
+use stypes::NativeError;
 
 use super::observing::run_producer;
 
+struct Writer {
+    state: SessionStateAPI,
+}
+
+impl Writer {
+    pub fn new(state: SessionStateAPI) -> Self {
+        Self { state }
+    }
+}
+
+impl LogRecordWriter for Writer {
+    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+        match record {
+            LogRecordOutput::Raw(inner) => {
+                // self.state
+                //     .write_session_file(0, format!("{:02X}\n", inner))
+                //     .await?;
+            }
+            LogRecordOutput::Cow(inner) => {
+                self.state
+                    .write_session_file(0, format!("{inner}\n"))
+                    .await?;
+            }
+            LogRecordOutput::String(inner) => {
+                self.state
+                    .write_session_file(0, format!("{inner}\n"))
+                    .await?;
+            }
+            LogRecordOutput::Str(inner) => {
+                self.state
+                    .write_session_file(0, format!("{inner}\n"))
+                    .await?;
+            }
+            LogRecordOutput::Columns(inner) => {
+                self.state
+                    .write_session_file(
+                        0,
+                        format!(
+                            "{}\n",
+                            inner.join(&definitions::COLUMN_SENTINAL.to_string())
+                        ),
+                    )
+                    .await?;
+            }
+            LogRecordOutput::Multiple(inner) => {}
+            LogRecordOutput::Attachment(inner) => {
+                self.state.add_attachment(inner)?;
+            }
+        }
+        Ok(())
+    }
+}
 pub async fn start_observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
@@ -21,9 +75,12 @@ pub async fn start_observing(
 ) -> OperationResult<()> {
     let (source, parser) = components.setup(&options)?;
     // let source_id = state.add_source(uuid).await?;
-    let producer = MessageProducer::new(parser, source);
-    run_producer(operation_api, state, 0, producer, None, rx_sde).await
-
+    println!(">>>>>>>>>>>>>>> 0000");
+    let producer = MessageProducer::new(parser, source, Writer::new(state.clone()));
+    println!(">>>>>>>>>>>>>>> 0001");
+    let result = run_producer(operation_api, state, 0, producer, None, rx_sde).await?;
+    println!(">>>>>>>>>>>>>>> 0002");
+    Ok(result)
     // if let stypes::ParserType::Dlt(ref mut settings) = options.parser {
     //     settings.load_fibex_metadata();
     // };
