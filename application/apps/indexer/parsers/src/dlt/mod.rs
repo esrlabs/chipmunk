@@ -172,9 +172,9 @@ fn map_dlt_err(err: DltParseError) -> ParserError {
     }
 }
 
-impl DltParser {
-    fn test<'a>(
-        &'a mut self,
+impl Parser for DltParser {
+    fn parse<'a>(
+        &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
@@ -195,112 +195,78 @@ impl DltParser {
     }
 }
 
-impl Parser for DltParser {
-    async fn parse<W: LogRecordWriter>(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-        writer: &mut W,
-    ) -> Result<ParseOperationResult, ParserError> {
-        async fn write<W: LogRecordWriter>(
-            data: Option<(FormattableMessage<'_>, Option<Attachment>)>,
-            writer: &mut W,
-        ) -> Result<usize, NativeError> {
-            if let Some((msg, attachment)) = data {
-                writer.write(LogRecordOutput::Str(&msg.to_string())).await?;
-                if let Some(attachment) = attachment {
-                    writer
-                        .write(LogRecordOutput::Attachment(attachment))
-                        .await?;
-                    Ok(2)
-                } else {
-                    Ok(1)
-                }
-            } else {
-                Ok(0)
-            }
-        }
-        let mut slice = input;
-        // Parsing of the first item should be sensentive to errors
-        let mut total_consumed = 0;
-        let (mut recently_consumed, data) = self.parse_item(slice, timestamp)?;
-        let mut count = write(data, writer).await?;
-        total_consumed += recently_consumed;
-        // Continue parsing until end (or error)
-        loop {
-            println!(
-                ">>>>>>>>>>>>>>>>>> DLT parser: Slice: {recently_consumed} / {}",
-                slice.len()
-            );
-            slice = &slice[recently_consumed..];
+// impl Parser for DltParser {
+//     async fn parse<W: LogRecordWriter>(
+//         &mut self,
+//         input: &[u8],
+//         timestamp: Option<u64>,
+//         writer: &mut W,
+//     ) -> Result<ParseOperationResult, ParserError> {
+//         async fn write<W: LogRecordWriter>(
+//             data: Option<(FormattableMessage<'_>, Option<Attachment>)>,
+//             writer: &mut W,
+//         ) -> Result<usize, NativeError> {
+//             if let Some((msg, attachment)) = data {
+//                 writer.write(LogRecordOutput::Str(&msg.to_string())).await?;
+//                 if let Some(attachment) = attachment {
+//                     writer
+//                         .write(LogRecordOutput::Attachment(attachment))
+//                         .await?;
+//                     Ok(2)
+//                 } else {
+//                     Ok(1)
+//                 }
+//             } else {
+//                 Ok(0)
+//             }
+//         }
+//         let mut slice = input;
+//         // Parsing of the first item should be sensentive to errors
+//         let mut total_consumed = 0;
+//         let (mut recently_consumed, data) = self.parse_item(slice, timestamp)?;
+//         let mut count = write(data, writer).await?;
+//         total_consumed += recently_consumed;
+//         // Continue parsing until end (or error)
+//         loop {
+//             println!(
+//                 ">>>>>>>>>>>>>>>>>> DLT parser: Slice: {recently_consumed} / {}",
+//                 slice.len()
+//             );
+//             slice = &slice[recently_consumed..];
 
-            if slice.len() < MIN_MSG_LEN {
-                break;
-            }
+//             if slice.len() < MIN_MSG_LEN {
+//                 break;
+//             }
 
-            match self.parse_item(slice, timestamp) {
-                Ok((consumed, data)) => {
-                    recently_consumed = consumed;
-                    total_consumed += recently_consumed;
-                    println!(
-                        ">>>>>>>>>>>>>>>>>> DLT parser: consumed: {consumed}/{total_consumed}"
-                    );
-                    count += write(data, writer).await?;
-                    if recently_consumed == 0 {
-                        println!(">>>>>>>>>>>>>>>>>> DLT parser: 0004");
-                        break;
-                    }
-                }
-                Err(_) => break,
-            }
-        }
-        println!(">>>>>>>>>>>>>>>>>> DLT parser: 0005");
-        Ok(ParseOperationResult::new(total_consumed, count))
-    }
-}
+//             match self.parse_item(slice, timestamp) {
+//                 Ok((consumed, data)) => {
+//                     recently_consumed = consumed;
+//                     total_consumed += recently_consumed;
+//                     println!(
+//                         ">>>>>>>>>>>>>>>>>> DLT parser: consumed: {consumed}/{total_consumed}"
+//                     );
+//                     count += write(data, writer).await?;
+//                     if recently_consumed == 0 {
+//                         println!(">>>>>>>>>>>>>>>>>> DLT parser: 0004");
+//                         break;
+//                     }
+//                 }
+//                 Err(_) => break,
+//             }
+//         }
+//         println!(">>>>>>>>>>>>>>>>>> DLT parser: 0005");
+//         Ok(ParseOperationResult::new(total_consumed, count))
+//     }
+// }
 
 impl Parser for DltRawParser {
-    async fn parse<W: LogRecordWriter>(
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
-        writer: &mut W,
-    ) -> Result<ParseOperationResult, ParserError> {
-        async fn write<W: LogRecordWriter>(
-            data: Option<&[u8]>,
-            writer: &mut W,
-        ) -> Result<usize, NativeError> {
-            match data {
-                Some(buf) => writer.write(LogRecordOutput::Raw(buf)).await.map(|_| 1),
-                None => Ok(0),
-            }
-        }
-        let mut slice = input;
-        // Parsing of the first item should be sensentive to errors
-        let mut total_consumed = 0;
-        let (consumed, data) = self.parse_item(slice, timestamp)?;
-        let mut count = write(data, writer).await?;
-        total_consumed += consumed;
-        // Continue parsing until end (or error)
-        loop {
-            slice = &slice[consumed..];
-
-            if slice.len() < MIN_MSG_LEN {
-                break;
-            }
-
-            match self.parse_item(slice, timestamp) {
-                Ok((consumed, data)) => {
-                    total_consumed += consumed;
-                    count += write(data, writer).await?;
-                    if consumed == 0 {
-                        break;
-                    }
-                }
-                Err(_) => break,
-            }
-        }
-        Ok(ParseOperationResult::new(total_consumed, count))
+    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
+        let (consumed, data) = self.parse_item(input, timestamp)?;
+        Ok((consumed, data.map(LogRecordOutput::Raw)))
     }
 }
 

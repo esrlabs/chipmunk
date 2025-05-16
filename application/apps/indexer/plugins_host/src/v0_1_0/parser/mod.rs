@@ -133,9 +133,9 @@ impl PluginParser {
 
 use definitions as defs;
 impl defs::Parser for PluginParser {
-    async fn parse<W: defs::LogRecordWriter>(
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
