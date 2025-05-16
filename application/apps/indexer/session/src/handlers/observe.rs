@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{mem, sync::Arc};
 
 use crate::{
     handlers::observing,
@@ -6,26 +6,39 @@ use crate::{
     state::SessionStateAPI,
 };
 use components::Components;
-use definitions::{LogRecordOutput, LogRecordWriter};
+use definitions::{Attachment, LogRecordOutput, LogRecordWriter};
 use log::error;
 use parsers::Parser;
 use sources::{producer::MessageProducer, sde::SdeReceiver};
+use std::time::Instant;
 use stypes::NativeError;
 
 use super::observing::run_producer;
 
+const SEND_DURATION: u128 = 500;
+
 struct Writer {
     state: SessionStateAPI,
+    buffer: String,
+    attachments: Vec<Attachment>,
+    recent: Instant,
+    id: u16,
 }
 
 impl Writer {
-    pub fn new(state: SessionStateAPI) -> Self {
-        Self { state }
+    pub fn new(state: SessionStateAPI, id: u16) -> Self {
+        Self {
+            state,
+            buffer: String::new(),
+            attachments: Vec::new(),
+            recent: Instant::now(),
+            id,
+        }
     }
 }
 
 impl LogRecordWriter for Writer {
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
         match record {
             LogRecordOutput::Raw(inner) => {
                 // self.state
@@ -33,37 +46,57 @@ impl LogRecordWriter for Writer {
                 //     .await?;
             }
             LogRecordOutput::Cow(inner) => {
-                self.state
-                    .write_session_file(0, format!("{inner}\n"))
-                    .await?;
+                self.buffer.push_str(&inner);
+                self.buffer.push('\n');
             }
             LogRecordOutput::String(inner) => {
-                self.state
-                    .write_session_file(0, format!("{inner}\n"))
-                    .await?;
+                self.buffer.push_str(&inner);
+                self.buffer.push('\n');
             }
             LogRecordOutput::Str(inner) => {
-                self.state
-                    .write_session_file(0, format!("{inner}\n"))
-                    .await?;
+                self.buffer.push_str(inner);
+                self.buffer.push('\n');
             }
             LogRecordOutput::Columns(inner) => {
-                self.state
-                    .write_session_file(
-                        0,
-                        format!(
-                            "{}\n",
-                            inner.join(&definitions::COLUMN_SENTINAL.to_string())
-                        ),
-                    )
-                    .await?;
+                self.buffer
+                    .push_str(&inner.join(&definitions::COLUMN_SENTINAL.to_string()));
+                self.buffer.push('\n');
             }
-            LogRecordOutput::Multiple(inner) => {}
+            LogRecordOutput::Multiple(inner) => {
+                for record in inner.into_iter() {
+                    self.write(record)?;
+                }
+            }
             LogRecordOutput::Attachment(inner) => {
-                self.state.add_attachment(inner)?;
+                self.attachments.push(inner);
             }
         }
+        if self.recent.elapsed().as_millis() > SEND_DURATION {
+            if !self.buffer.is_empty() {
+                self.state
+                    .send_to_session_file(self.get_id(), std::mem::take(&mut self.buffer))?;
+            }
+            for attachment in std::mem::take(&mut self.attachments) {
+                // TODO: send with 1 call
+                self.state.add_attachment(attachment)?;
+            }
+            self.recent = Instant::now();
+        }
         Ok(())
+    }
+    fn finalize(&mut self) -> Result<(), stypes::NativeError> {
+        if !self.buffer.is_empty() {
+            self.state
+                .send_to_session_file(self.get_id(), std::mem::take(&mut self.buffer))?;
+        }
+        for attachment in std::mem::take(&mut self.attachments) {
+            // TODO: send with 1 call
+            self.state.add_attachment(attachment)?;
+        }
+        Ok(())
+    }
+    fn get_id(&self) -> u16 {
+        self.id
     }
 }
 pub async fn start_observing(
@@ -75,77 +108,7 @@ pub async fn start_observing(
 ) -> OperationResult<()> {
     let (source, parser) = components.setup(&options)?;
     // let source_id = state.add_source(uuid).await?;
-    println!(">>>>>>>>>>>>>>> 0000");
-    let producer = MessageProducer::new(parser, source, Writer::new(state.clone()));
-    println!(">>>>>>>>>>>>>>> 0001");
+    let producer = MessageProducer::new(parser, source, Writer::new(state.clone(), 0));
     let result = run_producer(operation_api, state, 0, producer, None, rx_sde).await?;
-    println!(">>>>>>>>>>>>>>> 0002");
     Ok(result)
-    // if let stypes::ParserType::Dlt(ref mut settings) = options.parser {
-    //     settings.load_fibex_metadata();
-    // };
-    // if let Err(err) = state.add_executed_observe(options.clone()).await {
-    //     error!("Fail to store observe options: {:?}", err);
-    // }
-    // match &options.origin {
-    //     stypes::ObserveOrigin::File(uuid, file_origin, filename) => {
-    //         let (is_text, session_file_origin) = (
-    //             matches!(options.parser, stypes::ParserType::Text(())),
-    //             state.get_session_file_origin().await?,
-    //         );
-    //         match session_file_origin {
-    //             Some(origin) if origin.is_linked() => Err(stypes::NativeError {
-    //                 severity: stypes::Severity::ERROR,
-    //                 kind: stypes::NativeErrorKind::Configuration,
-    //                 message: Some(String::from(
-    //                     "Cannot observe file, because session is linked to other text file",
-    //                 )),
-    //             }),
-    //             Some(origin) if !origin.is_linked() && is_text => {
-    //                 // Session file was created and some files/streams were opened already. We should check for text files
-    //                 // to prevent attempt to link session with text file. Using concat instead
-    //                 observing::concat::concat_files(
-    //                     operation_api,
-    //                     state,
-    //                     &[(uuid.clone(), file_origin.clone(), filename.clone())],
-    //                     &options.parser,
-    //                 )
-    //                 .await
-    //             }
-    //             _ => {
-    //                 observing::file::observe_file(
-    //                     operation_api,
-    //                     state,
-    //                     uuid,
-    //                     file_origin,
-    //                     filename,
-    //                     &options.parser,
-    //                 )
-    //                 .await
-    //             }
-    //         }
-    //     }
-    //     stypes::ObserveOrigin::Concat(files) => {
-    //         if files.is_empty() {
-    //             Err(stypes::NativeError {
-    //                 severity: stypes::Severity::ERROR,
-    //                 kind: stypes::NativeErrorKind::Configuration,
-    //                 message: Some(String::from("No files are defined for Concat operation")),
-    //             })
-    //         } else {
-    //             observing::concat::concat_files(operation_api, state, files, &options.parser).await
-    //         }
-    //     }
-    //     stypes::ObserveOrigin::Stream(uuid, transport) => {
-    //         observing::stream::observe_stream(
-    //             operation_api,
-    //             state,
-    //             uuid,
-    //             transport,
-    //             &options.parser,
-    //             rx_sde,
-    //         )
-    //         .await
-    //     }
-    // }
 }
