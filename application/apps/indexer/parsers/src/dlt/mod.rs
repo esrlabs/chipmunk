@@ -2,6 +2,8 @@ pub mod attachment;
 pub mod fmt;
 pub mod options;
 
+use std::io;
+
 use crate::{dlt::fmt::FormattableMessage, someip::FibexMetadata as FibexSomeipMetadata};
 // use byteorder::{BigEndian, WriteBytesExt};
 use dlt_core::{
@@ -14,6 +16,7 @@ pub use dlt_core::{
     filtering::{DltFilterConfig, ProcessedDltFilterConfig},
 };
 use serde::Serialize;
+use stypes::NativeError;
 // use std::{io::Write, ops::Range, sync::Arc};
 
 use self::{attachment::FtScanner, fmt::FormatOptions};
@@ -75,50 +78,18 @@ impl DltRawParser {
         }
     }
 
-    fn parse_item(
+    fn parse_item<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield>), ParserError> {
+    ) -> Result<(usize, Option<&'a [u8]>), ParserError> {
         let (rest, consumed) = dlt_consume_msg(input).map_err(map_dlt_err)?;
-        let msg = consumed.map(|c| LogMessage::Raw(Vec::from(&input[0..c as usize])));
+        let msg = consumed.map(|c| &input[0..c as usize]);
         let total_consumed = input.len() - rest.len();
         let item = (total_consumed, msg.map(|m| m.into()));
         Ok(item)
     }
 }
-
-// #[derive(Default)]
-// pub struct DltRangeParser {
-//     offset: usize,
-// }
-
-// impl DltRangeParser {
-//     pub fn new() -> Self {
-//         Self { offset: 0 }
-//     }
-
-//     fn parse_item(
-//         &mut self,
-//         input: &[u8],
-//         _timestamp: Option<u64>,
-//     ) -> Result<(usize, Option<ParseYield>), ParserError> {
-//         let (rest, consumed) = dlt_consume_msg(input).map_err(map_dlt_err)?;
-//         let msg = consumed.map(|c| {
-//             self.offset += c as usize;
-//             RangeMessage {
-//                 range: Range {
-//                     start: self.offset,
-//                     end: self.offset + c as usize,
-//                 },
-//             }
-//         });
-//         let total_consumed = input.len() - rest.len();
-//         let item = (total_consumed, msg.map(|m| m.into()));
-
-//         Ok(item)
-//     }
-// }
 
 impl DltParser {
     pub fn new(
@@ -158,7 +129,7 @@ impl<'m> SingleParser<FormattableMessage<'m>> for DltParser<'m> {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield>), ParserError> {
+    ) -> Result<(usize, Option<(FormattableMessage<'_>, Option<Attachment>)>), ParserError> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)
             .map_err(map_dlt_err)?
         {
@@ -186,19 +157,7 @@ impl<'m> SingleParser<FormattableMessage<'m>> for DltParser<'m> {
                 };
                 let consumed = input.len() - rest.len();
                 self.offset += consumed;
-                let item = (
-                    consumed,
-                    if let Some(attachment) = attachment {
-                        Some(ParseYield::MessageAndAttachment((
-                            LogMessage::PlainText(msg.to_string()),
-                            attachment,
-                        )))
-                    } else {
-                        Some(ParseYield::Message(LogMessage::PlainText(msg.to_string())))
-                    },
-                );
-
-                Ok(item)
+                Ok((consumed, Some((msg, attachment))))
             }
         }
     }
@@ -213,38 +172,163 @@ fn map_dlt_err(err: DltParseError) -> ParserError {
     }
 }
 
-impl Parser for DltParser {
-    fn parse(
-        &mut self,
-        input: &[u8],
+impl DltParser {
+    fn test<'a>(
+        &'a mut self,
+        input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError> {
-        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
-            self.parse_item(input, timestamp)
-        })
+    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
+        let (consumed, data) = self.parse_item(input, timestamp)?;
+        Ok((
+            consumed,
+            data.map(|(msg, attachment)| {
+                if let Some(attachment) = attachment {
+                    LogRecordOutput::Multiple(vec![
+                        LogRecordOutput::String(msg.to_string()),
+                        LogRecordOutput::Attachment(attachment),
+                    ])
+                } else {
+                    LogRecordOutput::String(msg.to_string())
+                }
+            }),
+        ))
     }
 }
 
-// impl Parser for DltRangeParser {
-//     fn parse(
+impl Parser for DltParser {
+    async fn parse<W: LogRecordWriter>(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+        writer: &mut W,
+    ) -> Result<ParseOperationResult, ParserError> {
+        async fn write<W: LogRecordWriter>(
+            data: Option<(FormattableMessage<'_>, Option<Attachment>)>,
+            writer: &mut W,
+        ) -> Result<usize, NativeError> {
+            if let Some((msg, attachment)) = data {
+                writer.write(LogRecordOutput::Str(&msg.to_string())).await?;
+                if let Some(attachment) = attachment {
+                    writer
+                        .write(LogRecordOutput::Attachment(attachment))
+                        .await?;
+                    Ok(2)
+                } else {
+                    Ok(1)
+                }
+            } else {
+                Ok(0)
+            }
+        }
+        let mut slice = input;
+        // Parsing of the first item should be sensentive to errors
+        let mut total_consumed = 0;
+        let (mut recently_consumed, data) = self.parse_item(slice, timestamp)?;
+        let mut count = write(data, writer).await?;
+        total_consumed += recently_consumed;
+        // Continue parsing until end (or error)
+        loop {
+            println!(
+                ">>>>>>>>>>>>>>>>>> DLT parser: Slice: {recently_consumed} / {}",
+                slice.len()
+            );
+            slice = &slice[recently_consumed..];
+
+            if slice.len() < MIN_MSG_LEN {
+                break;
+            }
+
+            match self.parse_item(slice, timestamp) {
+                Ok((consumed, data)) => {
+                    recently_consumed = consumed;
+                    total_consumed += recently_consumed;
+                    println!(
+                        ">>>>>>>>>>>>>>>>>> DLT parser: consumed: {consumed}/{total_consumed}"
+                    );
+                    count += write(data, writer).await?;
+                    if recently_consumed == 0 {
+                        println!(">>>>>>>>>>>>>>>>>> DLT parser: 0004");
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        println!(">>>>>>>>>>>>>>>>>> DLT parser: 0005");
+        Ok(ParseOperationResult::new(total_consumed, count))
+    }
+}
+
+impl Parser for DltRawParser {
+    async fn parse<W: LogRecordWriter>(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+        writer: &mut W,
+    ) -> Result<ParseOperationResult, ParserError> {
+        async fn write<W: LogRecordWriter>(
+            data: Option<&[u8]>,
+            writer: &mut W,
+        ) -> Result<usize, NativeError> {
+            match data {
+                Some(buf) => writer.write(LogRecordOutput::Raw(buf)).await.map(|_| 1),
+                None => Ok(0),
+            }
+        }
+        let mut slice = input;
+        // Parsing of the first item should be sensentive to errors
+        let mut total_consumed = 0;
+        let (consumed, data) = self.parse_item(slice, timestamp)?;
+        let mut count = write(data, writer).await?;
+        total_consumed += consumed;
+        // Continue parsing until end (or error)
+        loop {
+            slice = &slice[consumed..];
+
+            if slice.len() < MIN_MSG_LEN {
+                break;
+            }
+
+            match self.parse_item(slice, timestamp) {
+                Ok((consumed, data)) => {
+                    total_consumed += consumed;
+                    count += write(data, writer).await?;
+                    if consumed == 0 {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        Ok(ParseOperationResult::new(total_consumed, count))
+    }
+}
+
+// impl<P, T> Parser<T> for P
+// where
+//     P: SingleParser<T>,
+// {
+//     fn parse<'a>(
 //         &mut self,
 //         input: &[u8],
 //         timestamp: Option<u64>,
-//     ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError> {
-//         parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
-//             self.parse_item(input, timestamp)
-//         })
+//     ) -> Result<impl Iterator<Item = (usize, LogRecordOutput<'a>)>, ParserError> {
+//         let mut slice = input;
+
+//         // return early if function errors on first parse call.
+//         let first_res = self.parse_item(slice, timestamp)?;
+
+//         // Otherwise keep parsing and stop on first error, returning the parsed items at the end.
+//         let iter = iter::successors(Some(first_res), move |(consumed, _res)| {
+//             slice = &slice[*consumed..];
+
+//             if slice.len() < P::MIN_MSG_LEN {
+//                 return None;
+//             }
+
+//             self.parse_item(slice, timestamp).ok()
+//         });
+
+//         Ok(iter)
 //     }
 // }
-
-impl Parser for DltRawParser {
-    fn parse(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError> {
-        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
-            self.parse_item(input, timestamp)
-        })
-    }
-}

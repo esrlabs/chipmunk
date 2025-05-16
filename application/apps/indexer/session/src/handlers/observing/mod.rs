@@ -5,7 +5,7 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use definitions::{ByteSource, MessageStreamItem, ParseYield, Parser};
+use definitions::{ByteSource, LogRecordWriter, MessageStreamItem, Parser};
 use log::trace;
 use parsers::{
     LogMessage, MessageStreamItem, ParseYield, Parser,
@@ -25,8 +25,8 @@ use tokio::{
     time::{Duration, timeout},
 };
 
-enum Next<'a> {
-    Items(&'a mut Vec<(usize, MessageStreamItem)>),
+enum Next {
+    Parsed(usize, MessageStreamItem),
     Timeout,
     Waiting,
     Sde(SdeMsg),
@@ -36,14 +36,16 @@ pub mod concat;
 pub mod file;
 pub mod stream;
 
-pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;
+pub const FLUSH_TIMEOUT_IN_MS: u128 = 5000;
 
-pub async fn run_source<S: ByteSource>(
+pub async fn run_source<S: ByteSource, W: LogRecordWriter>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source: S,
     source_id: u16,
     parser: &stypes::ParserType,
+    writer: W,
+
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -57,6 +59,7 @@ pub async fn run_source<S: ByteSource>(
         source,
         source_id,
         parser,
+        writer,
         rx_sde,
         rx_tail,
     )
@@ -70,12 +73,13 @@ pub async fn run_source<S: ByteSource>(
 }
 
 /// Contains all implementation details for running the source and the producer in the session
-async fn run_source_intern<S: ByteSource>(
+async fn run_source_intern<S: ByteSource, W: LogRecordWriter>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source: S,
     source_id: u16,
     parser: &stypes::ParserType,
+    writer: W,
     rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
@@ -87,7 +91,7 @@ async fn run_source_intern<S: ByteSource>(
                 settings.plugin_configs.clone(),
             )
             .await?;
-            let producer = MessageProducer::new(parser, source);
+            let producer = MessageProducer::new(parser, source, writer);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::SomeIp(settings) => {
@@ -97,11 +101,11 @@ async fn run_source_intern<S: ByteSource>(
                 }
                 None => SomeipParser::new(),
             };
-            let producer = MessageProducer::new(someip_parser, source);
+            let producer = MessageProducer::new(someip_parser, source, writer);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source);
+            let producer = MessageProducer::new(StringTokenizer {}, source, writer);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Dlt(settings) => {
@@ -117,17 +121,17 @@ async fn run_source_intern<S: ByteSource>(
                 someip_metadata,
                 settings.with_storage_header,
             );
-            let producer = MessageProducer::new(dlt_parser, source);
+            let producer = MessageProducer::new(dlt_parser, source, writer);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
     }
 }
 
-pub async fn run_producer<P: Parser, S: ByteSource>(
+pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u16,
-    mut producer: MessageProducer<P, S>,
+    mut producer: MessageProducer<P, S, W>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
@@ -139,9 +143,10 @@ pub async fn run_producer<P: Parser, S: ByteSource>(
     while let Some(next) = select! {
         next_from_stream = async {
             match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), producer.read_next_segment()).await {
-                Ok(items) => {
-                    if let Some(items) = items {
-                        Some(Next::Items(items))
+                Ok(result) => {
+                    if let Some((consumed, results)) = result {
+                                            println!(">>>>>>>>>>>>>>>>>> UPPER LOOP: 0000");
+                        Some(Next::Parsed(consumed, results))
                     } else {
                         Some(Next::Waiting)
                     }
@@ -160,56 +165,31 @@ pub async fn run_producer<P: Parser, S: ByteSource>(
         _ = cancel.cancelled() => None,
     } {
         match next {
-            Next::Items(items) => {
-                // Iterating over references is more efficient than using `drain(..)`, even though
-                // we clone the attachments below. With ownership, `mem_copy()` would still be called
-                // to move the item into the attachment vector. Cloning avoids the overhead of
-                // `drain(..)`, especially since `items` is cleared on each iteration anyway.
-                for (_, item) in items {
-                    match item {
-                        MessageStreamItem::Item(ParseYield::Message(item)) => {
-                            state
-                                .write_session_file(source_id, format!("{item}\n"))
-                                .await?;
-                        }
-                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                            item,
-                            attachment,
-                        ))) => {
-                            state
-                                .write_session_file(source_id, format!("{item}\n"))
-                                .await?;
-                            state.add_attachment(attachment.to_owned())?;
-                        }
-                        MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
-                            state.add_attachment(attachment.to_owned())?;
-                        }
-                        MessageStreamItem::Done => {
-                            trace!("observe, message stream is done");
-                            state.flush_session_file().await?;
-                            state.file_read().await?;
-                        }
-                        // MessageStreamItem::FileRead => {
-                        //     state.file_read().await?;
-                        // }
-                        MessageStreamItem::Skipped => {
-                            trace!("observe: skipped a message");
-                        }
-                        MessageStreamItem::Incomplete => {
-                            trace!("observe: incomplete message");
-                        }
-                        MessageStreamItem::Empty => {
-                            trace!("observe: empty message");
-                        }
-                    }
+            Next::Parsed(_consumed, results) => match results {
+                MessageStreamItem::Parsed(_results) => {
+                    //Just continue
+                    println!(">>>>>>>>>>>>>>>>>> UPPER LOOP: 0001");
                 }
-            }
+                MessageStreamItem::Done => {
+                    println!(">>>>>>>>>>>>>>>>>> UPPER LOOP: 0002");
+                    trace!("observe, message stream is done");
+                    state.flush_session_file().await?;
+                    state.file_read().await?;
+                }
+                MessageStreamItem::Skipped => {
+                    println!(">>>>>>>>>>>>>>>>>> UPPER LOOP: 0003");
+                    trace!("observe: skipped a message");
+                }
+            },
             Next::Timeout => {
+                println!(">>>>>>>>>>>>>>>>>> UPPER LOOP: 0004");
+
                 if !state.is_closing() {
                     state.flush_session_file().await?;
                 }
             }
             Next::Waiting => {
+                println!(">>>>>>>>>>>>>>>>>> UPPER LOOP: 0005");
                 if let Some(mut rx_tail) = rx_tail.take() {
                     if select! {
                         next_from_stream = rx_tail.recv() => {

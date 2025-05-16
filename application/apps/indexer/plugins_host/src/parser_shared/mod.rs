@@ -134,15 +134,17 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-use definitions as defs;
+use definitions::{self as defs};
+
 impl defs::Parser for PluginsParser {
-    fn parse(
+    async fn parse<W: defs::LogRecordWriter>(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<defs::ParseYield>)>, defs::ParserError> {
+        writer: &mut W,
+    ) -> Result<defs::ParseOperationResult, defs::ParserError> {
         let res = match &mut self.parser {
-            PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
+            PlugVerParser::Ver010(parser) => parser.parse(input, timestamp, writer).await,
         };
 
         // Check for consecutive errors.
@@ -171,6 +173,9 @@ impl defs::Parser for PluginsParser {
                         PluginErrorLimits::INCOMPLETE_ERROR_LIMIT
                     )));
                 }
+            }
+            Err(defs::ParserError::Native(err)) => {
+                todo!("Not implemented")
             }
         }
 

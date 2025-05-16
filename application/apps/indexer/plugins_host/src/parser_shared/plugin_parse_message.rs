@@ -1,4 +1,4 @@
-use definitions::LogMessage;
+use definitions::LogRecordOutput;
 use serde::Serialize;
 
 /// Represent the message of the parsed item returned by plugins.
@@ -6,10 +6,4 @@ use serde::Serialize;
 pub struct PluginParseMessage {
     /// The content of the message as string.
     pub content: String,
-}
-
-impl From<PluginParseMessage> for LogMessage {
-    fn from(msg: PluginParseMessage) -> Self {
-        LogMessage::PlainText(msg.content)
-    }
 }

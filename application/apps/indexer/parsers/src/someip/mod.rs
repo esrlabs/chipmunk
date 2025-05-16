@@ -5,10 +5,11 @@ use std::{
     cmp::Ordering,
     collections::{HashMap, hash_map::Entry},
     fmt::{self, Display},
-    io::Write,
+    io::{self, Write},
     path::PathBuf,
     sync::Mutex,
 };
+use stypes::NativeError;
 
 use someip_messages::*;
 use someip_payload::{
@@ -295,15 +296,9 @@ impl SingleParser<SomeipLogMessage> for SomeipParser {
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield>), ParserError> {
-        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp).map(
-            |(rest, message)| {
-                (
-                    rest,
-                    Some(LogMessage::PlainText(message.to_string()).into()),
-                )
-            },
-        )
+    ) -> Result<(usize, Option<SomeipLogMessage>), ParserError> {
+        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
+            .map(|(rest, message)| (rest, Some(message)))
     }
 }
 
@@ -311,14 +306,50 @@ unsafe impl Send for SomeipParser {}
 unsafe impl Sync for SomeipParser {}
 
 impl Parser for SomeipParser {
-    fn parse(
+    async fn parse<W: LogRecordWriter>(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<Vec<(usize, Option<ParseYield>)>, ParserError> {
-        parse_all(input, timestamp, MIN_MSG_LEN, |input, timestamp| {
-            self.parse_item(input, timestamp)
-        })
+        writer: &mut W,
+    ) -> Result<ParseOperationResult, ParserError> {
+        async fn write<W: LogRecordWriter>(
+            data: Option<SomeipLogMessage>,
+            writer: &mut W,
+        ) -> Result<usize, NativeError> {
+            match data {
+                Some(msg) => writer
+                    .write(LogRecordOutput::Str(&msg.to_string()))
+                    .await
+                    .map(|_| 1),
+                None => Ok(0),
+            }
+        }
+        let mut slice = input;
+        // Parsing of the first item should be sensentive to errors
+        let mut total_consumed = 0;
+        let (consumed, data) = self.parse_item(slice, timestamp)?;
+        let mut count = write(data, writer).await?;
+        total_consumed += consumed;
+        // Continue parsing until end (or error)
+        loop {
+            slice = &slice[consumed..];
+
+            if slice.len() < MIN_MSG_LEN {
+                break;
+            }
+
+            match self.parse_item(slice, timestamp) {
+                Ok((consumed, data)) => {
+                    total_consumed += consumed;
+                    count += write(data, writer).await?;
+                    if consumed == 0 {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+        Ok(ParseOperationResult::new(total_consumed, count))
     }
 }
 

@@ -133,7 +133,7 @@ impl PluginParser {
 
 use definitions as defs;
 impl defs::Parser for PluginParser {
-    fn parse(
+    async fn parse<W: defs::LogRecordWriter>(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
@@ -163,11 +163,13 @@ impl defs::Parser for PluginParser {
                 )));
             }
         };
+        // TODO: write in iteration
+        todo!("Not implemented");
 
-        Ok(parse_results
-            .into_iter()
-            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
-            .collect())
+        // Ok(parse_results
+        //     .into_iter()
+        //     .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
+        //     .collect())
     }
 }
 
