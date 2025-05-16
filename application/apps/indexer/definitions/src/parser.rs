@@ -24,7 +24,6 @@ impl From<NativeError> for ParserError {
 
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
-#[allow(async_fn_in_trait)]
 pub trait Parser {
     /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
     /// it will return iterator of items each with the consumed bytes count along with `Some(log_message)`
@@ -41,12 +40,66 @@ pub trait Parser {
     /// case it was provided with the same slice of bytes.
     /// Returns:
     /// `usize` - consumed bytes
-    async fn parse<W: LogRecordWriter>(
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
-        writer: &mut W,
-    ) -> Result<ParseOperationResult, ParserError>;
+    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError>;
+}
+
+pub trait ParserIteratorGetter: Parser {
+    fn iter<'a>(
+        &'a mut self,
+        input: &'a [u8],
+        timestamp: Option<u64>,
+    ) -> Result<ParserIterator<'a, Self>, ParserError>
+    where
+        Self: Sized,
+    {
+        // return early if function errors on first parse call.
+        let (consumed, first) = self.parse(input, timestamp)?;
+        Ok(ParserIterator {
+            parser: self,
+            input,
+            consumed,
+            first,
+            timestamp,
+        })
+    }
+}
+
+impl<T: Parser> ParserIteratorGetter for T {}
+
+pub struct ParserIterator<'a, P: Parser> {
+    parser: &'a mut P,
+    input: &'a [u8],
+    consumed: usize,
+    first: Option<LogRecordOutput<'a>>,
+    timestamp: Option<u64>,
+}
+
+impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
+    type Item = (usize, Option<LogRecordOutput<'a>>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.first.is_some() {
+            return Some((self.consumed, self.first.take()));
+        }
+        if self.input.len() < 10 {
+            return None;
+        }
+
+        match self
+            .parser
+            .parse(&self.input[self.consumed..], self.timestamp)
+        {
+            Ok((consumed, res)) => {
+                self.consumed += consumed;
+                Some((consumed, res))
+            }
+            Err(_) => None,
+        }
+    }
 }
 
 pub trait Collector<T> {

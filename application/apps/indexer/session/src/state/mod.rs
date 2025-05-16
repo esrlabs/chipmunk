@@ -550,6 +550,19 @@ pub async fn run(
                         stypes::NativeError::channel("Failed to respond to Api::WriteSessionFile")
                     })?;
             }
+            Api::SendToSessionFile(source_id, content) => {
+                if let Err(err) = state
+                    .handle_write_session_file(
+                        source_id,
+                        state_cancellation_token.clone(),
+                        tx_callback_events.clone(),
+                        content,
+                    )
+                    .await
+                {
+                    error!("Fail to write session file: {err}")
+                }
+            }
             Api::FlushSessionFile(tx_response) => {
                 let res = state
                     .handle_flush_session_file(
