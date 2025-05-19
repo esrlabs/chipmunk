@@ -1,11 +1,9 @@
 mod api;
 
-use std::{collections::HashMap, io::Read};
-
 use api::*;
-
 use components::{Components, LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
+use std::collections::HashMap;
 use tokio::{
     sync::{
         mpsc::{error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},

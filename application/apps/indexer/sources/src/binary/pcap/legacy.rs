@@ -230,9 +230,6 @@ impl MetadataDescriptor for Descriptor {
                 vec![filepath]
             }
             SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => {
-                return true
-            }
             SourceOrigin::Source => {
                 return false;
             }
