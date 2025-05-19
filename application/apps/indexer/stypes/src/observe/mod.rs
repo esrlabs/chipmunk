@@ -60,6 +60,18 @@ pub struct SessionSetup {
     derive(TS),
     ts(export, export_to = "observe.ts")
 )]
+pub struct SessionDescriptor {
+    pub parser: Ident,
+    pub source: Ident,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
 pub struct IdentList(pub Vec<Ident>);
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

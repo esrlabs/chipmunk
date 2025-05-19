@@ -3,6 +3,11 @@ use std::net::IpAddr;
 use crate::*;
 use thiserror::Error;
 
+impl SessionDescriptor {
+    pub fn new(source: Ident, parser: Ident) -> Self {
+        Self { parser, source }
+    }
+}
 impl ObserveOptions {
     /// Creates a new `ObserveOptions` instance for a file.
     ///

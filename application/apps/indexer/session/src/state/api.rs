@@ -16,7 +16,7 @@ use processor::{
     },
 };
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
-use stypes::GrabbedElement;
+use stypes::{GrabbedElement, SessionDescriptor};
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot,
@@ -43,8 +43,7 @@ pub enum Api {
     FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
     GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
     UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
-    AddSource((String, oneshot::Sender<u16>)),
-    GetSource((String, oneshot::Sender<Option<u16>>)),
+    AddSource(SessionDescriptor, oneshot::Sender<u16>),
     GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((stypes::ObserveOptions, oneshot::Sender<()>)),
@@ -213,8 +212,7 @@ impl Display for Api {
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::GetSessionFileOrigin(_) => "GetSessionFileOrigin",
                 Self::UpdateSession(_) => "UpdateSession",
-                Self::AddSource(_) => "AddSource",
-                Self::GetSource(_) => "GetSource",
+                Self::AddSource(..) => "AddSource",
                 Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
                 Self::AddExecutedObserve(_) => "AddExecutedObserve",
                 Self::GetExecutedHolder(_) => "GetExecutedHolder",
@@ -482,16 +480,12 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn add_source(&self, uuid: &str) -> Result<u16, stypes::NativeError> {
+    pub async fn add_source(
+        &self,
+        desciptor: SessionDescriptor,
+    ) -> Result<u16, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::AddSource((uuid.to_owned(), tx)), rx)
-            .await
-    }
-
-    pub async fn get_source(&self, uuid: &str) -> Result<Option<u16>, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetSource((uuid.to_owned(), tx)), rx)
-            .await
+        self.exec_operation(Api::AddSource(desciptor, tx), rx).await
     }
 
     pub async fn get_sources_definitions(
