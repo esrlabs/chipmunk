@@ -12,5 +12,6 @@ definitions = { path = "../../definitions" }
 indexer_base = { path = "../../indexer_base" }
 parsers = { path = "../../parsers" }
 sources = { path = "../../sources" }
+processor = { path = "../../processor" }
 
 [dev-dependencies]

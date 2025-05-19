@@ -9,12 +9,10 @@ use parsers::{
 };
 use plugins_host::PluginsParser;
 use processor::export::{export_raw, ExportError};
-use sources::{
-    binary::{
-        pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
-        raw::BinaryByteSource,
-    },
-    producer::MessageProducer,
+use processor::producer::MessageProducer;
+use sources::binary::{
+    pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
+    raw::BinaryByteSource,
 };
 use std::{
     fs::File,

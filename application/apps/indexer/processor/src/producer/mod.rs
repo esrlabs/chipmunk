@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+pub mod sde;
+
 use definitions::Parser;
 use definitions::*;
 use log::warn;

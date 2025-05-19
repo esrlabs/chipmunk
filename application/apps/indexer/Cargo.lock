@@ -1278,6 +1278,7 @@ dependencies = [
  "indexer_base",
  "log",
  "parsers",
+ "processor",
  "sources",
  "tokio",
  "tokio-util",
@@ -2849,6 +2850,8 @@ dependencies = [
  "tempfile",
  "text_grep",
  "thiserror 2.0.12",
+ "tokio",
+ "tokio-stream",
  "tokio-util",
  "uuid",
 ]

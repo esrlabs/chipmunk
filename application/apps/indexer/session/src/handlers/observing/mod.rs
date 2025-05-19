@@ -13,10 +13,7 @@ use parsers::{
     text::StringTokenizer,
 };
 use plugins_host::PluginsParser;
-use sources::{
-    producer::MessageProducer,
-    sde::{SdeMsg, SdeReceiver},
-};
+use processor::producer::{sde::*, MessageProducer};
 use tokio::{
     select,
     sync::mpsc::Receiver,
