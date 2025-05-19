@@ -2,6 +2,7 @@ mod scheme;
 mod tys;
 
 use std::{collections::HashMap, fmt};
+use stypes::SessionDescriptor;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -148,7 +149,10 @@ impl<S, P> Components<S, P> {
         Ok(descriptor.validate(origin, fields))
     }
 
-    pub fn setup(&self, options: &stypes::SessionSetup) -> Result<(S, P), stypes::NativeError> {
+    pub fn setup(
+        &self,
+        options: &stypes::SessionSetup,
+    ) -> Result<(SessionDescriptor, S, P), stypes::NativeError> {
         let Some(Entry::Parser(parser)) = self.components.get(&options.parser.uuid) else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -163,6 +167,10 @@ impl<S, P> Components<S, P> {
                 message: Some(format!("Fail to find source {}", options.source.uuid)),
             });
         };
+        let desciptor = SessionDescriptor::new(
+            source.bound_ident(&options.origin, &options.source.fields),
+            source.bound_ident(&options.origin, &options.parser.fields),
+        );
         let Some(parser) = parser.create(&options.origin, &options.parser.fields)? else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -177,7 +185,7 @@ impl<S, P> Components<S, P> {
                 message: Some(format!("Fail to init source {}", options.source.uuid)),
             });
         };
-        Ok((source, parser))
+        Ok((desciptor, source, parser))
     }
 }
 

@@ -106,9 +106,12 @@ pub async fn start_observing(
     components: Arc<Components<sources::Source, parsers::Parser>>,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
-    let (source, parser) = components.setup(&options)?;
-    // let source_id = state.add_source(uuid).await?;
-    let producer = MessageProducer::new(parser, source, Writer::new(state.clone(), 0));
+    let (desciptor, source, parser) = components.setup(&options)?;
+    let producer = MessageProducer::new(
+        parser,
+        source,
+        Writer::new(state.clone(), state.add_source(desciptor).await?),
+    );
     let result = run_producer(operation_api, state, producer, None, rx_sde).await?;
     Ok(result)
 }
