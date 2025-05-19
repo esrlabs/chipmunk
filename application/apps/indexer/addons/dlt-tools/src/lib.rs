@@ -18,7 +18,8 @@ extern crate log;
 use definitions::{Attachment, MessageStreamItem};
 use dlt_core::filtering::DltFilterConfig;
 use parsers::dlt::DltParser;
-use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
+use processor::producer::MessageProducer;
+use sources::binary::raw::BinaryByteSource;
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Write},

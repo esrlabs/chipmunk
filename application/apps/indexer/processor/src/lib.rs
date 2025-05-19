@@ -19,6 +19,7 @@ pub mod export;
 pub mod grabber;
 pub mod map;
 pub mod processor;
+pub mod producer;
 pub mod search;
 pub mod text_source;
 

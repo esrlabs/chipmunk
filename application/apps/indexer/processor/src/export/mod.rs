@@ -3,9 +3,9 @@ use std::{
     path::Path,
 };
 
+use crate::producer::MessageProducer;
 use definitions::{ByteSource, LogRecordWriter, MessageStreamItem, Parser};
 use indexer_base::config::IndexSection;
-use sources::producer::MessageProducer;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 

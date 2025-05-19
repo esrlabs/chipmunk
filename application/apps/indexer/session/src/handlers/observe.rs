@@ -9,7 +9,7 @@ use components::Components;
 use definitions::{Attachment, LogRecordOutput, LogRecordWriter};
 use log::error;
 use parsers::Parser;
-use sources::{producer::MessageProducer, sde::SdeReceiver};
+use processor::producer::{sde::*, MessageProducer};
 use std::time::Instant;
 use stypes::NativeError;
 
