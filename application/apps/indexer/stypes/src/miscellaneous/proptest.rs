@@ -39,13 +39,13 @@ impl Arbitrary for SourceDefinition {
     /// Implements the `Arbitrary` trait for `SourceDefinition` to generate random instances.
     ///
     /// # Details
-    /// - Generates random `id` (`u16`) and `alias` (`String`) values.
+    /// - Generates random `id` (`u16`) and `alias` (`SessionDescriptor`) values.
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<u16>(), any::<String>())
-            .prop_map(|(id, alias)| SourceDefinition { id, alias })
+        (any::<u16>(), any::<SessionDescriptor>())
+            .prop_map(|(id, descriptor)| SourceDefinition { id, descriptor })
             .boxed()
     }
 }
