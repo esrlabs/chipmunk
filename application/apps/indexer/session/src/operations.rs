@@ -2,9 +2,9 @@ use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
 use components::Components;
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
+use processor::producer::sde::{SdeReceiver, SdeSender};
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
-use sources::sde::{SdeReceiver, SdeSender};
 use std::{
     ops::RangeInclusive,
     path::PathBuf,

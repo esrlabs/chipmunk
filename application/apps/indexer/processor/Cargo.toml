@@ -18,6 +18,8 @@ serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
 tokio-util.workspace = true
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
 uuid = { workspace = true , features = ["serde", "v4"] }
 bufread = { path = "../addons/bufread" }
 text_grep = { path = "../addons/text_grep" }
