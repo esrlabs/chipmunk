@@ -29,7 +29,6 @@ impl MetadataDescriptor for Descriptor {
             }
             SourceOrigin::Files(files) => files.iter().collect(),
             SourceOrigin::Source => return true,
-            SourceOrigin::Folder(..) | SourceOrigin::Folders(..) => return false,
         };
         // If at least some file doesn't exist or it's binary - do not recommend this source
         !files
