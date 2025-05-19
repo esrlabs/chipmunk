@@ -133,6 +133,8 @@ export type SerialTransportConfig = {
     exclusive: boolean;
 };
 
+export type SessionDescriptor = { parser: Ident; source: Ident };
+
 export type SessionSetup = {
     origin: SourceOrigin;
     parser: ComponentOptions;

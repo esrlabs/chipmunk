@@ -121,6 +121,8 @@ send_data_delay: number,
  */
 exclusive: boolean, };
 
+export type SessionDescriptor = { parser: Ident, source: Ident, };
+
 export type SessionSetup = { origin: SourceOrigin, parser: ComponentOptions, source: ComponentOptions, };
 
 /**
