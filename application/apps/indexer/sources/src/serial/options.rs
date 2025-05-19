@@ -41,10 +41,7 @@ impl ComponentDescriptor<crate::Source> for Descriptor {
 impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         match origin {
-            SourceOrigin::File(..)
-            | SourceOrigin::Files(..)
-            | SourceOrigin::Folder(..)
-            | SourceOrigin::Folders(..) => false,
+            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
             SourceOrigin::Source => true,
         }
     }
