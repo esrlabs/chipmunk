@@ -193,6 +193,9 @@ impl Parser for DltParser {
             }),
         ))
     }
+    fn min_msg_len(&self) -> usize {
+        MIN_MSG_LEN
+    }
 }
 
 // impl Parser for DltParser {
@@ -267,6 +270,9 @@ impl Parser for DltRawParser {
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
         let (consumed, data) = self.parse_item(input, timestamp)?;
         Ok((consumed, data.map(LogRecordOutput::Raw)))
+    }
+    fn min_msg_len(&self) -> usize {
+        MIN_MSG_LEN
     }
 }
 

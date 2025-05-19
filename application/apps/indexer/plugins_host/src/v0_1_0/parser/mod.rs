@@ -161,6 +161,9 @@ impl defs::Parser for PluginParser {
         //     .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
         //     .collect())
     }
+    fn min_msg_len(&self) -> usize {
+        1
+    }
 }
 
 #[derive(Default)]

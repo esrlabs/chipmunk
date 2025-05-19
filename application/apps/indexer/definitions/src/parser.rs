@@ -45,6 +45,14 @@ pub trait Parser {
         input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError>;
+
+    /// The minimum number of bytes required to parse an item.
+    ///
+    /// # Notes:
+    /// - This value is used to prevent unnecessary parsing attempts when the remaining input
+    ///   is too short to contain a valid message.
+    /// - The default value (`1`) indicates that the parser has no minimum length requirement.
+    fn min_msg_len(&self) -> usize;
 }
 
 pub trait ParserIteratorGetter: Parser {
@@ -85,7 +93,7 @@ impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
         if self.first.is_some() {
             return Some((self.consumed, self.first.take()));
         }
-        if self.input.len() < 10 {
+        if self.input.len() < self.parser.min_msg_len() {
             return None;
         }
 
