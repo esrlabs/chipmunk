@@ -31,6 +31,13 @@ impl definitions::Parser for Parser {
             Self::Text(inst) => inst.parse(input, timestamp),
         }
     }
+    fn min_msg_len(&self) -> usize {
+        match self {
+            Self::Dlt(inst) => inst.min_msg_len(),
+            Self::SomeIp(inst) => inst.min_msg_len(),
+            Self::Text(inst) => inst.min_msg_len(),
+        }
+    }
 }
 
 pub fn registration<S>(components: &mut Components<S, Parser>) -> Result<(), stypes::NativeError> {

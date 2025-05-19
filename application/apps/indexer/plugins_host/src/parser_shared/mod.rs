@@ -180,6 +180,9 @@ impl defs::Parser for PluginsParser {
 
         res
     }
+    fn min_msg_len(&self) -> usize {
+        1
+    }
 }
 
 #[derive(Default)]

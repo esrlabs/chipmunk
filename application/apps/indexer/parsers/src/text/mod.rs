@@ -57,6 +57,9 @@ impl Parser for StringTokenizer {
         let (consumed, data) = self.parse_item(input, timestamp)?;
         Ok((consumed, data.map(|msg| LogRecordOutput::Cow(msg))))
     }
+    fn min_msg_len(&self) -> usize {
+        MIN_MSG_LEN
+    }
 }
 
 #[cfg(test)]
