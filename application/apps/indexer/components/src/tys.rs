@@ -135,12 +135,39 @@ pub trait MetadataDescriptor {
     /// * `false` - if component can not be used with origin
     fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool;
 
-    /// Retrieves the unique identifier of the component.
+    /// Returns a general description of the component as a static, standalone entity.
+    ///
+    /// This method provides a neutral, context-independent identifier that can be used
+    /// to list the component as an available option for the user. Since the actual usage
+    /// context is unknown at this stage, the returned description should be as general
+    /// as possible.
     ///
     /// # Returns
-    ///
-    /// * `stypes::Ident` - The unique identifier for the component.
+    /// A `stypes::Ident` representing the generic identity of the component.
     fn ident(&self) -> stypes::Ident;
+
+    /// Returns a context-specific description of the component, based on its usage origin and known fields.
+    ///
+    /// Unlike `ident`, this method considers how the component is being used, such as what
+    /// data source is involved and which fields are already known. For example, a `source::Raw`
+    /// component might normally describe itself as a "binary reader", but in the context of
+    /// a `SourceOrigin::File` and specific field values, it could instead describe itself
+    /// as a "filename" input.
+    ///
+    /// # Arguments
+    /// * `origin` - The `stypes::SourceOrigin` that indicates the usage context.
+    /// * `fields` - A slice of `stypes::Field` values representing known configuration fields.
+    ///
+    /// # Returns
+    /// An optional `stypes::Ident` with a contextualized description, or `None` if no
+    /// context-based identity is applicable.
+    fn bound_ident(
+        &self,
+        _origin: &stypes::SourceOrigin,
+        _fields: &[stypes::Field],
+    ) -> stypes::Ident {
+        self.ident()
+    }
 
     /// Retrieves the type of the component.
     ///
