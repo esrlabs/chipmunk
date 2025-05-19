@@ -11,14 +11,9 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-#[cfg(test)]
-mod tests;
-
 pub mod binary;
 pub mod command;
 pub mod prelude;
-pub mod producer;
-pub mod sde;
 pub mod serial;
 pub mod socket;
 
