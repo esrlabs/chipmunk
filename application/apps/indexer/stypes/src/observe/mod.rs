@@ -23,8 +23,6 @@ use dlt_core::filtering::DltFilterConfig;
 pub enum SourceOrigin {
     File(PathBuf),
     Files(Vec<PathBuf>),
-    Folder(PathBuf),
-    Folders(Vec<PathBuf>),
     Source,
 }
 
