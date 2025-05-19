@@ -109,6 +109,6 @@ pub async fn start_observing(
     let (source, parser) = components.setup(&options)?;
     // let source_id = state.add_source(uuid).await?;
     let producer = MessageProducer::new(parser, source, Writer::new(state.clone(), 0));
-    let result = run_producer(operation_api, state, 0, producer, None, rx_sde).await?;
+    let result = run_producer(operation_api, state, producer, None, rx_sde).await?;
     Ok(result)
 }
