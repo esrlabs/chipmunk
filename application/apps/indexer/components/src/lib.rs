@@ -57,11 +57,21 @@ impl<S, P> Components<S, P> {
         target: &stypes::ComponentType,
         origin: stypes::SourceOrigin,
     ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
-        // TODO: "ask" source/parser based on origin
         Ok(self
             .components
             .iter()
             .filter_map(|(_, desc)| match target {
+                stypes::ComponentType::RawParser => {
+                    if let Entry::RawParser(desc) = desc {
+                        if desc.is_compatible(&origin) {
+                            Some(desc.ident())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                }
                 stypes::ComponentType::Parser => {
                     if let Entry::Parser(desc) = desc {
                         if desc.is_compatible(&origin) {

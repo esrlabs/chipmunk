@@ -56,6 +56,7 @@ pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 
 pub enum Entry<S, P> {
+    RawParser(Box<dyn ComponentDescriptor<P>>),
     Parser(Box<dyn ComponentDescriptor<P>>),
     Source(Box<dyn ComponentDescriptor<S>>),
 }
@@ -65,25 +66,28 @@ impl<S, P> MetadataDescriptor for Entry<S, P> {
         match self {
             Self::Source(inner) => inner.fields_getter(origin),
             Self::Parser(inner) => inner.fields_getter(origin),
+            Self::RawParser(inner) => inner.fields_getter(origin),
         }
     }
-
     fn ident(&self) -> stypes::Ident {
         match self {
             Self::Source(inner) => inner.ident(),
             Self::Parser(inner) => inner.ident(),
+            Self::RawParser(inner) => inner.ident(),
         }
     }
     fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool {
         match self {
             Self::Source(inner) => inner.is_compatible(origin),
             Self::Parser(inner) => inner.is_compatible(origin),
+            Self::RawParser(inner) => inner.is_compatible(origin),
         }
     }
     fn is_ty(&self, ty: &stypes::ComponentType) -> bool {
         match self {
             Self::Source(inner) => inner.is_ty(ty),
             Self::Parser(inner) => inner.is_ty(ty),
+            Self::RawParser(inner) => inner.is_ty(ty),
         }
     }
     fn lazy_fields_getter(
@@ -94,12 +98,14 @@ impl<S, P> MetadataDescriptor for Entry<S, P> {
         match self {
             Self::Source(inner) => inner.lazy_fields_getter(origin, cancel),
             Self::Parser(inner) => inner.lazy_fields_getter(origin, cancel),
+            Self::RawParser(inner) => inner.lazy_fields_getter(origin, cancel),
         }
     }
     fn ty(&self) -> stypes::ComponentType {
         match self {
             Self::Source(inner) => inner.ty(),
             Self::Parser(inner) => inner.ty(),
+            Self::RawParser(inner) => inner.ty(),
         }
     }
     fn validate(
@@ -110,6 +116,7 @@ impl<S, P> MetadataDescriptor for Entry<S, P> {
         match self {
             Self::Source(inner) => inner.validate(origin, fields),
             Self::Parser(inner) => inner.validate(origin, fields),
+            Self::RawParser(inner) => inner.validate(origin, fields),
         }
     }
 }

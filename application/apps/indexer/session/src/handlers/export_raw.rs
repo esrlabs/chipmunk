@@ -1,199 +1,154 @@
-use crate::{operations::OperationResult, state::SessionStateAPI};
-use definitions::{ByteSource, LogRecordWriter, Parser};
-use indexer_base::config::IndexSection;
+use crate::operations::{OperationAPI, OperationResult};
+use components::Components;
+use definitions::{ByteSource, LogRecordOutput, LogRecordWriter, Parser};
 use log::debug;
-use parsers::{
-    dlt::{fmt::FormatOptions, DltParser},
-    someip::SomeipParser,
-    text::StringTokenizer,
-};
-use plugins_host::PluginsParser;
-use processor::export::{export_raw, ExportError};
 use processor::producer::MessageProducer;
-use sources::binary::{
-    pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
-    raw::BinaryByteSource,
-};
+
 use std::{
     fs::File,
+    io::{self, BufWriter, Write},
     path::{Path, PathBuf},
+    sync::Arc,
 };
-use tokio_util::sync::CancellationToken;
+use stypes::{NativeError, SessionSetup, SourceOrigin};
+use tokio::select;
 
-pub async fn execute_export(
-    cancel: &CancellationToken,
-    state: SessionStateAPI,
+struct ExportWriter {
+    buffer: BufWriter<File>,
+    index: usize,
+    ranges: Vec<std::ops::RangeInclusive<u64>>,
+}
+
+impl ExportWriter {
+    pub fn new<P: AsRef<Path>>(
+        filename: P,
+        ranges: Vec<std::ops::RangeInclusive<u64>>,
+    ) -> io::Result<Self> {
+        let filename = filename.as_ref();
+        let out_file = if filename.exists() {
+            std::fs::OpenOptions::new().append(true).open(filename)?
+        } else {
+            std::fs::File::create(filename)?
+        };
+        Ok(Self {
+            buffer: BufWriter::new(out_file),
+            index: 0,
+            ranges,
+        })
+    }
+}
+
+impl LogRecordWriter for ExportWriter {
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+        if !self.ranges.is_empty() {
+            // TODO: we can optimize index search
+            if !self
+                .ranges
+                .iter()
+                .any(|range| range.contains(&(self.index as u64)))
+            {
+                // Skip record because it's not in a range
+                self.index += 1;
+                return Ok(());
+            }
+        }
+        self.index += 1;
+        match record {
+            LogRecordOutput::Raw(inner) => {
+                self.buffer.write_all(inner)?;
+            }
+            LogRecordOutput::Cow(inner) => {
+                self.buffer.write_all(inner.as_bytes())?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::String(inner) => {
+                self.buffer.write_all(inner.as_bytes())?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::Str(inner) => {
+                self.buffer.write_all(inner.as_bytes())?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::Columns(inner) => {
+                self.buffer.write_all(
+                    inner
+                        .join(&definitions::COLUMN_SENTINAL.to_string())
+                        .as_bytes(),
+                )?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::Multiple(inner) => {
+                for record in inner.into_iter() {
+                    self.write(record)?;
+                }
+            }
+            LogRecordOutput::Attachment(_) => {
+                // TODO: report error
+            }
+        }
+        Ok(())
+    }
+    fn finalize(&mut self) -> Result<(), stypes::NativeError> {
+        self.buffer.flush()?;
+        Ok(())
+    }
+    fn get_id(&self) -> u16 {
+        0
+    }
+}
+
+pub async fn export(
+    operation_api: OperationAPI,
+    options: SessionSetup,
+    components: Arc<Components<sources::Source, parsers::Parser>>,
     out_path: PathBuf,
     ranges: Vec<std::ops::RangeInclusive<u64>>,
 ) -> OperationResult<bool> {
-    debug!("RUST: ExportRaw operation is requested");
-    let observed = state.get_executed_holder().await?;
-    if !observed.is_file_based_export_possible() {
-        return Err(stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Configuration,
-            message: Some(String::from(
-                "For current collection of observing operation raw export isn't possible.",
-            )),
-        });
-    }
-    let mut indexes = ranges
-        .iter()
-        .map(IndexSection::from)
-        .collect::<Vec<IndexSection>>();
-    let count = observed.get_files().len();
-    for (i, (parser, file_format, filename)) in observed.get_files().iter().enumerate() {
-        if indexes.is_empty() {
-            break;
+    match &options.origin {
+        SourceOrigin::File(..) => {
+            let (_, source, parser) = components.setup(&options)?;
+            let mut writer = ExportWriter::new(&out_path, ranges)?;
+            let producer = MessageProducer::new(parser, source, &mut writer);
+            Ok(run_producer(operation_api, producer).await?)
         }
-        let read = if let Some(read) = assing_source(
-            filename,
-            &out_path,
-            parser,
-            file_format,
-            &indexes,
-            i != (count - 1),
-            cancel,
-        )
-        .await?
-        {
-            read
-        } else {
-            return Ok(Some(false));
-        };
-        indexes.iter_mut().for_each(|index| index.left(read));
-        indexes = indexes
-            .into_iter()
-            .filter(|index| !index.is_empty())
-            .collect::<Vec<IndexSection>>();
-    }
-    Ok(Some(true))
-}
-
-async fn assing_source(
-    src: &PathBuf,
-    dest: &Path,
-    parser: &stypes::ParserType,
-    file_format: &stypes::FileFormat,
-    sections: &Vec<IndexSection>,
-    read_to_end: bool,
-    cancel: &CancellationToken,
-) -> Result<Option<usize>, stypes::NativeError> {
-    let reader = File::open(src).map_err(|e| stypes::NativeError {
-        severity: stypes::Severity::ERROR,
-        kind: stypes::NativeErrorKind::Io,
-        message: Some(format!("Fail open file {}: {}", src.to_string_lossy(), e)),
-    })?;
-    match file_format {
-        stypes::FileFormat::Binary | stypes::FileFormat::Text => {
-            export(
-                dest,
-                parser,
-                BinaryByteSource::new(reader),
-                sections,
-                read_to_end,
-                cancel,
-            )
-            .await
+        SourceOrigin::Source => {
+            let (_, source, parser) = components.setup(&options)?;
+            let mut writer = ExportWriter::new(&out_path, ranges)?;
+            let producer = MessageProducer::new(parser, source, &mut writer);
+            Ok(run_producer(operation_api, producer).await?)
         }
-        stypes::FileFormat::PcapNG => {
-            export(
-                dest,
-                parser,
-                PcapngByteSource::new(reader)?,
-                sections,
-                read_to_end,
-                cancel,
-            )
-            .await
-        }
-        stypes::FileFormat::PcapLegacy => {
-            export(
-                dest,
-                parser,
-                PcapLegacyByteSource::new(reader)?,
-                sections,
-                read_to_end,
-                cancel,
-            )
-            .await
+        SourceOrigin::Files(files) => {
+            // We are creating one single writer for all files to keep tracking ranges and current index
+            let mut writer = ExportWriter::new(&out_path, ranges)?;
+            for file in files {
+                if operation_api.cancellation_token().is_cancelled() {
+                    return Ok(Some(false));
+                }
+                let (_, source, parser) =
+                    components.setup(&options.inherit(SourceOrigin::File(file.to_owned())))?;
+                let producer = MessageProducer::new(parser, source, &mut writer);
+                run_producer(operation_api.clone(), producer).await?;
+            }
+            Ok(Some(true))
         }
     }
 }
 
-async fn export<S: ByteSource>(
-    dest: &Path,
-    parser: &stypes::ParserType,
-    source: S,
-    sections: &Vec<IndexSection>,
-    read_to_end: bool,
-    cancel: &CancellationToken,
-) -> Result<Option<usize>, stypes::NativeError> {
-    todo!("Not implemented");
-    // match parser {
-    //     stypes::ParserType::Plugin(settings) => {
-    //         let parser = PluginsParser::initialize(
-    //             &settings.plugin_path,
-    //             &settings.general_settings,
-    //             settings.plugin_configs.clone(),
-    //         )
-    //         .await?;
-    //         let producer = MessageProducer::new(parser, source);
-    //         export_runner(producer, dest, sections, read_to_end, false, cancel).await
-    //     }
-    //     stypes::ParserType::SomeIp(settings) => {
-    //         let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
-    //             SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
-    //         } else {
-    //             SomeipParser::new()
-    //         };
-    //         let producer = MessageProducer::new(parser, source);
-    //         export_runner(producer, dest, sections, read_to_end, false, cancel).await
-    //     }
-    //     stypes::ParserType::Dlt(settings) => {
-    //         let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
-    //         let parser = DltParser::new(
-    //             settings.filter_config.as_ref().map(|f| f.into()),
-    //             // TODO: find a way to avoid clonning of MD
-    //             settings.fibex_metadata.as_ref().map(|md| md.clone()),
-    //             fmt_options,
-    //             None,
-    //             settings.with_storage_header,
-    //         );
-    //         let producer = MessageProducer::new(parser, source);
-    //         export_runner(producer, dest, sections, read_to_end, false, cancel).await
-    //     }
-    //     stypes::ParserType::Text(()) => {
-    //         let producer = MessageProducer::new(StringTokenizer {}, source);
-    //         export_runner(producer, dest, sections, read_to_end, true, cancel).await
-    //     }
-    // }
-}
-
-pub async fn export_runner<P, D, W>(
-    producer: MessageProducer<P, D, W>,
-    dest: &Path,
-    sections: &Vec<IndexSection>,
-    read_to_end: bool,
-    text_file: bool,
-    cancel: &CancellationToken,
-) -> Result<Option<usize>, stypes::NativeError>
-where
-    P: Parser,
-    D: ByteSource,
-    W: LogRecordWriter,
-{
-    export_raw(producer, dest, sections, read_to_end, text_file, cancel)
-        .await
-        .map_or_else(
-            |err| match err {
-                ExportError::Cancelled => Ok(None),
-                _ => Err(stypes::NativeError {
-                    severity: stypes::Severity::ERROR,
-                    kind: stypes::NativeErrorKind::UnsupportedFileType,
-                    message: Some(format!("{err}")),
-                }),
-            },
-            |read| Ok(Some(read)),
-        )
+pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
+    operation_api: OperationAPI,
+    mut producer: MessageProducer<'_, P, S, W>,
+) -> OperationResult<bool> {
+    operation_api.processing();
+    let cancel = operation_api.cancellation_token();
+    while let Some(..) = select! {
+        next_from_stream = producer.read_next_segment() => next_from_stream,
+        _ = async {
+            cancel.cancelled().await;
+            debug!("exporting operation has been cancelled");
+        } => None,
+    } {
+        // Do nothing. Writing happens on MessageProducer level
+    }
+    debug!("exporting is done");
+    Ok(Some(!cancel.is_cancelled()))
 }

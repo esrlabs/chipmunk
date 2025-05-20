@@ -11,7 +11,7 @@ use log::warn;
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
 #[derive(Debug)]
-pub struct MessageProducer<P, D, W>
+pub struct MessageProducer<'a, P, D, W>
 where
     P: Parser,
     D: ByteSource,
@@ -25,12 +25,12 @@ where
     total_skipped: usize,
     done: bool,
     buffer: Vec<(usize, MessageStreamItem)>,
-    writer: W,
+    writer: &'a mut W,
 }
 
-impl<P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<P, D, W> {
+impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D, W> {
     /// create a new producer by plugging into a byte source
-    pub fn new(parser: P, source: D, writer: W) -> Self {
+    pub fn new(parser: P, source: D, writer: &'a mut W) -> Self {
         MessageProducer {
             byte_source: source,
             parser,
