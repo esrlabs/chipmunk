@@ -452,12 +452,14 @@ impl Session {
         out_path: PathBuf,
         ranges: Vec<RangeInclusive<u64>>,
     ) -> Result<(), stypes::ComputationError> {
-        self.tx_operations
-            .send(Operation::new(
-                operation_id,
-                operations::OperationKind::ExportRaw { out_path, ranges },
-            ))
-            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
+        // We should not ask client for stypes::SessionSetup and we should take it from state
+        todo!("Not implemented")
+        // self.tx_operations
+        //     .send(Operation::new(
+        //         operation_id,
+        //         operations::OperationKind::ExportRaw { out_path, ranges },
+        //     ))
+        //     .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
     pub async fn is_raw_export_available(&self) -> Result<bool, stypes::ComputationError> {

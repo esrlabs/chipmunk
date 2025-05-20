@@ -62,10 +62,16 @@ impl Writer {
 impl LogRecordWriter for Writer {
     fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
         match record {
-            LogRecordOutput::Raw(_inner) => {
-                // self.state
-                //     .write_session_file(0, format!("{:02X}\n", inner))
-                //     .await?;
+            LogRecordOutput::Raw(inner) => {
+                // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
+                // because during observe we do not expect raw data
+                self.buffer.push_str(
+                    &inner
+                        .iter()
+                        .map(|b| format!("{:02X}", b))
+                        .collect::<String>(),
+                );
+                self.buffer.push('\n');
             }
             LogRecordOutput::Cow(inner) => {
                 self.buffer.push_str(&inner);
@@ -131,20 +137,14 @@ pub async fn start_observing(
     match &options.origin {
         SourceOrigin::File(..) => {
             let (desciptor, source, parser) = components.setup(&options)?;
-            let producer = MessageProducer::new(
-                parser,
-                source,
-                Writer::new(state.clone(), state.add_source(desciptor).await?),
-            );
+            let mut writer = Writer::new(state.clone(), state.add_source(desciptor).await?);
+            let producer = MessageProducer::new(parser, source, &mut writer);
             Ok(run_producer(operation_api, state, producer, None, None).await?)
         }
         SourceOrigin::Source => {
             let (desciptor, source, parser) = components.setup(&options)?;
-            let producer = MessageProducer::new(
-                parser,
-                source,
-                Writer::new(state.clone(), state.add_source(desciptor).await?),
-            );
+            let mut writer = Writer::new(state.clone(), state.add_source(desciptor).await?);
+            let producer = MessageProducer::new(parser, source, &mut writer);
             Ok(run_producer(operation_api, state, producer, None, rx_sde).await?)
         }
         SourceOrigin::Files(files) => {
@@ -152,11 +152,8 @@ pub async fn start_observing(
             for file in files {
                 let (desciptor, source, parser) =
                     components.setup(&options.inherit(SourceOrigin::File(file.to_owned())))?;
-                let producer = MessageProducer::new(
-                    parser,
-                    source,
-                    Writer::new(state.clone(), state.add_source(desciptor).await?),
-                );
+                let mut writer = Writer::new(state.clone(), state.add_source(desciptor).await?);
+                let producer = MessageProducer::new(parser, source, &mut writer);
                 run_producer(operation_api.clone(), state.clone(), producer, None, None).await?;
             }
             Ok(Some(()))
@@ -173,7 +170,7 @@ enum Next {
 pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    mut producer: MessageProducer<P, S, W>,
+    mut producer: MessageProducer<'_, P, S, W>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
