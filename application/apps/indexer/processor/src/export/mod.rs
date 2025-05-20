@@ -40,7 +40,7 @@ pub enum ExportError {
 /// # Errors
 /// In case of cancellation will return ExportError::Cancelled
 pub async fn export_raw<P, D, W>(
-    mut producer: MessageProducer<P, D, W>,
+    mut producer: MessageProducer<'_, P, D, W>,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,

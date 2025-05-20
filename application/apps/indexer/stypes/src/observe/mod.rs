@@ -85,6 +85,11 @@ pub struct Ident {
     pub uuid: Uuid,
 }
 
+/// Represents the type of a component within the system.
+///
+/// The component type indicates the general domain of responsibility and
+/// functional role of the component. It is used to categorize components
+/// according to their purpose in the data processing pipeline.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Hash)]
 #[extend::encode_decode]
 #[cfg_attr(
@@ -93,9 +98,26 @@ pub struct Ident {
     ts(export, export_to = "observe.ts")
 )]
 pub enum ComponentType {
+    /// A parser used specifically for exporting data.
+    ///
+    /// This kind of parser is not part of the live session processing flow,
+    /// but instead is used to convert raw or structured data into formats
+    /// suitable for external use (e.g., reports, backups, archives).
+    RawParser,
+
+    /// A standard parser used during session processing.
+    ///
+    /// These parsers transform raw input data into a structured representation
+    /// that can be stored in session files and later viewed or analyzed by the user.
     Parser,
+
+    /// A data source component.
+    ///
+    /// Responsible for providing input data to the system, such as reading from
+    /// a file, a network stream, or another external interface.
     Source,
 }
+
 /// Multicast configuration information.
 /// - `multiaddr`: A valid multicast address.
 /// - `interface`: The address of the local interface used to join the multicast group.

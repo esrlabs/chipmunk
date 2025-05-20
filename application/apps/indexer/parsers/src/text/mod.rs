@@ -1,4 +1,4 @@
-pub mod options;
+pub mod descriptor;
 use std::{borrow::Cow, io};
 
 use definitions::*;
