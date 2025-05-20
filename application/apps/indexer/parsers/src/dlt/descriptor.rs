@@ -93,11 +93,11 @@ impl ComponentDescriptor<crate::Parser> for Descriptor {
             None,
             someip_metadata,
             // If it's source - no storage header expected
-            // !matches!(origin, SourceOrigin::Source),
-            true,
+            !matches!(origin, SourceOrigin::Source),
         ))))
     }
 }
+
 impl MetadataDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {

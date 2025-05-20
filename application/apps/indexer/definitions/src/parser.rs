@@ -130,31 +130,3 @@ pub enum MessageStreamItem {
     Skipped,
     Done,
 }
-
-// fn parse_all<F, T>(
-//     input: &[u8],
-//     timestamp: Option<u64>,
-//     min_bytes_count: usize,
-//     mut parse_fn: F,
-// ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<T>>)> + use<'_, F, T>, Error>
-// where
-//     F: FnMut(&[u8], Option<u64>) -> Result<(usize, Option<ParseYield<T>>), Error>,
-// {
-//     let mut slice = input;
-
-//     // return early if function errors on first parse call.
-//     let first_res = parse_fn(slice, timestamp)?;
-
-//     // Otherwise keep parsing and stop on first error, returning the parsed items at the end.
-//     let iter = iter::successors(Some(first_res), move |(consumed, _res)| {
-//         slice = &slice[*consumed..];
-
-//         if slice.len() < min_bytes_count {
-//             return None;
-//         }
-
-//         parse_fn(slice, timestamp).ok()
-//     });
-
-//     Ok(iter)
-// }
