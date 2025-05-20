@@ -25,12 +25,6 @@ export class SessionSourceOrigin {
     static files(paths: string[]): SessionSourceOrigin {
         return new SessionSourceOrigin({ Files: paths }, undefined);
     }
-    static folder(path: string): SessionSourceOrigin {
-        return new SessionSourceOrigin({ Folder: path }, undefined);
-    }
-    static folders(paths: string[]): SessionSourceOrigin {
-        return new SessionSourceOrigin({ Folders: paths }, undefined);
-    }
     static source(): SessionSourceOrigin {
         return new SessionSourceOrigin('Source', undefined);
     }
@@ -71,12 +65,8 @@ export class SessionSourceOrigin {
             return `Source`;
         } else if ((this.origin as { File: string }).File) {
             return (this.origin as { File: string }).File;
-        } else if ((this.origin as { Folder: string }).Folder) {
-            return (this.origin as { Folder: string }).Folder;
         } else if ((this.origin as { Files: string[] }).Files) {
             return `${(this.origin as { Files: string[] }).Files.length} files`;
-        } else if ((this.origin as { Folders: string[] }).Folders) {
-            return `${(this.origin as { Folders: string[] }).Folders.length} folders`;
         } else {
             return `unknown`;
         }
@@ -90,22 +80,10 @@ export class SessionSourceOrigin {
             };
         } else if ((this.origin as { File: string }).File) {
             return { title: `Selected File`, desctiption: (this.origin as { File: string }).File };
-        } else if ((this.origin as { Folder: string }).Folder) {
-            return {
-                title: `Selected Folder`,
-                desctiption: (this.origin as { Folder: string }).Folder,
-            };
         } else if ((this.origin as { Files: string[] }).Files) {
             return {
                 title: `Collection of Files`,
                 desctiption: `${(this.origin as { Files: string[] }).Files.length} files`,
-            };
-        } else if ((this.origin as { Folders: string[] }).Folders) {
-            return {
-                title: 'Collection of Folder',
-                desctiption: `${
-                    (this.origin as { Folders: string[] }).Folders.length
-                } folders selected`,
             };
         } else {
             return { title: 'Unknown', desctiption: undefined };
