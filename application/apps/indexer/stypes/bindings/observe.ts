@@ -4,7 +4,14 @@ import type { PluginParserSettings } from "./plugins";
 
 export type ComponentDef = { "Source": ComponentOptions } | { "Parser": ComponentOptions };
 
-export type ComponentType = "Parser" | "Source";
+/**
+ * Represents the type of a component within the system.
+ *
+ * The component type indicates the general domain of responsibility and
+ * functional role of the component. It is used to categorize components
+ * according to their purpose in the data processing pipeline.
+ */
+export type ComponentType = "RawParser" | "Parser" | "Source";
 
 /**
  * Settings for the DLT parser.
@@ -134,7 +141,7 @@ export type SomeIpParserSettings = {
  */
 fibex_file_paths: Array<string> | null, };
 
-export type SourceOrigin = { "File": string } | { "Files": Array<string> } | { "Folder": string } | { "Folders": Array<string> } | "Source";
+export type SourceOrigin = { "File": string } | { "Files": Array<string> } | "Source";
 
 /**
  * Configuration for TCP connections.
