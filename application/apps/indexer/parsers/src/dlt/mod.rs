@@ -16,6 +16,7 @@ pub use dlt_core::{
     filtering::{DltFilterConfig, ProcessedDltFilterConfig},
 };
 use serde::Serialize;
+use stypes::{NativeError, NativeErrorKind, Severity};
 
 /// The most likely minimal bytes count needed to parse a DLT message.
 const MIN_MSG_LEN: usize = 20;
@@ -146,5 +147,13 @@ impl Parser for DltParser {
     }
     fn min_msg_len(&self) -> usize {
         MIN_MSG_LEN
+    }
+}
+
+fn to_native_cfg_err<S: ToString>(msg: S) -> NativeError {
+    NativeError {
+        severity: Severity::ERROR,
+        kind: NativeErrorKind::Configuration,
+        message: Some(msg.to_string()),
     }
 }

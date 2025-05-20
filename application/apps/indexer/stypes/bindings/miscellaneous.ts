@@ -57,7 +57,7 @@ nature: number, };
  */
 export type GrabbedElementList = Array<GrabbedElement>;
 
-export type MapKeyValue = { [key in string]?: string };
+export type MapKeyValue = Map<string, string>;
 
 /**
  * Representation of ranges. We cannot use std ranges as soon as no way

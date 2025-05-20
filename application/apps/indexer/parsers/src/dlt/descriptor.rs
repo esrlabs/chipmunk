@@ -7,9 +7,9 @@ use dlt_core::{
         common::{StatisticInfo, StatisticInfoCollector},
     },
 };
+use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
-use std::{collections::HashMap, path::PathBuf};
 use stypes::{
     FieldDesc, NativeError, NativeErrorKind, Severity, SourceOrigin, StaticFieldDesc, Value,
     ValueInput,
@@ -45,14 +45,6 @@ impl fmt::Display for StatFields {
                 Self::EcuIds => "ecu_ids",
             }
         )
-    }
-}
-
-fn to_native_cfg_err<S: ToString>(msg: S) -> NativeError {
-    NativeError {
-        severity: Severity::ERROR,
-        kind: NativeErrorKind::Configuration,
-        message: Some(msg.to_string()),
     }
 }
 

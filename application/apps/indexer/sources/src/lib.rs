@@ -107,6 +107,8 @@ impl definitions::ByteSource for Source {
     }
 }
 
+// TODO: this registration function will fail if some of source would not be registred. That's wrong.
+// If some of sources are failed, another sources should still be registred as well
 pub fn registration<P>(components: &mut Components<Source, P>) -> Result<(), stypes::NativeError> {
     components.add_source(binary::raw::Descriptor::default())?;
     components.add_source(binary::pcap::legacy::Descriptor::default())?;
