@@ -111,6 +111,8 @@ pub enum OperationKind {
         delimiter: Option<String>,
     },
     ExportRaw {
+        setup: stypes::SessionSetup,
+        components: Arc<Components<sources::Source, parsers::Parser>>,
         out_path: PathBuf,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
     },
@@ -364,11 +366,17 @@ impl OperationAPI {
                     )
                     .await;
                 }
-                OperationKind::ExportRaw { out_path, ranges } => {
+                OperationKind::ExportRaw {
+                    setup,
+                    components,
+                    out_path,
+                    ranges,
+                } => {
                     api.finish(
-                        handlers::export_raw::execute_export(
-                            &api.cancellation_token(),
-                            state,
+                        handlers::export_raw::export(
+                            api.clone(),
+                            setup,
+                            components,
                             out_path,
                             ranges,
                         )

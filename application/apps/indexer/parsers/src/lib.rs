@@ -8,6 +8,7 @@ pub mod someip;
 pub mod text;
 
 pub enum Parser {
+    DltRaw(dlt::raw::DltRawParser),
     Dlt(dlt::DltParser),
     SomeIp(someip::SomeipParser),
     Text(text::StringTokenizer),
@@ -27,6 +28,7 @@ impl definitions::Parser for Parser {
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
         match self {
             Self::Dlt(inst) => inst.parse(input, timestamp),
+            Self::DltRaw(inst) => inst.parse(input, timestamp),
             Self::SomeIp(inst) => inst.parse(input, timestamp),
             Self::Text(inst) => inst.parse(input, timestamp),
         }
@@ -34,6 +36,7 @@ impl definitions::Parser for Parser {
     fn min_msg_len(&self) -> usize {
         match self {
             Self::Dlt(inst) => inst.min_msg_len(),
+            Self::DltRaw(inst) => inst.min_msg_len(),
             Self::SomeIp(inst) => inst.min_msg_len(),
             Self::Text(inst) => inst.min_msg_len(),
         }
@@ -41,8 +44,9 @@ impl definitions::Parser for Parser {
 }
 
 pub fn registration<S>(components: &mut Components<S, Parser>) -> Result<(), stypes::NativeError> {
-    components.add_parser(dlt::options::Descriptor::default())?;
-    components.add_parser(someip::options::Descriptor::default())?;
-    components.add_parser(text::options::Descriptor::default())?;
+    components.add_parser(dlt::descriptor::Descriptor::default())?;
+    components.add_parser(dlt::raw::descriptor::Descriptor::default())?;
+    components.add_parser(someip::descriptor::Descriptor::default())?;
+    components.add_parser(text::descriptor::Descriptor::default())?;
     Ok(())
 }
