@@ -43,6 +43,8 @@ impl definitions::Parser for Parser {
     }
 }
 
+// TODO: this registration function will fail if some of parser would not be registred. That's wrong.
+// If some of parsers are failed, another parsers should still be registred as well
 pub fn registration<S>(components: &mut Components<S, Parser>) -> Result<(), stypes::NativeError> {
     components.add_parser(dlt::descriptor::Descriptor::default())?;
     components.add_parser(dlt::raw::descriptor::Descriptor::default())?;
