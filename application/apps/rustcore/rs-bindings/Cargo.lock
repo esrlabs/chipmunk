@@ -564,7 +564,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "stypes",
- "thiserror 2.0.3",
+ "thiserror 2.0.12",
  "tokio",
  "tokio-util",
  "uuid",
@@ -889,7 +889,7 @@ dependencies = [
  "etherparse",
  "serde",
  "stypes",
- "thiserror 2.0.3",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -2453,7 +2453,6 @@ dependencies = [
  "definitions",
  "dlt-core",
  "file-tools",
- "humantime",
  "lazy_static",
  "log",
  "memchr",
@@ -2463,7 +2462,6 @@ dependencies = [
  "someip-messages",
  "someip-payload",
  "someip-tools",
- "thiserror 2.0.12",
  "stypes",
  "tokio",
  "tokio-util",
@@ -2823,7 +2821,7 @@ checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
 dependencies = [
  "getrandom",
  "libredox",
- "thiserror 2.0.3",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
