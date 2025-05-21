@@ -22,8 +22,8 @@
         left:0;
         right: 0;
         padding: 0 8px;
-        background: @scheme-color-5;
-        box-shadow: 0 3px 3px @scheme-color-7;
+        background: var(--scheme-color-5);
+        box-shadow: 0 3px 3px var(--scheme-color-7);
         height: 48px;
         overflow: hidden;
         & *.entity {
@@ -33,7 +33,7 @@
             left:0;
             right: 0;
             padding: 0 8px;
-            background: @scheme-color-5;
+            background: var(--scheme-color-5);
             height: 48px;
             &.filler {
                 flex: auto;
@@ -42,7 +42,7 @@
                 justify-content: end;
             }
             &.info {
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
                 white-space: nowrap;
                 align-items: center;
                 flex: auto;
@@ -63,7 +63,7 @@
                 }
             }
             & p.info {
-                color: @scheme-color-2;
+                color: var(--scheme-color-2);
                 white-space: nowrap;
             }
         }

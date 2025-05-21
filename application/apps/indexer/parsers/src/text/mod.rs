@@ -5,6 +5,9 @@ use definitions::*;
 use serde::Serialize;
 use stypes::NativeError;
 
+/// The most likely minimal bytes count needed to parse a text message.
+const MIN_MSG_LEN: usize = 1;
+
 pub struct StringTokenizer {}
 
 #[derive(Debug, PartialEq, Eq, Serialize)]
@@ -64,28 +67,26 @@ impl Parser for StringTokenizer {
 
 #[cfg(test)]
 mod tests {
-    use crate::Parser;
-
     use super::*;
 
     #[test]
     fn multiple_parse_calls() {
         let mut parser = StringTokenizer {};
         let content = b"hello\nworld\n";
-        let (consumed_1, first_msg) = parser.parse_item(content, None).unwrap();
+        let (consumed_1, first_msg) = parser.parse(content, None).unwrap().next().unwrap();
         match first_msg {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
             _ => panic!("First message did not match"),
         }
         let rest_1 = &content[consumed_1..];
         println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
-        let (consumed_2, second_msg) = parser.parse_item(rest_1, None).unwrap();
+        let (consumed_2, second_msg) = parser.parse(rest_1, None).unwrap().next().unwrap();
         match second_msg {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
             _ => panic!("Second message did not match"),
         }
         let rest_2 = &rest_1[consumed_2..];
-        let (consumed_3, third_msg) = parser.parse_item(rest_2, None).unwrap();
+        let (consumed_3, third_msg) = parser.parse(rest_2, None).unwrap().next().unwrap();
         println!(
             "rest_3 = {:?}",
             String::from_utf8_lossy(&rest_2[consumed_3..])
