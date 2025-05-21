@@ -61,21 +61,6 @@ impl DltParser {
             offset: 0,
         }
     }
-}
-
-impl From<DltParseError> for Error {
-    fn from(value: DltParseError) -> Self {
-        match value {
-            DltParseError::Unrecoverable(e) | DltParseError::ParsingHickup(e) => {
-                Error::Parse(e.to_string())
-            }
-            DltParseError::IncompleteParse { needed: _ } => Error::Incomplete,
-        }
-    }
-}
-
-impl<'m> SingleParser<FormattableMessage<'m>> for DltParser<'m> {
-    const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
     fn parse_item(
         &mut self,

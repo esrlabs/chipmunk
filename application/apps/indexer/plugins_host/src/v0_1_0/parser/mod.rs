@@ -148,7 +148,7 @@ impl defs::Parser for PluginParser {
             Ok(results) => results?,
             Err(call_err) => {
                 // Wasmtime uses anyhow error, which provides error context in debug print only.
-                return Err(p::Error::Unrecoverable(format!(
+                return Err(defs::ParserError::Unrecoverable(format!(
                     "Call parse on the plugin failed. Error: {call_err:?}"
                 )));
             }
