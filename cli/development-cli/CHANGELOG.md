@@ -4,6 +4,20 @@
 
 * Include Plugin API target & related functionality and tests.
 
+
+# 0.4.3
+
+## Added:
+
+* Check for minimum needed versions for external tools used in Chipmunk development.
+* Option to skip environment checks via CLI argument or User configurations.
+
+# 0.4.2
+
+## Changes:
+
+* Include Chipmunk CLI tool in release command.
+
 # 0.4.1
 
 ## Changes:

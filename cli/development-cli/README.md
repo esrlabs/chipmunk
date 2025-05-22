@@ -94,6 +94,9 @@ Options:
           - print:     Outputs each job's result to stdout once the job finishes. No progress bars are displayed. [aliases: 'p']
           - immediate: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed. [aliases: 'i']
 
+  -s, --skip-env-checks
+          Skip development environment checks.
+
   -a, --additional-features <ADDITIONAL_FEATURES>
           Specifies additional features to be enabled in the build process
 
@@ -135,6 +138,9 @@ shell = "sh"
 #   - `print`: Outputs each job's result to stdout once the job finishes. No progress bars are displayed.
 #   - `immediate`: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed.
 ui_mode = "bars"
+
+# Skip environment checks before running development commands.
+skip_env_checks = false
 
 # Specifies additional features to enable during the build process.
 # Options:

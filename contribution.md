@@ -1,162 +1,167 @@
 # Contributing
 
-Chipmunk uses [Rust](https://www.rust-lang.org/) for processing the log files while frontend application is built using the [ElectronJS](https://www.electronjs.org/)
- 
-## Chipmunk Development CLI Tool
-With the new [Chipmunk Development CLI Tool](cli/README.md), you can perform various Chipmunk development tasks without the need to install Ruby.
+Thank you for your interest in contributing to Chipmunk! This document provides a guide to setting up your development environment and making contributions. Chipmunk is developed using [Rust](https://www.rust-lang.org/) for the backend processing and [ElectronJS](https://www.electronjs.org/) for the frontend application.
 
-## Pre-requisite
+## Prerequisites
 
-To build and run chipmunk on local you will need following languages installed on your system.
+To build and run Chipmunk locally, ensure you have the following languages installed on your system:
 1. Rust
 2. NodeJS
-3. Ruby (Not needed with the new [Chipmunk Development CLI Tool](cli/development-cli/README.md))
 
-To check if you have all the pre-requisite installed or not, chipmunk provides the shell
-script for this purpose. After cloning the repo run following command in your preferred terminal.
+To conveniently check if all prerequisites are met, you can run the provided shell script from the root of the repository in your terminal:
 
-```
+```sh
 sh developing/scripts/check.sh
 ```
 
-If everything is installed then script should print success messages.
-If all pre-requisite are satisfied, [install](#installing-dependencies) dependencies.
-Follow steps below for installing the missing dependencies.
+If the script indicates success (e.g., prints success messages), you have all necessary prerequisites and can proceed to [installing dependencies](#installing-dependencies). 
+If the script reports that prerequisites are missing, please install them before continuing with the setup.
 
 ### Installing Rust
-To install the Rust, use the Rust version manager called **rustup** which will automatically install
-the Rust on local. Run following command in the terminal.
+The recommended way to install Rust is by using **rustup**, the official Rust version manager. Run the following command in your terminal:
 
-```
+```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-Once command finishes processing, check the installed Rust version using
+This command downloads and runs the `rustup` installer. After installation, you can verify the installed Rust version by running:
 
-```
+```sh
 rustc --version
 ```
 
 which should print the Rust version on terminal.
 
 ### Installing NodeJS
-To install the NodeJS, install NVM(Node Version Manager). Follow [installation](https://github.com/nvm-sh/nvm)
-guide for installing NVM on local. Once NVM in ready on your local, install NodeJS using
 
-```
+We recommend using NVM (Node Version Manager) to install and manage Node.js versions. Please follow the [NVM installation guide](https://github.com/nvm-sh/nvm) first.
+
+Once NVM is installed and configured, you can install the latest Long Term Support (LTS) version of Node.js by running:
+
+```sh
 nvm install --lts
 ```
+Verify that Node.js is installed correctly by running:
 
-which will install latest long term NodeJS version. Check if node is installed or not using
-
-```
+```sh
 node -v
 ```
 
-which will print the installed NodeJS version on terminal.
+This will print the installed Node.js version in your terminal.
 
+### Installing Yarn
 
-> [!TIP] 
-> You can use the new [Chipmunk Development CLI Tool](cli/development-cli/README.md) instead of Ruby & `rake`
+Chipmunk uses [Yarn](https://yarnpkg.com/) for managing frontend dependencies. While the project specifies a particular Yarn version via Corepack, our current setup still checks for a global Yarn installation.
 
-### Installing Ruby
-You must have latest Ruby installed on your system. Prefer your choice of version manager
-either [RBENV](https://github.com/rbenv/rbenv) or [RVM](https://rvm.io/).
-Once version manager is ready to use, install Ruby version `>=2.7.7`.
+First, install Yarn globally using `npm`:
 
-### Installing dependencies
-This project uses few dependencies from other languages and to install them run
-following command in terminal.
-
-```
-sh developing/scripts/install.sh
-```
-
-We are using [yarn](https://yarnpkg.com/) as a package manager. Installing yarn is simple
-as you just have to run following command in the terminal.
-
-```
+```sh
 npm install -g yarn
 ```
 
+Additionally, this project enforces a required Yarn version specified in its `package.json` file to ensure consistent dependency management across all development environments. To automatically use this project-defined version, you need to enable **Corepack**:
+
+```sh
+corepack enable
+```
+
+Enabling Corepack ensures that when you run `yarn` commands within the Chipmunk project directory, NodeJS will automatically use the version specified by the project, even if a different version is installed globally.
+
+### Installing Project Dependencies
+
+This project relies on external dependencies for both the Rust backend and the Electron/Node.js frontend. To install all necessary project dependencies and tools, run the following script from the repository root:
+
+```sh
+sh developing/scripts/install.sh
+```
+
+This script will handle installing dependencies required for building and running Chipmunk.
+
+### Installing Chipmunk Development CLI Tool
+
+A custom Command Line Interface (CLI) tool has been implemented to provide an easier way to manage various development tasks specific to Chipmunk.
+
+For installation steps and detailed documentation regarding the Chipmunk Development CLI tool, please refer to its dedicated README file: [Chipmunk Development CLI Tool Documentation](cli/development-cli/README.md).
+
+
 ## Build
-As mentioned earlier backend is built in Rust which takes care of reading the log files
-and frontend app is built using Electron JS.
 
-When you are running application first time on your local it is good idea to clean everything
-and build and start the new application in the development configuration.
+Chipmunk consists of a Rust backend for log processing, an Electron/Angular frontend application, and smaller libraries facilitating communication between them. Development tasks across these different components are managed using the [Chipmunk Development CLI Tool](cli/development-cli/README.md).
 
-```bash
-rake clean
-rake build_dev
-rake run_dev
+This tool simplifies common operations such as building, linting, and running various parts of Chipmunk. It automatically handles project dependencies and tracks changes in source files, ensuring that only necessary components are rebuilt.
+For comprehensive details on all available commands and functionalities, please consult the documentation for the development CLI tool.
+
+### Building the Application
+
+Use the development CLI tool to build the Chipmunk application:
+
+```sh
+# For development build
+cargo chipmunk build app
+
+# For production build
+cargo chipmunk build app -p
 ```
-Which will open Chipmunk user interface, Yay!
+These commands automatically determine and build only the components that have changed since the last build, optimizing build times.
 
-To build and start the app in the production configuration you can use
+### Running the Application
 
-```bash
-rake clean
-rake build_prod
-rake run_prod
+You can similarly use the run command to start the Chipmunk application:
+
+```sh
+# Run in development
+cargo chipmunk run
+
+# Run in production
+cargo chipmunk run -p
 ```
+The run command automatically performs any necessary builds of modified components before launching the application interface, Yay!
 
-Most of the day-to-day task are written using Rake from Ruby. You can list all the tasks by
+### Development CLI Help
 
-```
-rake -T
-```
+To explore the full range of commands and options available with the `cargo chipmunk` development tool, use the `--help` flag:
 
-It's recommended to rebuild the app incrementally and run the app after changes using 
-
-```bash
-rake run_dev  #or rake run_prod for production configuration
-```
-
-### Changes in ElectronJS code
-You don't need to update the Rust binary, just run the ElectronJS application.
-
-```
-cd application/holder
-yarn run electron
-```
-
-### Changes in Frontend part
-```
-cd application/holder
-rake client:build_dev   #or rake client:build_prod for production configuration
-yarn run electron
+To list all top-level commands:
+```sh
+cargo chipmunk --help
 ```
 
-With this you can take a look at the open issues and open a PR to fix them.
+To view options for a specific command (for example, the `build` command):
+```sh
+cargo chipmunk build --help
+```
 
 ## Creating your first PR
-Before opening up the PR please fork the repo and check for code smells or any issues using
 
-```bash
-rake lint:all
+Before submitting a Pull Request (PR), please run the linters and tests using the development CLI tool. This helps ensure your changes follow the project's coding style and pass basic automated checks.
+
+To check for formatting issues, code smells, or potential errors, run the linters:
+
+Run linters for the entire project:
+```sh
+cargo chipmunk lint
 ```
 
 To run linting for the backend only you can use
 
-```bash
-rake lint:rust
+```sh
+cargo chipmunk lint core binding
 ```
 
 To run linting for the frontend only you can use
 
-```bash
-rake lint:js
+```sh
+cargo chipmunk lint shared wrapper client app
 ```
 
-Make sure your changes are covered by valid test cases and check if all test cases are passing
-by executing following task
+Ensure your changes are covered by appropriate test cases. Run all test cases to verify that everything is working as expected:
 
+```sh
+cargo chipmunk test
 ```
-rake test:all
-```
-**Note -** If any changes are made to the development cli tool, make sure to add the label "build-cli" to the PR. This would ensure that all the integration tests for the cli tool are run, which are otherwise not required.
 
 ## Reporting Issues
-If you find scope for improvement or any bug in the processing, please log
-issue on GitHub.
+
+Your contributions through bug reports and suggestions are greatly appreciated!
+
+If you discover any bugs, have suggestions for improvements, or identify potential issues within Chipmunk, please report them by opening a new issue on the project's GitHub repository. When reporting bugs, providing a clear description and steps to reproduce the issue is very helpful.

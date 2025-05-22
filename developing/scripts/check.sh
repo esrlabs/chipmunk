@@ -1,11 +1,5 @@
 #!/bin/bash
 ERRORS=0;
-if ruby -v &>/dev/null; then
-    echo "ruby is OK"
-else
-    ERRORS=1;
-    echo "ruby is missed.";
-fi
 if node -v &>/dev/null; then
     echo "NodeJS is OK"
 else
@@ -42,6 +36,14 @@ else
     ERRORS=1;
     echo "nj-cli is missed. (cargo install nj-cli)";
 fi
+
+if cargo chipmunk --help &>/dev/null; then
+  echo "cargo chipmunk is OK"
+else
+  ERRORS=1;
+  echo "cargo chipmunk is missing. (cargo install --path=cli/development-cli/)"
+fi
+
 if (($ERRORS>0)); then
     exit 1
 else

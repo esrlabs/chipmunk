@@ -31,16 +31,8 @@ impl IndexSection {
     }
 
     pub fn left(&mut self, offset: usize) {
-        self.first_line = if self.first_line < offset {
-            0
-        } else {
-            self.first_line - offset
-        };
-        self.last_line = if self.last_line < offset {
-            0
-        } else {
-            self.last_line - offset
-        };
+        self.first_line = self.first_line.saturating_sub(offset);
+        self.last_line = self.last_line.saturating_sub(offset);
     }
 
     pub fn from(range: &RangeInclusive<u64>) -> Self {
