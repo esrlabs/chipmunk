@@ -4,7 +4,7 @@
 mod bindings;
 mod parser_plugin_state;
 
-use components::MetadataDescriptor;
+use components::ComponentDescriptor;
 use futures::executor::block_on;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use wasmtime::{
@@ -169,7 +169,7 @@ impl defs::Parser for PluginParser {
 #[derive(Default)]
 struct Descriptor {}
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
         true
     }

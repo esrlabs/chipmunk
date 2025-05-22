@@ -1,7 +1,7 @@
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::socket::{handle_buff_capacity, BuffCapacityState};
 use bufread::DeqBuffer;
-use components::{ComponentDescriptor, MetadataDescriptor};
+use components::{ComponentFactory, ComponentDescriptor};
 use definitions::*;
 use log::trace;
 use std::{
@@ -140,7 +140,7 @@ const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentDescriptor<crate::Source> for Descriptor {
+impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
@@ -150,7 +150,7 @@ impl ComponentDescriptor<crate::Source> for Descriptor {
     }
 }
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         match origin {
             SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
