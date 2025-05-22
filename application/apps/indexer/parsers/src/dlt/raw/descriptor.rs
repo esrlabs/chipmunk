@@ -1,5 +1,5 @@
 use super::*;
-use components::{ComponentDescriptor, MetadataDescriptor};
+use components::{ComponentFactory, ComponentDescriptor};
 use stypes::SourceOrigin;
 use tokio_util::sync::CancellationToken;
 
@@ -10,7 +10,7 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentDescriptor<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
         origin: &SourceOrigin,
@@ -23,7 +23,7 @@ impl ComponentDescriptor<crate::Parser> for Descriptor {
     }
 }
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
