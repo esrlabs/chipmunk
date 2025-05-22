@@ -1,0 +1,30 @@
+@import '../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    &.field {
+        display: inline-block;
+        padding: 2px;
+        margin: 6px;
+        height: 42px;    
+    }
+    &.panel {
+        display: block;
+        width: auto;
+        height: auto;
+    }
+    p.title {
+        display: block;
+        color: var(--scheme-color-2);
+        padding: 3px 0px 0 16px;
+    }
+    p.error {
+        color: var(--scheme-color-error-light);
+    }
+    div.loading {
+        position: relative;
+        height: 2px;
+        width: 100%;
+    }
+}

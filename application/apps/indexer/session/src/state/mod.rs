@@ -1,5 +1,4 @@
 use log::{debug, error};
-use parsers;
 use processor::{
     grabber::LineRange,
     map::SearchMap,
@@ -496,7 +495,7 @@ impl SessionState {
 
     fn handle_add_attachment(
         &mut self,
-        origin: parsers::Attachment,
+        origin: definitions::Attachment,
         tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
     ) -> Result<(), stypes::NativeError> {
         let attachment = self.attachments.add(origin)?;
@@ -551,6 +550,19 @@ pub async fn run(
                         stypes::NativeError::channel("Failed to respond to Api::WriteSessionFile")
                     })?;
             }
+            Api::SendToSessionFile(source_id, content) => {
+                if let Err(err) = state
+                    .handle_write_session_file(
+                        source_id,
+                        state_cancellation_token.clone(),
+                        tx_callback_events.clone(),
+                        content,
+                    )
+                    .await
+                {
+                    error!("Fail to write session file: {err}")
+                }
+            }
             Api::FlushSessionFile(tx_response) => {
                 let res = state
                     .handle_flush_session_file(
@@ -583,16 +595,9 @@ pub async fn run(
                     stypes::NativeError::channel("Failed to respond to Api::UpdateSession")
                 })?;
             }
-            Api::AddSource((uuid, tx_response)) => {
+            Api::AddSource(descriptor, tx_response) => {
                 tx_response
-                    .send(state.session_file.sources.add_source(uuid))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::AddSource")
-                    })?;
-            }
-            Api::GetSource((uuid, tx_response)) => {
-                tx_response
-                    .send(state.session_file.sources.get_source(uuid))
+                    .send(state.session_file.sources.add_source(descriptor))
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::AddSource")
                     })?;

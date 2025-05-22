@@ -1,12 +1,14 @@
-use crate::{
-    binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    TransportProtocol,
-};
+use crate::{binary::pcap::debug_block};
+use definitions::*;
 use bufread::DeqBuffer;
+use components::{ComponentFactory, ComponentDescriptor};
 use etherparse::{SlicedPacket, TransportSlice};
+use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
-use std::io::Read;
+use std::{fs::File, io::Read, path::Path};
+use stypes::SourceOrigin;
+
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
@@ -157,6 +159,106 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
     }
 }
 
+pub struct PcapLegacyByteSourceFromFile {
+    inner: PcapLegacyByteSource<File>,
+}
+
+impl PcapLegacyByteSourceFromFile {
+    pub fn new<P: AsRef<Path>>(filename: P) -> Result<Self, stypes::NativeError> {
+        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+            File::open(filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail open file {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            })
+        }
+        Ok(Self {
+            inner: PcapLegacyByteSource::new(input_file(filename.as_ref())?).map_err(|err|stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(err.to_string()),
+            })?,
+        })
+    }
+}
+
+
+impl ByteSource for PcapLegacyByteSourceFromFile {
+    async fn load(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
+        self.inner.load(filter).await
+    }
+
+    fn current_slice(&self) -> &[u8] {
+        self.inner.current_slice()
+    }
+    fn consume(&mut self, offset: usize) {
+        self.inner.consume(offset)
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+
+const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
+]);
+
+#[derive(Default)]
+pub struct Descriptor {}
+
+impl ComponentFactory<crate::Source> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        let files = match origin {
+            SourceOrigin::File(filepath) => {
+                vec![filepath]
+            }
+            SourceOrigin::Files(files) => files.iter().collect(),
+            SourceOrigin::Source => {
+                return false;
+            }
+        };
+        files.iter().any(|fp| {
+            fp.extension()
+                .map(|ext| ext.to_ascii_lowercase() == "pcap")
+                .unwrap_or_default()
+        }) &&        
+        // If at least some file doesn't exist or not binary - do not recommend this source
+        !files
+            .into_iter()
+            .any(|f| !f.exists() || !is_binary(f.to_string_lossy().to_string()).unwrap_or_default())
+    }
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("PCAP Source"),
+            desc: String::from("PCAP Source"),
+            uuid: PCAP_SOURCE_UUID,
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
 
@@ -221,7 +323,7 @@ mod tests {
             0x81, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02, 0x00,
             0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x01, 0x00, 0x00, 0x20, 0x00, 0x7b,
             0x00, 0x01, 0x01, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18,
-            0x00, 0x09, 0x04, 0x00, 0xc0, 0xa8, 0xb2, 0x3a, 0x00, 0x11, 0x75, 0x30, 0x00, 0x09,
+            0x00, 0x09, 0x04, 0x00, 0xc0, 0xa8, 0xb2, 0x3a, 0x00, 0x11, 0x75, 0x30, 0x00, 0x10,
             0x04, 0x00, 0xc0, 0xa8, 0xb2, 0x3a, 0x00, 0x06, 0x75, 0x30, 0x52, 0x90, 0x5a, 0x64,
             0x08, 0xda, 0x0e, 0x00, 0x62, 0x00, 0x00, 0x00, 0x62, 0x00, 0x00, 0x00, 0x01, 0x00,
             0x5e, 0x40, 0xff, 0xfb, 0xb8, 0x27, 0xeb, 0x1d, 0x24, 0xc9, 0x08, 0x00, 0x45, 0x00,

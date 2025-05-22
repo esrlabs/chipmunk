@@ -1,5 +1,4 @@
 use mime_guess;
-use parsers::{self};
 use std::{
     collections::HashMap,
     fs::{create_dir, File},
@@ -105,7 +104,7 @@ impl Attachments {
     }
 
     pub fn get_attch_from(
-        origin: parsers::Attachment,
+        origin: definitions::Attachment,
         store_folder: &PathBuf,
     ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
         if !store_folder.exists() {
@@ -152,7 +151,7 @@ impl Attachments {
 
     pub fn add(
         &mut self,
-        attachment: parsers::Attachment,
+        attachment: definitions::Attachment,
     ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
         if let Some(dest) = self.dest.as_ref() {
             let uuid = Uuid::new_v4();

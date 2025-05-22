@@ -1,12 +1,13 @@
-use crate::{
-    binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    TransportProtocol,
-};
+use crate::{binary::pcap::debug_block};
+use definitions::*;
 use bufread::DeqBuffer;
+use components::{ComponentFactory,ComponentDescriptor};
 use etherparse::{SlicedPacket, TransportSlice};
+use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
-use std::io::Read;
+use std::{fs::File, io::Read, path::Path};
+use stypes::SourceOrigin;
 
 pub struct PcapngByteSource<R: Read> {
     pcapng_reader: PcapNGReader<R>,
@@ -158,6 +159,104 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
 
     fn len(&self) -> usize {
         self.buffer.read_available()
+    }
+}
+
+pub struct PcapngByteSourceFromFile {
+    inner: PcapngByteSource<File>,
+}
+
+impl PcapngByteSourceFromFile {
+    pub fn new<P: AsRef<Path>>(filename: P) -> Result<Self, stypes::NativeError> {
+        fn input_file(filename: &Path) -> Result<File, stypes::NativeError> {
+            File::open(filename).map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail open file {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            })
+        }
+        Ok(Self {
+            inner: PcapngByteSource::new(input_file(filename.as_ref())?).map_err(|err|stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(err.to_string()),
+            })?,
+        })
+    }
+}
+
+
+impl ByteSource for PcapngByteSourceFromFile {
+    async fn load(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
+        self.inner.load(filter).await
+    }
+
+    fn current_slice(&self) -> &[u8] {
+        self.inner.current_slice()
+    }
+    fn consume(&mut self, offset: usize) {
+        self.inner.consume(offset)
+    }
+
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,
+]);
+
+#[derive(Default)]
+pub struct Descriptor {}
+
+impl ComponentFactory<crate::Source> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        let files = match origin {
+            SourceOrigin::File(filepath) => {
+                vec![filepath]
+            }
+            SourceOrigin::Files(files) => files.iter().collect(),
+            SourceOrigin::Source => {
+                return false;
+            }
+        };
+        files.iter().any(|fp| {
+            fp.extension()
+                .map(|ext| ext.to_ascii_lowercase() == "pcapng")
+                .unwrap_or_default()
+        }) &&        
+        // If at least some file doesn't exist or not binary - do not recommend this source
+        !files
+            .into_iter()
+            .any(|f| !f.exists() || !is_binary(f.to_string_lossy().to_string()).unwrap_or_default())
+    }
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("PCAP NG Source"),
+            desc: String::from("PCAP NG Source"),
+            uuid: PCAPNG_SOURCE_UUID,
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
     }
 }
 

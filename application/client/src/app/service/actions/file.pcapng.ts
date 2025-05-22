@@ -4,6 +4,7 @@ import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_pcap_file';
 
@@ -35,9 +36,7 @@ export class Action extends Base {
                 },
             });
         } else {
-            session
-                .initialize()
-                .configure(new Factory.File().type(files[0].type).file(files[0].filename).get());
+            session.initialize().configure(SessionSourceOrigin.file(files[0].filename));
         }
         return Promise.resolve();
     }

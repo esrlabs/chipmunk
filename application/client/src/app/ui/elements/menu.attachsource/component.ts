@@ -11,6 +11,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionSourceOrigin } from '@service/session/origin';
 
 @Component({
     selector: 'app-attach-new-source-menu',
@@ -39,7 +40,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().tcp().get(), this.session);
+                    .configure(SessionSourceOrigin.source(), this.session);
             },
         },
         {
@@ -48,7 +49,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().udp().get(), this.session);
+                    .configure(SessionSourceOrigin.source(), this.session);
             },
         },
         {
@@ -57,7 +58,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().serial().get(), this.session);
+                    .configure(SessionSourceOrigin.source(), this.session);
             },
         },
         null,
@@ -67,7 +68,7 @@ export class AttachSourceMenu extends ChangesDetector {
             handler: () => {
                 this.ilc()
                     .services.system.session.initialize()
-                    .configure(new Factory.Stream().process().get(), this.session);
+                    .configure(SessionSourceOrigin.source(), this.session);
             },
         },
     ];

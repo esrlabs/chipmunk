@@ -1,5 +1,7 @@
 use std::{collections::HashMap, ops::RangeInclusive};
 
+use stypes::SessionDescriptor;
+
 pub struct MappedRanges<'a> {
     ranges: Vec<&'a (RangeInclusive<u64>, u16)>,
 }
@@ -22,7 +24,7 @@ impl<'a> MappedRanges<'a> {
 
 #[derive(Debug)]
 pub struct SourceIDs {
-    pub sources: HashMap<u16, String>,
+    pub sources: HashMap<u16, SessionDescriptor>,
     pub map: Vec<(RangeInclusive<u64>, u16)>,
     pub recent: Option<u16>,
 }
@@ -36,16 +38,10 @@ impl SourceIDs {
         }
     }
 
-    pub fn add_source(&mut self, alias: String) -> u16 {
+    pub fn add_source(&mut self, descriptor: SessionDescriptor) -> u16 {
         let key = self.sources.len() as u16;
-        self.sources.insert(key, alias);
+        self.sources.insert(key, descriptor);
         key
-    }
-
-    pub fn get_source(&mut self, alias: String) -> Option<u16> {
-        self.sources
-            .iter()
-            .find_map(|(key, val)| if val == &alias { Some(*key) } else { None })
     }
 
     pub fn is_source_same(&self, source_id: u16) -> bool {
@@ -78,9 +74,9 @@ impl SourceIDs {
     pub fn get_sources_definitions(&self) -> Vec<stypes::SourceDefinition> {
         self.sources
             .iter()
-            .map(|(id, alias)| stypes::SourceDefinition {
+            .map(|(id, descriptor)| stypes::SourceDefinition {
                 id: *id,
-                alias: alias.to_string(),
+                descriptor: descriptor.clone(),
             })
             .collect::<Vec<stypes::SourceDefinition>>()
     }

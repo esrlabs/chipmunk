@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use components::{ComponentDescriptor, ComponentFactory};
 use stypes::{PluginInfo, SemanticVersion};
 use wasmtime::component::Component;
 
@@ -8,13 +9,10 @@ use crate::{
         load::{load_and_inspect, WasmComponentInfo},
         plugin_errors::PluginError,
     },
-    v0_1_0, PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
+    v0_1_0, PluginHostError, PluginType, WasmPlugin,
 };
 
 pub mod plugin_parse_message;
-
-/// Marker for a column separator in the output string.
-pub const COLUMN_SEP: &str = "\u{0004}";
 
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
 pub struct PluginsParser {
@@ -143,47 +141,73 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginsParser {
-    fn parse(
+use definitions::{self as defs};
+
+impl defs::Parser for PluginsParser {
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
 
         // Check for consecutive errors.
         match &res {
-            Ok(_) | Err(p::Error::Unrecoverable(_)) | Err(p::Error::Eof) => {
+            Ok(_) | Err(defs::ParserError::Unrecoverable(_)) | Err(defs::ParserError::Eof) => {
                 self.errors_counter = 0;
             }
-            Err(p::Error::Parse(err)) => {
+            Err(defs::ParserError::Parse(err)) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::PARSE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(p::Error::Unrecoverable(format!(
+                    return Err(defs::ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable parse errors consecutively\n. Parse Error: {err}",
                         PluginErrorLimits::PARSE_ERROR_LIMIT
                     )));
                 }
             }
-            Err(p::Error::Incomplete) => {
+            Err(defs::ParserError::Incomplete) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::INCOMPLETE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(p::Error::Unrecoverable(format!(
+                    return Err(defs::ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable incomplete errors consecutively",
                         PluginErrorLimits::INCOMPLETE_ERROR_LIMIT
                     )));
                 }
             }
+            Err(defs::ParserError::Native(err)) => {
+                todo!("Not implemented")
+            }
         }
 
         res
+    }
+    fn min_msg_len(&self) -> usize {
+        1
+    }
+}
+
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
+        true
+    }
+    /// **ATTANTION** That's placeholder. Should be another way to delivery data
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Plugin"),
+            desc: String::from("Plugin"),
+            uuid: uuid::Uuid::new_v4(),
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Parser
     }
 }

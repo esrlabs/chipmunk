@@ -10,28 +10,31 @@ crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serialization"] }
 envvars = { workspace = true }
-file-tools = { path = "../addons/file-tools" }
 futures.workspace = true
-indexer_base = { path = "../indexer_base" }
 lazy_static.workspace = true
 log.workspace = true
-merging = { path = "../merging" }
 mime_guess = "2.0"
-parsers = { path = "../parsers" }
-processor = { path = "../processor" }
 rustc-hash = "2.1"
-stypes = { path = "../stypes", features=["rustcore"] }
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
-serialport = "4.6"
-sources = { path = "../sources" }
+serialport.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
-plugins_host = {path = "../plugins_host/"}
+
+indexer_base = { path = "../indexer_base" }
+plugins_host = { path = "../plugins_host/"}
+components = { path = "../components" }
+definitions = { path = "../definitions" }
+stypes = { path = "../stypes", features=["rustcore"] }
+parsers = { path = "../parsers" }
+processor = { path = "../processor" }
+sources = { path = "../sources" }
+merging = { path = "../merging" }
+file-tools = { path = "../addons/file-tools" }
 
 [dev-dependencies]
 lazy_static.workspace = true

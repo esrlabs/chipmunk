@@ -19,7 +19,7 @@ export const handler = Requests.InjectLogger<
             }
             stored
                 .observe()
-                .start(request.observe)
+                .start(request.options)
                 .then(() => {
                     resolve(
                         new Requests.Observe.Start.Response({

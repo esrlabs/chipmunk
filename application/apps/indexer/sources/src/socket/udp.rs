@@ -1,14 +1,16 @@
+use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
+use crate::socket::{handle_buff_capacity, BuffCapacityState};
 use bufread::DeqBuffer;
+use components::{ComponentFactory, ComponentDescriptor};
+use definitions::*;
 use log::trace;
-use std::net::{IpAddr, Ipv4Addr};
+use std::{
+    io::Read,
+    net::{IpAddr, Ipv4Addr},
+};
+use stypes::SourceOrigin;
 use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
-
-use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
-use crate::{
-    socket::{handle_buff_capacity, BuffCapacityState},
-    ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-};
 
 #[derive(Error, Debug)]
 pub enum UdpSourceError {
@@ -128,6 +130,42 @@ impl ByteSource for UdpSource {
 
     fn len(&self) -> usize {
         self.buffer.read_available()
+    }
+}
+
+const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+]);
+
+#[derive(Default)]
+pub struct Descriptor {}
+
+impl ComponentFactory<crate::Source> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        match origin {
+            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
+            SourceOrigin::Source => true,
+        }
+    }
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("UDP Source"),
+            desc: String::from("UDP Source"),
+            uuid: UDP_SOURCE_UUID,
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
     }
 }
 

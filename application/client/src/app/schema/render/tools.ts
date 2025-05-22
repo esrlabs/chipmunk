@@ -8,6 +8,7 @@ import { Observe } from '@platform/types/observe';
 import { plugins } from '@service/plugins';
 
 import * as Parsers from '@platform/types/observe/parser/index';
+import { Columns } from './columns';
 
 const RENDERS: {
     [key: string]: RenderReference<unknown>;
@@ -16,7 +17,9 @@ const RENDERS: {
     [Parsers.Protocol.SomeIp]: SomeIp,
     [Parsers.Protocol.Text]: Text,
 };
-
+export function getDltRender(): Render<Columns> {
+    return new Dlt();
+}
 export async function getRender(observe: Observe): Promise<Render<unknown> | Error> {
     const protocol = observe.parser.instance.alias();
     // Render options on plugins can't be static because they must be retrieved

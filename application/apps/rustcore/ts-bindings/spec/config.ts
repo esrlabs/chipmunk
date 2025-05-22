@@ -76,6 +76,9 @@ export interface IConfiguration {
         observing: {
             regular: IRegularTests;
         };
+        components: {
+            regular: IRegularTests;
+        };
     };
 }
 

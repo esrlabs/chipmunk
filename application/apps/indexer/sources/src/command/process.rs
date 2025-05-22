@@ -1,8 +1,10 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
+use components::{ComponentFactory, ComponentDescriptor};
+use definitions::*;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
-use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
+use std::{collections::HashMap, ffi::OsString, io::Read, path::PathBuf, process::Stdio};
+use stypes::SourceOrigin;
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -223,6 +225,42 @@ impl ByteSource for ProcessSource {
         };
         self.stdin.write_all(bytes).await.map_err(SourceError::Io)?;
         Ok(stypes::SdeResponse { bytes: bytes.len() })
+    }
+}
+
+const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
+]);
+
+#[derive(Default)]
+pub struct Descriptor {}
+
+impl ComponentFactory<crate::Source> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        match origin {
+            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
+            SourceOrigin::Source => true,
+        }
+    }
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Terminal Source"),
+            desc: String::from("Terminal Source"),
+            uuid: TERM_SOURCE_UUID,
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
     }
 }
 

@@ -1,9 +1,10 @@
-use std::{net::SocketAddr, time::Duration};
-
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
+use components::{ComponentFactory, ComponentDescriptor};
+use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
+use std::{io::Read, net::SocketAddr, time::Duration};
+use stypes::SourceOrigin;
 use tokio::net::TcpStream;
 
 use super::{handle_buff_capacity, BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
@@ -165,6 +166,42 @@ impl ByteSource for TcpSource {
 
     fn len(&self) -> usize {
         self.buffer.read_available()
+    }
+}
+
+const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
+    0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+]);
+
+#[derive(Default)]
+pub struct Descriptor {}
+
+impl ComponentFactory<crate::Source> for Descriptor {
+    fn create(
+        &self,
+        _origin: &SourceOrigin,
+        _options: &[stypes::Field],
+    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+        Ok(None)
+    }
+}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+        match origin {
+            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
+            SourceOrigin::Source => true,
+        }
+    }
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("TCP Source"),
+            desc: String::from("TCP Source"),
+            uuid: TCP_SOURCE_UUID,
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Source
     }
 }
 
