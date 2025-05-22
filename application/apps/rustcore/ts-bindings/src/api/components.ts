@@ -10,7 +10,7 @@ import {
     FieldDesc,
     FieldsValidationErrors,
     Ident,
-    SourceOrigin,
+    SessionAction,
 } from 'platform/types/bindings';
 
 export class Components extends Subscriber {
@@ -57,7 +57,7 @@ export class Components extends Subscriber {
         return this.provider.getEvents();
     }
 
-    public get(origin: SourceOrigin): {
+    public get(origin: SessionAction): {
         sources(): Promise<Ident[]>;
         parsers(): Promise<Ident[]>;
     } {
@@ -71,14 +71,14 @@ export class Components extends Subscriber {
         };
     }
 
-    public getOptions(origin: SourceOrigin, targets: string[]): Promise<Map<string, FieldDesc[]>> {
+    public getOptions(origin: SessionAction, targets: string[]): Promise<Map<string, FieldDesc[]>> {
         return this.native
             .getOptions(origin, targets)
             .then((list: ComponentsOptionsList) => list.options);
     }
 
     public validate(
-        origin: SourceOrigin,
+        origin: SessionAction,
         target: string,
         fields: Field[],
     ): Promise<Map<string, string>> {

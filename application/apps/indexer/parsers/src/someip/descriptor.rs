@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use super::SomeipParser;
-use components::{ComponentFactory, ComponentDescriptor, StaticFieldResult};
-use stypes::SourceOrigin;
+use components::{ComponentDescriptor, ComponentFactory, StaticFieldResult};
+use stypes::SessionAction;
 use tokio::{
     select,
     time::{sleep, Duration},
@@ -24,7 +24,7 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Parser>, stypes::NativeError> {
         Ok(None)
@@ -32,13 +32,14 @@ impl ComponentFactory<crate::Parser> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
-            SourceOrigin::File(filepath) => {
+            SessionAction::File(filepath) => {
                 vec![filepath]
             }
-            SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source => return true,
+            SessionAction::Files(files) => files.iter().collect(),
+            SessionAction::Source => return true,
+            SessionAction::ExportRaw(..) => return false,
         };
         files.iter().any(|fp| {
             fp.extension()
@@ -49,7 +50,7 @@ impl ComponentDescriptor for Descriptor {
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, _origin: &SourceOrigin) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         Ok(vec![stypes::FieldDesc::Static(stypes::StaticFieldDesc {
             id: FIELD_LOG_LEVEL.to_owned(),
             name: String::from("Log Level"),
@@ -68,7 +69,7 @@ impl ComponentDescriptor for Descriptor {
     }
     fn lazy_fields_getter(
         &self,
-        _origin: SourceOrigin,
+        _origin: SessionAction,
         cancel: CancellationToken,
     ) -> components::LazyFieldsTask {
         Box::pin(async move {

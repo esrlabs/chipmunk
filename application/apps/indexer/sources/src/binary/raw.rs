@@ -1,5 +1,5 @@
 use bufread::BufReader;
-use components::{ComponentFactory, ComponentDescriptor};
+use components::{ComponentDescriptor, ComponentFactory};
 use definitions::*;
 use file_tools::is_binary;
 use std::{
@@ -7,7 +7,7 @@ use std::{
     io::{BufRead, Read},
     path::Path,
 };
-use stypes::SourceOrigin;
+use stypes::SessionAction;
 
 pub struct BinaryByteSource<R>
 where
@@ -133,11 +133,11 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        origin: &SourceOrigin,
+        origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
         let filename = match origin {
-            SourceOrigin::File(filename) => filename,
+            SessionAction::File(filename) => filename,
             _ => {
                 return Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
@@ -155,13 +155,13 @@ impl ComponentFactory<crate::Source> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
-            SourceOrigin::File(filepath) => {
+            SessionAction::File(filepath) => {
                 vec![filepath]
             }
-            SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source => {
+            SessionAction::Files(files) => files.iter().collect(),
+            SessionAction::Source | SessionAction::ExportRaw(..) => {
                 return false;
             }
         };

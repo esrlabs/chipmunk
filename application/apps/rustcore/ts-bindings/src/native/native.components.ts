@@ -2,7 +2,7 @@ import { scope } from 'platform/env/scope';
 import { getNativeModule } from '../native/native';
 import { Type, Source, NativeError } from '../interfaces/errors';
 import {
-    SourceOrigin,
+    SessionAction,
     IdentList,
     ComponentsOptionsList,
     ComponentType,
@@ -143,7 +143,7 @@ export class Base extends Subscriber {
         });
     }
 
-    public getComponents(origin: SourceOrigin, ty: ComponentType): Promise<IdentList> {
+    public getComponents(origin: SessionAction, ty: ComponentType): Promise<IdentList> {
         const err = this.getSessionAccessErr();
         if (err instanceof Error) {
             return Promise.reject(err);
@@ -151,7 +151,7 @@ export class Base extends Subscriber {
         return new Promise((resolve, reject) => {
             this.native
                 .getComponents(
-                    protocol.encodeSourceOrigin(origin),
+                    protocol.encodeSessionAction(origin),
                     protocol.encodeComponentType(ty),
                 )
                 .then((buf: Uint8Array) => {
@@ -174,14 +174,14 @@ export class Base extends Subscriber {
         });
     }
 
-    public getOptions(origin: SourceOrigin, targets: string[]): Promise<ComponentsOptionsList> {
+    public getOptions(origin: SessionAction, targets: string[]): Promise<ComponentsOptionsList> {
         const err = this.getSessionAccessErr();
         if (err instanceof Error) {
             return Promise.reject(err);
         }
         return new Promise((resolve, reject) => {
             this.native
-                .getOptions(protocol.encodeSourceOrigin(origin), targets)
+                .getOptions(protocol.encodeSessionAction(origin), targets)
                 .then((buf: Uint8Array) => {
                     try {
                         resolve(protocol.decodeComponentsOptionsList(buf));
@@ -203,7 +203,7 @@ export class Base extends Subscriber {
     }
 
     public validate(
-        origin: SourceOrigin,
+        origin: SessionAction,
         target: string,
         fields: Field[],
     ): Promise<FieldsValidationErrors> {
@@ -215,7 +215,7 @@ export class Base extends Subscriber {
         return new Promise((resolve, reject) => {
             this.native
                 .validate(
-                    protocol.encodeSourceOrigin(origin),
+                    protocol.encodeSessionAction(origin),
                     protocol.encodeComponentOptions(options),
                 )
                 .then((buf: Uint8Array) => {

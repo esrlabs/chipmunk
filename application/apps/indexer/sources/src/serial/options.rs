@@ -1,6 +1,6 @@
-use components::{ComponentFactory, ComponentDescriptor, StaticFieldResult};
+use components::{ComponentDescriptor, ComponentFactory, StaticFieldResult};
 use std::{collections::HashMap, io::Read, str};
-use stypes::{FieldDesc, LazyFieldDesc, SourceOrigin, StaticFieldDesc, Value, ValueInput};
+use stypes::{FieldDesc, LazyFieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput};
 
 const SERIAL_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
@@ -31,7 +31,7 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
@@ -39,10 +39,12 @@ impl ComponentFactory<crate::Source> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         match origin {
-            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
-            SourceOrigin::Source => true,
+            SessionAction::File(..) | SessionAction::Files(..) | SessionAction::ExportRaw(..) => {
+                false
+            }
+            SessionAction::Source => true,
         }
     }
     fn ident(&self) -> stypes::Ident {
@@ -55,7 +57,7 @@ impl ComponentDescriptor for Descriptor {
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
     }
-    fn fields_getter(&self, _origin: &stypes::SourceOrigin) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_PATH.to_owned(),
@@ -155,7 +157,7 @@ impl ComponentDescriptor for Descriptor {
     }
     fn lazy_fields_getter(
         &self,
-        _origin: stypes::SourceOrigin,
+        _origin: stypes::SessionAction,
         _cancel: tokio_util::sync::CancellationToken,
     ) -> components::LazyFieldsTask {
         Box::pin(async move {
@@ -176,7 +178,7 @@ impl ComponentDescriptor for Descriptor {
     }
     fn validate(
         &self,
-        _origin: &stypes::SourceOrigin,
+        _origin: &stypes::SessionAction,
         fields: &[stypes::Field],
     ) -> HashMap<String, String> {
         let mut errors = HashMap::new();

@@ -55,23 +55,12 @@ impl<S, P> Components<S, P> {
     pub fn get_components(
         &self,
         target: &stypes::ComponentType,
-        origin: stypes::SourceOrigin,
+        origin: stypes::SessionAction,
     ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
         Ok(self
             .components
             .iter()
             .filter_map(|(_, desc)| match target {
-                stypes::ComponentType::RawParser => {
-                    if let Entry::RawParser(desc) = desc {
-                        if desc.is_compatible(&origin) {
-                            Some(desc.ident())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                }
                 stypes::ComponentType::Parser => {
                     if let Entry::Parser(desc) = desc {
                         if desc.is_compatible(&origin) {
@@ -100,7 +89,7 @@ impl<S, P> Components<S, P> {
 
     pub fn get_options(
         &self,
-        origin: stypes::SourceOrigin,
+        origin: stypes::SessionAction,
         mut targets: Vec<Uuid>,
     ) -> Result<HashMap<Uuid, OptionsScheme>, stypes::NativeError> {
         let descriptors: Vec<&Entry<S, P>> = self
@@ -147,7 +136,7 @@ impl<S, P> Components<S, P> {
 
     pub fn validate(
         &self,
-        origin: &stypes::SourceOrigin,
+        origin: &stypes::SessionAction,
         target: &Uuid,
         fields: &[stypes::Field],
     ) -> Result<HashMap<String, String>, stypes::NativeError> {

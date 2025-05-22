@@ -214,7 +214,7 @@ impl ComponentsSession {
     pub async fn get_options(
         &self,
         targets: Vec<Uuid>,
-        origin: stypes::SourceOrigin,
+        origin: stypes::SessionAction,
     ) -> Result<stypes::ComponentsOptionsList, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         send(
@@ -250,7 +250,7 @@ impl ComponentsSession {
     /// - The response from the API could not be retrieved.
     pub async fn get_components(
         &self,
-        origin: stypes::SourceOrigin,
+        origin: stypes::SessionAction,
         ty: stypes::ComponentType,
     ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
@@ -305,7 +305,7 @@ impl ComponentsSession {
     /// * The response from the validation API cannot be retrieved.
     pub async fn validate(
         &self,
-        source: stypes::SourceOrigin,
+        source: stypes::SessionAction,
         target: Uuid,
         fields: Vec<stypes::Field>,
     ) -> Result<HashMap<String, String>, stypes::NativeError> {
