@@ -1,10 +1,10 @@
 use bufread::DeqBuffer;
-use components::{ComponentFactory, ComponentDescriptor};
+use components::{ComponentDescriptor, ComponentFactory};
 use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{io::Read, net::SocketAddr, time::Duration};
-use stypes::SourceOrigin;
+use stypes::SessionAction;
 use tokio::net::TcpStream;
 
 use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
@@ -179,7 +179,7 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
@@ -187,10 +187,12 @@ impl ComponentFactory<crate::Source> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         match origin {
-            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
-            SourceOrigin::Source => true,
+            SessionAction::File(..) | SessionAction::Files(..) | SessionAction::ExportRaw(..) => {
+                false
+            }
+            SessionAction::Source => true,
         }
     }
     fn ident(&self) -> stypes::Ident {

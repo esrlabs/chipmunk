@@ -7,6 +7,8 @@ mod nodejs;
 #[cfg(test)]
 mod proptest;
 
+use std::ops::RangeInclusive;
+
 #[cfg(feature = "rustcore")]
 pub use extending::*;
 
@@ -20,9 +22,11 @@ use dlt_core::filtering::DltFilterConfig;
     derive(TS),
     ts(export, export_to = "observe.ts")
 )]
-pub enum SourceOrigin {
+/// Описывает операцию, которая должна быть произведена
+pub enum SessionAction {
     File(PathBuf),
     Files(Vec<PathBuf>),
+    ExportRaw(Vec<PathBuf>, Vec<RangeInclusive<u64>>, PathBuf),
     Source,
 }
 
@@ -46,7 +50,7 @@ pub enum ComponentDef {
     ts(export, export_to = "observe.ts")
 )]
 pub struct SessionSetup {
-    pub origin: SourceOrigin,
+    pub origin: SessionAction,
     pub parser: ComponentOptions,
     pub source: ComponentOptions,
 }
@@ -98,13 +102,6 @@ pub struct Ident {
     ts(export, export_to = "observe.ts")
 )]
 pub enum ComponentType {
-    /// A parser used specifically for exporting data.
-    ///
-    /// This kind of parser is not part of the live session processing flow,
-    /// but instead is used to convert raw or structured data into formats
-    /// suitable for external use (e.g., reports, backups, archives).
-    RawParser,
-
     /// A standard parser used during session processing.
     ///
     /// These parsers transform raw input data into a structured representation

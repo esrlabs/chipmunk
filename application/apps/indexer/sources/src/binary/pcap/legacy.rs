@@ -7,7 +7,7 @@ use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
 use std::{fs::File, io::Read, path::Path};
-use stypes::SourceOrigin;
+use stypes::SessionAction;
 
 
 pub struct PcapLegacyByteSource<R: Read> {
@@ -217,7 +217,7 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
@@ -225,13 +225,13 @@ impl ComponentFactory<crate::Source> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
-            SourceOrigin::File(filepath) => {
+            SessionAction::File(filepath) => {
                 vec![filepath]
             }
-            SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source => {
+            SessionAction::Files(files) => files.iter().collect(),
+            SessionAction::Source | SessionAction::ExportRaw(..) => {
                 return false;
             }
         };

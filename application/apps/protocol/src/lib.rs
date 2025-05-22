@@ -205,7 +205,7 @@ gen_encode_decode_fns!(Point);
 gen_encode_decode_fns!(ResultSearchValues);
 gen_encode_decode_fns!(ResultScaledDistribution);
 gen_encode_decode_fns!(DltLevelDistribution);
-gen_encode_decode_fns!(SourceOrigin);
+gen_encode_decode_fns!(SessionAction);
 gen_encode_decode_fns!(IdentList);
 gen_encode_decode_fns!(ComponentsOptionsList);
 gen_encode_decode_fns!(FieldDesc);

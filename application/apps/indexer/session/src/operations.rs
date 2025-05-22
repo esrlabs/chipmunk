@@ -110,12 +110,6 @@ pub enum OperationKind {
         /// An optional string used as the field delimiter within each record in output file. Defaults can be applied if `None`.
         delimiter: Option<String>,
     },
-    ExportRaw {
-        setup: stypes::SessionSetup,
-        components: Arc<Components<sources::Source, parsers::Parser>>,
-        out_path: PathBuf,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-    },
     Extract {
         filters: Vec<SearchFilter>,
     },
@@ -151,7 +145,6 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::Search { .. } => "Searching",
                 OperationKind::SearchValues { .. } => "Searching values",
                 OperationKind::Export { .. } => "Exporting",
-                OperationKind::ExportRaw { .. } => "Exporting as Raw",
                 OperationKind::Extract { .. } => "Extracting",
                 OperationKind::Map { .. } => "Mapping",
                 OperationKind::Values { .. } => "Values",
@@ -314,7 +307,7 @@ impl OperationAPI {
             match operation.kind {
                 OperationKind::Observe(options, components) => {
                     api.finish(
-                        handlers::observe::start_observing(
+                        handlers::observe::observing(
                             api.clone(),
                             state,
                             options,
@@ -362,26 +355,6 @@ impl OperationAPI {
                             .await
                             .map(stypes::ResultBool)
                             .ok()),
-                        operation_str,
-                    )
-                    .await;
-                }
-                OperationKind::ExportRaw {
-                    setup,
-                    components,
-                    out_path,
-                    ranges,
-                } => {
-                    api.finish(
-                        handlers::export_raw::export(
-                            api.clone(),
-                            setup,
-                            components,
-                            out_path,
-                            ranges,
-                        )
-                        .await
-                        .map(|v| v.map(stypes::ResultBool)),
                         operation_str,
                     )
                     .await;

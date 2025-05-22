@@ -3,13 +3,11 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use components::Components;
 use definitions::*;
 use log::{trace, warn};
 use processor::producer::{sde::*, MessageProducer, MessageStreamItem};
-use std::sync::Arc;
 use std::time::Instant;
-use stypes::{NativeError, SessionSetup, SourceOrigin};
+use stypes::NativeError;
 use tokio::{select, sync::mpsc::Receiver};
 
 /// Duration (in milliseconds) between flushes to the session file.
@@ -26,7 +24,7 @@ const SEND_DURATION: u128 = 500;
 /// - `attachments` stores associated `Attachment` objects, which are sent
 ///   only after flushing the text buffer to ensure synchronization between
 ///   log lines and attachments.
-struct Writer {
+pub struct Writer {
     /// Communication channel to the session file.
     state: SessionStateAPI,
 
@@ -125,39 +123,6 @@ impl LogRecordWriter for Writer {
     }
     fn get_id(&self) -> u16 {
         self.id
-    }
-}
-pub async fn start_observing(
-    operation_api: OperationAPI,
-    state: SessionStateAPI,
-    options: SessionSetup,
-    components: Arc<Components<sources::Source, parsers::Parser>>,
-    rx_sde: Option<SdeReceiver>,
-) -> OperationResult<()> {
-    match &options.origin {
-        SourceOrigin::File(..) => {
-            let (desciptor, source, parser) = components.setup(&options)?;
-            let mut writer = Writer::new(state.clone(), state.add_source(desciptor).await?);
-            let producer = MessageProducer::new(parser, source, &mut writer);
-            Ok(run_producer(operation_api, state, producer, None, None).await?)
-        }
-        SourceOrigin::Source => {
-            let (desciptor, source, parser) = components.setup(&options)?;
-            let mut writer = Writer::new(state.clone(), state.add_source(desciptor).await?);
-            let producer = MessageProducer::new(parser, source, &mut writer);
-            Ok(run_producer(operation_api, state, producer, None, rx_sde).await?)
-        }
-        SourceOrigin::Files(files) => {
-            // Replacement of concat feature
-            for file in files {
-                let (desciptor, source, parser) =
-                    components.setup(&options.inherit(SourceOrigin::File(file.to_owned())))?;
-                let mut writer = Writer::new(state.clone(), state.add_source(desciptor).await?);
-                let producer = MessageProducer::new(parser, source, &mut writer);
-                run_producer(operation_api.clone(), state.clone(), producer, None, None).await?;
-            }
-            Ok(Some(()))
-        }
     }
 }
 
