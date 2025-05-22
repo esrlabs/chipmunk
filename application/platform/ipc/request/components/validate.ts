@@ -1,15 +1,15 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Field, SourceOrigin } from '../../../types/bindings';
+import { Field, SessionAction } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'ValidateComponentsOptionsRequest' })
 export class Request extends SignatureRequirement {
-    public origin: SourceOrigin;
+    public origin: SessionAction;
     public target: string;
     public fields: Field[];
 
-    constructor(input: { origin: SourceOrigin; target: string; fields: Field[] }) {
+    constructor(input: { origin: SessionAction; target: string; fields: Field[] }) {
         super();
         validator.isObject(input);
         this.target = validator.getAsNotEmptyString(input, 'target');

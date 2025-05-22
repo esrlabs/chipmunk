@@ -1,5 +1,4 @@
 use crate::operations::{OperationAPI, OperationResult};
-use components::Components;
 use definitions::{ByteSource, LogRecordOutput, LogRecordWriter, Parser};
 use log::debug;
 use processor::producer::MessageProducer;
@@ -7,13 +6,12 @@ use processor::producer::MessageProducer;
 use std::{
     fs::File,
     io::{self, BufWriter, Write},
-    path::{Path, PathBuf},
-    sync::Arc,
+    path::Path,
 };
-use stypes::{NativeError, SessionSetup, SourceOrigin};
+use stypes::NativeError;
 use tokio::select;
 
-struct ExportWriter {
+pub struct ExportWriter {
     buffer: BufWriter<File>,
     index: usize,
     ranges: Vec<std::ops::RangeInclusive<u64>>,
@@ -94,43 +92,6 @@ impl LogRecordWriter for ExportWriter {
     }
     fn get_id(&self) -> u16 {
         0
-    }
-}
-
-pub async fn export(
-    operation_api: OperationAPI,
-    options: SessionSetup,
-    components: Arc<Components<sources::Source, parsers::Parser>>,
-    out_path: PathBuf,
-    ranges: Vec<std::ops::RangeInclusive<u64>>,
-) -> OperationResult<bool> {
-    match &options.origin {
-        SourceOrigin::File(..) => {
-            let (_, source, parser) = components.setup(&options)?;
-            let mut writer = ExportWriter::new(&out_path, ranges)?;
-            let producer = MessageProducer::new(parser, source, &mut writer);
-            Ok(run_producer(operation_api, producer).await?)
-        }
-        SourceOrigin::Source => {
-            let (_, source, parser) = components.setup(&options)?;
-            let mut writer = ExportWriter::new(&out_path, ranges)?;
-            let producer = MessageProducer::new(parser, source, &mut writer);
-            Ok(run_producer(operation_api, producer).await?)
-        }
-        SourceOrigin::Files(files) => {
-            // We are creating one single writer for all files to keep tracking ranges and current index
-            let mut writer = ExportWriter::new(&out_path, ranges)?;
-            for file in files {
-                if operation_api.cancellation_token().is_cancelled() {
-                    return Ok(Some(false));
-                }
-                let (_, source, parser) =
-                    components.setup(&options.inherit(SourceOrigin::File(file.to_owned())))?;
-                let producer = MessageProducer::new(parser, source, &mut writer);
-                run_producer(operation_api.clone(), producer).await?;
-            }
-            Ok(Some(true))
-        }
     }
 }
 

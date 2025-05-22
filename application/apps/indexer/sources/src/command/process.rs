@@ -1,10 +1,10 @@
 use bufread::DeqBuffer;
-use components::{ComponentFactory, ComponentDescriptor};
+use components::{ComponentDescriptor, ComponentFactory};
 use definitions::*;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, io::Read, path::PathBuf, process::Stdio};
-use stypes::SourceOrigin;
+use stypes::SessionAction;
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -238,7 +238,7 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
         Ok(None)
@@ -246,10 +246,12 @@ impl ComponentFactory<crate::Source> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         match origin {
-            SourceOrigin::File(..) | SourceOrigin::Files(..) => false,
-            SourceOrigin::Source => true,
+            SessionAction::File(..) | SessionAction::Files(..) | SessionAction::ExportRaw(..) => {
+                false
+            }
+            SessionAction::Source => true,
         }
     }
     fn ident(&self) -> stypes::Ident {

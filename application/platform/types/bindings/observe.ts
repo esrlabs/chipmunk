@@ -143,7 +143,7 @@ export type SerialTransportConfig = {
 export type SessionDescriptor = { parser: Ident; source: Ident };
 
 export type SessionSetup = {
-    origin: SourceOrigin;
+    origin: SessionAction;
     parser: ComponentOptions;
     source: ComponentOptions;
 };
@@ -158,7 +158,7 @@ export type SomeIpParserSettings = {
     fibex_file_paths: Array<string> | null;
 };
 
-export type SourceOrigin = { File: string } | { Files: Array<string> } | 'Source';
+export type SessionAction = { File: string } | { Files: Array<string> } | 'Source';
 
 /**
  * Configuration for TCP connections.

@@ -1,6 +1,6 @@
 use components::{ComponentDescriptor, ComponentFactory};
 use file_tools::is_binary;
-use stypes::SourceOrigin;
+use stypes::SessionAction;
 
 use super::StringTokenizer;
 
@@ -14,7 +14,7 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Parser>, stypes::NativeError> {
         Ok(None)
@@ -22,13 +22,14 @@ impl ComponentFactory<crate::Parser> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &stypes::SessionAction) -> bool {
         let files = match origin {
-            SourceOrigin::File(filepath) => {
+            SessionAction::File(filepath) => {
                 vec![filepath]
             }
-            SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source => return true,
+            SessionAction::Files(files) => files.iter().collect(),
+            SessionAction::Source => return true,
+            SessionAction::ExportRaw(..) => return false,
         };
         // If at least some file doesn't exist or it's binary - do not recommend this source
         !files

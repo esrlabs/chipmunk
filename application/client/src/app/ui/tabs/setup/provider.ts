@@ -1,6 +1,6 @@
 import { SchemeProvider } from '@elements/scheme/provider';
 import { Field, FieldDesc, Value } from '@platform/types/bindings';
-import { SourceOrigin, LazyFieldDesc } from '@platform/types/bindings';
+import { SessionAction, LazyFieldDesc } from '@platform/types/bindings';
 import { components } from '@service/components';
 import { Logger } from '@env/logs';
 import {

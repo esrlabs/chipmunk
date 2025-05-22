@@ -1,13 +1,13 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { SourceOrigin, Ident } from '../../../types/bindings';
+import { SessionAction, Ident } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'GetAvailableParsersRequest' })
 export class Request extends SignatureRequirement {
-    public origin: SourceOrigin;
+    public origin: SessionAction;
 
-    constructor(input: { origin: SourceOrigin }) {
+    constructor(input: { origin: SessionAction }) {
         super();
         validator.isObject(input);
         this.origin =
