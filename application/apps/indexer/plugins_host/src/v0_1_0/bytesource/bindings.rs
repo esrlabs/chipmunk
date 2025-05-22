@@ -47,6 +47,6 @@ impl From<bytesource_types::SourceError> for io::Error {
             E::Other(msg) => format!("Unknown Error from bytesoruce plugin. Error: {msg}"),
         };
 
-        io::Error::new(io::ErrorKind::Other, msg)
+        io::Error::other(msg)
     }
 }

@@ -131,8 +131,7 @@ impl PluginByteSource {
             .call_read(&mut self.store, len as u64)
             .await
             .map_err(|err| {
-                io::Error::new(
-                    io::ErrorKind::Other,
+                io::Error::other(
                     // Wasmtime uses anyhow error, which provides error context in debug print only.
                     format!("WASM Error while calling read on bytesource plugin. Error {err:?}"),
                 )
