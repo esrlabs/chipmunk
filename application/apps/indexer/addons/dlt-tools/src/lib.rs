@@ -15,7 +15,7 @@ extern crate indexer_base;
 #[macro_use]
 extern crate log;
 
-use definitions::{Attachment, MessageStreamItem};
+use definitions::Attachment;
 use dlt_core::filtering::DltFilterConfig;
 use parsers::dlt::DltParser;
 use processor::producer::MessageProducer;

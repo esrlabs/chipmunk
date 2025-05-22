@@ -3,12 +3,18 @@ mod tests;
 
 pub mod sde;
 
-use definitions::Parser;
 use definitions::*;
 use log::warn;
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
+
+#[derive(Debug)]
+pub enum MessageStreamItem {
+    Parsed(ParseOperationResult),
+    Skipped,
+    Done,
+}
 
 #[derive(Debug)]
 pub struct MessageProducer<'a, P, D, W>
