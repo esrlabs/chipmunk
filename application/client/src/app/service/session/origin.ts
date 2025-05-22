@@ -1,4 +1,4 @@
-import { SourceOrigin, Ident, SessionSetup, ComponentOptions } from '@platform/types/bindings';
+import { SessionAction, Ident, SessionSetup, ComponentOptions } from '@platform/types/bindings';
 
 export class SessionComponents {
     public parser: Ident | undefined;
@@ -32,7 +32,7 @@ export class SessionSourceOrigin {
     public readonly options: ComponentsOptions;
 
     constructor(
-        public readonly origin: SourceOrigin,
+        public readonly origin: SessionAction,
         public components: SessionComponents | undefined,
     ) {
         this.options = new ComponentsOptions();
@@ -56,7 +56,7 @@ export class SessionSourceOrigin {
         };
     }
 
-    public getDef(): SourceOrigin {
+    public getDef(): SessionAction {
         return this.origin;
     }
     public getTitle(): string {

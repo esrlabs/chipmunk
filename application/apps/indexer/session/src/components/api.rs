@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use components::{LazyLoadingResult, LazyLoadingTaskMeta};
-use stypes::{Ident, NativeError, SourceOrigin};
+use stypes::{Ident, NativeError, SessionAction};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
@@ -61,7 +61,7 @@ pub enum Api {
     ///
     /// * `Result<stypes::ComponentsOptionsList, NativeError>` - The result containing the list of component options or an error.
     GetOptions {
-        origin: SourceOrigin,
+        origin: SessionAction,
         targets: Vec<Uuid>,
         tx: oneshot::Sender<Result<stypes::ComponentsOptionsList, NativeError>>,
     },
@@ -72,11 +72,11 @@ pub enum Api {
     ///
     /// # Arguments
     ///
-    /// * `SourceOrigin` - The origin type indicating the context in which the components will be used.
+    /// * `SessionAction` - The origin type indicating the context in which the components will be used.
     /// * `stypes::ComponentType` - The type of components to retrieve (e.g., parser, source).
     /// * `oneshot::Sender<Result<Vec<Ident>, NativeError>>` - A sender channel for delivering the result back to the client.
     GetComponents(
-        SourceOrigin,
+        SessionAction,
         stypes::ComponentType,
         oneshot::Sender<Result<Vec<Ident>, NativeError>>,
     ),
@@ -84,7 +84,7 @@ pub enum Api {
     ///
     /// # Arguments
     ///
-    /// * `SourceOrigin` - The origin type indicating the context in which the validation is performed.
+    /// * `SessionAction` - The origin type indicating the context in which the validation is performed.
     /// * `Uuid` - The identifier of the component (parser, source).
     /// * `Vec<stypes::Field>` - A list of configuration field values.
     /// * `oneshot::Sender<Result<HashMap<String, String>, NativeError>>` - A sender channel for delivering validation results to the client.
@@ -97,7 +97,7 @@ pub enum Api {
     ///
     /// If all fields are valid and have no errors, an empty `HashMap` will be returned.
     Validate(
-        SourceOrigin,
+        SessionAction,
         Uuid,
         Vec<stypes::Field>,
         oneshot::Sender<Result<HashMap<String, String>, NativeError>>,
