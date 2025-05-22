@@ -19,7 +19,7 @@ impl<S, P> Components<S, P> {
             components: HashMap::new(),
         }
     }
-    pub fn add_parser<D: ComponentDescriptor<P> + 'static>(
+    pub fn add_parser<D: ComponentFactory<P> + 'static>(
         &mut self,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {
@@ -35,7 +35,7 @@ impl<S, P> Components<S, P> {
             .insert(ident.uuid, Entry::Parser(Box::new(descriptor)));
         Ok(())
     }
-    pub fn add_source<D: ComponentDescriptor<S> + 'static>(
+    pub fn add_source<D: ComponentFactory<S> + 'static>(
         &mut self,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {

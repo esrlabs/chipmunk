@@ -6,7 +6,7 @@ use crate::{
 use components::Components;
 use definitions::*;
 use log::{trace, warn};
-use processor::producer::{sde::*, MessageProducer};
+use processor::producer::{sde::*, MessageProducer, MessageStreamItem};
 use std::sync::Arc;
 use std::time::Instant;
 use stypes::{NativeError, SessionSetup, SourceOrigin};

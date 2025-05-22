@@ -1,7 +1,7 @@
 use crate::{binary::pcap::debug_block};
 use definitions::*;
 use bufread::DeqBuffer;
-use components::{ComponentDescriptor, MetadataDescriptor};
+use components::{ComponentFactory, ComponentDescriptor};
 use etherparse::{SlicedPacket, TransportSlice};
 use file_tools::is_binary;
 use log::{debug, error, trace};
@@ -214,7 +214,7 @@ const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentDescriptor<crate::Source> for Descriptor {
+impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
@@ -224,7 +224,7 @@ impl ComponentDescriptor<crate::Source> for Descriptor {
     }
 }
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
