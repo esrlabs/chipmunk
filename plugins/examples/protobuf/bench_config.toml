@@ -1,0 +1,8 @@
+# Configuration required to run the parser in Chipmunk benchmarks.
+
+# Path to the plugin WebAssembly (WASM) file.
+# Can be absolute or relative to the `indexer` directory within the Chipmunk repository.
+binary_path = "../../../../plugins/examples/protobuf/target/wasm32-wasip1/release/protobuf.wasm"
+
+# Plugin-specific configurations:
+# TODO:

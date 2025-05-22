@@ -146,6 +146,7 @@ export class Configuration
                 Parser.Dlt.Configuration,
                 Parser.SomeIp.Configuration,
                 Parser.Text.Configuration,
+                Parser.Plugin.Configuration,
             ];
         }
         switch (this.configuration[0][1]) {
@@ -157,6 +158,8 @@ export class Configuration
                 return [Parser.Dlt.Configuration, Parser.SomeIp.Configuration];
             case Types.File.FileType.Text:
                 return [Parser.Text.Configuration];
+            case Types.File.FileType.ParserPlugin:
+                return [Parser.Plugin.Configuration];
         }
     }
 

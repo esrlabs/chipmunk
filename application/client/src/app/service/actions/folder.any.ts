@@ -68,6 +68,17 @@ export class Action extends Base {
                                 .get(),
                         );
                     break;
+                case FileType.ParserPlugin:
+                    session
+                        .initialize()
+                        .observe(
+                            new Factory.File()
+                                .type(files[0].type)
+                                .file(files[0].filename)
+                                .asParserPlugin()
+                                .get(),
+                        );
+                    break;
             }
         }
         return Promise.resolve();

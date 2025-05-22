@@ -5,6 +5,7 @@ import { MultipleFilesModule } from '@ui/tabs/multiplefiles/module';
 import { SettingsModule } from '@ui/tabs/settings/module';
 import { ChangelogModule } from '@ui/tabs/changelogs/module';
 import { HelpModule } from '@ui/tabs/help/module';
+import { PluginsManagerModule } from '@ui/tabs/plugins/module';
 
 @NgModule({
     imports: [
@@ -14,6 +15,7 @@ import { HelpModule } from '@ui/tabs/help/module';
         SettingsModule,
         ChangelogModule,
         HelpModule,
+        PluginsManagerModule,
     ],
     declarations: [],
     exports: [ObserveModule, MultipleFilesModule, SettingsModule, ChangelogModule, HelpModule],

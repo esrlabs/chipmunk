@@ -58,6 +58,8 @@ pub enum NativeErrorKind {
     Io,
     /// Errors related to reading session data, including search result data.
     Grabber,
+    /// Errors related to Plugins.
+    Plugins,
 }
 
 /// Describes the details of an error.

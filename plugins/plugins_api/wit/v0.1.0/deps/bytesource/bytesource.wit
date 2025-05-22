@@ -1,0 +1,26 @@
+package chipmunk:bytesource@0.1.0;
+
+/// The definitions which must be provided by the byte-source plugins.
+interface byte-source {
+  use chipmunk:shared/shared-types@0.1.0.{version, init-error, config-item, config-schema-item};
+  use bytesource-types.{source-config, source-error};
+
+  /// Provides the current semantic version of the plugin.
+  /// This version is for the plugin only and is different from the plugin's API version.
+  get-version: func() -> version;
+
+  /// Provides the schemas for the configurations required by the plugin, which
+  /// will be specified by the users.
+  ///
+  /// These schemas define the expected structure, types, and constraints
+  /// for plugin-specific configurations. The values of these configurations
+  /// will be passed to the initializing method of the bytesource.
+  get-config-schemas: func() -> list<config-schema-item>;
+
+  /// Initialize the bytesource with the given configurations
+  init: func(general-configs: source-config, plugin-configs: list<config-item>) -> result<_, init-error>;
+
+  /// Reads more bytes returning a list of bytes with the given length if possible
+  read: func(len: u64) -> result<list<u8>, source-error>;
+}
+
