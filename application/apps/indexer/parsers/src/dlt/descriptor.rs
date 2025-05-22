@@ -1,5 +1,5 @@
 use crate::dlt::*;
-use components::{ComponentFactory, ComponentDescriptor, StaticFieldResult};
+use components::{ComponentDescriptor, ComponentFactory, StaticFieldResult};
 use dlt_core::{
     read::DltMessageReader,
     statistics::{
@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use stypes::{
-    FieldDesc, NativeError, NativeErrorKind, Severity, SourceOrigin, StaticFieldDesc, Value,
+    FieldDesc, NativeError, NativeErrorKind, SessionAction, Severity, StaticFieldDesc, Value,
     ValueInput,
 };
 use tokio_util::sync::CancellationToken;
@@ -51,7 +51,7 @@ impl fmt::Display for StatFields {
 impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
-        origin: &SourceOrigin,
+        origin: &SessionAction,
         options: &[stypes::Field],
     ) -> Result<Option<crate::Parser>, stypes::NativeError> {
         let mut filter_config: Option<ProcessedDltFilterConfig> = None;
@@ -85,19 +85,20 @@ impl ComponentFactory<crate::Parser> for Descriptor {
             None,
             someip_metadata,
             // If it's source - no storage header expected
-            !matches!(origin, SourceOrigin::Source),
+            !matches!(origin, SessionAction::Source),
         ))))
     }
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
-            SourceOrigin::File(filepath) => {
+            SessionAction::File(filepath) => {
                 vec![filepath]
             }
-            SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source => return true,
+            SessionAction::Files(files) => files.iter().collect(),
+            SessionAction::Source => return true,
+            SessionAction::ExportRaw(..) => return false,
         };
         files.iter().any(|fp| {
             fp.extension()
@@ -105,7 +106,7 @@ impl ComponentDescriptor for Descriptor {
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, origin: &SourceOrigin) -> components::FieldsResult {
+    fn fields_getter(&self, origin: &SessionAction) -> components::FieldsResult {
         let mut options = vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_LOG_LEVEL.to_owned(),
@@ -134,7 +135,7 @@ impl ComponentDescriptor for Descriptor {
                 binding: None,
             }),
         ];
-        if matches!(origin, SourceOrigin::File(..) | SourceOrigin::Files(..)) {
+        if matches!(origin, SessionAction::File(..) | SessionAction::Files(..)) {
             options.push(stypes::FieldDesc::Lazy(stypes::LazyFieldDesc {
                 id: FIELD_STATISTICS.to_owned(),
                 name: String::from("Statistics"),
@@ -153,15 +154,15 @@ impl ComponentDescriptor for Descriptor {
     }
     fn lazy_fields_getter(
         &self,
-        origin: SourceOrigin,
+        origin: SessionAction,
         cancel: CancellationToken,
     ) -> components::LazyFieldsTask {
         Box::pin(async move {
             let file_paths = match origin {
-                SourceOrigin::File(fp) => {
+                SessionAction::File(fp) => {
                     vec![fp]
                 }
-                SourceOrigin::Files(fps) => fps,
+                SessionAction::Files(fps) => fps,
                 _ => {
                     return Ok(vec![StaticFieldResult::Success(stypes::StaticFieldDesc {
                         id: FIELD_STATISTICS.to_owned(),

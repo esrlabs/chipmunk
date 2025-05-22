@@ -180,7 +180,7 @@ impl defs::Parser for PluginParser {
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, _origin: &stypes::SourceOrigin) -> bool {
+    fn is_compatible(&self, _origin: &stypes::SessionAction) -> bool {
         true
     }
     /// **ATTANTION** That's placeholder. Should be another way to delivery data

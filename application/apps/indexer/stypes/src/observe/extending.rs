@@ -4,7 +4,7 @@ use crate::*;
 use thiserror::Error;
 
 impl SessionSetup {
-    pub fn inherit(&self, origin: SourceOrigin) -> Self {
+    pub fn inherit(&self, origin: SessionAction) -> Self {
         Self {
             origin,
             parser: self.parser.clone(),

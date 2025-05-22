@@ -8,7 +8,7 @@ initLogger();
 import { Components } from '../src/index';
 import { readConfigurationFile } from './config';
 import { finish } from './common';
-import { SourceOrigin, FieldDesc, LazyFieldDesc, StaticFieldDesc } from 'platform/types/bindings';
+import { SessionAction, FieldDesc, LazyFieldDesc, StaticFieldDesc } from 'platform/types/bindings';
 
 import * as runners from './runners';
 import { error } from 'platform/log/utils';
@@ -25,7 +25,7 @@ describe('Jobs', function () {
         return runners.unbound(config.regular, 1, async (logger, done, collector) => {
             try {
                 const components = collector(await Components.create()) as Components;
-                const origin: SourceOrigin = { File: 'somefile' };
+                const origin: SessionAction = { File: 'somefile' };
                 // Request available parsers and sources
                 let parsers = await components.get(origin).parsers();
                 let sources = await components.get(origin).sources();
@@ -91,7 +91,7 @@ describe('Jobs', function () {
         return runners.unbound(config.regular, 2, async (logger, done, collector) => {
             try {
                 const components = collector(await Components.create()) as Components;
-                const origin: SourceOrigin = { File: 'somefile' };
+                const origin: SessionAction = { File: 'somefile' };
                 // Request available parsers and sources
                 let parsers = await components.get(origin).parsers();
                 let sources = await components.get(origin).sources();

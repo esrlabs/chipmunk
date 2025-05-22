@@ -11,7 +11,7 @@ import {
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request/index';
 
-import { Field, FieldDesc, Ident, SourceOrigin } from '@platform/types/bindings';
+import { Field, FieldDesc, Ident, SessionAction } from '@platform/types/bindings';
 
 @SetupService(services['components'])
 export class Service extends Implementation {
@@ -77,7 +77,7 @@ export class Service extends Implementation {
         });
     }
 
-    public getOptions(origin: SourceOrigin, targets: string[]): Promise<Map<string, FieldDesc[]>> {
+    public getOptions(origin: SessionAction, targets: string[]): Promise<Map<string, FieldDesc[]>> {
         return new Promise((resolve, reject) => {
             Requests.IpcRequest.send(
                 Requests.Components.GetOptions.Response,
@@ -94,7 +94,7 @@ export class Service extends Implementation {
     }
 
     public validate(
-        origin: SourceOrigin,
+        origin: SessionAction,
         target: string,
         fields: Field[],
     ): Promise<Map<string, string>> {
@@ -113,7 +113,7 @@ export class Service extends Implementation {
                 .catch(reject);
         });
     }
-    public get(origin: SourceOrigin): {
+    public get(origin: SessionAction): {
         sources(): Promise<Ident[]>;
         parsers(): Promise<Ident[]>;
     } {

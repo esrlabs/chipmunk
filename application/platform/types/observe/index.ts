@@ -17,7 +17,7 @@ export * as Bindings from '../bindings';
 export { IList, IOriginDetails, IJob } from './description';
 
 export interface ISessionSetup {
-    origin: Bindings.SourceOrigin;
+    origin: Bindings.SessionAction;
     parser: {
         uuid: string;
         options: Bindings.Field[];

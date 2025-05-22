@@ -1,6 +1,6 @@
 use super::*;
-use components::{ComponentFactory, ComponentDescriptor};
-use stypes::SourceOrigin;
+use components::{ComponentDescriptor, ComponentFactory};
+use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
 const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
@@ -13,24 +13,23 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
-        origin: &SourceOrigin,
+        origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Parser>, stypes::NativeError> {
         Ok(Some(crate::Parser::DltRaw(DltRawParser::new(!matches!(
             origin,
-            SourceOrigin::Source
+            SessionAction::Source
         )))))
     }
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
-            SourceOrigin::File(filepath) => {
-                vec![filepath]
+            SessionAction::File(..) | SessionAction::Files(..) | SessionAction::Source => {
+                return false
             }
-            SourceOrigin::Files(files) => files.iter().collect(),
-            SourceOrigin::Source => return true,
+            SessionAction::ExportRaw(files, ..) => files,
         };
         files.iter().any(|fp| {
             fp.extension()
@@ -38,7 +37,7 @@ impl ComponentDescriptor for Descriptor {
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, _origin: &SourceOrigin) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         Ok(Vec::new())
     }
     fn ident(&self) -> stypes::Ident {
@@ -50,12 +49,12 @@ impl ComponentDescriptor for Descriptor {
     }
     fn lazy_fields_getter(
         &self,
-        _origin: SourceOrigin,
+        _origin: SessionAction,
         _cancel: CancellationToken,
     ) -> components::LazyFieldsTask {
         Box::pin(async move { Ok(Vec::new()) })
     }
     fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::RawParser
+        stypes::ComponentType::Parser
     }
 }

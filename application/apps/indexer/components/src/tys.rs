@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use crate::*;
-use stypes::SourceOrigin;
+use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
 /// A type alias for a result containing a vector of field descriptors or a native error.
@@ -56,67 +56,59 @@ pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 
 pub enum Entry<S, P> {
-    RawParser(Box<dyn ComponentFactory<P>>),
     Parser(Box<dyn ComponentFactory<P>>),
     Source(Box<dyn ComponentFactory<S>>),
 }
 
 impl<S, P> ComponentDescriptor for Entry<S, P> {
-    fn fields_getter(&self, origin: &stypes::SourceOrigin) -> FieldsResult {
+    fn fields_getter(&self, origin: &stypes::SessionAction) -> FieldsResult {
         match self {
             Self::Source(inner) => inner.fields_getter(origin),
             Self::Parser(inner) => inner.fields_getter(origin),
-            Self::RawParser(inner) => inner.fields_getter(origin),
         }
     }
     fn ident(&self) -> stypes::Ident {
         match self {
             Self::Source(inner) => inner.ident(),
             Self::Parser(inner) => inner.ident(),
-            Self::RawParser(inner) => inner.ident(),
         }
     }
-    fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool {
+    fn is_compatible(&self, origin: &stypes::SessionAction) -> bool {
         match self {
             Self::Source(inner) => inner.is_compatible(origin),
             Self::Parser(inner) => inner.is_compatible(origin),
-            Self::RawParser(inner) => inner.is_compatible(origin),
         }
     }
     fn is_ty(&self, ty: &stypes::ComponentType) -> bool {
         match self {
             Self::Source(inner) => inner.is_ty(ty),
             Self::Parser(inner) => inner.is_ty(ty),
-            Self::RawParser(inner) => inner.is_ty(ty),
         }
     }
     fn lazy_fields_getter(
         &self,
-        origin: stypes::SourceOrigin,
+        origin: stypes::SessionAction,
         cancel: CancellationToken,
     ) -> LazyFieldsTask {
         match self {
             Self::Source(inner) => inner.lazy_fields_getter(origin, cancel),
             Self::Parser(inner) => inner.lazy_fields_getter(origin, cancel),
-            Self::RawParser(inner) => inner.lazy_fields_getter(origin, cancel),
         }
     }
     fn ty(&self) -> stypes::ComponentType {
         match self {
             Self::Source(inner) => inner.ty(),
             Self::Parser(inner) => inner.ty(),
-            Self::RawParser(inner) => inner.ty(),
         }
     }
     fn validate(
         &self,
-        origin: &stypes::SourceOrigin,
+        origin: &stypes::SessionAction,
         fields: &[stypes::Field],
     ) -> HashMap<String, String> {
         match self {
             Self::Source(inner) => inner.validate(origin, fields),
             Self::Parser(inner) => inner.validate(origin, fields),
-            Self::RawParser(inner) => inner.validate(origin, fields),
         }
     }
 }
@@ -135,7 +127,7 @@ pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
     /// Creates an instance of the component of type `T`.
     ///
     /// # Arguments
-    /// * `origin` - A reference to a `SourceOrigin` representing the creation context.
+    /// * `origin` - A reference to a `SessionAction` representing the creation context.
     ///   For example, it could point to a file, a group of files, or any other data source.
     /// * `options` - A slice of `stypes::Field` values representing component options or settings.
     ///
@@ -145,7 +137,7 @@ pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
     /// * `Err(stypes::NativeError)` if an error occurred during creation.
     fn create(
         &self,
-        _origin: &SourceOrigin,
+        _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<T>, stypes::NativeError> {
         Ok(None)
@@ -174,7 +166,7 @@ pub trait ComponentDescriptor {
     ///
     /// * `true` - if component can be used with origin
     /// * `false` - if component can not be used with origin
-    fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool;
+    fn is_compatible(&self, origin: &stypes::SessionAction) -> bool;
 
     /// Returns a general description of the component as a static, standalone entity.
     ///
@@ -192,11 +184,11 @@ pub trait ComponentDescriptor {
     /// Unlike `ident`, this method considers how the component is being used, such as what
     /// data source is involved and which fields are already known. For example, a `source::Raw`
     /// component might normally describe itself as a "binary reader", but in the context of
-    /// a `SourceOrigin::File` and specific field values, it could instead describe itself
+    /// a `SessionAction::File` and specific field values, it could instead describe itself
     /// as a "filename" input.
     ///
     /// # Arguments
-    /// * `origin` - The `stypes::SourceOrigin` that indicates the usage context.
+    /// * `origin` - The `stypes::SessionAction` that indicates the usage context.
     /// * `fields` - A slice of `stypes::Field` values representing known configuration fields.
     ///
     /// # Returns
@@ -204,7 +196,7 @@ pub trait ComponentDescriptor {
     /// context-based identity is applicable.
     fn bound_ident(
         &self,
-        _origin: &stypes::SourceOrigin,
+        _origin: &stypes::SessionAction,
         _fields: &[stypes::Field],
     ) -> stypes::Ident {
         self.ident()
@@ -244,7 +236,7 @@ pub trait ComponentDescriptor {
     ///
     /// * `FieldsResult` - A result containing a vector of field descriptors or a native error.
     #[allow(unused)]
-    fn fields_getter(&self, origin: &stypes::SourceOrigin) -> FieldsResult {
+    fn fields_getter(&self, origin: &stypes::SessionAction) -> FieldsResult {
         Ok(Vec::new())
     }
 
@@ -263,7 +255,7 @@ pub trait ComponentDescriptor {
     #[allow(unused)]
     fn lazy_fields_getter(
         &self,
-        origin: stypes::SourceOrigin,
+        origin: stypes::SessionAction,
         cancel: CancellationToken,
     ) -> LazyFieldsTask {
         Box::pin(async { Ok(Vec::new()) })
@@ -287,7 +279,7 @@ pub trait ComponentDescriptor {
     #[allow(unused)]
     fn validate(
         &self,
-        origin: &stypes::SourceOrigin,
+        origin: &stypes::SessionAction,
         fields: &[stypes::Field],
     ) -> HashMap<String, String> {
         HashMap::new()

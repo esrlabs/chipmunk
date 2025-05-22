@@ -66,7 +66,7 @@ impl Components {
     ) -> Result<stypes::IdentList, stypes::ComputationError> {
         let ty = stypes::ComponentType::decode(&ty).map_err(stypes::ComputationError::Decoding)?;
         let origin =
-            stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+            stypes::SessionAction::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
         let session = self
             .session
             .as_ref()
@@ -89,7 +89,7 @@ impl Components {
             .map(|uuid| Uuid::from_str(&uuid).map_err(|_| stypes::ComputationError::InvalidData))
             .collect::<Result<_, _>>()?;
         let origin =
-            stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+            stypes::SessionAction::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
         let session = self
             .session
             .as_ref()
@@ -107,7 +107,7 @@ impl Components {
         options: JSArrayBuffer,
     ) -> Result<stypes::FieldsValidationErrors, stypes::ComputationError> {
         let origin =
-            stypes::SourceOrigin::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+            stypes::SessionAction::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
         let options = stypes::ComponentOptions::decode(&options)
             .map_err(stypes::ComputationError::Decoding)?;
         let session = self
