@@ -1,4 +1,4 @@
-use components::{ComponentDescriptor, MetadataDescriptor, StaticFieldResult};
+use components::{ComponentFactory, ComponentDescriptor, StaticFieldResult};
 use std::{collections::HashMap, io::Read, str};
 use stypes::{FieldDesc, LazyFieldDesc, SourceOrigin, StaticFieldDesc, Value, ValueInput};
 
@@ -28,7 +28,7 @@ const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentDescriptor<crate::Source> for Descriptor {
+impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
@@ -38,7 +38,7 @@ impl ComponentDescriptor<crate::Source> for Descriptor {
     }
 }
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         match origin {
             SourceOrigin::File(..) | SourceOrigin::Files(..) => false,

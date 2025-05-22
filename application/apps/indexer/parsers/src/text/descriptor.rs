@@ -1,4 +1,4 @@
-use components::{ComponentDescriptor, MetadataDescriptor};
+use components::{ComponentDescriptor, ComponentFactory};
 use file_tools::is_binary;
 use stypes::SourceOrigin;
 
@@ -11,7 +11,7 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentDescriptor<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
@@ -21,7 +21,7 @@ impl ComponentDescriptor<crate::Parser> for Descriptor {
     }
 }
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &stypes::SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {

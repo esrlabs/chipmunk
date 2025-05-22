@@ -56,12 +56,12 @@ pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 
 pub enum Entry<S, P> {
-    RawParser(Box<dyn ComponentDescriptor<P>>),
-    Parser(Box<dyn ComponentDescriptor<P>>),
-    Source(Box<dyn ComponentDescriptor<S>>),
+    RawParser(Box<dyn ComponentFactory<P>>),
+    Parser(Box<dyn ComponentFactory<P>>),
+    Source(Box<dyn ComponentFactory<S>>),
 }
 
-impl<S, P> MetadataDescriptor for Entry<S, P> {
+impl<S, P> ComponentDescriptor for Entry<S, P> {
     fn fields_getter(&self, origin: &stypes::SourceOrigin) -> FieldsResult {
         match self {
             Self::Source(inner) => inner.fields_getter(origin),
@@ -121,7 +121,28 @@ impl<S, P> MetadataDescriptor for Entry<S, P> {
     }
 }
 
-pub trait ComponentDescriptor<T>: MetadataDescriptor + Sync + Send {
+/// Defines a factory interface for creating instances of components.
+///
+/// In the application architecture, components (such as parsers, sources, etc.)
+/// are not instantiated directly. Instead, component instantiation is handled
+/// by the `Components` controller, which creates component instances based on
+/// registrations made during system initialization.
+///
+/// This level of indirection is a key architectural decision, as it allows
+/// components to remain decoupled from the application core. This makes it
+/// possible to replace or update components without modifying the core logic.
+pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
+    /// Creates an instance of the component of type `T`.
+    ///
+    /// # Arguments
+    /// * `origin` - A reference to a `SourceOrigin` representing the creation context.
+    ///   For example, it could point to a file, a group of files, or any other data source.
+    /// * `options` - A slice of `stypes::Field` values representing component options or settings.
+    ///
+    /// # Returns
+    /// * `Ok(Some(T))` if the component was successfully created.
+    /// * `Ok(None)` if the factory declined to create a component for the given context.
+    /// * `Err(stypes::NativeError)` if an error occurred during creation.
     fn create(
         &self,
         _origin: &SourceOrigin,
@@ -131,7 +152,20 @@ pub trait ComponentDescriptor<T>: MetadataDescriptor + Sync + Send {
     }
 }
 
-pub trait MetadataDescriptor {
+/// Describes a component in terms of its identity, configuration schema,
+/// validation logic, support for lazy-loading configuration, and its type within the system.
+///
+/// The `ComponentDescriptor` trait serves as an abstraction layer that decouples
+/// the core system from concrete component implementations. Instead of referring
+/// to component types directly (e.g., a specific parser or source), the application
+/// interacts with components through their descriptors.
+///
+/// This design enables a fully modular architecture where, for example, a session
+/// can be created using a parser and source identified solely by their UUIDs.
+/// The actual parser and source implementations remain hidden behind the descriptor,
+/// making it possible to swap, reconfigure, or isolate components without touching
+/// the application core.
+pub trait ComponentDescriptor {
     /// Check is component is campatible with given origin
     ///
     /// * `origin` - The source origin

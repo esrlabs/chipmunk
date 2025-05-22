@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::SomeipParser;
-use components::{ComponentDescriptor, MetadataDescriptor, StaticFieldResult};
+use components::{ComponentFactory, ComponentDescriptor, StaticFieldResult};
 use stypes::SourceOrigin;
 use tokio::{
     select,
@@ -21,7 +21,7 @@ const FIELD_STATISTICS: &str = "statistics";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentDescriptor<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
         _origin: &SourceOrigin,
@@ -31,7 +31,7 @@ impl ComponentDescriptor<crate::Parser> for Descriptor {
     }
 }
 
-impl MetadataDescriptor for Descriptor {
+impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SourceOrigin) -> bool {
         let files = match origin {
             SourceOrigin::File(filepath) => {
