@@ -1,0 +1,18 @@
+site_name: Chipmunk Log Analyzer & Viewer
+site_url: https://esrlabs.github.io/chipmunk/
+docs_dir: docs
+theme:
+  name: material
+nav:
+  - Overview: index.md
+  - Installation: installation.md
+  - Search: search.md
+  - Charts: charts.md
+  - Navigation: navigation.md
+  - Teamwork: teamwork.md
+  - Chipmunk CLI Tool: cli.md
+  - Contributing: 
+      - Welcome: contributing/welcome.md
+      - Preparing: contributing/preparing.md
+      - Developer CLI Tool: contributing/cli.md
+
