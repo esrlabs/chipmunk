@@ -1,3 +1,12 @@
+# 3.17.1 (23.05.2025)
+
+## Fixes
+- Fix for loading corrupted DLT files (statistics collecting)
+- Fix for error reporting during DLT statistics collecting
+
+## Changes
+- Update documentation 
+
 # 3.17.0 (12.04.2025)
 
 ## Fixes
