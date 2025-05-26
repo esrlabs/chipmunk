@@ -60,7 +60,7 @@ export class State extends Base {
     }
 
     public struct(): {
-        load(): void;
+        load(): Promise<void>;
         build(preselection?: Dlt.IFilters): void;
         filter(value: string): void;
         supported(): boolean;
@@ -70,11 +70,11 @@ export class State extends Base {
                 const parser = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
                 return parser === undefined ? false : parser.configuration.with_storage_header;
             },
-            load: (): void => {
+            load: (): Promise<void> => {
                 if (!this.struct().supported()) {
-                    return;
+                    return Promise.resolve();
                 }
-                this.ref
+                return this.ref
                     .ilc()
                     .services.system.bridge.dlt()
                     .stat(this.files())
@@ -87,9 +87,6 @@ export class State extends Base {
                         this.stat = stat;
                         this.struct().build(this.filters());
                         this.ref.detectChanges();
-                    })
-                    .catch((err: Error) => {
-                        this.ref.log().error(`Fail to get DLT stat info: ${err.message}`);
                     });
             },
             build: (preselection?: Dlt.IFilters): void => {
