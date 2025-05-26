@@ -1,3 +1,8 @@
+# 3.17.2 (26.05.2025)
+
+## Changes
+- Update inner dependencies in Cargo.lock files
+
 # 3.17.1 (23.05.2025)
 
 ## Fixes
