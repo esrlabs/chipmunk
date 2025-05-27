@@ -7,6 +7,7 @@ import * as InputElement from './input_field';
 import * as ListElement from './list';
 import * as NamedValuesElement from './named';
 import * as NestedDictionaryElement from './nested_dictionary';
+import * as TimezoneSelectorElement from './timezone';
 
 export { CheckboxElement } from './checkbox';
 export { FilesFolderSelectorElement } from './files_selector';
@@ -14,6 +15,7 @@ export { InputElement } from './input_field';
 export { ListElement } from './list';
 export { NamedValuesElement } from './named';
 export { NestedDictionaryElement, NestedDictionaryStructure } from './nested_dictionary';
+export { TimezoneSelectorElement } from './timezone';
 
 /**
 export type ValueInput =
@@ -71,6 +73,7 @@ export class Element {
             ListElement,
             NamedValuesElement,
             NestedDictionaryElement,
+            TimezoneSelectorElement,
         ]) {
             let element = el.tryFromOrigin(origin);
             if (element !== undefined) {
