@@ -2494,7 +2494,6 @@ dependencies = [
  "someip-payload",
  "someip-tools",
  "stypes",
- "tokio",
  "tokio-util",
  "uuid",
 ]

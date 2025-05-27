@@ -18,7 +18,6 @@ someip-messages = { git = "https://github.com/esrlabs/someip" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
 uuid = { workspace = true , features = ["serde", "v4"] }
 tokio-util.workspace = true
-tokio.workspace = true
 
 stypes = { path = "../stypes", features=["rustcore"] }
 definitions = { path = "../definitions" }

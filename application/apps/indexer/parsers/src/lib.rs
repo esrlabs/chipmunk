@@ -1,7 +1,7 @@
 #![deny(unused_crate_dependencies)]
 
 use components::Components;
-use definitions::{LogRecordOutput, LogRecordWriter, ParseOperationResult, ParserError};
+use definitions::{LogRecordOutput, ParserError};
 pub mod dlt;
 pub mod prelude;
 pub mod someip;
