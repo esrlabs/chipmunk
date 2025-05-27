@@ -4,8 +4,8 @@
 mod bindings;
 mod parser_plugin_state;
 
-use futures::executor::block_on;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
+use tokio::runtime::Handle;
 use wasmtime::{
     component::{Component, Linker},
     Store,
@@ -138,11 +138,20 @@ impl p::Parser<PluginParseMessage> for PluginParser {
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
     {
-        let call_res = block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
-            &mut self.store,
-            input,
-            timestamp,
-        ));
+        // Calls on plugins must be async. To solve that we got the following solutions:
+        // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
+        //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
+        // - `block_in_place(|| Handle::current().block_on(plugin_call))`: (Current method)
+        //   `block_in_place` informs Tokio this thread will block, allowing scheduler adjustments.
+        //   `Handle::block_on` then runs the plugin on Tokio, blocking this thread until completion.
+
+        let call_res = tokio::task::block_in_place(|| {
+            Handle::current().block_on(self.plugin_bindings.chipmunk_parser_parser().call_parse(
+                &mut self.store,
+                input,
+                timestamp,
+            ))
+        });
 
         let parse_results = match call_res {
             Ok(results) => results?,

@@ -4,6 +4,7 @@ use std::{
 };
 
 use stypes::{PluginInfo, PluginType, RenderOptions, SemanticVersion};
+use tokio::runtime::Handle;
 use wasmtime::component::Component;
 
 use crate::{
@@ -158,7 +159,15 @@ impl Read for PluginsByteSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let len = buf.len();
 
-        let bytes = futures::executor::block_on(self.read_next(len))?;
+        // Calls on plugins must be async. To solve that we got the following solutions:
+        // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
+        //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
+        // - `block_in_place(|| Handle::current().block_on(plugin_call))`: (Current method)
+        //   `block_in_place` informs Tokio this thread will block, allowing scheduler adjustments.
+        //   `Handle::block_on` then runs the plugin on Tokio, blocking this thread until completion.
+
+        let bytes =
+            tokio::task::block_in_place(|| Handle::current().block_on(self.read_next(len)))?;
 
         let results_len = bytes.len();
 

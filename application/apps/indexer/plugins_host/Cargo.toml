@@ -9,7 +9,6 @@ thiserror.workspace = true
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-futures.workspace = true
 log.workspace = true
 dirs.workspace = true
 toml.workspace = true

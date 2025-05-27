@@ -2694,7 +2694,6 @@ dependencies = [
  "criterion",
  "dir_checksum",
  "dirs 5.0.1",
- "futures",
  "log",
  "parsers",
  "rand",
