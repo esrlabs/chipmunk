@@ -31,6 +31,7 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
     public elListElement: els.ListElement<unknown> | undefined;
     public elNamedValuesElement: els.NamedValuesElement<unknown> | undefined;
     public elNestedDictionaryElement: els.NestedDictionaryElement<unknown> | undefined;
+    public elTimezoneSelectorElement: els.TimezoneSelectorElement | undefined;
 
     public field: boolean = false;
 
@@ -54,6 +55,10 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
             this.element.inner instanceof els.NamedValuesElement ? this.element.inner : undefined;
         this.elNestedDictionaryElement =
             this.element.inner instanceof els.NestedDictionaryElement
+                ? this.element.inner
+                : undefined;
+        this.elTimezoneSelectorElement =
+            this.element.inner instanceof els.TimezoneSelectorElement
                 ? this.element.inner
                 : undefined;
     }

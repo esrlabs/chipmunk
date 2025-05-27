@@ -11,6 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { NestedDictionaryModule } from './complex/nested_dictionary/module';
 import { FilesSelectorModule } from './complex/files_selector/module';
+import { TimezoneSelectorModule } from './complex/timezone/module';
 
 import { SettingsScheme } from './component';
 import { SchemeEntry } from './entry/component';
@@ -31,6 +32,7 @@ import { SchemeEntryElement } from './inner/component';
         MatProgressBarModule,
         NestedDictionaryModule,
         FilesSelectorModule,
+        TimezoneSelectorModule,
     ],
     declarations: [SettingsScheme, SchemeEntry, SchemeEntryElement],
     exports: [SettingsScheme],

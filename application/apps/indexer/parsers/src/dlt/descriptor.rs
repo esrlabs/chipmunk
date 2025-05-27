@@ -134,6 +134,14 @@ impl ComponentDescriptor for Descriptor {
                 interface: ValueInput::Files(vec!["xml".to_owned(), "*".to_owned()]),
                 binding: None,
             }),
+            FieldDesc::Static(StaticFieldDesc {
+                id: FIELD_TZ.to_owned(),
+                name: "Timezone".to_owned(),
+                desc: "Timezone".to_owned(),
+                required: true,
+                interface: ValueInput::Timezone,
+                binding: None,
+            }),
         ];
         if matches!(origin, SessionAction::File(..) | SessionAction::Files(..)) {
             options.push(stypes::FieldDesc::Lazy(stypes::LazyFieldDesc {
