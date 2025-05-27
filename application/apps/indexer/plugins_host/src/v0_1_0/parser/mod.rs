@@ -10,7 +10,7 @@ use wasmtime::{
     component::{Component, Linker},
     Store,
 };
-use wasmtime_wasi::{ResourceTable, WasiCtx};
+use wasmtime_wasi::{p2::WasiCtx, ResourceTable};
 
 use crate::{
     plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
@@ -54,7 +54,7 @@ impl PluginParser {
             .map_err(|err| err.to_owned())?;
 
         let mut linker: Linker<ParserPluginState> = Linker::new(engine);
-        wasmtime_wasi::add_to_linker_async(&mut linker)?;
+        wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
 
         Parse::add_to_linker(&mut linker, |state| state)?;
 

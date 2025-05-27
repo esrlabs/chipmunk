@@ -3,7 +3,7 @@ use std::{collections::HashSet, path::PathBuf};
 use anyhow::Context;
 use rand::distributions::DistString;
 use stypes::{RenderOptions, SemanticVersion};
-use wasmtime_wasi::{thread_rng, DirPerms, FilePerms, WasiCtxBuilder};
+use wasmtime_wasi::{p2::WasiCtxBuilder, thread_rng, DirPerms, FilePerms};
 
 use crate::PluginHostError;
 

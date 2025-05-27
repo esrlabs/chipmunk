@@ -10,7 +10,6 @@ plugins_api = {path = "../../plugins_api", features = ["parser"] }
 dlt-core = { version = "0.20", features = ["fibex"] }
 chrono = "0.4"
 chrono-tz = "0.10"
-humantime = "2.1"
 
 [lib]
 crate-type = ["cdylib"]

@@ -16,8 +16,8 @@ toml.workspace = true
 blake3.workspace = true
 rand.workspace = true
 
-wasmtime = "32.0"
-wasmtime-wasi = "32.0"
+wasmtime = "33.0"
+wasmtime-wasi = "33.0"
 
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
