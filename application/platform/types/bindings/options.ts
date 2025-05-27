@@ -67,4 +67,5 @@ export type ValueInput =
     | { Files: Array<string> }
     | { File: Array<string> }
     | 'Directory'
+    | 'Timezone'
     | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };
