@@ -37,11 +37,7 @@ impl PluginsParser {
         let (component, version) = Self::load(&plugin_path).await?;
 
         let plug_info = match version {
-            SemanticVersion {
-                major: 0,
-                minor: 1,
-                patch: 0,
-            } => v0_1_0::parser::PluginParser::get_info(component).await?,
+            SemanticVersion::V0_1_0 => v0_1_0::parser::PluginParser::get_info(component).await?,
             invalid_version => {
                 return Err(PluginHostError::PluginInvalid(format!(
                     "Plugin version {invalid_version} is not supported"
@@ -89,11 +85,7 @@ impl PluginsParser {
         let (component, version) = Self::load(&plugin_path).await?;
 
         match version {
-            SemanticVersion {
-                major: 0,
-                minor: 1,
-                patch: 0,
-            } => {
+            SemanticVersion::V0_1_0 => {
                 let parser = v0_1_0::parser::PluginParser::initialize(
                     component,
                     general_config,

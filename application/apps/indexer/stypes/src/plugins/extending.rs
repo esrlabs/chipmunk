@@ -124,8 +124,11 @@ impl PluginConfigItem {
 }
 
 impl SemanticVersion {
+    /// Version `0.1.0`
+    pub const V0_1_0: SemanticVersion = SemanticVersion::new(0, 1, 0);
+
     /// Creates a new [`SemanticVersion`] with the provided arguments.
-    pub fn new(major: u16, minor: u16, patch: u16) -> Self {
+    pub const fn new(major: u16, minor: u16, patch: u16) -> Self {
         Self {
             major,
             minor,
