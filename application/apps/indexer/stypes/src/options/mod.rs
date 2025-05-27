@@ -158,6 +158,7 @@ pub enum ValueInput {
     Files(Vec<String>),
     File(Vec<String>),
     Directory,
+    Timezone,
     Bound {
         output: Box<ValueInput>,
         inputs: Vec<ValueInput>,

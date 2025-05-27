@@ -26,7 +26,13 @@
     <app-settings-scheme-nested-dictionary [element]="element" [inner]="elNestedDictionaryElement">
     </app-settings-scheme-nested-dictionary>
 </ng-container>
+
 <ng-container *ngIf="elFilesFolderSelectorElement !== undefined">
     <app-settings-scheme-files-selector [element]="element" [inner]="elFilesFolderSelectorElement">
     </app-settings-scheme-files-selector>
+</ng-container>
+
+<ng-container *ngIf="elTimezoneSelectorElement !== undefined">
+    <app-settings-scheme-tz-selector [element]="element" [inner]="elTimezoneSelectorElement">
+    </app-settings-scheme-tz-selector>
 </ng-container>
