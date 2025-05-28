@@ -15,13 +15,10 @@ impl Observed {
     }
 
     pub fn is_file_based_export_possible(&self) -> bool {
-        let mut possibility = true;
-        self.executed.iter().for_each(|opt| {
-            if matches!(opt.origin, stypes::ObserveOrigin::Stream(..)) {
-                possibility = false;
-            }
-        });
-        possibility
+        !self.executed.iter().any(|opt| {
+            matches!(opt.origin, stypes::ObserveOrigin::Stream(..))
+                || matches!(opt.parser, stypes::ParserType::Plugin(..))
+        })
     }
 
     pub fn get_files(&self) -> Vec<(stypes::ParserType, stypes::FileFormat, PathBuf)> {

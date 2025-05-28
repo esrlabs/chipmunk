@@ -1,0 +1,13 @@
+package chipmunk:shared@0.1.0;
+
+/// Provides a sandboxed environment for managing temporary resources.  
+interface sandbox {  
+  /// Creates a temporary directory and returns its path.
+  ///
+  /// The directory is accessible for both reading and writing.
+  /// It is automatically deleted when the session ends.
+  ///
+  /// Returns an error string if the directory cannot be created due to an I/O error.  
+  temp-directory: func() -> result<string, string>;
+}
+

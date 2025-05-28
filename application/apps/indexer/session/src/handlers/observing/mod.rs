@@ -12,6 +12,7 @@ use parsers::{
     text::StringTokenizer,
     LogMessage, MessageStreamItem, ParseYield, Parser,
 };
+use plugins_host::PluginsParser;
 use sources::{
     producer::MessageProducer,
     sde::{SdeMsg, SdeReceiver},
@@ -78,6 +79,16 @@ async fn run_source_intern<S: ByteSource>(
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
     match parser {
+        stypes::ParserType::Plugin(settings) => {
+            let parser = PluginsParser::initialize(
+                &settings.plugin_path,
+                &settings.general_settings,
+                settings.plugin_configs.clone(),
+            )
+            .await?;
+            let producer = MessageProducer::new(parser, source);
+            run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
+        }
         stypes::ParserType::SomeIp(settings) => {
             let someip_parser = match &settings.fibex_file_paths {
                 Some(paths) => {

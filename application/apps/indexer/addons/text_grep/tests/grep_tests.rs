@@ -14,10 +14,7 @@ mod tests {
         let mut file = File::create(&file_path).expect("Failed to create temporary file");
         file.write_all(content.as_bytes())
             .expect("Failed to write to temporary file");
-        (
-            file_path,
-            temp_dir.into_path().to_string_lossy().to_string(),
-        )
+        (file_path, temp_dir.keep().to_string_lossy().to_string())
     }
 
     #[tokio::test]

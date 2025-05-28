@@ -12,10 +12,12 @@ import { Alias } from '../../env/types';
 import * as Dlt from './dlt';
 import * as SomeIp from './someip';
 import * as Text from './text';
+import * as Plugin from './plugin';
 
 export * as Dlt from './dlt';
 export * as SomeIp from './someip';
 export * as Text from './text';
+export * as Plugin from './plugin';
 import * as Stream from '../origin/stream/index';
 import * as Files from '../types/file';
 import * as Origin from '../origin/index';
@@ -23,22 +25,33 @@ import * as Origin from '../origin/index';
 export type Reference =
     | ReferenceDesc<Text.IConfiguration, Text.Configuration, Protocol>
     | ReferenceDesc<Dlt.IConfiguration, Dlt.Configuration, Protocol>
-    | ReferenceDesc<SomeIp.IConfiguration, SomeIp.Configuration, Protocol>;
+    | ReferenceDesc<SomeIp.IConfiguration, SomeIp.Configuration, Protocol>
+    | ReferenceDesc<Plugin.IConfiguration, Plugin.Configuration, Protocol>;
 
 export enum Protocol {
     Dlt = 'Dlt',
     SomeIp = 'SomeIp',
     Text = 'Text',
+    Plugin = 'Plugin',
 }
 
-export type IDeclaration = Text.IConfiguration | Dlt.IConfiguration | SomeIp.IConfiguration;
+export type IDeclaration =
+    | Text.IConfiguration
+    | Dlt.IConfiguration
+    | SomeIp.IConfiguration
+    | Plugin.IConfiguration;
 
-export type Declaration = Text.Configuration | Dlt.Configuration | SomeIp.Configuration;
+export type Declaration =
+    | Text.Configuration
+    | Dlt.Configuration
+    | SomeIp.Configuration
+    | Plugin.Configuration;
 
 export interface IConfiguration {
     [Protocol.Dlt]?: Dlt.IConfiguration;
     [Protocol.SomeIp]?: SomeIp.IConfiguration;
     [Protocol.Text]?: Text.IConfiguration;
+    [Protocol.Plugin]?: Plugin.IConfiguration;
 }
 
 const REGISTER: {
@@ -47,7 +60,15 @@ const REGISTER: {
     [Protocol.Dlt]: Dlt.Configuration,
     [Protocol.SomeIp]: SomeIp.Configuration,
     [Protocol.Text]: Text.Configuration,
+    [Protocol.Plugin]: Plugin.Configuration,
 };
+
+export function tryAsEmbedded(alias: Protocol | string): Protocol | undefined {
+    if (REGISTER[alias]) {
+        return alias as Protocol;
+    }
+    return undefined;
+}
 
 export function getAllRefs(): Reference[] {
     return Object.keys(REGISTER).map((key) => REGISTER[key]);

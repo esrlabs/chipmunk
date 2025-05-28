@@ -13,3 +13,4 @@ export * from './observe';
 export * from './progress';
 export * from './dlt';
 export * from './operations';
+export * from './plugins';

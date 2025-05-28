@@ -30,9 +30,8 @@ socket2 = "0.5.8"
 [dev-dependencies]
 env_logger.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
-mimalloc = "0.1"
-# Jemalloc combined with Node.js exceeds the default TLS memory limit on Linux.
-tikv-jemallocator = { version = "0.6" , features = ["disable_initial_exec_tls"] }
+plugins_host = {path = "../plugins_host/"}
+toml.workspace = true
 
 [[bench]]
 name = "dlt_producer"
@@ -51,11 +50,11 @@ name = "text_producer"
 harness = false
 
 [[bench]]
-name = "mocks_once_producer"
+name = "plugin_praser_producer"
 harness = false
 
 [[bench]]
-name = "mocks_once_producer_jemalloc"
+name = "mocks_once_producer"
 harness = false
 
 [[bench]]
@@ -63,37 +62,10 @@ name = "mocks_once_parallel"
 harness = false
 
 [[bench]]
-name = "mocks_once_parallel_jemalloc"
-harness = false
-
-[[bench]]
-name = "mocks_once_parallel_mimalloc"
-harness = false
-
-[[bench]]
-name = "mocks_once_producer_mimalloc"
-harness = false
-
-[[bench]]
 name = "mocks_multi_producer"
-harness = false
-
-[[bench]]
-name = "mocks_multi_producer_jemalloc"
-harness = false
-
-[[bench]]
-name = "mocks_multi_producer_mimalloc"
 harness = false
 
 [[bench]]
 name = "mocks_multi_parallel"
 harness = false
 
-[[bench]]
-name = "mocks_multi_parallel_jemalloc"
-harness = false
-
-[[bench]]
-name = "mocks_multi_parallel_mimalloc"
-harness = false

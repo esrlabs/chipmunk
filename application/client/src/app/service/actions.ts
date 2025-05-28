@@ -30,6 +30,8 @@ export class Service extends Implementation {
                                         return new handlers.FileDlt.Action().apply();
                                     case FileType.PcapNG:
                                         return new handlers.FilePcap.Action().apply();
+                                    case FileType.ParserPlugin:
+                                        return new handlers.FileParserPlugin.Action().apply();
                                     default:
                                         return new handlers.FileAny.Action().apply();
                                 }
@@ -68,6 +70,8 @@ export class Service extends Implementation {
                                         return new handlers.FolderDlt.Action().apply();
                                     case FileType.PcapNG:
                                         return new handlers.FolderPcap.Action().apply();
+                                    case FileType.ParserPlugin:
+                                        return new handlers.FolderParserPlugin.Action().apply();
                                     default:
                                         return Promise.reject(
                                             new Error(`Unsupported format: ${request.type}`),
@@ -130,6 +134,25 @@ export class Service extends Implementation {
                                                     ),
                                                 );
                                         }
+                                    case Protocol.Plugin: {
+                                        switch (request.source) {
+                                            case undefined:
+                                            case Source.Process:
+                                                return new handlers.StdoutPlugin.Action().apply();
+                                            case Source.Serial:
+                                                return new handlers.SerialParserPlugin.Action().apply();
+                                            case Source.UDP:
+                                                return new handlers.UdpParserPlugin.Action().apply();
+                                            case Source.TCP:
+                                                return new handlers.TcpParserPlugin.Action().apply();
+                                            default:
+                                                return Promise.reject(
+                                                    new Error(
+                                                        `Unsupported transport for Plugins: ${request.source}`,
+                                                    ),
+                                                );
+                                        }
+                                    }
                                     default:
                                         return Promise.reject(
                                             new Error(`Unsupported format: ${request.protocol}`),
@@ -361,6 +384,30 @@ export class Service extends Implementation {
                                 })
                                 .finally(() => {
                                     resolve(new Requests.Actions.Help.Response());
+                                });
+                        });
+                    },
+                ),
+        );
+        this.register(
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Actions.PluginsManager.Request,
+                    (
+                        _request: Requests.Actions.PluginsManager.Request,
+                    ): CancelablePromise<Requests.Actions.PluginsManager.Response> => {
+                        return new CancelablePromise((resolve, _reject) => {
+                            new handlers.PluginsManager.Action()
+                                .apply()
+                                .catch((err: Error) => {
+                                    this.log().error(
+                                        `Fail to call plugins manager action: ${err.message}`,
+                                    );
+                                })
+                                .finally(() => {
+                                    resolve(new Requests.Actions.PluginsManager.Response());
                                 });
                         });
                     },

@@ -8,9 +8,9 @@ members = [
     "addons/text_grep",
     "addons/bufread",
     "indexer_base",
-    "indexer_cli",
     "merging",
     "parsers",
+    "plugins_host",
     "processor",
     "session",
     "sources",
@@ -39,6 +39,9 @@ tempfile = "3.14"
 env_logger = "0.11"
 walkdir = "2.5"
 envvars = "0.1"
+anyhow = "1.0"
+toml = "0.8"
+blake3 = "1.5"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.

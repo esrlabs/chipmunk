@@ -83,6 +83,17 @@ button[mat-stroked-button][disabled] {
         }
     }
 }
+button[mat-stroked-button] {
+    & .mdc-button__label {
+        white-space: nowrap;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        & mat-spinner {
+            margin-right: 16px;
+        }
+    }
+}
 
 & mat-error {
     color: var(--scheme-color-warning)!important;

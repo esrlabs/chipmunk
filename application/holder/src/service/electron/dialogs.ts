@@ -36,17 +36,17 @@ export class Dialogs extends Implementation {
                     defaultFileName !== undefined
                         ? []
                         : ext !== undefined
-                        ? ext.split(',').map((e) => {
-                              return { name: `*.${e}`, extensions: [e] };
-                          })
-                        : [{ name: 'All Files', extensions: ['*'] }],
+                          ? ext.split(',').map((e) => {
+                                return { name: `*.${e}`, extensions: [e] };
+                            })
+                          : [{ name: 'All Files', extensions: ['*'] }],
             })
             .then((result: Electron.SaveDialogReturnValue) => {
                 return result.filePath === undefined
                     ? result.filePath
                     : result.filePath.trim() === ''
-                    ? undefined
-                    : result.filePath;
+                      ? undefined
+                      : result.filePath;
             });
     }
 
@@ -67,6 +67,7 @@ export class Dialogs extends Implementation {
         dlt(): Promise<string[]>;
         pcapng(): Promise<string[]>;
         pcap(): Promise<string[]>;
+        plugins(): Promise<string[]>;
     } {
         const opener = async (target: number, ext?: string): Promise<string[]> => {
             let results;
@@ -108,6 +109,13 @@ export class Dialogs extends Implementation {
                         filters: [{ name: 'PCAP Files', extensions: ['pcap'] }],
                     });
                     break;
+                case 4:
+                    results = await dialog.showOpenDialog(this._window, {
+                        title: 'Opening file with plugins',
+                        properties: ['openFile', 'multiSelections'],
+                        filters: [{ name: 'All files', extensions: ['*'] }],
+                    });
+                    break;
                 default:
                     throw new Error(`Unsupported opetion for open file dialog`);
             }
@@ -118,6 +126,7 @@ export class Dialogs extends Implementation {
             dlt: () => opener(1),
             pcapng: () => opener(2),
             pcap: () => opener(3),
+            plugins: () => opener(4),
         };
     }
 }

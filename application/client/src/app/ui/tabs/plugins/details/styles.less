@@ -1,0 +1,98 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    right: 12px;
+    overflow: hidden;
+    & div.info {
+        position: relative;
+        margin: 0 6px 12px 0;
+        & p {
+            text-align: left;
+        }
+    }
+    & div.actions {
+        position: relative;
+        display: flex;
+        margin: 0 0 12px 0;
+        flex-direction: row;
+        justify-content: end;
+        & button.selected {
+            &::after {
+                position: absolute;
+                display: block;
+                content: '';
+                height: 2px;
+                bottom: 0;
+                width: 100%;
+                left: 0px;
+                background-color: var(--scheme-color-accent);
+            }
+        }
+        & button {
+            & span.stats {
+                position: relative;
+                display: inline-block;
+                font-size: 12px;
+                line-height: 0px;
+                margin: -8px 0 0 6px;
+                &.err {
+                    color: var(--scheme-color-error);
+                }
+                &.warns {
+                    color: var(--scheme-color-warning);
+                }
+            }
+        }
+        & button[disabled] {
+            &:hover {
+                background: none;
+            }
+            color: var(--scheme-color-3);
+        }
+    }
+    & div.readme {
+        position: relative;
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: auto;
+    }
+    & ul.logs {
+        position: relative;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        & li {
+            position: relative;
+            font-family: 'console', monospace;
+            font-size: 13.5px;
+            font-variant-numeric: tabular-nums;
+            display: flex;
+            flex-direction: row;
+            & span {
+                margin-right: 12px;
+            }
+            & span.dt {
+                min-width: 70px;
+            }
+            & span.level {
+                min-width: 40px;
+            }
+            &.Info,
+            &.Debug {
+                color: var(--scheme-color-1);
+            }
+            &.Err {
+                color: var(--scheme-color-error-light);
+            }
+            &.Warn {
+                color: var(--scheme-color-warning-light);
+            }
+        }
+    }
+}

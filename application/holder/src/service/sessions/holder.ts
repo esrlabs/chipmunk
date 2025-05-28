@@ -184,6 +184,8 @@ export class Holder {
         switch (parsers[0]) {
             case $.Parser.Protocol.Text:
                 return `.txt`;
+            case $.Parser.Protocol.Plugin:
+                return exts.length === 0 ? '.plg' : exts[0];
             case $.Parser.Protocol.Dlt:
             case $.Parser.Protocol.SomeIp:
                 if (files.length === 0) {

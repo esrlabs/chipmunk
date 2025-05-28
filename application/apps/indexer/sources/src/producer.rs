@@ -205,6 +205,17 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                         return Some(&mut self.buffer);
                     }
                 }
+                Err(ParserError::Unrecoverable(err)) => {
+                    //TODO: Errors like this must be visible to users.
+                    // Current producer loop swallows the errors after logging them,
+                    // returning that the session is ended after encountering such errors.
+                    error!("Parsing failed: Error {err}");
+                    eprintln!("Parsing failed: Error: {err}");
+                    self.done = true;
+                    self.buffer.push((0, MessageStreamItem::Done));
+
+                    return Some(&mut self.buffer);
+                }
             }
         }
     }

@@ -268,6 +268,17 @@ export class Service extends Implementation {
                               },
                               { type: 'separator' },
                               {
+                                  label: 'Plugins Manager',
+                                  click: async () => {
+                                      Actions.pluginsManager().catch((err: Error) => {
+                                          this.log().error(
+                                              `Fail call action Plugins Manager: ${err.message}`,
+                                          );
+                                      });
+                                  },
+                              },
+                              { type: 'separator' },
+                              {
                                   label: 'Check for updates',
                                   click: async () => {
                                       Actions.updates().catch((err: Error) => {
@@ -303,6 +314,18 @@ export class Service extends Implementation {
                                       { role: 'reload' },
                                       { role: 'forceReload' },
                                       { role: 'toggleDevTools' },
+                                      {
+                                          label: '[Experimental] Folder with plugin parser',
+                                          click: async () => {
+                                              Actions.openFolder(FileType.ParserPlugin).catch(
+                                                  (err: Error) => {
+                                                      this.log().error(
+                                                          `Fail call action Open Folder with Plugin: ${err.message}`,
+                                                      );
+                                                  },
+                                              );
+                                          },
+                                      },
                                   ],
                               },
                               { type: 'separator' },

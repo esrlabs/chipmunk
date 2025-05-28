@@ -1,0 +1,18 @@
+<mat-card>
+    <mat-card-title>{{getTitle()}}</mat-card-title>
+    <mat-card-content style="text-align: center">
+        <ng-container *ngIf="provider.state.loading">
+            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </ng-container>
+        <ng-container *ngIf="!provider.state.loading">
+            <app-plugins-manager-plugin
+                [plugin]="plugin"
+                [provider]="provider"
+                *ngFor="let plugin of plugins"
+            ></app-plugins-manager-plugin>
+        </ng-container>
+        <ng-container *ngIf="!provider.state.loading && plugins.length === 0">
+            <p class="t-normal color-scheme-2">No plugins</p>
+        </ng-container>
+    </mat-card-content>
+</mat-card>

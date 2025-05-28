@@ -1,0 +1,10 @@
+<mat-form-field class="material-mofication-normal">
+    <mat-label>{{config.title}}</mat-label>
+    <input
+        matInput
+        [attr.placeholder]="config.title"
+        [(ngModel)]="value"
+        (input)="ngOnInputChange($event)"
+    />
+    <mat-hint>{{config.description}}</mat-hint>
+</mat-form-field>

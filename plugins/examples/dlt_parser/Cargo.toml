@@ -1,0 +1,26 @@
+[package]
+name = "dlt_parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
+description = "An example of a Chipmunk parser that replicate the dlt parser that is built-in into Chipmunk"
+
+[dependencies]
+plugins_api = {path = "../../plugins_api", features = ["parser"] }
+dlt-core = { version = "0.20", features = ["fibex"] }
+chrono = "0.4"
+chrono-tz = "0.10"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+debug = false
+strip = true
+lto = true
+
+[package.metadata.component]
+package = "component:dlt-parser"
+

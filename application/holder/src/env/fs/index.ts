@@ -3,7 +3,6 @@ import { FileType, extname } from 'platform/types/observe/types/file';
 import { error } from 'platform/log/utils';
 import { unbound } from '@service/unbound';
 
-
 import * as obj from 'platform/env/obj';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -76,16 +75,16 @@ export function getFolders(paths: string[]): string[] | Error {
     }
 }
 
-export async function getFileEntities(files: string[]): Promise<File[]> {
+export async function getFileEntities(files: string[], fileType?: FileType): Promise<File[]> {
     if (files.length === 0) {
         return [];
     } else {
         try {
             const entities = [];
-            for(let i = 0; i < files.length; i++) {
-                const entity: File | undefined = await getFileEntity(files[i])
+            for (let i = 0; i < files.length; i++) {
+                const entity: File | undefined = await getFileEntity(files[i], fileType);
                 if (entity instanceof Error) {
-                    throw entity
+                    throw entity;
                 }
                 entities.push(entity);
             }
@@ -96,7 +95,10 @@ export async function getFileEntities(files: string[]): Promise<File[]> {
     }
 }
 
-export async function getFileEntity(filename: string): Promise<File | undefined> {
+export async function getFileEntity(
+    filename: string,
+    fileType?: FileType,
+): Promise<File | undefined> {
     try {
         const stat = fs.statSync(filename);
         if (!stat.isFile()) {
@@ -123,7 +125,7 @@ export async function getFileEntity(filename: string): Promise<File | undefined>
                 'ctimeMs',
                 'birthtimeMs',
             ]),
-            type: await getFileTypeByFilename(filename),
+            type: fileType ?? (await getFileTypeByFilename(filename)),
         };
     } catch (_) {
         return Promise.reject(new Error(`Fail to get stat info for "${filename}"`));
@@ -143,7 +145,7 @@ export async function getFileTypeByFilename(filename: string): Promise<FileType>
                 return FileType.Text;
         }
     } else {
-        return FileType.Text
+        return FileType.Text;
     }
-
 }
+

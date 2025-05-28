@@ -5,7 +5,7 @@ authors = ["esrlabs.com"]
 edition = "2021"
 
 [dependencies]
-blake3 = "1.5"
+blake3.workspace = true
 crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serialization"] }
@@ -31,6 +31,7 @@ tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
+plugins_host = {path = "../plugins_host/"}
 
 [dev-dependencies]
 lazy_static.workspace = true

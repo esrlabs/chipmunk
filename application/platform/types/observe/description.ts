@@ -15,6 +15,7 @@ export enum OriginType {
     serial = 'serial',
     command = 'command',
     file = 'file',
+    plugin = 'plugin',
 }
 export interface IOriginDetails extends IList {
     type: OriginType;

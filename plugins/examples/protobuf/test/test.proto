@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package my_package;
+
+message Request {
+  uint64 id = 1;
+  string str = 2;
+  uint64 tm = 3;
+}
+
+message Response {
+  uint64 id = 1;
+  string str = 2;
+  uint64 tm = 3;
+  bytes data = 4;
+}
+
+enum Event {
+  EVENT_A = 0;
+  EVENT_B = 1;
+  EVENT_C = 2;
+}
+
+message EventDesc {
+  Event event = 1;
+  uint64 tm = 2;
+}

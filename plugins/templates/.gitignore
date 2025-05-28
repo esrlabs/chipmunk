@@ -1,0 +1,2 @@
+# Ignore lock files for templates without having that in their own `.gitingore` files.
+**/Cargo.lock

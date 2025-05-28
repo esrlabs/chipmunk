@@ -1,0 +1,4 @@
+# This is example of the plugin metadata file which should placed in the plugin directory 
+# next to plugin wasm file.
+title = "File Binary Source"
+description = "Example for byte-source plugins. It reads the data from the provided file as binary"

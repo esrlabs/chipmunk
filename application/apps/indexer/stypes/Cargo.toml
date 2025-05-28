@@ -14,6 +14,7 @@ rustcore = [
     "dlt-core/fibex",
     "dlt-core/statistics",
     "dlt-core/serialization",
+    "dep:anyhow",
 ]
 nodejs = [
     "dep:node-bindgen"
@@ -31,6 +32,7 @@ node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="m
 thiserror.workspace = true
 walkdir = { workspace = true, optional = true }
 envvars = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true  }

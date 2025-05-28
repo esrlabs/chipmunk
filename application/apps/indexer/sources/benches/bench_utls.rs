@@ -12,7 +12,6 @@ use std::{
 use criterion::Criterion;
 use parsers::{LogMessage, MessageStreamItem};
 use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
-use tokio_stream::StreamExt;
 
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
 pub const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";

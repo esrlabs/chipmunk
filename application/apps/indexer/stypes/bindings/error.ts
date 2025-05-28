@@ -25,7 +25,7 @@ message: string | null, };
 /**
  * Defines the source or type of an error.
  */
-export type NativeErrorKind = "FileNotFound" | "UnsupportedFileType" | "ComputationFailed" | "Configuration" | "Interrupted" | "OperationSearch" | "NotYetImplemented" | "ChannelError" | "Io" | "Grabber";
+export type NativeErrorKind = "FileNotFound" | "UnsupportedFileType" | "ComputationFailed" | "Configuration" | "Interrupted" | "OperationSearch" | "NotYetImplemented" | "ChannelError" | "Io" | "Grabber" | "Plugins";
 
 /**
  * Indicates the severity level of an error.

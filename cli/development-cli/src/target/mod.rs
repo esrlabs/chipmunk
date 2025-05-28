@@ -61,6 +61,8 @@ pub enum Target {
     CliDev,
     /// Represents the path `cli/chipmunk-cli`
     CliChipmunk,
+    /// Represents the path `plugins/plugins_api`
+    PluginsApi,
 }
 
 #[derive(Debug, Clone)]
@@ -125,6 +127,7 @@ impl std::fmt::Display for Target {
                 Target::App => "App",
                 Target::Wasm => "Wasm",
                 Target::Updater => "Updater",
+                Target::PluginsApi => "PluginsApi",
             }
         )
     }
@@ -150,6 +153,7 @@ impl FromStr for Target {
                 T::Wasm => (),
                 T::Updater => (),
                 T::CliChipmunk => (),
+                T::PluginsApi => (),
             };
         }
 
@@ -165,6 +169,7 @@ impl FromStr for Target {
             "App" => Ok(T::App),
             "Wasm" => Ok(T::Wasm),
             "Updater" => Ok(T::Updater),
+            "PluginsApi" => Ok(T::PluginsApi),
             invalid => bail!("Invalid input for Parsing Target: {invalid}"),
         }
     }
@@ -187,6 +192,7 @@ impl Target {
                 Target::Wasm => (),
                 Target::Updater => (),
                 Target::CliChipmunk => (),
+                Target::PluginsApi => (),
             };
         }
 
@@ -202,6 +208,7 @@ impl Target {
             Target::Wasm,
             Target::Updater,
             Target::CliChipmunk,
+            Target::PluginsApi,
         ]
         .as_slice()
     }
@@ -228,6 +235,7 @@ impl Target {
             Target::CliChipmunk => ["cli", "chipmunk-cli"].iter(),
             Target::Wasm => ["application", "apps", "rustcore", "wasm-bindings"].iter(),
             Target::Updater => ["application", "apps", "precompiled", "updater"].iter(),
+            Target::PluginsApi => ["plugins", "plugins_api"].iter(),
         };
 
         sub_parts.collect()
@@ -242,7 +250,8 @@ impl Target {
             | Target::CliDev
             | Target::CliChipmunk
             | Target::Wasm
-            | Target::Updater => TargetKind::Rs,
+            | Target::Updater
+            | Target::PluginsApi => TargetKind::Rs,
             Target::Client | Target::Wrapper | Target::Shared | Target::App => TargetKind::Ts,
         }
     }
@@ -257,7 +266,8 @@ impl Target {
             | Target::CliChipmunk
             | Target::Shared
             | Target::Wasm
-            | Target::Updater => Vec::new(),
+            | Target::Updater 
+            | Target::PluginsApi => Vec::new(),
             Target::Protocol => vec![Target::Core],
             Target::Binding => vec![Target::Shared, Target::Core, Target::Protocol],
             Target::Wrapper => vec![Target::Binding, Target::Shared, Target::Protocol],
@@ -299,7 +309,8 @@ impl Target {
                 | Target::Updater
                 | Target::CliDev
                 | Target::CliChipmunk
-                | Target::Protocol => false,
+                | Target::Protocol 
+                | Target::PluginsApi => false,
             },
 
             JobType::AfterBuild { .. } => match self {
@@ -311,14 +322,16 @@ impl Target {
                 | Target::Updater
                 | Target::CliDev
                 | Target::CliChipmunk
-                | Target::Protocol => false,
+                | Target::Protocol 
+                | Target::PluginsApi => false,
             },
             JobType::Test { .. } => match self {
                 Target::Wrapper
                 | Target::Core
                 | Target::CliDev
                 | Target::Wasm
-                | Target::CliChipmunk => true,
+                | Target::CliChipmunk 
+                | Target::PluginsApi => true,
                 Target::Shared
                 | Target::Binding
                 | Target::Client
@@ -398,7 +411,10 @@ impl Target {
     fn test_cmds(self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
             Target::Core | Target::CliDev | Target::CliChipmunk => {
-                Some(rust_test_commands(self.cwd(), production))
+                Some(rust_test_commands(self.cwd(), production, RustFeatureOptions::None))
+            }
+            Target::PluginsApi => {
+                Some(rust_test_commands(self.cwd(), production, RustFeatureOptions::All))
             }
             Target::Wasm => Some(wasm::get_test_cmds()),
             Target::Shared
@@ -550,7 +566,8 @@ impl Target {
             | Target::Updater
             | Target::App
             | Target::CliDev
-            | Target::CliChipmunk => {}
+            | Target::CliChipmunk
+            | Target::PluginsApi => {}
         }
 
         for path in paths_to_remove.into_iter().filter(|p| p.exists()) {
@@ -639,7 +656,8 @@ impl Target {
             | Target::Updater
             | Target::Protocol
             | Target::CliDev
-            | Target::CliChipmunk => return None,
+            | Target::CliChipmunk 
+            | Target::PluginsApi => return None,
         };
 
         match (after_res, reinstall_res) {
@@ -687,11 +705,23 @@ fn yarn_command(args: Vec<String>) -> ProcessCommand {
     ProcessCommand::new(DevTool::Yarn.cmd(), args)
 }
 
+/// Feature options for rust commands 
+enum RustFeatureOptions {
+    /// Include all features  
+    All,
+    /// Don't include any options for rust features.
+    None,
+}
+
 /// Provides the general commands to run tests on rust targets.
-fn rust_test_commands(path: PathBuf, production: bool) -> Vec<TestSpawnCommand> {
+fn rust_test_commands(path: PathBuf, production: bool, feature_opts: RustFeatureOptions) -> Vec<TestSpawnCommand> {
     let mut args = vec![String::from("+stable"), String::from("test")];
     if production {
         args.push("-r".into());
+    }
+    match feature_opts {
+        RustFeatureOptions::All => args.push("--all-features".into()),
+        RustFeatureOptions::None => {},
     }
     args.push("--color".into());
     args.push("always".into());

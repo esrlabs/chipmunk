@@ -46,7 +46,7 @@ export class TabObserveStream extends ChangesDetector implements AfterContentIni
                 this.stream.from({ [stream]: Streams.getByAlias(stream).configuration });
             }),
             this.state.updates.get().parser.subscribe(() => {
-                const parser = this.state.parser;
+                const parser = this.state.getParser().embedded();
                 if (parser === undefined) {
                     return;
                 }

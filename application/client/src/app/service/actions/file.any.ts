@@ -56,6 +56,17 @@ export class Action extends Base {
                             .get(),
                     );
                 break;
+            case FileType.ParserPlugin:
+                session
+                    .initialize()
+                    .observe(
+                        new Factory.File()
+                            .type(Factory.FileType.ParserPlugin)
+                            .file(file.filename)
+                            .asParserPlugin()
+                            .get(),
+                    );
+                break;
         }
     }
 
