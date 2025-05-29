@@ -8,7 +8,7 @@ use std::{
     io::Read,
     net::{IpAddr, Ipv4Addr},
 };
-use stypes::SessionAction;
+use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
 use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
@@ -137,6 +137,9 @@ const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
 ]);
 
+const FIELD_IP_ADDR: &str = "UDP_SOURCE_FIELD_IP_ADDR";
+const FIELD_MULTICAST_ADDR: &str = "UDP_SOURCE_FIELD_MULTICAST_ADDR";
+
 #[derive(Default)]
 pub struct Descriptor {}
 
@@ -168,6 +171,49 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
+    }
+    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
+        Ok(vec![
+            FieldDesc::Static(StaticFieldDesc {
+                id: FIELD_IP_ADDR.to_owned(),
+                name: "Address to connect".to_owned(),
+                desc: "IP address and port".to_owned(),
+                required: true,
+                interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
+                binding: None,
+            }),
+            FieldDesc::Static(StaticFieldDesc {
+                id: FIELD_IP_ADDR.to_owned(),
+                name: "Multicast Addresses".to_owned(),
+                desc: "Multicast Addresses".to_owned(),
+                required: true,
+                interface: ValueInput::FieldsCollection {
+                    elements: vec![
+                        StaticFieldDesc {
+                            id: String::new(),
+                            name: "Address".to_owned(),
+                            desc: "Address to listen".to_owned(),
+                            required: true,
+                            interface: ValueInput::String(
+                                String::new(),
+                                "255.255.255.255".to_owned(),
+                            ),
+                            binding: None,
+                        },
+                        StaticFieldDesc {
+                            id: String::new(),
+                            name: "Interface".to_owned(),
+                            desc: "Interface".to_owned(),
+                            required: true,
+                            interface: ValueInput::String(String::new(), "0.0.0.0".to_owned()),
+                            binding: None,
+                        },
+                    ],
+                    add_title: "Add Multicast".to_owned(),
+                },
+                binding: None,
+            }),
+        ])
     }
 }
 
