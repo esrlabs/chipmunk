@@ -8,16 +8,46 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { SchemeProvider } from '../provider';
-import { Element } from '../element';
+import { SchemeProvider } from '../../provider';
+import { Element } from './element';
 
-import * as els from '../element';
+import { ComplexFieldsModule } from './complex/module';
+
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIcon } from '@angular/material/icon';
+
+import * as els from './element';
 
 @Component({
     selector: 'app-settings-scheme-element',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    standalone: false,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatCheckboxModule,
+        MatCardModule,
+        MatDividerModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatSelectModule,
+        MatProgressBarModule,
+        MatIcon,
+        ComplexFieldsModule,
+        SchemeEntryElement,
+    ],
+    standalone: true,
 })
 @Initial()
 @Ilc()
@@ -32,6 +62,7 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
     public elNamedValuesElement: els.NamedValuesElement<unknown> | undefined;
     public elNestedDictionaryElement: els.NestedDictionaryElement<unknown> | undefined;
     public elTimezoneSelectorElement: els.TimezoneSelectorElement | undefined;
+    public elFieldsCollectionElement: els.FieldsCollectionElement | undefined;
 
     public field: boolean = false;
 
@@ -61,6 +92,10 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
             this.element.inner instanceof els.TimezoneSelectorElement
                 ? this.element.inner
                 : undefined;
+        this.elFieldsCollectionElement =
+            this.element.inner instanceof els.FieldsCollectionElement
+                ? this.element.inner
+                : undefined;
     }
 
     public ngAfterViewInit(): void {
@@ -69,6 +104,14 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
                 this.detectChanges();
             }),
         );
+    }
+
+    public ngOnAddCollection() {
+        if (!this.elFieldsCollectionElement) {
+            return;
+        }
+        this.elFieldsCollectionElement.add();
+        this.detectChanges();
     }
 }
 export interface SchemeEntryElement extends IlcInterface {}

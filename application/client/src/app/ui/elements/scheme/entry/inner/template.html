@@ -16,6 +16,7 @@
     <ng-container *ngIf="elInputElement !== undefined">
         <input
             [attr.type]="(elInputElement.isString() ? 'text' : 'number')"
+            [placeholder]="elInputElement.placeholder"
             matInput
             [(ngModel)]="elInputElement.value"
             (ngModelChange)="element.change()"
@@ -35,4 +36,34 @@
 <ng-container *ngIf="elTimezoneSelectorElement !== undefined">
     <app-settings-scheme-tz-selector [element]="element" [inner]="elTimezoneSelectorElement">
     </app-settings-scheme-tz-selector>
+</ng-container>
+
+<ng-container *ngIf="elFieldsCollectionElement !== undefined">
+    <div *ngFor="let collection of elFieldsCollectionElement.elements">
+        <app-settings-scheme-element
+            *ngFor="let element of collection"
+            [element]="element"
+            [provider]="elFieldsCollectionElement.provider"
+        >
+        </app-settings-scheme-element>
+    </div>
+    <button
+        mat-icon-button
+        *ngIf="elFieldsCollectionElement.addTitle === undefined"
+        (click)="ngOnAddCollection()"
+    >
+        <mat-icon aria-hidden="false" class="mini-button">plus</mat-icon>
+    </button>
+    <button
+        mat-stroked-button
+        *ngIf="elFieldsCollectionElement.addTitle !== undefined"
+        (click)="ngOnAddCollection()"
+    >
+        <mat-icon aria-hidden="false" class="mini-button">plus</mat-icon>
+        {{elFieldsCollectionElement.addTitle}}
+    </button>
+    <!-- <app-settings-scheme-fields-collection-selector
+        [element]="element"
+        [inner]="elFieldsCollectionElement"
+    ></app-settings-scheme-fields-collection-selector> -->
 </ng-container>

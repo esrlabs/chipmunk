@@ -8,6 +8,7 @@ import * as ListElement from './list';
 import * as NamedValuesElement from './named';
 import * as NestedDictionaryElement from './nested_dictionary';
 import * as TimezoneSelectorElement from './timezone';
+import * as FieldsCollectionElement from './fields_collection';
 
 export { CheckboxElement } from './checkbox';
 export { FilesFolderSelectorElement } from './files_selector';
@@ -16,12 +17,13 @@ export { ListElement } from './list';
 export { NamedValuesElement } from './named';
 export { NestedDictionaryElement, NestedDictionaryStructure } from './nested_dictionary';
 export { TimezoneSelectorElement } from './timezone';
+export { FieldsCollectionElement } from './fields_collection';
 
 /**
 export type ValueInput =
     | { Checkbox: boolean }
     | { Number: number }
-    | { String: string }
+    | { String: [string, string] }
     | { Numbers: [Array<number>, number] }
     | { Strings: [Array<string>, string] }
     | { NamedBools: Array<[string, boolean]> }
@@ -37,6 +39,9 @@ export type ValueInput =
     | { Files: Array<string> }
     | { File: Array<string> }
     | 'Directory'
+    | 'Timezone'
+    | { InputsCollection: { elements: Array<ValueInput>; add_title: string } }
+    | { FieldsCollection: { elements: Array<StaticFieldDesc>; add_title: string } }
     | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };
  */
 
@@ -74,6 +79,7 @@ export class Element {
             NamedValuesElement,
             NestedDictionaryElement,
             TimezoneSelectorElement,
+            FieldsCollectionElement,
         ]) {
             let element = el.tryFromOrigin(origin);
             if (element !== undefined) {
