@@ -3,8 +3,6 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Element, TimezoneSelectorElement } from '../../element';
-import { bridge } from '@service/bridge';
-import { File } from '@platform/types/files';
 import { components } from '@env/decorators/initial';
 import { Timezone } from '@ui/elements/timezones/timezone';
 
