@@ -4,7 +4,7 @@ use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{io::Read, net::SocketAddr, time::Duration};
-use stypes::SessionAction;
+use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
 use tokio::net::TcpStream;
 
 use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
@@ -173,6 +173,9 @@ const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
 ]);
 
+// TODO: make fields ids more generic, for example prefix can be taken from source trait somehow
+const FIELD_IP_ADDR: &str = "TCP_SOURCE_FIELD_IP_ADDR";
+
 #[derive(Default)]
 pub struct Descriptor {}
 
@@ -204,6 +207,16 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
+    }
+    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
+        Ok(vec![FieldDesc::Static(StaticFieldDesc {
+            id: FIELD_IP_ADDR.to_owned(),
+            name: "Address to connect".to_owned(),
+            desc: "IP address and port".to_owned(),
+            required: true,
+            interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
+            binding: None,
+        })])
     }
 }
 
