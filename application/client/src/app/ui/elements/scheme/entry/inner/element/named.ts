@@ -1,7 +1,7 @@
-import { ElementInner } from './index';
+import { ElementInner } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
-export class NamedValuesElement<T> implements ElementInner {
+export class NamedValuesElement<T> extends ElementInner {
     public value: T;
     public items: { key: string; value: T }[];
     constructor(
@@ -9,6 +9,7 @@ export class NamedValuesElement<T> implements ElementInner {
         items: { key: string; value: T }[],
         protected readonly getter: (value: T) => Value,
     ) {
+        super();
         this.value = defaults;
         this.items = items;
     }

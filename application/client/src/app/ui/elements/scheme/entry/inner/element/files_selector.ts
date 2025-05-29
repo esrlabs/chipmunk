@@ -1,4 +1,4 @@
-import { ElementInner } from './index';
+import { ElementInner } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 export enum FilesFoldersSelectorTarget {
@@ -8,13 +8,15 @@ export enum FilesFoldersSelectorTarget {
     Folders,
 }
 
-export class FilesFolderSelectorElement implements ElementInner {
+export class FilesFolderSelectorElement extends ElementInner {
     public value: string[] = [];
 
     constructor(
         public readonly target: FilesFoldersSelectorTarget,
         public readonly exts: string[] = [],
-    ) {}
+    ) {
+        super();
+    }
 
     public getInnerValue(): any {
         return this.value;

@@ -1,10 +1,11 @@
-import { ElementInner } from './index';
+import { ElementInner } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
-export class CheckboxElement implements ElementInner {
+export class CheckboxElement extends ElementInner {
     public value: boolean;
 
     constructor(public defaults: boolean = false) {
+        super();
         this.value = defaults;
     }
 

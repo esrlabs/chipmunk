@@ -1,5 +1,6 @@
 import { Value, ValueInput } from '@platform/types/bindings';
 import { Subject, Subjects } from '@platform/env/subscription';
+import { ElementInner } from './inner';
 
 import * as CheckboxElement from './checkbox';
 import * as FilesFolderSelectorElement from './files_selector';
@@ -45,13 +46,6 @@ export type ValueInput =
     | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };
  */
 
-export abstract class ElementInner {
-    public abstract getValue(): Value;
-    public abstract getInnerValue(): any;
-    public abstract setValue(value: any): void;
-    public abstract isField(): boolean;
-}
-
 export interface ChangeEvent {
     uuid: string;
     inner: any;
@@ -69,7 +63,7 @@ export class Element {
         loaded: new Subject<void>(),
     });
 
-    constructor(protected readonly uuid: string, protected readonly origin: ValueInput) {
+    constructor(public readonly uuid: string, protected readonly origin: ValueInput) {
         let inner = undefined;
         for (let el of [
             CheckboxElement,
@@ -89,6 +83,7 @@ export class Element {
         }
         if (inner) {
             this.inner = inner;
+            this.inner.setParentRef(this);
         } else {
             throw new Error(`No controller for element ${JSON.stringify(origin)}`);
         }
