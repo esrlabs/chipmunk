@@ -64,7 +64,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Path to dev".to_owned(),
                 desc: "Full path to serial device/port".to_owned(),
                 required: true,
-                interface: ValueInput::String(String::new()),
+                interface: ValueInput::String(String::new(), "/dev/tty01".to_owned()),
                 binding: None,
             }),
             FieldDesc::Lazy(LazyFieldDesc {

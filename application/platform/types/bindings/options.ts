@@ -51,7 +51,7 @@ export type Value =
 export type ValueInput =
     | { Checkbox: boolean }
     | { Number: number }
-    | { String: string }
+    | { String: [string, string] }
     | { Numbers: [Array<number>, number] }
     | { Strings: [Array<string>, string] }
     | { NamedBools: Array<[string, boolean]> }
@@ -68,4 +68,6 @@ export type ValueInput =
     | { File: Array<string> }
     | 'Directory'
     | 'Timezone'
+    | { InputsCollection: { elements: Array<ValueInput>; add_title: string } }
+    | { FieldsCollection: { elements: Array<StaticFieldDesc>; add_title: string } }
     | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };

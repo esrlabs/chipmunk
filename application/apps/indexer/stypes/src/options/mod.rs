@@ -103,10 +103,14 @@ pub struct Field {
     ts(export, export_to = "options.ts")
 )]
 pub enum ValueInput {
+    /// * `bool` - default value
     Checkbox(bool),
+    /// * `i64` - default value
     #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
     Number(i64),
-    String(String),
+    /// * `String` - default value
+    /// * `String` - placeholder
+    String(String, String),
     #[cfg_attr(
         all(test, feature = "test_and_gen"),
         ts(type = "[Array<number>, number]")
@@ -159,6 +163,14 @@ pub enum ValueInput {
     File(Vec<String>),
     Directory,
     Timezone,
+    InputsCollection {
+        elements: Vec<ValueInput>,
+        add_title: String,
+    },
+    FieldsCollection {
+        elements: Vec<StaticFieldDesc>,
+        add_title: String,
+    },
     Bound {
         output: Box<ValueInput>,
         inputs: Vec<ValueInput>,
