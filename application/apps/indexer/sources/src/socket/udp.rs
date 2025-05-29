@@ -5,10 +5,11 @@ use components::{ComponentDescriptor, ComponentFactory};
 use definitions::*;
 use log::trace;
 use std::{
+    collections::HashMap,
     io::Read,
     net::{IpAddr, Ipv4Addr},
 };
-use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
+use stypes::{FieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput};
 use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
@@ -182,7 +183,7 @@ impl ComponentDescriptor for Descriptor {
                 binding: None,
             }),
             FieldDesc::Static(StaticFieldDesc {
-                id: FIELD_IP_ADDR.to_owned(),
+                id: FIELD_MULTICAST_ADDR.to_owned(),
                 name: "Multicast Addresses".to_owned(),
                 desc: "Multicast Addresses".to_owned(),
                 required: true,
@@ -213,6 +214,78 @@ impl ComponentDescriptor for Descriptor {
                 binding: None,
             }),
         ])
+    }
+
+    fn validate(
+        &self,
+        origin: &stypes::SessionAction,
+        fields: &[stypes::Field],
+    ) -> HashMap<String, String> {
+        fn is_valid(addr: &str) -> bool {
+            let mut count = 0;
+            for part in addr.split(".") {
+                if part.parse::<u8>().is_err() {
+                    return false;
+                }
+                count += 1;
+            }
+            count == 4
+        }
+        let mut errors = HashMap::new();
+        if let Some(field) = fields.iter().find(|field| field.id == FIELD_MULTICAST_ADDR) {
+            if let Value::Values(values) = &field.value {
+                for (idx, pair) in values.into_iter().enumerate() {
+                    if let Value::Values(pair) = pair {
+                        if pair.len() != 2 {
+                            errors.insert(
+                                FIELD_MULTICAST_ADDR.to_owned(),
+                                "Invalid number of mutlicast settings".to_owned(),
+                            );
+                            break;
+                        }
+                        if let (Value::String(addr), Value::String(interface)) =
+                            (&pair[0], &pair[1])
+                        {
+                            if !is_valid(addr) {
+                                errors.insert(
+                                    format!("{idx}_0"),
+                                    "Expecting IP format 255.255.255.255".to_owned(),
+                                );
+                            }
+                            if !is_valid(interface) {
+                                errors.insert(
+                                    format!("{idx}_1"),
+                                    "Expecting IP format 0.0.0.0".to_owned(),
+                                );
+                            }
+                        } else {
+                            errors.insert(
+                                FIELD_MULTICAST_ADDR.to_owned(),
+                                "Invalid values of mutlicast settings".to_owned(),
+                            );
+                            break;
+                        }
+                    } else {
+                        errors.insert(
+                            FIELD_MULTICAST_ADDR.to_owned(),
+                            "Invalid mutlicast settings".to_owned(),
+                        );
+                        break;
+                    }
+                }
+            } else {
+                errors.insert(
+                    FIELD_MULTICAST_ADDR.to_owned(),
+                    "Invalid mutlicast settings".to_owned(),
+                );
+            }
+        } else {
+            errors.insert(
+                FIELD_MULTICAST_ADDR.to_owned(),
+                "Fail to find mutlicast settings".to_owned(),
+            );
+        }
+        errors
     }
 }
 

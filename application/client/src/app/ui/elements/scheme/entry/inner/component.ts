@@ -4,6 +4,7 @@ import {
     Input,
     AfterViewInit,
     AfterContentInit,
+    OnDestroy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -51,7 +52,10 @@ import * as els from './element';
 })
 @Initial()
 @Ilc()
-export class SchemeEntryElement extends ChangesDetector implements AfterViewInit, AfterContentInit {
+export class SchemeEntryElement
+    extends ChangesDetector
+    implements OnDestroy, AfterViewInit, AfterContentInit
+{
     @Input() provider!: SchemeProvider;
     @Input() element!: Element;
 
@@ -68,6 +72,10 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngOnDestroy(): void {
+        this.elFieldsCollectionElement && this.elFieldsCollectionElement.destroy();
     }
 
     public ngAfterContentInit(): void {
@@ -111,6 +119,14 @@ export class SchemeEntryElement extends ChangesDetector implements AfterViewInit
             return;
         }
         this.elFieldsCollectionElement.add();
+        this.detectChanges();
+    }
+
+    public ngOnRemoveCollection(idx: number) {
+        if (!this.elFieldsCollectionElement) {
+            return;
+        }
+        this.elFieldsCollectionElement.remove(idx);
         this.detectChanges();
     }
 }

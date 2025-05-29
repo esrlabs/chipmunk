@@ -1,9 +1,9 @@
-import { ElementInner } from './index';
+import { ElementInner } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 export type NestedDictionaryStructure = Map<string, Map<string, Map<string, number | string>>>;
 
-export class NestedDictionaryElement<V> implements ElementInner {
+export class NestedDictionaryElement<V> extends ElementInner {
     public value: V;
     constructor(
         public defaults: V,
@@ -11,6 +11,7 @@ export class NestedDictionaryElement<V> implements ElementInner {
         public readonly dictionary: Map<string, string>,
         protected readonly getter: (value: V) => Value,
     ) {
+        super();
         this.value = defaults;
     }
 

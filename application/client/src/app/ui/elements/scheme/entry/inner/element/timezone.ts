@@ -1,7 +1,7 @@
-import { ElementInner } from './index';
+import { ElementInner } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
-export class TimezoneSelectorElement implements ElementInner {
+export class TimezoneSelectorElement extends ElementInner {
     public value: number = -1;
 
     public getInnerValue(): any {
