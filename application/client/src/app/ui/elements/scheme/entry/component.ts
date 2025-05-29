@@ -11,14 +11,40 @@ import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { SchemeProvider, ForcedValueChanges } from '../provider';
 import { FieldDesc, LazyFieldDesc, StaticFieldDesc, ValueInput } from '@platform/types/bindings';
-import { ChangeEvent, Element } from '../element';
+import { ChangeEvent, Element } from './inner/element';
 import { WrappedField } from '../field';
+
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { SchemeEntryElement } from './inner/component';
 
 @Component({
     selector: 'app-settings-scheme-entry',
     templateUrl: './template.html',
     styleUrls: ['./styles.less'],
-    standalone: false,
+    imports: [
+        CommonModule,
+        FormsModule,
+        ReactiveFormsModule,
+        MatCheckboxModule,
+        MatCardModule,
+        MatDividerModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatSelectModule,
+        MatProgressBarModule,
+        SchemeEntryElement,
+    ],
+    standalone: true,
 })
 @Initial()
 @Ilc()
