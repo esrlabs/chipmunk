@@ -39,27 +39,30 @@
 </ng-container>
 
 <ng-container *ngIf="elFieldsCollectionElement !== undefined">
-    <div *ngFor="let collection of elFieldsCollectionElement.elements">
+    <div *ngFor="let collection of elFieldsCollectionElement.collections; let idx = index;">
         <app-settings-scheme-element
-            *ngFor="let element of collection"
+            *ngFor="let element of collection.elements"
             [element]="element"
             [provider]="elFieldsCollectionElement.provider"
         >
         </app-settings-scheme-element>
+        <button mat-icon-button (click)="ngOnRemoveCollection(idx)">
+            <mat-icon aria-hidden="false" class="mini-button">remove_circle_outline</mat-icon>
+        </button>
     </div>
     <button
         mat-icon-button
         *ngIf="elFieldsCollectionElement.addTitle === undefined"
         (click)="ngOnAddCollection()"
     >
-        <mat-icon aria-hidden="false" class="mini-button">plus</mat-icon>
+        <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
     </button>
     <button
         mat-stroked-button
         *ngIf="elFieldsCollectionElement.addTitle !== undefined"
         (click)="ngOnAddCollection()"
     >
-        <mat-icon aria-hidden="false" class="mini-button">plus</mat-icon>
+        <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
         {{elFieldsCollectionElement.addTitle}}
     </button>
     <!-- <app-settings-scheme-fields-collection-selector

@@ -1,4 +1,4 @@
-import { ElementInner } from './index';
+import { ElementInner } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 enum InnerType {
@@ -6,7 +6,7 @@ enum InnerType {
     Number,
 }
 
-export class InputElement<T> implements ElementInner {
+export class InputElement<T> extends ElementInner {
     public value: T;
 
     constructor(
@@ -15,6 +15,7 @@ export class InputElement<T> implements ElementInner {
         protected readonly innerType: InnerType,
         protected readonly getter: (value: T) => Value,
     ) {
+        super();
         this.value = defaults;
     }
 
