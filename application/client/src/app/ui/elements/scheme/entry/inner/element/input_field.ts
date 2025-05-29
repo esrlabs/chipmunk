@@ -11,6 +11,7 @@ export class InputElement<T> implements ElementInner {
 
     constructor(
         public defaults: T,
+        public placeholder: string,
         protected readonly innerType: InnerType,
         protected readonly getter: (value: T) => Value,
     ) {
@@ -44,18 +45,23 @@ export class InputElement<T> implements ElementInner {
 
 export function tryFromOrigin(origin: ValueInput): InputElement<string | number> | undefined {
     function as_string(origin: ValueInput): InputElement<string> | undefined {
-        const vl = origin as { String: string };
-        return typeof vl.String === 'string'
-            ? new InputElement<string>(vl.String, InnerType.String, (value: string): Value => {
-                  return { String: value };
-              })
+        const vl = origin as { String: [string, string] };
+        return typeof vl.String[0] === 'string'
+            ? new InputElement<string>(
+                  vl.String[0],
+                  vl.String[1],
+                  InnerType.String,
+                  (value: string): Value => {
+                      return { String: value };
+                  },
+              )
             : undefined;
     }
 
     function as_number(origin: ValueInput): InputElement<number> | undefined {
         const vl = origin as { Number: number };
         return typeof vl.Number === 'number'
-            ? new InputElement<number>(vl.Number, InnerType.Number, (value: number): Value => {
+            ? new InputElement<number>(vl.Number, '', InnerType.Number, (value: number): Value => {
                   return {
                       Number:
                           typeof value === 'number'
@@ -69,7 +75,7 @@ export function tryFromOrigin(origin: ValueInput): InputElement<string | number>
     }
     if ((origin as { Number: number }).Number !== undefined) {
         return as_number(origin) as InputElement<string | number>;
-    } else if ((origin as { String: string }).String !== undefined) {
+    } else if ((origin as { String: [string, string] }).String !== undefined) {
         return as_string(origin) as InputElement<string | number>;
     } else {
         return undefined;
