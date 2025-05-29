@@ -30,20 +30,35 @@ export class ChangesDetector {
         if (this._detauched) {
             return;
         }
-        this._changeDetectorRef.forEach((cdRef) => cdRef.detectChanges());
+        this._changeDetectorRef.forEach((cdRef) => {
+            if (!cdRef) {
+                console.warn(`[detectChanges] Detected undefined cdRef in ChangesDetector`);
+            }
+            cdRef && cdRef.detectChanges();
+        });
     }
 
     public markChangesForCheck() {
         if (this._detauched) {
             return;
         }
-        this._changeDetectorRef.forEach((cdRef) => cdRef.markForCheck());
+        this._changeDetectorRef.forEach((cdRef) => {
+            if (!cdRef) {
+                console.warn(`[markForCheck] Detected undefined cdRef in ChangesDetector`);
+            }
+            cdRef && cdRef.markForCheck();
+        });
     }
 
     public reattachChangesDetector() {
         if (this._detauched) {
             return;
         }
-        this._changeDetectorRef.forEach((cdRef) => cdRef.reattach());
+        this._changeDetectorRef.forEach((cdRef) => {
+            if (!cdRef) {
+                console.warn(`[reattach] Detected undefined cdRef in ChangesDetector`);
+            }
+            cdRef && cdRef.reattach();
+        });
     }
 }
