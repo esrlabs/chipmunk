@@ -13,5 +13,5 @@ To conveniently check if all prerequisites are met, you can run the provided she
 sh developing/scripts/check.sh
 ```
 
-If the script indicates success (e.g., prints success messages), you have all necessary prerequisites and can proceed to [installing dependencies](#installing-dependencies). 
+If the script indicates success (e.g., prints success messages), you have all necessary prerequisites and can proceed to [installing dependencies](/chipmunk/contributing/preparing). 
 If the script reports that prerequisites are missing, please install them before continuing with the setup.

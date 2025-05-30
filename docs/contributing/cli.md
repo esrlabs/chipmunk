@@ -180,7 +180,7 @@ Next, copy the chipmunk-completion.bash file to your bash completion directory (
 
 ## Changelogs:
 
-Changelogs can be found [here](CHANGELOG.md)
+Changelogs can be found [here](https://github.com/esrlabs/chipmunk/blob/master/cli/development-cli/CHANGELOG.md)
 
 ## Contributing
 
