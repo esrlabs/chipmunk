@@ -1,3 +1,8 @@
+# 3.18.0 (30.05.2025)
+
+## Add
+- Add support of wasm plugins for custom parsers/sources
+
 # 3.17.2 (26.05.2025)
 
 ## Changes
