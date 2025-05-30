@@ -27,7 +27,7 @@ Another key feature is the ability to launch any command or program and collect 
 
 At its core, `chipmunk` is a log analysis tool. It goes beyond simple search queries: you can create filter sets, save them, and reuse them across sessions. An intuitive interface allows you to label filters with different colors for more effective analysis.
 
-![filters_create](./site/docs/assets/search/filters_create.gif)
+![filters_create](./docs/assets/search/filters_create.gif)
 
 The search engine works dynamically — results are updated in real time as new data is added. If you're connected to a live data source, your active filters will continuously update the search results as new logs arrive.
 
@@ -35,11 +35,11 @@ The search engine works dynamically — results are updated in real time as new 
 
 `chipmunk` includes a graphical tool for log analysis. You can define regular expressions to capture specific metrics and generate real-time charts to visualize their changes over time.
 
-![charts_filters](./site/docs/assets/charts/charts_filters.gif)
+![charts_filters](./docs/assets/charts/charts_filters.gif)
 
 As with search, the graphical tool updates live as new content is streamed into the application.
 
-![charts_dynamic](./site/docs/assets/charts/charts_dynamic.gif)
+![charts_dynamic](./docs/assets/charts/charts_dynamic.gif)
 
 ## Documentation / User Manual / Developer Manual
 
