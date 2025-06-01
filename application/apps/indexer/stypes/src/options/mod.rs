@@ -210,7 +210,7 @@ pub enum Value {
         ts(type = "Map<string, string[]>")
     )]
     KeyStrings(HashMap<String, Vec<String>>),
-    Values(Vec<Value>),
+    Fields(Vec<Field>),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

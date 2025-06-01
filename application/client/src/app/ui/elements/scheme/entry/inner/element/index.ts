@@ -10,6 +10,7 @@ import * as NamedValuesElement from './named';
 import * as NestedDictionaryElement from './nested_dictionary';
 import * as TimezoneSelectorElement from './timezone';
 import * as FieldsCollectionElement from './fields_collection';
+import { SchemeProvider } from '@ui/elements/scheme/provider';
 
 export { CheckboxElement } from './checkbox';
 export { FilesFolderSelectorElement } from './files_selector';
@@ -58,12 +59,20 @@ export class Element {
     public readonly subjects: Subjects<{
         changed: Subject<ChangeEvent>;
         loaded: Subject<void>;
+        error: Subject<void>;
     }> = new Subjects({
         changed: new Subject<ChangeEvent>(),
         loaded: new Subject<void>(),
+        error: new Subject<void>(),
     });
 
-    constructor(public readonly uuid: string, protected readonly origin: ValueInput) {
+    public error: string | undefined;
+
+    constructor(
+        public readonly uuid: string,
+        protected readonly origin: ValueInput,
+        provider?: SchemeProvider,
+    ) {
         let inner = undefined;
         for (let el of [
             CheckboxElement,
@@ -84,9 +93,15 @@ export class Element {
         if (inner) {
             this.inner = inner;
             this.inner.setParentRef(this);
+            provider && this.inner.setProviderRef(provider);
         } else {
             throw new Error(`No controller for element ${JSON.stringify(origin)}`);
         }
+    }
+
+    public destroy() {
+        this.inner.destroy();
+        this.subjects.destroy();
     }
 
     public loaded() {
@@ -123,5 +138,12 @@ export class Element {
 */
     public getValue(): Value {
         return this.inner.getValue();
+    }
+
+    public setError(msg: string | undefined) {
+        this.error = msg;
+    }
+    public emitError() {
+        this.subjects.get().error.emit();
     }
 }
