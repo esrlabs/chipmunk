@@ -234,51 +234,45 @@ impl ComponentDescriptor for Descriptor {
         }
         let mut errors = HashMap::new();
         if let Some(field) = fields.iter().find(|field| field.id == FIELD_MULTICAST_ADDR) {
-            if let Value::Values(values) = &field.value {
-                for (idx, pair) in values.into_iter().enumerate() {
-                    if let Value::Values(pair) = pair {
+            if let Value::Fields(fields) = &field.value {
+                for pair in fields.into_iter() {
+                    if let Value::Fields(pair) = &pair.value {
                         if pair.len() != 2 {
                             errors.insert(
-                                FIELD_MULTICAST_ADDR.to_owned(),
+                                field.id.to_owned(),
                                 "Invalid number of mutlicast settings".to_owned(),
                             );
                             break;
                         }
                         if let (Value::String(addr), Value::String(interface)) =
-                            (&pair[0], &pair[1])
+                            (&pair[0].value, &pair[1].value)
                         {
                             if !is_valid(addr) {
                                 errors.insert(
-                                    format!("{idx}_0"),
+                                    pair[0].id.to_owned(),
                                     "Expecting IP format 255.255.255.255".to_owned(),
                                 );
                             }
                             if !is_valid(interface) {
                                 errors.insert(
-                                    format!("{idx}_1"),
+                                    pair[1].id.to_owned(),
                                     "Expecting IP format 0.0.0.0".to_owned(),
                                 );
                             }
                         } else {
                             errors.insert(
-                                FIELD_MULTICAST_ADDR.to_owned(),
+                                field.id.to_owned(),
                                 "Invalid values of mutlicast settings".to_owned(),
                             );
                             break;
                         }
                     } else {
-                        errors.insert(
-                            FIELD_MULTICAST_ADDR.to_owned(),
-                            "Invalid mutlicast settings".to_owned(),
-                        );
+                        errors.insert(field.id.to_owned(), "Invalid mutlicast settings".to_owned());
                         break;
                     }
                 }
             } else {
-                errors.insert(
-                    FIELD_MULTICAST_ADDR.to_owned(),
-                    "Invalid mutlicast settings".to_owned(),
-                );
+                errors.insert(field.id.to_owned(), "Invalid mutlicast settings".to_owned());
             }
         } else {
             errors.insert(

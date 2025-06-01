@@ -47,7 +47,7 @@ export type Value =
     | { KeyNumbers: Map<string, number[]> }
     | { KeyString: Map<string, string> }
     | { KeyStrings: Map<string, string[]> }
-    | { Values: Array<Value> };
+    | { Fields: Array<Field> };
 
 export type ValueInput =
     | { Checkbox: boolean }

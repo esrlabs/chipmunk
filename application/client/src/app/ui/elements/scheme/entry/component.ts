@@ -5,6 +5,7 @@ import {
     AfterViewInit,
     AfterContentInit,
     HostBinding,
+    OnDestroy,
 } from '@angular/core';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
@@ -48,7 +49,10 @@ import { SchemeEntryElement } from './inner/component';
 })
 @Initial()
 @Ilc()
-export class SchemeEntry extends ChangesDetector implements AfterViewInit, AfterContentInit {
+export class SchemeEntry
+    extends ChangesDetector
+    implements AfterViewInit, AfterContentInit, OnDestroy
+{
     @Input() provider!: SchemeProvider;
     @Input() field!: FieldDesc;
 
@@ -63,6 +67,10 @@ export class SchemeEntry extends ChangesDetector implements AfterViewInit, After
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
+    }
+
+    public ngOnDestroy(): void {
+        this.element && this.element.destroy();
     }
 
     public ngAfterContentInit(): void {
@@ -91,7 +99,7 @@ export class SchemeEntry extends ChangesDetector implements AfterViewInit, After
 
     init() {
         if (this.loaded) {
-            this.element = new Element(this.loaded.id, this.loaded.interface);
+            this.element = new Element(this.loaded.id, this.loaded.interface, this.provider);
             this.env().subscriber.register(
                 this.element.subjects.get().changed.subscribe(this.onSelfChanges.bind(this)),
             );
