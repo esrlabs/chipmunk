@@ -40,12 +40,14 @@
 
 <ng-container *ngIf="elFieldsCollectionElement !== undefined">
     <div *ngFor="let collection of elFieldsCollectionElement.collections; let idx = index;">
-        <app-settings-scheme-element
-            *ngFor="let element of collection.elements"
-            [element]="element"
-            [provider]="elFieldsCollectionElement.provider"
-        >
-        </app-settings-scheme-element>
+        <ng-container *ngFor="let element of collection.elements">
+            <app-settings-scheme-element
+                [element]="element"
+                [provider]="elFieldsCollectionElement.provider"
+            >
+            </app-settings-scheme-element>
+            <p class="t-small error" *ngIf="element.error !== undefined">{{element.error}}</p>
+        </ng-container>
         <button mat-icon-button (click)="ngOnRemoveCollection(idx)">
             <mat-icon aria-hidden="false" class="mini-button">remove_circle_outline</mat-icon>
         </button>
@@ -65,8 +67,4 @@
         <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
         {{elFieldsCollectionElement.addTitle}}
     </button>
-    <!-- <app-settings-scheme-fields-collection-selector
-        [element]="element"
-        [inner]="elFieldsCollectionElement"
-    ></app-settings-scheme-fields-collection-selector> -->
 </ng-container>

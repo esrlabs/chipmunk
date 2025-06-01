@@ -285,3 +285,15 @@ pub trait ComponentDescriptor {
         HashMap::new()
     }
 }
+
+#[derive(Debug, Default)]
+pub struct ValidationErrors {
+    errors: HashMap<String, String>,
+}
+
+impl ValidationErrors {
+    pub fn insert_field_bound_err(&mut self, field: &str, msg: String) {
+        self.errors.insert(field.to_owned(), msg);
+    }
+    pub fn insert_values_bound_err(&mut self, field: &str, idx: usize) {}
+}

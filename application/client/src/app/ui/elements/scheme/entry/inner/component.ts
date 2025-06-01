@@ -75,7 +75,7 @@ export class SchemeEntryElement
     }
 
     public ngOnDestroy(): void {
-        this.elFieldsCollectionElement && this.elFieldsCollectionElement.destroy();
+        this.element.destroy();
     }
 
     public ngAfterContentInit(): void {
@@ -112,6 +112,13 @@ export class SchemeEntryElement
                 this.detectChanges();
             }),
         );
+        if (this.elFieldsCollectionElement) {
+            this.env().subscriber.register(
+                this.element.subjects.get().error.subscribe(() => {
+                    this.detectChanges();
+                }),
+            );
+        }
     }
 
     public ngOnAddCollection() {
