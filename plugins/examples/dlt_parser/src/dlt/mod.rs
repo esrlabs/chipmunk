@@ -4,7 +4,7 @@ pub mod fmt;
 use crate::dlt::fmt::FormattableMessage;
 use dlt_core::{
     dlt,
-    parse::{dlt_message, DltParseError},
+    parse::{DltParseError, dlt_message},
 };
 use dlt_core::{fibex::FibexMetadata as FibexDltMetadata, filtering::ProcessedDltFilterConfig};
 use plugins_api::parser::{ParseError, ParseReturn, ParseYield};

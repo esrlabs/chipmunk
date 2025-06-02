@@ -1,14 +1,14 @@
 [package]
 name = "protobuf_parser"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Dmitry Astafyev"]
 description = "An example of a Chipmunk parser that replicate the dlt parser that is built-in into Chipmunk"
 
 [dependencies]
 plugins_api = {path = "../../plugins_api", features = ["parser"]}
 prost = "0.13"
-prost-reflect = { version = "0.14", features = ["text-format"]}
+prost-reflect = { version = "0.15", features = ["text-format"]}
 thiserror = "2.0"
 
 [lib]

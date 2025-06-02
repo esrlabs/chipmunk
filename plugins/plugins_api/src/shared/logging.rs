@@ -3,8 +3,8 @@
 //! This module is for internal use only.
 
 use super::plugin_logger::LogSend;
-use crate::logging::log;
 use crate::logging::Level as WitLogLevel;
+use crate::logging::log;
 
 use log::Level as LogLevel;
 

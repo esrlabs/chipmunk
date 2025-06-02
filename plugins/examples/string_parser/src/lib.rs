@@ -172,12 +172,8 @@ impl Parser for StringTokenizer {
         );
 
         // *** Demonstrates plugins temporary directory.
-        let temp_dir = temp_directory().map_err(|err| {
-            InitError::Io(format!(
-                "Getting temp directory failed. {}",
-                err.to_string()
-            ))
-        })?;
+        let temp_dir = temp_directory()
+            .map_err(|err| InitError::Io(format!("Getting temp directory failed. {}", err)))?;
 
         log::info!("Plugin temp directory path: {}", temp_dir.display());
 
