@@ -14,6 +14,11 @@ nav:
   - Plugins:
     - Development Guid: plugins/development-guid.md
     - Plugins API Crate: plugins/plugins-api.md
+  - Development: 
+    - Chipmunk Core:
+      - Overview: development/core/core.md
+      - Producer: development/core/producer.md
+      - Plugins: development/core/plugins.md
   - Contributing: 
     - Welcome: contributing/welcome.md
     - Preparing: contributing/preparing.md

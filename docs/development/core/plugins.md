@@ -2,7 +2,7 @@
 
 The Chipmunk core supports plugins built with WebAssembly and the Component Model, utilizing the `wasmtime` runtime for compiling and loading plugin binaries.
 
-For a visual representation of the plugins and how they are connected within the data ingestion pipeline, please refer to the [diagram](./producer-plugins.drawio).
+For a visual representation of the plugins and how they are connected within the data ingestion pipeline, please refer to the [diagram](./producer-plugins.svg).
 
 ## Plugins Runtime
 
