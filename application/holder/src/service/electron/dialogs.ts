@@ -36,17 +36,17 @@ export class Dialogs extends Implementation {
                     defaultFileName !== undefined
                         ? []
                         : ext !== undefined
-                          ? ext.split(',').map((e) => {
-                                return { name: `*.${e}`, extensions: [e] };
-                            })
-                          : [{ name: 'All Files', extensions: ['*'] }],
+                        ? ext.split(',').map((e) => {
+                              return { name: `*.${e}`, extensions: [e] };
+                          })
+                        : [{ name: 'All Files', extensions: ['*'] }],
             })
             .then((result: Electron.SaveDialogReturnValue) => {
                 return result.filePath === undefined
                     ? result.filePath
                     : result.filePath.trim() === ''
-                      ? undefined
-                      : result.filePath;
+                    ? undefined
+                    : result.filePath;
             });
     }
 
@@ -80,10 +80,10 @@ export class Dialogs extends Implementation {
                         filters:
                             ext !== undefined
                                 ? [
-                                      { name: 'All Files', extensions: ['*'] },
-                                      ...ext.split(',').map((e) => {
-                                          return { name: `*.${e}`, extensions: [e] };
+                                      ...ext.split(',').map((ext) => {
+                                          return { name: `Files *.${ext}`, extensions: [ext] };
                                       }),
+                                      { name: 'All Files', extensions: ['*'] },
                                   ]
                                 : undefined,
                     });
