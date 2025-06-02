@@ -4,7 +4,7 @@ This crate simplifies the development of plugins for [Chipmunk](https://github.c
 
 Chipmunk supports plugins using [WebAssembly (Wasm)](https://webassembly.org/) and the [WebAssembly Component Model](https://component-model.bytecodealliance.org/). It exposes its public API via the [WASM Interface Format (WIT)](https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md), enabling developers to write plugins in any language that supports Wasm and the Component Model.
 
-For a detailed guide on developing plugins, refer to the [Plugins Development Guide](./development-guid.md).
+For a detailed guide on developing plugins, refer to the [Plugins Development Guide](./development-guide.md).
 
 As this crate is not published on crates.io, the primary and most comprehensive documentation for its API, types, and traits is generated directly from the source code. Developers can access this full documentation by running `cargo doc --open` from within the crate's directory, which will generate and open the documentation in their web browser.
 

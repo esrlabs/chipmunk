@@ -1,11 +1,18 @@
-<!-- TODO: README should provide minimal infos and the link to https://esrlabs.github.io/chipmunk/ for detailed infos to avoid duplications -->
 # Chipmunk Plugins API Crate
 
-This crate simplifies the development of plugins for [Chipmunk](https://github.com/esrlabs/chipmunk) in Rust.  
+This crate simplifies the development of plugins for [Chipmunk](https://github.com/esrlabs/chipmunk) in Rust.
 
 Chipmunk supports plugins using [WebAssembly (Wasm)](https://webassembly.org/) and the [WebAssembly Component Model](https://component-model.bytecodealliance.org/). It exposes its public API via the [WASM Interface Format (WIT)](https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md), enabling developers to write plugins in any language that supports Wasm and the Component Model.
 
-For a detailed guide on developing plugins, refer to the [Plugins Development Guide](https://github.com/esrlabs/chipmunk/blob/master/plugins/README.md).
+---
+
+> [!IMPORTANT]
+> For the most comprehensive documentation on this API crate, including types, traits, and detailed explanations:
+>
+> 1.  **Published Documentation:** Visit the official Chipmunk documentation site: [Chipmunk Plugins API Crate Docs](https://esrlabs.github.io/chipmunk/plugins/plugins-api/).
+> 2.  **Local Documentation:** Generate it directly from the source code by running `cargo doc --open` from within this crate's directory.
+
+---
 
 ## What This Crate Provides
 
@@ -16,23 +23,11 @@ This crate provides utilities to streamline plugin development in Rust by:
 - Providing helper functions for logging and configuration extraction to reduce boilerplate.
 - Offering export macros to generate the necessary bindings for your structs to function as Chipmunk plugins.
 
-## Plugin Types:
+---
 
-Each plugin type is associated with a feature in this crate. A feature must be enabled when adding this crate as a dependency, or the build will fail.
+## Examples and Templates
 
-### Parser Plugins:
-* To develop a parser plugin, enable the `parser` feature in `Cargo.toml`.
-* Implement `Parser` trait on your struct to define a parser plugin.
-* Use `parser_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
-* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples) and [parser template](https://github.com/esrlabs/chipmunk/blob/master/plugins/templates/parser_template) provided in Chipmunk repo to get started.
+To help you get started with developing plugins using this API crate, we provide a collection of examples and ready-to-use templates:
 
-
-### Byte-Source Plugins:
-
-> **NOTE:** Byte-Source plugins are not yet supported in Chipmunk. 
-
-* To develop a byte-source plugin, enable the `bytesource` feature in `Cargo.toml`.
-* Implement `ByteSource` trait on your struct to define a byte-source plugin.
-* Use `bytesource_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
-<!--TODO: Update here once template for byte-source is done. -->
-* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples) provided in Chipmunk repo to get started.
+* **Plugin Examples:** Explore various plugin implementations in the [Chipmunk Plugins Examples directory](https://github.com/esrlabs/chipmunk/tree/master/plugins/examples).
+* **Plugin Templates:** Use these templates as a starting point for your new plugin projects: [Chipmunk Plugins Templates directory](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates).

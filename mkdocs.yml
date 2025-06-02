@@ -12,7 +12,7 @@ nav:
   - Teamwork: teamwork.md
   - Chipmunk CLI Tool: cli.md
   - Plugins:
-    - Development Guid: plugins/development-guid.md
+    - Development Guide: plugins/development-guide.md
     - Plugins API Crate: plugins/plugins-api.md
   - Development: 
     - Chipmunk Core:
