@@ -3,7 +3,7 @@
 
 use std::{cmp::Ordering, fmt::Display, str::FromStr, sync::LazyLock};
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use console::style;
 use regex::Regex;
 use serde::Deserialize;
@@ -122,9 +122,11 @@ fn try_check_version() -> anyhow::Result<()> {
 
     match repo_version.cmp(&bin_version) {
         Ordering::Less => {
-            let info_msg = format!("The version of the installed Build CLI Tool is more recent than the current one in the local repository\n\
+            let info_msg = format!(
+                "The version of the installed Build CLI Tool is more recent than the current one in the local repository\n\
                 Installed Version: {bin_version}\n\
-                Local repo Version: {repo_version}\n");
+                Local repo Version: {repo_version}\n"
+            );
             eprintln!("{}", style(info_msg).cyan());
         }
         Ordering::Equal => {}
@@ -185,8 +187,8 @@ fn version_in_repo() -> anyhow::Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
     use Version as V;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn version_ord() {

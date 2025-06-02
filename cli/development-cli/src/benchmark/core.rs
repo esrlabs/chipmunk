@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, ffi::OsStr, fs::read_to_string, path::PathBuf};
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use console::style;
 use serde::Deserialize;
 

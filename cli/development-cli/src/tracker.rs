@@ -2,7 +2,7 @@
 //! console using TUI progress bars and caching commands output to be used later when commands'
 //! logs are needed.
 
-use anyhow::{anyhow, Context, Error};
+use anyhow::{Context, Error, anyhow};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::{
@@ -13,7 +13,7 @@ use std::{
     time::Instant,
 };
 use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     oneshot,
 };
 
@@ -263,7 +263,9 @@ impl Tracker {
             match tick {
                 UiTick::Started(job_def, tx_response) => {
                     let Some(job) = bars.get_mut(&job_def) else {
-                        unreachable!("Job must exist in progress bar before starting it. Job Info: {job_def:?}")
+                        unreachable!(
+                            "Job must exist in progress bar before starting it. Job Info: {job_def:?}"
+                        )
                     };
                     if matches!(job.phase, JobBarPhase::Pending) {
                         job.start();
@@ -294,18 +296,19 @@ impl Tracker {
                 }
                 UiTick::Message(job_def, log) => {
                     if !log.trim().is_empty() {
-                        match bars.get(&job_def)
-                                {
-                                    Some(job_bar) => job_bar.bar.set_message(log),
-                                    None => unreachable!(
-                                        "Job must exist in progress bar before messaging it. Job Info: {job_def:?}"
-                                    ),
-                                }
+                        match bars.get(&job_def) {
+                            Some(job_bar) => job_bar.bar.set_message(log),
+                            None => unreachable!(
+                                "Job must exist in progress bar before messaging it. Job Info: {job_def:?}"
+                            ),
+                        }
                     }
                 }
                 UiTick::Progress(job_def, pos) => {
                     let Some(job_bar) = bars.get(&job_def) else {
-                        unreachable!("Job must exist in progress bar before changing it progress. Job Info: {job_def:?}")
+                        unreachable!(
+                            "Job must exist in progress bar before changing it progress. Job Info: {job_def:?}"
+                        )
                     };
 
                     if let Some(pos) = pos {
@@ -316,7 +319,9 @@ impl Tracker {
                 }
                 UiTick::Finished(job_def, result, msg) => {
                     let Some(job_bar) = bars.get_mut(&job_def) else {
-                        unreachable!("Job must exist in progress bar before finishing it. Job Info: {job_def:?}")
+                        unreachable!(
+                            "Job must exist in progress bar before finishing it. Job Info: {job_def:?}"
+                        )
                     };
 
                     // It doesn't make sense to show that a job is done in 0 seconds

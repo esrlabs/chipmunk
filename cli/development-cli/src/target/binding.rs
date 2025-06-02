@@ -1,13 +1,12 @@
 use std::fs;
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 
 use crate::{
-    fstools,
-    jobs_runner::{additional_features::AdditionalFeatures, JobDefinition},
+    JobsState, fstools,
+    jobs_runner::{JobDefinition, additional_features::AdditionalFeatures},
     spawner::SpawnResult,
     tracker::get_tracker,
-    JobsState,
 };
 
 use super::{ProcessCommand, Target};

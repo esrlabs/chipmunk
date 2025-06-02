@@ -7,11 +7,12 @@ pub mod jobs_resolver;
 pub mod jobs_state;
 
 use std::{collections::BTreeMap, ops::Not};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 pub use job_definition::JobDefinition;
 
 use crate::{
+    JobsState,
     build_state_records::{BuildStateRecords, ChecksumCompareResult},
     cli_args::UiMode,
     job_type::JobType,
@@ -19,7 +20,6 @@ use crate::{
     spawner::SpawnResult,
     target::Target,
     tracker::get_tracker,
-    JobsState,
 };
 
 use anyhow::Result;

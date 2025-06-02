@@ -3,7 +3,7 @@
 
 use crate::{
     job_type::JobType,
-    jobs_runner::{jobs_resolver, JobDefinition},
+    jobs_runner::{JobDefinition, jobs_resolver},
     target::Target,
 };
 

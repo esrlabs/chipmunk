@@ -13,7 +13,7 @@ mod paths;
 
 use std::{fs, path::PathBuf, time::Instant};
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use bundle::bundle_release;
 use codesign::CodeSign;
 use compress::{compress, compress_cli};

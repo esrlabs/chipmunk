@@ -21,7 +21,7 @@ mod tracker;
 mod user_config;
 mod version;
 
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error, bail};
 use build_state_records::BuildStateRecords;
 use clap::Parser;
 use cli_args::{CargoCli, Command, UiMode, UserConfigCommand};
@@ -114,10 +114,10 @@ async fn main_process(command: Command) -> Result<(), Error> {
                 return Ok(());
             }
             UserConfigCommand::DumpDefaultConfiguration => {
-                return UserConfiguration::print_default()
+                return UserConfiguration::print_default();
             }
             UserConfigCommand::WriteDefaultToFile => {
-                return UserConfiguration::write_default_to_file()
+                return UserConfiguration::write_default_to_file();
             }
         },
         Command::Lint {

@@ -6,7 +6,7 @@ use std::{
     io::BufReader,
 };
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use serde_json::Value;
 
 use crate::{

@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 
 use crate::{fstools, jobs_runner::JobDefinition, spawner::SpawnResult, tracker::get_tracker};
 

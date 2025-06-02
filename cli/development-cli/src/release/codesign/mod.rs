@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use anyhow::{bail, ensure, Context};
+use anyhow::{Context, bail, ensure};
 use macos::MacOsConfig;
 
 mod macos;

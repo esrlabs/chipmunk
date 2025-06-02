@@ -6,7 +6,7 @@
 use core::str;
 use std::{fmt::Write, io};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use console::style;
 use min_versions::MinVersions;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};

@@ -2,7 +2,7 @@
 
 use crate::dev_tools::DevTool;
 
-use super::{yarn_command, ProcessCommand};
+use super::{ProcessCommand, yarn_command};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetKind {

@@ -2,12 +2,12 @@
 //! their output and status to the `Tracker`.
 
 use crate::{
+    JobsState,
     jobs_runner::JobDefinition,
     location::get_root,
     shell::{shell_std_command, shell_tokio_command},
     target::ProcessCommand,
     tracker::get_tracker,
-    JobsState,
 };
 use anyhow::Context;
 use core::panic;

@@ -13,14 +13,14 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use console::style;
 use dir_checksum::calc_combined_checksum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    job_type::JobType, jobs_runner::additional_features::AdditionalFeatures, location::get_root,
-    target::Target, JobsState,
+    JobsState, job_type::JobType, jobs_runner::additional_features::AdditionalFeatures,
+    location::get_root, target::Target,
 };
 
 /// Deprecated filenames that were used previously.

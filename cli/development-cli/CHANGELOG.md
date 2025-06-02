@@ -1,9 +1,14 @@
+# 0.5.1
+
+## Changes:
+
+* Update to rust edition 2024.
+
 # 0.5.0
 
 ## Changes:
 
 * Include Plugin API target & related functionality and tests.
-
 
 # 0.4.3
 
