@@ -3,6 +3,8 @@
 ## Fixes
 - Fix application menu (for macos)
 - Allow open external links in changelogs overview
+- Fix listing of parsers
+- Fix files filtering (on dialogs)
 
 # 3.18.0 (30.05.2025)
 
