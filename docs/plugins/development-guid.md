@@ -1,27 +1,6 @@
-<!-- TODO: README should provide minimal infos and the link to https://esrlabs.github.io/chipmunk/ for detailed infos to avoid duplications -->
 # Chipmunk Plugins Development Guide
 
 This guide provides an overview of how to develop plugins for Chipmunk applications. Chipmunk leverages WebAssembly (WASM) and the Component Model to enable a flexible plugin architecture. Whether you’re using Rust or another language that can compile to WASM, this document will help you get started.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Plugin Architecture](#plugin-architecture)
-- [Developing Plugins with Rust](#developing-plugins-with-rust)
-  - [Prerequisites](#prerequisites)
-  - [Building and Integrating Plugins](#building-and-integrating-plugins)
-- [Plugin Configuration](#plugin-configuration)
-- [Plugin Types](#plugin-types)
-  - [Parser Plugins](#parser-plugins)
-  - [Byte-Source Plugins](#byte-source-plugins)
-- [Developing Plugins in Other Languages](#developing-plugins-in-other-languages)
-  - [Useful Tools](#useful-tools)
-- [Plugins Benchmarking](#plugins-benchmarking)
-  - [Plugin Initialization](#plugin-initialization)
-  - [Parser Plugin](#parser-plugin)
-- [Additional Resources](#additional-resources)
 
 ---
 
@@ -35,13 +14,13 @@ Chipmunk supports plugins built as WebAssembly components. The plugins system us
 
 - **WASM & Component Model:** Chipmunk plugins are compiled to WASM and follow the component model.  
 - **WIT Files:** These files define the plugin API and types, ensuring consistent contracts between plugins and the host application.  
-- **Language Flexibility:** Although Rust is fully supported (with the provided [`plugins-api`](./plugins_api/)), you can develop plugins in any language that compiles to WASM and adheres to the component model.
+- **Language Flexibility:** Although Rust is fully supported (with the provided [`plugins-api`](./plugins-api.md)), you can develop plugins in any language that compiles to WASM and adheres to the component model.
 
 ---
 
 ## Developing Plugins with Rust
 
-For Rust developers, we provide a dedicated crate [`plugins-api`](./plugins_api/) that abstracts the details of working directly with WIT files. This crate generates Rust types from WIT, converts WIT contracts into traits and functions, also providing macros to export your Rust types back to WIT, alongside with multiple helpful function.
+For Rust developers, we provide a dedicated crate [`plugins-api`](./plugins-api.md) that abstracts the details of working directly with WIT files. This crate generates Rust types from WIT, converts WIT contracts into traits and functions, also providing macros to export your Rust types back to WIT, alongside with multiple helpful function.
 
 ### Prerequisites
 
@@ -106,8 +85,8 @@ Additionally, you can include a `README.md` file inside the plugin directory. If
 ## Plugin Configuration
 
 Plugins can define their own configuration schemas. These schemas are presented to users so they can provide the necessary settings. The configuration is then delivered back to the plugin during the session initialization phase. For details on schema definitions, refer to:
-- The [WIT definitions](./plugins_api/wit/).
-- The [`plugins-api`](./plugins_api/) crate documentation.
+- The [WIT definitions](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/wit).
+- The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate documentation.
 - The provided examples.
 
 ---
@@ -122,16 +101,16 @@ Chipmunk currently supports two main types of plugins:
 Parser plugins receive an array of bytes, attempt to parse them, and return the parsed items. They can also define configuration schemas and specify rendering options if needed.
 
 **Development in Rust:**  
-- Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](./plugins_api/) crate.
+- Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
 - Use the `parser_export!()` macro to export your parser struct.
 
-The [`plugins-api`](./plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
+The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
 
 **Integration:**  
 - Create a directory at `<HOME>/.chipmunk/plugins/parser/<plugin-name>/`.
 - Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
 
-To get started quickly, you can use the provided [parser template](./templates/parser_template). Simply copy the `parser_template` directory and modify it to implement your custom parser.  
+To get started quickly, you can use the provided [parser template](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/parser_template). Simply copy the `parser_template` directory and modify it to implement your custom parser.  
 
 For reference, see the `string_parser` and `dlt_parser` examples.
 
@@ -141,10 +120,10 @@ For reference, see the `string_parser` and `dlt_parser` examples.
 Byte-source plugins deliver arrays of bytes of a specified length during each load call. These bytes are then processed by a selected parser. Like parser plugins, they can define configuration schemas that are provided during session initialization.
 
 **Development in Rust:**  
-- Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](./plugins_api/) crate.
+- Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
 - Use the `bytesource_export!()` macro to export your byte-source struct.
 
-The [`plugins-api`](./plugins_api/) crate again provides helper functions for logging, access to temp directory and configuration management.
+The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate again provides helper functions for logging, access to temp directory and configuration management.
 
 **Integration:**  
 - Create a directory at `<HOME>/.chipmunk/plugins/bytesource/<plugin-name>/`.
@@ -170,7 +149,7 @@ Plugins can also be developed in any language that supports compiling to WASM wi
 
 Chipmunk includes several benchmarks designed to measure the performance of various tasks within your plugins. Each benchmark requires a TOML configuration file that specifies the plugin’s path and other relevant settings. You can refer to the provided templates and examples for more details on how to structure the configuration.  
 
-To run the benchmarks, you first need to install the [Chipmunk development tool](./../cli/development-cli/README.md), which is required for managing and executing these benchmarks.  
+To run the benchmarks, you first need to install the [Chipmunk development tool](./../contributing/dev-cli.md), which is required for managing and executing these benchmarks.  
 
 Once installed, you can explore the available benchmarking options with the following command to see detailed information about each benchmark:
 ```sh
@@ -193,7 +172,7 @@ Run the benchmark with the following command, replacing `{path_to_input_file}` w
 ```sh
 cargo chipmunk bench core plugin_praser_producer -i {path_to_input_file} -c {path_to_plugin_conig_file}.toml 
 ```
-For a working example of a parser plugin configuration, refer to the [DLT parser config file](./examples/dlt_parser/bench_config.toml). This example will help you understand how to structure your configuration for the parser plugin.
+For a working example of a parser plugin configuration, refer to the [DLT parser config file](https://github.com/esrlabs/chipmunk/tree/master/plugins/examples/dlt_parser/bench_config.toml). This example will help you understand how to structure your configuration for the parser plugin.
 
 ---
 
@@ -202,4 +181,4 @@ For a working example of a parser plugin configuration, refer to the [DLT parser
 - **WIT Specifications:** [WIT on GitHub](https://component-model.bytecodealliance.org/design/wit.html)
 - **Cargo Component:** [cargo component GitHub Repository](https://github.com/bytecodealliance/cargo-component)
 - **Wasm-tools:** [Wasm-tools GitHub Repository](https://github.com/bytecodealliance/wasm-tools)
-- **Plugins API Crate Documentation:** [Plugins API](#???)
+- **Plugins API Crate Documentation:** [Plugins API](./plugins-api.md)

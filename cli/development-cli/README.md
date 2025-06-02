@@ -1,3 +1,5 @@
+<!-- TODO: README should provide minimal infos and the link to https://esrlabs.github.io/chipmunk/ for detailed infos to avoid duplications -->
+
 [![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
 
 # Chipmunk Development CLI Tool

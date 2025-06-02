@@ -11,8 +11,11 @@ nav:
   - Navigation: navigation.md
   - Teamwork: teamwork.md
   - Chipmunk CLI Tool: cli.md
+  - Plugins:
+    - Development Guid: plugins/development-guid.md
+    - Plugins API Crate: plugins/plugins-api.md
   - Contributing: 
-      - Welcome: contributing/welcome.md
-      - Preparing: contributing/preparing.md
-      - Developer CLI Tool: contributing/cli.md
+    - Welcome: contributing/welcome.md
+    - Preparing: contributing/preparing.md
+    - Developer CLI Tool: contributing/dev-cli.md
 
