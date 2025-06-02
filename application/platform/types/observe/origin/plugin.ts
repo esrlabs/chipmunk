@@ -61,6 +61,10 @@ export class Configuration
         }
     }
 
+    static inited(): boolean {
+        return Configuration.desc().major.trim() !== '';
+    }
+
     public source(): string | undefined {
         return this.configuration[0];
     }
