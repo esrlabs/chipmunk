@@ -1,7 +1,7 @@
 [package]
 name = "dlt_parser"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 description = "An example of a Chipmunk parser that replicate the dlt parser that is built-in into Chipmunk"
 

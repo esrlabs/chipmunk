@@ -29,8 +29,9 @@ macro_rules! generate_get_config_function_owned {
             match &prefix_config_item.value {
                 $conf_typ(val) => Ok(val.to_owned()),
                 invalid => {
-                    let err_msg =
-                        format!("Invalid config value for '{config_id}' is provided. Value: {invalid:?}");
+                    let err_msg = format!(
+                        "Invalid config value for '{config_id}' is provided. Value: {invalid:?}"
+                    );
                     return Err(InitError::Config(err_msg));
                 }
             }
@@ -52,7 +53,10 @@ macro_rules! generate_get_config_function_borrow {
         /// This function returns the corresponding config value if the the provided `config_id`
         /// exists in the provided `plugins_configs` and have a matching value type.
         /// Otherwise it will return an [`InitError::Config`] with the matching error message.
-        pub fn $fn<'a>(config_id: &str, plugins_configs: &'a [ConfigItem]) -> Result<&'a $typ, InitError> {
+        pub fn $fn<'a>(
+            config_id: &str,
+            plugins_configs: &'a [ConfigItem],
+        ) -> Result<&'a $typ, InitError> {
             let prefix_config_item = plugins_configs
                 .iter()
                 .find(|item| item.id == config_id)
@@ -65,8 +69,9 @@ macro_rules! generate_get_config_function_borrow {
             match &prefix_config_item.value {
                 $conf_typ(val) => Ok(val),
                 invalid => {
-                    let err_msg =
-                        format!("Invalid config value for '{config_id}' is provided. Value: {invalid:?}");
+                    let err_msg = format!(
+                        "Invalid config value for '{config_id}' is provided. Value: {invalid:?}"
+                    );
                     return Err(InitError::Config(err_msg));
                 }
             }

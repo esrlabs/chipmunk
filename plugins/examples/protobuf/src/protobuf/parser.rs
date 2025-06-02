@@ -1,6 +1,6 @@
 use crate::*;
 use prost_reflect::{
-    prost::Message, DescriptorPool, DynamicMessage, FileDescriptor, MessageDescriptor,
+    DescriptorPool, DynamicMessage, FileDescriptor, MessageDescriptor, prost::Message,
 };
 use std::{fs, path::Path};
 

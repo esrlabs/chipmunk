@@ -20,7 +20,7 @@ pub mod log {
     pub use log::{debug, error, info, log, trace, warn};
     // This is needed to be public because it's used in the export macro.
     #[doc(hidden)]
-    pub use log::{set_logger as __set_logger, set_max_level as __set_max_level, Level as __Level};
+    pub use log::{Level as __Level, set_logger as __set_logger, set_max_level as __set_max_level};
 }
 
 // This is needed to be public because it's used in the export macro
