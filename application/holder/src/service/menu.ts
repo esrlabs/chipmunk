@@ -129,6 +129,17 @@ export class Service extends Implementation {
                               },
                               { type: 'separator' },
                               {
+                                  label: 'Plugins Manager',
+                                  click: async () => {
+                                      Actions.pluginsManager().catch((err: Error) => {
+                                          this.log().error(
+                                              `Fail call action Plugins Manager: ${err.message}`,
+                                          );
+                                      });
+                                  },
+                              },
+                              { type: 'separator' },
+                              {
                                   label: 'Check for updates',
                                   click: async () => {
                                       Actions.updates().catch((err: Error) => {
