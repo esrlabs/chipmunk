@@ -225,8 +225,8 @@ export class State extends Subscriber {
                     instance instanceof FileOrigin.Configuration
                         ? [instance.filename()]
                         : instance instanceof ConcatOrigin.Configuration
-                          ? instance.files()
-                          : undefined;
+                        ? instance.files()
+                        : undefined;
                 if (files === undefined) {
                     return;
                 }
@@ -292,7 +292,7 @@ export class State extends Subscriber {
                         .filter(
                             (ref) =>
                                 this.parsers.find((p) => p.ref.alias() === ref.alias()) ===
-                                undefined,
+                                    undefined && ref.inited(),
                         )
                         .map((ref) => {
                             return { ref: new WrappedParserRef(ref), disabled: true };

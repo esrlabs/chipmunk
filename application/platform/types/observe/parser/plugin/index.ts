@@ -52,6 +52,10 @@ export class Configuration
         }
     }
 
+    static inited(): boolean {
+        return Configuration.desc().major.trim() !== '';
+    }
+
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {

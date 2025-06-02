@@ -37,6 +37,10 @@ export class Configuration
             : new Error(`Invalid IP address`);
     }
 
+    static inited(): boolean {
+        return true;
+    }
+
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {

@@ -16,6 +16,7 @@ export interface ConfigurationStatic<T, A> extends Validate<T>, Alias<A> {
 
 export interface ConfigurationStaticDesc<T, A> extends Validate<T>, Alias<A>, List {
     initial(): T;
+    inited(): boolean;
 }
 
 export interface Reference<T, C, A> extends ConfigurationStatic<T, A> {

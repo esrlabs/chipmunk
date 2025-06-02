@@ -39,6 +39,10 @@ export class Configuration
         }
     }
 
+    static inited(): boolean {
+        return true;
+    }
+
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return null;

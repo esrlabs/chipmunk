@@ -54,6 +54,10 @@ export class Configuration
         return [];
     }
 
+    static inited(): boolean {
+        return true;
+    }
+
     protected defaultFileType: Types.File.FileType = Types.File.FileType.Text;
 
     public source(): string | undefined {

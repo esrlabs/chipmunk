@@ -25,7 +25,6 @@ export class Configuration
     extends Base<IConfiguration, Configuration, Source>
     implements OriginDetails, Sde.Support, Job
 {
-
     public MARKER = 'application/platform/types/observe/origin/stream/udp/index.ts';
 
     static desc(): IList {
@@ -61,6 +60,9 @@ export class Configuration
         }
     }
 
+    static inited(): boolean {
+        return true;
+    }
     // Gives initial settings. Not necessarily valid.
     static initial(): IConfiguration {
         return {
