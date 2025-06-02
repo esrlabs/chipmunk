@@ -21,4 +21,5 @@ And a variety of built-in byte-sources:
 - PCapNG
 - PCap Legacy
 
-For a visual representation of how the Message Producer connects Byte Sources and Parsers, please refer to the [diagram](./producer-plugins.drawio).
+For a visual representation of how the Message Producer connects Byte Sources and Parsers, please refer to the [diagram](./producer-plugins.svg).
+
