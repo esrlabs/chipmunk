@@ -6,7 +6,7 @@ use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
-use sources::{producer::MessageProducer, socket::tcp::reconnect::ReconnectStateMsg, ByteSource};
+use sources::{ByteSource, producer::MessageProducer, socket::tcp::reconnect::ReconnectStateMsg};
 
 use crate::session::create_append_file_writer;
 

@@ -5,7 +5,7 @@ use std::{io::Write as _, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
 use parsers::{LogMessage, Parser};
-use sources::{producer::MessageProducer, ByteSource};
+use sources::{ByteSource, producer::MessageProducer};
 
 use crate::session::create_append_file_writer;
 
