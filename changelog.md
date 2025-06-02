@@ -1,3 +1,9 @@
+# 3.18.1 (02.06.2025)
+
+## Fixes
+- Fix application menu (for macos)
+- Allow open external links in changelogs overview
+
 # 3.18.0 (30.05.2025)
 
 ## Add
