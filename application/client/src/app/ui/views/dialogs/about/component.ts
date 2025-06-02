@@ -33,7 +33,7 @@ export class About extends ChangesDetector implements AfterViewInit {
 
     public open(url: string): void {
         this.ilc()
-            .services.system.bridge.brower()
+            .services.system.bridge.browser()
             .url(url)
             .catch((err: Error) => {
                 this.log().error(`Fail to open URL "${url}": ${err.message}`);

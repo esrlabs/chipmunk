@@ -500,7 +500,7 @@ export class Service extends Implementation {
         };
     }
 
-    public brower(): {
+    public browser(): {
         url(url: string): Promise<void>;
     } {
         return {
