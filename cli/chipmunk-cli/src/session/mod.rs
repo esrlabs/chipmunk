@@ -14,8 +14,8 @@ use sources::{
     binary::raw::BinaryByteSource,
     socket::{
         tcp::{
-            reconnect::{ReconnectInfo, ReconnectStateMsg},
             KeepAliveConfig, TcpSource,
+            reconnect::{ReconnectInfo, ReconnectStateMsg},
         },
         udp::UdpSource,
     },

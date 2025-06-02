@@ -1,3 +1,9 @@
+# 0.2.1
+
+## Changes:
+
+* Update to Rust edition 2024.
+
 # 0.2.0
 
 ## Changes:
