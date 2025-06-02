@@ -3,7 +3,7 @@
 
 use std::{fs::read_to_string, path::PathBuf, sync::OnceLock};
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use console::style;
 use serde::{Deserialize, Serialize};
 

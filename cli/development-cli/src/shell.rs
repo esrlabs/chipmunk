@@ -5,7 +5,7 @@ use std::{fmt::Display, io};
 
 use anyhow::Context;
 use clap::CommandFactory;
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 use serde::{Deserialize, Serialize};
 
 use crate::{cli_args::CargoCli, user_config::UserConfiguration};
@@ -51,7 +51,7 @@ impl Default for UserShell {
         // Try to retrieve the default shell from the environment variable if available,
         // otherwise use 'sh'
         static DEFAULT_SHELL: LazyLock<UserShell> = LazyLock::new(|| {
-            let shell = std::env::var("SHELL")
+            std::env::var("SHELL")
                 .ok()
                 .and_then(|shell| shell.rsplit('/').next().map(|a| a.to_owned()))
                 .map(|shell| match shell.to_lowercase().as_str() {
@@ -63,9 +63,7 @@ impl Default for UserShell {
                     "elvish" => UserShell::Elvish,
                     _ => UserShell::Sh,
                 })
-                .unwrap_or(UserShell::Sh);
-
-            shell
+                .unwrap_or(UserShell::Sh)
         });
 
         *DEFAULT_SHELL

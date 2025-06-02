@@ -57,11 +57,7 @@ pub fn release_build_dir() -> &'static str {
             "linux-unpacked"
         }
     } else if cfg!(target_os = "macos") {
-        if is_arm {
-            "mac-arm64"
-        } else {
-            "mac"
-        }
+        if is_arm { "mac-arm64" } else { "mac" }
     } else if cfg!(target_os = "windows") {
         "win-unpacked"
     } else {

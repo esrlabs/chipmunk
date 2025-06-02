@@ -1,7 +1,7 @@
 //! Manages finding the root of Chipmunk repository to make it possible to call the app from
 //! anywhere within the repo and exit early if the CLI tool is invoked form outside of the repo.
 
-use anyhow::{bail, Context, Error};
+use anyhow::{Context, Error, bail};
 use git2::Repository;
 
 use std::{env::current_dir, path::PathBuf, sync::OnceLock};

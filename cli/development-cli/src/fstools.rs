@@ -3,7 +3,7 @@
 
 extern crate fs_extra;
 use anyhow::{Context, Error};
-use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitProcessResult};
+use fs_extra::dir::{CopyOptions, TransitProcess, TransitProcessResult, copy_with_progress};
 use std::collections::HashSet;
 use std::sync::mpsc;
 use std::{fs, path::PathBuf};

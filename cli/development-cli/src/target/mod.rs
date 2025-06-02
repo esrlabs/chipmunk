@@ -9,14 +9,14 @@ use std::{borrow::Cow, collections::BTreeSet, fmt::Display, iter, path::PathBuf,
 use tokio::fs;
 
 use crate::{
+    JobsState,
     dev_tools::DevTool,
     fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
     location::get_root,
-    spawner::{spawn, spawn_skip, SpawnOptions, SpawnResult},
+    spawner::{SpawnOptions, SpawnResult, spawn, spawn_skip},
     tracker::get_tracker,
-    JobsState,
 };
 
 use target_kind::TargetKind;
@@ -266,7 +266,7 @@ impl Target {
             | Target::CliChipmunk
             | Target::Shared
             | Target::Wasm
-            | Target::Updater 
+            | Target::Updater
             | Target::PluginsApi => Vec::new(),
             Target::Protocol => vec![Target::Core],
             Target::Binding => vec![Target::Shared, Target::Core, Target::Protocol],
@@ -309,7 +309,7 @@ impl Target {
                 | Target::Updater
                 | Target::CliDev
                 | Target::CliChipmunk
-                | Target::Protocol 
+                | Target::Protocol
                 | Target::PluginsApi => false,
             },
 
@@ -322,7 +322,7 @@ impl Target {
                 | Target::Updater
                 | Target::CliDev
                 | Target::CliChipmunk
-                | Target::Protocol 
+                | Target::Protocol
                 | Target::PluginsApi => false,
             },
             JobType::Test { .. } => match self {
@@ -330,7 +330,7 @@ impl Target {
                 | Target::Core
                 | Target::CliDev
                 | Target::Wasm
-                | Target::CliChipmunk 
+                | Target::CliChipmunk
                 | Target::PluginsApi => true,
                 Target::Shared
                 | Target::Binding
@@ -410,12 +410,16 @@ impl Target {
     /// Provides the test commands for the given target if available
     fn test_cmds(self, production: bool) -> Option<Vec<TestSpawnCommand>> {
         match self {
-            Target::Core | Target::CliDev | Target::CliChipmunk => {
-                Some(rust_test_commands(self.cwd(), production, RustFeatureOptions::None))
-            }
-            Target::PluginsApi => {
-                Some(rust_test_commands(self.cwd(), production, RustFeatureOptions::All))
-            }
+            Target::Core | Target::CliDev | Target::CliChipmunk => Some(rust_test_commands(
+                self.cwd(),
+                production,
+                RustFeatureOptions::None,
+            )),
+            Target::PluginsApi => Some(rust_test_commands(
+                self.cwd(),
+                production,
+                RustFeatureOptions::All,
+            )),
             Target::Wasm => Some(wasm::get_test_cmds()),
             Target::Shared
             | Target::Binding
@@ -656,7 +660,7 @@ impl Target {
             | Target::Updater
             | Target::Protocol
             | Target::CliDev
-            | Target::CliChipmunk 
+            | Target::CliChipmunk
             | Target::PluginsApi => return None,
         };
 
@@ -705,7 +709,7 @@ fn yarn_command(args: Vec<String>) -> ProcessCommand {
     ProcessCommand::new(DevTool::Yarn.cmd(), args)
 }
 
-/// Feature options for rust commands 
+/// Feature options for rust commands
 enum RustFeatureOptions {
     /// Include all features  
     All,
@@ -714,14 +718,18 @@ enum RustFeatureOptions {
 }
 
 /// Provides the general commands to run tests on rust targets.
-fn rust_test_commands(path: PathBuf, production: bool, feature_opts: RustFeatureOptions) -> Vec<TestSpawnCommand> {
+fn rust_test_commands(
+    path: PathBuf,
+    production: bool,
+    feature_opts: RustFeatureOptions,
+) -> Vec<TestSpawnCommand> {
     let mut args = vec![String::from("+stable"), String::from("test")];
     if production {
         args.push("-r".into());
     }
     match feature_opts {
         RustFeatureOptions::All => args.push("--all-features".into()),
-        RustFeatureOptions::None => {},
+        RustFeatureOptions::None => {}
     }
     args.push("--color".into());
     args.push("always".into());

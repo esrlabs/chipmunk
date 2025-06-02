@@ -2,7 +2,7 @@
 
 use std::{env, io::BufRead};
 
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -101,7 +101,8 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
 
     // Set environment variable on start
     for (key, value) in config.env_vars.set_on_start.iter() {
-        env::set_var(key, value);
+        // Safety: Environment variables access only happen in this single-threaded code.
+        unsafe { env::set_var(key, value) };
     }
 
     let app_root = Target::App.cwd();
@@ -215,10 +216,10 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
 
         let release_file_path = release_path().join(arch);
         let cmd = format!(
-        "{} \"{}\"  --apple-id \"{apple_id}\" --team-id \"{team_id}\" --password \"{password}\"",
-        config.notarize_command.command,
-        release_file_path.to_string_lossy()
-    );
+            "{} \"{}\"  --apple-id \"{apple_id}\" --team-id \"{team_id}\" --password \"{password}\"",
+            config.notarize_command.command,
+            release_file_path.to_string_lossy()
+        );
 
         let app_root = Target::App.cwd();
 
@@ -276,7 +277,9 @@ pub fn __generate_config_for_prototyping() -> MacOsConfig {
         signing_id: String::from("SIGNING_ID"),
     };
 
-    let sign_cmd_options = String::from("--force --timestamp --options runtime --verbose --deep --strict --entitlements ./resources/mac/entitlements.mac.plist");
+    let sign_cmd_options = String::from(
+        "--force --timestamp --options runtime --verbose --deep --strict --entitlements ./resources/mac/entitlements.mac.plist",
+    );
 
     let sign_paths = SignPaths {
         single_paths: vec![

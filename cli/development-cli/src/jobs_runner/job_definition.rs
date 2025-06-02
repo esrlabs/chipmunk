@@ -66,7 +66,7 @@ impl JobDefinition {
                     .await;
             }
             JobType::AfterBuild { production } => {
-                return self.target.after_build(production, skip).await
+                return self.target.after_build(production, skip).await;
             }
             JobType::Clean => self.target.reset().await,
             JobType::Test { production } => return self.target.test(production, skip).await,

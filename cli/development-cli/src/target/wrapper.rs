@@ -3,11 +3,10 @@ use std::{fs, iter, path::PathBuf};
 use anyhow::Context;
 
 use crate::{
-    fstools,
+    JobsState, fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
-    spawner::{spawn, spawn_blocking, spawn_skip, SpawnResult},
-    JobsState,
+    spawner::{SpawnResult, spawn, spawn_blocking, spawn_skip},
 };
 
 use super::{ProcessCommand, Target};
