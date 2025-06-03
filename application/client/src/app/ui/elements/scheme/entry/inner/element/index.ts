@@ -1,6 +1,6 @@
 import { Value, ValueInput } from '@platform/types/bindings';
 import { Subject, Subjects } from '@platform/env/subscription';
-import { ElementInner } from './inner';
+import { ElementInner, FieldCategory } from './inner';
 
 import * as CheckboxElement from './checkbox';
 import * as FilesFolderSelectorElement from './files_selector';
@@ -108,8 +108,8 @@ export class Element {
         this.subjects.get().loaded.emit();
     }
 
-    public isField(): boolean {
-        return this.inner.isField();
+    public getFieldCategory(): FieldCategory {
+        return this.inner.getFieldCategory();
     }
 
     public change() {

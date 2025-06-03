@@ -27,6 +27,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIcon } from '@angular/material/icon';
 
 import * as els from './element';
+import { FieldCategory } from './element/inner';
 
 @Component({
     selector: 'app-settings-scheme-element',
@@ -68,7 +69,7 @@ export class SchemeEntryElement
     public elTimezoneSelectorElement: els.TimezoneSelectorElement | undefined;
     public elFieldsCollectionElement: els.FieldsCollectionElement | undefined;
 
-    public field: boolean = false;
+    public inline: boolean = false;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -79,7 +80,7 @@ export class SchemeEntryElement
     }
 
     public ngAfterContentInit(): void {
-        this.field = this.element.isField();
+        this.inline = this.element.getFieldCategory() == FieldCategory.Inline;
         this.elCheckboxElement =
             this.element.inner instanceof els.CheckboxElement ? this.element.inner : undefined;
         this.elFilesFolderSelectorElement =
