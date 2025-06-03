@@ -1,4 +1,4 @@
-<mat-form-field class="material-mofication-normal" *ngIf="field">
+<mat-form-field class="material-mofication-normal" *ngIf="inline">
     <ng-container *ngIf="elListElement !== undefined">
         <mat-select [(ngModel)]="elListElement.value" (ngModelChange)="element.change()">
             <mat-option *ngFor="let item of elListElement.items" [value]="item">
@@ -38,33 +38,42 @@
     </app-settings-scheme-tz-selector>
 </ng-container>
 
-<ng-container *ngIf="elFieldsCollectionElement !== undefined">
-    <div *ngFor="let collection of elFieldsCollectionElement.collections; let idx = index;">
-        <ng-container *ngFor="let element of collection.elements">
+<div class="collections" *ngIf="elFieldsCollectionElement !== undefined">
+    <div
+        class="collection"
+        *ngFor="let collection of elFieldsCollectionElement.collections; let idx = index;"
+    >
+        <div class="element" *ngFor="let element of collection.elements">
             <app-settings-scheme-element
                 [element]="element"
                 [provider]="elFieldsCollectionElement.provider"
             >
             </app-settings-scheme-element>
             <p class="t-small error" *ngIf="element.error !== undefined">{{element.error}}</p>
-        </ng-container>
-        <button mat-icon-button (click)="ngOnRemoveCollection(idx)">
-            <mat-icon aria-hidden="false" class="mini-button">remove_circle_outline</mat-icon>
+        </div>
+        <button
+            class="material-mofication-mini"
+            mat-icon-button
+            (click)="ngOnRemoveCollection(idx)"
+        >
+            <mat-icon>remove_circle_outline</mat-icon>
         </button>
     </div>
-    <button
-        mat-icon-button
-        *ngIf="elFieldsCollectionElement.addTitle === undefined"
-        (click)="ngOnAddCollection()"
-    >
-        <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
-    </button>
-    <button
-        mat-stroked-button
-        *ngIf="elFieldsCollectionElement.addTitle !== undefined"
-        (click)="ngOnAddCollection()"
-    >
-        <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
-        {{elFieldsCollectionElement.addTitle}}
-    </button>
-</ng-container>
+    <div class="controls">
+        <button
+            mat-icon-button
+            *ngIf="elFieldsCollectionElement.addTitle === undefined"
+            (click)="ngOnAddCollection()"
+        >
+            <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
+        </button>
+        <button
+            mat-stroked-button
+            *ngIf="elFieldsCollectionElement.addTitle !== undefined"
+            (click)="ngOnAddCollection()"
+        >
+            <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
+            {{elFieldsCollectionElement.addTitle}}
+        </button>
+    </div>
+</div>

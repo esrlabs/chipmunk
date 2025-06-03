@@ -34,13 +34,41 @@
 </div>
 <div class="preset-container">
     <div class="preset-container-content w-1400">
-        <app-settings-scheme
-            *ngIf="state.providers.source !== undefined"
-            [provider]="state.providers.source"
-        ></app-settings-scheme>
-        <app-settings-scheme
-            *ngIf="state.providers.parser !== undefined"
-            [provider]="state.providers.parser"
-        ></app-settings-scheme>
+        <div class="preset-container-left">
+            <mat-card
+                class="top"
+                *ngIf="state.providers.source !== undefined && state.description.source !== undefined"
+            >
+                <mat-card-title>{{state.description.source.ident.name}}</mat-card-title>
+                <mat-card-content>
+                    <app-settings-scheme [provider]="state.providers.source"></app-settings-scheme>
+                </mat-card-content>
+            </mat-card>
+            <mat-card
+                class="top"
+                *ngIf="state.providers.parser !== undefined && state.description.parser !== undefined"
+            >
+                <mat-card-title>{{state.description.parser.ident.name}}</mat-card-title>
+                <mat-card-content>
+                    <app-settings-scheme [provider]="state.providers.parser"></app-settings-scheme>
+                </mat-card-content>
+            </mat-card>
+        </div>
+        <div class="preset-container-right">
+            <mat-card class="top" *ngIf="state.description.source !== undefined">
+                <mat-card-title>{{state.description.source.ident.name}}</mat-card-title>
+                <mat-card-subtitle>{{state.description.source.ident.desc}}</mat-card-subtitle>
+                <mat-card-content>
+                    <p>details</p>
+                </mat-card-content>
+            </mat-card>
+            <mat-card class="top" *ngIf="state.description.parser !== undefined">
+                <mat-card-title>{{state.description.parser.ident.name}}</mat-card-title>
+                <mat-card-subtitle>{{state.description.parser.ident.desc}}</mat-card-subtitle>
+                <mat-card-content>
+                    <p>details</p>
+                </mat-card-content>
+            </mat-card>
+        </div>
     </div>
 </div>

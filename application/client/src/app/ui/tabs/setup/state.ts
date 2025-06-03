@@ -12,6 +12,11 @@ export interface IApi {
     tab(): TabControls;
 }
 
+export interface ComponentDescription {
+    ident: Ident;
+    full: string;
+}
+
 export class State extends Subscriber {
     public sources: Ident[] = [];
     public parsers: Ident[] = [];
@@ -32,6 +37,13 @@ export class State extends Subscriber {
     } = {
         source: '',
         parser: '',
+    };
+    public description: {
+        source: ComponentDescription | undefined;
+        parser: ComponentDescription | undefined;
+    } = {
+        source: undefined,
+        parser: undefined,
     };
     public providers: {
         source: Proivder | undefined;
@@ -97,6 +109,11 @@ export class State extends Subscriber {
                         this.logger.error(`Fail to destroy source provider: ${err.message}`);
                     });
                 }
+                this.description.source = undefined;
+                const ident = this.sources.find((ident) => ident.uuid == this.selected.source);
+                if (ident !== undefined) {
+                    this.description.source = { full: '', ident };
+                }
                 this.providers.source = new Proivder(this.origin, this.selected.source);
                 this.subjects.get().updated.emit();
             },
@@ -108,6 +125,10 @@ export class State extends Subscriber {
                     this.providers.parser.destroy().catch((err: Error) => {
                         this.logger.error(`Fail to destroy parser provider: ${err.message}`);
                     });
+                }
+                const ident = this.parsers.find((ident) => ident.uuid == this.selected.parser);
+                if (ident !== undefined) {
+                    this.description.parser = { full: '', ident };
                 }
                 this.providers.parser = new Proivder(this.origin, this.selected.parser);
                 this.subjects.get().updated.emit();
