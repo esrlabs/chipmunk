@@ -43,11 +43,11 @@ pub async fn load_all_plugins(
     let (mut valid_plugins, mut invalid_plugs) =
         load_plugins(PluginType::Parser, cache_manager).await?;
 
-    let (valid_sources, invalid_soruces) =
+    let (valid_sources, invalid_sources) =
         load_plugins(PluginType::ByteSource, cache_manager).await?;
 
     valid_plugins.extend(valid_sources);
-    invalid_plugs.extend(invalid_soruces);
+    invalid_plugs.extend(invalid_sources);
 
     Ok((valid_plugins, invalid_plugs))
 }
@@ -63,6 +63,8 @@ async fn load_plugins(
 ) -> Result<(Vec<ExtendedPluginEntity>, Vec<ExtendedInvalidPluginEntity>), PluginsManagerError> {
     let mut valid_plugins = Vec::new();
     let mut invalid_plugins = Vec::new();
+
+    log::trace!("Start loading plugins of type {plug_type}");
 
     let plugins_dir = plugin_root_dir(plug_type)?;
 
@@ -108,6 +110,8 @@ pub async fn load_plugin(
     plug_type: PluginType,
     cache_manager: &mut CacheManager,
 ) -> Result<PluginEntityState, PluginsManagerError> {
+    log::trace!("Validating plugin with path: {}", plug_dir.display());
+
     let mut rd = PluginRunData::default();
     rd.info("Attempt to load and check plugin");
     let (wasm_file, metadata_file, readme_path) = match validate_plugin_files(&plug_dir)? {
@@ -117,6 +121,11 @@ pub async fn load_plugin(
             readme_file,
         } => (wasm_path, metadata_file, readme_file),
         PluginFilesStatus::Invalid { err_msg } => {
+            log::warn!(
+                "Plugin files are invalid. Path: {}. Error: {err_msg}",
+                plug_dir.display()
+            );
+
             rd.err(err_msg);
             return Ok(PluginEntityState::Invalid(
                 ExtendedInvalidPluginEntity::new(
@@ -131,14 +140,19 @@ pub async fn load_plugin(
     };
 
     let plug_info = if let Some(plugin_state) = cache_manager.get_plugin_cache(&plug_dir)? {
+        log::trace!("Reading plugin {} from cache", plug_dir.display());
+
         rd.info("Reading plugin info from cache");
         match plugin_state {
             super::cache::CachedPluginState::Installed(plugin_info) => plugin_info,
             super::cache::CachedPluginState::Invalid(err_msg) => {
-                rd.err(format!(
+                let err_msg = format!(
                     "Plugin binary failed to load in the last attempt, according to cached data. \
                     Error: {err_msg}"
-                ));
+                );
+
+                log::warn!("{err_msg}");
+                rd.err(err_msg);
                 return Ok(PluginEntityState::Invalid(
                     ExtendedInvalidPluginEntity::new(
                         InvalidPluginEntity {
@@ -167,6 +181,8 @@ pub async fn load_plugin(
                 return Err(err.into())
             }
             Err(err) => {
+                log::warn!("Loading plugin binary failed. Error: {err:?}");
+
                 let err_msg = format!("Loading plugin binary fail. Error: {err}");
                 rd.err(&err_msg);
                 cache_manager

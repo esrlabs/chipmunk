@@ -54,10 +54,14 @@ pub(crate) async fn load_and_inspect(
     let component_types = component.component_type();
 
     let export_info = component_types.exports(engine).next().ok_or_else(|| {
-        PluginHostError::PluginInvalid("Plugin doesn't have exports information".into())
+        log::warn!("Extracted plugin metadata failed because plugin binary metadata doesn't have components export information");
+
+        PluginHostError::PluginInvalid("Plugin binary metadata doesn't have exports information".into())
     })?;
 
     let (interface_name, version) = export_info.0.split_once('@').ok_or_else(|| {
+        log::warn!("Extracted plugin metadata failed because plugin binary metadata doesn't match `wit` file definitions");
+
         PluginHostError::PluginInvalid(
             "Plugin package schema doesn't match `wit` file definitions".into(),
         )
@@ -67,14 +71,18 @@ pub(crate) async fn load_and_inspect(
         PARSER_INTERFACE_NAME => PluginType::Parser,
         BYTESOURCE_INTERFACE_NAME => PluginType::ByteSource,
         invalid => {
-            return Err(PluginHostError::PluginInvalid(format!(
-                "Unknown plugin interface name '{invalid}'",
-            )))
+            let err_msg = format!("Unknown plugin interface name '{invalid}'",);
+            log::warn!("{err_msg}");
+
+            return Err(PluginHostError::PluginInvalid(err_msg));
         }
     };
 
     let version: SemanticVersion = version.parse().map_err(|err| {
-        PluginHostError::PluginInvalid(format!("Plugin version parsing failed: {err}"))
+        let err_msg = format!("Plugin version parsing failed: {err}");
+        log::warn!("{err_msg}");
+
+        PluginHostError::PluginInvalid(err_msg)
     })?;
 
     Ok(WasmComponentInfo {
