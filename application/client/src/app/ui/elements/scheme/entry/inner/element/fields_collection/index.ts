@@ -1,5 +1,5 @@
 import { Element } from '../index';
-import { ElementInner } from '../inner';
+import { ElementInner, FieldCategory } from '../inner';
 import { StaticFieldDesc, Value, ValueInput, Field } from '@platform/types/bindings';
 import { Provider } from './provider';
 import { Subscriber, Subject } from '@platform/env/subscription';
@@ -95,6 +95,7 @@ export class FieldsCollectionElement extends ElementInner {
         this.collections.push(
             Collection.from(this.spec, this.parent.uuid, this.collections.length, this.update),
         );
+        this.parent.change();
     }
     public remove(idx: number) {
         this.collections.splice(idx, 1).forEach((collection) => collection.unsubscribe());
@@ -108,8 +109,8 @@ export class FieldsCollectionElement extends ElementInner {
         // Do nothing. This is just a wrapper
     }
 
-    public isField(): boolean {
-        return false;
+    public getFieldCategory(): FieldCategory {
+        return FieldCategory.Row;
     }
 
     public getValue(): Value {

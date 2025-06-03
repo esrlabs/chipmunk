@@ -3,13 +3,16 @@
 
 :host {
     position: relative;
-    &.field {
+    padding: 2px;
+    margin: 6px;
+    &.field-inline {
         display: inline-block;
-        padding: 2px;
-        margin: 6px;
-        height: 42px;    
+        height: 62px;    
     }
-    &.panel {
+    &.field-row {
+        display: block;
+    }
+    &.field-block {
         display: block;
         width: auto;
         height: auto;

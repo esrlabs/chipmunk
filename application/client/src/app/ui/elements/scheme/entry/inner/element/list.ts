@@ -1,4 +1,4 @@
-import { ElementInner } from './inner';
+import { ElementInner, FieldCategory } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 enum InnerType {
@@ -28,9 +28,10 @@ export class ListElement<T> extends ElementInner {
         this.value = value;
     }
 
-    public isField(): boolean {
-        return true;
+    public getFieldCategory(): FieldCategory {
+        return FieldCategory.Inline;
     }
+
     public getValue(): Value {
         return this.getter(this.value);
     }
