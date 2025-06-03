@@ -1,4 +1,4 @@
-import { ElementInner } from './inner';
+import { ElementInner, FieldCategory } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 export class CheckboxElement extends ElementInner {
@@ -13,9 +13,10 @@ export class CheckboxElement extends ElementInner {
         return this.value;
     }
 
-    public isField(): boolean {
-        return true;
+    public getFieldCategory(): FieldCategory {
+        return FieldCategory.Inline;
     }
+
     public setValue(value: any) {
         this.value = value;
     }
