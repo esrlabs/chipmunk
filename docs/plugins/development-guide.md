@@ -58,7 +58,9 @@ rustup target add wasm32-unknown-unknown
 
 ### Building and Integrating Plugins
 
-To build a plugin:
+After developing your plugin, the next step is to build it into a WebAssembly component and integrate it with Chipmunk.
+
+To build your plugin:
 
 - **Development Build:**  
   ```sh
@@ -69,16 +71,18 @@ To build a plugin:
   cargo component build -r
   ```
 
-The build process will generate a WASM file named after your plugin. To integrate this plugin with Chipmunk:
+The build process will generate a `.wasm` file named after your plugin.
 
-1. **Create the Plugin Directory:**  
-   Create a directory within the appropriate plugin type folder (for example, `<HOME>/.chipmunk/plugins/parser/` for parser plugins or `<HOME>/.chipmunk/plugins/bytesource/` for byte-source plugins) using the plugin name.
+To integrate this compiled plugin with Chipmunk, you have two primary methods:
 
-2. **Copy Artifacts:**  
-Place the compiled WASM file inside the plugin directory. Optionally, you can include a TOML file to provide metadata such as the plugin’s name and description.  
-Ensure that both the `.wasm` binary and the `.toml` metadata file (if present) have names that match the plugin directory name.  
+1.  **Manual Integration:**
+    * **Create the Plugin Directory:** Create a dedicated directory for your plugin within the appropriate plugin type directory (for example, `<HOME>/.chipmunk/plugins/parsers/` for parser plugins or `<HOME>/.chipmunk/plugins/bytesources/` for byte-source plugins) using the plugin name.
+    * **Copy Artifacts:** Place the compiled `.wasm` file inside this newly created plugin directory. Optionally, you can include a TOML file (e.g., `plugin_name.toml`) to provide metadata such as the plugin’s name and description. Ensure that both the `.wasm` binary and the optional `.toml` metadata file (if present) share the same base name as the plugin directory.
+    * Additionally, you can include a `README.md` file inside the plugin directory. If present, this file will be rendered directly in the Chipmunk UI, allowing you to provide documentation or usage instructions for your plugin.
 
-Additionally, you can include a `README.md` file inside the plugin directory. If present, this file will be rendered directly in the Chipmunk UI, allowing you to provide documentation or usage instructions for your plugin.  
+2.  **Using the Chipmunk UI:**
+    * Within the Chipmunk application, navigate to the `Plugins Manager` view.
+    * Click the "Add" button. This will open a dialog where you can select the plugin's root directory. The name of this selected directory should be the plugin's name, and it should contain your compiled `.wasm` file (named to match the directory) and any optional `.toml` metadata file (also named to match) or `README.md`. Chipmunk will then automatically copy and register the plugin.
 
 ---
 
@@ -97,18 +101,18 @@ Chipmunk currently supports two main types of plugins:
 
 ### Parser Plugins
 
-**Purpose:**  
+#### Purpose:
 Parser plugins receive an array of bytes, attempt to parse them, and return the parsed items. They can also define configuration schemas and specify rendering options if needed.
 
-**Development in Rust:**  
-- Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
-- Use the `parser_export!()` macro to export your parser struct.
+#### Development in Rust: 
+* Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
+* Use the `parser_export!()` macro to export your parser struct.
 
 The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
 
-**Integration:**  
-- Create a directory at `<HOME>/.chipmunk/plugins/parser/<plugin-name>/`.
-- Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
+#### Integration:
+*  Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the [Building and Integrating Plugins](#building-and-integrating-plugins) section.
+*  Alternatively, you can manually create a directory at `<HOME>/.chipmunk/plugins/parsers/<plugin-name>/` and copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
 
 To get started quickly, you can use the provided [parser template](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/parser_template). Simply copy the `parser_template` directory and modify it to implement your custom parser.  
 
@@ -116,18 +120,18 @@ For reference, see the `string_parser` and `dlt_parser` examples.
 
 ### Byte-Source Plugins
 
-**Purpose:**  
+#### Purpose:
 Byte-source plugins deliver arrays of bytes of a specified length during each load call. These bytes are then processed by a selected parser. Like parser plugins, they can define configuration schemas that are provided during session initialization.
 
-**Development in Rust:**  
+#### Development in Rust:
 - Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
 - Use the `bytesource_export!()` macro to export your byte-source struct.
 
 The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate again provides helper functions for logging, access to temp directory and configuration management.
 
-**Integration:**  
-- Create a directory at `<HOME>/.chipmunk/plugins/bytesource/<plugin-name>/`.
-- Copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
+#### Integration:
+- Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the [Building and Integrating Plugins](#building-and-integrating-plugins) section.
+- Alternatively, you can manually create a directory at `<HOME>/.chipmunk/plugins/bytesources/<plugin-name>/` and copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
 
 For further details, refer to the `file_source` example.
 
