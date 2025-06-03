@@ -26,6 +26,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { SchemeEntryElement } from './inner/component';
+import { FieldCategory } from './inner/element/inner';
 
 @Component({
     selector: 'app-settings-scheme-entry',
@@ -56,7 +57,7 @@ export class SchemeEntry
     @Input() provider!: SchemeProvider;
     @Input() field!: FieldDesc;
 
-    @HostBinding('class') classes = 'field';
+    @HostBinding('class') classes = ``;
 
     public pending: LazyFieldDesc | undefined;
     public loaded: StaticFieldDesc | undefined;
@@ -112,7 +113,7 @@ export class SchemeEntry
             const value = this.element.getValue();
             value && this.provider.setValue(this.loaded.id, value);
             this.element.loaded();
-            this.classes = this.element.isField() ? 'field' : 'panel';
+            this.classes = `field-${this.element.getFieldCategory()}`;
             return;
         }
     }

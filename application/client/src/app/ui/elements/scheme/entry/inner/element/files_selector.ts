@@ -1,4 +1,4 @@
-import { ElementInner } from './inner';
+import { ElementInner, FieldCategory } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 export enum FilesFoldersSelectorTarget {
@@ -26,8 +26,8 @@ export class FilesFolderSelectorElement extends ElementInner {
         this.value = value;
     }
 
-    public isField(): boolean {
-        return false;
+    public getFieldCategory(): FieldCategory {
+        return FieldCategory.Row;
     }
 
     public getValue(): Value {

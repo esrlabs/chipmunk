@@ -1,4 +1,4 @@
-import { ElementInner } from './inner';
+import { ElementInner, FieldCategory } from './inner';
 import { Value, ValueInput } from '@platform/types/bindings';
 
 export type NestedDictionaryStructure = Map<string, Map<string, Map<string, number | string>>>;
@@ -23,8 +23,8 @@ export class NestedDictionaryElement<V> extends ElementInner {
         this.value = value;
     }
 
-    public isField(): boolean {
-        return false;
+    public getFieldCategory(): FieldCategory {
+        return FieldCategory.Block;
     }
 
     public getValue(): Value {
