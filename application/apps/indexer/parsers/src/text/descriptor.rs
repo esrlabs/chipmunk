@@ -39,7 +39,7 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Text Parser"),
-            desc: String::from("Text Parser"),
+            desc: String::from("Text Parser is a minimal parser designed for processing plain text input. It performs no decoding or transformation and has no configuration options. Its sole purpose is to output incoming data line by line, making it suitable for logs or command outputs in textual format."),
             uuid: TEXT_PARSER_UUID,
         }
     }

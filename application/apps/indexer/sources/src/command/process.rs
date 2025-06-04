@@ -256,8 +256,8 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
-            name: String::from("Terminal Source"),
-            desc: String::from("Terminal Source"),
+            name: String::from("Command Output"),
+            desc: String::from("Reads the standard output (stdout) of a launched command. The data is passed to the parser as lines of text."),
             uuid: TERM_SOURCE_UUID,
         }
     }

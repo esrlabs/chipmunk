@@ -49,8 +49,8 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
-            name: String::from("Serial"),
-            desc: String::from("Access to Serial Devices"),
+            name: String::from("Serial Port Connection"),
+            desc: String::from("Connects to the specified serial port using user-defined settings. Data is received as a raw byte stream in a \"as-is\" mode - that is, the parser receives exactly what was read from the port, without any framing."),
             uuid: SERIAL_SOURCE_UUID,
         }
     }
@@ -62,7 +62,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_PATH.to_owned(),
                 name: "Path to dev".to_owned(),
-                desc: "Full path to serial device/port".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::String(String::new(), "/dev/tty01".to_owned()),
                 binding: None,
@@ -70,13 +70,13 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Lazy(LazyFieldDesc {
                 id: FIELD_PORTS_LIST.to_string(),
                 name: "Ports".to_string(),
-                desc: "List of available ports".to_string(),
+                desc: String::new(),
                 binding: Some(FIELD_PATH.to_string()),
             }),
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_BAUD_RATE.to_owned(),
                 name: "Boud rate".to_owned(),
-                desc: "Boud rate".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::Numbers(
                     vec![
@@ -91,7 +91,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_DATA_BITS.to_owned(),
                 name: "Data bits".to_owned(),
-                desc: "Data bits".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::Numbers(vec![8, 7, 6, 5], 8),
                 binding: None,
@@ -99,7 +99,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_STOP_BITS.to_owned(),
                 name: "Stop bits".to_owned(),
-                desc: "Stop bits".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::Numbers(vec![1, 2], 1),
                 binding: None,
@@ -107,7 +107,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_FLOW_CONTROL.to_owned(),
                 name: "Flow control".to_owned(),
-                desc: "Flow control".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::Strings(
                     vec![
@@ -122,7 +122,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_PARITY.to_owned(),
                 name: "Parity".to_owned(),
-                desc: "Parity".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::Strings(
                     vec![
@@ -137,7 +137,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_EXCLUSIVE.to_owned(),
                 name: "Exclusive".to_owned(),
-                desc: "Exclusive".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::NamedBools(vec![
                     (String::from("Yes"), true),
@@ -148,7 +148,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_SEND_DATA_DELAY.to_owned(),
                 name: "Send delay, ms".to_owned(),
-                desc: "Data sending delay (between bytes), ms".to_owned(),
+                desc: String::new(),
                 required: true,
                 interface: ValueInput::Numbers(vec![0, 10, 20, 30, 40, 50], 0),
                 binding: None,
