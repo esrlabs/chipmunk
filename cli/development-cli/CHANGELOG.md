@@ -1,3 +1,9 @@
+# 0.5.2
+
+## Fixes:
+
+* Remove short-form CLI arguments for skipping environment checks to prevent conflicts with other arguments.
+
 # 0.5.1
 
 ## Changes:

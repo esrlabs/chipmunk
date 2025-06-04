@@ -98,7 +98,7 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
-        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        #[arg(long = "skip-check", help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
         skip_env_checks: bool,
     },
     /// Build all or the specified targets
@@ -117,7 +117,7 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
-        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        #[arg(long = "skip-check", help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
         skip_env_checks: bool,
 
         #[arg(short, long, help = ADDITIONAL_FEATURES_HELP_TEXT)]
@@ -132,7 +132,7 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
-        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        #[arg(long = "skip-check", help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
         skip_env_checks: bool,
     },
     /// Run tests for all or the specified targets
@@ -151,7 +151,7 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
-        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        #[arg(long = "skip-check", help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
         skip_env_checks: bool,
 
         /// Accepts the new results in all snapshot tests.
@@ -175,7 +175,7 @@ pub enum Command {
         #[arg(short, long, help = UI_LOG_OPTION_HELP_TEXT, value_enum)]
         ui_mode: Option<UiMode>,
 
-        #[arg(short, long, help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
+        #[arg(long = "skip-check", help = SKIP_ENV_CHECKS_TEXT, default_value_t = false)]
         skip_env_checks: bool,
 
         #[arg(short, long, help = ADDITIONAL_FEATURES_HELP_TEXT)]
