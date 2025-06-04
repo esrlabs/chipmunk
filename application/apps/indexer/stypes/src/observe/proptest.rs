@@ -217,7 +217,7 @@ impl Arbitrary for FileFormat {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to extend tests here when new items are added.
-        _ = match FileFormat::Text {
+        match FileFormat::Text {
             FileFormat::PcapNG => {}
             FileFormat::PcapLegacy => {}
             FileFormat::Text => {}

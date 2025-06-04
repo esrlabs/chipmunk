@@ -3,7 +3,7 @@ mod proto;
 
 #[cfg(test)]
 mod tests {
-    use super::proto::{Parser, Source, MAX_PACKET_LEN};
+    use super::proto::{MAX_PACKET_LEN, Parser, Source};
     use bufread::BufReader;
 
     const SOURCE_MIN_SIZE: usize = 10 * MAX_PACKET_LEN;

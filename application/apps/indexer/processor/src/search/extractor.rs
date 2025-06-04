@@ -1,6 +1,6 @@
 use crate::search::{error::SearchError, filter, filter::SearchFilter};
 use grep_regex::RegexMatcher;
-use grep_searcher::{sinks::UTF8, Searcher};
+use grep_searcher::{Searcher, sinks::UTF8};
 use itertools::Itertools;
 use regex::Regex;
 use std::{

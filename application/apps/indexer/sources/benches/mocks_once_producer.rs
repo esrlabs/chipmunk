@@ -4,7 +4,7 @@
 //! the current built-in parsers in Chipmunk.
 
 use bench_utls::{bench_standrad_config, run_producer};
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use mocks::{mock_parser::MockParser, mock_source::MockByteSource};
 use sources::producer::MessageProducer;
 mod bench_utls;
@@ -32,10 +32,9 @@ fn mocks_once_producer(c: &mut Criterion) {
                     || {
                         let parser = MockParser::new_once(max);
                         let byte_source = MockByteSource::new();
-                        let producer = MessageProducer::new(parser, byte_source);
-                        producer
+                        MessageProducer::new(parser, byte_source)
                     },
-                    |producer| run_producer(producer),
+                    run_producer,
                     criterion::BatchSize::SmallInput,
                 )
         },

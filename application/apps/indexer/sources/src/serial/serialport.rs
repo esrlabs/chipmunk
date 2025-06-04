@@ -2,11 +2,11 @@ use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
 use futures::{
-    stream::{SplitSink, SplitStream, StreamExt},
     SinkExt,
+    stream::{SplitSink, SplitStream, StreamExt},
 };
 use std::{io, str};
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 

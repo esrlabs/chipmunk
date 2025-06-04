@@ -16,7 +16,7 @@ extern crate indexer_base;
 extern crate log;
 
 use dlt_core::filtering::DltFilterConfig;
-use parsers::{dlt::DltParser, Attachment, MessageStreamItem, ParseYield};
+use parsers::{Attachment, MessageStreamItem, ParseYield, dlt::DltParser};
 use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
 use std::{
     fs::File,

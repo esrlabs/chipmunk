@@ -2,7 +2,7 @@ use std::{net::SocketAddr, time::Duration};
 use tokio::{
     net::TcpStream,
     sync::watch,
-    task::{yield_now, JoinHandle},
+    task::{JoinHandle, yield_now},
 };
 
 use super::KeepAliveConfig;

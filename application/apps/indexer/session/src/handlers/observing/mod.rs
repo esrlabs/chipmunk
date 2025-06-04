@@ -7,21 +7,21 @@ use crate::{
 };
 use log::trace;
 use parsers::{
-    dlt::{fmt::FormatOptions, DltParser},
+    LogMessage, MessageStreamItem, ParseYield, Parser,
+    dlt::{DltParser, fmt::FormatOptions},
     someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
     text::StringTokenizer,
-    LogMessage, MessageStreamItem, ParseYield, Parser,
 };
 use plugins_host::PluginsParser;
 use sources::{
+    ByteSource,
     producer::MessageProducer,
     sde::{SdeMsg, SdeReceiver},
-    ByteSource,
 };
 use tokio::{
     select,
     sync::mpsc::Receiver,
-    time::{timeout, Duration},
+    time::{Duration, timeout},
 };
 
 enum Next<'a, T: LogMessage> {

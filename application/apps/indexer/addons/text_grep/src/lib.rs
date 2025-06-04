@@ -82,7 +82,7 @@
 pub mod buffer;
 use crate::buffer::CancellableBufReader;
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
-use grep_searcher::{sinks::UTF8, Searcher};
+use grep_searcher::{Searcher, sinks::UTF8};
 use regex::Regex;
 use std::{collections::HashMap, fs::File, io, path::PathBuf};
 use thiserror::Error;

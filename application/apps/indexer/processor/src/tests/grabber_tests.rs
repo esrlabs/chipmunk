@@ -3,8 +3,8 @@ mod tests {
     extern crate rand;
     use crate::{
         grabber::{
-            identify_byte_range, identify_end_slot_simple, identify_start_slot,
-            identify_start_slot_simple, ByteRange, FilePart, GrabError, Grabber, LineRange, Slot,
+            ByteRange, FilePart, GrabError, Grabber, LineRange, Slot, identify_byte_range,
+            identify_end_slot_simple, identify_start_slot, identify_start_slot_simple,
         },
         text_source::TextFileSource,
     };

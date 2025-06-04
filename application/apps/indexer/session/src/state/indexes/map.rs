@@ -276,7 +276,9 @@ impl Map {
                 return Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
                     kind: stypes::NativeErrorKind::Grabber,
-                    message: Some(format!("Map map is broken. Fail to compare previous and next elements. Prev: {from}; next: {to}",)),
+                    message: Some(format!(
+                        "Map map is broken. Fail to compare previous and next elements. Prev: {from}; next: {to}",
+                    )),
                 });
             }
             self.breadcrumbs_insert_between(
@@ -314,7 +316,9 @@ impl Map {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Grabber,
-                message: Some(String::from("Cannot insert Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR to modify indexed map")),
+                message: Some(String::from(
+                    "Cannot insert Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR to modify indexed map",
+                )),
             });
         }
         for position in positions.iter() {
@@ -371,7 +375,9 @@ impl Map {
                     return Err(stypes::NativeError {
                         severity: stypes::Severity::ERROR,
                         kind: stypes::NativeErrorKind::Grabber,
-                        message: Some(String::from("Cannot drop Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR | Nature::Search to modify indexed map")),
+                        message: Some(String::from(
+                            "Cannot drop Nature::BREADCRUMB | Nature::BREADCRUMB_SEPORATOR | Nature::Search to modify indexed map",
+                        )),
                     });
                 }
                 if !index.replace_if_empty(nature, Nature::BREADCRUMB) {
@@ -502,7 +508,9 @@ impl Map {
                 return Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
                     kind: stypes::NativeErrorKind::Grabber,
-                    message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
+                    message: Some(String::from(
+                        "Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after",
+                    )),
                 });
             } else if update_after - update_before > 1 {
                 // Seporator is still needed
@@ -521,7 +529,9 @@ impl Map {
                 return Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
                     kind: stypes::NativeErrorKind::Grabber,
-                    message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
+                    message: Some(String::from(
+                        "Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after",
+                    )),
                 });
             } else if seporator - updated > 1 {
                 // Seporator is still needed
@@ -540,7 +550,9 @@ impl Map {
                 return Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
                     kind: stypes::NativeErrorKind::Grabber,
-                    message: Some(String::from("Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after")),
+                    message: Some(String::from(
+                        "Error during calculation Nature::BREADCRUMB_SEPORATOR: position before grander position after",
+                    )),
                 });
             } else if seporator - updated > 1 {
                 // Seporator is still needed

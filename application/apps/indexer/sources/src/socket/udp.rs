@@ -6,8 +6,8 @@ use tokio::net::{ToSocketAddrs, UdpSocket};
 
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::{
-    socket::{handle_buff_capacity, BuffCapacityState},
     ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
+    socket::{BuffCapacityState, handle_buff_capacity},
 };
 
 #[derive(Error, Debug)]

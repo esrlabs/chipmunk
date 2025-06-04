@@ -10,7 +10,7 @@ use sources::binary::{
 use std::{fs::File, path::Path};
 use tokio::{
     join, select,
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::mpsc::{Receiver, Sender, channel},
 };
 
 #[allow(clippy::type_complexity)]

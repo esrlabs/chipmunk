@@ -7,9 +7,9 @@ use processor::search::searchers::{self, values::ValueSearchHolder};
 use std::{collections::HashMap, ops::Range};
 use tokio::{
     select,
-    sync::mpsc::{channel, Receiver, Sender},
+    sync::mpsc::{Receiver, Sender, channel},
     task,
-    time::{timeout, Duration},
+    time::{Duration, timeout},
 };
 
 const TRACKING_INTERVAL_MS: u64 = 250;

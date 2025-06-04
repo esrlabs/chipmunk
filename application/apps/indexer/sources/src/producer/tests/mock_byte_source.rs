@@ -101,8 +101,7 @@ impl ByteSource for MockByteSource {
 
             assert!(self.load_handle.is_none());
 
-            self.buffer
-                .extend(std::iter::repeat(b'a').take(seed.loaded));
+            self.buffer.extend(std::iter::repeat_n(b'a', seed.loaded));
 
             let available_bytes = self.buffer.len();
 

@@ -3,7 +3,7 @@ use std::io;
 use stypes::{NativeError, NativeErrorKind, Severity};
 use thiserror::Error;
 
-use crate::{wasm_host::WasmHostInitError, PluginHostError};
+use crate::{PluginHostError, wasm_host::WasmHostInitError};
 
 /// Plugins manager initialization Error.
 #[derive(Debug, Error)]

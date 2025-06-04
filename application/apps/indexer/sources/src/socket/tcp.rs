@@ -6,7 +6,7 @@ use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use tokio::net::TcpStream;
 
-use super::{handle_buff_capacity, BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
+use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
 
 pub mod reconnect;
 
@@ -93,12 +93,12 @@ impl ByteSource for TcpSource {
                         Ok(ReconnectResult::Error(err)) => {
                             return Err(SourceError::Unrecoverable(format!(
                                 "Reconnect to TCP failed. Error: {err}"
-                            )))
+                            )));
                         }
                         Err(err) => {
                             return Err(SourceError::Unrecoverable(format!(
                                 "Reconnect to TCP task panicked. Error: {err}"
-                            )))
+                            )));
                         }
                     }
                     reconnecter.task_handle = None;

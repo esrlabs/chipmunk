@@ -10,13 +10,14 @@ use stypes::{
 };
 
 use crate::{
-    plugins_manager::paths::extract_plugin_file_paths, plugins_shared::plugin_errors::PluginError,
     PluginHostError, PluginType, PluginsByteSource, PluginsParser,
+    plugins_manager::paths::extract_plugin_file_paths, plugins_shared::plugin_errors::PluginError,
 };
 
 use super::{
+    PluginEntity, PluginsManagerError,
     cache::{self, CacheManager},
-    paths, plugin_root_dir, PluginEntity, PluginsManagerError,
+    paths, plugin_root_dir,
 };
 
 /// Loads all plugins from the plugin directory while using the provided `cache_manager`
@@ -178,7 +179,7 @@ pub async fn load_plugin(
             }
             // Stop the whole loading on engine errors
             Err(PluginError::PluginHostError(PluginHostError::EngineError(err))) => {
-                return Err(err.into())
+                return Err(err.into());
             }
             Err(err) => {
                 log::warn!("Loading plugin binary failed. Error: {err:?}");

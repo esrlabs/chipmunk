@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use std::hint::black_box;
 
 #[path = "./bench_config.rs"]
@@ -11,7 +11,7 @@ use bench_config::bench_config;
 mod proto;
 
 use bufread::BufReader;
-use proto::{Parser, Source, MAX_PACKET_LEN};
+use proto::{MAX_PACKET_LEN, Parser, Source};
 
 fn proto_benchmark(c: &mut Criterion) {
     let source_min_size = 100 * MAX_PACKET_LEN;

@@ -13,7 +13,7 @@ use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
     sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
         oneshot,
     },
     task::{self, JoinHandle},

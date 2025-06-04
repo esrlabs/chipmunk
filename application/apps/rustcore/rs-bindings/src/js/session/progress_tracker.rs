@@ -1,6 +1,6 @@
 use log::trace;
 use node_bindgen::derive::node_bindgen;
-use session::progress::{run_tracking, ProgressCommand, ProgressTrackerAPI};
+use session::progress::{ProgressCommand, ProgressTrackerAPI, run_tracking};
 use std::thread;
 use stypes::LifecycleTransition;
 use tokio::{runtime::Runtime, sync::mpsc::UnboundedReceiver};

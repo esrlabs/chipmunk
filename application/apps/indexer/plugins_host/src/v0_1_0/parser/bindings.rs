@@ -1,4 +1,4 @@
-use crate::{parser_shared::COLUMN_SEP, PluginParseMessage};
+use crate::{PluginParseMessage, parser_shared::COLUMN_SEP};
 
 pub use self::chipmunk::parser::parse_types::*;
 

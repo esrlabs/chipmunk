@@ -4,10 +4,10 @@ use std::{
 };
 
 use nom::{
-    combinator::map,
-    number::streaming::{be_u16, be_u32, be_u8},
-    sequence::tuple,
     Finish, IResult,
+    combinator::map,
+    number::streaming::{be_u8, be_u16, be_u32},
+    sequence::tuple,
 };
 
 use thiserror::Error;

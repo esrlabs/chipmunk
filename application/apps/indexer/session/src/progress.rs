@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use tokio::{
     select,
     sync::{
-        mpsc::{self, error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},
+        mpsc::{self, UnboundedReceiver, UnboundedSender, error::SendError, unbounded_channel},
         oneshot,
     },
 };
