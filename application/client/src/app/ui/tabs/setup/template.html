@@ -28,7 +28,14 @@
         </mat-form-field>
     </div>
     <div class="entity">
-        <button class="major-button" mat-stroked-button (click)="test()">Test Drive</button>
+        <button
+            class="major-button"
+            mat-stroked-button
+            [disabled]="state.locked"
+            (click)="onStart()"
+        >
+            Start
+        </button>
         <button mat-stroked-button>Cancel</button>
     </div>
 </div>

@@ -28,17 +28,17 @@ export class SettingsScheme
 
     public fields: FieldDesc[] = [];
 
-    protected id: string | undefined;
+    protected uuid: string | undefined;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
     public ngAfterContentChecked(): void {
-        if (this.id === undefined || this.provider === undefined) {
+        if (this.uuid === undefined || this.provider === undefined) {
             return;
         }
-        if (this.id === this.provider.id) {
+        if (this.uuid === this.provider.uuid) {
             return;
         }
         this.ngAfterViewInit();
@@ -46,7 +46,7 @@ export class SettingsScheme
     public ngAfterContentInit(): void {}
 
     public ngAfterViewInit(): void {
-        this.id = this.provider.id;
+        this.uuid = this.provider.uuid;
         this.provider
             .get()
             .then((fields) => {

@@ -56,18 +56,18 @@ export class SetupObserve
             this.state.subjects.get().updated.subscribe(() => {
                 this.detectChanges();
             }),
+            this.state.subjects.get().errorStateChange.subscribe(() => {
+                this.detectChanges();
+            }),
         );
     }
 
-    public test() {
-        this.origin.options.setSource({
-            uuid: '08080808-0808-0808-0808-080808080808',
-            fields: [],
-        });
-        this.origin.options.setParser({
-            uuid: '01010101-0101-0101-0101-010101010101',
-            fields: [],
-        });
+    public onStart() {
+        const error = this.state.setSourceOrigin(this.origin);
+        if (error instanceof Error) {
+            this.log().debug(`Cannot start session, because: ${error.message}`);
+            return;
+        }
         session
             .initialize()
             .observe(this.origin)

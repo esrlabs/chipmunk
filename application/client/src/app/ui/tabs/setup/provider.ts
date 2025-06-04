@@ -17,9 +17,10 @@ export class Proivder extends SchemeProvider {
     protected readonly logger = new Logger(`ObserveSetupProivder`);
     protected readonly values: Map<string, Value> = new Map();
     protected fields: string[] = [];
+    protected hasErrors: boolean = false;
 
     constructor(protected readonly origin: SessionSourceOrigin, protected readonly target: string) {
-        super();
+        super(target);
         this.register(
             components.subjects.get().LoadingDone.subscribe(this.onLoadingDone.bind(this)),
             components.subjects.get().LoadingError.subscribe(this.onLoadingError.bind(this)),
@@ -72,6 +73,7 @@ export class Proivder extends SchemeProvider {
         components
             .validate(this.origin.getDef(), this.target, fields)
             .then((errs: Map<string, string>) => {
+                this.checkErrorState(errs.size > 0);
                 // Always forward errors info, even no errors
                 this.subjects.get().error.emit(errs);
             })
@@ -92,6 +94,25 @@ export class Proivder extends SchemeProvider {
         }
     }
 
+    public override isValid(): boolean {
+        return !this.hasErrors;
+    }
+
+    public override getFields(): Field[] {
+        const fields: Field[] = [];
+        this.values.forEach((value, id) => {
+            fields.push({ id, value });
+        });
+        return fields;
+    }
+
+    protected checkErrorState(updated: boolean) {
+        if (updated === this.hasErrors) {
+            return;
+        }
+        this.hasErrors = updated;
+    }
+
     protected onLoadingDone(event: LoadingDoneEvent) {
         event.fields.forEach((field) => {
             if (!this.pending.includes(field.id)) {
@@ -109,6 +130,7 @@ export class Proivder extends SchemeProvider {
             errors.set(id, event.error);
         });
         errors.size > 0 && this.subjects.get().error.emit(errors);
+        this.checkErrorState(errors.size > 0);
     }
     protected onLoadingErrors(event: LoadingErrorsEvent) {
         const errors = new Map();
@@ -119,6 +141,7 @@ export class Proivder extends SchemeProvider {
             errors.set(error.id, error.err);
         });
         errors.size > 0 && this.subjects.get().error.emit(errors);
+        this.checkErrorState(errors.size > 0);
     }
     protected onLoadingCancelled(event: LoadingCancelledEvent) {}
 }
