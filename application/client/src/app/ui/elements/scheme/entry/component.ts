@@ -63,7 +63,7 @@ export class SchemeEntry
     public loaded: StaticFieldDesc | undefined;
     public element: Element | undefined;
     public name!: string;
-    public desc!: string;
+    public desc: string | undefined;
     public error: string | undefined;
 
     constructor(cdRef: ChangeDetectorRef) {
@@ -79,7 +79,7 @@ export class SchemeEntry
         this.loaded = (this.field as { Static: StaticFieldDesc }).Static;
         const wrapped = new WrappedField(this.field);
         this.name = wrapped.name;
-        this.desc = wrapped.desc;
+        this.desc = wrapped.desc.trim() === '' ? undefined : wrapped.desc;
         this.init();
         this.env().subscriber.register(
             this.provider.subjects.get().loaded.subscribe((loaded: StaticFieldDesc) => {
@@ -113,7 +113,19 @@ export class SchemeEntry
             const value = this.element.getValue();
             value && this.provider.setValue(this.loaded.id, value);
             this.element.loaded();
-            this.classes = `field-${this.element.getFieldCategory()}`;
+            if (this.desc !== undefined) {
+                switch (this.element.getFieldCategory()) {
+                    case FieldCategory.Inline:
+                        this.classes = `field-${FieldCategory.Row}`;
+                        break;
+                    case FieldCategory.Block:
+                    case FieldCategory.Row:
+                        this.classes = `field-${this.element.getFieldCategory()}`;
+                        break;
+                }
+            } else {
+                this.classes = `field-${this.element.getFieldCategory()}`;
+            }
             return;
         }
     }

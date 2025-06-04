@@ -165,8 +165,8 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
-            name: String::from("UDP Source"),
-            desc: String::from("UDP Source"),
+            name: String::from("UDP Connection"),
+            desc: String::from("Starts listening on the specified IP address and port, as well as on any user-defined multicast addresses. Each received UDP packet is passed to the parser as-is, excluding headers - only the payload is forwarded."),
             uuid: UDP_SOURCE_UUID,
         }
     }
@@ -177,8 +177,8 @@ impl ComponentDescriptor for Descriptor {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_IP_ADDR.to_owned(),
-                name: "Address to connect".to_owned(),
-                desc: "IP address and port".to_owned(),
+                name: "IP address and port".to_owned(),
+                desc: "Specifies the local address and port on which the application should listen for incoming UDP packets. The value must include both the IP address and the port, using the format IP:PORT — for example, 0.0.0.0:9000. This field is mandatory, and determines the network interface and port bound by the listener. Use 0.0.0.0:PORT to listen on all available interfaces.".to_owned(),
                 required: true,
                 interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
                 binding: None,
@@ -186,14 +186,14 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_MULTICAST_ADDR.to_owned(),
                 name: "Multicast Addresses".to_owned(),
-                desc: "Multicast Addresses".to_owned(),
+                desc: "An optional list of UDP multicast groups to join. Each entry includes the group address (e.g., 239.0.0.1) and the local interface IP (e.g., 192.168.1.10) used for joining. This allows the source to receive packets sent to the specified multicast addresses in addition to those received on the main local socket (IP:PORT). If the list is empty, only unicast or broadcast messages will be received.".to_owned(),
                 required: true,
                 interface: ValueInput::FieldsCollection {
                     elements: vec![
                         StaticFieldDesc {
                             id: String::new(),
                             name: "Address".to_owned(),
-                            desc: "Address to listen".to_owned(),
+                            desc: "".to_owned(),
                             required: true,
                             interface: ValueInput::String(
                                 String::new(),
@@ -204,7 +204,7 @@ impl ComponentDescriptor for Descriptor {
                         StaticFieldDesc {
                             id: String::new(),
                             name: "Interface".to_owned(),
-                            desc: "Interface".to_owned(),
+                            desc: "".to_owned(),
                             required: true,
                             interface: ValueInput::String(String::new(), "0.0.0.0".to_owned()),
                             binding: None,
