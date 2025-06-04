@@ -47,7 +47,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_FIBEX_FILES.to_owned(),
                 name: "Fibex Files".to_owned(),
-                desc: "Fibex Files".to_owned(),
+                desc: "Fibex Files — allows the user to attach one or more XML files containing the schema definitions for decoding the payload. These files are used to interpret the payload contents according to the provided descriptions. If decoding fails or no matching schema is found, the payload will be displayed as-is, in raw hexadecimal form.".to_owned(),
                 required: true,
                 interface: ValueInput::Files(vec!["xml".to_owned(), "*".to_owned()]),
                 binding: None,
@@ -55,7 +55,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_TZ.to_owned(),
                 name: "Timezone".to_owned(),
-                desc: "Timezone".to_owned(),
+                desc: "Timezone — a display-only setting used for visualizing timestamps. If a timezone is specified, all timestamps will be adjusted accordingly to improve readability. This setting does not modify the underlying data and is used purely for presentation purposes.".to_owned(),
                 required: true,
                 interface: ValueInput::Timezone,
                 binding: None,
@@ -65,8 +65,8 @@ impl ComponentDescriptor for Descriptor {
 
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
-            name: String::from("SomeIP Parser"),
-            desc: String::from("SomeIP Parser"),
+            name: String::from("SOME/IP"),
+            desc: String::from("SomeIP Parser is a binary parser designed to decode messages conforming to the AUTOSAR SOME/IP (Scalable service-Oriented Middleware over IP) protocol. It processes raw binary input and extracts structured message data, including service ID, method ID, payload length, and more. The parser can be applied to both files and network streams (e.g., TCP/UDP). If a valid DLT message is detected within the SOME/IP payload, it will be automatically passed to the DLT parser and decoded accordingly."),
             uuid: SOMEIP_PARSER_UUID,
         }
     }

@@ -8,7 +8,7 @@
                 [disabled]="state.sources.length <= 1"
             >
                 <mat-option *ngFor="let source of state.sources" [value]="source.uuid">
-                    {{source.desc}}
+                    {{source.name}}
                 </mat-option>
             </mat-select>
         </mat-form-field>
@@ -22,7 +22,7 @@
                 [disabled]="state.parsers.length <= 1"
             >
                 <mat-option *ngFor="let parser of state.parsers" [value]="parser.uuid">
-                    {{parser.desc}}
+                    {{parser.name}}
                 </mat-option>
             </mat-select>
         </mat-form-field>
@@ -57,17 +57,15 @@
         <div class="preset-container-right">
             <mat-card class="top" *ngIf="state.description.source !== undefined">
                 <mat-card-title>{{state.description.source.ident.name}}</mat-card-title>
-                <mat-card-subtitle>{{state.description.source.ident.desc}}</mat-card-subtitle>
-                <mat-card-content>
-                    <p>details</p>
-                </mat-card-content>
+                <mat-card-content
+                    ><p class="desc">{{state.description.source.ident.desc}}</p></mat-card-content
+                >
             </mat-card>
             <mat-card class="top" *ngIf="state.description.parser !== undefined">
                 <mat-card-title>{{state.description.parser.ident.name}}</mat-card-title>
-                <mat-card-subtitle>{{state.description.parser.ident.desc}}</mat-card-subtitle>
-                <mat-card-content>
-                    <p>details</p>
-                </mat-card-content>
+                <mat-card-content
+                    ><p class="desc">{{state.description.parser.ident.desc}}</p></mat-card-content
+                >
             </mat-card>
         </div>
     </div>

@@ -30,6 +30,10 @@ export class Proivder extends SchemeProvider {
         );
     }
 
+    public isEmpty(): boolean {
+        return this.fields.length === 0;
+    }
+
     public override get(): Promise<FieldDesc[]> {
         this.pending.length === 0 && components.abort(this.pending);
         this.pending = [];
