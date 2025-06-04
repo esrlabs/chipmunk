@@ -330,10 +330,10 @@ impl TempDir {
     pub fn new() -> Self {
         use rand::Rng;
         use std::{env, fs};
-        let mut rand = rand::thread_rng();
+        let mut rand = rand::rng();
         let dir = env::current_dir()
             .unwrap()
-            .join(format!("temp_{}", rand.gen::<u64>()));
+            .join(format!("temp_{}", rand.random::<u64>()));
         fs::create_dir(dir.clone()).unwrap();
         TempDir { dir }
     }

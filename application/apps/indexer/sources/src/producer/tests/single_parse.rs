@@ -8,7 +8,7 @@ use super::*;
 
 use parsers::{Error as ParseError, ParseYield};
 
-use crate::{producer::MessageProducer, Error};
+use crate::{Error, producer::MessageProducer};
 
 #[tokio::test]
 async fn empty_byte_source() {

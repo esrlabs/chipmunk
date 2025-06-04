@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::RangeInclusive};
 
 use log::debug;
-use serde::{ser::SerializeTuple, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeTuple};
 
 pub type Point2D = (f64, f64);
 ///(row_number, min_value_in_range, max_value_in_range, value)

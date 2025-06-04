@@ -1,7 +1,7 @@
 extern crate fuzzy_matcher;
 extern crate wasm_bindgen;
 
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use std::{collections::HashMap, str::from_utf8};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_test::*;

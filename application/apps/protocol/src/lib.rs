@@ -103,11 +103,11 @@
 /// - If the process fails, `test.sh` will report an error.  
 /// - If it succeeds, you can consider the new type successfully integrated.
 mod err;
-mod gen;
+mod generate;
 
 pub(crate) use err::*;
 pub(crate) use serde::Serialize;
-pub(crate) use serde_wasm_bindgen::{from_value, Serializer};
+pub(crate) use serde_wasm_bindgen::{Serializer, from_value};
 pub(crate) use stypes::*;
 pub(crate) use wasm_bindgen::prelude::*;
 

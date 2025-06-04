@@ -402,8 +402,7 @@ pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<F
     let maybe_end_slot = identify_end_slot_simple(slots, last_line_index);
     trace!(
         "(maybe_start_slot, maybe_end_slot): ({:?}, {:?})",
-        &maybe_start_slot,
-        &maybe_end_slot
+        &maybe_start_slot, &maybe_end_slot
     );
     match (maybe_start_slot, maybe_end_slot) {
         (Some((start_slot, _)), Some((end_slot, _))) => {

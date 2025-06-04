@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::{
-    fs::{metadata, File},
+    fs::{File, metadata},
     io::Read,
     path::Path,
     str::from_utf8,

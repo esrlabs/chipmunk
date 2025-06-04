@@ -13,7 +13,7 @@ mod someip;
 
 use crate::unbound::commands::someip::get_someip_statistic;
 use plugins_host::plugins_manager::PluginsManager;
-use tokio::sync::{oneshot, RwLock};
+use tokio::sync::{RwLock, oneshot};
 
 use super::signal::Signal;
 use log::{debug, error};

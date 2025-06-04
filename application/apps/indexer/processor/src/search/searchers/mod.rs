@@ -1,6 +1,6 @@
 use crate::{grabber::GrabError, search::error::SearchError};
 use grep_regex::RegexMatcher;
-use grep_searcher::{sinks::UTF8, Searcher};
+use grep_searcher::{Searcher, sinks::UTF8};
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
@@ -89,7 +89,7 @@ impl<State: SearchState> BaseSearcher<State> {
             Err(err) => {
                 return Err(SearchError::Regex(format!(
                     "Failed to create combined regex for {combined_regex}: {err}"
-                )))
+                )));
             }
         };
         let in_file = File::open(&self.file_path).map_err(|_| {

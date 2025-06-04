@@ -2,7 +2,7 @@
 name = "sources"
 version = "0.1.0"
 authors = ["esrlabs.com"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 async-stream = "0.3"

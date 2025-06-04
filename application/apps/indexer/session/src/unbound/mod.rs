@@ -6,7 +6,7 @@ mod signal;
 use crate::{
     progress::ProgressProviderAPI,
     unbound::{
-        api::{UnboundSessionAPI, API},
+        api::{API, UnboundSessionAPI},
         signal::Signal,
     },
 };
@@ -15,10 +15,10 @@ use log::{debug, error, warn};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
         RwLock,
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     },
-    time::{timeout, Duration},
+    time::{Duration, timeout},
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -112,9 +112,12 @@ impl UnboundSession {
                                 UnboundSession::stopped(&progress, &uuids, id);
                             }
                         })
-                        .await {
+                        .await
+                        {
                             Ok(_) => debug!("All jobs of unbound session are down"),
-                            Err(_) => warn!("Unbound session wasn't shutdown normaly. Force shutdown because timeout {CANCEL_OPERATIONS_TIMEOUT}"),
+                            Err(_) => warn!(
+                                "Unbound session wasn't shutdown normaly. Force shutdown because timeout {CANCEL_OPERATIONS_TIMEOUT}"
+                            ),
                         }
                         jobs.clear();
                         if tx.send(()).is_err() {

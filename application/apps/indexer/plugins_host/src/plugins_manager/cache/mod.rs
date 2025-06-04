@@ -13,7 +13,7 @@ use stypes::PluginInfo;
 
 use crate::plugins_manager::paths::extract_plugin_file_paths;
 
-use super::{paths::plugins_dir, PluginsCacheError};
+use super::{PluginsCacheError, paths::plugins_dir};
 
 pub const CACHE_FILENAME: &str = ".cache";
 

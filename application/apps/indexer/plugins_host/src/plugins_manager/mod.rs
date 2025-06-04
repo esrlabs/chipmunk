@@ -10,9 +10,9 @@ mod tests;
 
 use std::path::{Path, PathBuf};
 
-use crate::plugins_shared::load::{load_and_inspect, WasmComponentInfo};
+use crate::plugins_shared::load::{WasmComponentInfo, load_and_inspect};
 use cache::CacheManager;
-use load::{load_plugin, validate_plugin_files, PluginEntityState, PluginFilesStatus};
+use load::{PluginEntityState, PluginFilesStatus, load_plugin, validate_plugin_files};
 use paths::extract_plugin_file_paths;
 use stypes::{
     ExtendedInvalidPluginEntity, ExtendedPluginEntity, InvalidPluginEntity, PluginEntity,

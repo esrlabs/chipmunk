@@ -1,11 +1,11 @@
 use crate::{
-    binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    TransportProtocol,
+    ByteSource, Error as SourceError, ReloadInfo, SourceFilter, TransportProtocol,
+    binary::pcap::debug_block,
 };
 use bufread::DeqBuffer;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
-use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
+use pcap_parser::{PcapBlockOwned, PcapError, PcapNGReader, traits::PcapReaderIterator};
 use std::io::Read;
 
 pub struct PcapngByteSource<R: Read> {
@@ -41,8 +41,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     self.total += bytes_read;
                     trace!(
                         "PcapngByteSource::reload, bytes_read: {} (total: {})",
-                        bytes_read,
-                        self.total
+                        bytes_read, self.total
                     );
                     consumed = bytes_read;
                     match block {
@@ -164,9 +163,9 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
 #[cfg(test)]
 mod tests {
     use crate::{
+        ByteSource,
         binary::pcap::ng::PcapngByteSource,
         tests::{general_source_reload_test, mock_read::MockRepeatRead},
-        ByteSource,
     };
     use env_logger;
 

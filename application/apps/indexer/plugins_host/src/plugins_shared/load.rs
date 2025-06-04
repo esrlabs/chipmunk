@@ -5,7 +5,7 @@ use std::path::Path;
 use stypes::{PluginType, SemanticVersion};
 use wasmtime::component::Component;
 
-use crate::{wasm_host::get_wasm_host, PluginHostError};
+use crate::{PluginHostError, wasm_host::get_wasm_host};
 
 /// Interface name for the parser plugin with the package name as defined in WIT file.
 const PARSER_INTERFACE_NAME: &str = "chipmunk:parser/parser";

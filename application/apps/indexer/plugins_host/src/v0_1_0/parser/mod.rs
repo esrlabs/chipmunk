@@ -7,15 +7,15 @@ mod parser_plugin_state;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use tokio::runtime::Handle;
 use wasmtime::{
-    component::{Component, Linker},
     Store,
+    component::{Component, Linker},
 };
-use wasmtime_wasi::{p2::WasiCtx, ResourceTable};
+use wasmtime_wasi::{ResourceTable, p2::WasiCtx};
 
 use crate::{
-    plugins_shared::{get_wasi_ctx_builder, plugin_errors::PluginError, PluginInfo},
-    wasm_host::get_wasm_host,
     PluginGuestError, PluginHostError, PluginParseMessage,
+    plugins_shared::{PluginInfo, get_wasi_ctx_builder, plugin_errors::PluginError},
+    wasm_host::get_wasm_host,
 };
 
 use self::{bindings::Parse, parser_plugin_state::ParserPluginState};

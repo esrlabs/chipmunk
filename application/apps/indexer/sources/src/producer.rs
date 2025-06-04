@@ -242,7 +242,9 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 }
                 trace!(
                     "did a do_reload, skipped {} bytes, loaded {} more bytes (total loaded and skipped: {})",
-                    skipped_bytes, newly_loaded_bytes, self.total_loaded + self.total_skipped
+                    skipped_bytes,
+                    newly_loaded_bytes,
+                    self.total_loaded + self.total_skipped
                 );
                 Some((newly_loaded_bytes, available_bytes, skipped_bytes))
             }

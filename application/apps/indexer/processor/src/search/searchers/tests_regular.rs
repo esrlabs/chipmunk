@@ -1,8 +1,8 @@
 use crate::search::{
     filter::SearchFilter,
-    searchers::{regular::RegularSearchState, BaseSearcher},
+    searchers::{BaseSearcher, regular::RegularSearchState},
 };
-use std::io::{Error, ErrorKind, Write};
+use std::io::{Error, Write};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -31,10 +31,10 @@ fn filtered(
         BaseSearcher::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
     searcher
         .setup(filters)
-        .map_err(|e| Error::new(ErrorKind::Other, format!("Fail to setup search: {e}")))?;
+        .map_err(|e| Error::other(format!("Fail to setup search: {e}")))?;
     let (_range, indexes, _stats) =
         regular::search(&mut searcher, 0, file_size, CancellationToken::new())
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
+            .map_err(|e| Error::other(format!("Error in search: {e}")))?;
     Ok(indexes)
 }
 

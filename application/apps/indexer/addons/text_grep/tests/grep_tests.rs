@@ -4,7 +4,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
     use tempfile::tempdir;
-    use text_grep::{count_occurrences, GrepError, GrepError::RegExError};
+    use text_grep::{GrepError, GrepError::RegExError, count_occurrences};
     use tokio_util::sync::CancellationToken;
 
     // Function to create a temporary test file with given content

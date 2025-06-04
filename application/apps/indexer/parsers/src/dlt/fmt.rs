@@ -13,8 +13,8 @@
 //! # Formatting dlt messages as text
 use crate::someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser};
 use chrono::{
-    prelude::{DateTime, Utc},
     TimeZone,
+    prelude::{DateTime, Utc},
 };
 use chrono_tz::Tz;
 use dlt_core::{
@@ -23,7 +23,7 @@ use dlt_core::{
         NetworkTraceType, PayloadContent, StandardHeader, StorageHeader, StringCoding, TypeInfo,
         TypeInfoKind, Value,
     },
-    fibex::{extract_metadata, FibexMetadata as FibexDltMetadata},
+    fibex::{FibexMetadata as FibexDltMetadata, extract_metadata},
     parse::construct_arguments,
     service_id::service_id_lookup,
 };
