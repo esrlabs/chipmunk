@@ -111,7 +111,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_LOG_LEVEL.to_owned(),
                 name: "Log Level".to_owned(),
-                desc: "Log Level".to_owned(),
+                desc: "Log Level — defines the minimum severity level of log messages to be displayed. Messages with lower severity (e.g., Debug or Verbose) will be filtered out. For example, if \"Error\" is selected, only messages with level \"Error\" and above (e.g., Fatal) will be shown, while lower levels such as \"Warning\" or \"Debug\" will be ignored.".to_owned(),
                 required: true,
                 interface: ValueInput::Strings(
                     vec![
@@ -129,7 +129,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_FIBEX_FILES.to_owned(),
                 name: "Fibex Files".to_owned(),
-                desc: "Fibex Files".to_owned(),
+                desc: "Fibex Files — allows the user to attach one or more XML files containing the schema definitions for decoding the DLT payload. These files are used to interpret the payload contents according to the provided descriptions. If decoding fails or no matching schema is found, the payload will be displayed as-is, in raw hexadecimal form.".to_owned(),
                 required: true,
                 interface: ValueInput::Files(vec!["xml".to_owned(), "*".to_owned()]),
                 binding: None,
@@ -137,7 +137,7 @@ impl ComponentDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_TZ.to_owned(),
                 name: "Timezone".to_owned(),
-                desc: "Timezone".to_owned(),
+                desc: "Timezone — a display-only setting used for visualizing timestamps. If a timezone is specified, all DLT timestamps will be adjusted accordingly to improve readability. This setting does not modify the underlying data and is used purely for presentation purposes.".to_owned(),
                 required: true,
                 interface: ValueInput::Timezone,
                 binding: None,
@@ -155,8 +155,8 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
-            name: String::from("DLT Parser"),
-            desc: String::from("DLT Parser"),
+            name: String::from("DLT"),
+            desc: String::from("DLT Parser is a binary parser for decoding AUTOSAR DLT (Diagnostic Log and Trace) messages. It processes raw binary input and extracts structured log information according to the DLT protocol specification. The parser can be applied both to files (typically containing a StorageHeader) and to live streams over TCP or UDP. It expects binary data as input and does not perform any framing or transport-level parsing."),
             uuid: DLT_PARSER_UUID,
         }
     }

@@ -200,8 +200,8 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
-            name: String::from("TCP Source"),
-            desc: String::from("TCP Source"),
+            name: String::from("TCP Connection"),
+            desc: String::from("Connects to the specified IP address and port to receive incoming messages. If the connection fails, an appropriate error is returned. Each individual TCP message is passed to the parser without any headers - only the payload is forwarded."),
             uuid: TCP_SOURCE_UUID,
         }
     }
@@ -211,8 +211,8 @@ impl ComponentDescriptor for Descriptor {
     fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
         Ok(vec![FieldDesc::Static(StaticFieldDesc {
             id: FIELD_IP_ADDR.to_owned(),
-            name: "Address to connect".to_owned(),
-            desc: "IP address and port".to_owned(),
+            name: "IP address and port".to_owned(),
+            desc: "Specifies the target address of the remote TCP server. The value must include both the IP address and the port, using the format IP:PORT — for example, 192.168.0.100:8888. This field is mandatory, and the parser will attempt to connect to the given endpoint exactly as specified. Use 0.0.0.0:PORT to bind to all local interfaces, if applicable.".to_owned(),
             required: true,
             interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
             binding: None,
