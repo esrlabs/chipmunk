@@ -235,3 +235,15 @@ pub enum UserConfigCommand {
     /// Creates user configurations file if doesn't exist then writes the default configurations to it.
     WriteDefaultToFile,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ensure the CLI configurations are valid.
+    #[test]
+    fn verify_cli() {
+        use clap::CommandFactory;
+        CargoCli::command().debug_assert();
+    }
+}
