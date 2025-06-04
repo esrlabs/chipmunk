@@ -24,11 +24,13 @@ export class State extends Subscriber {
         sources: Subject<Ident[]>;
         parsers: Subject<Ident[]>;
         error: Subject<string>;
+        errorStateChange: Subject<void>;
         updated: Subject<void>;
     }> = new Subjects({
         sources: new Subject(),
         parsers: new Subject(),
         error: new Subject(),
+        errorStateChange: new Subject(),
         updated: new Subject(),
     });
     public selected: {
@@ -52,6 +54,7 @@ export class State extends Subscriber {
         source: undefined,
         parser: undefined,
     };
+    public locked: boolean = false;
 
     protected readonly logger = new Logger(`Setup`);
 
@@ -61,6 +64,23 @@ export class State extends Subscriber {
     public destroy() {
         this.unsubscribe();
         this.subjects.destroy();
+    }
+    public setSourceOrigin(origin: SessionSourceOrigin): Error | undefined {
+        if (!this.providers.parser || !this.providers.source) {
+            return new Error(`Source or parser isn't setup`);
+        }
+        if (this.locked) {
+            return new Error(`Not valid options`);
+        }
+        origin.options.setSource({
+            uuid: this.providers.source.uuid,
+            fields: this.providers.source.getFields(),
+        });
+        origin.options.setParser({
+            uuid: this.providers.parser.uuid,
+            fields: this.providers.parser.getFields(),
+        });
+        return undefined;
     }
     public load() {
         components
@@ -115,6 +135,12 @@ export class State extends Subscriber {
                     this.description.source = { full: '', ident };
                 }
                 this.providers.source = new Proivder(this.origin, this.selected.source);
+                this.register(
+                    this.providers.source.subjects.get().error.subscribe(() => {
+                        this.checkErrors();
+                        this.subjects.get().errorStateChange.emit();
+                    }),
+                );
                 this.subjects.get().updated.emit();
             },
             parser: (): void => {
@@ -131,8 +157,22 @@ export class State extends Subscriber {
                     this.description.parser = { full: '', ident };
                 }
                 this.providers.parser = new Proivder(this.origin, this.selected.parser);
+                this.register(
+                    this.providers.parser.subjects.get().error.subscribe(() => {
+                        this.checkErrors();
+                        this.subjects.get().errorStateChange.emit();
+                    }),
+                );
                 this.subjects.get().updated.emit();
             },
         };
+    }
+
+    protected checkErrors() {
+        if (!this.providers.parser || !this.providers.source) {
+            this.locked = true;
+        } else {
+            this.locked = !this.providers.parser.isValid() || !this.providers.source.isValid();
+        }
     }
 }

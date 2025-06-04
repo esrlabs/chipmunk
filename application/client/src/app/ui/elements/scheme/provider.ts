@@ -1,4 +1,4 @@
-import { FieldDesc, StaticFieldDesc, Value } from '@platform/types/bindings';
+import { Field, FieldDesc, StaticFieldDesc, Value } from '@platform/types/bindings';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
 
@@ -7,7 +7,6 @@ export interface ForcedValueChanges {
     value: any;
 }
 export abstract class SchemeProvider extends Subscriber {
-    public readonly id: string;
     public subjects: Subjects<{
         loaded: Subject<StaticFieldDesc>;
         forced: Subject<ForcedValueChanges>;
@@ -18,13 +17,14 @@ export abstract class SchemeProvider extends Subscriber {
         error: new Subject<Map<string, string>>(),
     });
 
-    constructor() {
+    constructor(public readonly uuid: string) {
         super();
-        this.id = unique();
     }
     public abstract get(): Promise<FieldDesc[]>;
     public abstract destroy(): Promise<void>;
     public abstract setValue(uuid: string, value: Value): void;
+    public abstract getFields(): Field[];
+    public abstract isValid(): boolean;
     public force(target: string, value: any) {
         this.subjects.get().forced.emit({ target, value });
     }
