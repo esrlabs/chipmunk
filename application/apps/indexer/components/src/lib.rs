@@ -134,6 +134,27 @@ impl<S, P> Components<S, P> {
         Ok(list)
     }
 
+    pub fn get_output_render(
+        &self,
+        uuid: &Uuid,
+    ) -> Result<Option<stypes::OutputRender>, stypes::NativeError> {
+        let Entry::Parser(descriptor) = self.components.get(&uuid).ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Configuration,
+            message: Some(format!("Fail to find component {uuid}")),
+        })?
+        else {
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!(
+                    "Fail to get render for {uuid}, because it isn't parser"
+                )),
+            });
+        };
+        Ok(descriptor.get_render())
+    }
+
     pub fn validate(
         &self,
         origin: &stypes::SessionAction,

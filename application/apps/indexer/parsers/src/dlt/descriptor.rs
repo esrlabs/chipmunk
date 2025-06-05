@@ -91,8 +91,8 @@ impl ComponentFactory<crate::Parser> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn get_render(&self) -> stypes::OutputRender {
-        stypes::OutputRender::Columns(vec![
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::Columns(vec![
             ("Datetime".to_owned(), 150),
             ("ECUID".to_owned(), 80),
             ("VERS".to_owned(), 80),
@@ -104,7 +104,7 @@ impl ComponentDescriptor for Descriptor {
             ("CTID".to_owned(), 80),
             ("MSTP".to_owned(), 80),
             ("PAYLOAD".to_owned(), 0),
-        ])
+        ]))
     }
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {

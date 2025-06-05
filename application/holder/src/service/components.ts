@@ -47,6 +47,13 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
+                    Requests.Components.GetOutputRender.Request,
+                    RequestHandlers.GetOutputRender.handler,
+                ),
+            electron
+                .ipc()
+                .respondent(
+                    this.getName(),
                     Requests.Components.GetParsers.Request,
                     RequestHandlers.GetParsers.handler,
                 ),
