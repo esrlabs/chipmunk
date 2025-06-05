@@ -91,6 +91,21 @@ impl ComponentFactory<crate::Parser> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
+    fn get_render(&self) -> stypes::OutputRender {
+        stypes::OutputRender::Columns(vec![
+            ("Datetime".to_owned(), 150),
+            ("ECUID".to_owned(), 80),
+            ("VERS".to_owned(), 80),
+            ("SID".to_owned(), 80),
+            ("MCNT".to_owned(), 80),
+            ("TMS".to_owned(), 80),
+            ("EID".to_owned(), 80),
+            ("APID".to_owned(), 80),
+            ("CTID".to_owned(), 80),
+            ("MSTP".to_owned(), 80),
+            ("PAYLOAD".to_owned(), 0),
+        ])
+    }
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -157,6 +172,10 @@ impl ComponentDescriptor for Descriptor {
         stypes::Ident {
             name: String::from("DLT"),
             desc: String::from("DLT Parser is a binary parser for decoding AUTOSAR DLT (Diagnostic Log and Trace) messages. It processes raw binary input and extracts structured log information according to the DLT protocol specification. The parser can be applied both to files (typically containing a StorageHeader) and to live streams over TCP or UDP. It expects binary data as input and does not perform any framing or transport-level parsing."),
+            io: stypes::IODataType::Multiple(vec![
+                stypes::IODataType::NetworkFramePayload,
+                stypes::IODataType::Raw
+            ]),
             uuid: DLT_PARSER_UUID,
         }
     }

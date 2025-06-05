@@ -17,7 +17,11 @@ export type FieldLoadingError = { id: string, err: string, };
 
 export type FieldsValidationErrors = { errors: Map<string, string>, };
 
+export type IODataType = "PlaitText" | "Raw" | "NetworkFramePayload" | { "Multiple": Array<IODataType> } | "Any";
+
 export type LazyFieldDesc = { id: string, name: string, desc: string, binding: string | null, };
+
+export type OutputRender = { "Columns": Array<[string, number]> } | "PlaitText" | "NoRender";
 
 export type StaticFieldDesc = { id: string, name: string, desc: string, required: boolean, interface: ValueInput, binding: string | null, };
 

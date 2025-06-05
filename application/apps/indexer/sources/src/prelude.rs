@@ -3,7 +3,7 @@ pub use crate::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
         raw::BinaryByteSource,
     },
-    command::process::ProcessSource,
+    command::ProcessSource,
     serial::serialport::SerialSource,
     socket::{tcp::TcpSource, udp::UdpSource},
 };
