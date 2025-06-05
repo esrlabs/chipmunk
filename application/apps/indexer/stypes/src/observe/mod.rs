@@ -86,6 +86,7 @@ pub struct IdentList(pub Vec<Ident>);
 pub struct Ident {
     pub name: String,
     pub desc: String,
+    pub io: IODataType,
     pub uuid: Uuid,
 }
 

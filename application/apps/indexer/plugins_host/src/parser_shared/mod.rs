@@ -197,6 +197,7 @@ impl ComponentDescriptor for Descriptor {
         stypes::Ident {
             name: String::from("Plugin"),
             desc: String::from("Plugin"),
+            io: stypes::IODataType::Any,
             uuid: uuid::Uuid::new_v4(),
         }
     }
