@@ -22,8 +22,8 @@ impl ComponentFactory<crate::Parser> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn get_render(&self) -> stypes::OutputRender {
-        stypes::OutputRender::PlaitText
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::PlaitText)
     }
     fn is_compatible(&self, origin: &stypes::SessionAction) -> bool {
         let files = match origin {
