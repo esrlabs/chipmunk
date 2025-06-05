@@ -8,11 +8,12 @@ use tokio::runtime::Handle;
 use wasmtime::component::Component;
 
 use crate::{
+    PluginHostError, WasmPlugin,
     plugins_shared::{
-        load::{load_and_inspect, WasmComponentInfo},
+        load::{WasmComponentInfo, load_and_inspect},
         plugin_errors::PluginError,
     },
-    v0_1_0, PluginHostError, WasmPlugin,
+    v0_1_0,
 };
 
 /// The maximum number of consecutive returns with empty bytes allowed from a plugin.
@@ -47,7 +48,7 @@ impl PluginsByteSource {
                 return Err(PluginHostError::PluginInvalid(format!(
                     "Plugin version {invalid_version} is not supported"
                 ))
-                .into())
+                .into());
             }
         };
 

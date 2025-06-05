@@ -81,7 +81,7 @@ impl Arbitrary for PluginConfigValue {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to add new items to proptests here.
-        _ = match PluginConfigValue::Boolean(true) {
+        match PluginConfigValue::Boolean(true) {
             PluginConfigValue::Boolean(_) => (),
             PluginConfigValue::Integer(_) => (),
             PluginConfigValue::Float(_) => (),
@@ -111,7 +111,7 @@ impl Arbitrary for PluginConfigSchemaType {
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         use PluginConfigSchemaType as T;
         // Reminder to add new items to proptests here.
-        _ = match T::Boolean(true) {
+        match T::Boolean(true) {
             T::Boolean(_) => (),
             T::Integer(_) => (),
             T::Float(_) => (),
@@ -203,7 +203,7 @@ impl Arbitrary for PluginType {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to add new fields here.
-        _ = match Self::ByteSource {
+        match Self::ByteSource {
             PluginType::Parser => (),
             PluginType::ByteSource => (),
         };
@@ -278,7 +278,7 @@ impl Arbitrary for RenderOptions {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         // Reminder to update here on newly added items.
-        _ = match Self::ByteSource {
+        match Self::ByteSource {
             RenderOptions::Parser(_) => (),
             RenderOptions::ByteSource => (),
         };
@@ -340,7 +340,7 @@ impl Arbitrary for PluginsList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<PluginEntity>(), 0..7)
-            .prop_map(|plugins| Self(plugins))
+            .prop_map(Self)
             .boxed()
     }
 }
@@ -351,7 +351,7 @@ impl Arbitrary for InvalidPluginsList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<InvalidPluginEntity>(), 0..7)
-            .prop_map(|plugins| Self(plugins))
+            .prop_map(Self)
             .boxed()
     }
 }
@@ -403,7 +403,7 @@ impl Arbitrary for PluginsPathsList {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         prop::collection::vec(any::<String>(), 0..7)
-            .prop_map(|paths| Self(paths))
+            .prop_map(Self)
             .boxed()
     }
 }

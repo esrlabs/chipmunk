@@ -52,8 +52,8 @@ fn test_linear() -> Result<(), std::io::Error> {
         ),
     ];
     for (filter, matches) in cases.into_iter() {
-        let searcher = LineSearcher::new(&filter)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err.to_string()))?;
+        let searcher =
+            LineSearcher::new(&filter).map_err(|err| std::io::Error::other(err.to_string()))?;
         for (n, smpl) in SAMPLES.iter().enumerate() {
             if searcher.is_match(smpl) {
                 assert!(matches.contains(&n));

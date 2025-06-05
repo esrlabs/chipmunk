@@ -1,8 +1,7 @@
 use processor::search::searchers::{
-    self,
+    self, BaseSearcher, SearchState,
     regular::{self, RegularSearchState},
     values::{OperationResults, ValueSearchState},
-    BaseSearcher, SearchState,
 };
 use tokio_util::sync::CancellationToken;
 

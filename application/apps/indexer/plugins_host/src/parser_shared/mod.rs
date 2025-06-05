@@ -4,11 +4,12 @@ use stypes::{PluginInfo, SemanticVersion};
 use wasmtime::component::Component;
 
 use crate::{
+    PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
     plugins_shared::{
-        load::{load_and_inspect, WasmComponentInfo},
+        load::{WasmComponentInfo, load_and_inspect},
         plugin_errors::PluginError,
     },
-    v0_1_0, PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
+    v0_1_0,
 };
 
 pub mod plugin_parse_message;
@@ -42,7 +43,7 @@ impl PluginsParser {
                 return Err(PluginHostError::PluginInvalid(format!(
                     "Plugin version {invalid_version} is not supported"
                 ))
-                .into())
+                .into());
             }
         };
 

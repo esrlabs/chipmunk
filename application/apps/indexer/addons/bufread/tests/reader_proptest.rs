@@ -5,7 +5,7 @@ mod proto;
 
 #[cfg(test)]
 mod tests {
-    use super::proto::{Parser, Source, MAX_PACKET_LEN};
+    use super::proto::{MAX_PACKET_LEN, Parser, Source};
     use bufread::BufReader;
     use proptest::prelude::*;
     use proptest::test_runner::FileFailurePersistence;

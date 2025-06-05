@@ -1,9 +1,9 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use anyhow::Context;
-use rand::distributions::DistString;
+use rand::{distr::SampleString, rng};
 use stypes::{RenderOptions, SemanticVersion};
-use wasmtime_wasi::{p2::WasiCtxBuilder, thread_rng, DirPerms, FilePerms};
+use wasmtime_wasi::{DirPerms, FilePerms, p2::WasiCtxBuilder};
 
 use crate::PluginHostError;
 
@@ -86,7 +86,7 @@ pub fn get_wasi_ctx_builder(
 /// Creates directory for a plugin in chipmunk plugins temp directory with a random
 /// directory name, then returns it on successful.
 pub fn create_plug_temp_dir() -> std::io::Result<PathBuf> {
-    let dir_name = rand::distributions::Alphanumeric.sample_string(&mut thread_rng(), 16);
+    let dir_name = rand::distr::Alphanumeric.sample_string(&mut rng(), 16);
     let temp_dir = plugins_temp_dir().join(dir_name);
     std::fs::create_dir_all(&temp_dir)?;
 

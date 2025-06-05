@@ -2,17 +2,17 @@ pub mod attachment;
 pub mod fmt;
 
 use crate::{
-    dlt::fmt::FormattableMessage, someip::FibexMetadata as FibexSomeipMetadata, Error, LogMessage,
-    ParseYield, SingleParser,
+    Error, LogMessage, ParseYield, SingleParser, dlt::fmt::FormattableMessage,
+    someip::FibexMetadata as FibexSomeipMetadata,
 };
 use byteorder::{BigEndian, WriteBytesExt};
 use dlt_core::{
     dlt,
-    parse::{dlt_consume_msg, dlt_message, DltParseError},
+    parse::{DltParseError, dlt_consume_msg, dlt_message},
 };
 pub use dlt_core::{
     dlt::LogLevel,
-    fibex::{gather_fibex_data, FibexConfig, FibexMetadata as FibexDltMetadata},
+    fibex::{FibexConfig, FibexMetadata as FibexDltMetadata, gather_fibex_data},
     filtering::{DltFilterConfig, ProcessedDltFilterConfig},
 };
 use serde::Serialize;

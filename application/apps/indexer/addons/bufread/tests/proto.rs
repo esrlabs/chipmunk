@@ -48,7 +48,7 @@ impl Source {
         let mut num_packets = 0;
 
         while data.len() < min_size {
-            let payload_len: usize = rand::thread_rng().gen_range(0..MAX_PAYLOAD_LEN);
+            let payload_len: usize = rand::rng().random_range(0..MAX_PAYLOAD_LEN);
             data.append(&mut Self::create_packet(payload_len));
             num_packets += 1;
         }
@@ -67,7 +67,7 @@ impl Source {
         packet[0] = header[0];
         packet[1] = header[1];
 
-        rand::thread_rng().fill_bytes(&mut packet[HEADER_LEN..]);
+        rand::rng().fill_bytes(&mut packet[HEADER_LEN..]);
         packet
     }
 
@@ -102,7 +102,7 @@ impl<'a> Parser<'a> {
     ///
     /// Returns the total length of the package being parsed, or
     /// a zero-length if at EOF.
-    pub fn next(&mut self) -> Result<usize> {
+    pub fn next_package(&mut self) -> Result<usize> {
         let buffer = self.reader.fill_buf()?;
         if buffer.is_empty() {
             return Ok(0);
@@ -124,7 +124,7 @@ impl<'a> Parser<'a> {
         let mut result: (usize, usize) = (0, 0);
 
         loop {
-            let size = parser.next()?;
+            let size = parser.next_package()?;
             if size == 0 {
                 break;
             }

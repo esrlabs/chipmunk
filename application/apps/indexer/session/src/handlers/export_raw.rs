@@ -2,20 +2,20 @@ use crate::{operations::OperationResult, state::SessionStateAPI};
 use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
-    dlt::{fmt::FormatOptions, DltParser},
+    LogMessage, Parser,
+    dlt::{DltParser, fmt::FormatOptions},
     someip::SomeipParser,
     text::StringTokenizer,
-    LogMessage, Parser,
 };
 use plugins_host::PluginsParser;
-use processor::export::{export_raw, ExportError};
+use processor::export::{ExportError, export_raw};
 use sources::{
+    ByteSource,
     binary::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
         raw::BinaryByteSource,
     },
     producer::MessageProducer,
-    ByteSource,
 };
 use std::{
     fs::File,

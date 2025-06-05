@@ -1,7 +1,7 @@
 use crate::unbound::signal::Signal;
 use tokio::{
     select,
-    time::{sleep, Duration},
+    time::{Duration, sleep},
 };
 
 pub async fn cancel_test(

@@ -5,7 +5,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 pub mod graph;
 
-use graph::{candled_graph, CandlePoint, Point2D};
+use graph::{CandlePoint, Point2D, candled_graph};
 
 #[derive(Error, Debug)]
 pub enum ValuesError {

@@ -3,7 +3,7 @@ use std::path::Path;
 use thiserror::Error as ThisError;
 use tokio::{
     sync::mpsc::Sender,
-    time::{timeout, Duration},
+    time::{Duration, timeout},
 };
 use tokio_util::sync::CancellationToken;
 

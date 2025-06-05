@@ -2,7 +2,7 @@ use crate::js::converting::filter::WrappedSearchFilter;
 use log::{debug, error};
 use node_bindgen::derive::node_bindgen;
 
-use session::unbound::{api::UnboundSessionAPI, UnboundSession};
+use session::unbound::{UnboundSession, api::UnboundSessionAPI};
 use std::{convert::TryFrom, thread};
 use tokio::runtime::Runtime;
 use tokio_util::sync::CancellationToken;

@@ -1,7 +1,7 @@
 use node_bindgen::{
     core::{
-        val::{JsEnv, JsObject},
         NjError, TryIntoJs,
+        val::{JsEnv, JsObject},
     },
     sys::napi_value,
 };

@@ -87,7 +87,9 @@ impl Arguments {
             )))?
             .to_string_lossy()
             .to_string();
-        log::debug!("Summary of parsed arguments:\n- app: {app:?}\n- compressed: {compressed:?}\n- pid: {pid:?}\n- ppid: {ppid:?}\n- location: {location:?}\n- app_name: {app_name:?}");
+        log::debug!(
+            "Summary of parsed arguments:\n- app: {app:?}\n- compressed: {compressed:?}\n- pid: {pid:?}\n- ppid: {ppid:?}\n- location: {location:?}\n- app_name: {app_name:?}"
+        );
         Ok(Self {
             app,
             compressed,

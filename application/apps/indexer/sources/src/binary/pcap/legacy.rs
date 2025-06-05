@@ -1,11 +1,11 @@
 use crate::{
-    binary::pcap::debug_block, ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    TransportProtocol,
+    ByteSource, Error as SourceError, ReloadInfo, SourceFilter, TransportProtocol,
+    binary::pcap::debug_block,
 };
 use bufread::DeqBuffer;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
-use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
+use pcap_parser::{LegacyPcapReader, PcapBlockOwned, PcapError, traits::PcapReaderIterator};
 use std::io::Read;
 
 pub struct PcapLegacyByteSource<R: Read> {
@@ -41,8 +41,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                     self.total += bytes_read;
                     trace!(
                         "PcapByteSource::reload, bytes_read: {} (total: {})",
-                        bytes_read,
-                        self.total
+                        bytes_read, self.total
                     );
                     consumed = bytes_read;
                     match block {
@@ -163,7 +162,7 @@ mod tests {
     use env_logger;
 
     use crate::{
-        binary::pcap::legacy::PcapLegacyByteSource, tests::general_source_reload_test, ByteSource,
+        ByteSource, binary::pcap::legacy::PcapLegacyByteSource, tests::general_source_reload_test,
     };
 
     #[tokio::test]

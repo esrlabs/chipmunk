@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use wasmtime_wasi::{
-    p2::{IoView, WasiCtx, WasiView},
     ResourceTable,
+    p2::{IoView, WasiCtx, WasiView},
 };
 
 use crate::plugins_shared::create_plug_temp_dir;

@@ -2,7 +2,7 @@
 name = "processor"
 version = "0.2.0"
 authors = ["esrlabs.com"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 bincode = "1.3"

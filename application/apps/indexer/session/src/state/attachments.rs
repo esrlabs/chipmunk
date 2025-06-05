@@ -2,7 +2,7 @@ use mime_guess;
 use parsers::{self};
 use std::{
     collections::HashMap,
-    fs::{create_dir, File},
+    fs::{File, create_dir},
     io,
     io::Write,
     path::{Path, PathBuf},

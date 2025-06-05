@@ -2,7 +2,7 @@ use crate::{Error, LogMessage, ParseYield, SingleParser};
 use std::{
     borrow::Cow,
     cmp::Ordering,
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     fmt::{self, Display},
     io::Write,
     path::PathBuf,
@@ -578,10 +578,9 @@ mod test {
         "#;
 
         FibexMetadata::new(
-            FibexParser::parse(vec![FibexReader::from_reader(BufReader::new(
-                StringReader::new(xml),
-            ))
-            .unwrap()])
+            FibexParser::parse(vec![
+                FibexReader::from_reader(BufReader::new(StringReader::new(xml))).unwrap(),
+            ])
             .expect("parse failed"),
         )
     }
@@ -709,8 +708,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{4}259\u{4}32772\u{4}8\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::emptyEvent ", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32772 LENG:8 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::emptyEvent ", &format!("{:?}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32772\u{4}8\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::emptyEvent ",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "RPC SERV:259 METH:32772 LENG:8 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::emptyEvent ",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -764,8 +769,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{:?}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -790,8 +801,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{4}260\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}UnknownService [01, 02]", &format!("{}", item));
-            assert_eq!("RPC SERV:260 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 UnknownService [01, 02]", &format!("{:?}", item));
+            assert_eq!(
+                "RPC\u{4}260\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}UnknownService [01, 02]",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "RPC SERV:260 METH:32773 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 UnknownService [01, 02]",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -816,8 +833,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}3\u{4}2\u{4}0\u{4}TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:3 MSTP:2 RETC:0 TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}", &format!("{:?}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32773\u{4}10\u{4}1\u{4}2\u{4}3\u{4}2\u{4}0\u{4}TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "RPC SERV:259 METH:32773 LENG:10 CLID:1 SEID:2 IVER:3 MSTP:2 RETC:0 TestService<1?>::testEvent {\u{6}\tvalue1 (UINT8) : 1,\u{6}\tvalue2 (UINT8) : 2,\u{6}}",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -842,8 +865,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{4}259\u{4}32774\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::UnknownMethod [01, 02]", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32774 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::UnknownMethod [01, 02]", &format!("{:?}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32774\u{4}10\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::UnknownMethod [01, 02]",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "RPC SERV:259 METH:32774 LENG:10 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::UnknownMethod [01, 02]",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -868,8 +897,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("RPC\u{4}259\u{4}32773\u{4}9\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{}", item));
-            assert_eq!("RPC SERV:259 METH:32773 LENG:9 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]", &format!("{:?}", item));
+            assert_eq!(
+                "RPC\u{4}259\u{4}32773\u{4}9\u{4}1\u{4}2\u{4}1\u{4}2\u{4}0\u{4}TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "RPC SERV:259 METH:32773 LENG:9 CLID:1 SEID:2 IVER:1 MSTP:2 RETC:0 TestService::testEvent 'SOME/IP Error: Parser exhausted at offset 1 for Object size 1' [01]",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -939,8 +974,14 @@ mod test {
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
-            assert_eq!("SD\u{4}65535\u{4}33024\u{4}64\u{4}0\u{4}0\u{4}1\u{4}2\u{4}0\u{4}Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{}", item));
-            assert_eq!("SD SERV:65535 METH:33024 LENG:64 CLID:0 SEID:0 IVER:1 MSTP:2 RETC:0 Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000", &format!("{:?}", item));
+            assert_eq!(
+                "SD\u{4}65535\u{4}33024\u{4}64\u{4}0\u{4}0\u{4}1\u{4}2\u{4}0\u{4}Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000",
+                &format!("{}", item)
+            );
+            assert_eq!(
+                "SD SERV:65535 METH:33024 LENG:64 CLID:0 SEID:0 IVER:1 MSTP:2 RETC:0 Flags [C0], Subscribe 259-456 v2 Inst 1 Ttl 3, Subscribe-Ack 259-456 v2 Inst 1 Ttl 3 UDP 127.0.0.1:30000",
+                &format!("{:?}", item)
+            );
         } else {
             panic!("unexpected parse yield");
         }
@@ -992,10 +1033,9 @@ mod test {
         "#;
 
         let meta_data = FibexMetadata::new(
-            FibexParser::parse(vec![FibexReader::from_reader(BufReader::new(
-                StringReader::new(xml),
-            ))
-            .unwrap()])
+            FibexParser::parse(vec![
+                FibexReader::from_reader(BufReader::new(StringReader::new(xml))).unwrap(),
+            ])
             .expect("parse failed"),
         );
 

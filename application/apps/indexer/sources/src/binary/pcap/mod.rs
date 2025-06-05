@@ -35,8 +35,7 @@ fn debug_block(b: PcapBlockOwned) {
         PcapBlockOwned::LegacyHeader(_s) => {
             trace!(
                 "LegacyData: version: {}.{}",
-                _s.version_major,
-                _s.version_minor
+                _s.version_major, _s.version_minor
             );
         }
         _ => trace!("unknown block"),

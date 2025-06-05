@@ -11,7 +11,7 @@ mod wasm_host;
 
 use plugins_shared::plugin_errors::PluginError;
 
-pub use parser_shared::{plugin_parse_message::PluginParseMessage, PluginsParser};
+pub use parser_shared::{PluginsParser, plugin_parse_message::PluginParseMessage};
 
 pub use bytesource_shared::PluginsByteSource;
 

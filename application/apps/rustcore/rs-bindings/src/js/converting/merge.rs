@@ -1,8 +1,8 @@
 use merging::merger::FileMergeOptions;
 use node_bindgen::{
     core::{
-        val::{JsEnv, JsObject},
         JSValue, NjError,
+        val::{JsEnv, JsObject},
     },
     sys::napi_value,
 };

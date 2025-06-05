@@ -1,6 +1,6 @@
 use crate::{
-    ByteSource, Error as SourceError, ReloadInfo, SourceFilter, DEFAULT_MIN_BUFFER_SPACE,
-    DEFAULT_READER_CAPACITY,
+    ByteSource, DEFAULT_MIN_BUFFER_SPACE, DEFAULT_READER_CAPACITY, Error as SourceError,
+    ReloadInfo, SourceFilter,
 };
 use bufread::BufReader;
 use std::io::{BufRead, Read};
@@ -80,9 +80,9 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        binary::raw::BinaryByteSource,
-        tests::{general_source_reload_test, MockRead},
         ByteSource,
+        binary::raw::BinaryByteSource,
+        tests::{MockRead, general_source_reload_test},
     };
     use env_logger;
     use std::sync::Once;

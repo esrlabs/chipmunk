@@ -1,6 +1,6 @@
 use crate::grabber::{
-    identify_byte_range, ByteRange, ComputationResult, FilePart, GrabError, GrabMetadata,
-    LineRange, Slot,
+    ByteRange, ComputationResult, FilePart, GrabError, GrabMetadata, LineRange, Slot,
+    identify_byte_range,
 };
 use bufread::BufReader;
 use log::{debug, error};

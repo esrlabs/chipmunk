@@ -1,5 +1,5 @@
 use processor::search::filter::SearchFilter;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 
 use super::commands::Command;

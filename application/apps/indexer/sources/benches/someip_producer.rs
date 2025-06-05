@@ -1,7 +1,7 @@
 use std::{io::Cursor, path::PathBuf};
 
 use bench_utls::{bench_standrad_config, get_config, read_binary, run_producer};
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use parsers::someip::SomeipParser;
 use sources::{binary::pcap::ng::PcapngByteSource, producer::MessageProducer};
 

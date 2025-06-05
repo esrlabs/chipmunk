@@ -1,13 +1,13 @@
 use crate::{operations::OperationStat, progress::ProgressProviderAPI, state::SessionStateAPI};
 use log::{debug, error};
 use sources::sde::SdeSender;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 use tokio::{
     sync::{
-        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
         oneshot,
     },
-    time::{timeout, Duration},
+    time::{Duration, timeout},
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;

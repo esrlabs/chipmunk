@@ -178,10 +178,26 @@ fn escaping() {
 fn creating_map() {
     let mapper = AnsiMapper::new().expect("Asci mapper should be created");
     let cases = [
-        ("[35;5;40m01-23 10:01:25.642  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 lines[0m", 0, 88),
-        ("[35;5;40m01-23 10:01:25.642[0m  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 lines", 0, 18),
-        ("01-23 10:01:25.[35;5;40m642[0m  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 lines", 15, 18),
-        ("01-23 10:01:25.642  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m", 83, 88),
+        (
+            "[35;5;40m01-23 10:01:25.642  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 lines[0m",
+            0,
+            88,
+        ),
+        (
+            "[35;5;40m01-23 10:01:25.642[0m  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 lines",
+            0,
+            18,
+        ),
+        (
+            "01-23 10:01:25.[35;5;40m642[0m  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 lines",
+            15,
+            18,
+        ),
+        (
+            "01-23 10:01:25.642  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m",
+            83,
+            88,
+        ),
     ];
     cases.iter().for_each(|(content, from, to)| {
         let converted = convert(content).expect("Input string should be parsed as well");
@@ -192,9 +208,11 @@ fn creating_map() {
         assert_eq!(map[0].color, Some(String::from("#a0a")));
         assert_eq!(map[0].background, Some(String::from("#000")));
     });
-    let cases = [
-        ("[38;5;40m01-23 16:59:19.469  2116  5211 I chatty  : uid=1000(system) Binder:2116_17 expire 2 lines[0m", 0, 89)
-    ];
+    let cases = [(
+        "[38;5;40m01-23 16:59:19.469  2116  5211 I chatty  : uid=1000(system) Binder:2116_17 expire 2 lines[0m",
+        0,
+        89,
+    )];
     cases.iter().for_each(|(content, from, to)| {
         let converted = convert(content).expect("Input string should be parsed as well");
         let map = mapper.create_map(&converted).expect("Map should be built");
@@ -205,9 +223,18 @@ fn creating_map() {
         assert!(map[0].background.is_none());
     });
     let cases = [
-        ("[35;5;40mlines[0m01-23 10:01:25.642  2116  2711 I [35;5;40mlines[0mchatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m", 3),
-        ("[36;5;40mlines[0m[35;5;40mlines[0m[36;5;40mlines[0m01-23 10:01:25.642  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m", 4),
-        ("[35;5;40mlines[0m01-23 10:01:25.642  [35;5;40mlines[0m2116  2711 I [35;5;40mlines[0mchatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m", 4),
+        (
+            "[35;5;40mlines[0m01-23 10:01:25.642  2116  2711 I [35;5;40mlines[0mchatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m",
+            3,
+        ),
+        (
+            "[36;5;40mlines[0m[35;5;40mlines[0m[36;5;40mlines[0m01-23 10:01:25.642  2116  2711 I chatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m",
+            4,
+        ),
+        (
+            "[35;5;40mlines[0m01-23 10:01:25.642  [35;5;40mlines[0m2116  2711 I [35;5;40mlines[0mchatty  : uid=1000(system) Binder:2116_5 expire 5 [35;5;40mlines[0m",
+            4,
+        ),
     ];
     cases.iter().for_each(|(content, count)| {
         let converted = convert(content).expect("Input string should be parsed as well");

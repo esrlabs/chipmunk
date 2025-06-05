@@ -1,10 +1,10 @@
 use crate::search::{
     searchers,
-    searchers::{values::ValueSearchState, BaseSearcher},
+    searchers::{BaseSearcher, values::ValueSearchState},
 };
 use std::{
     collections::HashMap,
-    io::{Error, ErrorKind, Write},
+    io::{Error, Write},
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -25,7 +25,7 @@ fn extracted(
     holder.setup(filters).expect("set_filters failed");
     let (_range, values) =
         searchers::values::search(&mut holder, 0, file_size, CancellationToken::new())
-            .map_err(|e| Error::new(ErrorKind::Other, format!("Error in search: {e}")))?;
+            .map_err(|e| Error::other(format!("Error in search: {e}")))?;
     Ok(values)
 }
 

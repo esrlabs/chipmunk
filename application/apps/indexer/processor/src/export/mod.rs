@@ -5,7 +5,7 @@ use std::{
 
 use indexer_base::config::IndexSection;
 use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
-use sources::{producer::MessageProducer, ByteSource};
+use sources::{ByteSource, producer::MessageProducer};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 

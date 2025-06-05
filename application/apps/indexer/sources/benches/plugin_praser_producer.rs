@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use plugins_host::PluginsParser;
 use std::hint::black_box;
 
@@ -47,11 +47,9 @@ fn plugin_parser_producer(c: &mut Criterion) {
                     .unwrap();
 
                     let source = create_binary_bytesource(data);
-                    let producer = MessageProducer::new(parser, source);
-
-                    producer
+                    MessageProducer::new(parser, source)
                 },
-                |p| run_producer(p),
+                run_producer,
                 BatchSize::SmallInput,
             )
     });
