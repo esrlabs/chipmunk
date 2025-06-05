@@ -1,14 +1,14 @@
-use crate::{binary::pcap::debug_block};
-use definitions::*;
+mod descriptor;
+
+use crate::binary::pcap::debug_block;
 use bufread::DeqBuffer;
-use components::{ComponentFactory, ComponentDescriptor};
+use definitions::*;
 use etherparse::{SlicedPacket, TransportSlice};
-use file_tools::is_binary;
 use log::{debug, error, trace};
 use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
 use std::{fs::File, io::Read, path::Path};
-use stypes::SessionAction;
 
+pub use descriptor::*;
 
 pub struct PcapLegacyByteSource<R: Read> {
     pcap_reader: LegacyPcapReader<R>,
@@ -177,15 +177,16 @@ impl PcapLegacyByteSourceFromFile {
             })
         }
         Ok(Self {
-            inner: PcapLegacyByteSource::new(input_file(filename.as_ref())?).map_err(|err|stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Io,
-                message: Some(err.to_string()),
+            inner: PcapLegacyByteSource::new(input_file(filename.as_ref())?).map_err(|err| {
+                stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Io,
+                    message: Some(err.to_string()),
+                }
             })?,
         })
     }
 }
-
 
 impl ByteSource for PcapLegacyByteSourceFromFile {
     async fn load(
@@ -206,58 +207,6 @@ impl ByteSource for PcapLegacyByteSourceFromFile {
         self.inner.len()
     }
 }
-
-
-const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
-    0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
-]);
-
-#[derive(Default)]
-pub struct Descriptor {}
-
-impl ComponentFactory<crate::Source> for Descriptor {
-    fn create(
-        &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        Ok(None)
-    }
-}
-
-impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, origin: &SessionAction) -> bool {
-        let files = match origin {
-            SessionAction::File(filepath) => {
-                vec![filepath]
-            }
-            SessionAction::Files(files) => files.iter().collect(),
-            SessionAction::Source | SessionAction::ExportRaw(..) => {
-                return false;
-            }
-        };
-        files.iter().any(|fp| {
-            fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "pcap")
-                .unwrap_or_default()
-        }) &&        
-        // If at least some file doesn't exist or not binary - do not recommend this source
-        !files
-            .into_iter()
-            .any(|f| !f.exists() || !is_binary(f.to_string_lossy().to_string()).unwrap_or_default())
-    }
-    fn ident(&self) -> stypes::Ident {
-        stypes::Ident {
-            name: String::from("PCAP Source"),
-            desc: String::from("PCAP Source"),
-            uuid: PCAP_SOURCE_UUID,
-        }
-    }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Source
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

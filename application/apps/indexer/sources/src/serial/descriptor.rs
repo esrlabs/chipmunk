@@ -51,6 +51,7 @@ impl ComponentDescriptor for Descriptor {
         stypes::Ident {
             name: String::from("Serial Port Connection"),
             desc: String::from("Connects to the specified serial port using user-defined settings. Data is received as a raw byte stream in a \"as-is\" mode - that is, the parser receives exactly what was read from the port, without any framing."),
+            io: stypes::IODataType::PlaitText,
             uuid: SERIAL_SOURCE_UUID,
         }
     }

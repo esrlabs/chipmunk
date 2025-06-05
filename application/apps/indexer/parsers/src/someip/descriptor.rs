@@ -24,6 +24,20 @@ impl ComponentFactory<crate::Parser> for Descriptor {
 }
 
 impl ComponentDescriptor for Descriptor {
+    fn get_render(&self) -> stypes::OutputRender {
+        stypes::OutputRender::Columns(vec![
+            ("SOME/IP".to_owned(), 50),
+            ("SERV".to_owned(), 50),
+            ("METH".to_owned(), 50),
+            ("LENG".to_owned(), 30),
+            ("CLID".to_owned(), 30),
+            ("SEID".to_owned(), 30),
+            ("IVER".to_owned(), 30),
+            ("MSTP".to_owned(), 30),
+            ("RETC".to_owned(), 30),
+            ("PAYLOAD".to_owned(), 0),
+        ])
+    }
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -67,6 +81,7 @@ impl ComponentDescriptor for Descriptor {
         stypes::Ident {
             name: String::from("SOME/IP"),
             desc: String::from("SomeIP Parser is a binary parser designed to decode messages conforming to the AUTOSAR SOME/IP (Scalable service-Oriented Middleware over IP) protocol. It processes raw binary input and extracts structured message data, including service ID, method ID, payload length, and more. The parser can be applied to both files and network streams (e.g., TCP/UDP). If a valid DLT message is detected within the SOME/IP payload, it will be automatically passed to the DLT parser and decoded accordingly."),
+            io: stypes::IODataType::NetworkFramePayload,
             uuid: SOMEIP_PARSER_UUID,
         }
     }

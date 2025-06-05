@@ -17,11 +17,14 @@ impl ComponentFactory<crate::Parser> for Descriptor {
         _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(None)
+        Ok(Some(crate::Parser::Text(StringTokenizer {})))
     }
 }
 
 impl ComponentDescriptor for Descriptor {
+    fn get_render(&self) -> stypes::OutputRender {
+        stypes::OutputRender::PlaitText
+    }
     fn is_compatible(&self, origin: &stypes::SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -40,6 +43,7 @@ impl ComponentDescriptor for Descriptor {
         stypes::Ident {
             name: String::from("Text Parser"),
             desc: String::from("Text Parser is a minimal parser designed for processing plain text input. It performs no decoding or transformation and has no configuration options. Its sole purpose is to output incoming data line by line, making it suitable for logs or command outputs in textual format."),
+            io: stypes::IODataType::PlaitText,
             uuid: TEXT_PARSER_UUID,
         }
     }
