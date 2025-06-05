@@ -66,6 +66,26 @@ pub enum Api {
         tx: oneshot::Sender<Result<stypes::ComponentsOptionsList, NativeError>>,
     },
 
+    /// Requests the render supported by parser
+    ///
+    /// This API is used by the client to retrieve the render to use.
+    ///
+    /// # Arguments
+    ///
+    /// * `Uuid` - Uuid of parser.
+    /// * `tx` - A one-shot sender used to deliver the result back to the client.
+    ///
+    /// # Result
+    ///
+    /// * `Result<Option<stypes::OutputRender>, NativeError>` - The result containing the render or an error.
+    ///
+    /// # Note
+    /// If component doesn't have render, returns `None`
+    GetOutputRender(
+        Uuid,
+        oneshot::Sender<Result<Option<stypes::OutputRender>, NativeError>>,
+    ),
+
     /// Retrieves a list of components available in the system.
     ///
     /// This API is invoked by the client when it needs to get the list of available components of a specific type.

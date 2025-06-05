@@ -63,6 +63,9 @@ impl ComponentsSession {
             let mut tasks: HashMap<Uuid, (LazyLoadingTaskMeta, JoinHandle<()>)> = HashMap::new();
             while let Some(msg) = rx_api.recv().await {
                 match msg {
+                    Api::GetOutputRender(uuid, tx) => {
+                        log_if_err(tx.send(components.get_output_render(&uuid)));
+                    }
                     Api::GetOptions {
                         origin,
                         targets,
@@ -226,6 +229,32 @@ impl ComponentsSession {
             "Fail to send Api::GetOptions",
         )?;
         response(rx.await, "Fail to get response from Api::GetOptions")?
+    }
+
+    /// Requests the render supported by parser
+    ///
+    /// This API is used by the client to retrieve the render to use.
+    ///
+    /// # Arguments
+    ///
+    /// * `uuid` - Uuid of parser.
+    ///
+    /// # Result
+    ///
+    /// * `Result<Option<stypes::OutputRender>, NativeError>` - The result containing the render or an error.
+    ///
+    /// # Note
+    /// If component doesn't have render, returns `None`   
+    pub async fn get_output_render(
+        &self,
+        uuid: Uuid,
+    ) -> Result<Option<stypes::OutputRender>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::GetOutputRender(uuid, tx)),
+            "Fail to send Api::GetOutputRender",
+        )?;
+        response(rx.await, "Fail to get response from Api::GetOutputRender")?
     }
 
     /// Retrieves the list of available components of a specified type.

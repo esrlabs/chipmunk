@@ -217,3 +217,4 @@ gen_encode_decode_fns!(FieldsValidationErrors);
 gen_encode_decode_fns!(ComponentOptions);
 gen_encode_decode_fns!(SessionSetup);
 gen_encode_decode_fns!(SessionDescriptor);
+gen_encode_decode_fns!(OutputRender);

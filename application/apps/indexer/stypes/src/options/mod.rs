@@ -15,7 +15,6 @@ use crate::*;
 pub enum OutputRender {
     Columns(Vec<(String, usize)>),
     PlaitText,
-    NoRender,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

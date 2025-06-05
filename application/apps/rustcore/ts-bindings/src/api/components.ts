@@ -10,6 +10,7 @@ import {
     FieldDesc,
     FieldsValidationErrors,
     Ident,
+    OutputRender,
     SessionAction,
 } from 'platform/types/bindings';
 
@@ -75,6 +76,10 @@ export class Components extends Subscriber {
         return this.native
             .getOptions(origin, targets)
             .then((list: ComponentsOptionsList) => list.options);
+    }
+
+    public getOutputRender(uuid: string): Promise<OutputRender | null> {
+        return this.native.getOutputRender(uuid);
     }
 
     public validate(
