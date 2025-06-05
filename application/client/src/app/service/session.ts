@@ -292,8 +292,11 @@ export class Service extends Implementation {
                 });
             },
             observe: async (origin: SessionSourceOrigin, existed?: Session): Promise<string> => {
+                debugger;
+                const render = await origin.getRender();
+
                 const session =
-                    existed !== undefined ? existed : await this.add(false).empty(getDltRender());
+                    existed !== undefined ? existed : await this.add(false).empty(render);
                 return new Promise((resolve, reject) => {
                     session.stream
                         .observe()

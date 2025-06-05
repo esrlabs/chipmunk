@@ -11,7 +11,7 @@ import {
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request/index';
 
-import { Field, FieldDesc, Ident, SessionAction } from '@platform/types/bindings';
+import { Field, FieldDesc, Ident, OutputRender, SessionAction } from '@platform/types/bindings';
 
 @SetupService(services['components'])
 export class Service extends Implementation {
@@ -88,6 +88,21 @@ export class Service extends Implementation {
             )
                 .then((response) => {
                     resolve(response.options);
+                })
+                .catch(reject);
+        });
+    }
+
+    public getOutputRender(uuid: string): Promise<OutputRender | null | undefined> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Components.GetOutputRender.Response,
+                new Requests.Components.GetOutputRender.Request({
+                    uuid,
+                }),
+            )
+                .then((response) => {
+                    resolve(response.render);
                 })
                 .catch(reject);
         });

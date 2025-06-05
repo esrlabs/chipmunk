@@ -1,4 +1,14 @@
-import { SessionAction, Ident, SessionSetup, ComponentOptions } from '@platform/types/bindings';
+import {
+    SessionAction,
+    Ident,
+    SessionSetup,
+    ComponentOptions,
+    OutputRender,
+} from '@platform/types/bindings';
+import { Render } from '@schema/render';
+import { ColumnsRender } from '@schema/render/columns';
+import { TextRender } from '@schema/render/text';
+import { components } from '@service/components';
 
 export class SessionComponents {
     public parser: Ident | undefined;
@@ -58,6 +68,37 @@ export class SessionSourceOrigin {
 
     public getDef(): SessionAction {
         return this.origin;
+    }
+
+    public getRender(): Promise<Render<any>> {
+        const parser = this.options.parser;
+        if (!parser) {
+            return Promise.reject(new Error(`No parsed defined`));
+        }
+        return new Promise((resolve, reject) => {
+            components
+                .getOutputRender(parser.uuid)
+                .then((render: OutputRender | null | undefined) => {
+                    if (!render) {
+                        reject(new Error(`No output render for parser ${parser.uuid}`));
+                        return;
+                    }
+                    if (render === 'PlaitText') {
+                        return resolve(new TextRender());
+                    } else if (typeof render === 'object') {
+                        if ((render as { Columns: Array<[string, number]> }).Columns) {
+                            const schema = (render as { Columns: Array<[string, number]> }).Columns;
+                            return resolve(
+                                new ColumnsRender(
+                                    schema.map((data: [string, number]) => data[0]),
+                                    schema.map((data: [string, number]) => data[1]),
+                                ),
+                            );
+                        }
+                    }
+                })
+                .catch(reject);
+        });
     }
     public getTitle(): string {
         if (this.origin === 'Source') {

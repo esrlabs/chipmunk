@@ -61,7 +61,7 @@ pub enum Entry<S, P> {
 }
 
 impl<S, P> ComponentDescriptor for Entry<S, P> {
-    fn get_render(&self) -> stypes::OutputRender {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
         match self {
             Self::Source(inner) => inner.get_render(),
             Self::Parser(inner) => inner.get_render(),
@@ -164,8 +164,8 @@ pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
 /// making it possible to swap, reconfigure, or isolate components without touching
 /// the application core.
 pub trait ComponentDescriptor {
-    fn get_render(&self) -> stypes::OutputRender {
-        stypes::OutputRender::NoRender
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        None
     }
 
     /// Check is component is campatible with given origin
