@@ -1,6 +1,6 @@
 import { Implementation as Dlt } from './dlt';
 import { Implementation as SomeIp } from './someip';
-import { Implementation as Text } from './text';
+import { TextRender } from './text';
 import { Implementation as Plugin } from './plugin';
 import { Render, RenderReference } from './index';
 import { Session } from '@service/session/session';
@@ -15,7 +15,7 @@ const RENDERS: {
 } = {
     [Parsers.Protocol.Dlt]: Dlt,
     [Parsers.Protocol.SomeIp]: SomeIp,
-    [Parsers.Protocol.Text]: Text,
+    [Parsers.Protocol.Text]: TextRender,
 };
 export function getDltRender(): Render<Columns> {
     return new Dlt();

@@ -101,6 +101,22 @@ impl Components {
     }
 
     #[node_bindgen]
+    async fn get_output_render(
+        &self,
+        uuid: String,
+    ) -> Result<Option<stypes::OutputRender>, stypes::ComputationError> {
+        let uuid = Uuid::from_str(&uuid).map_err(|_| stypes::ComputationError::InvalidData)?;
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?;
+        session
+            .get_output_render(uuid)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
     async fn validate(
         &self,
         origin: JSArrayBuffer,
