@@ -22,10 +22,11 @@ impl Arbitrary for Ident {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<String>(), any::<String>())
-            .prop_map(|(name, desc)| Ident {
+        (any::<String>(), any::<String>(), any::<IODataType>())
+            .prop_map(|(name, desc, io)| Ident {
                 name,
                 desc,
+                io,
                 uuid: Uuid::new_v4(),
             })
             .boxed()

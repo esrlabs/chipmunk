@@ -1,7 +1,37 @@
 #[cfg(feature = "nodejs")]
 mod nodejs;
+#[cfg(test)]
+mod proptest;
 
 use crate::*;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub enum OutputRender {
+    Columns(Vec<(String, usize)>),
+    PlaitText,
+    NoRender,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub enum IODataType {
+    PlaitText,
+    Raw,
+    NetworkFramePayload,
+    Multiple(Vec<IODataType>),
+    Any,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]

@@ -44,6 +44,10 @@ impl ComponentDescriptor for Descriptor {
         stypes::Ident {
             name: String::from("DLT Export Parser"),
             desc: String::from("DLT Export Parser"),
+            io: stypes::IODataType::Multiple(vec![
+                stypes::IODataType::NetworkFramePayload,
+                stypes::IODataType::Raw,
+            ]),
             uuid: DLT_PARSER_UUID,
         }
     }

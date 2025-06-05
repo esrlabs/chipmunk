@@ -1,2 +1,2 @@
-pub mod options;
+pub mod descriptor;
 pub mod serialport;
