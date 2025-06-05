@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use components::Components;
 use definitions::{ReloadInfo, SourceError, SourceFilter};
 
@@ -24,7 +22,7 @@ pub enum Source {
     Tcp(socket::tcp::TcpSource),
     Udp(socket::udp::UdpSource),
     Serial(serial::serialport::SerialSource),
-    Process(command::process::ProcessSource),
+    Process(command::ProcessSource),
 }
 
 impl definitions::ByteSource for Source {
@@ -115,7 +113,7 @@ pub fn registration<P>(components: &mut Components<Source, P>) -> Result<(), sty
     components.add_source(binary::pcap::ng::Descriptor::default())?;
     components.add_source(socket::tcp::Descriptor::default())?;
     components.add_source(socket::udp::Descriptor::default())?;
-    components.add_source(serial::options::Descriptor::default())?;
-    components.add_source(command::process::Descriptor::default())?;
+    components.add_source(serial::descriptor::Descriptor::default())?;
+    components.add_source(command::Descriptor::default())?;
     Ok(())
 }
