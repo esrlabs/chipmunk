@@ -20,7 +20,8 @@ export abstract class SchemeProvider extends Subscriber {
     constructor(public readonly uuid: string) {
         super();
     }
-    public abstract get(): Promise<FieldDesc[]>;
+    public abstract getFieldDescs(): FieldDesc[];
+    public abstract load(): Promise<void>;
     public abstract destroy(): Promise<void>;
     public abstract setValue(uuid: string, value: Value): void;
     public abstract getFields(): Field[];
