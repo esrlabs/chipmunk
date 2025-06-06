@@ -2,7 +2,6 @@ import {
     Component,
     ChangeDetectorRef,
     AfterContentInit,
-    AfterViewInit,
     AfterContentChecked,
     Input,
 } from '@angular/core';
@@ -22,7 +21,7 @@ import { FieldDesc } from '@platform/types/bindings';
 @Ilc()
 export class SettingsScheme
     extends ChangesDetector
-    implements AfterContentInit, AfterContentChecked, AfterViewInit
+    implements AfterContentInit, AfterContentChecked
 {
     @Input() provider!: SchemeProvider;
 
@@ -41,21 +40,11 @@ export class SettingsScheme
         if (this.uuid === this.provider.uuid) {
             return;
         }
-        this.ngAfterViewInit();
+        this.ngAfterContentInit();
     }
-    public ngAfterContentInit(): void {}
-
-    public ngAfterViewInit(): void {
+    public ngAfterContentInit(): void {
+        this.fields = this.provider.getFieldDescs();
         this.uuid = this.provider.uuid;
-        this.provider
-            .get()
-            .then((fields) => {
-                this.fields = fields;
-                this.detectChanges();
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail get fields: ${err.message}`);
-            });
     }
 }
 export interface SettingsScheme extends IlcInterface {}
