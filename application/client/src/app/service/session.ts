@@ -292,7 +292,6 @@ export class Service extends Implementation {
                 });
             },
             observe: async (origin: SessionSourceOrigin, existed?: Session): Promise<string> => {
-                debugger;
                 const render = await origin.getRender();
 
                 const session =

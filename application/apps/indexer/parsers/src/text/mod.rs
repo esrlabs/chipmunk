@@ -1,9 +1,8 @@
 pub mod descriptor;
-use std::{borrow::Cow, io};
+use std::borrow::Cow;
 
 use definitions::*;
 use serde::Serialize;
-use stypes::NativeError;
 
 /// The most likely minimal bytes count needed to parse a text message.
 const MIN_MSG_LEN: usize = 1;
@@ -14,20 +13,6 @@ pub struct StringTokenizer {}
 pub struct StringMessage {
     content: String,
 }
-
-// impl fmt::Display for StringMessage {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{}", self.content)
-//     }
-// }
-
-// impl LogMessage for StringMessage {
-//     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
-//         let len = self.content.len();
-//         writer.write_all(self.content.as_bytes())?;
-//         Ok(len)
-//     }
-// }
 
 impl StringTokenizer {
     fn parse_item<'a>(
