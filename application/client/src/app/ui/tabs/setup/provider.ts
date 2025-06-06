@@ -16,7 +16,8 @@ export class Proivder extends SchemeProvider {
     protected pending: string[] = [];
     protected readonly logger = new Logger(`ObserveSetupProivder`);
     protected readonly values: Map<string, Value> = new Map();
-    protected fields: string[] = [];
+    protected uuids: string[] = [];
+    protected fields: FieldDesc[] = [];
     protected hasErrors: boolean = false;
 
     constructor(protected readonly origin: SessionSourceOrigin, protected readonly target: string) {
@@ -32,10 +33,10 @@ export class Proivder extends SchemeProvider {
     }
 
     public isEmpty(): boolean {
-        return this.fields.length === 0;
+        return this.uuids.length === 0;
     }
 
-    public override get(): Promise<FieldDesc[]> {
+    public override load(): Promise<void> {
         this.pending.length === 0 && components.abort(this.pending);
         this.pending = [];
         return components
@@ -43,9 +44,9 @@ export class Proivder extends SchemeProvider {
             .then((map: Map<string, FieldDesc[]>) => {
                 const fields = map.get(this.target);
                 if (!fields) {
-                    return Promise.resolve([]);
+                    return Promise.resolve();
                 }
-                this.fields = fields.map((field) => new WrappedField(field).id);
+                this.uuids = fields.map((field) => new WrappedField(field).id);
                 this.pending = fields
                     .map((field: FieldDesc) => {
                         const lazy = field as { Lazy: LazyFieldDesc };
@@ -56,12 +57,17 @@ export class Proivder extends SchemeProvider {
                         }
                     })
                     .filter((id) => id !== undefined);
-                return Promise.resolve(fields === undefined ? [] : fields);
+                this.fields = fields;
+                return Promise.resolve();
             });
     }
 
+    public override getFieldDescs(): FieldDesc[] {
+        return this.fields;
+    }
+
     public override setValue(uuid: string, value: Value): void {
-        if (!this.fields.includes(uuid)) {
+        if (!this.uuids.includes(uuid)) {
             this.logger.error(`Field ${uuid} doesn't belong to current provider`);
             return;
         }

@@ -1,4 +1,4 @@
-import { SessionAction, Ident } from '@platform/types/bindings';
+import { SessionAction, Ident, IODataType } from '@platform/types/bindings';
 import { components } from '@service/components';
 import { Logger } from '@env/logs';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
@@ -34,11 +34,11 @@ export class State extends Subscriber {
         updated: new Subject(),
     });
     public selected: {
-        source: string;
-        parser: string;
+        source: string | undefined;
+        parser: string | undefined;
     } = {
-        source: '',
-        parser: '',
+        source: undefined,
+        parser: undefined,
     };
     public description: {
         source: ComponentDescription | undefined;
@@ -106,7 +106,7 @@ export class State extends Subscriber {
                 if (this.parsers.length > 0) {
                     this.selected.parser = this.parsers[0].uuid;
                 }
-                this.subjects.get().parsers.emit(this.sources);
+                this.subjects.get().parsers.emit(this.parsers);
                 this.change().parser();
             })
             .catch((err: Error) => {
@@ -129,19 +129,31 @@ export class State extends Subscriber {
                         this.logger.error(`Fail to destroy source provider: ${err.message}`);
                     });
                 }
+                this.providers.source = undefined;
                 this.description.source = undefined;
                 const ident = this.sources.find((ident) => ident.uuid == this.selected.source);
                 if (ident !== undefined) {
                     this.description.source = { full: '', ident };
                 }
-                this.providers.source = new Proivder(this.origin, this.selected.source);
-                this.register(
-                    this.providers.source.subjects.get().error.subscribe(() => {
-                        this.checkErrors();
-                        this.subjects.get().errorStateChange.emit();
-                    }),
-                );
-                this.subjects.get().updated.emit();
+                const provider = new Proivder(this.origin, this.selected.source);
+                provider
+                    .load()
+                    .then(() => {
+                        this.register(
+                            provider.subjects.get().error.subscribe(() => {
+                                this.checkErrors();
+                                this.subjects.get().errorStateChange.emit();
+                            }),
+                        );
+                        this.providers.source = provider;
+                    })
+                    .catch((err: Error) => {
+                        this.logger.error(`Fail load source options desc: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.subjects.get().updated.emit();
+                        this.checkCompatibility();
+                    });
             },
             parser: (): void => {
                 if (this.selected.parser === undefined) {
@@ -152,20 +164,41 @@ export class State extends Subscriber {
                         this.logger.error(`Fail to destroy parser provider: ${err.message}`);
                     });
                 }
+                this.providers.parser = undefined;
+                this.description.parser = undefined;
                 const ident = this.parsers.find((ident) => ident.uuid == this.selected.parser);
                 if (ident !== undefined) {
                     this.description.parser = { full: '', ident };
                 }
-                this.providers.parser = new Proivder(this.origin, this.selected.parser);
-                this.register(
-                    this.providers.parser.subjects.get().error.subscribe(() => {
-                        this.checkErrors();
-                        this.subjects.get().errorStateChange.emit();
-                    }),
-                );
-                this.subjects.get().updated.emit();
+                const provider = new Proivder(this.origin, this.selected.parser);
+                provider
+                    .load()
+                    .then(() => {
+                        this.register(
+                            provider.subjects.get().error.subscribe(() => {
+                                this.checkErrors();
+                                this.subjects.get().errorStateChange.emit();
+                            }),
+                        );
+                        this.providers.parser = provider;
+                    })
+                    .catch((err: Error) => {
+                        this.logger.error(`Fail load parser options desc: ${err.message}`);
+                    })
+                    .finally(() => {
+                        this.subjects.get().updated.emit();
+                    });
             },
         };
+    }
+
+    public isParserIOCompatible(uuid: string): boolean {
+        const source = this.sources.find((source) => source.uuid === this.selected.source);
+        const parser = this.parsers.find((parser) => parser.uuid === uuid);
+        if (!source || !parser) {
+            return false;
+        }
+        return isIOCompatible(source.io, parser.io);
     }
 
     protected checkErrors() {
@@ -174,5 +207,58 @@ export class State extends Subscriber {
         } else {
             this.locked = !this.providers.parser.isValid() || !this.providers.source.isValid();
         }
+    }
+
+    protected checkCompatibility() {
+        const source = this.sources.find((source) => source.uuid === this.selected.source);
+        if (source === undefined || this.selected.parser === undefined) {
+            return;
+        }
+        const compatible = this.parsers
+            .filter((parser) => isIOCompatible(source.io, parser.io))
+            .map((parser) => parser.uuid);
+        if (compatible.includes(this.selected.parser)) {
+            return;
+        }
+        this.selected.parser = compatible.length === 0 ? undefined : compatible[0];
+        this.change().parser();
+    }
+}
+
+function isIOCompatible(a: IODataType, b: IODataType): boolean {
+    if (a === 'Any' || b === 'Any') {
+        return true;
+    }
+    if (typeof a === 'string' && typeof b === 'string') {
+        return a == b;
+    }
+    const aMtl:
+        | {
+              Multiple: Array<IODataType>;
+          }
+        | undefined =
+        typeof a === 'object'
+            ? (a as {
+                  Multiple: Array<IODataType>;
+              })
+            : undefined;
+    const bMtl:
+        | {
+              Multiple: Array<IODataType>;
+          }
+        | undefined =
+        typeof b === 'object'
+            ? (b as {
+                  Multiple: Array<IODataType>;
+              })
+            : undefined;
+    if (aMtl && bMtl) {
+        return aMtl.Multiple.find((a) => bMtl.Multiple.includes(a)) !== undefined;
+    } else if (aMtl) {
+        return aMtl.Multiple.includes(b);
+    } else if (bMtl) {
+        return bMtl.Multiple.includes(a);
+    } else {
+        return false;
     }
 }
