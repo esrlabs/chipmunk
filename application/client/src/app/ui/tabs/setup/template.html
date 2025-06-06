@@ -21,7 +21,11 @@
                 (ngModelChange)="state.change().parser()"
                 [disabled]="state.parsers.length <= 1"
             >
-                <mat-option *ngFor="let parser of state.parsers" [value]="parser.uuid">
+                <mat-option
+                    *ngFor="let parser of state.parsers"
+                    [value]="parser.uuid"
+                    [disabled]="!state.isParserIOCompatible(parser.uuid)"
+                >
                     {{parser.name}}
                 </mat-option>
             </mat-select>
@@ -41,10 +45,10 @@
 </div>
 <div class="preset-container">
     <div class="preset-container-content w-1400">
-        <div class="preset-container-left">
+        <div class="preset-container-left vertical-scrolling">
             <mat-card
                 class="top"
-                *ngIf="state.providers.source !== undefined && state.description.source !== undefined"
+                *ngIf="state.providers.source !== undefined && state.description.source !== undefined && !state.providers.source.isEmpty()"
             >
                 <mat-card-title>{{state.description.source.ident.name}}</mat-card-title>
                 <mat-card-content>
@@ -53,7 +57,7 @@
             </mat-card>
             <mat-card
                 class="top"
-                *ngIf="state.providers.parser !== undefined && state.description.parser !== undefined"
+                *ngIf="state.providers.parser !== undefined && state.description.parser !== undefined && !state.providers.parser.isEmpty()"
             >
                 <mat-card-title>{{state.description.parser.ident.name}}</mat-card-title>
                 <mat-card-content>

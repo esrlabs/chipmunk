@@ -13,8 +13,11 @@ export class Provider extends SchemeProvider {
         super(unique());
     }
 
-    public override get(): Promise<FieldDesc[]> {
-        return Promise.resolve([]);
+    public override getFieldDescs(): FieldDesc[] {
+        return [];
+    }
+    public override load(): Promise<void> {
+        return Promise.resolve();
     }
 
     public override setValue(uuid: string, value: Value): void {
