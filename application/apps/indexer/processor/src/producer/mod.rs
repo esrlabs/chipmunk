@@ -125,11 +125,15 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                             }
                             messages_received += 1;
                         } else {
-                            self.byte_source.consume(bytes_processed);
                             if let Err(err) = self.writer.finalize() {
                                 error!("Fail to write data into writer: {err}");
                             }
-                            return None;
+                            if messages_received == 0 {
+                                self.byte_source.consume(bytes_processed);
+                                return None;
+                            } else {
+                                break;
+                            }
                         }
                     }
                     self.byte_source.consume(bytes_processed);
