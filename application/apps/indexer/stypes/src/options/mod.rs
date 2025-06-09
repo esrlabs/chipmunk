@@ -190,7 +190,7 @@ pub enum ValueInput {
     Directories,
     Files(Vec<String>),
     File(Vec<String>),
-    Directory,
+    Directory(Option<String>),
     Timezone,
     InputsCollection {
         elements: Vec<ValueInput>,

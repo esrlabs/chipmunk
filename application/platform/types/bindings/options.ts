@@ -31,7 +31,7 @@ export type IODataType =
 
 export type LazyFieldDesc = { id: string; name: string; desc: string; binding: string | null };
 
-export type OutputRender = { Columns: Array<[string, number]> } | 'PlaitText' | 'NoRender';
+export type OutputRender = { Columns: Array<[string, number]> } | 'PlaitText';
 
 export type StaticFieldDesc = {
     id: string;
@@ -76,7 +76,7 @@ export type ValueInput =
     | 'Directories'
     | { Files: Array<string> }
     | { File: Array<string> }
-    | 'Directory'
+    | { Directory: string | null }
     | 'Timezone'
     | { InputsCollection: { elements: Array<ValueInput>; add_title: string } }
     | { FieldsCollection: { elements: Array<StaticFieldDesc>; add_title: string } }

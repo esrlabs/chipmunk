@@ -64,6 +64,7 @@ export class SchemeEntryElement
     public elFilesFolderSelectorElement: els.FilesFolderSelectorElement | undefined;
     public elInputElement: els.InputElement<unknown> | undefined;
     public elListElement: els.ListElement<unknown> | undefined;
+    public elKeyValueElement: els.KeyValueElement<unknown, unknown> | undefined;
     public elNamedValuesElement: els.NamedValuesElement<unknown> | undefined;
     public elNestedDictionaryElement: els.NestedDictionaryElement<unknown> | undefined;
     public elTimezoneSelectorElement: els.TimezoneSelectorElement | undefined;
@@ -91,6 +92,8 @@ export class SchemeEntryElement
             this.element.inner instanceof els.InputElement ? this.element.inner : undefined;
         this.elListElement =
             this.element.inner instanceof els.ListElement ? this.element.inner : undefined;
+        this.elKeyValueElement =
+            this.element.inner instanceof els.KeyValueElement ? this.element.inner : undefined;
         this.elNamedValuesElement =
             this.element.inner instanceof els.NamedValuesElement ? this.element.inner : undefined;
         this.elNestedDictionaryElement =
