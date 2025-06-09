@@ -101,7 +101,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
             if available == 0 {
                 trace!("No more bytes available from source");
                 self.done = true;
-                if let Err(err) = self.writer.finalize() {
+                if let Err(err) = self.writer.finalize().await {
                     error!("Fail to write data into writer: {err}");
                 }
                 return Some((0, MessageStreamItem::Done));
@@ -119,13 +119,13 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                     while let Some((consumed, msg)) = iterator.next() {
                         bytes_processed += consumed;
                         if let Some(msg) = msg {
-                            if let Err(err) = self.writer.write(msg) {
+                            if let Err(err) = self.writer.write(msg).await {
                                 error!("Fail to write data into writer: {err}");
                                 return None;
                             }
                             messages_received += 1;
                         } else {
-                            if let Err(err) = self.writer.finalize() {
+                            if let Err(err) = self.writer.finalize().await {
                                 error!("Fail to write data into writer: {err}");
                             }
                             if messages_received == 0 {
@@ -162,7 +162,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                             );
                             let unused = skipped_bytes + available;
                             self.done = true;
-                            if let Err(err) = self.writer.finalize() {
+                            if let Err(err) = self.writer.finalize().await {
                                 error!("Fail to write data into writer: {err}");
                             }
                             return Some((unused, MessageStreamItem::Done));
@@ -192,7 +192,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                         );
                         let unused = skipped_bytes + available;
                         self.done = true;
-                        if let Err(err) = self.writer.finalize() {
+                        if let Err(err) = self.writer.finalize().await {
                             error!("Fail to write data into writer: {err}");
                         }
                         return Some((unused, MessageStreamItem::Done));
@@ -207,7 +207,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                         );
                         let unused = skipped_bytes + available;
                         self.done = true;
-                        if let Err(err) = self.writer.finalize() {
+                        if let Err(err) = self.writer.finalize().await {
                             error!("Fail to write data into writer: {err}");
                         }
                         return Some((unused, MessageStreamItem::Done));
@@ -220,7 +220,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                     error!("Parsing failed: Error {err}");
                     eprintln!("Parsing failed: Error: {err}");
                     self.done = true;
-                    if let Err(err) = self.writer.finalize() {
+                    if let Err(err) = self.writer.finalize().await {
                         error!("Fail to write data into writer: {err}");
                     }
                     return Some((0, MessageStreamItem::Done));
