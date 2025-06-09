@@ -3420,6 +3420,7 @@ dependencies = [
  "criterion",
  "definitions",
  "env_logger",
+ "envvars",
  "etherparse",
  "file-tools",
  "futures",

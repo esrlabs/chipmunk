@@ -6,6 +6,7 @@ import * as CheckboxElement from './checkbox';
 import * as FilesFolderSelectorElement from './files_selector';
 import * as InputElement from './input_field';
 import * as ListElement from './list';
+import * as KeyValueElement from './key_value';
 import * as NamedValuesElement from './named';
 import * as NestedDictionaryElement from './nested_dictionary';
 import * as TimezoneSelectorElement from './timezone';
@@ -16,6 +17,7 @@ export { CheckboxElement } from './checkbox';
 export { FilesFolderSelectorElement } from './files_selector';
 export { InputElement } from './input_field';
 export { ListElement } from './list';
+export { KeyValueElement } from './key_value';
 export { NamedValuesElement } from './named';
 export { NestedDictionaryElement, NestedDictionaryStructure } from './nested_dictionary';
 export { TimezoneSelectorElement } from './timezone';
@@ -46,7 +48,6 @@ export type ValueInput =
     | { FieldsCollection: { elements: Array<StaticFieldDesc>; add_title: string } }
     | { Bound: { output: ValueInput; inputs: Array<ValueInput> } };
  */
-
 export interface ChangeEvent {
     uuid: string;
     inner: any;
@@ -79,6 +80,7 @@ export class Element {
             FilesFolderSelectorElement,
             InputElement,
             ListElement,
+            KeyValueElement,
             NamedValuesElement,
             NestedDictionaryElement,
             TimezoneSelectorElement,

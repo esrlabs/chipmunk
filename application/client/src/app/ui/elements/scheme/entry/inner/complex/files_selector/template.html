@@ -1,14 +1,30 @@
-<button mat-stroked-button (click)="ngAddTarget()">
-    <mat-icon aria-hidden="false" class="mini-button">note_add</mat-icon>
-    Add
-</button>
-<div *ngIf="paths.length > 0">
-    <mat-chip-listbox aria-label="Files">
-        <mat-chip-option *ngFor="let path of paths" (removed)="ngOnRemovePath(path.path)">
-            <span [title]="path.path"> {{path.name}} </span>
-            <button matChipRemove>
-                <mat-icon>cancel</mat-icon>
-            </button>
-        </mat-chip-option>
-    </mat-chip-listbox>
-</div>
+<ng-container *ngIf="inner.target === FilesFoldersSelectorTarget.Folder">
+    <div class="folder-input">
+        <input
+            placeholder="Current Working Directory"
+            matInput
+            [(ngModel)]="inner.value[0]"
+            (ngModelChange)="element.change()"
+        />
+        <button mat-stroked-button (click)="ngAddTarget()">
+            <mat-icon aria-hidden="false" class="mini-button">folder</mat-icon>
+            Select
+        </button>
+    </div>
+</ng-container>
+<ng-container *ngIf="inner.target !== FilesFoldersSelectorTarget.Folder">
+    <button mat-stroked-button (click)="ngAddTarget()">
+        <mat-icon aria-hidden="false" class="mini-button">note_add</mat-icon>
+        Add
+    </button>
+    <div *ngIf="paths.length > 0">
+        <mat-chip-listbox aria-label="Files">
+            <mat-chip-option *ngFor="let path of paths" (removed)="ngOnRemovePath(path.path)">
+                <span [title]="path.path"> {{path.name}} </span>
+                <button matChipRemove>
+                    <mat-icon>cancel</mat-icon>
+                </button>
+            </mat-chip-option>
+        </mat-chip-listbox>
+    </div>
+</ng-container>
