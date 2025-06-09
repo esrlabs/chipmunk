@@ -13,9 +13,13 @@ export class FilesFolderSelectorElement extends ElementInner {
 
     constructor(
         public readonly target: FilesFoldersSelectorTarget,
-        public readonly exts: string[] = [],
+        public readonly exts: string[],
+        defaults: string | null | undefined,
     ) {
         super();
+        if (target == FilesFoldersSelectorTarget.Folder) {
+            this.value = [defaults ? defaults : ''];
+        }
     }
 
     public getInnerValue(): any {
@@ -44,18 +48,24 @@ export class FilesFolderSelectorElement extends ElementInner {
 
 export function tryFromOrigin(origin: ValueInput): FilesFolderSelectorElement | undefined {
     if (typeof origin === 'string' && origin === 'Directories') {
-        return new FilesFolderSelectorElement(FilesFoldersSelectorTarget.Folders);
-    } else if (typeof origin === 'string' && origin === 'Directory') {
-        return new FilesFolderSelectorElement(FilesFoldersSelectorTarget.Folder);
+        return new FilesFolderSelectorElement(FilesFoldersSelectorTarget.Folders, [], undefined);
+    } else if ((origin as { Directory: string | null }).Directory) {
+        return new FilesFolderSelectorElement(
+            FilesFoldersSelectorTarget.Folder,
+            [],
+            (origin as { Directory: string | null }).Directory,
+        );
     } else if ((origin as { File: string[] }).File) {
         return new FilesFolderSelectorElement(
             FilesFoldersSelectorTarget.File,
             (origin as { File: string[] }).File,
+            undefined,
         );
     } else if ((origin as { Files: string[] }).Files) {
         return new FilesFolderSelectorElement(
             FilesFoldersSelectorTarget.Files,
             (origin as { Files: string[] }).Files,
+            undefined,
         );
     } else {
         return undefined;
