@@ -39,7 +39,6 @@ pub enum Api {
             oneshot::Sender<Result<(), stypes::NativeError>>,
         ),
     ),
-    SendToSessionFile(u16, String),
     FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
     GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
     UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
@@ -208,7 +207,6 @@ impl Display for Api {
                 Self::SetSessionFile(_) => "SetSessionFile",
                 Self::GetSessionFile(_) => "GetSessionFile",
                 Self::WriteSessionFile(_) => "WriteSessionFile",
-                Self::SendToSessionFile(..) => "SendToSessionFile",
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::GetSessionFileOrigin(_) => "GetSessionFileOrigin",
                 Self::UpdateSession(_) => "UpdateSession",
@@ -451,14 +449,6 @@ impl SessionStateAPI {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::WriteSessionFile((source_id, msg, tx)), rx)
             .await?
-    }
-
-    pub fn send_to_session_file(
-        &self,
-        source_id: u16,
-        content: String,
-    ) -> Result<(), stypes::NativeError> {
-        self.sync_exec_operation(Api::SendToSessionFile(source_id, content))
     }
 
     pub async fn flush_session_file(&self) -> Result<(), stypes::NativeError> {

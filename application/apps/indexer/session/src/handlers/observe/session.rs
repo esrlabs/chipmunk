@@ -58,49 +58,63 @@ impl Writer {
 }
 
 impl LogRecordWriter for Writer {
-    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
-        match record {
-            LogRecordOutput::Raw(inner) => {
-                // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
-                // because during observe we do not expect raw data
-                self.buffer.push_str(
-                    &inner
-                        .iter()
-                        .map(|b| format!("{:02X}", b))
-                        .collect::<String>(),
-                );
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::Cow(inner) => {
-                self.buffer.push_str(&inner);
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::String(inner) => {
-                self.buffer.push_str(&inner);
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::Str(inner) => {
-                self.buffer.push_str(inner);
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::Columns(inner) => {
-                self.buffer
-                    .push_str(&inner.join(&definitions::COLUMN_SENTINAL.to_string()));
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::Multiple(inner) => {
-                for record in inner.into_iter() {
-                    self.write(record)?;
+    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+        fn fill<'a>(
+            writer: &mut Writer,
+            record: LogRecordOutput<'a>,
+        ) -> Option<Vec<LogRecordOutput<'a>>> {
+            match record {
+                LogRecordOutput::Raw(inner) => {
+                    // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
+                    // because during observe we do not expect raw data
+                    writer.buffer.push_str(
+                        &inner
+                            .iter()
+                            .map(|b| format!("{:02X}", b))
+                            .collect::<String>(),
+                    );
+                    writer.buffer.push('\n');
+                    None
+                }
+                LogRecordOutput::Cow(inner) => {
+                    writer.buffer.push_str(&inner);
+                    writer.buffer.push('\n');
+                    None
+                }
+                LogRecordOutput::String(inner) => {
+                    writer.buffer.push_str(&inner);
+                    writer.buffer.push('\n');
+                    None
+                }
+                LogRecordOutput::Str(inner) => {
+                    writer.buffer.push_str(inner);
+                    writer.buffer.push('\n');
+                    None
+                }
+                LogRecordOutput::Columns(inner) => {
+                    writer
+                        .buffer
+                        .push_str(&inner.join(&definitions::COLUMN_SENTINAL.to_string()));
+                    writer.buffer.push('\n');
+                    None
+                }
+                LogRecordOutput::Multiple(inner) => Some(inner),
+                LogRecordOutput::Attachment(inner) => {
+                    writer.attachments.push(inner);
+                    None
                 }
             }
-            LogRecordOutput::Attachment(inner) => {
-                self.attachments.push(inner);
+        }
+        if let Some(records) = fill(self, record) {
+            for record in records.into_iter() {
+                fill(self, record);
             }
         }
         if self.recent.elapsed().as_millis() > SEND_DURATION {
             if !self.buffer.is_empty() {
                 self.state
-                    .send_to_session_file(self.get_id(), std::mem::take(&mut self.buffer))?;
+                    .write_session_file(self.get_id(), std::mem::take(&mut self.buffer))
+                    .await?;
             }
             for attachment in std::mem::take(&mut self.attachments) {
                 // TODO: send with 1 call
@@ -110,10 +124,11 @@ impl LogRecordWriter for Writer {
         }
         Ok(())
     }
-    fn finalize(&mut self) -> Result<(), stypes::NativeError> {
+    async fn finalize(&mut self) -> Result<(), stypes::NativeError> {
         if !self.buffer.is_empty() {
             self.state
-                .send_to_session_file(self.get_id(), std::mem::take(&mut self.buffer))?;
+                .write_session_file(self.get_id(), std::mem::take(&mut self.buffer))
+                .await?;
         }
         for attachment in std::mem::take(&mut self.attachments) {
             // TODO: send with 1 call
