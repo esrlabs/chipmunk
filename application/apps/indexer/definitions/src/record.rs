@@ -113,7 +113,7 @@ pub trait LogRecordWriter {
     /// # Returns
     /// * `Ok(())` on success.
     /// * `Err(NativeError)` if the write operation fails.
-    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
+    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
 
     /// Called once when the `MessageProducer` has no more data to provide.
     ///
@@ -126,7 +126,7 @@ pub trait LogRecordWriter {
     /// # Returns
     /// * `Ok(())` on success.
     /// * `Err(NativeError)` if the finalization process fails.
-    fn finalize(&mut self) -> Result<(), stypes::NativeError>;
+    async fn finalize(&mut self) -> Result<(), stypes::NativeError>;
 
     /// Returns the unique identifier of the associated data source.
     ///
