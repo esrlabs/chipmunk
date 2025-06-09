@@ -8,6 +8,8 @@ const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 ]);
 
 const FIELD_COMMAND: &str = "COMMAND_FIELD_COMMAND";
+const FIELD_CWD: &str = "COMMAND_FIELD_CWD";
+const FIELD_SHELLS: &str = "COMMAND_FIELD_SHELLS";
 
 #[derive(Default)]
 pub struct Descriptor {}
@@ -39,14 +41,46 @@ impl ComponentFactory<crate::Source> for Descriptor {
 
 impl ComponentDescriptor for Descriptor {
     fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
-        Ok(vec![FieldDesc::Static(StaticFieldDesc {
-            id: FIELD_COMMAND.to_owned(),
-            name: "Terminal Command".to_owned(),
-            desc: String::new(),
-            required: true,
-            interface: ValueInput::String(String::new(), "terminal command".to_owned()),
-            binding: None,
-        })])
+        let mut shells = vec![("".to_owned(), "Default".to_owned())];
+        if let Ok(profiles) = envvars::get_profiles() {
+            shells = profiles
+                .into_iter()
+                .map(|profile| {
+                    let path = profile.path.to_string_lossy();
+                    (format!("{} ({path})", profile.name), path.to_string())
+                })
+                .collect();
+        }
+        Ok(vec![
+            FieldDesc::Static(StaticFieldDesc {
+                id: FIELD_COMMAND.to_owned(),
+                name: "Terminal Command".to_owned(),
+                desc: String::new(),
+                required: true,
+                interface: ValueInput::String(String::new(), "terminal command".to_owned()),
+                binding: None,
+            }),
+            FieldDesc::Static(StaticFieldDesc {
+                id: FIELD_CWD.to_owned(),
+                name: "Working Folder".to_owned(),
+                desc: String::new(),
+                required: true,
+                interface: ValueInput::Directory(
+                    env::current_dir()
+                        .map(|cwd| Some(cwd.to_string_lossy().to_string()))
+                        .unwrap_or(None),
+                ),
+                binding: None,
+            }),
+            FieldDesc::Static(StaticFieldDesc {
+                id: FIELD_SHELLS.to_owned(),
+                name: "Shell".to_owned(),
+                desc: String::new(),
+                required: true,
+                interface: ValueInput::NamedStrings(shells),
+                binding: None,
+            }),
+        ])
     }
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         match origin {
