@@ -5,6 +5,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatIcon } from '@angular/material/icon';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 import { FilesSelector } from './component';
 
@@ -16,6 +18,9 @@ import { FilesSelector } from './component';
         MatSelectModule,
         MatListModule,
         MatIcon,
+        FormsModule,
+        ReactiveFormsModule,
+        MatFormFieldModule,
     ],
     declarations: [FilesSelector],
     exports: [FilesSelector],
