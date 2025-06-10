@@ -3,28 +3,46 @@ use std::borrow::Cow;
 
 pub const COLUMN_SENTINAL: char = '\u{0004}';
 
+/// Some log records (e.g., in binary formats like DLT) may include attached files.
+/// This structure describes such attachments.
 #[derive(Debug, Clone, Serialize)]
 pub struct Attachment {
+    /// File name.
     pub name: String,
+    /// File size in bytes.
     pub size: usize,
+    /// File creation date, if available.
     pub created_date: Option<String>,
+    /// File modification date, if available.
     pub modified_date: Option<String>,
-    /// The indexes of the message within the original trace (0-based).
+    /// Indexes of the log messages (0-based) from which the file is composed.
     pub messages: Vec<usize>,
+    /// File content.
     pub data: Vec<u8>,
 }
 
 impl Attachment {
+    /// Appends additional data to the attachment.
+    ///
+    /// Since the content of a file may be split across multiple log messages,
+    /// this method allows merging the new chunk into the existing buffer.
+    ///
+    /// # Arguments
+    /// * `new_data` – A byte slice containing the next part of the file.
     pub fn add_data(&mut self, new_data: &[u8]) {
         self.data.extend_from_slice(new_data);
     }
 }
 
+/// Represents the result of a single parsing step.
+///
+/// This structure is used to report the outcome of log parsing from `MessageProducer`
+/// to its controlling logic.
 #[derive(Debug)]
 pub struct ParseOperationResult {
-    /// Number of consumed bytes
+    /// Number of bytes successfully consumed from the input buffer.
     pub consumed: usize,
-    /// Count of parsed and sent messages
+    /// Number of messages that were parsed and forwarded.
     pub count: usize,
 }
 
@@ -98,8 +116,8 @@ pub enum LogRecordOutput<'a> {
 /// When the `MessageProducer` has no more data to process, it calls `finalize`. At that point,
 /// the writer should persist any buffered data, if applicable.
 ///
-/// **Important:** The `write` method must not be asynchronous. This is required to keep
-/// the `MessageProducer` cancel-safe.
+/// **Important:** (pending TODO) The `write` method must not be cancel-safe. This is required to keep
+/// the `MessageProducer` cancel-safe. This problems isn't resolved yet.
 ///
 /// # Examples
 /// An implementation might buffer records in memory and write them in bulk
