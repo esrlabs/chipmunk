@@ -55,6 +55,16 @@ pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError
 /// * `StaticFieldsResult` - A result containing static field data or a native error.
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 
+/// A wrapper for storing the full descriptor of a component.
+///
+/// Although the internal value is stored as a `ComponentFactory`, it is important to note
+/// that all factories are also required to implement `ComponentDescriptor`, i.e.,
+/// `ComponentFactory<T>: ComponentDescriptor`.
+/// Therefore, this enum represents a full component descriptor, not just a factory.
+///
+/// Variants:
+/// - `Parser`: A descriptor for a parser component.
+/// - `Source`: A descriptor for a source component.
 pub enum Entry<S, P> {
     Parser(Box<dyn ComponentFactory<P>>),
     Source(Box<dyn ComponentFactory<S>>),

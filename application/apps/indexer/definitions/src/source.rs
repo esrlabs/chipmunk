@@ -74,7 +74,9 @@ pub const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 /// Requirements to `ByteSource` inner reader
 pub trait InnerReader: std::io::Read + Send + Unpin + 'static {}
 
-/// In summary, this decision prioritizes architectural flexibility, reduces long-term maintenance risks, and ensures code stability, making the overall system more sustainable and extensible in the long run.
+/// In summary, this decision prioritizes architectural flexibility, reduces long-term maintenance
+/// risks, and ensures code stability, making the overall system more sustainable and extensible
+/// in the long run.
 ///
 /// A `ByteSource` provides a way to read data from some underlying data source. But it does
 /// not provide a simple read interface, rather it allows implementations to filter the data
