@@ -192,7 +192,10 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         // TODO: safe openening URL
     }
 
-    constructor(cdRef: ChangeDetectorRef, protected readonly sanitizer: DomSanitizer) {
+    constructor(
+        cdRef: ChangeDetectorRef,
+        protected readonly sanitizer: DomSanitizer,
+    ) {
         super(cdRef);
     }
 
@@ -235,6 +238,39 @@ export class Details extends ChangesDetector implements AfterViewInit, AfterCont
         if (this.plugin.path === undefined) {
             return;
         }
+        const confirm = lockers.lock(
+            new Locker(
+                false,
+                `Are you sure you want to permanently remove '${this.plugin.name}' plugin?`,
+            )
+                .set()
+                .buttons([
+                    {
+                        caption: 'Remove',
+                        handler: () => {
+                            confirm.popup.close();
+                            this.doRemovePlugin();
+                        },
+                    },
+                    {
+                        caption: 'Cancel',
+                        handler: () => {
+                            confirm.popup.close();
+                        },
+                    },
+                ])
+                .end(),
+            {
+                closable: false,
+            },
+        );
+    }
+
+    doRemovePlugin() {
+        if (this.plugin.path === undefined) {
+            return;
+        }
+
         const lock = lockers.lock(new Locker(true, `Removing plugin...`), {
             closable: false,
         });
