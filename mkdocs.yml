@@ -13,6 +13,7 @@ nav:
   - Chipmunk CLI Tool: cli.md
   - Plugins:
     - Development Guide: plugins/development-guide.md
+    - Integration in Chipmunk UI: plugins/integration-ui.md
     - Plugins API Crate: plugins/plugins-api.md
   - Development: 
     - Chipmunk Core:
