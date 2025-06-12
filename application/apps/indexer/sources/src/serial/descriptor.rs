@@ -1,6 +1,12 @@
 use components::{ComponentDescriptor, ComponentFactory, StaticFieldResult};
-use std::{collections::HashMap, io::Read, str};
-use stypes::{FieldDesc, LazyFieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput};
+use std::{collections::HashMap, str};
+use stypes::{
+    ExtractByKey, FieldDesc, LazyFieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput,
+};
+
+use crate::prelude::SerialSource;
+
+use super::serialport::SerialConfig;
 
 const SERIAL_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06,
@@ -31,10 +37,55 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
+        origin: &SessionAction,
+        options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        Ok(None)
+        let missed = |field: &str| stypes::NativeError {
+            kind: stypes::NativeErrorKind::Configuration,
+            severity: stypes::Severity::ERROR,
+            message: Some(format!("Missed field {field} ")),
+        };
+        let errors = self.validate(origin, options);
+        if !errors.is_empty() {
+            return Err(stypes::NativeError {
+                kind: stypes::NativeErrorKind::Configuration,
+                severity: stypes::Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let config = SerialConfig {
+            path: options
+                .extract_by_key(FIELD_PATH)
+                .ok_or(missed(FIELD_PATH))?,
+            baud_rate: options
+                .extract_by_key(FIELD_BAUD_RATE)
+                .ok_or(missed(FIELD_BAUD_RATE))?,
+            data_bits: options
+                .extract_by_key(FIELD_DATA_BITS)
+                .ok_or(missed(FIELD_DATA_BITS))?,
+            flow_control: options
+                .extract_by_key(FIELD_FLOW_CONTROL)
+                .ok_or(missed(FIELD_FLOW_CONTROL))?,
+            parity: options
+                .extract_by_key(FIELD_PARITY)
+                .ok_or(missed(FIELD_PARITY))?,
+            stop_bits: options
+                .extract_by_key(FIELD_STOP_BITS)
+                .ok_or(missed(FIELD_STOP_BITS))?,
+            send_data_delay: options
+                .extract_by_key(FIELD_SEND_DATA_DELAY)
+                .ok_or(missed(FIELD_SEND_DATA_DELAY))?,
+            exclusive: options
+                .extract_by_key(FIELD_EXCLUSIVE)
+                .ok_or(missed(FIELD_EXCLUSIVE))?,
+        };
+        Ok(Some(crate::Source::Serial(SerialSource::new(config)?)))
     }
 }
 
@@ -50,7 +101,9 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Serial Port Connection"),
-            desc: String::from("Connects to the specified serial port using user-defined settings. Data is received as a raw byte stream in a \"as-is\" mode - that is, the parser receives exactly what was read from the port, without any framing."),
+            desc: String::from(
+                "Connects to the specified serial port using user-defined settings. Data is received as a raw byte stream in a \"as-is\" mode - that is, the parser receives exactly what was read from the port, without any framing.",
+            ),
             io: stypes::IODataType::PlaitText,
             uuid: SERIAL_SOURCE_UUID,
         }
