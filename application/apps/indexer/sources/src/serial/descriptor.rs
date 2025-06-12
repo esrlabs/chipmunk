@@ -1,7 +1,8 @@
 use components::{ComponentDescriptor, ComponentFactory, StaticFieldResult};
 use std::{collections::HashMap, str};
 use stypes::{
-    ExtractByKey, FieldDesc, LazyFieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput,
+    ExtractByKey, Extracted, Field, FieldDesc, LazyFieldDesc, NativeError, NativeErrorKind,
+    SessionAction, Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 
 use crate::prelude::SerialSource;
@@ -38,18 +39,13 @@ impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
-        options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        let missed = |field: &str| stypes::NativeError {
-            kind: stypes::NativeErrorKind::Configuration,
-            severity: stypes::Severity::ERROR,
-            message: Some(format!("Missed field {field} ")),
-        };
-        let errors = self.validate(origin, options);
+        options: &[Field],
+    ) -> Result<Option<crate::Source>, NativeError> {
+        let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
-            return Err(stypes::NativeError {
-                kind: stypes::NativeErrorKind::Configuration,
-                severity: stypes::Severity::ERROR,
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
                 message: Some(
                     errors
                         .values()
@@ -62,28 +58,36 @@ impl ComponentFactory<crate::Source> for Descriptor {
         let config = SerialConfig {
             path: options
                 .extract_by_key(FIELD_PATH)
-                .ok_or(missed(FIELD_PATH))?,
+                .ok_or(missed(FIELD_PATH))?
+                .value,
             baud_rate: options
                 .extract_by_key(FIELD_BAUD_RATE)
-                .ok_or(missed(FIELD_BAUD_RATE))?,
+                .ok_or(missed(FIELD_BAUD_RATE))?
+                .value,
             data_bits: options
                 .extract_by_key(FIELD_DATA_BITS)
-                .ok_or(missed(FIELD_DATA_BITS))?,
+                .ok_or(missed(FIELD_DATA_BITS))?
+                .value,
             flow_control: options
                 .extract_by_key(FIELD_FLOW_CONTROL)
-                .ok_or(missed(FIELD_FLOW_CONTROL))?,
+                .ok_or(missed(FIELD_FLOW_CONTROL))?
+                .value,
             parity: options
                 .extract_by_key(FIELD_PARITY)
-                .ok_or(missed(FIELD_PARITY))?,
+                .ok_or(missed(FIELD_PARITY))?
+                .value,
             stop_bits: options
                 .extract_by_key(FIELD_STOP_BITS)
-                .ok_or(missed(FIELD_STOP_BITS))?,
+                .ok_or(missed(FIELD_STOP_BITS))?
+                .value,
             send_data_delay: options
                 .extract_by_key(FIELD_SEND_DATA_DELAY)
-                .ok_or(missed(FIELD_SEND_DATA_DELAY))?,
+                .ok_or(missed(FIELD_SEND_DATA_DELAY))?
+                .value,
             exclusive: options
                 .extract_by_key(FIELD_EXCLUSIVE)
-                .ok_or(missed(FIELD_EXCLUSIVE))?,
+                .ok_or(missed(FIELD_EXCLUSIVE))?
+                .value,
         };
         Ok(Some(crate::Source::Serial(SerialSource::new(config)?)))
     }
@@ -111,7 +115,7 @@ impl ComponentDescriptor for Descriptor {
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
     }
-    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_PATH.to_owned(),
@@ -211,7 +215,7 @@ impl ComponentDescriptor for Descriptor {
     }
     fn lazy_fields_getter(
         &self,
-        _origin: stypes::SessionAction,
+        _origin: SessionAction,
         _cancel: tokio_util::sync::CancellationToken,
     ) -> components::LazyFieldsTask {
         Box::pin(async move {
@@ -232,19 +236,16 @@ impl ComponentDescriptor for Descriptor {
     }
     fn validate(
         &self,
-        _origin: &stypes::SessionAction,
-        fields: &[stypes::Field],
-    ) -> HashMap<String, String> {
+        _origin: &SessionAction,
+        fields: &[Field],
+    ) -> Result<HashMap<String, String>, NativeError> {
+        let path: Extracted<String> = fields
+            .extract_by_key(FIELD_PATH)
+            .ok_or(missed(FIELD_PATH))?;
         let mut errors = HashMap::new();
-        fields.iter().for_each(|field| {
-            if field.id == FIELD_PATH {
-                if let Value::String(path) = &field.value {
-                    if path.trim().is_empty() {
-                        errors.insert(field.id.clone(), "Path cannot be empty".to_owned());
-                    }
-                }
-            }
-        });
-        errors
+        if path.value.trim().is_empty() {
+            errors.insert(path.id.to_owned(), "Path cannot be empty".to_owned());
+        }
+        Ok(errors)
     }
 }

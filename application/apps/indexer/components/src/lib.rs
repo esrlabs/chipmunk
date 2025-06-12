@@ -307,7 +307,7 @@ impl<S, P> Components<S, P> {
             kind: stypes::NativeErrorKind::Configuration,
             message: Some(format!("Fail to find component {target}")),
         })?;
-        Ok(descriptor.validate(origin, fields))
+        descriptor.validate(origin, fields)
     }
 
     /// Attempts to create instances of a parser and source component based on the session setup.

@@ -1,6 +1,11 @@
 use components::{ComponentDescriptor, ComponentFactory};
 use std::collections::HashMap;
-use stypes::{FieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput};
+use stypes::{
+    ExtractAs, ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind,
+    SessionAction, Severity, StaticFieldDesc, Value, ValueInput, missed_field_err as missed,
+};
+
+use super::{MulticastInfo, UdpSource};
 
 const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
@@ -15,10 +20,65 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        Ok(None)
+        origin: &SessionAction,
+        options: &[Field],
+    ) -> Result<Option<crate::Source>, NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let addr: String = options
+            .extract_by_key(FIELD_IP_ADDR)
+            .ok_or(missed(FIELD_IP_ADDR))?
+            .value;
+        let multicast: &Vec<Field> = options
+            .extract_by_key(FIELD_MULTICAST_ADDR)
+            .ok_or(missed(FIELD_MULTICAST_ADDR))?
+            .value;
+        let mut multicasts = Vec::new();
+        for field in multicast {
+            let pair: &Vec<Field> = field.extract_as().ok_or(missed("Multicast Addr"))?;
+            if pair.len() != 2 {
+                return Err(NativeError {
+                    kind: NativeErrorKind::Configuration,
+                    severity: Severity::ERROR,
+                    message: Some("Invalid settings of multicast address".to_owned()),
+                });
+            }
+            let addr: String = (&pair[0]).extract_as().ok_or(missed("Multicast"))?;
+            let interface: String = (&pair[1]).extract_as().ok_or(missed("Interface"))?;
+            multicasts.push(MulticastInfo {
+                multiaddr: addr
+                    .parse::<std::net::IpAddr>()
+                    .map_err(|err| NativeError {
+                        kind: NativeErrorKind::Configuration,
+                        severity: Severity::ERROR,
+                        message: Some(format!("Fail to parse IP: {err}")),
+                    })?,
+                interface: if interface.is_empty() {
+                    None
+                } else {
+                    Some(interface)
+                },
+            })
+        }
+        Ok(Some(crate::Source::Udp(
+            UdpSource::new(addr, multicasts).map_err(|err| NativeError {
+                kind: NativeErrorKind::Io,
+                severity: Severity::ERROR,
+                message: Some(err.to_string()),
+            })?,
+        )))
     }
 }
 
@@ -44,7 +104,7 @@ impl ComponentDescriptor for Descriptor {
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
     }
-    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_IP_ADDR.to_owned(),
@@ -90,60 +150,55 @@ impl ComponentDescriptor for Descriptor {
 
     fn validate(
         &self,
-        _origin: &stypes::SessionAction,
-        fields: &[stypes::Field],
-    ) -> HashMap<String, String> {
+        _origin: &SessionAction,
+        fields: &[Field],
+    ) -> Result<HashMap<String, String>, NativeError> {
         fn is_valid(addr: &str) -> bool {
             addr.parse::<std::net::IpAddr>().is_ok()
         }
+        let multicast: Extracted<&Vec<Field>> = fields
+            .extract_by_key(FIELD_MULTICAST_ADDR)
+            .ok_or(missed(FIELD_MULTICAST_ADDR))?;
         let mut errors = HashMap::new();
-        if let Some(field) = fields.iter().find(|field| field.id == FIELD_MULTICAST_ADDR) {
-            if let Value::Fields(fields) = &field.value {
-                for pair in fields.into_iter() {
-                    if let Value::Fields(pair) = &pair.value {
-                        if pair.len() != 2 {
-                            errors.insert(
-                                field.id.to_owned(),
-                                "Invalid number of mutlicast settings".to_owned(),
-                            );
-                            break;
-                        }
-                        if let (Value::String(addr), Value::String(interface)) =
-                            (&pair[0].value, &pair[1].value)
-                        {
-                            if !is_valid(addr) {
-                                errors.insert(
-                                    pair[0].id.to_owned(),
-                                    "Expecting IP format 255.255.255.255".to_owned(),
-                                );
-                            }
-                            if !is_valid(interface) {
-                                errors.insert(
-                                    pair[1].id.to_owned(),
-                                    "Expecting IP format 0.0.0.0".to_owned(),
-                                );
-                            }
-                        } else {
-                            errors.insert(
-                                field.id.to_owned(),
-                                "Invalid values of mutlicast settings".to_owned(),
-                            );
-                            break;
-                        }
-                    } else {
-                        errors.insert(field.id.to_owned(), "Invalid mutlicast settings".to_owned());
-                        break;
+        for pair in multicast.value.into_iter() {
+            if let Value::Fields(pair) = &pair.value {
+                if pair.len() != 2 {
+                    errors.insert(
+                        multicast.id.to_owned(),
+                        "Invalid number of mutlicast settings".to_owned(),
+                    );
+                    break;
+                }
+                if let (Value::String(addr), Value::String(interface)) =
+                    (&pair[0].value, &pair[1].value)
+                {
+                    if !is_valid(addr) {
+                        errors.insert(
+                            pair[0].id.to_owned(),
+                            "Expecting IP format 255.255.255.255".to_owned(),
+                        );
                     }
+                    if !interface.is_empty() && !is_valid(interface) {
+                        errors.insert(
+                            pair[1].id.to_owned(),
+                            "Expecting IP format 0.0.0.0".to_owned(),
+                        );
+                    }
+                } else {
+                    errors.insert(
+                        multicast.id.to_owned(),
+                        "Invalid values of mutlicast settings".to_owned(),
+                    );
+                    break;
                 }
             } else {
-                errors.insert(field.id.to_owned(), "Invalid mutlicast settings".to_owned());
+                errors.insert(
+                    multicast.id.to_owned(),
+                    "Invalid mutlicast settings".to_owned(),
+                );
+                break;
             }
-        } else {
-            errors.insert(
-                FIELD_MULTICAST_ADDR.to_owned(),
-                "Fail to find mutlicast settings".to_owned(),
-            );
         }
-        errors
+        Ok(errors)
     }
 }

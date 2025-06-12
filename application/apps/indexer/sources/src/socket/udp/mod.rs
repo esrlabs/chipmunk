@@ -7,7 +7,10 @@ use definitions::*;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
 use thiserror::Error;
-use tokio::net::{ToSocketAddrs, UdpSocket};
+use tokio::{
+    net::{ToSocketAddrs, UdpSocket},
+    runtime::Handle,
+};
 
 pub use descriptor::*;
 
@@ -25,6 +28,11 @@ pub enum UdpSourceError {
     Config(stypes::NetError),
 }
 
+pub struct MulticastInfo {
+    pub multiaddr: IpAddr,
+    pub interface: Option<String>,
+}
+
 pub struct UdpSource {
     buffer: DeqBuffer,
     socket: UdpSocket,
@@ -32,16 +40,15 @@ pub struct UdpSource {
 }
 
 impl UdpSource {
-    pub async fn new<A: ToSocketAddrs>(
+    pub fn new<A: ToSocketAddrs>(
         addr: A,
-        multicast: Vec<stypes::MulticastInfo>,
+        multicast: Vec<MulticastInfo>,
     ) -> Result<Self, UdpSourceError> {
-        let socket = UdpSocket::bind(addr).await.map_err(UdpSourceError::Io)?;
+        let socket =
+            tokio::task::block_in_place(|| Handle::current().block_on(UdpSocket::bind(addr)))
+                .map_err(UdpSourceError::Io)?;
         for multicast_info in &multicast {
-            let multi_addr = multicast_info
-                .multicast_addr()
-                .map_err(UdpSourceError::Config)?;
-            match multi_addr {
+            match multicast_info.multiaddr {
                 IpAddr::V4(addr) => {
                     let inter: Ipv4Addr = match multicast_info.interface.as_ref() {
                         Some(s) => s.parse().map_err(UdpSourceError::ParseAddr)?,
