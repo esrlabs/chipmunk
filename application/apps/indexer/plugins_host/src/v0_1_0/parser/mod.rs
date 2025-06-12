@@ -137,8 +137,7 @@ impl defs::Parser for PluginParser {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
         // Calls on plugins must be async. To solve that we got the following solutions:
         // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
         //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
