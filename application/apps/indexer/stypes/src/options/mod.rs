@@ -1,7 +1,12 @@
+#[cfg(feature = "rustcore")]
+mod extending;
 #[cfg(feature = "nodejs")]
 mod nodejs;
 #[cfg(test)]
 mod proptest;
+
+#[cfg(feature = "rustcore")]
+pub use extending::*;
 
 use crate::*;
 
