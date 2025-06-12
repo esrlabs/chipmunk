@@ -121,7 +121,7 @@ impl<S, P> ComponentDescriptor for Entry<S, P> {
         &self,
         origin: &stypes::SessionAction,
         fields: &[stypes::Field],
-    ) -> HashMap<String, String> {
+    ) -> Result<HashMap<String, String>, stypes::NativeError> {
         match self {
             Self::Source(inner) => inner.validate(origin, fields),
             Self::Parser(inner) => inner.validate(origin, fields),
@@ -296,13 +296,16 @@ pub trait ComponentDescriptor {
     ///
     /// * `HashMap<String, String>` - A map where keys are field names and values are
     ///   error messages, if any. An empty map means no validation errors.
+    ///
+    /// # Errors
+    /// Expected that returns error if some of fields aren't found.
     #[allow(unused)]
     fn validate(
         &self,
         origin: &stypes::SessionAction,
         fields: &[stypes::Field],
-    ) -> HashMap<String, String> {
-        HashMap::new()
+    ) -> Result<HashMap<String, String>, stypes::NativeError> {
+        Ok(HashMap::new())
     }
 }
 

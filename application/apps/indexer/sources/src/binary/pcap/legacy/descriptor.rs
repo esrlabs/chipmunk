@@ -1,6 +1,8 @@
 use components::{ComponentFactory, ComponentDescriptor};
 use file_tools::is_binary;
-use stypes::SessionAction;
+use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
+
+use super::PcapLegacyByteSourceFromFile;
 
 const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
@@ -12,10 +14,20 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SessionAction,
+        origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        Ok(None)
+        let filepath = match origin {
+            SessionAction::File(file) => file,
+            SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(.. ) => {
+                return Err(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Configuration,
+                    message: Some("Pcap Legacy Source cannot be applied in this context".to_owned())
+                })
+            }
+        };
+        Ok(Some(crate::Source::Pcap(PcapLegacyByteSourceFromFile::new(filepath)?)))
     }
 }
 
