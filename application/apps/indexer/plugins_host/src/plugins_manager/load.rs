@@ -1,7 +1,7 @@
 use std::{
     fs::{self, read_to_string},
     io,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use stypes::{
@@ -9,9 +9,12 @@ use stypes::{
     PluginRunData,
 };
 
+use crate::plugins_manager::validator::{
+    PluginFilesStatus, validate_plugin_info, validate_plugins_metadata,
+};
 use crate::{
     PluginHostError, PluginType, PluginsByteSource, PluginsParser,
-    plugins_manager::paths::extract_plugin_file_paths, plugins_shared::plugin_errors::PluginError,
+    plugins_manager::validator::validate_plugin_files, plugins_shared::plugin_errors::PluginError,
 };
 
 use super::{
@@ -129,13 +132,7 @@ pub async fn load_plugin(
 
             rd.err(err_msg);
             return Ok(PluginEntityState::Invalid(
-                ExtendedInvalidPluginEntity::new(
-                    InvalidPluginEntity {
-                        dir_path: plug_dir,
-                        plugin_type: plug_type,
-                    },
-                    rd,
-                ),
+                ExtendedInvalidPluginEntity::new(InvalidPluginEntity::new(plug_dir, plug_type), rd),
             ));
         }
     };
@@ -156,10 +153,7 @@ pub async fn load_plugin(
                 rd.err(err_msg);
                 return Ok(PluginEntityState::Invalid(
                     ExtendedInvalidPluginEntity::new(
-                        InvalidPluginEntity {
-                            dir_path: plug_dir,
-                            plugin_type: plug_type,
-                        },
+                        InvalidPluginEntity::new(plug_dir, plug_type),
                         rd,
                     ),
                 ));
@@ -171,12 +165,8 @@ pub async fn load_plugin(
             PluginType::ByteSource => PluginsByteSource::get_info(wasm_file).await,
         };
 
-        match plug_info_res {
-            Ok(info) => {
-                cache_manager
-                    .update_plugin(&plug_dir, cache::CachedPluginState::Installed(info.clone()))?;
-                info
-            }
+        let info = match plug_info_res {
+            Ok(info) => info,
             // Stop the whole loading on engine errors
             Err(PluginError::PluginHostError(PluginHostError::EngineError(err))) => {
                 return Err(err.into());
@@ -190,10 +180,30 @@ pub async fn load_plugin(
                     .update_plugin(&plug_dir, cache::CachedPluginState::Invalid(err_msg))?;
                 return Ok(PluginEntityState::Invalid(
                     ExtendedInvalidPluginEntity::new(
-                        InvalidPluginEntity {
-                            dir_path: plug_dir,
-                            plugin_type: plug_type,
-                        },
+                        InvalidPluginEntity::new(plug_dir, plug_type),
+                        rd,
+                    ),
+                ));
+            }
+        };
+
+        match validate_plugin_info(&info) {
+            Ok(()) => {
+                cache_manager
+                    .update_plugin(&plug_dir, cache::CachedPluginState::Installed(info.clone()))?;
+                info
+            }
+            Err(err) => {
+                let err_msg = format!("Validating plugin infos failed. Error: {err}");
+                log::warn!("{err_msg}");
+                rd.err(&err_msg);
+
+                cache_manager
+                    .update_plugin(&plug_dir, cache::CachedPluginState::Invalid(err_msg))?;
+
+                return Ok(PluginEntityState::Invalid(
+                    ExtendedInvalidPluginEntity::new(
+                        InvalidPluginEntity::new(plug_dir, plug_type),
                         rd,
                     ),
                 ));
@@ -201,40 +211,44 @@ pub async fn load_plugin(
         }
     };
 
-    let plug_metadata = match metadata_file {
+    let plug_metadata_opt = match metadata_file {
         Some(file) => match parse_metadata(&file) {
-            Ok(metadata) => {
-                rd.info("Metadata file found and load");
-                metadata
-            }
+            Ok(metadata) => match validate_plugins_metadata(&metadata) {
+                Ok(()) => {
+                    rd.info("Metadata file found and load");
+                    Some(metadata)
+                }
+                Err(err) => {
+                    let err_msg = format!("Plugins metadata are invalid. Error: {err}");
+                    log::warn!("{err_msg}");
+                    rd.warn(err_msg);
+                    None
+                }
+            },
             Err(err_msg) => {
                 rd.err(format!(
                     "Parsing metadata file failed with error: {err_msg}"
                 ));
-                let dir_name = plug_dir
-                    .file_name()
-                    .and_then(|p| p.to_str())
-                    .unwrap_or("Unknown");
-
-                PluginMetadata {
-                    title: dir_name.into(),
-                    description: None,
-                }
+                None
             }
         },
         None => {
             rd.warn("Metadata file not found");
-            let dir_name = plug_dir
-                .file_name()
-                .and_then(|p| p.to_str())
-                .unwrap_or("Unknown");
-
-            PluginMetadata {
-                title: dir_name.into(),
-                description: None,
-            }
+            None
         }
     };
+
+    let plug_metadata = plug_metadata_opt.unwrap_or_else(|| {
+        let dir_name = plug_dir
+            .file_name()
+            .and_then(|p| p.to_str())
+            .unwrap_or("Unknown");
+
+        PluginMetadata {
+            title: dir_name.into(),
+            description: None,
+        }
+    });
 
     rd.info("Plugin has been load, checked and accepted");
     Ok(PluginEntityState::Valid(ExtendedPluginEntity::new(
@@ -256,79 +270,6 @@ fn get_dirs(dir_path: &PathBuf) -> Result<impl Iterator<Item = PathBuf>, io::Err
         .filter(|path| path.is_dir());
 
     Ok(dirs)
-}
-
-/// Represents the result of scanning a plugin directory,  
-/// providing details about detected files and validation status.
-#[derive(Debug, Clone)]
-pub enum PluginFilesStatus {
-    /// Represents valid plugin with its infos and metadata.
-    Valid {
-        /// The path for the plugin wasm file.
-        wasm_path: PathBuf,
-        /// Metadata of the plugins found in plugins metadata toml file.
-        metadata_file: Option<PathBuf>,
-        /// Path for plugin README markdown file.
-        readme_file: Option<PathBuf>,
-    },
-    /// Represents an invalid plugin with infos about validation error.
-    Invalid {
-        /// Error message explaining why the plugin is invalid.
-        err_msg: String,
-    },
-}
-
-/// Scans and validates the plugin directory, ensuring all required files exist  
-/// and collecting paths of relevant plugin-related files (both mandatory and optional).
-///
-/// * `plugin_dir`: Path for the plugin directory.
-pub fn validate_plugin_files(plugin_dir: &Path) -> Result<PluginFilesStatus, PluginsManagerError> {
-    use PluginFilesStatus as Re;
-
-    if !plugin_dir.exists() {
-        let err_msg = format!(
-            "Plugin directory doesn't exist. Path: {}",
-            plugin_dir.display()
-        );
-        return Ok(Re::Invalid { err_msg });
-    }
-
-    let Some(plugin_files) = extract_plugin_file_paths(plugin_dir) else {
-        let err_msg = format!(
-            "Extracting plugins files from its directory failed. Plugin directory: {}",
-            plugin_dir.display()
-        );
-        return Ok(Re::Invalid { err_msg });
-    };
-
-    let wasm_path = if plugin_files.wasm_file.exists() {
-        plugin_files.wasm_file
-    } else {
-        let err_msg = format!(
-            "Plugin WASM file not found. Path {}",
-            plugin_files.wasm_file.display()
-        );
-
-        return Ok(Re::Invalid { err_msg });
-    };
-
-    let metadata_file = plugin_files
-        .metadata_file
-        .exists()
-        .then_some(plugin_files.metadata_file);
-
-    let readme_file = plugin_files
-        .readme_file
-        .exists()
-        .then_some(plugin_files.readme_file);
-
-    let res = Re::Valid {
-        wasm_path,
-        metadata_file,
-        readme_file,
-    };
-
-    Ok(res)
 }
 
 /// Parser the plugin metadata from the provided toml file.

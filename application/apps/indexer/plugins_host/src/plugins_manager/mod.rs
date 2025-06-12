@@ -7,12 +7,13 @@ mod load;
 pub mod paths;
 #[cfg(test)]
 mod tests;
+mod validator;
 
 use std::path::{Path, PathBuf};
 
 use crate::plugins_shared::load::{WasmComponentInfo, load_and_inspect};
 use cache::CacheManager;
-use load::{PluginEntityState, PluginFilesStatus, load_plugin, validate_plugin_files};
+use load::{PluginEntityState, load_plugin};
 use paths::extract_plugin_file_paths;
 use stypes::{
     ExtendedInvalidPluginEntity, ExtendedPluginEntity, InvalidPluginEntity, PluginEntity,
@@ -20,6 +21,7 @@ use stypes::{
 };
 
 pub use errors::{PluginsCacheError, PluginsManagerError};
+use validator::{PluginFilesStatus, validate_plugin_files};
 
 /// Plugins manager responsible of loading the plugins, providing their states, info and metadata.
 #[derive(Debug)]

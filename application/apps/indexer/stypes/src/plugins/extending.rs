@@ -245,3 +245,13 @@ impl PluginLogMessage {
         }
     }
 }
+
+impl InvalidPluginEntity {
+    /// Creates a new instance of [`InvalidPluginEntity`] with the provided arguments.
+    pub fn new(dir_path: PathBuf, plugin_type: PluginType) -> Self {
+        Self {
+            dir_path,
+            plugin_type,
+        }
+    }
+}
