@@ -1,5 +1,5 @@
 [workspace]
-edition = "2024"
+resolver = "3"
 
 members = [
     "addons/dlt-tools",
@@ -55,6 +55,13 @@ proptest = "1.6"
 insta.opt-level = 3
 similar.opt-level = 3
 
+# Proptest and its random number generator can be CPU intensive, therefore setting their optimizations level 
+# to max will have significant performance improvement for the tests.
+[profile.test.package.proptest]
+opt-level = 3
+
+[profile.test.package.rand_chacha]
+opt-level = 3
 
 # only uncomment when profiling
 # [profile.release]
