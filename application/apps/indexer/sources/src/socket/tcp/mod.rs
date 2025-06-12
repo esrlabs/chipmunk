@@ -5,7 +5,7 @@ use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{net::SocketAddr, time::Duration};
-use tokio::net::TcpStream;
+use tokio::{net::TcpStream, runtime::Handle};
 
 use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
 
@@ -36,13 +36,13 @@ pub struct TcpSource {
 }
 
 impl TcpSource {
-    pub async fn new(
+    pub fn new(
         addr: &str,
         keepalive: Option<KeepAliveConfig>,
         reconnect_info: Option<ReconnectInfo>,
     ) -> Result<Self, std::io::Error> {
         let binding_address = addr.parse().map_err(std::io::Error::other)?;
-        let socket = Self::create_socket(binding_address, keepalive.as_ref()).await?;
+        let socket = Self::create_socket(binding_address, keepalive.as_ref())?;
         let reconnecter =
             reconnect_info.map(|rec| TcpReconnecter::new(rec, binding_address, keepalive));
         Ok(Self {
@@ -53,11 +53,13 @@ impl TcpSource {
         })
     }
 
-    async fn create_socket(
+    fn create_socket(
         binding_address: SocketAddr,
         keep_alive: Option<&KeepAliveConfig>,
     ) -> std::io::Result<TcpStream> {
-        let socket = TcpStream::connect(binding_address).await?;
+        let socket = tokio::task::block_in_place(|| {
+            Handle::current().block_on(TcpStream::connect(binding_address))
+        })?;
         if let Some(keepalive_config) = keep_alive {
             let socket_ref = SockRef::from(&socket);
             let keepalive = TcpKeepalive::new()

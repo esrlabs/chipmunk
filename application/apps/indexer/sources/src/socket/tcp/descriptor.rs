@@ -1,5 +1,12 @@
+use std::collections::HashMap;
+
 use components::{ComponentDescriptor, ComponentFactory};
-use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
+use stypes::{
+    ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
+};
+
+use crate::prelude::TcpSource;
 
 const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
@@ -14,10 +21,28 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        Ok(None)
+        origin: &SessionAction,
+        options: &[Field],
+    ) -> Result<Option<crate::Source>, NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let addr: String = options
+            .extract_by_key(FIELD_IP_ADDR)
+            .ok_or(missed(FIELD_IP_ADDR))?
+            .value;
+        Ok(Some(crate::Source::Tcp(TcpSource::new(&addr, None, None)?)))
     }
 }
 
@@ -33,7 +58,9 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("TCP Connection"),
-            desc: String::from("Connects to the specified IP address and port to receive incoming messages. If the connection fails, an appropriate error is returned. Each individual TCP message is passed to the parser without any headers - only the payload is forwarded."),
+            desc: String::from(
+                "Connects to the specified IP address and port to receive incoming messages. If the connection fails, an appropriate error is returned. Each individual TCP message is passed to the parser without any headers - only the payload is forwarded.",
+            ),
             io: stypes::IODataType::NetworkFramePayload,
             uuid: TCP_SOURCE_UUID,
         }
@@ -41,7 +68,7 @@ impl ComponentDescriptor for Descriptor {
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Source
     }
-    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         Ok(vec![FieldDesc::Static(StaticFieldDesc {
             id: FIELD_IP_ADDR.to_owned(),
             name: "IP address and port".to_owned(),
@@ -50,5 +77,25 @@ impl ComponentDescriptor for Descriptor {
             interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
             binding: None,
         })])
+    }
+    fn validate(
+        &self,
+        _origin: &SessionAction,
+        fields: &[Field],
+    ) -> Result<HashMap<String, String>, NativeError> {
+        fn is_valid(addr: &str) -> bool {
+            addr.parse::<std::net::SocketAddr>().is_ok()
+        }
+        let addr: Extracted<String> = fields
+            .extract_by_key(FIELD_IP_ADDR)
+            .ok_or(missed(FIELD_IP_ADDR))?;
+        let mut errors = HashMap::new();
+        if !is_valid(&addr.value) {
+            errors.insert(
+                addr.id.to_owned(),
+                "Expecting IP format 0.0.0.0::8888 (port is required)".to_owned(),
+            );
+        }
+        Ok(errors)
     }
 }
