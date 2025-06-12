@@ -34,7 +34,9 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("UDP Connection"),
-            desc: String::from("Starts listening on the specified IP address and port, as well as on any user-defined multicast addresses. Each received UDP packet is passed to the parser as-is, excluding headers - only the payload is forwarded."),
+            desc: String::from(
+                "Starts listening on the specified IP address and port, as well as on any user-defined multicast addresses. Each received UDP packet is passed to the parser as-is, excluding headers - only the payload is forwarded.",
+            ),
             io: stypes::IODataType::NetworkFramePayload,
             uuid: UDP_SOURCE_UUID,
         }
@@ -92,14 +94,7 @@ impl ComponentDescriptor for Descriptor {
         fields: &[stypes::Field],
     ) -> HashMap<String, String> {
         fn is_valid(addr: &str) -> bool {
-            let mut count = 0;
-            for part in addr.split(".") {
-                if part.parse::<u8>().is_err() {
-                    return false;
-                }
-                count += 1;
-            }
-            count == 4
+            addr.parse::<std::net::IpAddr>().is_ok()
         }
         let mut errors = HashMap::new();
         if let Some(field) = fields.iter().find(|field| field.id == FIELD_MULTICAST_ADDR) {
