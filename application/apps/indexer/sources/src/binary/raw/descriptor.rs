@@ -18,14 +18,14 @@ impl ComponentFactory<crate::Source> for Descriptor {
     ) -> Result<Option<crate::Source>, stypes::NativeError> {
         let filename = match origin {
             SessionAction::File(filename) => filename,
-            _ => {
+            SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
                 return Err(stypes::NativeError {
                     severity: stypes::Severity::ERROR,
                     kind: stypes::NativeErrorKind::Configuration,
                     message: Some(
                         "origin isn't supported by this source (BinaryByteSource)".to_owned(),
                     ),
-                })
+                });
             }
         };
         Ok(Some(crate::Source::Raw(

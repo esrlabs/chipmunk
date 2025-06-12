@@ -1,6 +1,8 @@
 use components::{ComponentDescriptor, ComponentFactory};
 use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
 
+use super::SomeipParser;
+
 const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 ]);
@@ -19,7 +21,7 @@ impl ComponentFactory<crate::Parser> for Descriptor {
         _origin: &SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(None)
+        Ok(Some(crate::Parser::SomeIp(SomeipParser::new())))
     }
 }
 
@@ -80,7 +82,9 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("SOME/IP"),
-            desc: String::from("SomeIP Parser is a binary parser designed to decode messages conforming to the AUTOSAR SOME/IP (Scalable service-Oriented Middleware over IP) protocol. It processes raw binary input and extracts structured message data, including service ID, method ID, payload length, and more. The parser can be applied to both files and network streams (e.g., TCP/UDP). If a valid DLT message is detected within the SOME/IP payload, it will be automatically passed to the DLT parser and decoded accordingly."),
+            desc: String::from(
+                "SomeIP Parser is a binary parser designed to decode messages conforming to the AUTOSAR SOME/IP (Scalable service-Oriented Middleware over IP) protocol. It processes raw binary input and extracts structured message data, including service ID, method ID, payload length, and more. The parser can be applied to both files and network streams (e.g., TCP/UDP). If a valid DLT message is detected within the SOME/IP payload, it will be automatically passed to the DLT parser and decoded accordingly.",
+            ),
             io: stypes::IODataType::NetworkFramePayload,
             uuid: SOMEIP_PARSER_UUID,
         }
