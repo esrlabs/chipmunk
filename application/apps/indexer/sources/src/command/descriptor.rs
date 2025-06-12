@@ -1,7 +1,10 @@
 use super::ProcessSource;
 use components::{ComponentDescriptor, ComponentFactory};
 use std::{collections::HashMap, env};
-use stypes::{FieldDesc, SessionAction, StaticFieldDesc, Value, ValueInput};
+use stypes::{
+    ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
+};
 
 const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07,
@@ -17,30 +20,34 @@ pub struct Descriptor {}
 impl ComponentFactory<crate::Source> for Descriptor {
     fn create(
         &self,
-        _origin: &SessionAction,
-        options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
-        let Some(command) = options.iter().find_map(|field| {
-            if field.id == FIELD_COMMAND {
-                if let Value::String(command) = &field.value {
-                    Some(command.clone())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }) else {
-            return Ok(None);
-        };
+        origin: &SessionAction,
+        options: &[Field],
+    ) -> Result<Option<crate::Source>, NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let command: Extracted<String> = options
+            .extract_by_key(FIELD_COMMAND)
+            .ok_or(missed(FIELD_COMMAND))?;
         Ok(Some(crate::Source::Process(
-            ProcessSource::new(command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
+            ProcessSource::new(command.value, env::current_dir().unwrap(), HashMap::new()).unwrap(),
         )))
     }
 }
 
 impl ComponentDescriptor for Descriptor {
-    fn fields_getter(&self, _origin: &stypes::SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         let mut shells = vec![("".to_owned(), "Default".to_owned())];
         if let Ok(profiles) = envvars::get_profiles() {
             shells = profiles
@@ -93,7 +100,9 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Command Output"),
-            desc: String::from("Reads the standard output (stdout) of a launched command. The data is passed to the parser as lines of text."),
+            desc: String::from(
+                "Reads the standard output (stdout) of a launched command. The data is passed to the parser as lines of text.",
+            ),
             io: stypes::IODataType::PlaitText,
             uuid: TERM_SOURCE_UUID,
         }
@@ -103,19 +112,16 @@ impl ComponentDescriptor for Descriptor {
     }
     fn validate(
         &self,
-        _origin: &stypes::SessionAction,
-        fields: &[stypes::Field],
-    ) -> HashMap<String, String> {
+        _origin: &SessionAction,
+        fields: &[Field],
+    ) -> Result<HashMap<String, String>, NativeError> {
         let mut errors = HashMap::new();
-        fields.iter().for_each(|field| {
-            if field.id == FIELD_COMMAND {
-                if let Value::String(path) = &field.value {
-                    if path.trim().is_empty() {
-                        errors.insert(field.id.clone(), "command cannot be empty".to_owned());
-                    }
-                }
-            }
-        });
-        errors
+        let command: Extracted<String> = fields
+            .extract_by_key(FIELD_COMMAND)
+            .ok_or(missed(FIELD_COMMAND))?;
+        if command.value.trim().is_empty() {
+            errors.insert(command.id.to_owned(), "command cannot be empty".to_owned());
+        }
+        Ok(errors)
     }
 }
