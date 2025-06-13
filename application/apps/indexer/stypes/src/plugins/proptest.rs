@@ -245,10 +245,7 @@ impl Arbitrary for InvalidPluginEntity {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         (any::<PathBuf>(), any::<PluginType>())
-            .prop_map(|(dir_path, plugin_type)| Self {
-                dir_path,
-                plugin_type,
-            })
+            .prop_map(|(dir_path, plugin_type)| Self::new(dir_path, plugin_type))
             .boxed()
     }
 }

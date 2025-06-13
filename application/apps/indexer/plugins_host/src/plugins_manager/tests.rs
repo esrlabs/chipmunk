@@ -92,16 +92,8 @@ fn create_manager() -> PluginsManager {
     ];
 
     let mut invalid_plugins: Vec<ExtendedInvalidPluginEntity> = vec![
-        InvalidPluginEntity {
-            dir_path: INV_PARSER_PATH.into(),
-            plugin_type: PluginType::Parser,
-        }
-        .into(),
-        InvalidPluginEntity {
-            dir_path: INV_SOURCE_PATH.into(),
-            plugin_type: PluginType::ByteSource,
-        }
-        .into(),
+        InvalidPluginEntity::new(INV_PARSER_PATH.into(), PluginType::Parser).into(),
+        InvalidPluginEntity::new(INV_SOURCE_PATH.into(), PluginType::ByteSource).into(),
     ];
     invalid_plugins[0].run_data.err("error");
     invalid_plugins[1].run_data.err("error");
