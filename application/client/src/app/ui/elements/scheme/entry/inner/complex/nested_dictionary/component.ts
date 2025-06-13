@@ -2,11 +2,8 @@ import { Component, ChangeDetectorRef, Input, AfterContentInit } from '@angular/
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { bytesToStr, timestampToUTC } from '@env/str';
 import { State } from './state';
 import { Element, NestedDictionaryElement } from '../../element';
-
-import * as els from '../../element';
 
 @Component({
     selector: 'app-settings-scheme-nested-dictionary',
@@ -27,7 +24,7 @@ export class NestedDictionary extends ChangesDetector implements AfterContentIni
     }
 
     public ngAfterContentInit(): void {
-        this.state = new State(this.inner.items, this.inner.dictionary);
+        this.state = new State(this.inner.items, this.inner.dictionary, this.element);
     }
 
     public ngOnEntitySelect() {

@@ -84,7 +84,7 @@ impl ComponentDescriptor for Descriptor {
                 name: "Shell".to_owned(),
                 desc: String::new(),
                 required: true,
-                interface: ValueInput::NamedStrings(shells),
+                interface: ValueInput::NamedStrings(shells, String::new()),
                 binding: None,
             }),
         ])
