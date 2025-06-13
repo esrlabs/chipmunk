@@ -154,10 +154,10 @@ pub enum ValueInput {
     NamedBools(Vec<(String, bool)>),
     #[cfg_attr(
         all(test, feature = "test_and_gen"),
-        ts(type = "Array<[string, number]>")
+        ts(type = "[Array<[string, number]>, number]")
     )]
-    NamedNumbers(Vec<(String, i64)>),
-    NamedStrings(Vec<(String, String)>),
+    NamedNumbers(Vec<(String, i64)>, i64),
+    NamedStrings(Vec<(String, String)>, String),
     #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, number>"))]
     KeyNumber(HashMap<String, i64>),
     #[cfg_attr(
