@@ -46,11 +46,11 @@ export class KeyValueElement<K, V> extends ElementInner {
 
 export function tryFromOrigin(origin: ValueInput): KeyValueElement<string, any> | undefined {
     function as_named_numbers(origin: ValueInput): KeyValueElement<string, number> | undefined {
-        const vl = origin as { NamedNumbers: [string, number][] };
+        const vl = origin as { NamedNumbers: [[string, number][], number] };
         return vl.NamedNumbers
             ? new KeyValueElement(
-                  vl.NamedNumbers[0][1],
-                  vl.NamedNumbers,
+                  vl.NamedNumbers[1],
+                  vl.NamedNumbers[0],
                   InnerType.Number,
                   (value: number): Value => {
                       return {
@@ -66,11 +66,11 @@ export function tryFromOrigin(origin: ValueInput): KeyValueElement<string, any> 
             : undefined;
     }
     function as_named_strings(origin: ValueInput): KeyValueElement<string, string> | undefined {
-        const vl = origin as { NamedStrings: [string, string][] };
+        const vl = origin as { NamedStrings: [[string, string][], string] };
         return vl.NamedStrings
             ? new KeyValueElement(
-                  vl.NamedStrings[0][1],
-                  vl.NamedStrings,
+                  vl.NamedStrings[1],
+                  vl.NamedStrings[0],
                   InnerType.String,
                   (value: unknown): Value => {
                       return {
@@ -87,9 +87,9 @@ export function tryFromOrigin(origin: ValueInput): KeyValueElement<string, any> 
               )
             : undefined;
     }
-    if ((origin as { NamedNumbers: [string, number][] }).NamedNumbers) {
+    if ((origin as { NamedNumbers: [[string, number][], number] }).NamedNumbers) {
         return as_named_numbers(origin) as KeyValueElement<string, number>;
-    } else if ((origin as { NamedStrings: [string, string][] }).NamedStrings) {
+    } else if ((origin as { NamedStrings: [[string, string][], string] }).NamedStrings) {
         return as_named_strings(origin) as KeyValueElement<string, string>;
     } else {
         return undefined;
