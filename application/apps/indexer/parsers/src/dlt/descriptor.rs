@@ -7,12 +7,12 @@ use dlt_core::{
         common::{StatisticInfo, StatisticInfoCollector},
     },
 };
-use std::collections::HashMap;
-use std::fmt;
 use std::fs::File;
+use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashSet, fmt};
 use stypes::{
-    FieldDesc, NativeError, NativeErrorKind, SessionAction, Severity, StaticFieldDesc, Value,
-    ValueInput,
+    ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -52,35 +52,60 @@ impl ComponentFactory<crate::Parser> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
-        options: &[stypes::Field],
-    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        let mut filter_config: Option<ProcessedDltFilterConfig> = None;
-        let mut someip_metadata: Option<FibexSomeipMetadata> = None;
-        let mut dlt_metadata: Option<FibexDltMetadata> = None;
-        for field in options.into_iter() {
-            if field.id == FIELD_FIBEX_FILES {
-                let Value::Files(paths) = &field.value else {
-                    return Err(to_native_cfg_err("Invalid settings for Fibex files paths"));
-                };
-                someip_metadata = if paths.is_empty() {
-                    None
-                } else {
-                    FibexSomeipMetadata::from_fibex_files(paths.clone())
-                };
-                dlt_metadata = if paths.is_empty() {
-                    None
-                } else {
-                    dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
-                        fibex_file_paths: paths
-                            .iter()
-                            .map(|p| p.to_string_lossy().to_string())
-                            .collect(),
-                    })
-                };
-            }
+        options: &[Field],
+    ) -> Result<Option<crate::Parser>, NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
         }
+        let fibex_file_paths: &Vec<PathBuf> = options
+            .extract_by_key(FIELD_FIBEX_FILES)
+            .ok_or(missed(FIELD_FIBEX_FILES))?
+            .value;
+        let dlt_metadata = dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
+            fibex_file_paths: fibex_file_paths
+                .iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect(),
+        });
+        let someip_metadata = FibexSomeipMetadata::from_fibex_files(fibex_file_paths);
+        let min_log_level = u8_to_log_level(
+            options
+                .extract_by_key(FIELD_LOG_LEVEL)
+                .ok_or(missed(FIELD_LOG_LEVEL))?
+                .value,
+        )
+        .ok_or(missed(FIELD_LOG_LEVEL))?;
+        let stats: &HashMap<String, Vec<String>> = options
+            .extract_by_key(FIELD_STATISTICS)
+            .ok_or(missed(FIELD_STATISTICS))?
+            .value;
+        let filter_config: ProcessedDltFilterConfig = ProcessedDltFilterConfig {
+            min_log_level: Some(min_log_level),
+            app_ids: stats
+                .get(&StatFields::AppIds.to_string())
+                .map(|fields| fields.iter().cloned().collect()),
+            ecu_ids: stats
+                .get(&StatFields::EcuIds.to_string())
+                .map(|fields| fields.iter().cloned().collect()),
+            context_ids: stats
+                .get(&StatFields::ContextIds.to_string())
+                .map(|fields| fields.iter().cloned().collect()),
+            app_id_count: 0,
+            context_id_count: 0,
+        };
         Ok(Some(crate::Parser::Dlt(DltParser::new(
-            None,
+            Some(filter_config),
             dlt_metadata,
             None,
             someip_metadata,
@@ -128,16 +153,16 @@ impl ComponentDescriptor for Descriptor {
                 name: "Log Level".to_owned(),
                 desc: "Log Level — defines the minimum severity level of log messages to be displayed. Messages with lower severity (e.g., Debug or Verbose) will be filtered out. For example, if \"Error\" is selected, only messages with level \"Error\" and above (e.g., Fatal) will be shown, while lower levels such as \"Warning\" or \"Debug\" will be ignored.".to_owned(),
                 required: true,
-                interface: ValueInput::Strings(
+                interface: ValueInput::NamedNumbers(
                     vec![
-                        "Fatal".to_owned(),
-                        "Error".to_owned(),
-                        "Warn".to_owned(),
-                        "Info".to_owned(),
-                        "Debug".to_owned(),
-                        "Verbose".to_owned(),
+                        ("Fatal".to_owned(), 1),
+                        ("Error".to_owned(), 2),
+                        ("Warn".to_owned(), 3),
+                        ("Info".to_owned(), 4),
+                        ("Debug".to_owned(), 5),
+                        ("Verbose".to_owned(), 6),
                     ],
-                    "Verbose".to_owned(),
+                    6,
                 ),
                 binding: None,
             }),
@@ -171,10 +196,12 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("DLT"),
-            desc: String::from("DLT Parser is a binary parser for decoding AUTOSAR DLT (Diagnostic Log and Trace) messages. It processes raw binary input and extracts structured log information according to the DLT protocol specification. The parser can be applied both to files (typically containing a StorageHeader) and to live streams over TCP or UDP. It expects binary data as input and does not perform any framing or transport-level parsing."),
+            desc: String::from(
+                "DLT Parser is a binary parser for decoding AUTOSAR DLT (Diagnostic Log and Trace) messages. It processes raw binary input and extracts structured log information according to the DLT protocol specification. The parser can be applied both to files (typically containing a StorageHeader) and to live streams over TCP or UDP. It expects binary data as input and does not perform any framing or transport-level parsing.",
+            ),
             io: stypes::IODataType::Multiple(vec![
                 stypes::IODataType::NetworkFramePayload,
-                stypes::IODataType::Raw
+                stypes::IODataType::Raw,
             ]),
             uuid: DLT_PARSER_UUID,
         }
@@ -198,7 +225,7 @@ impl ComponentDescriptor for Descriptor {
                         required: true,
                         interface: ValueInput::KeyString(HashMap::new()),
                         binding: None,
-                    })])
+                    })]);
                 }
             };
             let mut stat = StatisticInfo::new();
@@ -303,5 +330,17 @@ impl ComponentDescriptor for Descriptor {
     }
     fn ty(&self) -> stypes::ComponentType {
         stypes::ComponentType::Parser
+    }
+}
+
+fn u8_to_log_level(level: u8) -> Option<dlt::LogLevel> {
+    match level {
+        1 => Some(dlt::LogLevel::Fatal),
+        2 => Some(dlt::LogLevel::Error),
+        3 => Some(dlt::LogLevel::Warn),
+        4 => Some(dlt::LogLevel::Info),
+        5 => Some(dlt::LogLevel::Debug),
+        6 => Some(dlt::LogLevel::Verbose),
+        _ => None,
     }
 }

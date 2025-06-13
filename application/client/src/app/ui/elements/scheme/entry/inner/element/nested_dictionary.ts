@@ -32,17 +32,19 @@ export class NestedDictionaryElement<V> extends ElementInner {
     }
 }
 
-export function tryFromOrigin(origin: ValueInput): NestedDictionaryElement<string[]> | undefined {
+export function tryFromOrigin(
+    origin: ValueInput,
+): NestedDictionaryElement<Map<string, string[]>> | undefined {
     const vl = origin as {
         NestedNumbersMap: [Map<string, Map<string, Map<string, number>>>, Map<string, string>];
     };
     return vl.NestedNumbersMap instanceof Array && vl.NestedNumbersMap.length === 2
-        ? new NestedDictionaryElement<string[]>(
-              [],
+        ? new NestedDictionaryElement<Map<string, string[]>>(
+              new Map(),
               vl.NestedNumbersMap[0],
               vl.NestedNumbersMap[1],
-              (selections: string[]) => {
-                  return { Strings: selections };
+              (selections: Map<string, string[]>) => {
+                  return { KeyStrings: selections };
               },
           )
         : undefined;

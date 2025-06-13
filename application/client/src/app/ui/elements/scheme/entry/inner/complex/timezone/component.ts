@@ -48,6 +48,8 @@ export class TimezoneSelector extends ChangesDetector implements AfterContentIni
                                     utc: timezone.utc,
                                 };
                             }
+                            this.element.setValue(this.tz ? this.tz.offset : -1);
+                            this.element.change();
                             this.detectChanges();
                         },
                     },
