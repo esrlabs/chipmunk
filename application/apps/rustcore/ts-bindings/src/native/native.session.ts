@@ -14,7 +14,7 @@ import { ISourceLink } from 'platform/types/observe/types';
 import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
-import { IObserve } from 'platform/types/observe';
+import { SessionSetup } from 'platform/types/bindings';
 import { TextExportOptions } from 'platform/types/exporting';
 
 import * as protocol from 'protocol';
@@ -135,7 +135,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * async operation. After TCanceler was called, @event destroy of @param emitter would be expected to
      * confirm cancelation.
      */
-    public abstract observe(source: IObserve, operationUuid: string): Promise<void>;
+    public abstract observe(options: SessionSetup, operationUuid: string): Promise<void>;
 
     public abstract export(
         dest: string,
@@ -741,12 +741,12 @@ export class RustSessionWrapper extends RustSession {
         return '';
     }
 
-    public observe(source: IObserve, operationUuid: string): Promise<void> {
+    public observe(options: SessionSetup, operationUuid: string): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this._provider.debug().emit.operation('observe', operationUuid);
                 this._native
-                    .observe(protocol.encodeObserveOptions(source), operationUuid)
+                    .observe(protocol.encodeSessionSetup(options), operationUuid)
                     .then(resolve)
                     .catch((err: Error) => {
                         reject(NativeError.from(err));

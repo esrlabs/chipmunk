@@ -1,5 +1,11 @@
 @import './variables.less';
-
+*.mat-form-disable-background {
+    & mat-form-field {
+        & .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+            background-color: unset;
+        }
+    }
+}
 mat-form-field.material-mofication-normal {
     &.stretch {
         display: flex;

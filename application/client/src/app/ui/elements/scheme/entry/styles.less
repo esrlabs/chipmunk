@@ -1,0 +1,38 @@
+@import '../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    padding: 2px;
+    margin: 6px;
+    &.field-inline {
+        display: inline-block;
+        height: 62px;    
+    }
+    &.field-row {
+        display: block;
+    }
+    &.field-block {
+        display: block;
+        width: auto;
+        height: auto;
+    }
+    p.title {
+        display: block;
+        color: var(--scheme-color-1);
+        padding: 3px 0px 0 16px;
+    }
+    p.desc {
+        display: block;
+        color: var(--scheme-color-2);
+        padding: 3px 0px 0 16px;
+    }
+    p.error {
+        color: var(--scheme-color-error-light);
+    }
+    div.loading {
+        position: relative;
+        height: 2px;
+        width: 100%;
+    }
+}

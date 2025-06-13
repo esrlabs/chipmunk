@@ -119,7 +119,7 @@ async fn reconnect(
         }
         log::info!("Reconnecting to TCP server. Attempt: {attempts}");
 
-        match super::TcpSource::create_socket(binding_address, keep_alive.as_ref()).await {
+        match super::TcpSource::create_socket(binding_address, keep_alive.as_ref()) {
             Ok(socket) => {
                 if let Some(sender) = &reconnect_info.state_sender {
                     if let Err(err) = sender.send(ReconnectStateMsg::Connected) {

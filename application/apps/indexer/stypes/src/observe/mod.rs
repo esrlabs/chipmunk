@@ -1,15 +1,120 @@
 #[cfg(feature = "rustcore")]
+mod converting;
+#[cfg(feature = "rustcore")]
 mod extending;
 #[cfg(feature = "nodejs")]
 mod nodejs;
 #[cfg(test)]
 mod proptest;
 
+use std::ops::RangeInclusive;
+
 #[cfg(feature = "rustcore")]
 pub use extending::*;
 
 use crate::*;
 use dlt_core::filtering::DltFilterConfig;
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+/// Описывает операцию, которая должна быть произведена
+pub enum SessionAction {
+    File(PathBuf),
+    Files(Vec<PathBuf>),
+    ExportRaw(Vec<PathBuf>, Vec<RangeInclusive<u64>>, PathBuf),
+    Source,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub enum ComponentDef {
+    Source(ComponentOptions),
+    Parser(ComponentOptions),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct SessionSetup {
+    pub origin: SessionAction,
+    pub parser: ComponentOptions,
+    pub source: ComponentOptions,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct SessionDescriptor {
+    pub parser: Ident,
+    pub source: Ident,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct IdentList(pub Vec<Ident>);
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct Ident {
+    pub name: String,
+    pub desc: String,
+    pub io: IODataType,
+    pub uuid: Uuid,
+}
+
+/// Represents the type of a component within the system.
+///
+/// The component type indicates the general domain of responsibility and
+/// functional role of the component. It is used to categorize components
+/// according to their purpose in the data processing pipeline.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Hash)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub enum ComponentType {
+    /// A standard parser used during session processing.
+    ///
+    /// These parsers transform raw input data into a structured representation
+    /// that can be stored in session files and later viewed or analyzed by the user.
+    Parser,
+
+    /// A data source component.
+    ///
+    /// Responsible for providing input data to the system, such as reading from
+    /// a file, a network stream, or another external interface.
+    Source,
+}
 
 /// Multicast configuration information.
 /// - `multiaddr`: A valid multicast address.

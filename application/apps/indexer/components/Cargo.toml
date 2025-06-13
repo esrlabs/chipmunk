@@ -1,0 +1,13 @@
+[package]
+name = "components"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror.workspace = true
+uuid = { workspace = true , features = ["serde", "v4"] }
+tokio-util.workspace = true
+tokio = { workspace = true , features = ["full"] }
+log.workspace = true
+
+stypes = { path = "../stypes", features=["rustcore"] }
