@@ -65,8 +65,8 @@ export type ValueInput =
     | { Numbers: [Array<number>, number] }
     | { Strings: [Array<string>, string] }
     | { NamedBools: Array<[string, boolean]> }
-    | { NamedNumbers: Array<[string, number]> }
-    | { NamedStrings: Array<[string, string]> }
+    | { NamedNumbers: [Array<[string, number]>, number] }
+    | { NamedStrings: [Array<[string, string]>, string] }
     | { KeyNumber: Map<string, number> }
     | { KeyNumbers: Map<string, number[]> }
     | { KeyString: Map<string, string> }

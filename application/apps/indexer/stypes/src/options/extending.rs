@@ -108,6 +108,20 @@ impl<'l> ExtractByKey<&'l Vec<Field>> for &'l [Field] {
     }
 }
 
+impl<'l> ExtractByKey<&'l Vec<PathBuf>> for &'l [Field] {
+    fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, &'l Vec<PathBuf>>> {
+        extract_from_fields_by_key(&self, key)
+    }
+}
+
+impl<'l> ExtractByKey<&'l HashMap<String, Vec<String>>> for &'l [Field] {
+    fn extract_by_key<'a>(
+        &'a self,
+        key: &str,
+    ) -> Option<Extracted<'a, &'l HashMap<String, Vec<String>>>> {
+        extract_from_fields_by_key(&self, key)
+    }
+}
 /// A trait that provides type-specific extraction logic from a `Field`.
 ///
 /// This trait allows extracting a value of type `T` from a `Field`
@@ -301,6 +315,48 @@ impl<'l> ExtractAs<&'l Vec<Field>> for &'l Field {
             | Value::KeyNumbers(..)
             | Value::KeyString(..)
             | Value::KeyStrings(..)
+            | Value::String(..)
+            | Value::Numbers(..)
+            | Value::Strings(..) => None,
+        }
+    }
+}
+
+impl<'l> ExtractAs<&'l Vec<PathBuf>> for &'l Field {
+    fn extract_as(&self) -> Option<&'l Vec<PathBuf>> {
+        match &self.value {
+            Value::Files(value) => Some(value),
+            Value::Number(..)
+            | Value::Directories(..)
+            | Value::Directory(..)
+            | Value::Boolean(..)
+            | Value::File(..)
+            | Value::Fields(..)
+            | Value::KeyNumber(..)
+            | Value::KeyNumbers(..)
+            | Value::KeyString(..)
+            | Value::KeyStrings(..)
+            | Value::String(..)
+            | Value::Numbers(..)
+            | Value::Strings(..) => None,
+        }
+    }
+}
+
+impl<'l> ExtractAs<&'l HashMap<String, Vec<String>>> for &'l Field {
+    fn extract_as(&self) -> Option<&'l HashMap<String, Vec<String>>> {
+        match &self.value {
+            Value::KeyStrings(value) => Some(value),
+            Value::Number(..)
+            | Value::Directories(..)
+            | Value::Directory(..)
+            | Value::Boolean(..)
+            | Value::File(..)
+            | Value::Fields(..)
+            | Value::KeyNumber(..)
+            | Value::KeyNumbers(..)
+            | Value::KeyString(..)
+            | Value::Files(..)
             | Value::String(..)
             | Value::Numbers(..)
             | Value::Strings(..) => None,

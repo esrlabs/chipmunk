@@ -1,9 +1,9 @@
 import { Section } from './structure/section';
 import { Summary } from './summary';
 import { DictionaryEntities } from './structure/statentity';
-import { getTypedProp } from '@platform/env/obj';
 import { NestedDictionaryStructure } from '../../element';
 import { Holder as MatcherHolder } from '@module/matcher';
+import { Element } from '../../element';
 
 export const ENTITIES = {
     app_ids: 'app_ids',
@@ -29,6 +29,7 @@ export class State extends MatcherHolder {
     constructor(
         protected readonly data: NestedDictionaryStructure,
         protected readonly dictionary: Map<string, string>,
+        protected readonly element: Element,
     ) {
         super();
         this.struct().build(new Map());
@@ -118,35 +119,23 @@ export class State extends MatcherHolder {
                     return;
                 }
                 selected.reset();
+                const data: Map<string, string[]> = new Map();
                 this.structure.forEach((structure) => {
                     structure.entities.forEach((entity) => {
-                        entity.selected && selected.inc(entity);
+                        if (!entity.selected) {
+                            return;
+                        }
+                        selected.inc(entity);
+                        let entries = data.get(structure.key);
+                        if (!entries) {
+                            entries = [];
+                        }
+                        entries.push(entity.id);
+                        data.set(structure.key, entries);
                     });
                 });
-                // const conf = this.observe.parser.as<Dlt.Configuration>(Dlt.Configuration);
-                // if (conf === undefined) {
-                //     return;
-                // }
-                // conf.setDefaultsFilterConfig();
-                // let app_id_count = 0;
-                // let context_id_count = 0;
-                // this.structure.forEach((structure) => {
-                //     if (structure.key === ENTITIES.app_ids) {
-                //         app_id_count = structure.entities.length;
-                //     } else if (structure.key === ENTITIES.context_ids) {
-                //         context_id_count = structure.entities.length;
-                //     }
-                //     const selected = structure.getSelected().map((f) => f.id);
-                //     if (selected.length === 0) {
-                //         (conf.configuration.filter_config as any)[structure.key] = undefined;
-                //     } else {
-                //         (conf.configuration.filter_config as any)[structure.key] = selected;
-                //     }
-                // });
-                // if (conf.configuration.filter_config) {
-                //     conf.configuration.filter_config.app_id_count = app_id_count;
-                //     conf.configuration.filter_config.context_id_count = context_id_count;
-                // }
+                this.element.setValue(data);
+                this.element.change();
             },
             all: (): void => {
                 this.buildSummary().total();
