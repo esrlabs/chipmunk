@@ -182,7 +182,7 @@ For a working example of a parser plugin configuration, refer to the [DLT parser
 
 ## Additional Resources
 
-- **WIT Specifications:** [WIT on GitHub](https://component-model.bytecodealliance.org/design/wit.html)
+- **WIT Specifications:** [WIT References](https://component-model.bytecodealliance.org/design/wit.html)
 - **Cargo Component:** [cargo component GitHub Repository](https://github.com/bytecodealliance/cargo-component)
 - **Wasm-tools:** [Wasm-tools GitHub Repository](https://github.com/bytecodealliance/wasm-tools)
 - **Plugins API Crate Documentation:** [Plugins API](./plugins-api.md)
