@@ -7,12 +7,12 @@ use dlt_core::{
         common::{StatisticInfo, StatisticInfoCollector},
     },
 };
+use std::fmt;
 use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
-use std::{collections::HashSet, fmt};
 use stypes::{
-    ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
-    Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
+    ExtractByKey, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction, Severity,
+    StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 use tokio_util::sync::CancellationToken;
 
