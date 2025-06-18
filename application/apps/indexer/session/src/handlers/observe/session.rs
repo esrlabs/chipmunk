@@ -5,7 +5,7 @@ use crate::{
 };
 use definitions::*;
 use log::{trace, warn};
-use processor::producer::{sde::*, MessageProducer, MessageStreamItem};
+use processor::producer::{MessageProducer, MessageStreamItem, sde::*};
 use std::time::Instant;
 use stypes::NativeError;
 use tokio::{select, sync::mpsc::Receiver};
@@ -147,6 +147,19 @@ enum Next {
     Sde(SdeMsg),
 }
 
+/// **********************************************************************************************
+/// For Ammar:
+///
+/// Currently, the use of select! requires careful handling of cancel-safety in all methods involved.
+/// Instead of solving the rather complex problem of full cancel-safety, I suggest localizing the issue:
+///
+/// * Remove all non-essential functionality from the select! block and use it only to listen for
+///   messages.
+/// * File reading can be performed in a loop that regularly checks the state of the SDE queue.
+/// * Once the end of the file is reached, we can begin listening with select! for changes in the data
+///   source, updates from SDE, and termination signals.
+/// **********************************************************************************************
+
 pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
@@ -160,6 +173,7 @@ pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
     let cancel = operation_api.cancellation_token();
     let cancel_on_tail = cancel.clone();
     let started = Instant::now();
+
     while let Some(next) = select! {
         next_from_stream = async {
             producer.read_next_segment().await
@@ -177,13 +191,13 @@ pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
     } {
         match next {
             Next::Parsed(_consumed, results) => match results {
-                MessageStreamItem::Parsed(_results) => {
+                MessageStreamItem::Parsed(results) => {
                     //Just continue
                 }
                 MessageStreamItem::Done => {
                     state.flush_session_file().await?;
                     state.file_read().await?;
-                    debug!(
+                    warn!(
                         "observe, message stream is done in {} ms",
                         started.elapsed().as_millis()
                     );
