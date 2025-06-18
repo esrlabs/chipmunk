@@ -6,6 +6,25 @@ pub mod sde;
 use definitions::*;
 use log::warn;
 
+/// **********************************************************************************************
+/// For Ammar:
+///
+/// It makes sense to revisit the design of MessageProducer with the following considerations:
+/// Remove the inner loop, which no longer appears necessary after all recent refactorings.
+/// This would allow read_next_segment to simply read an available data fragment without
+/// performing iteration, which should be handled at a higher level.
+///
+/// Introduce an enum ProducerAction to group the logic by intent. Currently, in several
+/// error-handling branches, we effectively duplicate code. Representing the different "actions"
+/// explicitly would help make the logic inside read_next_segment clearer. For example:
+///
+/// enum ProducerAction {
+///     Return(..),       // Return results
+///     DropAndLoad(),    // Attempt to load more data
+///     ...
+/// }
+/// **********************************************************************************************
+
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
 
@@ -106,37 +125,35 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                 }
                 return Some((0, MessageStreamItem::Done));
             }
-
             // we can call consume only after all parse results are collected because of its
             // reference to self.
-            match self
-                .parser
-                .iter(self.byte_source.current_slice(), self.last_seen_ts)
-            {
+            match self.parser.iter(current_slice, self.last_seen_ts) {
                 Ok(mut iterator) => {
-                    let mut bytes_processed = 0;
+                    let mut bytes_processed = skipped_bytes;
                     let mut messages_received = 0;
                     while let Some((consumed, msg)) = iterator.next() {
                         bytes_processed += consumed;
                         if let Some(msg) = msg {
                             if let Err(err) = self.writer.write(msg).await {
                                 error!("Fail to write data into writer: {err}");
-                                return None;
                             }
                             messages_received += 1;
-                        } else {
-                            if let Err(err) = self.writer.finalize().await {
-                                error!("Fail to write data into writer: {err}");
-                            }
-                            if messages_received == 0 {
-                                self.byte_source.consume(bytes_processed);
-                                return None;
-                            } else {
-                                break;
-                            }
                         }
                     }
-                    self.byte_source.consume(bytes_processed);
+                    if messages_received > 0 {
+                        if let Err(err) = self.writer.finalize().await {
+                            error!("Fail to write data into writer: {err}");
+                        }
+                    }
+                    bytes_processed = if bytes_processed > 0 {
+                        // Some bytes had been processed or skipped
+                        self.byte_source.consume(bytes_processed);
+                        bytes_processed
+                    } else {
+                        // All bytes were ignored
+                        self.byte_source.consume(available);
+                        available
+                    };
                     return Some((
                         bytes_processed,
                         MessageStreamItem::Parsed(ParseOperationResult::new(

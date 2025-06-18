@@ -64,13 +64,16 @@ pub trait ParserIteratorGetter: Parser {
     where
         Self: Sized,
     {
+        if input.len() < self.min_msg_len() {
+            return Err(ParserError::Incomplete);
+        }
         // return early if function errors on first parse call.
         let (consumed, first) = self.parse(input, timestamp)?;
         Ok(ParserIterator {
             parser: self,
             input,
             consumed,
-            first,
+            first: Some((consumed, first)),
             timestamp,
         })
     }
@@ -82,7 +85,7 @@ pub struct ParserIterator<'a, P: Parser> {
     parser: &'a mut P,
     input: &'a [u8],
     consumed: usize,
-    first: Option<LogRecordOutput<'a>>,
+    first: Option<(usize, Option<LogRecordOutput<'a>>)>,
     timestamp: Option<u64>,
 }
 
@@ -90,10 +93,11 @@ impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
     type Item = (usize, Option<LogRecordOutput<'a>>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.first.is_some() {
-            return Some((self.consumed, self.first.take()));
+        if let Some(first) = self.first.take() {
+            return Some(first);
         }
-        if self.input.len() < self.parser.min_msg_len() {
+
+        if self.input[self.consumed..].len() < self.parser.min_msg_len() {
             return None;
         }
 
