@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-byteorder = "1.5"
+# byteorder = "1.5"
 chrono = "0.4"
 chrono-tz = "0.10"
 dlt-core = { workspace = true, features = ["serialization", "fibex"] }
@@ -13,11 +13,17 @@ log.workspace = true
 regex.workspace = true
 memchr = "2.7"
 serde = { workspace = true , features = ["derive"] }
-thiserror.workspace = true
 rand.workspace = true
 someip-messages = { git = "https://github.com/esrlabs/someip" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
+uuid = { workspace = true , features = ["serde", "v4"] }
+tokio-util.workspace = true
+
+stypes = { path = "../stypes", features=["rustcore"] }
+definitions = { path = "../definitions" }
+file-tools = { path = "../addons/file-tools" }
 someip-tools = { path = "../addons/someip-tools" }
+components = { path = "../components" }
 
 [dev-dependencies]
 stringreader = "0.1"

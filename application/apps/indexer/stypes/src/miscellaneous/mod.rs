@@ -14,7 +14,7 @@ use crate::*;
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
     derive(TS),
-    ts(export, export_to = "miscellaneous.ts")
+    ts(export, export_to = "miscellaneous.ts", type = "Map<string, string>")
 )]
 pub struct MapKeyValue(pub HashMap<String, String>);
 
@@ -56,7 +56,7 @@ pub struct SourceDefinition {
     /// The unique identifier of the source.
     pub id: u16,
     /// The user-friendly name of the source for display purposes.
-    pub alias: String,
+    pub descriptor: SessionDescriptor,
 }
 
 /// A list of data sources.

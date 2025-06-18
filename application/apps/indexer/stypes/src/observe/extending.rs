@@ -3,6 +3,20 @@ use std::net::IpAddr;
 use crate::*;
 use thiserror::Error;
 
+impl SessionSetup {
+    pub fn inherit(&self, origin: SessionAction) -> Self {
+        Self {
+            origin,
+            parser: self.parser.clone(),
+            source: self.source.clone(),
+        }
+    }
+}
+impl SessionDescriptor {
+    pub fn new(source: Ident, parser: Ident) -> Self {
+        Self { parser, source }
+    }
+}
 impl ObserveOptions {
     /// Creates a new `ObserveOptions` instance for a file.
     ///

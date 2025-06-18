@@ -1,12 +1,14 @@
 use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
+use components::Components;
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
+use processor::producer::sde::{SdeReceiver, SdeSender};
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
-use sources::sde::{SdeReceiver, SdeSender};
 use std::{
     ops::RangeInclusive,
     path::PathBuf,
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -72,7 +74,10 @@ impl Operation {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum OperationKind {
-    Observe(stypes::ObserveOptions),
+    Observe(
+        stypes::SessionSetup,
+        Arc<Components<sources::Source, parsers::Parser>>,
+    ),
     Search {
         filters: Vec<SearchFilter>,
     },
@@ -105,10 +110,6 @@ pub enum OperationKind {
         /// An optional string used as the field delimiter within each record in output file. Defaults can be applied if `None`.
         delimiter: Option<String>,
     },
-    ExportRaw {
-        out_path: PathBuf,
-        ranges: Vec<std::ops::RangeInclusive<u64>>,
-    },
     Extract {
         filters: Vec<SearchFilter>,
     },
@@ -140,11 +141,10 @@ impl std::fmt::Display for OperationKind {
             f,
             "{}",
             match self {
-                OperationKind::Observe(_) => "Observing",
+                OperationKind::Observe(..) => "Observing",
                 OperationKind::Search { .. } => "Searching",
                 OperationKind::SearchValues { .. } => "Searching values",
                 OperationKind::Export { .. } => "Exporting",
-                OperationKind::ExportRaw { .. } => "Exporting as Raw",
                 OperationKind::Extract { .. } => "Extracting",
                 OperationKind::Map { .. } => "Mapping",
                 OperationKind::Values { .. } => "Values",
@@ -305,10 +305,16 @@ impl OperationAPI {
             api.started();
             let operation_str = &format!("{}", operation.kind);
             match operation.kind {
-                OperationKind::Observe(options) => {
+                OperationKind::Observe(options, components) => {
                     api.finish(
-                        handlers::observe::start_observing(api.clone(), state, options, rx_sde)
-                            .await,
+                        handlers::observe::observing(
+                            api.clone(),
+                            state,
+                            options,
+                            components,
+                            rx_sde,
+                        )
+                        .await,
                         operation_str,
                     )
                     .await;
@@ -349,20 +355,6 @@ impl OperationAPI {
                             .await
                             .map(stypes::ResultBool)
                             .ok()),
-                        operation_str,
-                    )
-                    .await;
-                }
-                OperationKind::ExportRaw { out_path, ranges } => {
-                    api.finish(
-                        handlers::export_raw::execute_export(
-                            &api.cancellation_token(),
-                            state,
-                            out_path,
-                            ranges,
-                        )
-                        .await
-                        .map(|v| v.map(stypes::ResultBool)),
                         operation_str,
                     )
                     .await;

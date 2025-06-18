@@ -1,0 +1,21 @@
+@import '../../../../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    div.folder-input {
+        display: flex;
+        flex-direction: row;
+        justify-items: center;
+        & button {
+            margin-left: 12px;
+        }
+        & input {
+            background: var(--scheme-color-4);
+            border: thin solid var(--scheme-color-3);
+            color: var(--scheme-color-0);
+            outline: none;
+        }
+    }
+}

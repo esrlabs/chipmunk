@@ -1,0 +1,7 @@
+<button mat-stroked-button (click)="ngOnSelect()">
+    <mat-icon aria-hidden="false" class="mini-button">access_time</mat-icon>
+    Timezone
+</button>
+<button mat-stroked-button (click)="ngOnDrop()">Drop</button>
+<p class="t-medium color-scheme-2" *ngIf="tz === undefined">Not selected</p>
+<p class="t-medium color-scheme-0" *ngIf="tz !== undefined">{{tz.name}} ({{tz.utc}})</p>

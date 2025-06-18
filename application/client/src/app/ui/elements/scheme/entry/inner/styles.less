@@ -1,0 +1,38 @@
+@import '../../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    & div.collections {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        & div.collection {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            & div.element {
+                margin-right: 12px;
+                & app-settings-scheme-element {
+                    height: 42px;
+                }
+            }
+        }
+        & button {
+            color: var(--scheme-color-1)
+        }
+        & div.controls {
+            position: relative;
+            width: 100%;
+            display: flex;
+            
+        }
+    }
+    & p.error {
+        color: var(--scheme-color-error-light);
+    }
+
+}

@@ -14,6 +14,7 @@ import { Logger } from '@platform/log';
 import { session, Session, UnboundTab } from '@service/session';
 import { state } from '@service/state';
 import { jobs } from '@service/jobs';
+import { components } from '@service/components';
 import { popup } from '@ui/service/popup';
 import { notifications } from '@ui/service/notifications';
 import { contextmenu } from '@ui/service/contextmenu';
@@ -71,6 +72,7 @@ export interface IlcInterface {
 @DependOn(favorites)
 @DependOn(sys)
 @DependOn(plugins)
+@DependOn(components)
 // UI services
 @DependOn(sidebar)
 @DependOn(toolbar)

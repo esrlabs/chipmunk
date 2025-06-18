@@ -1,4 +1,4 @@
-#![deny(unused_crate_dependencies)]
+// #![deny(unused_crate_dependencies)]
 // Copyright (c) 2019 E.S.R.Labs. All rights reserved.
 //
 // NOTICE:  All information contained herein is, and remains
@@ -15,9 +15,11 @@ extern crate indexer_base;
 #[macro_use]
 extern crate log;
 
+use definitions::Attachment;
 use dlt_core::filtering::DltFilterConfig;
-use parsers::{Attachment, MessageStreamItem, ParseYield, dlt::DltParser};
-use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
+use parsers::dlt::DltParser;
+use processor::producer::MessageProducer;
+use sources::binary::raw::BinaryByteSource;
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Write},
@@ -33,55 +35,55 @@ pub async fn scan_dlt_ft(
 ) -> Result<Vec<Attachment>, String> {
     match File::open(input) {
         Ok(input) => {
-            let reader = BufReader::new(&input);
-            let source = BinaryByteSource::new(reader);
-            let parser = DltParser::new(
-                filter.map(|f| f.into()),
-                None,
-                None,
-                None,
-                with_storage_header,
-            );
+            todo!("Not implemented")
+            // let reader = BufReader::new(&input);
+            // let source = BinaryByteSource::new(reader);
+            // let parser = DltParser::new(
+            //     filter.map(|f| f.into()),
+            //     None,
+            //     None,
+            //     None,
+            //     with_storage_header,
+            // );
+            // let mut producer = MessageProducer::new(parser, source);
 
-            let mut producer = MessageProducer::new(parser, source);
+            // let mut canceled = false;
 
-            let mut canceled = false;
+            // let mut attachments = vec![];
+            // loop {
+            //     tokio::select! {
+            //         // Check on events in current order ensuring cancel will be checked at first
+            //         // as it's defined in the current unit tests.
+            //         biased;
+            //         _ = cancel.cancelled() => {
+            //             debug!("scan canceled");
+            //             canceled = true;
+            //             break;
+            //         }
+            //         items = producer.read_next_segment() => {
+            //             match items {
+            //                 Some(items) => {
+            //                     for (_, item) in items {
+            //                         if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
+            //                             attachments.push(attachment.to_owned());
+            //                         } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
+            //                             attachments.push(attachment.to_owned());
+            //                         }
+            //                     }
+            //                 }
+            //                 _ => {
+            //                     break;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-            let mut attachments = vec![];
-            loop {
-                tokio::select! {
-                    // Check on events in current order ensuring cancel will be checked at first
-                    // as it's defined in the current unit tests.
-                    biased;
-                    _ = cancel.cancelled() => {
-                        debug!("scan canceled");
-                        canceled = true;
-                        break;
-                    }
-                    items = producer.read_next_segment() => {
-                        match items {
-                            Some(items) => {
-                                for (_, item) in items {
-                                    if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
-                                        attachments.push(attachment.to_owned());
-                                    } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
-                                        attachments.push(attachment.to_owned());
-                                    }
-                                }
-                            }
-                            _ => {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            // if canceled {
+            //     return Ok(Vec::new());
+            // }
 
-            if canceled {
-                return Ok(Vec::new());
-            }
-
-            Ok(attachments)
+            // Ok(attachments)
         }
         Err(error) => Err(format!("failed to open file: {error}")),
     }
