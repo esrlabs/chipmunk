@@ -2,6 +2,11 @@
 #include "stdio.h"
 #include <string.h>
 
+// Basic solution to keep track on the current logging level provided by
+// Chipmunk host to avoid sending logs to host that won't be logged.
+static chipmunk_shared_logging_level_t global_log_level =
+    CHIPMUNK_SHARED_LOGGING_LEVEL_ERROR;
+
 void exports_chipmunk_parser_parser_get_version(
     exports_chipmunk_parser_parser_version_t *ret) {
   ret->major = 0;
@@ -26,20 +31,21 @@ bool exports_chipmunk_parser_parser_init(
     exports_chipmunk_parser_parser_parser_config_t *general_configs,
     exports_chipmunk_parser_parser_list_config_item_t *plugin_configs,
     exports_chipmunk_parser_parser_init_error_t *err) {
-  // TODO AAZ:
-  // * Keep track on active log level and send logs only if enabled.
+  // *** Demonstrate basic logging ***
+  global_log_level = general_configs->log_level;
+  if (global_log_level >= CHIPMUNK_SHARED_LOGGING_LEVEL_INFO) {
+    parse_string_t log_msg;
+    parse_string_dup(&log_msg, "Initi message called");
+    chipmunk_shared_logging_log(CHIPMUNK_SHARED_LOGGING_LEVEL_INFO, &log_msg);
+    parse_string_free(&log_msg);
+  }
 
-  parse_string_t log_msg;
-  parse_string_set(&log_msg, "Initi message called");
-  chipmunk_shared_logging_log(CHIPMUNK_SHARED_LOGGING_LEVEL_INFO, &log_msg);
-
-  parse_string_free(&log_msg);
-
-  // Demonstrate printing to stdout.
+  // *** Demonstrate printing to stdout ***
   printf("Inint function called with log level: %d\n",
          general_configs->log_level);
 
-  printf("Provided configs length: %d\n", (int)plugin_configs->len);
+  // *** Demonstrate printing to stderr ***
+  fprintf(stderr, "Provided configs length: %d\n", (int)plugin_configs->len);
 
   return true;
 }
@@ -48,13 +54,13 @@ bool exports_chipmunk_parser_parser_parse(
     parse_list_u8_t *data, uint64_t *maybe_timestamp,
     exports_chipmunk_parser_parser_list_parse_return_t *ret,
     exports_chipmunk_parser_parser_parse_error_t *err) {
-
-  // *** Send log ***
-  parse_string_t log_msg;
-  parse_string_set(&log_msg, "Parse called");
+  // *** Demonstrate basic logging ***
   // TODO AAZ: Change log level to debug.
-  chipmunk_shared_logging_log(CHIPMUNK_SHARED_LOGGING_LEVEL_ERROR, &log_msg);
-  // parse_string_free(&log_msg);
+  if (global_log_level >= CHIPMUNK_SHARED_LOGGING_LEVEL_ERROR) {
+    parse_string_t log_msg;
+    parse_string_set(&log_msg, "Parse called");
+    chipmunk_shared_logging_log(CHIPMUNK_SHARED_LOGGING_LEVEL_ERROR, &log_msg);
+  }
 
   // *** Return length of provided bytes ***
   ret->len = 1;
