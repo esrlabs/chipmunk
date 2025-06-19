@@ -186,3 +186,4 @@ For a working example of a parser plugin configuration, refer to the [DLT parser
 - **Cargo Component:** [cargo component GitHub Repository](https://github.com/bytecodealliance/cargo-component)
 - **Wasm-tools:** [Wasm-tools GitHub Repository](https://github.com/bytecodealliance/wasm-tools)
 - **Plugins API Crate Documentation:** [Plugins API](./plugins-api.md)
+- **Chipmiunk Contribution:** [Contribution Page](../contributing/welcome.md)
