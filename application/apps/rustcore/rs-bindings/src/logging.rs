@@ -1,5 +1,7 @@
-use anyhow::Result;
-use log::{Level, LevelFilter, Metadata, Record};
+//! Module to manage setting up and configuring logging on Chipmunk Core.
+
+use anyhow::{Context, Result};
+use log::LevelFilter;
 use log4rs::{
     append::file::FileAppender,
     config::{Appender, Config, Root},
@@ -7,38 +9,18 @@ use log4rs::{
 };
 use node_bindgen::init::node_bindgen_init_once;
 use std::{
-    fs,
+    fs::{self, File},
+    io::{BufRead, BufReader},
     path::{Path, PathBuf},
-    time::SystemTime,
 };
 
+/// The current version of logging configurations file.
+pub const LOG_CONFIG_VERSION: &str = "2.0";
+
+/// Logging targets.
 pub mod targets {
+    /// Target for `session` module in chipmunk core.
     pub const SESSION: &str = "session";
-}
-
-pub struct SimpleLogger;
-
-impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Trace
-    }
-
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            println!(
-                "[RUST]:{}({:?}) {} - {}",
-                SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis(),
-                std::thread::current().id(),
-                record.level(),
-                record.args()
-            );
-        }
-    }
-
-    fn flush(&self) {}
 }
 
 #[node_bindgen_init_once]
@@ -48,73 +30,133 @@ fn init_module() {
     }
 }
 
+/// Initialize logging reading logging configurations from `log4rs.yaml` file or generating
+/// it with the default values if needed.
 pub fn init_logging() -> Result<()> {
-    let log_config_path = chipmunk_log_config();
-    let logging_correctly_initialized = if log_config_path.exists() {
-        // log4rs.yaml exists, try to parse it
+    let log_config_path = chipmunk_log_config()?;
+    let init_log_result = if validate_log_config_file(&log_config_path) {
+        // log4rs.yaml exists with matching version, try to parse it
         match log4rs::init_file(&log_config_path, Default::default()) {
-            Ok(()) => true,
+            Ok(()) => Ok(()),
             Err(e) => {
                 eprintln!("problems with existing log config ({e}), write fresh");
                 // log4rs.yaml exists, could not parse it
-                initialize_from_fresh_yml().is_ok()
+                initialize_from_fresh_yml()
             }
         }
     } else {
         // log4rs.yaml did not exists
-        initialize_from_fresh_yml().is_ok()
+        initialize_from_fresh_yml()
     };
-    if !logging_correctly_initialized {
+
+    if let Err(err) = init_log_result {
+        eprintln!("Error while initializing logger from new config file: {err:?}");
         setup_fallback_logging()?;
     }
+
     Ok(())
 }
 
-pub fn chipmunk_home_dir() -> PathBuf {
+/// Return the path of log configurations file in chipmunk home directory.
+pub fn chipmunk_log_config() -> Result<PathBuf> {
+    chipmunk_home_dir()
+        .map(|home| home.join("log4rs.yaml"))
+        .context("Can't get the path of logging configurations file.")
+}
+
+/// Return the path of chipmunk home directory, creating it if doesn't exist.
+///
+/// It'll return an error if the home directory can't be determined in host environment
+/// or if creating chipmunk directory fails.
+pub fn chipmunk_home_dir() -> Result<PathBuf> {
     let home_dir = dirs::home_dir()
-        .expect("we need to have access to home-dir")
+        .context("Determining the path of home directory failed")?
         .join(".chipmunk");
     if !home_dir.exists() {
-        fs::create_dir(&home_dir)
-            .unwrap_or_else(|_| panic!("home folder {:?} should be created", home_dir));
+        fs::create_dir(&home_dir).context("Creating Chipmunk home directory failed")?;
     }
-    home_dir
+
+    Ok(home_dir)
 }
 
-pub fn chipmunk_log_config() -> PathBuf {
-    chipmunk_home_dir().join("log4rs.yaml")
+/// Checks if log configurations file exists and has matching version to the current one.
+/// This function assumes that the first line of the config file has the pattern
+/// `# chipmunk_logconf_version: $LOG_CONFIG_VERSION` and it will return false if this pattern
+/// doesn't match or on IO errors.
+fn validate_log_config_file(file_path: &Path) -> bool {
+    if !file_path.exists() {
+        return false;
+    }
+
+    let file = match File::open(file_path) {
+        Ok(file) => file,
+        Err(err) => {
+            eprintln!("Error while opening logging config file: {err}");
+            return false;
+        }
+    };
+
+    let reader = BufReader::new(file);
+    let first_line = match reader.lines().next() {
+        Some(Ok(line)) => line,
+        Some(Err(err)) => {
+            eprintln!("Error while reading logging config file: {err}");
+            return false;
+        }
+        None => {
+            eprintln!("Error: Logging config file is empty");
+            return false;
+        }
+    };
+
+    let version = match first_line.split(": ").nth(1) {
+        Some(version) => version.trim(),
+        None => {
+            eprintln!("Parsing the version of logging config file failed");
+            return false;
+        }
+    };
+
+    if version != LOG_CONFIG_VERSION {
+        println!(
+            "Logging configuration version mismatched. Expected: {LOG_CONFIG_VERSION}, found {version}"
+        );
+        return false;
+    }
+
+    true
 }
 
+/// Creates a new configurations yaml file then initialize the logger with it.
 pub fn initialize_from_fresh_yml() -> Result<()> {
     println!("Initialization of logs is started on rs-bindings layer");
-    let log_config_path = chipmunk_log_config();
-    let indexer_log_path = chipmunk_home_dir().join("chipmunk.indexer.log");
-    let launcher_log_path = chipmunk_home_dir().join("chipmunk.launcher.log");
+    let log_config_path = chipmunk_log_config()?;
+    let chipmunk_home_dir = chipmunk_home_dir()?;
+    let indexer_log_path = chipmunk_home_dir.join("chipmunk.indexer.log");
+    let launcher_log_path = chipmunk_home_dir.join("chipmunk.launcher.log");
     let log_config_content = std::include_str!("../log4rs.yaml")
+        .replace("$LOG_CONFIG_VERSION", LOG_CONFIG_VERSION)
         .replace("$INDEXER_LOG_PATH", &indexer_log_path.to_string_lossy())
         .replace("$LAUNCHER_LOG_PATH", &launcher_log_path.to_string_lossy());
-    remove_entity(&log_config_path)?;
-    std::fs::write(&log_config_path, log_config_content)?;
+
+    if log_config_path.exists() {
+        std::fs::remove_file(&log_config_path)
+            .context("Error while removing invalid log configurations file")?;
+    }
+
+    std::fs::write(&log_config_path, log_config_content)
+        .context("Error while writing to log configurations file")?;
+
     log4rs::init_file(&log_config_path, Default::default())?;
     println!("Initialization of logs is finished:\n{indexer_log_path:?}\n{launcher_log_path:?}");
+
     Ok(())
 }
 
-pub fn remove_entity(entity: &Path) -> Result<()> {
-    if !entity.exists() {
-        return Ok(());
-    }
-    if entity.is_dir() {
-        std::fs::remove_dir_all(entity)?;
-    } else if entity.is_file() {
-        std::fs::remove_file(entity)?;
-    }
-    Ok(())
-}
-
+/// Initialize Logging with the hard coded configurations without using log configurations files.
 pub fn setup_fallback_logging() -> Result<()> {
     println!("[setup_fallback_logging]: Initialization of logs is started on rs-bindings layer");
-    let log_path = chipmunk_home_dir().join("chipmunk.launcher.log");
+    let log_path = chipmunk_home_dir()?.join("chipmunk.launcher.log");
     let appender_name = "startup-appender";
     let logfile = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
@@ -133,65 +175,3 @@ pub fn setup_fallback_logging() -> Result<()> {
     println!("[setup_fallback_logging]:Initialization of logs is finished");
     Ok(())
 }
-
-//     println!("init logging");
-//     let home_dir = dirs::home_dir().expect("we need to have access to home-dir");
-//     let log_file_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
-//     let log_config_path = home_dir.join(".chipmunk").join("log4rs.yaml");
-//     if !log_config_path.exists() {
-//         let log_config_content = std::include_str!("../log4rs.yaml")
-//             .replace("$LOG_FILE_PATH", &log_file_path.to_string_lossy())
-//             .replace("$HOME_DIR", &home_dir.to_string_lossy());
-
-//         match std::fs::write(&log_config_path, log_config_content) {
-//             Ok(_) => (),
-//             Err(e) => eprintln!("error while trying to write log config file: {}", e),
-//         }
-//     } else {
-//         // make sure the env variables are correctly replaced
-//         let mut content = String::new();
-//         {
-//             let mut log_config_file = fs::File::open(&log_config_path)?;
-//             log_config_file.read_to_string(&mut content)?;
-//         }
-//         let log_config_content = content
-//             .replace("$LOG_FILE_PATH", &log_file_path.to_string_lossy())
-//             .replace("$HOME_DIR", &home_dir.to_string_lossy());
-
-//         match fs::write(&log_config_path, &log_config_content) {
-//             Ok(_) => (),
-//             Err(e) => eprintln!("error while trying to write log config file: {}", e),
-//         }
-//     }
-
-//     println!("try to init logging system");
-//     match log4rs::init_file(&log_config_path, Default::default()) {
-//         Ok(_) => (),
-//         Err(e) => {
-//             eprintln!("could not initialize logging with init_file: {}", e);
-//             let log_path = home_dir.join(".chipmunk").join("chipmunk.indexer.log");
-//             let appender_name = "indexer-root";
-//             let logfile = FileAppender::builder()
-//                 .encoder(Box::new(PatternEncoder::new("{d} - {l}:: {m}\n")))
-//                 .build(log_path)?;
-
-//             let config = Config::builder()
-//                 .appender(Appender::builder().build(appender_name, Box::new(logfile)))
-//                 .build(
-//                     Root::builder()
-//                         .appender(appender_name)
-//                         .build(LevelFilter::Warn),
-//                 )
-//                 .expect("logging config was incorrect");
-//             println!("initing log4rs with {:?}", config);
-//             match log4rs::init_config(config) {
-//                 Ok(_) => println!("logging was initialized"),
-//                 Err(e) => println!("problems setting up logging: {}", e),
-//             }
-//             // anyhow::Context::with_context(, || {
-//             //     "logging config could not be applied"
-//             // })?;
-//         }
-//     }
-//     Ok(())
-// }
