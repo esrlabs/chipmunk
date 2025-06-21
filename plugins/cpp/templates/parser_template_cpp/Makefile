@@ -21,7 +21,8 @@ SRC_CXX = my_parser.cpp
 WIT_BINDGEN_GENERATED_C_SRC = parse.c
 WIT_BINDGEN_GENERATED_HEADER = parse.h
 WIT_BINDGEN_GENERATED_OBJ_TYPE = parse_component_type.o
-WIT_BINDGEN_ALL_GENERATED = $(WIT_BINDGEN_GENERATED_C_SRC) $(WIT_BINDGEN_GENERATED_HEADER) $(WIT_BINDGEN_GENERATED_OBJ_TYPE)
+WIT_BINDGEN_COMPILED_C_SRC = parse.o
+WIT_BINDGEN_ALL_GENERATED = $(WIT_BINDGEN_GENERATED_C_SRC) $(WIT_BINDGEN_GENERATED_HEADER) $(WIT_BINDGEN_GENERATED_OBJ_TYPE) 
 
 # Note:
 # Compiling has two steps. The first one will compile the code on an intermediate WASM module, 
@@ -33,7 +34,9 @@ CORE_WASM_MODULE = plugin_intermediate_module.wasm
 FINAL_WASM_COMPONENT = my_parser.wasm
 
 # Use clang and sysroots for WASI SDK
+# CC = $(WASI_SDK_PATH)/bin/clang++
 CC = $(WASI_SDK_PATH)/bin/clang
+CXX = $(WASI_SDK_PATH)/bin/clang++
 CFLAGS = --sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot
 
 .PHONY: all clean generate-bindings download-adapter
@@ -46,11 +49,15 @@ generate-bindings: $(WIT_BINDGEN_ALL_GENERATED)
 # Download the WASI adapter 
 download-adapter: $(WASI_ADAPTER_FILE)
 
-# Step 1: Compile to core WASM binary module.
-$(CORE_WASM_MODULE): $(WIT_BINDGEN_ALL_GENERATED)
-	$(CC) $(CFLAGS) $(WIT_BINDGEN_GENERATED_C_SRC) $(WIT_BINDGEN_GENERATED_OBJ_TYPE) $(SRC_CXX) -o $@ -mexec-model=reactor
+# Step 1: Compile C files with C Compiler.
+$(WIT_BINDGEN_COMPILED_C_SRC): $(WIT_BINDGEN_GENERATED_C_SRC)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Step 2: Convert to final WASM Component.
+# Step 2: Compile to core WASM binary module.
+$(CORE_WASM_MODULE): $(WIT_BINDGEN_GENERATED_OBJ_TYPE) $(WIT_BINDGEN_COMPILED_C_SRC)
+	$(CXX) $(CFLAGS) $(WIT_BINDGEN_COMPILED_C_SRC) $(WIT_BINDGEN_GENERATED_OBJ_TYPE) $(SRC_CXX) -o $@ -mexec-model=reactor
+
+# Step 3: Convert to final WASM Component.
 $(FINAL_WASM_COMPONENT): $(CORE_WASM_MODULE) $(WASI_ADAPTER_FILE)
 	wasm-tools component new $< -o $@ --adapt=$(WASI_ADAPTER_FILE)
 
@@ -66,4 +73,4 @@ $(WIT_BINDGEN_ALL_GENERATED):
 
 # Cleanup generated generated files form compilation only.
 clean:
-	rm -f $(CORE_WASM_MODULE) $(FINAL_WASM_COMPONENT)
+	rm -f $(CORE_WASM_MODULE) $(FINAL_WASM_COMPONENT) $(WIT_BINDGEN_COMPILED_C_SRC)
