@@ -10,7 +10,7 @@ WASI_SDK_PATH ?= {PATH_TO_LOCAL_WASI_SDK}
 WIT_DIR ?= {PATH_OF_CHIPMUNK_REPO}/plugins/plugins_api/wit/v0.1.0/
 
 # The path WASI Adapter file. It defaults to have the file in vendor directory and it will 
-# download the latest version of the files in case it doesn't exist or if not provided.
+# download the latest version of the files in case it doesn't exist and if not provided.
 WASI_ADAPTER_FILE ?= $(VENDOR_DIR)/wasi_snapshot_preview1.reactor.wasm
 
 # --- Files & Directory Structure ---
@@ -78,6 +78,7 @@ $(WIT_BINDGEN_ALL_GENERATED):
 	wit-bindgen c $(WIT_DIR) -w chipmunk:parser/parse --out-dir $(BINDINGS_DIR)
 
 # --- Cleanup ---
+
 # Cleanup generated generated files form compilation only.
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
