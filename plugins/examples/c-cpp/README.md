@@ -1,0 +1,3 @@
+# Plugin Examples in C/C++
+
+This directory contains examples of plugins developed with C/C++ languages...

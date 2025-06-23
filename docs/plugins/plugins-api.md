@@ -25,7 +25,7 @@ Each plugin type is associated with a feature in this crate. A feature must be e
 * To develop a parser plugin, enable the `parser` feature in `Cargo.toml`.
 * Implement `Parser` trait on your struct to define a parser plugin.
 * Use `parser_export!()` macro with your struct to generate the necessary bindings for integration with Chipmunk.
-* Please refer to the [examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples) and [parser template](https://github.com/esrlabs/chipmunk/blob/master/plugins/templates/parser_template) provided in Chipmunk repo to get started.
+* Please refer to the [rust examples](https://github.com/esrlabs/chipmunk/blob/master/plugins/examples/rust) and [parser template](https://github.com/esrlabs/chipmunk/blob/master/plugins/templates/rust/parser) provided in Chipmunk repo to get started.
 
 
 ### Byte-Source Plugins:

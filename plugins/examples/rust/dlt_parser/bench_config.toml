@@ -7,7 +7,7 @@
 
 # Path to the plugin WebAssembly (WASM) file.
 # Can be absolute or relative to the `indexer` directory within the Chipmunk repository.
-binary_path = "../../../../plugins/examples/dlt_parser/target/wasm32-wasip1/release/dlt_parser.wasm"
+binary_path = "../../../../plugins/examples/rust/dlt_parser/target/wasm32-wasip1/release/dlt_parser.wasm"
 
 # Plugin-specific configurations:
 
