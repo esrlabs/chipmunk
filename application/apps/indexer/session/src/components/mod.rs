@@ -6,7 +6,7 @@ use log::{debug, error};
 use std::collections::HashMap;
 use tokio::{
     sync::{
-        mpsc::{error::SendError, unbounded_channel, UnboundedReceiver, UnboundedSender},
+        mpsc::{UnboundedReceiver, UnboundedSender, error::SendError, unbounded_channel},
         oneshot::{self, error::RecvError},
     },
     task::{self, JoinHandle},
@@ -43,8 +43,8 @@ impl ComponentsSession {
     ///
     /// This method is asynchronous and should be awaited when called. The returned receiver can be used
     /// to listen for callback events related to the components' operations.
-    pub async fn new(
-    ) -> Result<(Self, UnboundedReceiver<stypes::CallbackOptionsEvent>), stypes::NativeError> {
+    pub async fn new()
+    -> Result<(Self, UnboundedReceiver<stypes::CallbackOptionsEvent>), stypes::NativeError> {
         let (tx_api, mut rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) =
             unbounded_channel();
         let (tx_callback_events, rx_callback_events): (
@@ -65,6 +65,9 @@ impl ComponentsSession {
                 match msg {
                     Api::GetOutputRender(uuid, tx) => {
                         log_if_err(tx.send(components.get_output_render(&uuid)));
+                    }
+                    Api::GetIdent(uuid, tx) => {
+                        log_if_err(tx.send(components.get_ident(&uuid)));
                     }
                     Api::GetOptions {
                         origin,
@@ -255,6 +258,33 @@ impl ComponentsSession {
             "Fail to send Api::GetOutputRender",
         )?;
         response(rx.await, "Fail to get response from Api::GetOutputRender")?
+    }
+
+    /// Requests the ident of component
+    ///
+    /// This API is used by the client to retrieve the identification of component parser or source.
+    ///
+    /// # Arguments
+    ///
+    /// * `Uuid` - Uuid of component (parser / source).
+    /// * `tx` - A one-shot sender used to deliver the result back to the client.
+    ///
+    /// # Result
+    ///
+    /// * `Result<Option<stypes::Ident>, NativeError>` - Ident of target component.
+    ///
+    /// # Note
+    /// If component doesn't exist, returns `None`
+    pub async fn get_ident(
+        &self,
+        uuid: Uuid,
+    ) -> Result<Option<stypes::Ident>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::GetIdent(uuid, tx)),
+            "Fail to send Api::GetIdent",
+        )?;
+        response(rx.await, "Fail to get response from Api::GetIdent")
     }
 
     /// Retrieves the list of available components of a specified type.

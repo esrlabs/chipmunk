@@ -10,6 +10,7 @@ import {
     ComponentOptions,
     FieldsValidationErrors,
     OutputRender,
+    Ident,
 } from 'platform/types/bindings';
 import { Logger, utils } from 'platform/log';
 import { TEventEmitter } from '../provider/provider.general';
@@ -33,6 +34,8 @@ export abstract class ComponentsNative {
     public abstract getOptions(origin: Uint8Array, targets: string[]): Promise<Uint8Array>;
 
     public abstract getOutputRender(uuid: String): Promise<Uint8Array | null>;
+
+    public abstract getIdent(uuid: String): Promise<Uint8Array | null>;
 
     public abstract validate(origin: Uint8Array, fields: Uint8Array): Promise<Uint8Array>;
 
@@ -225,6 +228,33 @@ export class Base extends Subscriber {
                             ),
                             Type.InvalidOutput,
                             Source.ComponentsOptions,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public getIdent(uuid: String): Promise<Ident | null> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return new Promise((resolve, reject) => {
+            this.native.getIdent(uuid).then((buf: Uint8Array | null) => {
+                if (!buf) {
+                    return resolve(null);
+                }
+                try {
+                    resolve(protocol.decodeIdent(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.GetIdent,
                         ),
                     );
                 }
