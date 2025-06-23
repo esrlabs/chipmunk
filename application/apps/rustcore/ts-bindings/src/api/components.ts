@@ -82,6 +82,10 @@ export class Components extends Subscriber {
         return this.native.getOutputRender(uuid);
     }
 
+    public getIdent(uuid: string): Promise<Ident | null> {
+        return this.native.getIdent(uuid);
+    }
+
     public validate(
         origin: SessionAction,
         target: string,
