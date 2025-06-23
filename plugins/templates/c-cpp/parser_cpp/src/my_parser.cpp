@@ -19,6 +19,9 @@
 static chipmunk_shared_logging_level_t global_log_level =
     CHIPMUNK_SHARED_LOGGING_LEVEL_ERROR;
 
+/// Provides the current semantic version of the plugin.
+/// This version is for the plugin only and is different from the plugin's API
+/// version.
 void exports_chipmunk_parser_parser_get_version(
     exports_chipmunk_parser_parser_version_t *ret) {
   ret->major = 0;
@@ -26,6 +29,12 @@ void exports_chipmunk_parser_parser_get_version(
   ret->patch = 0;
 }
 
+/// Provides the schemas for the configurations required by the plugin, which
+/// will be specified by the users.
+///
+/// These schemas define the expected structure, types, and constraints
+/// for plugin-specific configurations. The values of these configurations
+/// will be passed to the initializing method of the parser.
 void exports_chipmunk_parser_parser_get_config_schemas(
     exports_chipmunk_parser_parser_list_config_schema_item_t *ret) {
   ret->ptr = new exports_chipmunk_parser_parser_config_schema_item_t[3];
@@ -65,6 +74,9 @@ void exports_chipmunk_parser_parser_get_config_schemas(
   files_item.input_type.val.files.len = 0;
 }
 
+/// Provides the custom render options to be rendered in log view, enabling the
+/// users to change the visibility on the log columns when provided. This
+/// function can be called before initializing the plugin instance.
 void exports_chipmunk_parser_parser_get_render_options(
     exports_chipmunk_parser_parser_render_options_t *ret) {
 #if defined(SINGLE_COLUMN_MODE)
@@ -91,6 +103,8 @@ void exports_chipmunk_parser_parser_get_render_options(
 #endif
 }
 
+/// Initialize the parser with the given configurations
+/// This function will be called upon starting a parsing session.
 bool exports_chipmunk_parser_parser_init(
     exports_chipmunk_parser_parser_parser_config_t *general_configs,
     exports_chipmunk_parser_parser_list_config_item_t *plugin_configs,
@@ -167,6 +181,8 @@ bool exports_chipmunk_parser_parser_init(
   return true;
 }
 
+/// Parse the given bytes providing a list of parsed items,
+/// or parse error if an error occurred and no item has been parsed.
 bool exports_chipmunk_parser_parser_parse(
     parse_list_u8_t *data, uint64_t *maybe_timestamp,
     exports_chipmunk_parser_parser_list_parse_return_t *ret,
@@ -194,6 +210,7 @@ bool exports_chipmunk_parser_parser_parse(
   parse_string_set(&item.value.val.val.message.val.line, log_line.c_str());
 
   return true;
+
 #elif defined(MULTI_COLUMN_MODE)
 
   // *** Returns two columns ***
@@ -218,5 +235,6 @@ bool exports_chipmunk_parser_parser_parse(
   parse_string_dup(&columns.ptr[1], log_line.c_str());
 
   return true;
+
 #endif
 }
