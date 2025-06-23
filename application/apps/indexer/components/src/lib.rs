@@ -280,6 +280,18 @@ impl<S, P> Components<S, P> {
         Ok(descriptor.get_render())
     }
 
+    /// Returns the Ident of component (parser or source).
+    ///
+    /// # Arguments
+    /// * `uuid` – The UUID of the target component.
+    ///
+    /// # Returns
+    /// * `Some(Ident)` – If the parser or source has been found.
+    /// * `None` – If no component is defined.
+    pub fn get_ident(&self, uuid: &Uuid) -> Option<stypes::Ident> {
+        self.components.get(&uuid).map(|entity| entity.ident())
+    }
+
     /// Validates the configuration fields for a specified component within a session context.
     ///
     /// Checks each field against the component’s declared rules. This helps catch invalid or incomplete

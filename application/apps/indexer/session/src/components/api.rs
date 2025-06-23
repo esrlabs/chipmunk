@@ -86,6 +86,23 @@ pub enum Api {
         oneshot::Sender<Result<Option<stypes::OutputRender>, NativeError>>,
     ),
 
+    /// Requests the ident of component
+    ///
+    /// This API is used by the client to retrieve the identification of component parser or source.
+    ///
+    /// # Arguments
+    ///
+    /// * `Uuid` - Uuid of component (parser / source).
+    /// * `tx` - A one-shot sender used to deliver the result back to the client.
+    ///
+    /// # Result
+    ///
+    /// * `Option<stypes::Ident>` - Ident of target component.
+    ///
+    /// # Note
+    /// If component doesn't exist, returns `None`
+    GetIdent(Uuid, oneshot::Sender<Option<stypes::Ident>>),
+
     /// Retrieves a list of components available in the system.
     ///
     /// This API is invoked by the client when it needs to get the list of available components of a specific type.
