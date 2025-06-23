@@ -114,7 +114,7 @@ The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plug
 *  Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the [Building and Integrating Plugins](#building-and-integrating-plugins) section.
 *  Alternatively, you can manually create a directory at `<HOME>/.chipmunk/plugins/parsers/<plugin-name>/` and copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.
 
-To get started quickly, you can use the provided [parser template](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/parser_template). Simply copy the `parser_template` directory and modify it to implement your custom parser.  
+To get started quickly, you can use the provided [parser template](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/rust/parser). Simply copy the `parser` directory and modify it to implement your custom parser.  
 
 For reference, see the `string_parser` and `dlt_parser` examples.
 
@@ -176,7 +176,7 @@ Run the benchmark with the following command, replacing `{path_to_input_file}` w
 ```sh
 cargo chipmunk bench core plugin_praser_producer -i {path_to_input_file} -c {path_to_plugin_conig_file}.toml 
 ```
-For a working example of a parser plugin configuration, refer to the [DLT parser config file](https://github.com/esrlabs/chipmunk/tree/master/plugins/examples/dlt_parser/bench_config.toml). This example will help you understand how to structure your configuration for the parser plugin.
+For a working example of a parser plugin configuration, refer to the [DLT parser config file](https://github.com/esrlabs/chipmunk/tree/master/plugins/examples/rust/dlt_parser/bench_config.toml). This example will help you understand how to structure your configuration for the parser plugin.
 
 ---
 
