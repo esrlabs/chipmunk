@@ -86,6 +86,12 @@ To integrate this compiled plugin with Chipmunk, you have two primary methods:
 
 ---
 
+## Developing Plugins with C/C++
+
+Please refer to [C/C++ Plugins Development](./cpp.md) for detailed info developing plugins in C/C++.
+
+---
+
 ## Plugin Configuration
 
 Plugins can define their own configuration schemas. These schemas are presented to users so they can provide the necessary settings. The configuration is then delivered back to the plugin during the session initialization phase. For details on schema definitions, refer to:
