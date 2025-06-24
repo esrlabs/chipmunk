@@ -75,7 +75,7 @@ pub struct ProducerCounter {
 /// different types of producer outputs to avoid unwanted compiler optimizations.
 pub async fn run_producer<P, B, T>(mut producer: MessageProducer<T, P, B>) -> ProducerCounter
 where
-    P: parsers::Parser<T>,
+    P: parsers::AllParserTypes<T>,
     B: sources::ByteSource,
     T: LogMessage,
 {

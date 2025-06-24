@@ -17,12 +17,12 @@ const FIELD_SHELLS: &str = "COMMAND_FIELD_SHELLS";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<crate::AllSourceTypes> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<crate::AllSourceTypes>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -40,7 +40,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         let command: Extracted<String> = options
             .extract_by_key(FIELD_COMMAND)
             .ok_or(missed(FIELD_COMMAND))?;
-        Ok(Some(crate::Source::Process(
+        Ok(Some(crate::AllSourceTypes::Process(
             ProcessSource::new(command.value, env::current_dir().unwrap(), HashMap::new()).unwrap(),
         )))
     }

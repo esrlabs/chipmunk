@@ -1,6 +1,6 @@
 use std::{fmt::Display, iter, marker::PhantomData};
 
-use parsers::{Attachment, LogMessage, Parser};
+use parsers::{AllParserTypes, Attachment, LogMessage};
 use serde::Serialize;
 use std::hint::black_box;
 
@@ -150,7 +150,7 @@ impl<T> MockParser<T> {
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
 // inline and the trait method should be always inline. This reduces the noise in the benchmarks.
-impl Parser<MockMessage> for MockParser<IterOnce> {
+impl AllParserTypes<MockMessage> for MockParser<IterOnce> {
     /// This will keep returning a valid item result withing an [`iter::once`] until the counter
     /// reaches max count then it will be return [`parsers::Error::Eof`]
     fn parse(
@@ -171,7 +171,7 @@ impl Parser<MockMessage> for MockParser<IterOnce> {
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
 // inline and the trait method should be always inline. This reduces the noise in the benchmarks.
-impl Parser<MockMessage> for MockParser<IterMany> {
+impl AllParserTypes<MockMessage> for MockParser<IterMany> {
     /// This will keep returning an iterator of multiple valid items until the counter reaches max
     /// count then it will be return [`parsers::Error::Eof`]
     fn parse(

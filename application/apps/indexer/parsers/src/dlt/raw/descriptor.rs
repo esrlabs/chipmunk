@@ -10,16 +10,15 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::AllParserTypes> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(Some(crate::Parser::DltRaw(DltRawParser::new(!matches!(
-            origin,
-            SessionAction::Source
-        )))))
+    ) -> Result<Option<crate::AllParserTypes>, stypes::NativeError> {
+        Ok(Some(crate::AllParserTypes::DltRaw(DltRawParser::new(
+            !matches!(origin, SessionAction::Source),
+        ))))
     }
 }
 
@@ -27,7 +26,7 @@ impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(..) | SessionAction::Files(..) | SessionAction::Source => {
-                return false
+                return false;
             }
             SessionAction::ExportRaw(files, ..) => files,
         };

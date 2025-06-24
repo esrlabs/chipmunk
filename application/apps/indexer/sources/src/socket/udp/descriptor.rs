@@ -17,12 +17,12 @@ const FIELD_MULTICAST_ADDR: &str = "UDP_SOURCE_FIELD_MULTICAST_ADDR";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<crate::AllSourceTypes> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<crate::AllSourceTypes>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -72,7 +72,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 },
             })
         }
-        Ok(Some(crate::Source::Udp(
+        Ok(Some(crate::AllSourceTypes::Udp(
             UdpSource::new(addr, multicasts).map_err(|err| NativeError {
                 kind: NativeErrorKind::Io,
                 severity: Severity::ERROR,

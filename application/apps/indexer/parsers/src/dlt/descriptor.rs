@@ -48,12 +48,12 @@ impl fmt::Display for StatFields {
     }
 }
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::AllParserTypes> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Parser>, NativeError> {
+    ) -> Result<Option<crate::AllParserTypes>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -104,7 +104,7 @@ impl ComponentFactory<crate::Parser> for Descriptor {
             app_id_count: 0,
             context_id_count: 0,
         };
-        Ok(Some(crate::Parser::Dlt(DltParser::new(
+        Ok(Some(crate::AllParserTypes::Dlt(DltParser::new(
             Some(filter_config),
             dlt_metadata,
             None,

@@ -76,7 +76,7 @@ impl Operation {
 pub enum OperationKind {
     Observe(
         stypes::SessionSetup,
-        Arc<Components<sources::Source, parsers::Parser>>,
+        Arc<Components<sources::AllSourceTypes, parsers::AllParserTypes>>,
     ),
     Search {
         filters: Vec<SearchFilter>,

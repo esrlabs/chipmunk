@@ -15,13 +15,13 @@ const FIELD_TZ: &str = "SOMEIP_PARSER_FIELD_TIMEZONE";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::AllParserTypes> for Descriptor {
     fn create(
         &self,
         _origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(Some(crate::Parser::SomeIp(SomeipParser::new())))
+    ) -> Result<Option<crate::AllParserTypes>, stypes::NativeError> {
+        Ok(Some(crate::AllParserTypes::SomeIp(SomeipParser::new())))
     }
 }
 

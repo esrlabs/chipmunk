@@ -35,12 +35,12 @@ const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<crate::AllSourceTypes> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<crate::AllSourceTypes>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -89,7 +89,9 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 .ok_or(missed(FIELD_EXCLUSIVE))?
                 .value,
         };
-        Ok(Some(crate::Source::Serial(SerialSource::new(config)?)))
+        Ok(Some(crate::AllSourceTypes::Serial(SerialSource::new(
+            config,
+        )?)))
     }
 }
 

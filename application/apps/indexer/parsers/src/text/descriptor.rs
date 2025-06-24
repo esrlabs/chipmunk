@@ -11,13 +11,13 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<crate::AllParserTypes> for Descriptor {
     fn create(
         &self,
         _origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(Some(crate::Parser::Text(StringTokenizer {})))
+    ) -> Result<Option<crate::AllParserTypes>, stypes::NativeError> {
+        Ok(Some(crate::AllParserTypes::Text(StringTokenizer {})))
     }
 }
 
@@ -42,7 +42,9 @@ impl ComponentDescriptor for Descriptor {
     fn ident(&self) -> stypes::Ident {
         stypes::Ident {
             name: String::from("Text Parser"),
-            desc: String::from("Text Parser is a minimal parser designed for processing plain text input. It performs no decoding or transformation and has no configuration options. Its sole purpose is to output incoming data line by line, making it suitable for logs or command outputs in textual format."),
+            desc: String::from(
+                "Text Parser is a minimal parser designed for processing plain text input. It performs no decoding or transformation and has no configuration options. Its sole purpose is to output incoming data line by line, making it suitable for logs or command outputs in textual format.",
+            ),
             io: stypes::IODataType::PlaitText,
             uuid: TEXT_PARSER_UUID,
         }

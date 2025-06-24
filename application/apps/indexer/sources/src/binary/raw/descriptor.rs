@@ -10,12 +10,12 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<crate::AllSourceTypes> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+    ) -> Result<Option<crate::AllSourceTypes>, stypes::NativeError> {
         let filename = match origin {
             SessionAction::File(filename) => filename,
             SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
@@ -28,7 +28,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 });
             }
         };
-        Ok(Some(crate::Source::Raw(
+        Ok(Some(crate::AllSourceTypes::Raw(
             super::BinaryByteSourceFromFile::new(filename)?,
         )))
     }
