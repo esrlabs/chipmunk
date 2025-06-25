@@ -141,7 +141,8 @@ impl defs::Parser for PluginsParser {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
+    ) -> Result<impl Iterator<Item = (usize, Option<defs::LogRecordOutput<'a>>)>, defs::ParserError>
+    {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
@@ -179,9 +180,6 @@ impl defs::Parser for PluginsParser {
         }
 
         res
-    }
-    fn min_msg_len(&self) -> usize {
-        1
     }
 }
 

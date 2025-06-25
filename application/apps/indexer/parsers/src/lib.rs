@@ -1,4 +1,4 @@
-#![deny(unused_crate_dependencies)]
+// #![deny(unused_crate_dependencies)]
 
 use components::Components;
 use definitions::{LogRecordOutput, ParserError};
@@ -25,20 +25,14 @@ impl definitions::Parser for Parser {
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
+    ) -> Result<impl Iterator<Item = (usize, Option<LogRecordOutput<'a>>)>, ParserError> {
         match self {
             Self::Dlt(inst) => inst.parse(input, timestamp),
-            Self::DltRaw(inst) => inst.parse(input, timestamp),
-            Self::SomeIp(inst) => inst.parse(input, timestamp),
-            Self::Text(inst) => inst.parse(input, timestamp),
-        }
-    }
-    fn min_msg_len(&self) -> usize {
-        match self {
-            Self::Dlt(inst) => inst.min_msg_len(),
-            Self::DltRaw(inst) => inst.min_msg_len(),
-            Self::SomeIp(inst) => inst.min_msg_len(),
-            Self::Text(inst) => inst.min_msg_len(),
+            //TODO AAZ: Fix (Burn) this.
+            _ => panic!("Commented out due to design errors"),
+            // Self::DltRaw(inst) => inst.parse(input, timestamp),
+            // Self::SomeIp(inst) => inst.parse(input, timestamp),
+            // Self::Text(inst) => inst.parse(input, timestamp),
         }
     }
 }
