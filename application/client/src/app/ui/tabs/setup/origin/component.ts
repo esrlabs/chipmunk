@@ -10,7 +10,7 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 @Component({
     selector: 'app-tabs-setup-origin',
@@ -22,7 +22,7 @@ import { SessionSourceOrigin } from '@service/session/origin';
 @Initial()
 @Ilc()
 export class SourceOriginComponent implements AfterContentInit, OnDestroy {
-    @Input() origin!: SessionSourceOrigin;
+    @Input() origin!: SessionOrigin;
 
     public title: string = '';
     public description: string | undefined;

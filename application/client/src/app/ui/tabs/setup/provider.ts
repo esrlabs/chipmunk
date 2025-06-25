@@ -10,7 +10,7 @@ import {
     LoadingErrorsEvent,
 } from '@platform/types/components';
 import { WrappedField } from '@ui/elements/scheme/field';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 export class Proivder extends SchemeProvider {
     protected pending: string[] = [];
@@ -20,7 +20,7 @@ export class Proivder extends SchemeProvider {
     protected fields: FieldDesc[] = [];
     protected hasErrors: boolean = false;
 
-    constructor(protected readonly origin: SessionSourceOrigin, protected readonly target: string) {
+    constructor(protected readonly origin: SessionOrigin, protected readonly target: string) {
         super(target);
         this.register(
             components.subjects.get().LoadingDone.subscribe(this.onLoadingDone.bind(this)),
