@@ -63,12 +63,15 @@ pub struct SessionSetup {
     ts(export, export_to = "observe.ts")
 )]
 pub struct SessionDescriptor {
+    /// Identifier of the parser being used. Provides a general description of the parser.
     pub parser: Ident,
+    /// Identifier of the source being used. Provides a general description of the source.
     pub source: Ident,
+    /// Parser description in the context of the current session.
     pub p_desc: Option<String>,
+    /// Source description in the context of the current session. For example, instead of "UDP", it might be "UDP on 0.0.0.0::8888".
     pub s_desc: Option<String>,
 }
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
 #[cfg_attr(
