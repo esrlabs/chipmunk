@@ -65,6 +65,8 @@ pub struct SessionSetup {
 pub struct SessionDescriptor {
     pub parser: Ident,
     pub source: Ident,
+    pub p_desc: Option<String>,
+    pub s_desc: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

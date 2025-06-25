@@ -22,7 +22,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -37,11 +37,15 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 ),
             });
         }
-        let command: Extracted<String> = options
+        let command: String = options
             .extract_by_key(FIELD_COMMAND)
-            .ok_or(missed(FIELD_COMMAND))?;
-        Ok(Some(crate::Source::Process(
-            ProcessSource::new(command.value, env::current_dir().unwrap(), HashMap::new()).unwrap(),
+            .ok_or(missed(FIELD_COMMAND))?
+            .value;
+        Ok(Some((
+            crate::Source::Process(
+                ProcessSource::new(&command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
+            ),
+            Some(command),
         )))
     }
 }
