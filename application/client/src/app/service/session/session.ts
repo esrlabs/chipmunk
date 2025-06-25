@@ -27,6 +27,7 @@ import { DisabledRequest } from './dependencies/search/disabled/request';
 import { StoredEntity } from './dependencies/search/store';
 import { Notification, notifications } from '@ui/service/notifications';
 import { error } from '@platform/log/utils';
+import { SessionDescriptor } from '@platform/types/bindings';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
@@ -64,6 +65,7 @@ export class Session extends Base {
 
     private _uuid!: string;
     private _tab!: ITabAPI;
+    private _descriptor: SessionDescriptor | undefined;
     private readonly _toolbar: TabsService = new TabsService();
     private readonly _sidebar: TabsService = new TabsService({
         options: new TabsOptions({ direction: ETabsListDirection.left }),
@@ -215,6 +217,17 @@ export class Session extends Base {
                     this.teamwork.init(this);
                     this.cli.init(this);
                     this.inited = true;
+                    this.register(
+                        this.stream.subjects
+                            .get()
+                            .descriptor.subscribe((descriptor: SessionDescriptor) => {
+                                if (this._descriptor) {
+                                    return;
+                                }
+                                this._descriptor = descriptor;
+                                this.title().check();
+                            }),
+                    );
                     resolve(this._uuid);
                 })
                 .catch(reject);
@@ -261,6 +274,7 @@ export class Session extends Base {
 
     public bind(tab: ITabAPI) {
         this._tab = tab;
+        this.title().check();
     }
 
     public uuid(): string {
@@ -352,6 +366,7 @@ export class Session extends Base {
     public title(): {
         set(title: string): Error | undefined;
         get(): Error | string;
+        check(): void;
     } {
         return {
             set: (title: string): Error | undefined => {
@@ -359,6 +374,18 @@ export class Session extends Base {
             },
             get: (): Error | string => {
                 return this._tab.getTitle();
+            },
+            check: () => {
+                if (!this._descriptor) {
+                    return;
+                }
+                if (!this._tab) {
+                    this.log().error(`Tab API isn't available on session instance`);
+                    return;
+                }
+                if (this._descriptor.s_desc && this._descriptor.p_desc) {
+                    this._tab.setTitle(`${this._descriptor.s_desc} (${this._descriptor.p_desc})`);
+                }
             },
         };
     }

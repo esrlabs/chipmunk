@@ -11,7 +11,7 @@ import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
 import { TextExportOptions } from '@platform/types/exporting';
-import { SessionSetup } from '@platform/types/bindings';
+import { SessionSetup, SessionDescriptor } from '@platform/types/bindings';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
@@ -34,6 +34,8 @@ export class Stream extends Subscriber {
         rank: Subject<number>;
         // Grabber is inited
         readable: Subject<void>;
+        // New session descriptor has been gotten (describe a observe operation in human readable way)
+        descriptor: Subject<SessionDescriptor>;
     }> = new Subjects({
         updated: new Subject<number>(),
         started: new Subject<Observe>(),
@@ -41,6 +43,7 @@ export class Stream extends Subscriber {
         sources: new Subject<void>(),
         rank: new Subject<number>(),
         readable: new Subject<void>(),
+        descriptor: new Subject<SessionDescriptor>(),
     });
     private _len: number = 0;
     private _uuid!: string;
@@ -77,6 +80,12 @@ export class Stream extends Subscriber {
             }),
         );
         this.register(
+            Events.IpcEvent.subscribe(Events.Stream.SessionDescriptor.Event, (event) => {
+                if (event.session !== this._uuid) {
+                    return;
+                }
+                this.subjects.get().descriptor.emit(event.descriptor);
+            }),
             Events.IpcEvent.subscribe(Events.Observe.Started.Event, (event) => {
                 if (event.session !== this._uuid) {
                     return;
