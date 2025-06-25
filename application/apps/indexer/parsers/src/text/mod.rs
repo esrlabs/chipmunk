@@ -1,4 +1,5 @@
 pub mod descriptor;
+
 use std::borrow::Cow;
 
 use definitions::*;
@@ -36,17 +37,16 @@ impl StringTokenizer {
     }
 }
 
-impl Parser for StringTokenizer {
-    fn parse<'a>(
+impl SingleParser for StringTokenizer {
+    const MIN_MSG_LEN: usize = MIN_MSG_LEN;
+
+    fn parse_item<'a>(
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
         let (consumed, data) = self.parse_item(input, timestamp)?;
-        Ok((consumed, data.map(|msg| LogRecordOutput::Cow(msg))))
-    }
-    fn min_msg_len(&self) -> usize {
-        MIN_MSG_LEN
+        Ok((consumed, data.map(LogRecordOutput::Cow)))
     }
 }
 
