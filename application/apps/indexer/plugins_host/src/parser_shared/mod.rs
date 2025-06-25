@@ -1,11 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use components::{ComponentDescriptor, ComponentFactory};
-use stypes::{PluginInfo, SemanticVersion};
 use wasmtime::component::Component;
 
+use components::ComponentDescriptor;
+use definitions::{self as defs, ParseReturnIterator};
+use stypes::{PluginInfo, SemanticVersion};
+
 use crate::{
-    PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
+    PluginHostError, PluginType, WasmPlugin,
     plugins_shared::{
         load::{WasmComponentInfo, load_and_inspect},
         plugin_errors::PluginError,
@@ -134,14 +136,8 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-use definitions::{self as defs};
-
 impl defs::Parser for PluginsParser {
-    fn parse<'a>(
-        &mut self,
-        input: &'a [u8],
-        timestamp: Option<u64>,
-    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
+    fn parse<'a>(&'a mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
@@ -179,9 +175,6 @@ impl defs::Parser for PluginsParser {
         }
 
         res
-    }
-    fn min_msg_len(&self) -> usize {
-        1
     }
 }
 

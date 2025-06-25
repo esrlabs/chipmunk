@@ -1,6 +1,9 @@
-pub use self::chipmunk::parser::parse_types::*;
+use std::borrow::Cow;
 
+use definitions::{self as defs, LogRecordOutput};
 use stypes::ParserRenderOptions;
+
+pub use self::chipmunk::parser::parse_types::*;
 
 wasmtime::component::bindgen!({
     path: "../../../../plugins/plugins_api/wit/v0.1.0",
@@ -39,19 +42,18 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
     }
 }
 
-use definitions as defs;
-
-// impl From<ParseYield> for defs::ParseYield {
-//     fn from(yld: ParseYield) -> Self {
-//         match yld {
-//             ParseYield::Message(msg) => defs::ParseYield::Message(msg.into()),
-//             ParseYield::Attachment(att) => defs::ParseYield::Attachment(att.into()),
-//             ParseYield::MessageAndAttachment((msg, att)) => {
-//                 defs::ParseYield::MessageAndAttachment((msg.into(), att.into()))
-//             }
-//         }
-//     }
-// }
+impl From<ParseYield> for LogRecordOutput<'_> {
+    fn from(value: ParseYield) -> Self {
+        match value {
+            ParseYield::Message(parsed_message) => parsed_message.into(),
+            ParseYield::Attachment(attachment) => LogRecordOutput::Attachment(attachment.into()),
+            ParseYield::MessageAndAttachment((msg, attachment)) => LogRecordOutput::Multiple(vec![
+                msg.into(),
+                LogRecordOutput::Attachment(attachment.into()),
+            ]),
+        }
+    }
+}
 
 impl From<Attachment> for defs::Attachment {
     fn from(att: Attachment) -> Self {
@@ -77,14 +79,16 @@ impl From<ParseError> for defs::ParserError {
     }
 }
 
-// impl From<ParsedMessage> for defs::LogMessage {
-//     fn from(msg: ParsedMessage) -> Self {
-//         match msg {
-//             ParsedMessage::Line(msg) => defs::LogMessage::PlainText(msg),
-//             ParsedMessage::Columns(columns) => defs::LogMessage::Columns(columns),
-//         }
-//     }
-// }
+impl From<ParsedMessage> for LogRecordOutput<'_> {
+    fn from(msg: ParsedMessage) -> Self {
+        match msg {
+            ParsedMessage::Line(msg) => LogRecordOutput::String(msg),
+            ParsedMessage::Columns(columns) => {
+                LogRecordOutput::Columns(columns.into_iter().map(Cow::Owned).collect())
+            }
+        }
+    }
+}
 
 impl From<RenderOptions> for ParserRenderOptions {
     fn from(value: RenderOptions) -> Self {
