@@ -39,7 +39,7 @@ WIT_BINDGEN_COMPILED_C_SRC := $(BUILD_DIR)/parse.o
 
 # Name of the intermediate WASM binary module.
 CORE_WASM_MODULE = $(BUILD_DIR)/plugin_intermediate_module.wasm
-# Name of plugin final WASM component file.
+# Name of plugin final WASM component file. This must match the name of the plugin itself.
 FINAL_WASM_COMPONENT := $(DIST_DIR)/my_parser.wasm
 
 # Use clang and sysroots from WASI SDK
