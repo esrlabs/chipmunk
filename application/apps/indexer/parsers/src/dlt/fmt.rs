@@ -42,13 +42,6 @@ pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 /// Separator to used between the arguments in the payload of DLT [`FormattableMessage`].
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
 
-const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
-
-lazy_static::lazy_static! {
-    static ref DLT_NEWLINE_SENTINAL_STR: &'static str =
-        unsafe { str::from_utf8_unchecked(DLT_NEWLINE_SENTINAL_SLICE) };
-}
-
 fn try_new_from_fibex_message_info(message_info: &str) -> Option<MessageType> {
     Some(MessageType::Log(match message_info {
         "DLT_LOG_FATAL" => LogLevel::Fatal,
