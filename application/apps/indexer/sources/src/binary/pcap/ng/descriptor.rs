@@ -16,7 +16,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         &self,
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Source>, stypes::NativeError> {
+    ) -> Result<Option<(crate::Source, Option<String>)>, stypes::NativeError> {
                 let filepath = match origin {
             SessionAction::File(file) => file,
             SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
@@ -27,7 +27,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 })
             }
         };
-        Ok(Some(crate::Source::PcapNg(PcapngByteSourceFromFile::new(filepath)?)))
+        Ok(Some((crate::Source::PcapNg(PcapngByteSourceFromFile::new(filepath)?), Some("PcapNg".to_owned()))))
     }
 }
 

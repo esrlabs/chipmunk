@@ -10,8 +10,13 @@ impl Arbitrary for SessionDescriptor {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        (any::<Ident>(), any::<Ident>())
-            .prop_map(|(parser, source)| SessionDescriptor { parser, source })
+        (any::<Ident>(), any::<Ident>(), any::<String>())
+            .prop_map(|(parser, source, desc)| SessionDescriptor {
+                parser,
+                source,
+                p_desc: Some(desc.clone()),
+                s_desc: Some(desc),
+            })
             .boxed()
     }
 }

@@ -355,25 +355,27 @@ impl<S, P> Components<S, P> {
                 message: Some(format!("Fail to find source {}", options.source.uuid)),
             });
         };
-        let desciptor = SessionDescriptor::new(
+        let mut descriptor = SessionDescriptor::new(
             source.bound_ident(&options.origin, &options.source.fields),
             source.bound_ident(&options.origin, &options.parser.fields),
         );
-        let Some(parser) = parser.create(&options.origin, &options.parser.fields)? else {
+        let Some((parser, desc)) = parser.create(&options.origin, &options.parser.fields)? else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("Fail to init parser {}", options.parser.uuid)),
             });
         };
-        let Some(source) = source.create(&options.origin, &options.source.fields)? else {
+        descriptor.set_parser_desc(desc);
+        let Some((source, desc)) = source.create(&options.origin, &options.source.fields)? else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("Fail to init source {}", options.source.uuid)),
             });
         };
-        Ok((desciptor, source, parser))
+        descriptor.set_parser_desc(desc);
+        Ok((descriptor, source, parser))
     }
 }
 

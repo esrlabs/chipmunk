@@ -20,8 +20,11 @@ impl ComponentFactory<crate::Parser> for Descriptor {
         &self,
         _origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(Some(crate::Parser::SomeIp(SomeipParser::new())))
+    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
+        Ok(Some((
+            crate::Parser::SomeIp(SomeipParser::new()),
+            Some("SomeIp".to_owned()),
+        )))
     }
 }
 
