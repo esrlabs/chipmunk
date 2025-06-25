@@ -148,14 +148,15 @@ pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
     /// * `options` - A slice of `stypes::Field` values representing component options or settings.
     ///
     /// # Returns
-    /// * `Ok(Some(T))` if the component was successfully created.
+    /// * `Ok(Some(T, Option<String>))` if the component was successfully created, where `T` - an
+    ///   instance of component; `Option<String>` - self description for client (e.g. "TCP on 0.0.0.0:8888").
     /// * `Ok(None)` if the factory declined to create a component for the given context.
     /// * `Err(stypes::NativeError)` if an error occurred during creation.
     fn create(
         &self,
         _origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<T>, stypes::NativeError> {
+    ) -> Result<Option<(T, Option<String>)>, stypes::NativeError> {
         Ok(None)
     }
 }

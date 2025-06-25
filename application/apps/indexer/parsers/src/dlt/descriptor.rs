@@ -53,7 +53,7 @@ impl ComponentFactory<crate::Parser> for Descriptor {
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Parser>, NativeError> {
+    ) -> Result<Option<(crate::Parser, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -104,14 +104,17 @@ impl ComponentFactory<crate::Parser> for Descriptor {
             app_id_count: 0,
             context_id_count: 0,
         };
-        Ok(Some(crate::Parser::Dlt(DltParser::new(
-            Some(filter_config),
-            dlt_metadata,
-            None,
-            someip_metadata,
-            // If it's source - no storage header expected
-            !matches!(origin, SessionAction::Source),
-        ))))
+        Ok(Some((
+            crate::Parser::Dlt(DltParser::new(
+                Some(filter_config),
+                dlt_metadata,
+                None,
+                someip_metadata,
+                // If it's source - no storage header expected
+                !matches!(origin, SessionAction::Source),
+            )),
+            Some("DLT".to_owned()),
+        )))
     }
 }
 

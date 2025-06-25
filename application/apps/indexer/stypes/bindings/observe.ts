@@ -134,7 +134,7 @@ exclusive: boolean, };
  */
 export type SessionAction = { "File": string } | { "Files": Array<string> } | { "ExportRaw": [Array<string>, Array<{ start: bigint, end: bigint, }>, string] } | "Source";
 
-export type SessionDescriptor = { parser: Ident, source: Ident, };
+export type SessionDescriptor = { parser: Ident, source: Ident, p_desc: string | null, s_desc: string | null, };
 
 export type SessionSetup = { origin: SessionAction, parser: ComponentOptions, source: ComponentOptions, };
 

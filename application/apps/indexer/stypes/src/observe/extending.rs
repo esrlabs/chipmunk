@@ -14,7 +14,18 @@ impl SessionSetup {
 }
 impl SessionDescriptor {
     pub fn new(source: Ident, parser: Ident) -> Self {
-        Self { parser, source }
+        Self {
+            parser,
+            source,
+            p_desc: None,
+            s_desc: None,
+        }
+    }
+    pub fn set_parser_desc(&mut self, desc: Option<String>) {
+        self.p_desc = desc;
+    }
+    pub fn set_source_desc(&mut self, desc: Option<String>) {
+        self.s_desc = desc;
     }
 }
 impl ObserveOptions {
