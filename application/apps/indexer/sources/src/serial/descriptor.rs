@@ -40,7 +40,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -55,11 +55,12 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 ),
             });
         }
+        let path: String = options
+            .extract_by_key(FIELD_PATH)
+            .ok_or(missed(FIELD_PATH))?
+            .value;
         let config = SerialConfig {
-            path: options
-                .extract_by_key(FIELD_PATH)
-                .ok_or(missed(FIELD_PATH))?
-                .value,
+            path: path.clone(),
             baud_rate: options
                 .extract_by_key(FIELD_BAUD_RATE)
                 .ok_or(missed(FIELD_BAUD_RATE))?
@@ -89,7 +90,10 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 .ok_or(missed(FIELD_EXCLUSIVE))?
                 .value,
         };
-        Ok(Some(crate::Source::Serial(SerialSource::new(config)?)))
+        Ok(Some((
+            crate::Source::Serial(SerialSource::new(config)?),
+            Some(path),
+        )))
     }
 }
 

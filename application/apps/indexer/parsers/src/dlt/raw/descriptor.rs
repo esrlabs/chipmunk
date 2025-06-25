@@ -15,11 +15,11 @@ impl ComponentFactory<crate::Parser> for Descriptor {
         &self,
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<crate::Parser>, stypes::NativeError> {
-        Ok(Some(crate::Parser::DltRaw(DltRawParser::new(!matches!(
-            origin,
-            SessionAction::Source
-        )))))
+    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
+        Ok(Some((
+            crate::Parser::DltRaw(DltRawParser::new(!matches!(origin, SessionAction::Source))),
+            Some("DLT".to_string()),
+        )))
     }
 }
 
@@ -27,7 +27,7 @@ impl ComponentDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(..) | SessionAction::Files(..) | SessionAction::Source => {
-                return false
+                return false;
             }
             SessionAction::ExportRaw(files, ..) => files,
         };

@@ -117,7 +117,7 @@ impl ProcessSource {
     }
 
     pub fn new(
-        command: String,
+        command: &str,
         cwd: PathBuf,
         envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
