@@ -7,7 +7,7 @@ import { session } from '@service/session';
 
 import * as $ from '@platform/types/observe';
 import * as Factory from '@platform/types/observe/factory';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
@@ -47,7 +47,7 @@ export class Provider extends Base {
     }
 
     public openNewSessionOptions() {
-        session.initialize().configure(SessionSourceOrigin.source());
+        session.initialize().configure(SessionOrigin.source());
     }
 
     public sources(): ObserveSource[] {

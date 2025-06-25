@@ -4,7 +4,7 @@ import { Logger } from '@env/logs';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
 import { TabControls } from '@service/session';
 import { Proivder } from './provider';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 export interface IApi {
     finish(): Promise<void>;
@@ -58,14 +58,14 @@ export class State extends Subscriber {
 
     protected readonly logger = new Logger(`Setup`);
 
-    constructor(protected readonly origin: SessionSourceOrigin) {
+    constructor(protected readonly origin: SessionOrigin) {
         super();
     }
     public destroy() {
         this.unsubscribe();
         this.subjects.destroy();
     }
-    public setSourceOrigin(origin: SessionSourceOrigin): Error | undefined {
+    public setSourceOrigin(origin: SessionOrigin): Error | undefined {
         if (!this.providers.parser || !this.providers.source) {
             return new Error(`Source or parser isn't setup`);
         }
