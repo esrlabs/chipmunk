@@ -94,7 +94,8 @@ export abstract class Provider {
         if (last !== undefined) {
             observe.parser.change(last.parser.instance);
         }
-        return this.session.stream.observe().start(observe.clone());
+        // return this.session.stream.observe().start(observe.clone());
+        return Promise.reject(new Error(`Not implemented`));
     }
 
     public openAsNewOrigin(observe: Observe): Promise<string> {
@@ -104,13 +105,16 @@ export abstract class Provider {
         } else {
             return Promise.reject(new Error(`No data about current parser`));
         }
-        return this.session.stream.observe().start(observe.clone());
+        // return this.session.stream.observe().start(observe.clone());
+        return Promise.reject(new Error(`Not implemented`));
     }
 
     public openAsNew(source: ObserveSource | Observe): Promise<string | undefined> {
-        return session
-            .initialize()
-            .configure(source instanceof ObserveSource ? source.observe : source);
+        console.error(`Not implemented`);
+        return Promise.reject(new Error(`Not implemented`));
+        // return session
+        //     .initialize()
+        //     .configure(source instanceof ObserveSource ? source.observe : source);
     }
 
     public setPanels(): Provider {

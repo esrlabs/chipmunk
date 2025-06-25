@@ -1,6 +1,43 @@
 use crate::*;
 use dlt_core::filtering::DltFilterConfig;
 
+impl Arbitrary for SessionDescriptor {
+    /// Implements the `Arbitrary` trait for `SessionDescriptor` to generate random instances.
+    ///
+    /// # Details
+    /// - Generates random `id` (`u16`) and `alias` (`String`) values.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (any::<Ident>(), any::<Ident>(), any::<String>())
+            .prop_map(|(parser, source, desc)| SessionDescriptor {
+                parser,
+                source,
+                p_desc: Some(desc.clone()),
+                s_desc: Some(desc),
+            })
+            .boxed()
+    }
+}
+
+impl Arbitrary for Ident {
+    /// Implements the `Arbitrary` trait for `Ident` to generate random instances.
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+        (any::<String>(), any::<String>(), any::<IODataType>())
+            .prop_map(|(name, desc, io)| Ident {
+                name,
+                desc,
+                io,
+                uuid: Uuid::new_v4(),
+            })
+            .boxed()
+    }
+}
+
 impl Arbitrary for MulticastInfo {
     type Parameters = ();
     type Strategy = BoxedStrategy<Self>;

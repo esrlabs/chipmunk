@@ -1,5 +1,3 @@
-use crate::{PluginParseMessage, parser_shared::COLUMN_SEP};
-
 pub use self::chipmunk::parser::parse_types::*;
 
 use stypes::ParserRenderOptions;
@@ -41,23 +39,23 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
     }
 }
 
-use parsers as p;
+use definitions as defs;
 
-impl From<ParseYield> for p::ParseYield<PluginParseMessage> {
-    fn from(yld: ParseYield) -> Self {
-        match yld {
-            ParseYield::Message(msg) => p::ParseYield::Message(msg.into()),
-            ParseYield::Attachment(att) => p::ParseYield::Attachment(att.into()),
-            ParseYield::MessageAndAttachment((msg, att)) => {
-                p::ParseYield::MessageAndAttachment((msg.into(), att.into()))
-            }
-        }
-    }
-}
+// impl From<ParseYield> for defs::ParseYield {
+//     fn from(yld: ParseYield) -> Self {
+//         match yld {
+//             ParseYield::Message(msg) => defs::ParseYield::Message(msg.into()),
+//             ParseYield::Attachment(att) => defs::ParseYield::Attachment(att.into()),
+//             ParseYield::MessageAndAttachment((msg, att)) => {
+//                 defs::ParseYield::MessageAndAttachment((msg.into(), att.into()))
+//             }
+//         }
+//     }
+// }
 
-impl From<Attachment> for p::Attachment {
+impl From<Attachment> for defs::Attachment {
     fn from(att: Attachment) -> Self {
-        p::Attachment {
+        defs::Attachment {
             data: att.data,
             name: att.name,
             size: att.size as usize,
@@ -68,27 +66,25 @@ impl From<Attachment> for p::Attachment {
     }
 }
 
-impl From<ParseError> for p::Error {
+impl From<ParseError> for defs::ParserError {
     fn from(err: ParseError) -> Self {
         match err {
-            ParseError::Unrecoverable(msg) => p::Error::Unrecoverable(msg),
-            ParseError::Parse(msg) => p::Error::Parse(msg),
-            ParseError::Incomplete => p::Error::Incomplete,
-            ParseError::Eof => p::Error::Eof,
+            ParseError::Unrecoverable(msg) => defs::ParserError::Unrecoverable(msg),
+            ParseError::Parse(msg) => defs::ParserError::Parse(msg),
+            ParseError::Incomplete => defs::ParserError::Incomplete,
+            ParseError::Eof => defs::ParserError::Eof,
         }
     }
 }
 
-impl From<ParsedMessage> for PluginParseMessage {
-    fn from(msg: ParsedMessage) -> Self {
-        let content = match msg {
-            ParsedMessage::Line(msg) => msg,
-            ParsedMessage::Columns(columns) => columns.join(COLUMN_SEP),
-        };
-
-        Self { content }
-    }
-}
+// impl From<ParsedMessage> for defs::LogMessage {
+//     fn from(msg: ParsedMessage) -> Self {
+//         match msg {
+//             ParsedMessage::Line(msg) => defs::LogMessage::PlainText(msg),
+//             ParsedMessage::Columns(columns) => defs::LogMessage::Columns(columns),
+//         }
+//     }
+// }
 
 impl From<RenderOptions> for ParserRenderOptions {
     fn from(value: RenderOptions) -> Self {

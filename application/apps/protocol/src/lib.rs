@@ -107,7 +107,7 @@ mod generate;
 
 pub(crate) use err::*;
 pub(crate) use serde::Serialize;
-pub(crate) use serde_wasm_bindgen::{Serializer, from_value};
+pub(crate) use serde_wasm_bindgen::{from_value, Serializer};
 pub(crate) use stypes::*;
 pub(crate) use wasm_bindgen::prelude::*;
 
@@ -205,3 +205,17 @@ gen_encode_decode_fns!(Point);
 gen_encode_decode_fns!(ResultSearchValues);
 gen_encode_decode_fns!(ResultScaledDistribution);
 gen_encode_decode_fns!(DltLevelDistribution);
+gen_encode_decode_fns!(SessionAction);
+gen_encode_decode_fns!(Ident);
+gen_encode_decode_fns!(IdentList);
+gen_encode_decode_fns!(ComponentsOptionsList);
+gen_encode_decode_fns!(FieldDesc);
+gen_encode_decode_fns!(LazyFieldDesc);
+gen_encode_decode_fns!(StaticFieldDesc);
+gen_encode_decode_fns!(CallbackOptionsEvent);
+gen_encode_decode_fns!(ComponentType);
+gen_encode_decode_fns!(FieldsValidationErrors);
+gen_encode_decode_fns!(ComponentOptions);
+gen_encode_decode_fns!(SessionSetup);
+gen_encode_decode_fns!(SessionDescriptor);
+gen_encode_decode_fns!(OutputRender);

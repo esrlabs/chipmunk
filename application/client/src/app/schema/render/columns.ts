@@ -4,8 +4,39 @@ import { Subject, Subjects } from '@platform/env/subscription';
 import { error } from '@platform/log/utils';
 import { bridge } from '@service/bridge';
 import { LimittedValue } from '@ui/env/entities/value.limited';
+import { Render } from './index';
 
 import * as num from '@platform/env/num';
+import { Protocol } from '@platform/types/observe/parser';
+
+const MIN_COLUMN_WIDTH = 30;
+const MAX_COLUMN_WIDTH = 600;
+
+export class ColumnsRender extends Render<Columns> {
+    constructor(protected readonly headers: string[], sizes: number[]) {
+        super();
+        this.setBoundEntity(
+            new Columns(
+                headers,
+                true,
+                sizes.map((w) => (w === 0 ? -1 : w)),
+                MIN_COLUMN_WIDTH,
+                MAX_COLUMN_WIDTH,
+            ),
+        );
+    }
+
+    public override protocol(): Protocol {
+        return Protocol.Dlt;
+    }
+
+    public override columns(): number {
+        return this.headers.length;
+    }
+    public override delimiter(): string | undefined {
+        return `\u0004`;
+    }
+}
 
 export interface Header {
     caption: string;
@@ -20,10 +51,7 @@ export class Columns {
     protected readonly styles: Map<number, { [key: string]: string }> = new Map();
     protected readonly logger = scope.getLogger('Columns');
     protected readonly defaults: {
-        headers: {
-            caption: string;
-            desc: string;
-        }[];
+        headers: string[];
         visability: boolean[] | boolean;
         widths: number[];
         min: number[] | number;
@@ -52,34 +80,26 @@ export class Columns {
                   ) as number[]);
         this.headers.clear();
         this.styles.clear();
-        this.defaults.headers.forEach(
-            (
-                desc: {
-                    caption: string;
-                    desc: string;
-                },
-                index: number,
-            ) => {
-                const header = {
-                    caption: desc.caption,
-                    desc: desc.desc,
-                    width:
-                        this.defaults.widths[index] === -1
-                            ? undefined
-                            : new LimittedValue(
-                                  `column_width_${index}`,
-                                  minWidths[index],
-                                  maxWidths[index],
-                                  this.defaults.widths[index],
-                              ),
-                    visible: headersVisability[index],
-                    color: undefined,
-                    index,
-                };
-                this.headers.set(index, header);
-                this.styles.set(index, {});
-            },
-        );
+        this.defaults.headers.forEach((caption, index: number) => {
+            const header = {
+                caption: caption,
+                desc: caption,
+                width:
+                    this.defaults.widths[index] === -1
+                        ? undefined
+                        : new LimittedValue(
+                              `column_width_${index}`,
+                              minWidths[index],
+                              maxWidths[index],
+                              this.defaults.widths[index],
+                          ),
+                visible: headersVisability[index],
+                color: undefined,
+                index,
+            };
+            this.headers.set(index, header);
+            this.styles.set(index, {});
+        });
         this.update().all();
         this.hash = this.getHash();
     }
@@ -183,10 +203,7 @@ export class Columns {
     });
 
     constructor(
-        headers: {
-            caption: string;
-            desc: string;
-        }[],
+        headers: string[],
         visability: boolean[] | boolean,
         widths: number[],
         min: number[] | number,

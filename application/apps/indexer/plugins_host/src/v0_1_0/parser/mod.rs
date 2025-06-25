@@ -4,6 +4,7 @@
 mod bindings;
 mod parser_plugin_state;
 
+use components::ComponentDescriptor;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use tokio::runtime::Handle;
 use wasmtime::{
@@ -130,14 +131,13 @@ impl PluginParser {
     }
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginParser {
-    fn parse(
+use definitions as defs;
+impl defs::Parser for PluginParser {
+    fn parse<'a>(
         &mut self,
-        input: &[u8],
+        input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
         // Calls on plugins must be async. To solve that we got the following solutions:
         // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
         //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
@@ -157,15 +157,41 @@ impl p::Parser<PluginParseMessage> for PluginParser {
             Ok(results) => results?,
             Err(call_err) => {
                 // Wasmtime uses anyhow error, which provides error context in debug print only.
-                return Err(p::Error::Unrecoverable(format!(
+                return Err(defs::ParserError::Unrecoverable(format!(
                     "Call parse on the plugin failed. Error: {call_err:?}"
                 )));
             }
         };
+        // TODO: write in iteration
+        todo!("Not implemented");
 
-        let res = parse_results
-            .into_iter()
-            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())));
-        Ok(res)
+        // Ok(parse_results
+        //     .into_iter()
+        //     .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
+        //     .collect())
+    }
+    fn min_msg_len(&self) -> usize {
+        1
+    }
+}
+
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &stypes::SessionAction) -> bool {
+        true
+    }
+    /// **ATTANTION** That's placeholder. Should be another way to delivery data
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Plugin Parser"),
+            desc: String::from("Plugin Parser"),
+            io: stypes::IODataType::Any,
+            uuid: uuid::Uuid::new_v4(),
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Parser
     }
 }

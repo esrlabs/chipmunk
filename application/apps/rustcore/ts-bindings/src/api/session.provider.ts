@@ -3,7 +3,7 @@ import { ISearchUpdated } from 'platform/types/filter';
 import { Computation } from '../provider/provider';
 import { EErrorKind, EErrorSeverity } from '../provider/provider.errors';
 import { IMapEntity, IMatchEntity, FilterMatch } from 'platform/types/filter';
-import { AttachmentInfo } from 'platform/types/bindings';
+import { AttachmentInfo, SessionDescriptor } from 'platform/types/bindings';
 
 import * as protocol from 'protocol';
 
@@ -64,6 +64,7 @@ export interface ISessionEvents {
     SessionError: Subject<IError>;
     OperationError: Subject<IErrorEvent>;
     SessionDestroyed: Subject<void>;
+    SessionDescriptor: Subject<SessionDescriptor>;
     OperationStarted: Subject<string>;
     OperationProcessing: Subject<string>;
     OperationDone: Subject<IOperationDoneEvent>;
@@ -86,6 +87,7 @@ interface ISessionEventsSignatures {
     OperationError: 'OperationError';
     SessionDestroyed: 'SessionDestroyed';
     OperationStarted: 'OperationStarted';
+    SessionDescriptor: 'SessionDescriptor';
     OperationProcessing: 'OperationProcessing';
     OperationDone: 'OperationDone';
 }
@@ -105,6 +107,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     OperationError: 'OperationError',
     SessionDestroyed: 'SessionDestroyed',
     OperationStarted: 'OperationStarted',
+    SessionDescriptor: 'SessionDescriptor',
     OperationProcessing: 'OperationProcessing',
     OperationDone: 'OperationDone',
 };
@@ -135,6 +138,13 @@ interface ISessionEventsInterfaces {
     };
     SessionDestroyed: { self: null };
     OperationStarted: { self: 'string' };
+    SessionDescriptor: {
+        self: 'object';
+        parser: 'object';
+        source: 'object';
+        s_desc: ['string', null, undefined];
+        p_desc: ['string', null, undefined];
+    };
     OperationProcessing: { self: 'string' };
     OperationDone: { self: 'object'; uuid: 'string'; result: 'any' };
 }
@@ -165,6 +175,13 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     },
     SessionDestroyed: { self: null },
     OperationStarted: { self: 'string' },
+    SessionDescriptor: {
+        self: 'object',
+        parser: 'object',
+        source: 'object',
+        s_desc: ['string', null, undefined],
+        p_desc: ['string', null, undefined],
+    },
     OperationProcessing: { self: 'string' },
     OperationDone: { self: 'object', uuid: 'string', result: 'any' },
 };
@@ -190,6 +207,7 @@ export class EventProvider extends Computation<
         SessionDestroyed: new Subject<void>(),
         OperationStarted: new Subject<string>(),
         OperationProcessing: new Subject<string>(),
+        SessionDescriptor: new Subject<SessionDescriptor>(),
         OperationDone: new Subject<IOperationDoneEvent>(),
     };
 
