@@ -28,15 +28,15 @@ export class ComponentsOptions {
     }
 }
 
-export class SessionSourceOrigin {
-    static file(path: string): SessionSourceOrigin {
-        return new SessionSourceOrigin({ File: path }, undefined);
+export class SessionOrigin {
+    static file(path: string): SessionOrigin {
+        return new SessionOrigin({ File: path }, undefined);
     }
-    static files(paths: string[]): SessionSourceOrigin {
-        return new SessionSourceOrigin({ Files: paths }, undefined);
+    static files(paths: string[]): SessionOrigin {
+        return new SessionOrigin({ Files: paths }, undefined);
     }
-    static source(): SessionSourceOrigin {
-        return new SessionSourceOrigin('Source', undefined);
+    static source(): SessionOrigin {
+        return new SessionOrigin('Source', undefined);
     }
 
     public readonly options: ComponentsOptions;

@@ -22,7 +22,7 @@ import { getRender, getDltRender } from '@schema/render/tools';
 import { SetupObserve } from '@tabs/setup/component';
 import { recent } from '@service/recent';
 import { bridge } from '@service/bridge';
-import { SessionSourceOrigin } from './session/origin';
+import { SessionOrigin } from './session/origin';
 
 import * as Factory from '@platform/types/observe/factory';
 
@@ -226,9 +226,9 @@ export class Service extends Implementation {
 
     public initialize(): {
         suggest(filename: string, session?: Session): Promise<string | undefined>;
-        auto(origin: SessionSourceOrigin, session?: Session): Promise<string | undefined>;
-        configure(origin: SessionSourceOrigin, session?: Session): Promise<string | undefined>;
-        observe(origin: SessionSourceOrigin, session?: Session): Promise<string>;
+        auto(origin: SessionOrigin, session?: Session): Promise<string | undefined>;
+        configure(origin: SessionOrigin, session?: Session): Promise<string | undefined>;
+        observe(origin: SessionOrigin, session?: Session): Promise<string>;
         multiple(files: File[]): Promise<string | undefined>;
     } {
         return {
@@ -238,23 +238,17 @@ export class Service extends Implementation {
                     .isBinary(filename)
                     .then((_binary: boolean) => {
                         // TODO: considering binary or not should happen on rustcore now
-                        return this.initialize().observe(
-                            SessionSourceOrigin.file(filename),
-                            session,
-                        );
+                        return this.initialize().observe(SessionOrigin.file(filename), session);
                     });
             },
-            auto: (origin: SessionSourceOrigin, session?: Session): Promise<string | undefined> => {
+            auto: (origin: SessionOrigin, session?: Session): Promise<string | undefined> => {
                 console.error(`Not implemented`);
                 return Promise.reject(new Error(`Not implemented`));
                 // return observe.locker().is()
                 //     ? this.initialize().observe(observe, session)
                 //     : this.initialize().configure(observe, session);
             },
-            configure: (
-                origin: SessionSourceOrigin,
-                session?: Session,
-            ): Promise<string | undefined> => {
+            configure: (origin: SessionOrigin, session?: Session): Promise<string | undefined> => {
                 return new Promise((resolve) => {
                     const api = this.add().tab({
                         name: origin.getTitle(),
@@ -263,7 +257,7 @@ export class Service extends Implementation {
                             inputs: {
                                 origin,
                                 api: {
-                                    finish: (origin: SessionSourceOrigin): Promise<void> => {
+                                    finish: (origin: SessionOrigin): Promise<void> => {
                                         return new Promise((success, failed) => {
                                             this.initialize()
                                                 .observe(origin, session)
@@ -291,7 +285,7 @@ export class Service extends Implementation {
                     });
                 });
             },
-            observe: async (origin: SessionSourceOrigin, existed?: Session): Promise<string> => {
+            observe: async (origin: SessionOrigin, existed?: Session): Promise<string> => {
                 const render = await origin.getRender();
 
                 const session =
@@ -384,7 +378,7 @@ export class Service extends Implementation {
                                 setTitle: (title: string) => {
                                     api?.setTitle(title);
                                 },
-                                done: (origin: SessionSourceOrigin) => {
+                                done: (origin: SessionOrigin) => {
                                     console.error(`Not implemented`);
                                     //     .observe(observe)
                                     //     .then((session) => {

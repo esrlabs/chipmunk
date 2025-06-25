@@ -5,7 +5,7 @@ import { notifications, Notification } from '@ui/service/notifications';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 
 import * as Factory from '@platform/types/observe/factory';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_folder_parser_plugins';
 
@@ -45,7 +45,7 @@ export class Action extends Base {
                 },
             });
         } else {
-            session.initialize().observe(SessionSourceOrigin.file(files[0].filename));
+            session.initialize().observe(SessionOrigin.file(files[0].filename));
         }
 
         return Promise.resolve();

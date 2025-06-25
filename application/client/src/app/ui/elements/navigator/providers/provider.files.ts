@@ -8,7 +8,7 @@ import { FolderEntityType } from '@platform/types/bindings';
 
 import * as Factory from '@platform/types/observe/factory';
 import { IMenuItem } from '@ui/service/contextmenu';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 const DEFAULT_DEEP = 5;
 const DEFAULT_LEN = 20000;
@@ -84,7 +84,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(SessionSourceOrigin.file(item.filename))
+                    .configure(SessionOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -93,7 +93,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(SessionSourceOrigin.file(item.filename))
+                    .configure(SessionOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -102,7 +102,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .configure(SessionSourceOrigin.file(item.filename))
+                    .configure(SessionOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -111,7 +111,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .observe(SessionSourceOrigin.file(item.filename))
+                    .observe(SessionOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc.log().error(`Fail to open text file; error: ${err.message}`);
                     });
@@ -120,7 +120,7 @@ export class Provider extends Base<IFileDescription> {
                 this.ilc
                     .ilc()
                     .services.system.session.initialize()
-                    .observe(SessionSourceOrigin.file(item.filename))
+                    .observe(SessionOrigin.file(item.filename))
                     .catch((err: Error) => {
                         this.ilc
                             .log()
@@ -141,7 +141,7 @@ export class Provider extends Base<IFileDescription> {
                             this.ilc
                                 .ilc()
                                 .services.system.session.initialize()
-                                .observe(SessionSourceOrigin.file(item.filename))
+                                .observe(SessionOrigin.file(item.filename))
                                 .catch((err: Error) => {
                                     this.ilc
                                         .log()
@@ -151,7 +151,7 @@ export class Provider extends Base<IFileDescription> {
                             this.ilc
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.file(item.filename))
+                                .configure(SessionOrigin.file(item.filename))
                                 .catch((err: Error) => {
                                     this.ilc
                                         .log()

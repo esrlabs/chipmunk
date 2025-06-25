@@ -16,7 +16,7 @@ import { stop } from '@ui/env/dom';
 
 import * as Scheme from './scheme';
 import * as Factory from '@platform/types/observe/factory';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 @Component({
     selector: 'app-elements-tree',
@@ -111,7 +111,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(SessionSourceOrigin.file(entity.getPath()))
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open text file; error: ${err.message}`);
                             });
@@ -122,7 +122,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(SessionSourceOrigin.file(entity.getPath()))
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open dlt file; error: ${err.message}`);
                             });
@@ -133,7 +133,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(SessionSourceOrigin.file(entity.getPath()))
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);
                             });
@@ -144,7 +144,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(SessionSourceOrigin.file(entity.getPath()))
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);
                             });
@@ -155,7 +155,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(SessionSourceOrigin.file(entity.getPath()))
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(
                                     `Fail to open file with plugins: errord ${err.message}`,

@@ -11,7 +11,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, IApi } from './state';
-import { SessionComponents, SessionSourceOrigin } from '@service/session/origin';
+import { SessionComponents, SessionOrigin } from '@service/session/origin';
 import { session } from '@service/session';
 
 @Component({
@@ -28,7 +28,7 @@ export class SetupObserve
     implements AfterViewInit, AfterContentInit, OnDestroy
 {
     @Input() api!: IApi;
-    @Input() origin!: SessionSourceOrigin;
+    @Input() origin!: SessionOrigin;
 
     public state!: State;
 
