@@ -584,10 +584,11 @@ pub async fn run(
             }
             Api::AddSource(descriptor, tx_response) => {
                 tx_response
-                    .send(state.session_file.sources.add_source(descriptor))
+                    .send(state.session_file.sources.add_source(descriptor.clone()))
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::AddSource")
                     })?;
+                tx_callback_events.send(stypes::CallbackEvent::SessionDescriptor(descriptor))?;
             }
             Api::GetSourcesDefinitions(tx_response) => {
                 tx_response

@@ -374,7 +374,7 @@ impl<S, P> Components<S, P> {
                 message: Some(format!("Fail to init source {}", options.source.uuid)),
             });
         };
-        descriptor.set_parser_desc(desc);
+        descriptor.set_source_desc(desc);
         Ok((descriptor, source, parser))
     }
 }
