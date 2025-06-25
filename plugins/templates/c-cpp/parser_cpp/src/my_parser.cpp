@@ -29,12 +29,17 @@ void exports_chipmunk_parser_parser_get_version(
   ret->patch = 0;
 }
 
-/// Provides the schemas for the configurations required by the plugin, which
-/// will be specified by the users.
+/// Provides the schemas for the configurations required by the plugin.
 ///
-/// These schemas define the expected structure, types, and constraints
-/// for plugin-specific configurations. The values of these configurations
-/// will be passed to the initializing method of the parser.
+/// These schemas define the expected structure, types, and constraints for
+/// plugin-specific configurations that users will specify. Chipmunk uses these
+/// schemas to render UI controls, which are presented to users before starting
+/// a session, allowing them to provide values for these configurations.
+///
+/// The values collected from these configurations are then passed to the
+/// parser's initialization method. Developers should refer to the WIT files
+/// and the generated bindgen for a complete list of available configuration
+/// schemas.
 void exports_chipmunk_parser_parser_get_config_schemas(
     exports_chipmunk_parser_parser_list_config_schema_item_t *ret) {
   ret->ptr = new exports_chipmunk_parser_parser_config_schema_item_t[3];
@@ -103,8 +108,13 @@ void exports_chipmunk_parser_parser_get_render_options(
 #endif
 }
 
-/// Initialize the parser with the given configurations
-/// This function will be called upon starting a parsing session.
+/// Initializes the parser with the provided configurations.
+///
+/// This function is called when a parsing session starts. It receives the
+/// general parser configurations applicable to all parsing plugins, along
+/// with specific configuration values defined by the
+/// `exports_chipmunk_parser_parser_get_config_schemas()` function for this
+/// plugin.
 bool exports_chipmunk_parser_parser_init(
     exports_chipmunk_parser_parser_parser_config_t *general_configs,
     exports_chipmunk_parser_parser_list_config_item_t *plugin_configs,
