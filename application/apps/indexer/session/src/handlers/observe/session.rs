@@ -10,9 +10,6 @@ use std::time::Instant;
 use stypes::NativeError;
 use tokio::{select, sync::mpsc::Receiver};
 
-/// Duration (in milliseconds) between flushes to the session file.
-const SEND_DURATION: u128 = 500;
-
 /// A writer responsible for appending data to a session file.
 ///
 /// This writer is linked to a session file through the `SessionStateAPI`.
@@ -37,9 +34,6 @@ pub struct Writer {
     /// order between messages and attachments.
     attachments: Vec<Attachment>,
 
-    /// Timestamp used to track the last flush to the session file.
-    recent: Instant,
-
     /// Unique identifier for the data source. This is used on the client side
     /// to visually group or distinguish data streams.
     id: u16,
@@ -51,86 +45,67 @@ impl Writer {
             state,
             buffer: String::new(),
             attachments: Vec::new(),
-            recent: Instant::now(),
             id,
         }
     }
 }
 
 impl LogRecordWriter for Writer {
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
-        fn fill<'a>(
-            writer: &mut Writer,
-            record: LogRecordOutput<'a>,
-        ) -> Option<Vec<LogRecordOutput<'a>>> {
-            match record {
-                LogRecordOutput::Raw(inner) => {
-                    // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
-                    // because during observe we do not expect raw data
-                    writer.buffer.push_str(
-                        &inner
-                            .iter()
-                            .map(|b| format!("{:02X}", b))
-                            .collect::<String>(),
-                    );
-                    writer.buffer.push('\n');
-                    None
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+        match record {
+            LogRecordOutput::Raw(inner) => {
+                // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
+                // because during observe we do not expect raw data
+                self.buffer.push_str(
+                    &inner
+                        .iter()
+                        .map(|b| format!("{:02X}", b))
+                        .collect::<String>(),
+                );
+                self.buffer.push('\n');
+            }
+            LogRecordOutput::Cow(inner) => {
+                self.buffer.push_str(&inner);
+                self.buffer.push('\n');
+            }
+            LogRecordOutput::String(inner) => {
+                self.buffer.push_str(&inner);
+                self.buffer.push('\n');
+            }
+            LogRecordOutput::Str(inner) => {
+                self.buffer.push_str(inner);
+                self.buffer.push('\n');
+            }
+            LogRecordOutput::Columns(inner) => {
+                let mut items = inner.into_iter();
+                if let Some(first_item) = items.next() {
+                    self.buffer.push_str(&first_item);
+                    for item in items {
+                        self.buffer.push(definitions::COLUMN_SENTINAL);
+                        self.buffer.push_str(&item);
+                    }
                 }
-                LogRecordOutput::Cow(inner) => {
-                    writer.buffer.push_str(&inner);
-                    writer.buffer.push('\n');
-                    None
-                }
-                LogRecordOutput::String(inner) => {
-                    writer.buffer.push_str(&inner);
-                    writer.buffer.push('\n');
-                    None
-                }
-                LogRecordOutput::Str(inner) => {
-                    writer.buffer.push_str(inner);
-                    writer.buffer.push('\n');
-                    None
-                }
-                LogRecordOutput::Columns(inner) => {
-                    writer
-                        .buffer
-                        .push_str(&inner.join(&definitions::COLUMN_SENTINAL.to_string()));
-                    writer.buffer.push('\n');
-                    None
-                }
-                LogRecordOutput::Multiple(inner) => Some(inner),
-                LogRecordOutput::Attachment(inner) => {
-                    writer.attachments.push(inner);
-                    None
+                self.buffer.push('\n');
+            }
+            LogRecordOutput::Multiple(inner) => {
+                for rec in inner {
+                    self.write(rec)?;
                 }
             }
-        }
-        if let Some(records) = fill(self, record) {
-            for record in records.into_iter() {
-                fill(self, record);
+            LogRecordOutput::Attachment(inner) => {
+                self.attachments.push(inner);
             }
-        }
-        if self.recent.elapsed().as_millis() > SEND_DURATION {
-            if !self.buffer.is_empty() {
-                self.state
-                    .write_session_file(self.get_id(), std::mem::take(&mut self.buffer))
-                    .await?;
-            }
-            for attachment in std::mem::take(&mut self.attachments) {
-                // TODO: send with 1 call
-                self.state.add_attachment(attachment)?;
-            }
-            self.recent = Instant::now();
         }
         Ok(())
     }
     async fn finalize(&mut self) -> Result<(), stypes::NativeError> {
         if !self.buffer.is_empty() {
-            self.state
-                .write_session_file(self.get_id(), std::mem::take(&mut self.buffer))
-                .await?;
+            let mut buf = String::with_capacity(self.buffer.len());
+            buf.push_str(&self.buffer);
+            self.state.write_session_file(self.get_id(), buf).await?;
+            self.buffer.clear();
         }
-        for attachment in std::mem::take(&mut self.attachments) {
+        for attachment in self.attachments.drain(..) {
             // TODO: send with 1 call
             self.state.add_attachment(attachment)?;
         }

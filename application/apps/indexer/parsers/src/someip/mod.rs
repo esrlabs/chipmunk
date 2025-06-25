@@ -298,8 +298,10 @@ impl SomeipParser {
 unsafe impl Send for SomeipParser {}
 unsafe impl Sync for SomeipParser {}
 
-impl Parser for SomeipParser {
-    fn parse<'a>(
+impl SingleParser for SomeipParser {
+    const MIN_MSG_LEN: usize = MIN_MSG_LEN;
+
+    fn parse_item<'a>(
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
@@ -309,9 +311,6 @@ impl Parser for SomeipParser {
             consumed,
             data.map(|msg| LogRecordOutput::String(msg.to_string())),
         ))
-    }
-    fn min_msg_len(&self) -> usize {
-        MIN_MSG_LEN
     }
 }
 
@@ -548,49 +547,49 @@ mod test {
 
     fn test_metadata() -> FibexMetadata {
         let xml = r#"
-            <fx:SERVICE-INTERFACE ID="/SOMEIP/TEST/ServiceInterface_TestService">
-                <ho:SHORT-NAME>TestService</ho:SHORT-NAME>
-                <fx:SERVICE-IDENTIFIER>259</fx:SERVICE-IDENTIFIER>
-                <fx:PACKAGE-REF ID-REF="/SOMEIP/TEST"/>
-                <service:API-VERSION>
-                    <service:MAJOR>1</service:MAJOR>
-                    <service:MINOR>2</service:MINOR>
-                </service:API-VERSION>
-                <service:EVENTS>
-                    <service:EVENT ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_EmptyEvent">
-                        <ho:SHORT-NAME>EmptyEvent</ho:SHORT-NAME>
-                        <service:METHOD-IDENTIFIER>32772</service:METHOD-IDENTIFIER>
-                        <service:CALL-SEMANTIC>FIRE_AND_FORGET</service:CALL-SEMANTIC>
-                    </service:EVENT>
-                    <service:EVENT ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TestEvent">
-                        <ho:SHORT-NAME>TestEvent</ho:SHORT-NAME>
-                        <service:METHOD-IDENTIFIER>32773</service:METHOD-IDENTIFIER>
-                        <service:CALL-SEMANTIC>FIRE_AND_FORGET</service:CALL-SEMANTIC>
-                        <service:INPUT-PARAMETERS>
-                            <service:INPUT-PARAMETER ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TestEvent/in/Parameter_Value1">
-                                <ho:SHORT-NAME>Value1</ho:SHORT-NAME>
-                                <fx:DATATYPE-REF ID-REF="/CommonDatatype_UINT8"/>
-                                <fx:UTILIZATION>
-                                    <fx:IS-HIGH-LOW-BYTE-ORDER>false</fx:IS-HIGH-LOW-BYTE-ORDER>
-                                </fx:UTILIZATION>
-                                <service:POSITION>0</service:POSITION>
-                            </service:INPUT-PARAMETER>
-                            <service:INPUT-PARAMETER ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TestEvent/in/Parameter_Value2">
-                                <ho:SHORT-NAME>Value2</ho:SHORT-NAME>
-                                <fx:DATATYPE-REF ID-REF="/CommonDatatype_UINT8"/>
-                                <fx:UTILIZATION>
-                                    <fx:IS-HIGH-LOW-BYTE-ORDER>false</fx:IS-HIGH-LOW-BYTE-ORDER>
-                                </fx:UTILIZATION>
-                                <service:POSITION>1</service:POSITION>
-                            </service:INPUT-PARAMETER>
-                        </service:INPUT-PARAMETERS>
-                    </service:EVENT>
-                </service:EVENTS>
-            </fx:SERVICE-INTERFACE>
-            <fx:DATATYPE xsi:type="fx:COMMON-DATATYPE-TYPE" ID="/CommonDatatype_UINT8">
-                <ho:SHORT-NAME>UINT8</ho:SHORT-NAME>
-            </fx:DATATYPE>
-        "#;
+             <fx:SERVICE-INTERFACE ID="/SOMEIP/TEST/ServiceInterface_TestService">
+                 <ho:SHORT-NAME>TestService</ho:SHORT-NAME>
+                 <fx:SERVICE-IDENTIFIER>259</fx:SERVICE-IDENTIFIER>
+                 <fx:PACKAGE-REF ID-REF="/SOMEIP/TEST"/>
+                 <service:API-VERSION>
+                     <service:MAJOR>1</service:MAJOR>
+                     <service:MINOR>2</service:MINOR>
+                 </service:API-VERSION>
+                 <service:EVENTS>
+                     <service:EVENT ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_EmptyEvent">
+                         <ho:SHORT-NAME>EmptyEvent</ho:SHORT-NAME>
+                         <service:METHOD-IDENTIFIER>32772</service:METHOD-IDENTIFIER>
+                         <service:CALL-SEMANTIC>FIRE_AND_FORGET</service:CALL-SEMANTIC>
+                     </service:EVENT>
+                     <service:EVENT ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TestEvent">
+                         <ho:SHORT-NAME>TestEvent</ho:SHORT-NAME>
+                         <service:METHOD-IDENTIFIER>32773</service:METHOD-IDENTIFIER>
+                         <service:CALL-SEMANTIC>FIRE_AND_FORGET</service:CALL-SEMANTIC>
+                         <service:INPUT-PARAMETERS>
+                             <service:INPUT-PARAMETER ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TestEvent/in/Parameter_Value1">
+                                 <ho:SHORT-NAME>Value1</ho:SHORT-NAME>
+                                 <fx:DATATYPE-REF ID-REF="/CommonDatatype_UINT8"/>
+                                 <fx:UTILIZATION>
+                                     <fx:IS-HIGH-LOW-BYTE-ORDER>false</fx:IS-HIGH-LOW-BYTE-ORDER>
+                                 </fx:UTILIZATION>
+                                 <service:POSITION>0</service:POSITION>
+                             </service:INPUT-PARAMETER>
+                             <service:INPUT-PARAMETER ID="/SOMEIP/TEST/ServiceInterface_TestService/Method_TestEvent/in/Parameter_Value2">
+                                 <ho:SHORT-NAME>Value2</ho:SHORT-NAME>
+                                 <fx:DATATYPE-REF ID-REF="/CommonDatatype_UINT8"/>
+                                 <fx:UTILIZATION>
+                                     <fx:IS-HIGH-LOW-BYTE-ORDER>false</fx:IS-HIGH-LOW-BYTE-ORDER>
+                                 </fx:UTILIZATION>
+                                 <service:POSITION>1</service:POSITION>
+                             </service:INPUT-PARAMETER>
+                         </service:INPUT-PARAMETERS>
+                     </service:EVENT>
+                 </service:EVENTS>
+             </fx:SERVICE-INTERFACE>
+             <fx:DATATYPE xsi:type="fx:COMMON-DATATYPE-TYPE" ID="/CommonDatatype_UINT8">
+                 <ho:SHORT-NAME>UINT8</ho:SHORT-NAME>
+             </fx:DATATYPE>
+         "#;
 
         FibexMetadata::new(
             FibexParser::parse(vec![
@@ -1031,47 +1030,47 @@ mod test {
     #[test]
     fn service_lookup() {
         let xml = r#"
-            <fx:SERVICE-INTERFACE ID="123.1.0">
-                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
-                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
-                <service:API-VERSION>
-                    <service:MAJOR>1</service:MAJOR>
-                    <service:MINOR>0</service:MINOR>
-                </service:API-VERSION>
-            </fx:SERVICE-INTERFACE>
-            <fx:SERVICE-INTERFACE ID="321.1.0">
-                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
-                <fx:SERVICE-IDENTIFIER>321</fx:SERVICE-IDENTIFIER>
-                <service:API-VERSION>
-                    <service:MAJOR>1</service:MAJOR>
-                    <service:MINOR>0</service:MINOR>
-                </service:API-VERSION>
-            </fx:SERVICE-INTERFACE>
-            <fx:SERVICE-INTERFACE ID="123.2.1">
-                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
-                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
-                <service:API-VERSION>
-                    <service:MAJOR>2</service:MAJOR>
-                    <service:MINOR>1</service:MINOR>
-                </service:API-VERSION>
-            </fx:SERVICE-INTERFACE>
-            <fx:SERVICE-INTERFACE ID="123.1.1">
-                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
-                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
-                <service:API-VERSION>
-                    <service:MAJOR>1</service:MAJOR>
-                    <service:MINOR>1</service:MINOR>
-                </service:API-VERSION>
-            </fx:SERVICE-INTERFACE>
-            <fx:SERVICE-INTERFACE ID="123.2.3">
-                <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
-                <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
-                <service:API-VERSION>
-                    <service:MAJOR>2</service:MAJOR>
-                    <service:MINOR>3</service:MINOR>
-                </service:API-VERSION>
-            </fx:SERVICE-INTERFACE>
-        "#;
+             <fx:SERVICE-INTERFACE ID="123.1.0">
+                 <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                 <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                 <service:API-VERSION>
+                     <service:MAJOR>1</service:MAJOR>
+                     <service:MINOR>0</service:MINOR>
+                 </service:API-VERSION>
+             </fx:SERVICE-INTERFACE>
+             <fx:SERVICE-INTERFACE ID="321.1.0">
+                 <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                 <fx:SERVICE-IDENTIFIER>321</fx:SERVICE-IDENTIFIER>
+                 <service:API-VERSION>
+                     <service:MAJOR>1</service:MAJOR>
+                     <service:MINOR>0</service:MINOR>
+                 </service:API-VERSION>
+             </fx:SERVICE-INTERFACE>
+             <fx:SERVICE-INTERFACE ID="123.2.1">
+                 <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                 <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                 <service:API-VERSION>
+                     <service:MAJOR>2</service:MAJOR>
+                     <service:MINOR>1</service:MINOR>
+                 </service:API-VERSION>
+             </fx:SERVICE-INTERFACE>
+             <fx:SERVICE-INTERFACE ID="123.1.1">
+                 <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                 <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                 <service:API-VERSION>
+                     <service:MAJOR>1</service:MAJOR>
+                     <service:MINOR>1</service:MINOR>
+                 </service:API-VERSION>
+             </fx:SERVICE-INTERFACE>
+             <fx:SERVICE-INTERFACE ID="123.2.3">
+                 <ho:SHORT-NAME>Foo</ho:SHORT-NAME>
+                 <fx:SERVICE-IDENTIFIER>123</fx:SERVICE-IDENTIFIER>
+                 <service:API-VERSION>
+                     <service:MAJOR>2</service:MAJOR>
+                     <service:MINOR>3</service:MINOR>
+                 </service:API-VERSION>
+             </fx:SERVICE-INTERFACE>
+         "#;
 
         let meta_data = FibexMetadata::new(
             FibexParser::parse(vec![
