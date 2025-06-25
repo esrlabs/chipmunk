@@ -8,7 +8,8 @@ Developing plugins in C/C++ requires having the following tools and SDKs on the 
 
 ### wit-bindgen
 
-The [wit-bindgen CLI tool](https://github.com/bytecodealliance/wit-bindgen) is required to generate C/C++ types and function declarations from the [WASM Interface Format (WIT)](https://component-model.bytecodealliance.org/design/wit.html) files. While pre-generated header and source files are included in the [C/C++ templates](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/c-cpp/), `wit-bindgen` is still needed to generate the `parse_component_type.o` file.
+The [wit-bindgen CLI tool](https://github.com/bytecodealliance/wit-bindgen) generates C/C++ types and function declarations from [WASM Interface Format (WIT)](https://component-model.bytecodealliance.org/design/wit.html) files. 
+Although the pre-generated C header is included in the [C/C++ templates](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/c-cpp/), `wit-bindgen` is still necessary to generate `parse.c` and `parse_component_type.o` files. This process also regenerates the pre-generated the header file.
 
 ### Chipmunk Plugins WIT Definitions
 
@@ -28,7 +29,7 @@ A WASI adapter is required to provide WASI functionalities when creating a WASM 
 
 ## Plugin Template Starters
 
-Starting plugin development in C/C++ can be complex. To simplify this, we provide [starter templates](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/c-cpp/) for each plugin type, available for both C and C++. These templates offer a pre-configured structure to organize your source files, generated bindings, vendor dependencies, and build scripts. 
+Starting plugin development in C/C++ can be complex. To simplify this, we provide [starter templates](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/c-cpp/) for each plugin type, available for both C and C++. The C++ templates are configured to work with the generated C headers for the API bindings but doesn't provide another abstraction layer between plugins' implementation and the generated bindings. These templates offer a pre-configured structure to organize your source files, generated bindings, vendor dependencies, and build scripts.
 They also include fully working plugin examples that demonstrate all functionalities provided by the Chipmunk host to plugins, as well as the functionalities plugins need to implement, serving as simple showcases.
 
 Each template includes a well-documented `Makefile` that streamlines the compilation process into a final WebAssembly (WASM) component. This `Makefile` handles several key steps automatically:

@@ -88,7 +88,7 @@ To integrate this compiled plugin with Chipmunk, you have two primary methods:
 
 ## Developing Plugins with C/C++
 
-Please refer to [C/C++ Plugins Development](./cpp.md) for detailed info developing plugins in C/C++.
+Please refer to [C/C++ Plugins Development](./c-cpp.md) for detailed info developing plugins in C/C++.
 
 ---
 
