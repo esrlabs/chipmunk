@@ -28,9 +28,10 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 });
             }
         };
+
         Ok(Some((
             crate::Source::Raw(super::BinaryByteSourceFromFile::new(filename)?),
-            None,
+            Some(filename.to_string_lossy().to_string()),
         )))
     }
 }
