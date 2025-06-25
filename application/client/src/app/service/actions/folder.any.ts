@@ -6,7 +6,7 @@ import { FileType } from '@platform/types/observe/types/file';
 import { notifications, Notification } from '@ui/service/notifications';
 
 import * as Factory from '@platform/types/observe/factory';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_any_folder';
 
@@ -48,13 +48,13 @@ export class Action extends Base {
                 case FileType.Binary:
                 case FileType.PcapNG:
                 case FileType.PcapLegacy:
-                    session.initialize().configure(SessionSourceOrigin.file(files[0].filename));
+                    session.initialize().configure(SessionOrigin.file(files[0].filename));
                     break;
                 case FileType.Text:
-                    session.initialize().observe(SessionSourceOrigin.file(files[0].filename));
+                    session.initialize().observe(SessionOrigin.file(files[0].filename));
                     break;
                 case FileType.ParserPlugin:
-                    session.initialize().observe(SessionSourceOrigin.file(files[0].filename));
+                    session.initialize().observe(SessionOrigin.file(files[0].filename));
                     break;
             }
         }

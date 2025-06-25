@@ -13,7 +13,7 @@ import { Sort } from '@angular/material/sort';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 import * as Factory from '@platform/types/observe/factory';
-import { SessionSourceOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 
 export interface IMultifile {
     usedColors: string[];
@@ -148,27 +148,27 @@ export class State extends Holder {
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .observe(SessionSourceOrigin.files(files));
+                                .observe(SessionOrigin.files(files));
                         case FileType.PcapNG:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.files(files));
+                                .configure(SessionOrigin.files(files));
                         case FileType.PcapLegacy:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.files(files));
+                                .configure(SessionOrigin.files(files));
                         case FileType.Binary:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.files(files));
+                                .configure(SessionOrigin.files(files));
                         case FileType.ParserPlugin:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.files(files));
+                                .configure(SessionOrigin.files(files));
                         default:
                             return Promise.reject(
                                 new Error(`Unsupported type ${this.files[0].type}`),
@@ -201,7 +201,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .observe(SessionSourceOrigin.file(file.filename))
+                                .observe(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -214,7 +214,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.file(file.filename))
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -227,7 +227,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.file(file.filename))
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -240,7 +240,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.file(file.filename))
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -253,7 +253,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(SessionSourceOrigin.file(file.filename))
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
