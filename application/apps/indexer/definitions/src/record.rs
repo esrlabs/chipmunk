@@ -79,6 +79,7 @@ impl ParseOperationResult {
 ///
 /// If different output is required (e.g., exporting DLT data as raw bytes), a different
 /// parser implementation (such as `DltRaw`) should be used.
+#[derive(Debug)]
 pub enum LogRecordOutput<'a> {
     /// A raw binary message.
     Raw(&'a [u8]),
@@ -94,7 +95,7 @@ pub enum LogRecordOutput<'a> {
 
     /// Structured columnar data. Typically used when the parser can extract
     /// meaningful fields and present them as an array of strings.
-    Columns(&'a [&'a str]),
+    Columns(Vec<Cow<'a, String>>),
 
     /// An attachment object, such as a binary blob or associated metadata.
     /// These are handled separately from textual data and require special treatment
@@ -131,7 +132,7 @@ pub trait LogRecordWriter {
     /// # Returns
     /// * `Ok(())` on success.
     /// * `Err(NativeError)` if the write operation fails.
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
 
     /// Called once when the `MessageProducer` has no more data to provide.
     ///

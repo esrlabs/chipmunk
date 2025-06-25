@@ -5,6 +5,7 @@ pub mod sde;
 
 use definitions::*;
 use log::warn;
+use stypes::NativeError;
 
 /// **********************************************************************************************
 /// For Ammar:
@@ -49,8 +50,8 @@ where
     total_loaded: usize,
     total_skipped: usize,
     done: bool,
-    buffer: Vec<(usize, MessageStreamItem)>,
     writer: &'a mut W,
+    total_produced_items: usize,
 }
 
 impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D, W> {
@@ -64,8 +65,8 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
             total_loaded: 0,
             total_skipped: 0,
             done: false,
-            buffer: Vec::new(),
             writer,
+            total_produced_items: 0,
         }
     }
 
@@ -86,8 +87,6 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
         //   buffer and returning it.
         // * Byte source will keep the loaded data in its internal buffer ensuring there
         //   is no data loss when cancelling happen between load calls.
-
-        self.buffer.clear();
 
         if self.done {
             debug!("done...no next segment");
@@ -127,37 +126,49 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
             }
             // we can call consume only after all parse results are collected because of its
             // reference to self.
-            match self.parser.iter(current_slice, self.last_seen_ts) {
-                Ok(mut iterator) => {
-                    let mut bytes_processed = skipped_bytes;
-                    let mut messages_received = 0;
-                    while let Some((consumed, msg)) = iterator.next() {
-                        bytes_processed += consumed;
-                        if let Some(msg) = msg {
-                            if let Err(err) = self.writer.write(msg).await {
-                                error!("Fail to write data into writer: {err}");
-                            }
-                            messages_received += 1;
+            let mut total_consumed = 0;
+            let mut messages_received = 0;
+
+            match self
+                .parser
+                .parse(current_slice, self.last_seen_ts)
+                .map(|mut iter| {
+                    iter.try_for_each(|item| -> Result<(), NativeError> {match item {
+                        (consumed, Some(m)) => {
+                            let total_used_bytes = consumed + skipped_bytes;
+                            // Reset skipped bytes since it had been counted here.
+                            skipped_bytes = 0;
+                            debug!(
+                            "Extracted a valid message, consumed {} bytes (total used {} bytes)",
+                            consumed, total_used_bytes
+                        );
+                            total_consumed += consumed;
+                        messages_received += 1;
+
+                        self.writer.write(m)
                         }
-                    }
+                        (consumed, None) => {
+                            total_consumed += consumed;
+                            trace!("None, consumed {} bytes", consumed);
+                            // Reset skipped bytes since it had been counted here.
+                            skipped_bytes = 0;
+
+                            Ok(())
+                        }
+                    }})
+                }) {
+                Ok(Ok(())) => {
+                    self.total_produced_items += messages_received;
                     if messages_received > 0 {
                         if let Err(err) = self.writer.finalize().await {
                             error!("Fail to write data into writer: {err}");
                         }
                     }
-                    bytes_processed = if bytes_processed > 0 {
-                        // Some bytes had been processed or skipped
-                        self.byte_source.consume(bytes_processed);
-                        bytes_processed
-                    } else {
-                        // All bytes were ignored
-                        self.byte_source.consume(available);
-                        available
-                    };
+                    self.byte_source.consume(total_consumed);
                     return Some((
-                        bytes_processed,
+                        total_consumed,
                         MessageStreamItem::Parsed(ParseOperationResult::new(
-                            bytes_processed,
+                            total_consumed,
                             messages_received,
                         )),
                     ));
@@ -242,7 +253,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
                     }
                     return Some((0, MessageStreamItem::Done));
                 }
-                Err(ParserError::Native(err)) => {
+                Err(ParserError::Native(err)) | Ok(Err(err)) => {
                     todo!("Not Implemented")
                 }
             }
@@ -335,10 +346,7 @@ impl<'a, P: Parser, D: ByteSource, W: LogRecordWriter> MessageProducer<'a, P, D,
 
     /// Checks if the producer have already produced any parsed items in the current session.
     fn did_produce_items(&self) -> bool {
-        // Produced items will be added to the internal buffer increasing its capacity.
-        // This isn't straight forward way, but used to avoid having to introduce a new field
-        // and keep track on its state.
-        self.buffer.capacity() > 0
+        self.total_produced_items > 0
     }
 
     /// Append incoming (SDE) Source-Data-Exchange to the underline byte source data.
