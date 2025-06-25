@@ -1,0 +1,5 @@
+vendor/*
+build/*
+target/*
+*.o
+*.wasm
