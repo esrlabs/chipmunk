@@ -8,7 +8,8 @@ Developing plugins in C/C++ requires having the following tools and SDKs on the 
 
 ### wit-bindgen
 
-The [wit-bindgen CLI tool](https://github.com/bytecodealliance/wit-bindgen) is required to generate C/C++ types and function declarations from the [WASM Interface Format (WIT)](https://component-model.bytecodealliance.org/design/wit.html) files. While pre-generated header and source files are included in the [C/C++ templates](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/c-cpp/), `wit-bindgen` is still needed to generate the `parse_component_type.o` file.
+The [wit-bindgen CLI tool](https://github.com/bytecodealliance/wit-bindgen) generates C/C++ types and function declarations from [WASM Interface Format (WIT)](https://component-model.bytecodealliance.org/design/wit.html) files. 
+Although pre-generated header and source files are included in the [C/C++ templates](https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/c-cpp/), `wit-bindgen` is still necessary to generate the `parse_component_type.o` file. This process also regenerates the pre-generated source and header files.
 
 ### Chipmunk Plugins WIT Definitions
 
