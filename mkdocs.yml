@@ -15,7 +15,7 @@ nav:
     - Development Guide: plugins/development-guide.md
     - Integration in Chipmunk UI: plugins/integration-ui.md
     - Plugins API Crate: plugins/plugins-api.md
-    - C/C++: plugins/cpp.md
+    - C/C++: plugins/c-cpp.md
   - Development: 
     - Chipmunk Core:
       - Overview: development/core/core.md
