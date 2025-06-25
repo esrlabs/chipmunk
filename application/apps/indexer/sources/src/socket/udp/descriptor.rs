@@ -22,7 +22,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -72,12 +72,15 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 },
             })
         }
-        Ok(Some(crate::Source::Udp(
-            UdpSource::new(addr, multicasts).map_err(|err| NativeError {
-                kind: NativeErrorKind::Io,
-                severity: Severity::ERROR,
-                message: Some(err.to_string()),
-            })?,
+        Ok(Some((
+            crate::Source::Udp(
+                UdpSource::new(&addr, multicasts).map_err(|err| NativeError {
+                    kind: NativeErrorKind::Io,
+                    severity: Severity::ERROR,
+                    message: Some(err.to_string()),
+                })?,
+            ),
+            Some(format!("UDP on {addr}")),
         )))
     }
 }

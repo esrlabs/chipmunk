@@ -23,7 +23,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<crate::Source>, NativeError> {
+    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -42,7 +42,10 @@ impl ComponentFactory<crate::Source> for Descriptor {
             .extract_by_key(FIELD_IP_ADDR)
             .ok_or(missed(FIELD_IP_ADDR))?
             .value;
-        Ok(Some(crate::Source::Tcp(TcpSource::new(&addr, None, None)?)))
+        Ok(Some((
+            crate::Source::Tcp(TcpSource::new(&addr, None, None)?),
+            Some(format!("TCP on {}", addr)),
+        )))
     }
 }
 
