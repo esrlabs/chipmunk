@@ -79,6 +79,7 @@ impl ParseOperationResult {
 ///
 /// If different output is required (e.g., exporting DLT data as raw bytes), a different
 /// parser implementation (such as `DltRaw`) should be used.
+#[derive(Debug)]
 pub enum LogRecordOutput<'a> {
     /// A raw binary message.
     Raw(&'a [u8]),
@@ -131,7 +132,7 @@ pub trait LogRecordWriter {
     /// # Returns
     /// * `Ok(())` on success.
     /// * `Err(NativeError)` if the write operation fails.
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
 
     /// Called once when the `MessageProducer` has no more data to provide.
     ///

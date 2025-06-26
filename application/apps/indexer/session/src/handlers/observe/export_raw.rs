@@ -37,7 +37,7 @@ impl ExportWriter {
 }
 
 impl LogRecordWriter for ExportWriter {
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
         if !self.ranges.is_empty() {
             // TODO: we can optimize index search
             if !self
@@ -51,49 +51,39 @@ impl LogRecordWriter for ExportWriter {
             }
         }
         self.index += 1;
-        fn fill<'a>(
-            writer: &mut ExportWriter,
-            record: LogRecordOutput<'a>,
-        ) -> Result<Option<Vec<LogRecordOutput<'a>>>, NativeError> {
-            match record {
-                LogRecordOutput::Raw(inner) => {
-                    writer.buffer.write_all(inner)?;
-                    Ok(None)
-                }
-                LogRecordOutput::Cow(inner) => {
-                    writer.buffer.write_all(inner.as_bytes())?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::String(inner) => {
-                    writer.buffer.write_all(inner.as_bytes())?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::Str(inner) => {
-                    writer.buffer.write_all(inner.as_bytes())?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::Columns(inner) => {
-                    writer.buffer.write_all(
-                        inner
-                            .join(&definitions::COLUMN_SENTINAL.to_string())
-                            .as_bytes(),
-                    )?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::Multiple(inner) => Ok(Some(inner)),
-                LogRecordOutput::Attachment(_) => {
-                    // TODO: report error
-                    Ok(None)
+        match record {
+            LogRecordOutput::Raw(inner) => {
+                self.buffer.write_all(inner)?;
+            }
+            LogRecordOutput::Cow(inner) => {
+                self.buffer.write_all(inner.as_bytes())?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::String(inner) => {
+                self.buffer.write_all(inner.as_bytes())?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::Str(inner) => {
+                self.buffer.write_all(inner.as_bytes())?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::Columns(inner) => {
+                self.buffer.write_all(
+                    inner
+                        .join(&definitions::COLUMN_SENTINAL.to_string())
+                        .as_bytes(),
+                )?;
+                self.buffer.write_all(&[b'\n'])?;
+            }
+            LogRecordOutput::Multiple(inner) => {
+                for rec in inner {
+                    self.write(rec)?;
                 }
             }
-        }
-        if let Some(records) = fill(self, record)? {
-            for record in records.into_iter() {
-                fill(self, record)?;
+            LogRecordOutput::Attachment(_) => {
+                // TODO: report error
+                // TODO AAZ: Make sure this is correct.
+                panic!("Attachment can't be written in bianry format");
             }
         }
         Ok(())

@@ -109,8 +109,10 @@ fn map_dlt_err(err: DltParseError) -> ParserError {
     }
 }
 
-impl Parser for DltParser {
-    fn parse<'a>(
+impl SingleParser for DltParser {
+    const MIN_MSG_LEN: usize = MIN_MSG_LEN;
+
+    fn parse_item<'a>(
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
@@ -129,9 +131,6 @@ impl Parser for DltParser {
                 }
             }),
         ))
-    }
-    fn min_msg_len(&self) -> usize {
-        MIN_MSG_LEN
     }
 }
 

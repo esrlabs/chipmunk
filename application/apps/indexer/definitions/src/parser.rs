@@ -28,7 +28,7 @@ pub trait Parser {
     /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
     /// it will return iterator of items each with the consumed bytes count along with `Some(log_message)`
     ///
-    /// if the slice does not have enough bytes to parse any item, an [`ParserError`] is returned.
+    /// if the slice does not have enough bytes to parse any item, an [`Error`] is returned.
     ///
     /// in case we could parse a message but the message was filtered out, `None` is returned on
     /// that item.
@@ -38,82 +38,80 @@ pub trait Parser {
     /// If the parsers encounter any error while it already has parsed any items, then it must
     /// return those items without the error, then on the next call it can return the errors in
     /// case it was provided with the same slice of bytes.
-    /// Returns:
-    /// `usize` - consumed bytes
     fn parse<'a>(
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError>;
+    ) -> Result<impl Iterator<Item = (usize, Option<LogRecordOutput<'a>>)>, ParserError>;
+}
 
+/// A trait for parsers that extract one item at a time from a byte slice.
+///
+/// Any type implementing this trait will automatically implement the [`Parser`] trait
+/// due to a blanket implementation. This means that such types will support extracting
+/// all available items from an input slice by repeatedly calling [`SingleParser::parse_item()`]
+/// until no more items can be parsed.
+///
+/// # Behavior
+///
+/// - The blanket implementation of [`Parser`] will repeatedly invoke `parse_item()`,
+///   extracting as many items as possible.
+/// - If `parse_item()` fails on the first call, an error is returned immediately.
+/// - If `parse_item()` succeeds, parsing continues until:
+///   - The remaining input is too short to parse another item.
+///   - `parse_item()` returns an error, which is ignored after the first successful parse.
+pub trait SingleParser {
     /// The minimum number of bytes required to parse an item.
     ///
     /// # Notes:
     /// - This value is used to prevent unnecessary parsing attempts when the remaining input
     ///   is too short to contain a valid message.
     /// - The default value (`1`) indicates that the parser has no minimum length requirement.
-    fn min_msg_len(&self) -> usize;
-}
+    const MIN_MSG_LEN: usize = 1;
 
-pub trait ParserIteratorGetter: Parser {
-    fn iter<'a>(
-        &'a mut self,
+    /// Parses a single item from the given byte slice.
+    ///
+    /// in case we could parse a message but the message was filtered out, `None` is returned on
+    /// that item.
+    fn parse_item<'a>(
+        &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
-    ) -> Result<ParserIterator<'a, Self>, ParserError>
-    where
-        Self: Sized,
-    {
-        if input.len() < self.min_msg_len() {
-            return Err(ParserError::Incomplete);
-        }
+    ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError>;
+}
+
+/// This blanket implementation repeatedly applies [`SingleParser::parse_item()`] function,
+/// extracting as many items as possible from the provided input until no more can be parsed.
+impl<P> Parser for P
+where
+    P: SingleParser,
+{
+    fn parse<'a>(
+        &mut self,
+        input: &'a [u8],
+        timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = (usize, Option<LogRecordOutput<'a>>)>, ParserError> {
+        let mut slice = input;
+
         // return early if function errors on first parse call.
-        let (consumed, first) = self.parse(input, timestamp)?;
-        Ok(ParserIterator {
-            parser: self,
-            input,
-            consumed,
-            first: Some((consumed, first)),
-            timestamp,
-        })
-    }
-}
+        let first_res = self.parse_item(slice, timestamp)?;
 
-impl<T: Parser> ParserIteratorGetter for T {}
+        // Otherwise keep parsing and stop on first error, returning the parsed items at the end.
+        let iter = std::iter::successors(Some(first_res), move |(consumed, _res)| {
+            slice = &slice[*consumed..];
 
-pub struct ParserIterator<'a, P: Parser> {
-    parser: &'a mut P,
-    input: &'a [u8],
-    consumed: usize,
-    first: Option<(usize, Option<LogRecordOutput<'a>>)>,
-    timestamp: Option<u64>,
-}
-
-impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
-    type Item = (usize, Option<LogRecordOutput<'a>>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(first) = self.first.take() {
-            return Some(first);
-        }
-
-        if self.input[self.consumed..].len() < self.parser.min_msg_len() {
-            return None;
-        }
-
-        match self
-            .parser
-            .parse(&self.input[self.consumed..], self.timestamp)
-        {
-            Ok((consumed, res)) => {
-                self.consumed += consumed;
-                Some((consumed, res))
+            if slice.len() < P::MIN_MSG_LEN {
+                return None;
             }
-            Err(_) => None,
-        }
+
+            self.parse_item(slice, timestamp).ok()
+        });
+
+        Ok(iter)
     }
 }
 
+//TODO AAZ: This could be removed?
 pub trait Collector<T> {
     fn register_message(&mut self, offset: usize, msg: &T);
     fn attachment_indexes(&self) -> Vec<Attachment>;
