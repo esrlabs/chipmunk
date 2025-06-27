@@ -8,11 +8,11 @@ use std::{
     io::{self, BufWriter, Write},
     path::Path,
 };
-use stypes::NativeError;
 use tokio::select;
 
 pub struct ExportWriter {
-    buffer: BufWriter<File>,
+    file_buffer: BufWriter<File>,
+    bytes_buffer: Vec<u8>,
     index: usize,
     ranges: Vec<std::ops::RangeInclusive<u64>>,
 }
@@ -29,7 +29,8 @@ impl ExportWriter {
             std::fs::File::create(filename)?
         };
         Ok(Self {
-            buffer: BufWriter::new(out_file),
+            file_buffer: BufWriter::new(out_file),
+            bytes_buffer: Vec::new(),
             index: 0,
             ranges,
         })
@@ -37,7 +38,7 @@ impl ExportWriter {
 }
 
 impl LogRecordWriter for ExportWriter {
-    async fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+    fn append(&mut self, record: LogRecordOutput<'_>) {
         if !self.ranges.is_empty() {
             // TODO: we can optimize index search
             if !self
@@ -47,59 +48,48 @@ impl LogRecordWriter for ExportWriter {
             {
                 // Skip record because it's not in a range
                 self.index += 1;
-                return Ok(());
             }
         }
         self.index += 1;
-        fn fill<'a>(
-            writer: &mut ExportWriter,
-            record: LogRecordOutput<'a>,
-        ) -> Result<Option<Vec<LogRecordOutput<'a>>>, NativeError> {
-            match record {
-                LogRecordOutput::Raw(inner) => {
-                    writer.buffer.write_all(inner)?;
-                    Ok(None)
+        match record {
+            LogRecordOutput::Raw(inner) => {
+                self.bytes_buffer.extend_from_slice(inner);
+            }
+            LogRecordOutput::Message(inner) => {
+                self.bytes_buffer.extend_from_slice(inner.as_bytes());
+                self.bytes_buffer.push(b'\n');
+            }
+            LogRecordOutput::Columns(inner) => {
+                let mut items = inner.into_iter();
+                if let Some(first_item) = items.next() {
+                    self.bytes_buffer.extend_from_slice(first_item.as_bytes());
+                    for item in items {
+                        self.bytes_buffer.push(definitions::COLUMN_SENTINAL as u8);
+                        self.bytes_buffer.extend_from_slice(item.as_bytes());
+                    }
                 }
-                LogRecordOutput::Cow(inner) => {
-                    writer.buffer.write_all(inner.as_bytes())?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::String(inner) => {
-                    writer.buffer.write_all(inner.as_bytes())?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::Str(inner) => {
-                    writer.buffer.write_all(inner.as_bytes())?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::Columns(inner) => {
-                    writer.buffer.write_all(
-                        inner
-                            .join(&definitions::COLUMN_SENTINAL.to_string())
-                            .as_bytes(),
-                    )?;
-                    writer.buffer.write_all(&[b'\n'])?;
-                    Ok(None)
-                }
-                LogRecordOutput::Multiple(inner) => Ok(Some(inner)),
-                LogRecordOutput::Attachment(_) => {
-                    // TODO: report error
-                    Ok(None)
+                self.bytes_buffer.push(b'\n');
+            }
+            LogRecordOutput::Multiple(inner) => {
+                for rec in inner {
+                    self.append(rec);
                 }
             }
-        }
-        if let Some(records) = fill(self, record)? {
-            for record in records.into_iter() {
-                fill(self, record)?;
+            LogRecordOutput::Attachment(att) => {
+                log::error!(
+                    "Log attachments provided in raw export. Attachment name: {}",
+                    att.name
+                );
             }
         }
-        Ok(())
     }
-    async fn finalize(&mut self) -> Result<(), stypes::NativeError> {
-        self.buffer.flush()?;
+    async fn flush(&mut self) -> Result<(), stypes::NativeError> {
+        if !self.bytes_buffer.is_empty() {
+            self.file_buffer.write_all(&self.bytes_buffer)?;
+            self.bytes_buffer.clear()
+        }
+        self.file_buffer.flush()?;
+
         Ok(())
     }
     fn get_id(&self) -> u16 {

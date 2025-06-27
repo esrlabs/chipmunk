@@ -109,8 +109,10 @@ fn map_dlt_err(err: DltParseError) -> ParserError {
     }
 }
 
-impl Parser for DltParser {
-    fn parse<'a>(
+impl SingleParser for DltParser {
+    const MIN_MSG_LEN: usize = MIN_MSG_LEN;
+
+    fn parse_item<'a>(
         &mut self,
         input: &'a [u8],
         timestamp: Option<u64>,
@@ -121,17 +123,14 @@ impl Parser for DltParser {
             data.map(|(msg, attachment)| {
                 if let Some(attachment) = attachment {
                     LogRecordOutput::Multiple(vec![
-                        LogRecordOutput::String(msg.to_string()),
+                        LogRecordOutput::Message(msg.to_string().into()),
                         LogRecordOutput::Attachment(attachment),
                     ])
                 } else {
-                    LogRecordOutput::String(msg.to_string())
+                    LogRecordOutput::Message(msg.to_string().into())
                 }
             }),
         ))
-    }
-    fn min_msg_len(&self) -> usize {
-        MIN_MSG_LEN
     }
 }
 

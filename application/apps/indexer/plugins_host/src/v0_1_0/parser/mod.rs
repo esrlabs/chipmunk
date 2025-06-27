@@ -14,7 +14,7 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, p2::WasiCtx};
 
 use crate::{
-    PluginGuestError, PluginHostError, PluginParseMessage,
+    PluginGuestError, PluginHostError,
     plugins_shared::{PluginInfo, get_wasi_ctx_builder, plugin_errors::PluginError},
     wasm_host::get_wasm_host,
 };
@@ -131,13 +131,9 @@ impl PluginParser {
     }
 }
 
-use definitions as defs;
+use definitions::{self as defs, LogRecordOutput, ParseReturnIterator};
 impl defs::Parser for PluginParser {
-    fn parse<'a>(
-        &mut self,
-        input: &'a [u8],
-        timestamp: Option<u64>,
-    ) -> Result<(usize, Option<defs::LogRecordOutput<'a>>), defs::ParserError> {
+    fn parse<'a>(&mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         // Calls on plugins must be async. To solve that we got the following solutions:
         // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
         //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
@@ -162,16 +158,15 @@ impl defs::Parser for PluginParser {
                 )));
             }
         };
-        // TODO: write in iteration
-        todo!("Not implemented");
 
-        // Ok(parse_results
-        //     .into_iter()
-        //     .map(|item| (item.consumed as usize, item.value.map(|v| v.into())))
-        //     .collect())
-    }
-    fn min_msg_len(&self) -> usize {
-        1
+        let items = parse_results
+            .into_iter()
+            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())));
+
+        let iter = Box::new(items)
+            as Box<(dyn Iterator<Item = (usize, Option<LogRecordOutput<'a>>)> + 'a)>;
+
+        Ok(iter)
     }
 }
 
