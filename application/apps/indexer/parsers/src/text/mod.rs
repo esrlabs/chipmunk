@@ -46,7 +46,7 @@ impl SingleParser for StringTokenizer {
         timestamp: Option<u64>,
     ) -> Result<(usize, Option<LogRecordOutput<'a>>), ParserError> {
         let (consumed, data) = self.parse_item(input, timestamp)?;
-        Ok((consumed, data.map(LogRecordOutput::Cow)))
+        Ok((consumed, data.map(LogRecordOutput::Message)))
     }
 }
 
