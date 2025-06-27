@@ -8,11 +8,11 @@ use std::{
     io::{self, BufWriter, Write},
     path::Path,
 };
-use stypes::NativeError;
 use tokio::select;
 
 pub struct ExportWriter {
-    buffer: BufWriter<File>,
+    file_buffer: BufWriter<File>,
+    bytes_buffer: Vec<u8>,
     index: usize,
     ranges: Vec<std::ops::RangeInclusive<u64>>,
 }
@@ -29,7 +29,8 @@ impl ExportWriter {
             std::fs::File::create(filename)?
         };
         Ok(Self {
-            buffer: BufWriter::new(out_file),
+            file_buffer: BufWriter::new(out_file),
+            bytes_buffer: Vec::new(),
             index: 0,
             ranges,
         })
@@ -37,7 +38,7 @@ impl ExportWriter {
 }
 
 impl LogRecordWriter for ExportWriter {
-    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+    fn append(&mut self, record: LogRecordOutput<'_>) {
         if !self.ranges.is_empty() {
             // TODO: we can optimize index search
             if !self
@@ -47,41 +48,31 @@ impl LogRecordWriter for ExportWriter {
             {
                 // Skip record because it's not in a range
                 self.index += 1;
-                return Ok(());
             }
         }
         self.index += 1;
         match record {
             LogRecordOutput::Raw(inner) => {
-                self.buffer.write_all(inner)?;
+                self.bytes_buffer.extend_from_slice(inner);
             }
-            LogRecordOutput::Cow(inner) => {
-                self.buffer.write_all(inner.as_bytes())?;
-                self.buffer.write_all(&[b'\n'])?;
-            }
-            LogRecordOutput::String(inner) => {
-                self.buffer.write_all(inner.as_bytes())?;
-                self.buffer.write_all(&[b'\n'])?;
-            }
-            LogRecordOutput::Str(inner) => {
-                self.buffer.write_all(inner.as_bytes())?;
-                self.buffer.write_all(&[b'\n'])?;
+            LogRecordOutput::Message(inner) => {
+                self.bytes_buffer.extend_from_slice(inner.as_bytes());
+                self.bytes_buffer.push(b'\n');
             }
             LogRecordOutput::Columns(inner) => {
                 let mut items = inner.into_iter();
                 if let Some(first_item) = items.next() {
-                    self.buffer.write_all(first_item.as_bytes())?;
+                    self.bytes_buffer.extend_from_slice(first_item.as_bytes());
                     for item in items {
-                        self.buffer
-                            .write_all(&[definitions::COLUMN_SENTINAL as u8])?;
-                        self.buffer.write_all(item.as_bytes())?;
+                        self.bytes_buffer.push(definitions::COLUMN_SENTINAL as u8);
+                        self.bytes_buffer.extend_from_slice(item.as_bytes());
                     }
                 }
-                self.buffer.write_all(&[b'\n'])?;
+                self.bytes_buffer.push(b'\n');
             }
             LogRecordOutput::Multiple(inner) => {
                 for rec in inner {
-                    self.write(rec)?;
+                    self.append(rec);
                 }
             }
             LogRecordOutput::Attachment(att) => {
@@ -91,10 +82,14 @@ impl LogRecordWriter for ExportWriter {
                 );
             }
         }
-        Ok(())
     }
-    async fn finalize(&mut self) -> Result<(), stypes::NativeError> {
-        self.buffer.flush()?;
+    async fn flush(&mut self) -> Result<(), stypes::NativeError> {
+        if !self.bytes_buffer.is_empty() {
+            self.file_buffer.write_all(&self.bytes_buffer)?;
+            self.bytes_buffer.clear()
+        }
+        self.file_buffer.flush()?;
+
         Ok(())
     }
     fn get_id(&self) -> u16 {

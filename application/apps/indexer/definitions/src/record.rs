@@ -84,17 +84,11 @@ pub enum LogRecordOutput<'a> {
     /// A raw binary message.
     Raw(&'a [u8]),
 
-    /// A borrowed UTF-8 string slice.
-    Str(&'a str),
-
-    /// A string wrapped in a [`Cow`] (Copy-on-Write), allowing either borrowed or owned data.
-    Cow(Cow<'a, str>),
-
-    /// An owned UTF-8 string.
-    String(String),
+    /// Log message line
+    Message(Cow<'a, str>),
 
     /// Structured columnar data. Typically used when the parser can extract
-    /// meaningful fields and present them as an array of strings.
+    /// meaningful fields and present them as collection of texts.
     Columns(Vec<Cow<'a, String>>),
 
     /// An attachment object, such as a binary blob or associated metadata.
@@ -124,28 +118,14 @@ pub enum LogRecordOutput<'a> {
 /// An implementation might buffer records in memory and write them in bulk
 /// every few seconds, or directly write to a file, database, or network sink.
 pub trait LogRecordWriter {
-    /// Called for every new log record received from the `MessageProducer`.
+    /// Appends the provided `record` to the writer intermediate memory.
     ///
     /// # Arguments
     /// * `record` – A reference to a [`LogRecordOutput`] containing the data to write.
-    ///
-    /// # Returns
-    /// * `Ok(())` on success.
-    /// * `Err(NativeError)` if the write operation fails.
-    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), stypes::NativeError>;
+    fn append(&mut self, record: LogRecordOutput<'_>);
 
-    /// Called once when the `MessageProducer` has no more data to provide.
-    ///
-    /// There is no guarantee that `write` won’t be called again after `finalize`
-    /// (e.g., in a file tailing scenario), but `finalize` itself is guaranteed
-    /// to be called only once.
-    ///
-    /// This is the opportunity to flush any buffered data and perform cleanup if necessary.
-    ///
-    /// # Returns
-    /// * `Ok(())` on success.
-    /// * `Err(NativeError)` if the finalization process fails.
-    async fn finalize(&mut self) -> Result<(), stypes::NativeError>;
+    /// Flushes the data from the internal buffer to the underline target
+    async fn flush(&mut self) -> Result<(), stypes::NativeError>;
 
     /// Returns the unique identifier of the associated data source.
     ///
