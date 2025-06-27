@@ -5,11 +5,9 @@ use std::{
     cmp::Ordering,
     collections::{HashMap, hash_map::Entry},
     fmt::{self, Display},
-    io::{self, Write},
     path::PathBuf,
     sync::Mutex,
 };
-use stypes::NativeError;
 
 use someip_messages::*;
 use someip_payload::{
@@ -309,7 +307,7 @@ impl SingleParser for SomeipParser {
         let (consumed, data) = self.parse_item(input, timestamp)?;
         Ok((
             consumed,
-            data.map(|msg| LogRecordOutput::String(msg.to_string())),
+            data.map(|msg| LogRecordOutput::Message(msg.to_string().into())),
         ))
     }
 }

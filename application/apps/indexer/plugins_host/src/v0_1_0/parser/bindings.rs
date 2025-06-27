@@ -82,7 +82,7 @@ impl From<ParseError> for defs::ParserError {
 impl From<ParsedMessage> for LogRecordOutput<'_> {
     fn from(msg: ParsedMessage) -> Self {
         match msg {
-            ParsedMessage::Line(msg) => LogRecordOutput::String(msg),
+            ParsedMessage::Line(msg) => LogRecordOutput::Message(msg.into()),
             ParsedMessage::Columns(columns) => {
                 LogRecordOutput::Columns(columns.into_iter().map(Cow::Owned).collect())
             }
