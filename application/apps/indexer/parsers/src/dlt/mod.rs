@@ -123,11 +123,11 @@ impl SingleParser for DltParser {
             data.map(|(msg, attachment)| {
                 if let Some(attachment) = attachment {
                     LogRecordOutput::Multiple(vec![
-                        LogRecordOutput::String(msg.to_string()),
+                        LogRecordOutput::Message(msg.to_string().into()),
                         LogRecordOutput::Attachment(attachment),
                     ])
                 } else {
-                    LogRecordOutput::String(msg.to_string())
+                    LogRecordOutput::Message(msg.to_string().into())
                 }
             }),
         ))
