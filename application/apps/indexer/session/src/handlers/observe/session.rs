@@ -7,7 +7,6 @@ use definitions::*;
 use log::{trace, warn};
 use processor::producer::{MessageProducer, MessageStreamItem, sde::*};
 use std::time::Instant;
-use stypes::NativeError;
 use tokio::{select, sync::mpsc::Receiver};
 
 /// A writer responsible for appending data to a session file.
@@ -51,7 +50,7 @@ impl Writer {
 }
 
 impl LogRecordWriter for Writer {
-    fn write(&mut self, record: LogRecordOutput<'_>) -> Result<(), NativeError> {
+    fn append(&mut self, record: LogRecordOutput<'_>) {
         match record {
             LogRecordOutput::Raw(inner) => {
                 // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
@@ -64,16 +63,8 @@ impl LogRecordWriter for Writer {
                 );
                 self.buffer.push('\n');
             }
-            LogRecordOutput::Cow(inner) => {
-                self.buffer.push_str(&inner);
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::String(inner) => {
-                self.buffer.push_str(&inner);
-                self.buffer.push('\n');
-            }
-            LogRecordOutput::Str(inner) => {
-                self.buffer.push_str(inner);
+            LogRecordOutput::Message(msg) => {
+                self.buffer.push_str(&msg);
                 self.buffer.push('\n');
             }
             LogRecordOutput::Columns(inner) => {
@@ -89,21 +80,23 @@ impl LogRecordWriter for Writer {
             }
             LogRecordOutput::Multiple(inner) => {
                 for rec in inner {
-                    self.write(rec)?;
+                    self.append(rec);
                 }
             }
             LogRecordOutput::Attachment(inner) => {
                 self.attachments.push(inner);
             }
         }
-        Ok(())
     }
-    async fn finalize(&mut self) -> Result<(), stypes::NativeError> {
+
+    async fn flush(&mut self) -> Result<(), stypes::NativeError> {
         if !self.buffer.is_empty() {
-            let mut buf = String::with_capacity(self.buffer.len());
-            buf.push_str(&self.buffer);
-            self.state.write_session_file(self.get_id(), buf).await?;
+            // Capacity of cloned item is equal to its length, making this clone
+            // produces one mem_copy command for the needed bytes only on the cloned
+            // string while preserving the capacity of the intermediate buffer.
+            let msgs = self.buffer.clone();
             self.buffer.clear();
+            self.state.write_session_file(self.get_id(), msgs).await?;
         }
         for attachment in self.attachments.drain(..) {
             // TODO: send with 1 call
