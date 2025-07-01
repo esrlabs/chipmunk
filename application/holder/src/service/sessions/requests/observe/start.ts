@@ -20,10 +20,11 @@ export const handler = Requests.InjectLogger<
             stored
                 .observe()
                 .start(request.options)
-                .then(() => {
+                .then((uuid: string) => {
                     resolve(
                         new Requests.Observe.Start.Response({
                             session: stored.session.getUUID(),
+                            uuid,
                         }),
                     );
                 })
@@ -31,6 +32,7 @@ export const handler = Requests.InjectLogger<
                     resolve(
                         new Requests.Observe.Start.Response({
                             session: stored.session.getUUID(),
+                            uuid: undefined,
                             error: err.message,
                         }),
                     );

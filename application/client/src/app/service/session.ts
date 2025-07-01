@@ -287,13 +287,12 @@ export class Service extends Implementation {
             },
             observe: async (origin: SessionOrigin, existed?: Session): Promise<string> => {
                 const render = await origin.getRender();
-
                 const session =
                     existed !== undefined ? existed : await this.add(false).empty(render);
                 return new Promise((resolve, reject) => {
                     session.stream
                         .observe()
-                        .start(origin.getSessionSetup())
+                        .start(origin)
                         .then((uuid: string) => {
                             const error = this.bind(session.uuid(), uuid, true);
                             if (error instanceof Error) {

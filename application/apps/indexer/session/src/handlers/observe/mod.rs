@@ -6,7 +6,7 @@ use crate::{
     state::SessionStateAPI,
 };
 use components::Components;
-use processor::producer::{sde::*, MessageProducer};
+use processor::producer::{MessageProducer, sde::*};
 use std::sync::Arc;
 use stypes::{SessionAction, SessionSetup};
 
@@ -20,15 +20,19 @@ pub async fn observing(
     match &options.origin {
         SessionAction::File(..) => {
             let (desciptor, source, parser) = components.setup(&options)?;
-            let mut writer =
-                session::Writer::new(state.clone(), state.add_source(desciptor).await?);
+            let mut writer = session::Writer::new(
+                state.clone(),
+                state.add_source(operation_api.id(), desciptor).await?,
+            );
             let producer = MessageProducer::new(parser, source, &mut writer);
             Ok(session::run_producer(operation_api, state, producer, None, None).await?)
         }
         SessionAction::Source => {
             let (desciptor, source, parser) = components.setup(&options)?;
-            let mut writer =
-                session::Writer::new(state.clone(), state.add_source(desciptor).await?);
+            let mut writer = session::Writer::new(
+                state.clone(),
+                state.add_source(operation_api.id(), desciptor).await?,
+            );
             let producer = MessageProducer::new(parser, source, &mut writer);
             Ok(session::run_producer(operation_api, state, producer, None, rx_sde).await?)
         }
@@ -37,8 +41,10 @@ pub async fn observing(
             for file in files {
                 let (desciptor, source, parser) =
                     components.setup(&options.inherit(SessionAction::File(file.to_owned())))?;
-                let mut writer =
-                    session::Writer::new(state.clone(), state.add_source(desciptor).await?);
+                let mut writer = session::Writer::new(
+                    state.clone(),
+                    state.add_source(operation_api.id(), desciptor).await?,
+                );
                 let producer = MessageProducer::new(parser, source, &mut writer);
                 session::run_producer(operation_api.clone(), state.clone(), producer, None, None)
                     .await?;

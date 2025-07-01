@@ -8,7 +8,6 @@ import { ICancelablePromise } from 'platform/env/promise';
 import { Tys } from 'rustcore';
 
 import * as Events from 'platform/ipc/event';
-import * as path from 'path';
 
 export enum Jobs {
     search = 'search',
@@ -20,11 +19,11 @@ export class Holder {
     public readonly subscriber: Subscriber;
     protected readonly jobs: Map<string, JobsTracker> = new Map();
     protected readonly observing: {
-        active: Map<string, { options: Tys.bindings.SessionSetup; observer: ICancelablePromise }>;
-        finished: Map<string, Tys.bindings.SessionSetup>;
+        active: Map<string, ICancelablePromise>;
+        finished: Set<string>;
     } = {
         active: new Map(),
-        finished: new Map(),
+        finished: new Set(),
     };
     protected readonly logger: Logger;
     protected shutdown = false;
@@ -71,7 +70,7 @@ export class Holder {
     public observe(): {
         start(options: Tys.bindings.SessionSetup): Promise<string>;
         cancel(uuid: string): Promise<void>;
-        list(): { [key: string]: string };
+        list(): string[];
     } {
         return {
             start: (options: Tys.bindings.SessionSetup): Promise<string> => {
@@ -119,7 +118,7 @@ export class Holder {
                         .finally(() => {
                             job.done();
                             this.observing.active.delete(observer.uuid());
-                            this.observing.finished.set(observer.uuid(), options);
+                            this.observing.finished.add(observer.uuid());
                             Events.IpcEvent.emit(
                                 new Events.Observe.Finished.Event({
                                     session: this.session.getUUID(),
@@ -128,29 +127,24 @@ export class Holder {
                                 }),
                             );
                         });
-                    this.observing.active.set(observer.uuid(), { options, observer });
+                    this.observing.active.set(observer.uuid(), observer);
                 });
             },
             cancel: (uuid: string): Promise<void> => {
-                const operation = this.observing.active.get(uuid);
-                if (operation === undefined) {
+                const observer = this.observing.active.get(uuid);
+                if (observer === undefined) {
                     return Promise.reject(new Error(`Operation isn't found`));
                 }
                 return new Promise((resolve) => {
-                    operation.observer
+                    observer
                         .finally(() => {
                             resolve();
                         })
                         .abort();
                 });
             },
-            list: (): { [key: string]: string } => {
-                const list: { [key: string]: string } = {};
-                console.error(`Not implemented`);
-                // this.observing.active.forEach((operation, uuid) => {
-                //     list[uuid] = operation.source.json().to();
-                // });
-                return list;
+            list: (): string[] => {
+                return Array.from(this.observing.active.keys());
             },
         };
     }

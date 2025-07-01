@@ -83,11 +83,15 @@ export class AttachSourceMenu extends ChangesDetector {
     } {
         return {
             disabled: (): boolean => {
-                return this.session.observed.getNewSourceError() instanceof Error;
+                // return this.session.observed.getNewSourceError() instanceof Error;
+                console.error(`Not implemented`);
+                return true;
             },
             error: (): string | undefined => {
-                const error = this.session.observed.getNewSourceError();
-                return error instanceof Error ? error.message : undefined;
+                // const error = this.session.observed.getNewSourceError();
+                // return error instanceof Error ? error.message : undefined;
+                console.error(`Not implemented`);
+                return undefined;
             },
         };
     }

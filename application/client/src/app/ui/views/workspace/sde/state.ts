@@ -54,10 +54,6 @@ export class State implements Destroyable<void> {
         return id === undefined ? '' : getSourceColor(id);
     }
 
-    public desc(source: ObserveOperation): IOriginDetails {
-        return source.asOrigin().desc();
-    }
-
     public send(data: string): Promise<void> {
         const selected = this.session.stream.sde.selecting().get();
         if (selected === undefined) {

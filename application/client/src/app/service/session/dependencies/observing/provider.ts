@@ -1,7 +1,6 @@
 import { IComponentDesc } from '@elements/containers/dynamic/component';
 import { Logger } from '@platform/log';
 import { Session } from '@service/session/session';
-import { ObserveSource } from '@service/session/dependencies/observing/source';
 import { unique } from '@platform/env/sequence';
 import { Subject, Subjects } from '@platform/env/subscription';
 import { IMenuItem } from '@ui/service/contextmenu';
@@ -9,22 +8,24 @@ import { Observe } from '@platform/types/observe';
 import { session } from '@service/session';
 import { components } from '@env/decorators/initial';
 import { popup, Vertical, Horizontal } from '@ui/service/popup';
+import { ObserveOperation } from './operation';
 
 import * as $ from '@platform/types/observe';
+import { SessionOrigin } from '@service/session/origin';
 
 export interface ProviderConstructor {
     new (session: Session, logger: Logger): Provider;
 }
 
 export abstract class Provider {
-    static overwrite(src: ObserveSource[], dest: ObserveSource[]) {
-        src.filter((src) => src.observer === undefined).forEach((src) => {
-            const index = dest.findIndex((s) => s.observe.uuid === src.observe.uuid);
-            if (index !== -1) {
-                dest.splice(index, 1, src);
-            }
-        });
-    }
+    // static overwrite(src: ObserveOperation[], dest: ObserveOperation[]) {
+    //     src.filter((src) => !src.isRunning()).forEach((src) => {
+    //         const index = dest.findIndex((s) => s.uuid === src.uuid);
+    //         if (index !== -1) {
+    //             dest.splice(index, 1, src);
+    //         }
+    //     });
+    // }
     public readonly session: Session;
     public readonly logger: Logger;
     public readonly subjects: Subjects<{
@@ -55,25 +56,25 @@ export abstract class Provider {
         this.subjects.destroy();
     }
 
-    public last(): Observe | undefined {
-        const sources = this.sources();
-        if (sources.length === 0) {
+    public getLastOperation(): ObserveOperation | undefined {
+        const operations = this.operations();
+        if (operations.length === 0) {
             return undefined;
         }
-        const observe = sources[sources.length - 1];
-        return observe.observe;
+        const operation = operations[operations.length - 1];
+        return operation;
     }
 
     public recent() {
-        const observe = this.last();
-        if (observe === undefined) {
+        const operation = this.getLastOperation();
+        if (operation === undefined) {
             return;
         }
         popup.open({
             component: {
                 factory: components.get('app-navigator'),
                 inputs: {
-                    observe,
+                    operation,
                 },
             },
             position: {
@@ -90,31 +91,27 @@ export abstract class Provider {
         if (!(observe.origin.instance instanceof $.Origin.Stream.Configuration)) {
             return Promise.reject(new Error(`Only Origin.Stream can be repeated`));
         }
-        const last = this.last();
-        if (last !== undefined) {
-            observe.parser.change(last.parser.instance);
-        }
+        const last = this.getLastOperation();
+        // if (last !== undefined) {
+        //     observe.parser.change(last.parser.instance);
+        // }
         // return this.session.stream.observe().start(observe.clone());
         return Promise.reject(new Error(`Not implemented`));
     }
 
-    public openAsNewOrigin(observe: Observe): Promise<string> {
-        const last = this.last();
-        if (last !== undefined) {
-            observe.parser.change(last.parser.instance);
-        } else {
-            return Promise.reject(new Error(`No data about current parser`));
-        }
+    public openAsNewOrigin(origin: SessionOrigin): Promise<string> {
+        // const last = this.last();
+        // if (last !== undefined) {
+        //     observe.parser.change(last.parser.instance);
+        // } else {
+        //     return Promise.reject(new Error(`No data about current parser`));
+        // }
         // return this.session.stream.observe().start(observe.clone());
         return Promise.reject(new Error(`Not implemented`));
     }
 
-    public openAsNew(source: ObserveSource | Observe): Promise<string | undefined> {
-        console.error(`Not implemented`);
-        return Promise.reject(new Error(`Not implemented`));
-        // return session
-        //     .initialize()
-        //     .configure(source instanceof ObserveSource ? source.observe : source);
+    public openAsNew(origin: SessionOrigin): Promise<string | undefined> {
+        return session.initialize().configure(origin);
     }
 
     public setPanels(): Provider {
@@ -134,14 +131,14 @@ export abstract class Provider {
     }
 
     public isEmpty(): boolean {
-        return this.sources().length === 0;
+        return this.operations().length === 0;
     }
 
-    public abstract contextMenu(source: ObserveSource): IMenuItem[];
+    public abstract contextMenu(operations: ObserveOperation): IMenuItem[];
 
-    public abstract update(sources: ObserveSource[]): Provider;
+    public abstract update(operations: ObserveOperation[]): Provider;
 
-    public abstract sources(): ObserveSource[];
+    public abstract operations(): ObserveOperation[];
 
     public abstract getPanels(): {
         list(): {
@@ -161,6 +158,6 @@ export abstract class Provider {
     }
 
     public count(): number {
-        return this.sources().length;
+        return this.operations().length;
     }
 }

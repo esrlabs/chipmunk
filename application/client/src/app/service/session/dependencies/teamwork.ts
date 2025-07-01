@@ -17,6 +17,7 @@ import * as utils from '@platform/log/utils';
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
 import * as moment from 'moment';
+import { ObserveOperation } from './stream';
 
 export interface GitHubError {
     time: string;
@@ -386,25 +387,26 @@ export class TeamWork extends Subscriber {
                     );
                 },
             ),
-            this.session.stream.subjects.get().started.subscribe((observe: Observe) => {
+            this.session.stream.subjects.get().started.subscribe((operation: ObserveOperation) => {
                 if (this.checksum === null) {
                     return;
                 }
-                FileDesc.fromDataSource(observe)
-                    .then((desc) => {
-                        if (desc === undefined) {
-                            this.checksum = null;
-                        } else if (this.checksum === undefined) {
-                            this.checksum = desc.checksum;
-                            this.file().check();
-                        } else {
-                            this.checksum = null;
-                        }
-                    })
-                    .catch((err: Error) => {
-                        this.checksum = null;
-                        this.error().add(`Fail get chechsum of file: ${err.message}`);
-                    });
+                console.error(`Not implemented`);
+                // FileDesc.fromDataSource(operation)
+                //     .then((desc) => {
+                //         if (desc === undefined) {
+                //             this.checksum = null;
+                //         } else if (this.checksum === undefined) {
+                //             this.checksum = desc.checksum;
+                //             this.file().check();
+                //         } else {
+                //             this.checksum = null;
+                //         }
+                //     })
+                //     .catch((err: Error) => {
+                //         this.checksum = null;
+                //         this.error().add(`Fail get chechsum of file: ${err.message}`);
+                //     });
             }),
             history.subjects.get().created.subscribe((uuid: string) => {
                 const session = history.get(uuid);
