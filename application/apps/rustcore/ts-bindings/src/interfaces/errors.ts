@@ -78,6 +78,7 @@ export enum Source {
     ComponentsValidate = 'ComponentsValidate',
     IdentList = 'IdentList',
     Native = 'Native',
+    Plugins = 'Plugins',
     Other = 'Other',
 }
 

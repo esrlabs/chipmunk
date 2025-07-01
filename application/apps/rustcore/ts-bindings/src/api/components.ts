@@ -14,6 +14,15 @@ import {
     SessionAction,
 } from 'platform/types/bindings';
 
+import {
+    InvalidPluginEntity,
+    InvalidPluginsList,
+    PluginEntity,
+    PluginsList,
+    PluginsPathsList,
+    PluginRunData,
+} from 'platform/types/bindings/plugins';
+
 export class Components extends Subscriber {
     private readonly native: Native;
     private readonly provider: ComponentsEventProvider;
@@ -98,5 +107,45 @@ export class Components extends Subscriber {
 
     public abort(fields: string[]): Error | undefined {
         return this.native.abort(fields);
+    }
+
+    public installedPluginsList(): Promise<PluginEntity[]> {
+        return this.native.installedPluginsList();
+    }
+
+    public invalidPluginsList(): Promise<InvalidPluginEntity[]> {
+        return this.native.invalidPluginsList();
+    }
+
+    public installedPluginsPaths(): Promise<string[]> {
+        return this.native.installedPluginsPaths();
+    }
+
+    public invalidPluginsPaths(): Promise<string[]> {
+        return this.native.invalidPluginsPaths();
+    }
+
+    public installedPluginsInfo(plugin_path: string): Promise<PluginEntity | undefined> {
+        return this.native.installedPluginsInfo(plugin_path);
+    }
+
+    public invalidPluginsInfo(plugin_path: string): Promise<InvalidPluginEntity | undefined> {
+        return this.native.invalidPluginsInfo(plugin_path);
+    }
+
+    public getPluginRunData(plugin_path: string): Promise<PluginRunData | undefined> {
+        return this.native.getPluginRunData(plugin_path);
+    }
+
+    public reloadPlugins(): Promise<void> {
+        return this.native.reloadPlugins();
+    }
+
+    public addPlugin(plugin_path: string): Promise<void> {
+        return this.native.addPlugin(plugin_path);
+    }
+
+    public removePlugin(plugin_path: string): Promise<void> {
+        return this.native.removePlugin(plugin_path);
     }
 }
