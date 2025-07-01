@@ -107,7 +107,7 @@ mod generate;
 
 pub(crate) use err::*;
 pub(crate) use serde::Serialize;
-pub(crate) use serde_wasm_bindgen::{from_value, Serializer};
+pub(crate) use serde_wasm_bindgen::{Serializer, from_value};
 pub(crate) use stypes::*;
 pub(crate) use wasm_bindgen::prelude::*;
 
@@ -152,12 +152,6 @@ gen_encode_decode_fns!(ColumnInfo);
 gen_encode_decode_fns!(PluginsList);
 gen_encode_decode_fns!(InvalidPluginsList);
 gen_encode_decode_fns!(PluginsPathsList);
-gen_encode_decode_fns!(CommandOutcome<PluginsList>);
-gen_encode_decode_fns!(CommandOutcome<InvalidPluginsList>);
-gen_encode_decode_fns!(CommandOutcome<PluginsPathsList>);
-gen_encode_decode_fns!(CommandOutcome<Option<PluginEntity>>);
-gen_encode_decode_fns!(CommandOutcome<Option<InvalidPluginEntity>>);
-gen_encode_decode_fns!(CommandOutcome<Option<PluginRunData>>);
 gen_encode_decode_fns!(CommandOutcome<FoldersScanningResult>);
 gen_encode_decode_fns!(CommandOutcome<SerialPortsList>);
 gen_encode_decode_fns!(CommandOutcome<ProfileList>);
