@@ -89,7 +89,7 @@ pub enum LogRecordOutput<'a> {
 
     /// Structured columnar data. Typically used when the parser can extract
     /// meaningful fields and present them as collection of texts.
-    Columns(Vec<Cow<'a, String>>),
+    Columns(Vec<Cow<'a, str>>),
 
     /// An attachment object, such as a binary blob or associated metadata.
     /// These are handled separately from textual data and require special treatment
@@ -101,23 +101,20 @@ pub enum LogRecordOutput<'a> {
     Multiple(Vec<LogRecordOutput<'a>>),
 }
 
-/// Interface for implementing a writer that handles log records.
+/// Defines an interface for buffering log records before they are persisted.
 ///
-/// An instance of `LogRecordWriter` is passed to a `MessageProducer`.
-/// Each time a new log record is available, the `MessageProducer` invokes the `write` method.
-/// The specific behavior for writing records to the actual destination is left to the implementation.
+/// An instance of a type implementing `LogRecordsBuffer` is passed to a `MessageProducer`.
+/// For each new log record, the `MessageProducer` calls the `append` method. The `flush`
+/// method is used to write the buffered records to their final destination.
 ///
-/// This allows implementors to define their own strategies for data caching, batching, and flushing.
-/// When the `MessageProducer` has no more data to process, it calls `finalize`. At that point,
-/// the writer should persist any buffered data, if applicable.
-///
-/// **Important:** (pending TODO) The `write` method must not be cancel-safe. This is required to keep
-/// the `MessageProducer` cancel-safe. This problems isn't resolved yet.
+/// This design allows for custom strategies regarding caching, batching, and flushing.
+/// When processing is complete, `flush` should be called to ensure all buffered data
+/// is persisted.
 ///
 /// # Examples
-/// An implementation might buffer records in memory and write them in bulk
-/// every few seconds, or directly write to a file, database, or network sink.
-pub trait LogRecordWriter {
+/// An implementation might buffer records in memory and flush them in bulk
+/// to a file, database, or network sink.
+pub trait LogRecordsBuffer {
     /// Appends the provided `record` to the writer intermediate memory.
     ///
     /// # Arguments
@@ -134,5 +131,5 @@ pub trait LogRecordWriter {
     ///
     /// # Returns
     /// A `u16` representing the unique source ID.
-    fn get_id(&self) -> u16;
+    fn get_source_id(&self) -> u16;
 }
