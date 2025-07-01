@@ -1,17 +1,19 @@
-mod api;
-
 use api::*;
 use components::{Components, LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::{
+        RwLock,
         mpsc::{UnboundedReceiver, UnboundedSender, error::SendError, unbounded_channel},
         oneshot::{self, error::RecvError},
     },
     task::{self, JoinHandle},
 };
 use uuid::Uuid;
+
+mod api;
+mod plugins;
 
 /// A controller responsible for managing all available components in the system (such as parsers, sources, etc.).
 ///
@@ -45,6 +47,14 @@ impl ComponentsSession {
     /// to listen for callback events related to the components' operations.
     pub async fn new()
     -> Result<(Self, UnboundedReceiver<stypes::CallbackOptionsEvent>), stypes::NativeError> {
+        // TODO: Plugins manager is used temporally here in initial phase and we should consider
+        // moving it to its own module. Reasons:
+        // * It doesn't need parallelism for most of task.
+        // * It'll need different state and locking management for downloading plugins, Updating
+        // caches etc...
+        let plugins_manager = plugins::load_manager().await?;
+        let plugins_manager = Arc::new(RwLock::new(plugins_manager));
+
         let (tx_api, mut rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) =
             unbounded_channel();
         let (tx_callback_events, rx_callback_events): (
@@ -189,6 +199,38 @@ impl ComponentsSession {
                         tasks.clear();
                         log_if_err(tx.send(()));
                         break;
+                    }
+
+                    Api::InstalledPluginsList(tx) => {
+                        // let plugs_ref_clone = Arc::clone(&plugins_manager);
+                        log_if_err(tx.send(plugins::installed_plugins_list(&plugins_manager).await))
+                    }
+                    Api::InvalidPluginsList(tx) => {
+                        log_if_err(tx.send(plugins::invalid_plugins_list(&plugins_manager).await))
+                    }
+                    Api::InstalledPluginsPaths(tx) => log_if_err(
+                        tx.send(plugins::installed_plugins_paths(&plugins_manager).await),
+                    ),
+                    Api::InvalidPluginsPaths(tx) => {
+                        log_if_err(tx.send(plugins::invalid_plugins_paths(&plugins_manager).await))
+                    }
+                    Api::InstalledPluginInfo(path, tx) => log_if_err(
+                        tx.send(plugins::installed_plugins_info(path, &plugins_manager).await),
+                    ),
+                    Api::InvalidPluginInfo(path, tx) => log_if_err(
+                        tx.send(plugins::invalid_plugins_info(path, &plugins_manager).await),
+                    ),
+                    Api::PluginRunData(path, tx) => log_if_err(
+                        tx.send(plugins::get_plugin_run_data(path, &plugins_manager).await),
+                    ),
+                    Api::ReloadPlugins(tx) => {
+                        log_if_err(tx.send(plugins::reload_plugins(&plugins_manager).await))
+                    }
+                    Api::AddPlugin(path, typ, tx) => {
+                        log_if_err(tx.send(plugins::add_plugin(path, typ, &plugins_manager).await))
+                    }
+                    Api::RemovePlugin(path, tx) => {
+                        log_if_err(tx.send(plugins::remove_plugin(path, &plugins_manager).await))
                     }
                 }
             }
@@ -398,6 +440,142 @@ impl ComponentsSession {
             "Fail to send Api::Shutdown",
         )?;
         response(rx.await, "Fail to get response from Api::Shutdown")
+    }
+
+    /// Get all information of installed plugins .
+    pub async fn installed_plugins_list(&self) -> Result<stypes::PluginsList, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::InstalledPluginsList(tx)),
+            "Fail to send Api::InstalledPluginsList",
+        )?;
+        response(
+            rx.await,
+            "Fail to get response from Api::InstalledPluginsList",
+        )?
+    }
+
+    /// Get all information of invalid plugins .
+    pub async fn invalid_plugins_list(
+        &self,
+    ) -> Result<stypes::InvalidPluginsList, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::InvalidPluginsList(tx)),
+            "Fail to send Api::InvalidPluginsList",
+        )?;
+        response(
+            rx.await,
+            "Fail to get response from Api::InvalidPluginsList",
+        )?
+    }
+
+    /// Get the directory paths (considered ID) for installed plugins.
+    pub async fn installed_plugins_paths(
+        &self,
+    ) -> Result<stypes::PluginsPathsList, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::InstalledPluginsPaths(tx)),
+            "Fail to send Api::InstalledPluginsPaths",
+        )?;
+        response(
+            rx.await,
+            "Fail to get response from Api::InstalledPluginsPaths",
+        )?
+    }
+
+    /// Get the directory paths (considered ID) for invalid plugins.
+    pub async fn invalid_plugins_paths(
+        &self,
+    ) -> Result<stypes::PluginsPathsList, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::InvalidPluginsPaths(tx)),
+            "Fail to send Api::InvalidPluginsPaths",
+        )?;
+        response(
+            rx.await,
+            "Fail to get response from Api::InvalidPluginsPaths",
+        )?
+    }
+
+    /// Get all info for the installed plugin with provided directory path (considered ID)
+    pub async fn installed_plugin_info(
+        &self,
+        plugin_path: String,
+    ) -> Result<Option<stypes::PluginEntity>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::InstalledPluginInfo(plugin_path, tx)),
+            "Fail to send Api::InstalledPluginInfo",
+        )?;
+        response(
+            rx.await,
+            "Fail to get response from Api::InstalledPluginInfo",
+        )?
+    }
+
+    /// Get all info for the invalid plugin with provided directory path (considered ID)
+    pub async fn invalid_plugin_info(
+        &self,
+        plugin_path: String,
+    ) -> Result<Option<stypes::InvalidPluginEntity>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::InvalidPluginInfo(plugin_path, tx)),
+            "Fail to send Api::InvalidPluginInfo",
+        )?;
+        response(rx.await, "Fail to get response from Api::InvalidPluginInfo")?
+    }
+
+    /// Retrieves runtime data for a plugin located at the specified path.
+    pub async fn get_plugin_run_data(
+        &self,
+        plugin_path: String,
+    ) -> Result<Option<stypes::PluginRunData>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::PluginRunData(plugin_path, tx)),
+            "Fail to send Api::PluginRunData",
+        )?;
+        response(rx.await, "Fail to get response from Api::PluginRunData")?
+    }
+
+    /// Reload the plugin directory.
+    pub async fn reload_plugins(&self) -> Result<(), stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::ReloadPlugins(tx)),
+            "Fail to send Api::ReloadPlugins",
+        )?;
+        response(rx.await, "Fail to get response from Api::ReloadPlugins")?
+        //TODO AAZ: Reload components on reload plugins
+    }
+
+    /// Adds a plugin with the given directory path and optional plugin type.
+    pub async fn add_plugin(
+        &self,
+        plugin_path: String,
+        plugin_type: Option<stypes::PluginType>,
+    ) -> Result<(), stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api
+                .send(Api::AddPlugin(plugin_path, plugin_type, tx)),
+            "Fail to send Api::AddPlugin",
+        )?;
+        response(rx.await, "Fail to get response from Api::AddPlugin")?
+    }
+
+    /// Removes the plugin with the given directory path.
+    pub async fn remove_plugin(&self, plugin_path: String) -> Result<(), stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::RemovePlugin(plugin_path, tx)),
+            "Fail to send Api::RemovePlugin",
+        )?;
+        response(rx.await, "Fail to get response from Api::RemovePlugin")?
     }
 }
 
