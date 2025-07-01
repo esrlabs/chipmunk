@@ -1,6 +1,7 @@
 use std::{collections::HashMap, ops::RangeInclusive};
 
 use stypes::SessionDescriptor;
+use uuid::Uuid;
 
 pub struct MappedRanges<'a> {
     ranges: Vec<&'a (RangeInclusive<u64>, u16)>,
@@ -24,7 +25,7 @@ impl<'a> MappedRanges<'a> {
 
 #[derive(Debug)]
 pub struct SourceIDs {
-    pub sources: HashMap<u16, SessionDescriptor>,
+    pub sources: HashMap<u16, (Uuid, SessionDescriptor)>,
     pub map: Vec<(RangeInclusive<u64>, u16)>,
     pub recent: Option<u16>,
 }
@@ -38,9 +39,9 @@ impl SourceIDs {
         }
     }
 
-    pub fn add_source(&mut self, descriptor: SessionDescriptor) -> u16 {
+    pub fn add_source(&mut self, uuid: Uuid, descriptor: SessionDescriptor) -> u16 {
         let key = self.sources.len() as u16;
-        self.sources.insert(key, descriptor);
+        self.sources.insert(key, (uuid, descriptor));
         key
     }
 
@@ -74,7 +75,7 @@ impl SourceIDs {
     pub fn get_sources_definitions(&self) -> Vec<stypes::SourceDefinition> {
         self.sources
             .iter()
-            .map(|(id, descriptor)| stypes::SourceDefinition {
+            .map(|(id, (_uuid, descriptor))| stypes::SourceDefinition {
                 id: *id,
                 descriptor: descriptor.clone(),
             })
