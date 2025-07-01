@@ -1,5 +1,5 @@
 use crate::operations::{OperationAPI, OperationResult};
-use definitions::{ByteSource, LogRecordOutput, LogRecordWriter, Parser};
+use definitions::{ByteSource, LogRecordOutput, LogRecordsBuffer, Parser};
 use log::debug;
 use processor::producer::MessageProducer;
 
@@ -10,14 +10,14 @@ use std::{
 };
 use tokio::select;
 
-pub struct ExportWriter {
+pub struct ExportLogsBuffer {
     file_buffer: BufWriter<File>,
     bytes_buffer: Vec<u8>,
     index: usize,
     ranges: Vec<std::ops::RangeInclusive<u64>>,
 }
 
-impl ExportWriter {
+impl ExportLogsBuffer {
     pub fn new<P: AsRef<Path>>(
         filename: P,
         ranges: Vec<std::ops::RangeInclusive<u64>>,
@@ -37,7 +37,7 @@ impl ExportWriter {
     }
 }
 
-impl LogRecordWriter for ExportWriter {
+impl LogRecordsBuffer for ExportLogsBuffer {
     fn append(&mut self, record: LogRecordOutput<'_>) {
         if !self.ranges.is_empty() {
             // TODO: we can optimize index search
@@ -92,14 +92,14 @@ impl LogRecordWriter for ExportWriter {
 
         Ok(())
     }
-    fn get_id(&self) -> u16 {
+    fn get_source_id(&self) -> u16 {
         0
     }
 }
 
-pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
+pub async fn run_producer<P: Parser, S: ByteSource, B: LogRecordsBuffer>(
     operation_api: OperationAPI,
-    mut producer: MessageProducer<'_, P, S, W>,
+    mut producer: MessageProducer<'_, P, S, B>,
 ) -> OperationResult<bool> {
     operation_api.processing();
     let cancel = operation_api.cancellation_token();
