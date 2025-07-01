@@ -139,4 +139,38 @@ pub enum Api {
         Vec<stypes::Field>,
         oneshot::Sender<Result<HashMap<String, String>, NativeError>>,
     ),
+
+    /// Get all information of the installed plugins .
+    InstalledPluginsList(oneshot::Sender<Result<stypes::PluginsList, NativeError>>),
+    /// Get all information of invalid plugins .
+    InvalidPluginsList(oneshot::Sender<Result<stypes::InvalidPluginsList, NativeError>>),
+    /// Get the directory paths (considered ID) for installed plugins.
+    InstalledPluginsPaths(oneshot::Sender<Result<stypes::PluginsPathsList, NativeError>>),
+    /// Get the directory paths (considered ID) for invalid plugins.
+    InvalidPluginsPaths(oneshot::Sender<Result<stypes::PluginsPathsList, NativeError>>),
+    /// Get all info for the installed plugin with provided directory path (considered ID)
+    InstalledPluginInfo(
+        String,
+        oneshot::Sender<Result<Option<stypes::PluginEntity>, NativeError>>,
+    ),
+    /// Get all info for the invalid plugin with provided directory path (considered ID)
+    InvalidPluginInfo(
+        String,
+        oneshot::Sender<Result<Option<stypes::InvalidPluginEntity>, NativeError>>,
+    ),
+    /// Retrieves runtime data for a plugin located at the specified path.
+    PluginRunData(
+        String,
+        oneshot::Sender<Result<Option<stypes::PluginRunData>, NativeError>>,
+    ),
+    /// Reload all the plugins from their directory.
+    ReloadPlugins(oneshot::Sender<Result<(), NativeError>>),
+    /// Adds a plugin with the given directory path and optional plugin type.
+    AddPlugin(
+        String,
+        Option<stypes::PluginType>,
+        oneshot::Sender<Result<(), NativeError>>,
+    ),
+    /// Removes the plugin with the given directory path.
+    RemovePlugin(String, oneshot::Sender<Result<(), NativeError>>),
 }
