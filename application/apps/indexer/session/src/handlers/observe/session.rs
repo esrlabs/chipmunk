@@ -9,24 +9,22 @@ use processor::producer::{MessageProducer, MessageStreamItem, sde::*};
 use std::time::Instant;
 use tokio::{select, sync::mpsc::Receiver};
 
-/// A writer responsible for appending data to a session file.
+/// A buffer for accumulating log data before writing to a session file.
 ///
-/// This writer is linked to a session file through the `SessionStateAPI`.
-/// Instead of writing continuously, it accumulates updates and sends them
-/// in periodic batches defined by `SEND_DURATION` (in milliseconds).
+/// This buffer is linked to a session file via the `SessionStateAPI`.
+/// It accumulates updates and sends them when `flush()` is called.
 ///
-/// To support this behavior, it uses two internal buffers:
+/// It uses two internal stores to manage data:
 /// - `buffer` accumulates textual log entries.
-/// - `attachments` stores associated `Attachment` objects, which are sent
-///   only after flushing the text buffer to ensure synchronization between
-///   log lines and attachments.
-pub struct Writer {
+/// - `attachments` stores associated `Attachment` objects. These are sent
+///   only after the text buffer is flushed to ensure synchronization.
+pub struct LogsBuffer {
     /// Communication channel to the session file.
     state: SessionStateAPI,
 
     /// Text buffer for log messages. Since session files are text-based,
     /// the buffered data is stored as a `String`.
-    buffer: String,
+    text_buffer: String,
 
     /// Buffer for received attachments. These are queued and sent only after
     /// the buffered log messages have been flushed, preserving the logical
@@ -38,45 +36,45 @@ pub struct Writer {
     id: u16,
 }
 
-impl Writer {
+impl LogsBuffer {
     pub fn new(state: SessionStateAPI, id: u16) -> Self {
         Self {
             state,
-            buffer: String::new(),
+            text_buffer: String::new(),
             attachments: Vec::new(),
             id,
         }
     }
 }
 
-impl LogRecordWriter for Writer {
+impl LogRecordsBuffer for LogsBuffer {
     fn append(&mut self, record: LogRecordOutput<'_>) {
         match record {
             LogRecordOutput::Raw(inner) => {
                 // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
                 // because during observe we do not expect raw data
-                self.buffer.push_str(
+                self.text_buffer.push_str(
                     &inner
                         .iter()
                         .map(|b| format!("{:02X}", b))
                         .collect::<String>(),
                 );
-                self.buffer.push('\n');
+                self.text_buffer.push('\n');
             }
             LogRecordOutput::Message(msg) => {
-                self.buffer.push_str(&msg);
-                self.buffer.push('\n');
+                self.text_buffer.push_str(&msg);
+                self.text_buffer.push('\n');
             }
             LogRecordOutput::Columns(inner) => {
                 let mut items = inner.into_iter();
                 if let Some(first_item) = items.next() {
-                    self.buffer.push_str(&first_item);
+                    self.text_buffer.push_str(&first_item);
                     for item in items {
-                        self.buffer.push(definitions::COLUMN_SENTINAL);
-                        self.buffer.push_str(&item);
+                        self.text_buffer.push(definitions::COLUMN_SENTINAL);
+                        self.text_buffer.push_str(&item);
                     }
                 }
-                self.buffer.push('\n');
+                self.text_buffer.push('\n');
             }
             LogRecordOutput::Multiple(inner) => {
                 for rec in inner {
@@ -90,13 +88,19 @@ impl LogRecordWriter for Writer {
     }
 
     async fn flush(&mut self) -> Result<(), stypes::NativeError> {
-        if !self.buffer.is_empty() {
-            // Capacity of cloned item is equal to its length, making this clone
-            // produces one mem_copy command for the needed bytes only on the cloned
-            // string while preserving the capacity of the intermediate buffer.
-            let msgs = self.buffer.clone();
-            self.buffer.clear();
-            self.state.write_session_file(self.get_id(), msgs).await?;
+        if !self.text_buffer.is_empty() {
+            // Creates an owned string from current buffer then clean the current. This operation
+            // produces one mem_copy command for the needed bytes only while preserving
+            // the capacity of the intermediate buffer.
+            // Rust doesn't provide safe way to move bytes between strings without replacing
+            // the whole string, forcing us to allocate the full capacity of the buffer on each
+            // iteration (which could backfire in the internal buffer gets too long in one of the
+            // iterations).
+            let msgs = String::from(&self.text_buffer);
+            self.text_buffer.clear();
+            self.state
+                .write_session_file(self.get_source_id(), msgs)
+                .await?;
         }
         for attachment in self.attachments.drain(..) {
             // TODO: send with 1 call
@@ -104,7 +108,8 @@ impl LogRecordWriter for Writer {
         }
         Ok(())
     }
-    fn get_id(&self) -> u16 {
+
+    fn get_source_id(&self) -> u16 {
         self.id
     }
 }
@@ -128,10 +133,10 @@ enum Next {
 ///   source, updates from SDE, and termination signals.
 /// **********************************************************************************************
 
-pub async fn run_producer<P: Parser, S: ByteSource, W: LogRecordWriter>(
+pub async fn run_producer<P: Parser, S: ByteSource, B: LogRecordsBuffer>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    mut producer: MessageProducer<'_, P, S, W>,
+    mut producer: MessageProducer<'_, P, S, B>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
