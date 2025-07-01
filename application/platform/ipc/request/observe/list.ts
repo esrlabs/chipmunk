@@ -18,13 +18,13 @@ export interface Request extends Interface {}
 @Define({ name: 'ObserveListResponse' })
 export class Response extends SignatureRequirement {
     public session: string;
-    public sources: { [key: string]: string };
+    public operations: string[];
 
-    constructor(input: { session: string; sources: { [key: string]: string } }) {
+    constructor(input: { session: string; operations: string[] }) {
         super();
         validator.isObject(input);
         this.session = validator.getAsNotEmptyString(input, 'session');
-        this.sources = validator.getAsObj(input, 'sources');
+        this.operations = validator.getAsArray(input, 'operations');
     }
 }
 

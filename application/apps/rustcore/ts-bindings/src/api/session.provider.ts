@@ -50,6 +50,11 @@ export interface IAttachmentsUpdatedUpdated {
     attachment: AttachmentInfo;
 }
 
+export interface SessionDescriptorEvent {
+    uuid: string;
+    desc: SessionDescriptor;
+}
+
 export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
@@ -64,7 +69,7 @@ export interface ISessionEvents {
     SessionError: Subject<IError>;
     OperationError: Subject<IErrorEvent>;
     SessionDestroyed: Subject<void>;
-    SessionDescriptor: Subject<SessionDescriptor>;
+    SessionDescriptor: Subject<SessionDescriptorEvent>;
     OperationStarted: Subject<string>;
     OperationProcessing: Subject<string>;
     OperationDone: Subject<IOperationDoneEvent>;
@@ -140,10 +145,14 @@ interface ISessionEventsInterfaces {
     OperationStarted: { self: 'string' };
     SessionDescriptor: {
         self: 'object';
-        parser: 'object';
-        source: 'object';
-        s_desc: ['string', null, undefined];
-        p_desc: ['string', null, undefined];
+        uuid: 'string';
+        desc: {
+            self: 'object';
+            parser: 'object';
+            source: 'object';
+            s_desc: ['string', null, undefined];
+            p_desc: ['string', null, undefined];
+        };
     };
     OperationProcessing: { self: 'string' };
     OperationDone: { self: 'object'; uuid: 'string'; result: 'any' };
@@ -177,10 +186,14 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
     OperationStarted: { self: 'string' },
     SessionDescriptor: {
         self: 'object',
-        parser: 'object',
-        source: 'object',
-        s_desc: ['string', null, undefined],
-        p_desc: ['string', null, undefined],
+        uuid: 'string',
+        desc: {
+            self: 'object',
+            parser: 'object',
+            source: 'object',
+            s_desc: ['string', null, undefined],
+            p_desc: ['string', null, undefined],
+        },
     },
     OperationProcessing: { self: 'string' },
     OperationDone: { self: 'object', uuid: 'string', result: 'any' },
@@ -207,7 +220,7 @@ export class EventProvider extends Computation<
         SessionDestroyed: new Subject<void>(),
         OperationStarted: new Subject<string>(),
         OperationProcessing: new Subject<string>(),
-        SessionDescriptor: new Subject<SessionDescriptor>(),
+        SessionDescriptor: new Subject<SessionDescriptorEvent>(),
         OperationDone: new Subject<IOperationDoneEvent>(),
     };
 

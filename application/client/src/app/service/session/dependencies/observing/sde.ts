@@ -59,8 +59,25 @@ export class Sde {
         });
     }
 
-    public overwrite(running: Map<string, ObserveOperation>): void {
-        this.operations = Array.from(running.values()).filter((s) => s.asOrigin().isSdeSupported());
+    public async overwrite(all: Map<string, ObserveOperation>): Promise<void> {
+        const running = Array.from(all.values()).filter((s) => s.isRunning());
+        this.operations = [];
+        for (let operation of running) {
+            const sde: boolean = await operation
+                .getOrigin()
+                .isSdeSupported()
+                .catch((err: Error) => {
+                    this.log().error(
+                        `Fail to get SDE support info for ${operation.getOrigin().getTitle()} (${
+                            operation.uuid
+                        }): ${err.message}`,
+                    );
+                    return false;
+                });
+            if (sde) {
+                this.operations.push(operation);
+            }
+        }
         this.subjects.get().updated.emit();
         if (this.selected !== undefined) {
             const target = this.selected.uuid;
@@ -110,7 +127,7 @@ export class Sde {
             is: (uuid: string): boolean => {
                 return this.selected === undefined
                     ? false
-                    : this.selected.uuid === uuid || this.selected.asObserve().uuid === uuid;
+                    : this.selected.uuid === uuid || this.selected.uuid === uuid;
             },
             first: (): void => {
                 if (this.operations.length === 0) {
@@ -134,9 +151,7 @@ export class Sde {
                 if (this.selected !== undefined && this.selected.uuid === uuid) {
                     return false;
                 }
-                const candidate = this.operations.find(
-                    (o) => o.uuid === uuid || o.asObserve().uuid === uuid,
-                );
+                const candidate = this.operations.find((o) => o.uuid === uuid || o.uuid === uuid);
                 if (candidate === undefined) {
                     return false;
                 }
