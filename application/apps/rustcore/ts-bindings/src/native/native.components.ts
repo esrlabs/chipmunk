@@ -22,6 +22,15 @@ import {
     IComponentsEventsInterfaces,
 } from '../api/components.provider';
 
+import {
+    InvalidPluginEntity,
+    InvalidPluginsList,
+    PluginEntity,
+    PluginsList,
+    PluginsPathsList,
+    PluginRunData,
+} from 'platform/types/bindings/plugins';
+
 import * as protocol from 'protocol';
 
 export abstract class ComponentsNative {
@@ -40,6 +49,26 @@ export abstract class ComponentsNative {
     public abstract validate(origin: Uint8Array, fields: Uint8Array): Promise<Uint8Array>;
 
     public abstract abort(fields: string[]): void;
+
+    public abstract installedPluginsList(): Promise<Uint8Array>;
+
+    public abstract invalidPluginsList(): Promise<Uint8Array>;
+
+    public abstract installedPluginsPaths(): Promise<Uint8Array>;
+
+    public abstract invalidPluginsPaths(): Promise<Uint8Array>;
+
+    public abstract installedPluginsInfo(plugin_path: string): Promise<Uint8Array | undefined>;
+
+    public abstract invalidPluginsInfo(plugin_path: string): Promise<Uint8Array | undefined>;
+
+    public abstract getPluginRunData(plugin_path: string): Promise<Uint8Array | undefined>;
+
+    public abstract reloadPlugins(): Promise<Uint8Array>;
+
+    public abstract addPlugin(plugin_path: string): Promise<Uint8Array>;
+
+    public abstract removePlugin(plugin_path: string): Promise<Uint8Array>;
 }
 
 const DESTROY_TIMEOUT = 5000;
@@ -324,5 +353,227 @@ export class Base extends Subscriber {
             case State.Available:
                 return undefined;
         }
+    }
+
+    public installedPluginsList(): Promise<PluginsList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return new Promise((resolve, reject) => {
+            this.native.installedPluginsList().then((buf: Uint8Array) => {
+                try {
+                    resolve(protocol.decodePluginsList(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public invalidPluginsList(): Promise<InvalidPluginsList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.invalidPluginsList().then((buf: Uint8Array) => {
+                try {
+                    resolve(protocol.decodeInvalidPluginsList(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public installedPluginsPaths(): Promise<PluginsPathsList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.installedPluginsPaths().then((buf: Uint8Array) => {
+                try {
+                    resolve(protocol.decodePluginsPathsList(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public invalidPluginsPaths(): Promise<PluginsPathsList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.invalidPluginsPaths().then((buf: Uint8Array) => {
+                try {
+                    resolve(protocol.decodePluginsPathsList(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public installedPluginsInfo(plugin_path: string): Promise<PluginEntity | undefined> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.installedPluginsInfo(plugin_path).then((buf: Uint8Array | undefined) => {
+                if (!buf) {
+                    return resolve(undefined);
+                }
+                try {
+                    resolve(protocol.decodePluginEntity(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public invalidPluginsInfo(plugin_path: string): Promise<InvalidPluginEntity | undefined> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.invalidPluginsInfo(plugin_path).then((buf: Uint8Array | undefined) => {
+                if (!buf) {
+                    return resolve(undefined);
+                }
+                try {
+                    resolve(protocol.decodeInvalidPluginEntity(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public getPluginRunData(plugin_path: string): Promise<PluginRunData | undefined> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.getPluginRunData(plugin_path).then((buf: Uint8Array | undefined) => {
+                if (!buf) {
+                    return resolve(undefined);
+                }
+                try {
+                    resolve(protocol.decodePluginRunData(buf));
+                } catch (err) {
+                    reject(
+                        new NativeError(
+                            new Error(
+                                this.logger.error(`Fail to decode message: ${utils.error(err)}`),
+                            ),
+                            Type.InvalidOutput,
+                            Source.Plugins,
+                        ),
+                    );
+                }
+            });
+        });
+    }
+
+    public reloadPlugins(): Promise<void> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.reloadPlugins().catch((err: Error) => {
+                reject(err);
+            });
+        });
+    }
+
+    public addPlugin(plugin_path: string): Promise<void> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.addPlugin(plugin_path).catch((err: Error) => {
+                reject(err);
+            });
+        });
+    }
+
+    public removePlugin(plugin_path: string): Promise<void> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.native.removePlugin(plugin_path).catch((err: Error) => {
+                reject(err);
+            });
+        });
     }
 }
