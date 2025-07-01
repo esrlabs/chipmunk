@@ -70,9 +70,12 @@ pub enum CallbackEvent {
     /// - `Option<FilterMatchList>`: The list of matches with log entry indices.
     SearchMapUpdated(Option<FilterMatchList>),
 
-    /// Triggers as soon as new observe operation has been started and SessionDescriptor has been
-    /// registred in the list of sources.
-    SessionDescriptor(SessionDescriptor),
+    SessionDescriptor {
+        /// Uuid of the observe operation, which adds new `SessionDescriptor`
+        uuid: Uuid,
+        /// Added `SessionDescriptor`
+        desc: SessionDescriptor,
+    },
 
     /// Triggered when the "value map" is updated. The "value map" is used to build charts
     /// from search results. Always triggered immediately after `SearchUpdated`.

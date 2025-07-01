@@ -10,8 +10,7 @@ import { Subjects, Subject } from '@platform/env/subscription';
 import { Suitable, SuitableGroup } from './suitable';
 import { LockToken } from '@platform/env/lock.token';
 import { cli } from '@service/cli';
-
-import * as $ from '@platform/types/observe';
+import { ObserveOperation } from '@service/session/dependencies/stream';
 
 export { Suitable, SuitableGroup };
 
@@ -25,7 +24,7 @@ export class HistorySession extends Subscriber {
     protected readonly sources: string[] = [];
     protected readonly globals: Subscriber = new Subscriber();
     protected readonly locker: LockToken = new LockToken(true);
-    protected readonly pendings: $.Observe[] = [];
+    protected readonly pendings: ObserveOperation[] = [];
     protected checked: boolean = false;
 
     public readonly definitions: Definitions;
@@ -62,27 +61,28 @@ export class HistorySession extends Subscriber {
         );
     }
 
-    protected handleNewSource(source: $.Observe) {
+    protected handleNewSource(operation: ObserveOperation) {
         if (this.locker.isLocked()) {
-            this.pendings.push(source);
+            this.pendings.push(operation);
             return;
         }
-        Definition.fromDataSource(source)
-            .then((definition) => {
-                definition = this.storage.definitions.update(definition);
-                this.definitions.add(definition);
-                this.collections.bind(definition);
-                if (cli.isFiltersImported(this.session.uuid())) {
-                    // Filters are imported from CLI. Recent filters/charts should not
-                    // be applied
-                    return;
-                }
-                this.save();
-                this.check().all();
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to get definition of source: ${err.message}`);
-            });
+        console.error(`Not implemented`);
+        // Definition.fromDataSource(operation)
+        //     .then((definition) => {
+        //         definition = this.storage.definitions.update(definition);
+        //         this.definitions.add(definition);
+        //         this.collections.bind(definition);
+        //         if (cli.isFiltersImported(this.session.uuid())) {
+        //             // Filters are imported from CLI. Recent filters/charts should not
+        //             // be applied
+        //             return;
+        //         }
+        //         this.save();
+        //         this.check().all();
+        //     })
+        //     .catch((err: Error) => {
+        //         this.log().error(`Fail to get definition of source: ${err.message}`);
+        //     });
     }
 
     protected save() {
