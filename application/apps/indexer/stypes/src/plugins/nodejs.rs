@@ -19,3 +19,4 @@ try_into_js!(ParserRenderOptions);
 try_into_js!(PluginsList);
 try_into_js!(InvalidPluginsList);
 try_into_js!(PluginsPathsList);
+try_into_js!(PluginRunData);
