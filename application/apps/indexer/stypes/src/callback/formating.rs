@@ -37,8 +37,12 @@ impl std::fmt::Display for CallbackEvent {
                 progress: _,
             } => write!(f, "Progress"),
             Self::SessionError(err) => write!(f, "SessionError: {err:?}"),
-            Self::SessionDescriptor(desc) => {
-                write!(f, "SessionDescriptor: {:?}/{:?}", desc.s_desc, desc.p_desc)
+            Self::SessionDescriptor { uuid, desc } => {
+                write!(
+                    f,
+                    "SessionDescriptor for {uuid}: {:?}/{:?}",
+                    desc.s_desc, desc.p_desc
+                )
             }
             Self::OperationError { uuid, error } => {
                 write!(f, "OperationError: {uuid}: {error:?}")

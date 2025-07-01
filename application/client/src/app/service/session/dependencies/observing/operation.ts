@@ -1,33 +1,86 @@
-import { Observe } from '@platform/types/observe';
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
+import { SessionSetup, SessionDescriptor } from '@platform/types/bindings';
+import { SessionOrigin } from '@service/session/origin';
 
-import * as $ from '@platform/types/observe';
+type SdeAPIFunc = (msg: SdeRequest) => Promise<SdeResponse>;
+type RestartingAPIFunc = (setup: SessionOrigin) => Promise<string>;
+type CancelAPIFunc = () => Promise<void>;
+
+export enum State {
+    Started,
+    Running,
+    Done,
+}
 
 export class ObserveOperation {
-    private _sdeTasksCount: number = 0;
+    protected _sdeTasksCount: number = 0;
 
-    constructor(
-        public readonly uuid: string,
-        protected readonly observe: Observe,
-        protected readonly sde: (msg: SdeRequest) => Promise<SdeResponse>,
-        protected readonly restarting: (observe: Observe) => Promise<string>,
-        protected readonly cancel: () => Promise<void>,
-    ) {}
+    protected descriptor: SessionDescriptor | undefined;
+    protected sde: SdeAPIFunc | undefined;
+    protected restarting: RestartingAPIFunc | undefined;
+    protected cancel: CancelAPIFunc | undefined;
+    protected origin: SessionOrigin | undefined;
+
+    public state: State = State.Started;
+
+    constructor(public readonly uuid: string) {}
+
+    public bind(
+        origin: SessionOrigin,
+        sde: SdeAPIFunc,
+        restarting: RestartingAPIFunc,
+        cancel: CancelAPIFunc,
+    ) {
+        this.origin = origin;
+        this.sde = sde;
+        this.restarting = restarting;
+        this.cancel = cancel;
+        this.state = State.Running;
+    }
 
     public abort(): Promise<void> {
+        if (!this.cancel) {
+            return Promise.reject(
+                new Error(`"abort" cannot be called, because ObserveOperation isn't bound`),
+            );
+        }
         return this.cancel();
     }
 
     public restart(): Promise<string> {
-        return this.restarting(this.observe);
+        if (!this.restarting || !this.origin) {
+            return Promise.reject(
+                new Error(`"restart" cannot be called, because ObserveOperation isn't bound`),
+            );
+        }
+        return this.restarting(this.origin);
     }
 
-    public asObserve(): Observe {
-        return this.observe;
+    public finish() {
+        this.state = State.Done;
     }
 
-    public asOrigin(): $.Origin.Configuration {
-        return this.observe.origin;
+    public isRunning(): boolean {
+        return this.state === State.Running;
+    }
+
+    public isSame(operation: ObserveOperation): boolean {
+        return this.uuid === operation.uuid;
+    }
+
+    public getOrigin(): SessionOrigin {
+        if (!this.origin) {
+            throw new Error(`Operation ${this.uuid} isn't bound yet.`);
+        }
+        return this.origin;
+    }
+
+    public setDescriptor(descriptor: SessionDescriptor) {
+        this.descriptor = descriptor;
+    }
+
+    public getDescriptor(): SessionDescriptor | undefined {
+        return this.descriptor;
     }
 
     public send(): {
@@ -35,14 +88,27 @@ export class ObserveOperation {
         bytes(data: number[]): Promise<SdeResponse>;
     } {
         const send = (request: SdeRequest): Promise<SdeResponse> => {
+            if (!this.sde) {
+                return Promise.reject(
+                    new Error(`"sde" cannot be called, because ObserveOperation isn't bound`),
+                );
+            }
             this._sdeTasksCount += 1;
             return this.sde(request).finally(() => {
                 this._sdeTasksCount -= 1;
             });
         };
         return {
-            text: (data: string): Promise<SdeResponse> => {
-                if (!this.observe.origin.isSdeSupported()) {
+            text: async (data: string): Promise<SdeResponse> => {
+                if (!this.origin) {
+                    return Promise.reject(
+                        new Error(
+                            `"sde::send::text" cannot be called, because ObserveOperation isn't bound`,
+                        ),
+                    );
+                }
+                const support = await this.origin.isSdeSupported();
+                if (!support) {
                     return Promise.reject(
                         new Error(`Observed origin doesn't support SDE protocol`),
                     );
@@ -51,8 +117,16 @@ export class ObserveOperation {
                     WriteText: `${data}\n\r`,
                 });
             },
-            bytes: (data: number[]): Promise<SdeResponse> => {
-                if (!this.observe.origin.isSdeSupported()) {
+            bytes: async (data: number[]): Promise<SdeResponse> => {
+                if (!this.origin) {
+                    return Promise.reject(
+                        new Error(
+                            `"sde::send::bytes" cannot be called, because ObserveOperation isn't bound`,
+                        ),
+                    );
+                }
+                const support = await this.origin.isSdeSupported();
+                if (!support) {
                     return Promise.reject(
                         new Error(`Observed origin doesn't support SDE protocol`),
                     );

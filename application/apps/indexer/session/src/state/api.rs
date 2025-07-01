@@ -42,7 +42,7 @@ pub enum Api {
     FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
     GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
     UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
-    AddSource(SessionDescriptor, oneshot::Sender<u16>),
+    AddSource(Uuid, SessionDescriptor, oneshot::Sender<u16>),
     GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((stypes::ObserveOptions, oneshot::Sender<()>)),
@@ -472,10 +472,12 @@ impl SessionStateAPI {
 
     pub async fn add_source(
         &self,
+        operation_uuid: Uuid,
         desciptor: SessionDescriptor,
     ) -> Result<u16, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::AddSource(desciptor, tx), rx).await
+        self.exec_operation(Api::AddSource(operation_uuid, desciptor, tx), rx)
+            .await
     }
 
     pub async fn get_sources_definitions(

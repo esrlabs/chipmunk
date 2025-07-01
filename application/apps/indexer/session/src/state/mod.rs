@@ -582,13 +582,21 @@ pub async fn run(
                     stypes::NativeError::channel("Failed to respond to Api::UpdateSession")
                 })?;
             }
-            Api::AddSource(descriptor, tx_response) => {
+            Api::AddSource(uuid, descriptor, tx_response) => {
                 tx_response
-                    .send(state.session_file.sources.add_source(descriptor.clone()))
+                    .send(
+                        state
+                            .session_file
+                            .sources
+                            .add_source(uuid, descriptor.clone()),
+                    )
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::AddSource")
                     })?;
-                tx_callback_events.send(stypes::CallbackEvent::SessionDescriptor(descriptor))?;
+                tx_callback_events.send(stypes::CallbackEvent::SessionDescriptor {
+                    uuid,
+                    desc: descriptor,
+                })?;
             }
             Api::GetSourcesDefinitions(tx_response) => {
                 tx_response

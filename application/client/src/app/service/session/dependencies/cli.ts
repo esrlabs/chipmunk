@@ -226,26 +226,28 @@ ${udp.configuration.multicast[0].interface};"`;
     }
 
     protected arguments(): string | undefined {
-        const observed = this.session.stream
-            .observe()
-            .sources()
-            .map((s) => s.observe);
-        if (observed.length === 0) {
-            return undefined;
-        }
-        if (this.source().cx(observed) === undefined) {
-            // Not the same origin
-            return undefined;
-        }
-        const source = this.source().from(observed);
-        if (source === undefined) {
-            return undefined;
-        }
-        const parser = this.parser().from(observed[0]);
-        if (parser === undefined) {
-            return undefined;
-        }
-        return `${source} ${parser} ${this.filters()}`;
+        console.error(`Not implemented`);
+        // const operations = this.session.stream
+        //     .observe()
+        //     .operations()
+        //     .map((s) => s.isRunning());
+        // if (operations.length === 0) {
+        //     return undefined;
+        // }
+        // if (this.source().cx(operations) === undefined) {
+        //     // Not the same origin
+        //     return undefined;
+        // }
+        // const source = this.source().from(operations);
+        // if (source === undefined) {
+        //     return undefined;
+        // }
+        // const parser = this.parser().from(operations[0]);
+        // if (parser === undefined) {
+        //     return undefined;
+        // }
+        // return `${source} ${parser} ${this.filters()}`;
+        return;
     }
 
     public init(session: Session) {
