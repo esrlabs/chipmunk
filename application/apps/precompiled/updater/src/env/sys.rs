@@ -10,7 +10,7 @@ fn spawn(exe: &str, args: &[&str]) -> Result<Child> {
     Command::new(exe)
         .args(args)
         .spawn()
-        .map_err(|e| anyhow!("could not spawn {} as a process ({})", exe, e))
+        .map_err(|e| anyhow!("could not spawn {exe} as a process ({e})"))
 }
 
 pub fn start(app: PathBuf) -> Result<()> {
@@ -19,7 +19,7 @@ pub fn start(app: PathBuf) -> Result<()> {
     } else {
         app
     };
-    log::debug!("restarting app: {:?}", to_be_started);
+    log::debug!("restarting app: {to_be_started:?}");
     if !to_be_started.exists() {
         Err(anyhow!("Failed to restart, couldn't find executable file"))
     } else {
@@ -30,7 +30,7 @@ pub fn start(app: PathBuf) -> Result<()> {
                 .expect("process for starting could not be spawned"),
             &[],
         )
-        .map_err(|e| anyhow!("Fail to start app due error: {}", e))
+        .map_err(|e| anyhow!("Fail to start app due error: {e}"))
         .map(|_| ())
     }
 }

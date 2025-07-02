@@ -71,9 +71,7 @@ pub fn resolve(
 
             assert!(
                 jobs_tree.insert(job_def, dep_jobs).is_none(),
-                "JobDefinition is added to tree more than once. Target: {}, Job: {}",
-                target,
-                job
+                "JobDefinition is added to tree more than once. Target: {target}, Job: {job}",
             );
         }
     }

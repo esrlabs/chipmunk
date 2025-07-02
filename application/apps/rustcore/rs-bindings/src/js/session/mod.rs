@@ -23,7 +23,7 @@ impl RustSession {
             Ok(uuid) => uuid,
             Err(err) => {
                 // TODO: Should be replaced with error
-                panic!("Fail to convert UUID = {}; error:{}", id, err);
+                panic!("Fail to convert UUID = {id}; error:{err}");
             }
         };
         Self {
@@ -466,9 +466,7 @@ impl RustSession {
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         info!(
             target: targets::SESSION,
-            "Search (operation: {}) will be done withing next filters: {:?}",
-            operation_id,
-            filters
+            "Search (operation: {operation_id}) will be done withing next filters: {filters:?}"
         );
         session.apply_search_filters(
             operations::uuid_from_str(&operation_id)?,
@@ -488,9 +486,7 @@ impl RustSession {
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         info!(
             target: targets::SESSION,
-            "Search values (operation: {}) will be done withing next filters: {:?}",
-            operation_id,
-            filters
+            "Search values (operation: {operation_id}) will be done withing next filters: {filters:?}"
         );
         session.apply_search_values_filters(operations::uuid_from_str(&operation_id)?, filters)
     }
@@ -525,9 +521,7 @@ impl RustSession {
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         info!(
             target: targets::SESSION,
-            "Extract (operation: {}) will be done withing next filters: {:?}",
-            operation_id,
-            filters
+            "Extract (operation: {operation_id}) will be done withing next filters: {filters:?}"
         );
         session.extract_matches(
             operations::uuid_from_str(&operation_id)?,
@@ -556,10 +550,7 @@ impl RustSession {
                     } else {
                         warn!(
                             target: targets::SESSION,
-                            "Invalid range (operation: {}): from = {}; to = {}",
-                            operation_id,
-                            from,
-                            to
+                            "Invalid range (operation: {operation_id}): from = {from}; to = {to}"
                         );
                     }
                 }
@@ -567,7 +558,7 @@ impl RustSession {
         }
         info!(
             target: targets::SESSION,
-            "Map requested (operation: {}). Range: {:?}", operation_id, range
+            "Map requested (operation: {operation_id}). Range: {range:?}"
         );
         session.get_map(
             operations::uuid_from_str(&operation_id)?,
@@ -600,7 +591,7 @@ impl RustSession {
         };
         info!(
             target: targets::SESSION,
-            "Values requested (operation: {}). Range: {:?}", operation_id, range
+            "Values requested (operation: {operation_id}). Range: {range:?}"
         );
         session.get_values(
             operations::uuid_from_str(&operation_id)?,

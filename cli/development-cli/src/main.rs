@@ -287,7 +287,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
                 }
             }
             Err(err) => {
-                eprintln!("Error: {:?}", err);
+                eprintln!("Error: {err:?}");
                 eprintln!("---------------------------------------------------------------------");
                 success = false;
             }

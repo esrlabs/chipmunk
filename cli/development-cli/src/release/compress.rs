@@ -21,7 +21,7 @@ use super::env_utls::is_arm_archit;
 /// used on releases.
 pub async fn compress() -> anyhow::Result<()> {
     let release_file_name = release_file_name()?;
-    let archname = format!("{}.tgz", release_file_name);
+    let archname = format!("{release_file_name}.tgz");
 
     let mut tar_cmd = format!("tar -czf ../{archname} ");
 
@@ -138,7 +138,7 @@ fn chipmunk_version() -> anyhow::Result<String> {
 pub async fn compress_cli() -> anyhow::Result<()> {
     let release_file_name = cli_release_file_name()?;
 
-    let arch_name = format!("{}.tgz", release_file_name);
+    let arch_name = format!("{release_file_name}.tgz");
 
     let tar_cmd = format!(
         "tar -czf {arch_name} --directory={binary_path} {binary_name}",

@@ -48,9 +48,8 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
         };
         let newly_loaded_bytes = available.saturating_sub(initial_buf_len);
         trace!(
-            "after: capacity: {} (newly loaded: {})",
-            self.reader.capacity(),
-            newly_loaded_bytes
+            "after: capacity: {} (newly loaded: {newly_loaded_bytes})",
+            self.reader.capacity()
         );
         if available == 0 {
             trace!("0, Ok(None)");
@@ -68,7 +67,7 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
         self.reader.buffer()
     }
     fn consume(&mut self, offset: usize) {
-        trace!("consume {} bytes", offset);
+        trace!("consume {offset} bytes");
         self.reader.consume(offset);
     }
 

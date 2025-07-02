@@ -300,7 +300,7 @@ impl Serialize for FormattableMessage<'_> {
                 state.serialize_field("message-type", &ext_header_msg_type)?;
                 let arg_string = slices
                     .iter()
-                    .map(|slice| format!("{:02X?}", slice))
+                    .map(|slice| format!("{slice:02X?}"))
                     .collect::<Vec<String>>()
                     .join("|");
                 state.serialize_field("payload", &arg_string)?;
@@ -414,7 +414,7 @@ impl FormattableMessage<'_> {
             PayloadContent::NetworkTrace(slices) => {
                 let payload_string = slices
                     .iter()
-                    .map(|slice| format!("{:02X?}", slice))
+                    .map(|slice| format!("{slice:02X?}"))
                     .collect::<Vec<String>>()
                     .join("|");
                 Ok(PrintableMessage::new(
@@ -620,10 +620,10 @@ impl fmt::Display for FormattableMessage<'_> {
                                         .ok()
                                         .map_or_else(String::default, |p| format!("{} ", p.1))
                                 });
-                                return write!(f, "SOME/IP {}{:?}", prefix, message);
+                                return write!(f, "SOME/IP {prefix}{message:?}");
                             }
                             Err(error) => {
-                                return write!(f, "SOME/IP '{}' {:02X?}", error, slice);
+                                return write!(f, "SOME/IP '{error}' {slice:02X?}");
                             }
                         }
                     }
@@ -631,7 +631,7 @@ impl fmt::Display for FormattableMessage<'_> {
 
                 slices
                     .iter()
-                    .try_for_each(|slice| write!(f, "{}{:02X?}", DLT_ARGUMENT_SENTINAL, slice))
+                    .try_for_each(|slice| write!(f, "{DLT_ARGUMENT_SENTINAL}{slice:02X?}"))
             }
         }
     }

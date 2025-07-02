@@ -22,11 +22,7 @@ pub enum Error {
 
 impl nom::error::ParseError<&[u8]> for Error {
     fn from_error_kind(input: &[u8], kind: nom::error::ErrorKind) -> Self {
-        Error::Parse(format!(
-            "Nom error: {:?} ({} bytes left)",
-            kind,
-            input.len()
-        ))
+        Error::Parse(format!("Nom error: {kind:?} ({} bytes left)", input.len()))
     }
 
     fn append(_: &[u8], _: nom::error::ErrorKind, other: Self) -> Self {
@@ -52,11 +48,11 @@ pub fn parse_prefix(input: &[u8]) -> Result<(&[u8], std::string::String), Error>
                 port,
                 Direction::try_from(direction)
                     .ok()
-                    .map_or_else(String::default, |s| format!(" {}", s)),
+                    .map_or_else(String::default, |s| format!(" {s}")),
                 instance,
                 Proto::try_from(proto)
                     .ok()
-                    .map_or_else(String::default, |s| format!(" {}", s))
+                    .map_or_else(String::default, |s| format!(" {s}"))
             )
         },
     )(input)

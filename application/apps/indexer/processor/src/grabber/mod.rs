@@ -392,7 +392,7 @@ pub struct FilePart {
 /// It will also return how many lines are in this byte-range and how many need to be skipped
 /// at the beginning and dropped the end to get only the desired content
 pub(crate) fn identify_byte_range(slots: &[Slot], lines: &LineRange) -> Option<FilePart> {
-    trace!("identify byte range for: {:?} (range {:?})", slots, lines);
+    trace!("identify byte range for: {slots:?} (range {lines:?})");
     if lines.is_empty() {
         return None;
     }

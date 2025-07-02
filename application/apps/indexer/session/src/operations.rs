@@ -31,7 +31,7 @@ impl OperationStat {
         let timestamp = match start.duration_since(UNIX_EPOCH) {
             Ok(timestamp) => timestamp.as_micros() as u64,
             Err(err) => {
-                error!("Failed to get timestamp: {}", err);
+                error!("Failed to get timestamp: {err}");
                 0
             }
         };
@@ -47,7 +47,7 @@ impl OperationStat {
         let timestamp = match start.duration_since(UNIX_EPOCH) {
             Ok(timestamp) => timestamp.as_micros() as u64,
             Err(err) => {
-                error!("Failed to get timestamp: {}", err);
+                error!("Failed to get timestamp: {err}");
                 0
             }
         };
@@ -204,7 +204,7 @@ impl OperationAPI {
     pub fn emit(&self, event: stypes::CallbackEvent) {
         let event_log = format!("{event:?}");
         if let Err(err) = self.tx_callback_events.send(event) {
-            error!("Fail to send event {}; error: {}", event_log, err)
+            error!("Fail to send event {event_log}; error: {err}")
         }
     }
 
@@ -257,10 +257,10 @@ impl OperationAPI {
         };
         if !self.state_api.is_closing() && !self.cancellation_token().is_cancelled() {
             if let Err(err) = self.tracker_api.remove_operation(self.id()).await {
-                error!("Failed to remove operation; error: {:?}", err);
+                error!("Failed to remove operation; error: {err:?}");
             }
         }
-        debug!("Operation \"{}\" ({}) finished", alias, self.id());
+        debug!("Operation \"{alias}\" ({}) finished", self.id());
         self.emit(event);
         // Confirm finishing of operation
         self.done_token.cancel();
@@ -529,13 +529,13 @@ pub async fn run(
         }
     }
     if let Err(err) = state_api.close_session().await {
-        error!("Failed to close session: {:?}", err);
+        error!("Failed to close session: {err:?}");
     }
     if let Err(err) = tracker_api.shutdown() {
-        error!("Failed to shutdown tracker: {:?}", err);
+        error!("Failed to shutdown tracker: {err:?}");
     }
     if let Err(err) = state_api.shutdown() {
-        error!("Fail to shutdown state; error: {:?}", err);
+        error!("Fail to shutdown state; error: {err:?}");
     }
     debug!("operations task finished");
 }
