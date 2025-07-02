@@ -499,19 +499,21 @@ export class Session extends Base {
                 return observe;
             }
         })();
-        return session
-            .initialize()
-            .observe(observe)
-            .then((uuid: string) => {
-                const created = session.get(uuid);
-                if (created === undefined) {
-                    this.log().error(`Fail to find created session ${uuid}`);
-                    return;
-                }
-                created.search.store().filters().overwrite(parentSearchStore.filters().get());
-                created.search.store().charts().overwrite(parentSearchStore.charts().get());
-                created.search.store().disabled().overwrite(parentSearchStore.disabled().get());
-            });
+        console.error(`Not implemented`);
+        return Promise.reject(new Error(`Not implemented`));
+        // return session
+        //     .initialize()
+        //     .observe(observe)
+        //     .then((uuid: string) => {
+        //         const created = session.get(uuid);
+        //         if (created === undefined) {
+        //             this.log().error(`Fail to find created session ${uuid}`);
+        //             return;
+        //         }
+        //         created.search.store().filters().overwrite(parentSearchStore.filters().get());
+        //         created.search.store().charts().overwrite(parentSearchStore.charts().get());
+        //         created.search.store().disabled().overwrite(parentSearchStore.disabled().get());
+        //     });
     }
 }
 export interface Session extends LoggerInterface {}

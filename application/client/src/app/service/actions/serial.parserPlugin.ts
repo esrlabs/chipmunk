@@ -2,6 +2,7 @@ import { Base } from './action';
 import { session } from '@service/session';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'stream_parser_plugin_on_serial';
 
@@ -18,7 +19,7 @@ export class Action extends Base {
     }
 
     public async apply(): Promise<void> {
-        session.initialize().configure(new Factory.Stream().asParserPlugin().serial().get());
+        session.initialize().configure(SessionOrigin.source());
         return Promise.resolve();
     }
 }

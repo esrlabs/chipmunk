@@ -121,14 +121,16 @@ export class Action {
                       {
                           caption: 'Open with new configuration',
                           handler: () => {
-                              session
-                                  .initialize()
-                                  .configure(observe)
-                                  .catch((err: Error) => {
-                                      this.logger.error(
-                                          `Fail to configure observe object: ${err.message}`,
-                                      );
-                                  });
+                              console.error(`Not implemented`);
+
+                              //   session
+                              //       .initialize()
+                              //       .configure(observe)
+                              //       .catch((err: Error) => {
+                              //           this.logger.error(
+                              //               `Fail to configure observe object: ${err.message}`,
+                              //           );
+                              //       });
                           },
                       },
                   ]
@@ -143,38 +145,40 @@ export class Action {
     }
 
     public apply(): Promise<void> {
-        return session
-            .initialize()
-            .auto(this.observe.locker().lock())
-            .then(() => {
-                return undefined;
-            })
-            .catch((err: Error) => {
-                const message = lockers.lock(
-                    new Locker(false, `Fail to apply action via error: ${err.message}`)
-                        .set()
-                        .buttons([
-                            {
-                                caption: `Remove`,
-                                handler: () => {
-                                    this.remove().finally(() => {
-                                        message.popup.close();
-                                    });
-                                },
-                            },
-                            {
-                                caption: `Cancel`,
-                                handler: () => {
-                                    message.popup.close();
-                                },
-                            },
-                        ])
-                        .end(),
-                    {
-                        closable: false,
-                    },
-                );
-            });
+        console.error(`Not implemented`);
+        return Promise.reject(new Error(`Not implemented`));
+        // return session
+        //     .initialize()
+        //     .auto(this.observe.locker().lock())
+        //     .then(() => {
+        //         return undefined;
+        //     })
+        //     .catch((err: Error) => {
+        //         const message = lockers.lock(
+        //             new Locker(false, `Fail to apply action via error: ${err.message}`)
+        //                 .set()
+        //                 .buttons([
+        //                     {
+        //                         caption: `Remove`,
+        //                         handler: () => {
+        //                             this.remove().finally(() => {
+        //                                 message.popup.close();
+        //                             });
+        //                         },
+        //                     },
+        //                     {
+        //                         caption: `Cancel`,
+        //                         handler: () => {
+        //                             message.popup.close();
+        //                         },
+        //                     },
+        //                 ])
+        //                 .end(),
+        //             {
+        //                 closable: false,
+        //             },
+        //         );
+        //     });
     }
 
     public merge(action: Action): void {

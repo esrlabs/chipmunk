@@ -35,7 +35,8 @@ export class Implementation extends Render<Columns> {
 
             this.setBoundEntity(
                 new Columns(
-                    headers,
+                    // headers,
+                    [],
                     true,
                     widths,
                     columns_options.min_width,

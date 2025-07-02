@@ -7,6 +7,7 @@ import { session } from '@service/session';
 
 import * as $ from '@platform/types/observe';
 import * as Factory from '@platform/types/observe/factory';
+import { SessionOrigin } from '@service/session/origin';
 
 export class Provider extends Base {
     private _sources: ObserveSource[] = [];
@@ -39,7 +40,7 @@ export class Provider extends Base {
     }
 
     public openNewSessionOptions() {
-        session.initialize().configure(new Factory.Stream().udp().get());
+        session.initialize().configure(SessionOrigin.source());
     }
 
     public update(sources: ObserveSource[]): Provider {

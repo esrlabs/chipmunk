@@ -1,3 +1,4 @@
+pub mod components;
 mod handlers;
 pub mod operations;
 pub mod paths;

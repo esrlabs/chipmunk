@@ -16,6 +16,7 @@ import { stop } from '@ui/env/dom';
 
 import * as Scheme from './scheme';
 import * as Factory from '@platform/types/observe/factory';
+import { SessionOrigin } from '@service/session/origin';
 
 @Component({
     selector: 'app-elements-tree',
@@ -35,10 +36,7 @@ export class ElementsTreeSelector
     public state: State;
     private init!: Promise<void>;
 
-    constructor(
-        cdRef: ChangeDetectorRef,
-        private _sanitizer: DomSanitizer,
-    ) {
+    constructor(cdRef: ChangeDetectorRef, private _sanitizer: DomSanitizer) {
         super(cdRef);
         this.state = new State(this);
     }
@@ -113,13 +111,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(
-                                new Factory.File()
-                                    .type(Factory.FileType.Text)
-                                    .asText()
-                                    .file(entity.getPath())
-                                    .get(),
-                            )
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open text file; error: ${err.message}`);
                             });
@@ -130,13 +122,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(
-                                new Factory.File()
-                                    .asDlt()
-                                    .type(Factory.FileType.Binary)
-                                    .file(entity.getPath())
-                                    .get(),
-                            )
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open dlt file; error: ${err.message}`);
                             });
@@ -147,13 +133,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(
-                                new Factory.File()
-                                    .type(Factory.FileType.PcapNG)
-                                    .asDlt()
-                                    .file(entity.getPath())
-                                    .get(),
-                            )
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);
                             });
@@ -164,13 +144,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(
-                                new Factory.File()
-                                    .type(Factory.FileType.PcapLegacy)
-                                    .asDlt()
-                                    .file(entity.getPath())
-                                    .get(),
-                            )
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(`Fail to open pcapng file; error: ${err.message}`);
                             });
@@ -181,13 +155,7 @@ export class ElementsTreeSelector
                     handler: () => {
                         this.ilc()
                             .services.system.session.initialize()
-                            .observe(
-                                new Factory.File()
-                                    .type(Factory.FileType.ParserPlugin)
-                                    .asParserPlugin()
-                                    .file(entity.getPath())
-                                    .get(),
-                            )
+                            .observe(SessionOrigin.file(entity.getPath()))
                             .catch((err: Error) => {
                                 this.log().error(
                                     `Fail to open file with plugins: errord ${err.message}`,
