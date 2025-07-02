@@ -112,16 +112,15 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                             // Reset skipped bytes since it had been counted here.
                             skipped_bytes = 0;
                             debug!(
-                            "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                            consumed, total_used_bytes
-                        );
+                            "Extracted a valid message, consumed {consumed} bytes (total used {total_used_bytes} bytes)"
+                            );
                             total_consumed += consumed;
                             self.buffer
                                 .push((total_used_bytes, MessageStreamItem::Item(m)));
                         }
                         (consumed, None) => {
                             total_consumed += consumed;
-                            trace!("None, consumed {} bytes", consumed);
+                            trace!("None, consumed {consumed} bytes");
                             let total_used_bytes = consumed + skipped_bytes;
                             // Reset skipped bytes since it had been counted here.
                             skipped_bytes = 0;
@@ -163,10 +162,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                     }
                 }
                 Err(ParserError::Eof) => {
-                    trace!(
-                        "EOF reached...no more messages (skipped_bytes={})",
-                        skipped_bytes
-                    );
+                    trace!("EOF reached...no more messages (skipped_bytes={skipped_bytes})");
                     self.done = true;
 
                     return None;
@@ -262,7 +258,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             }
             Err(e) => {
                 // In error case we don't need to consider the available bytes.
-                warn!("Error reloading content: {}", e);
+                warn!("Error reloading content: {e}");
                 None
             }
         }

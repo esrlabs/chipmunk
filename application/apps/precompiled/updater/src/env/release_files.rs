@@ -87,7 +87,7 @@ impl ReleaseFiles {
                 })?;
                 log::info!("- [removed]: {path:?}");
             } else {
-                log::warn!("- [not found]: {:?}", path);
+                log::warn!("- [not found]: {path:?}");
             }
         }
         Ok(())

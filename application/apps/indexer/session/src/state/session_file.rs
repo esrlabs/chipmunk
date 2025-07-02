@@ -292,7 +292,7 @@ impl SessionFile {
 
         // Remove session main file.
         let filename = self.filename()?;
-        debug!("cleaning up files: {:?}", filename);
+        debug!("cleaning up files: {filename:?}");
         if filename.exists() {
             std::fs::remove_file(&filename).map_err(|e| stypes::NativeError {
                 severity: stypes::Severity::ERROR,

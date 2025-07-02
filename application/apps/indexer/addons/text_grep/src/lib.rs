@@ -226,7 +226,7 @@ fn process_file(
                 Ok(true)
             }),
         )
-        .map_err(|e| GrepError::FileProcessingError(format!("Error processing file: {}", e)))?;
+        .map_err(|e| GrepError::FileProcessingError(format!("Error processing file: {e}")))?;
 
     // Alter pattern_counts to have original patterns without (?i)
     let mut altered_pattern_counts = HashMap::new();

@@ -205,17 +205,14 @@ pub async fn run(
             }
             TrackerCommand::RemoveOperation((uuid, tx_response)) => {
                 if let Err(err) = state.canceled_operation(uuid).await {
-                    error!(
-                        "fail to notify state about canceled operation {}; err: {:?}",
-                        uuid, err
-                    );
+                    error!("fail to notify state about canceled operation {uuid}; err: {err:?}");
                 }
                 if tracker.debug {
                     let str_uuid = uuid.to_string();
                     if let Some(index) = tracker.stat.iter().position(|op| op.uuid == str_uuid) {
                         tracker.stat[index].done();
                     } else {
-                        error!("fail to find operation in stat: {}", str_uuid);
+                        error!("fail to find operation in stat: {str_uuid}");
                     }
                 }
                 progress.stopped(&uuid);
@@ -231,8 +228,7 @@ pub async fn run(
             TrackerCommand::CancelOperation((uuid, tx_response)) => {
                 if let Err(err) = state.canceling_operation(uuid).await {
                     error!(
-                        "Failed to notify state about cancelation operation {}; err: {:?}",
-                        uuid, err
+                        "Failed to notify state about cancelation operation {uuid}; err: {err:?}"
                     );
                 }
                 tx_response
@@ -242,14 +238,13 @@ pub async fn run(
                         {
                             if !done_token.is_cancelled() {
                                 operation_cancalation_token.cancel();
-                                debug!("Waiting for operation {} would confirm done-state", uuid);
+                                debug!("Waiting for operation {uuid} would confirm done-state");
                                 done_token.cancelled().await;
                                 progress.stopped(&uuid);
                             }
                             if let Err(err) = state.canceled_operation(uuid).await {
                                 error!(
-                                    "Failed to notify state about canceled operation {}; err: {:?}",
-                                    uuid, err
+                                    "Failed to notify state about canceled operation {uuid}; err: {err:?}"
                                 );
                             }
                             true
@@ -267,7 +262,7 @@ pub async fn run(
                 {
                     if !done_token.is_cancelled() {
                         operation_cancalation_token.cancel();
-                        debug!("waiting for operation {} would confirm done-state", uuid);
+                        debug!("waiting for operation {uuid} would confirm done-state");
                         if timeout(
                             Duration::from_millis(CANCEL_OPERATION_TIMEOUT),
                             done_token.cancelled(),

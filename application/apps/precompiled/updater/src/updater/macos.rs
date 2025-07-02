@@ -48,10 +48,7 @@ impl Updater for PlatformUpdater {
                 &renamed_app_name,
             )
             .map_err(|e| UpdateError::IO(format!("Fail to do renaming: {e}")))?;
-            log::debug!(
-                "Chipmunk application has been renamed to {:?}",
-                renamed_app_name
-            );
+            log::debug!("Chipmunk application has been renamed to {renamed_app_name:?}");
         }
         // Copy files
         let mut options = dir::CopyOptions::new();

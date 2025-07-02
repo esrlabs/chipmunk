@@ -37,7 +37,7 @@ pub fn create_lazy_grabber(input_p: &Path) -> Result<Grabber, GrabError> {
             let source = TextFileSource::new(input_p);
             let grabber = Grabber::lazy(source).map_err(|e| {
                 let err_msg = format!("Could not create grabber: {e}");
-                warn!("{}", err_msg);
+                warn!("{err_msg}");
                 GrabError::Config(err_msg)
             })?;
             Ok(grabber)

@@ -51,8 +51,7 @@ impl UdpSource {
                         return Err(UdpSourceError::Join(e.to_string()));
                     }
                     debug!(
-                        "Joining UDP multicast group: socket.join_multicast_v4({}, {})",
-                        addr, inter
+                        "Joining UDP multicast group: socket.join_multicast_v4({addr}, {inter})"
                     );
                 }
                 IpAddr::V6(addr) => {

@@ -30,7 +30,7 @@ impl std::fmt::Display for CallbackEvent {
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
             Self::SearchValuesUpdated(_) => write!(f, "SearchValuesUpdated"),
             Self::AttachmentsUpdated { len, attachment: _ } => {
-                write!(f, "AttachmentsUpdated: {}", len)
+                write!(f, "AttachmentsUpdated: {len}")
             }
             Self::Progress {
                 uuid: _,

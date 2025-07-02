@@ -134,11 +134,11 @@ impl Session {
         f: impl Future<Output = Result<(), stypes::NativeError>> + Send + 'static,
     ) {
         if let Err(err) = f.await {
-            error!("State loop exits with error:: {:?}", err);
+            error!("State loop exits with error:: {err:?}");
             if let Err(err) =
                 Session::send_stop_signal(Uuid::new_v4(), tx_operations, None, destroying).await
             {
-                error!("Fail to send stop signal (on {} fail):: {:?}", name, err);
+                error!("Fail to send stop signal (on {name} fail):: {err:?}");
             }
         }
     }

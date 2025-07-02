@@ -34,7 +34,7 @@ async fn cancel_listener(cancel_token: CancellationToken) {
                 cancel_count += 1;
             }
             Err(err) => {
-                eprintln!("Unable to listen for shutdown signal: {}", err);
+                eprintln!("Unable to listen for shutdown signal: {err}");
                 std::process::exit(1)
             }
         }

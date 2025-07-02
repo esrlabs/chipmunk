@@ -226,7 +226,7 @@ impl TextFileSource {
         }
         use std::io::prelude::*;
         let file_part = identify_byte_range(&metadata.slots, line_range).ok_or_else(|| {
-            error!("Error identifying byte range for range {:?}", line_range);
+            error!("Error identifying byte range for range {line_range:?}");
             debug!("Available slots: {:?}", metadata.slots);
             GrabError::InvalidRange {
                 range: line_range.clone(),

@@ -20,7 +20,7 @@ impl FromStr for HashDigest {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let hash = blake3::Hash::from_hex(s).map_err(|e| format!("Invalid Input. Error: {}", e))?;
+        let hash = blake3::Hash::from_hex(s).map_err(|e| format!("Invalid Input. Error: {e}"))?;
 
         Ok(Self { hash })
     }
