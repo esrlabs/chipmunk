@@ -337,7 +337,7 @@ impl SessionState {
                 ))?;
                 tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(Some(updates)))?;
             }
-            Some(Err(err)) => error!("Fail to append search: {}", err),
+            Some(Err(err)) => error!("Fail to append search: {err}"),
             None => (),
         }
         match self

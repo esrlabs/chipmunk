@@ -40,8 +40,8 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                 Ok((bytes_read, block)) => {
                     self.total += bytes_read;
                     trace!(
-                        "PcapngByteSource::reload, bytes_read: {} (total: {})",
-                        bytes_read, self.total
+                        "PcapngByteSource::reload, bytes_read: {bytes_read} (total: {})",
+                        self.total
                     );
                     consumed = bytes_read;
                     match block {
@@ -60,7 +60,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                         other_type => {
                             debug_block(other_type);
                             skipped += consumed;
-                            debug!("skipped in total {} bytes", skipped);
+                            debug!("skipped in total {skipped} bytes");
                             self.pcapng_reader.consume(consumed);
                             continue;
                         }
@@ -71,7 +71,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     return Ok(None);
                 }
                 Err(PcapError::Incomplete(size)) => {
-                    trace!("reloading from pcap file, Incomplete ({})", size);
+                    trace!("reloading from pcap file, Incomplete ({size})");
                     self.pcapng_reader
                         .refill()
                         .expect("refill pcapng reader failed");
@@ -79,7 +79,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                 }
                 Err(e) => {
                     let m = format!("{e}");
-                    error!("reloading from pcap file, {}", m);
+                    error!("reloading from pcap file, {m}");
                     return Err(SourceError::Unrecoverable(m));
                 }
             }
@@ -93,8 +93,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
                     Some(TransportSlice::Tcp(slice)) => slice.payload(),
                     None => {
                         return Err(SourceError::Unrecoverable(format!(
-                            "ethernet frame with unknown payload: {:02X?}",
-                            raw_data
+                            "ethernet frame with unknown payload: {raw_data:02X?}"
                         )));
                     }
                 };
@@ -142,7 +141,7 @@ impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
             ))),
         };
         // bytes are copied into buffer and can be dropped by pcap reader
-        trace!("consume {} processed bytes", consumed);
+        trace!("consume {consumed} processed bytes");
         self.pcapng_reader.consume(consumed);
         res
     }

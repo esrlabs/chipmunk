@@ -581,7 +581,7 @@ impl Target {
             fstools::rm_folder(job_def, &path)?;
         }
 
-        let job = format!("Clean {}", self);
+        let job = format!("Clean {self}");
 
         let logs = tracker.get_logs(job_def).await?.unwrap_or_default();
 

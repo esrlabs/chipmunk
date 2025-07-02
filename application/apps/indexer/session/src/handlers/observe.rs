@@ -16,7 +16,7 @@ pub async fn start_observing(
         settings.load_fibex_metadata();
     };
     if let Err(err) = state.add_executed_observe(options.clone()).await {
-        error!("Fail to store observe options: {:?}", err);
+        error!("Fail to store observe options: {err:?}");
     }
     match &options.origin {
         stypes::ObserveOrigin::File(uuid, file_origin, filename) => {

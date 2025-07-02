@@ -210,7 +210,7 @@ impl SomeipParser {
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
                 let len = header.message_len();
-                debug!("at {} : SD Message ({} bytes)", time, len);
+                debug!("at {time} : SD Message ({len} bytes)");
                 Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
@@ -226,7 +226,7 @@ impl SomeipParser {
 
             Ok(Message::Rpc(header, payload)) => {
                 let len = header.message_len();
-                debug!("at {} : RPC Message ({:?} bytes)", time, len);
+                debug!("at {time} : RPC Message ({len:?} bytes)");
                 Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
@@ -242,7 +242,7 @@ impl SomeipParser {
 
             Ok(Message::CookieClient) => {
                 let len = Header::LENGTH;
-                debug!("at {} : MCC Message", time);
+                debug!("at {time} : MCC Message");
                 Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
@@ -258,7 +258,7 @@ impl SomeipParser {
 
             Ok(Message::CookieServer) => {
                 let len = Header::LENGTH;
-                debug!("at {} : MCS Message", time);
+                debug!("at {time} : MCS Message");
                 Ok((
                     if input.len() - len < Header::LENGTH {
                         input.len()
@@ -276,7 +276,7 @@ impl SomeipParser {
                 someip_messages::Error::NotEnoughData { .. } => Err(Error::Incomplete),
                 e => {
                     let msg = e.to_string();
-                    error!("at {} : {}", time, msg);
+                    error!("at {time} : {msg}");
                     Err(Error::Parse(msg))
                 }
             },

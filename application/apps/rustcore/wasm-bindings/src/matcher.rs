@@ -38,7 +38,7 @@ impl Matcher {
                 self.search(String::new(), None);
                 Ok(self.items_initial.len() - 1)
             }
-            Err(err) => Err(format!("Parsing item into JSON String failed: {}", err)),
+            Err(err) => Err(format!("Parsing item into JSON String failed: {err}")),
         }
     }
 
@@ -51,7 +51,7 @@ impl Matcher {
                 self.search(String::new(), None);
                 Ok(from)
             }
-            Err(err) => Err(format!("Parsing item into JSON String failed: {}", err)),
+            Err(err) => Err(format!("Parsing item into JSON String failed: {err}")),
         }
     }
 
@@ -75,19 +75,19 @@ impl Matcher {
             for (key, value) in item {
                 if query.is_empty() {
                     temp_hashmap.insert(key.clone(), value.clone());
-                    temp_hashmap.insert(format!("html_{}", key), value.to_string());
+                    temp_hashmap.insert(format!("html_{key}"), value.to_string());
                     total_score += (self.items_initial.len() - index) as i64;
                 } else {
                     match self.matcher.fuzzy_indices(value.as_str(), &query) {
                         Some(score) => {
                             let tagged_match = self.tag_match(value.to_owned(), score.1, &tag);
                             temp_hashmap.insert(key.clone(), value.to_owned());
-                            temp_hashmap.insert(format!("html_{}", key), tagged_match);
+                            temp_hashmap.insert(format!("html_{key}"), tagged_match);
                             total_score += score.0;
                         }
                         None => {
                             temp_hashmap.insert(key.clone(), value.clone());
-                            temp_hashmap.insert(format!("html_{}", key), value.to_string());
+                            temp_hashmap.insert(format!("html_{key}"), value.to_string());
                         }
                     }
                 }
@@ -120,8 +120,8 @@ impl Matcher {
 
     fn tag_match(&self, mut value: String, indexes: Vec<usize>, tag: &Option<String>) -> String {
         let tag = tag.to_owned().unwrap_or_else(|| "span".to_string());
-        let op_tag = format!("<{}>", tag);
-        let ed_tag = format!("</{}>", tag);
+        let op_tag = format!("<{tag}>");
+        let ed_tag = format!("</{tag}>");
         let value_clone = value.clone();
         let value_bytes = value_clone.as_bytes();
         let mut index = indexes.iter().rev();
@@ -139,7 +139,7 @@ impl Matcher {
                     Ok(substring) => {
                         value.replace_range(
                             prev..start + 1,
-                            format!("{}{}{}", op_tag, substring, ed_tag).as_str(),
+                            format!("{op_tag}{substring}{ed_tag}").as_str(),
                         );
                         start = curr;
                         prev = curr;
@@ -154,7 +154,7 @@ impl Matcher {
             Ok(substring) => {
                 value.replace_range(
                     prev..start + 1,
-                    format!("{}{}{}", op_tag, substring, ed_tag).as_str(),
+                    format!("{op_tag}{substring}{ed_tag}").as_str(),
                 );
                 value
             }
@@ -186,10 +186,10 @@ fn test(query: String, tag: Option<String>, expected: Vec<HashMap<&str, &str>>) 
         match serde_wasm_bindgen::to_value(&item) {
             Ok(item) => {
                 if let Err(err) = matcher.set_item(item) {
-                    panic!("{}", err)
+                    panic!("{err}")
                 }
             }
-            Err(err) => panic!("{}", err),
+            Err(err) => panic!("{err}"),
         }
     }
     matcher.search(query, tag);
@@ -197,7 +197,7 @@ fn test(query: String, tag: Option<String>, expected: Vec<HashMap<&str, &str>>) 
         for (&key, &value) in map {
             match matcher.get_html_of(index, key.to_string()) {
                 Some(html) => assert_eq!(html, value),
-                None => panic!("Failed to get html of {}", key),
+                None => panic!("Failed to get html of {key}"),
             }
         }
     }

@@ -207,7 +207,7 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
     })?;
 
     let release_file_name = release_file_name()?;
-    let archname = format!("{}.tgz", release_file_name);
+    let archname = format!("{release_file_name}.tgz");
 
     let cli_archname = format!("{}.tgz", cli_release_file_name()?);
 

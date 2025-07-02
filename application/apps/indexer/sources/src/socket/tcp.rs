@@ -113,7 +113,7 @@ impl ByteSource for TcpSource {
             debug!("Socket ready to read");
             match self.socket.try_read(&mut self.tmp_buffer) {
                 Ok(len) => {
-                    trace!("---> Received {} bytes", len);
+                    trace!("---> Received {len} bytes");
                     if len == 0 {
                         // No data were received -> Server may be temporally down
                         // then try to reconnect.
