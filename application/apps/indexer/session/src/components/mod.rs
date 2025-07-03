@@ -53,7 +53,6 @@ impl ComponentsSession {
         // * It'll need different state and locking management for downloading plugins, Updating
         // caches etc...
         let plugins_manager = plugins::load_manager().await?;
-        let plugins_manager = Arc::new(RwLock::new(plugins_manager));
 
         let (tx_api, mut rx_api): (UnboundedSender<Api>, UnboundedReceiver<Api>) =
             unbounded_channel();
@@ -66,6 +65,10 @@ impl ComponentsSession {
         parsers::registration(&mut components)?;
         // Registre sources
         sources::registration(&mut components)?;
+
+        plugins_manager.register_plugins(&mut components)?;
+
+        let plugins_manager = Arc::new(RwLock::new(plugins_manager));
         let tx_api_inner = tx_api.clone();
         let session = Self { tx_api };
         task::spawn(async move {
