@@ -3,9 +3,8 @@ import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 import { File } from '@platform/types/files';
-import { FileType } from '@platform/types/observe/types/file';
+import { FileType } from '@platform/types/files';
 
-import * as Factory from '@platform/types/observe/factory';
 import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_any_file';

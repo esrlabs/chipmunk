@@ -2,8 +2,8 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { File, Entity, ParsedPath } from '@platform/types/files';
 import { FolderEntity } from '@platform/types/bindings';
-import { FileType } from '@platform/types/observe/types/file';
-import { DltStatisticInfo, Profile } from '@platform/types/bindings';
+import { FileType } from '@platform/types/files';
+import { Profile } from '@platform/types/bindings';
 import { Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 
@@ -418,27 +418,6 @@ export class Service extends Implementation {
                     new Requests.Folder.ShellOpen.Request({ path }),
                 ).then((_response) => {
                     return undefined;
-                });
-            },
-        };
-    }
-
-    public dlt(): {
-        stat(files: string[]): Promise<DltStatisticInfo>;
-    } {
-        return {
-            stat: (files: string[]): Promise<DltStatisticInfo> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Dlt.Stat.Response,
-                        new Requests.Dlt.Stat.Request({
-                            files,
-                        }),
-                    )
-                        .then((response) => {
-                            resolve(response.stat);
-                        })
-                        .catch(reject);
                 });
             },
         };
