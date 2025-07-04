@@ -1,5 +1,5 @@
 import { File, Stat, getFileExtention } from 'platform/types/files';
-import { FileType, extname } from 'platform/types/observe/types/file';
+import { FileType, extname } from 'platform/types/files';
 import { error } from 'platform/log/utils';
 import { unbound } from '@service/unbound';
 
@@ -148,4 +148,3 @@ export async function getFileTypeByFilename(filename: string): Promise<FileType>
         return FileType.Text;
     }
 }
-

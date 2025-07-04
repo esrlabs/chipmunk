@@ -1,22 +1,23 @@
 import { IFileDesc, FileDesc } from './definition.file';
-import * as $ from '@platform/types/observe';
+import { SessionOrigin } from '@service/session/origin';
 
 export class ConcatDesc {
-    static async fromDataSource(source: $.Observe): Promise<IFileDesc[] | undefined> {
-        const concat = source.origin.as<$.Origin.Concat.Configuration>(
-            $.Origin.Concat.Configuration,
-        );
-        if (concat === undefined) {
-            return undefined;
-        }
-        const list: IFileDesc[] = [];
-        for (const filename of concat.files()) {
-            const desc = await FileDesc.fromFilename(filename);
-            if (desc !== undefined) {
-                list.push(desc);
-            }
-        }
-        return list;
+    static async fromDataSource(origin: SessionOrigin): Promise<IFileDesc[] | undefined> {
+        return Promise.reject(new Error(`Not implemented`));
+        // const concat = source.origin.as<$.Origin.Concat.Configuration>(
+        //     $.Origin.Concat.Configuration,
+        // );
+        // if (concat === undefined) {
+        //     return undefined;
+        // }
+        // const list: IFileDesc[] = [];
+        // for (const filename of concat.files()) {
+        //     const desc = await FileDesc.fromFilename(filename);
+        //     if (desc !== undefined) {
+        //         list.push(desc);
+        //     }
+        // }
+        // return list;
     }
     static fromMinifiedStr(
         src: Array<{ [key: string]: number | string }> | undefined,

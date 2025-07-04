@@ -9,13 +9,12 @@ import { Equal } from '@platform/types/env/types';
 import { Collections } from './collections';
 
 import * as obj from '@platform/env/obj';
-import * as $ from '@platform/types/observe';
+import { SessionOrigin } from '@service/session/origin';
 
 export interface IDefinition {
     stream?: IStreamDesc;
     file?: IFileDesc;
     concat?: IFileDesc[];
-    parser: $.Parser.Protocol;
     uuid: string;
 }
 
@@ -27,17 +26,16 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     static from(entry: Entry): Definition {
         return Definition.fromMinifiedStr(JSON.parse(entry.content));
     }
-    static async fromDataSource(source: $.Observe): Promise<Definition> {
-        const parser = source.parser.instance.alias();
-        const file = await FileDesc.fromDataSource(source);
-        const concat = await ConcatDesc.fromDataSource(source);
-        const stream = await StreamDesc.fromDataSource(source);
+    static async fromDataSource(origin: SessionOrigin): Promise<Definition> {
+        console.error(`Not Implemented (parser isn't considered)`);
+        const file = await FileDesc.fromDataSource(origin);
+        const concat = await ConcatDesc.fromDataSource(origin);
+        const stream = await StreamDesc.fromDataSource(origin);
         if (file !== undefined) {
             return new Definition({
                 file,
                 stream: undefined,
                 concat: undefined,
-                parser,
                 uuid: unique(),
             });
         } else if (concat !== undefined) {
@@ -45,7 +43,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
                 file: undefined,
                 stream: undefined,
                 concat,
-                parser,
                 uuid: unique(),
             });
         } else if (stream !== undefined) {
@@ -53,7 +50,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
                 file: undefined,
                 concat: undefined,
                 stream,
-                parser,
                 uuid: unique(),
             });
         } else {
@@ -65,7 +61,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             file: FileDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'f')),
             stream: StreamDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 's')),
             concat: ConcatDesc.fromMinifiedStr(obj.getAsObjOrUndefined(src, 'c'))?.files,
-            parser: obj.getAsNotEmptyString(src, 'p') as $.Parser.Protocol,
             uuid: obj.getAsNotEmptyString(src, 'u'),
         });
         if (def.file === undefined && def.stream === undefined && def.concat === undefined) {
@@ -77,7 +72,6 @@ export class Definition implements EntryConvertable, Equal<Definition> {
     public stream?: StreamDesc;
     public file?: FileDesc;
     public concat?: ConcatDesc;
-    public parser: $.Parser.Protocol;
     public uuid: string;
 
     constructor(definition: IDefinition) {
@@ -86,7 +80,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         this.file = definition.file === undefined ? undefined : new FileDesc(definition.file);
         this.concat =
             definition.concat === undefined ? undefined : new ConcatDesc(definition.concat);
-        this.parser = definition.parser;
+        // this.parser = definition.parser;
         this.uuid = definition.uuid;
     }
 
@@ -94,14 +88,14 @@ export class Definition implements EntryConvertable, Equal<Definition> {
         this.stream = definition.stream;
         this.file = definition.file;
         this.concat = definition.concat;
-        this.parser = definition.parser;
+        // this.parser = definition.parser;
         this.uuid = definition.uuid;
     }
 
     public isSame(definition: Definition): boolean {
-        if (this.parser !== definition.parser) {
-            return false;
-        }
+        // if (this.parser !== definition.parser) {
+        //     return false;
+        // }
         if (definition.stream !== undefined && this.stream !== undefined) {
             return this.stream.isSame(definition.stream);
         }
@@ -123,9 +117,9 @@ export class Definition implements EntryConvertable, Equal<Definition> {
                 return collections.relations.indexOf(this.uuid) !== -1;
             },
             suitable: (definition: Definition): GroupRelations | undefined => {
-                if (this.parser !== definition.parser) {
-                    return undefined;
-                }
+                // if (this.parser !== definition.parser) {
+                //     return undefined;
+                // }
                 if (this.file !== undefined && definition.file !== undefined) {
                     if (
                         (this.file.extention === definition.file.extention &&
@@ -167,7 +161,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             stream: this.stream,
             file: this.file,
             concat: this.concat === undefined ? undefined : this.concat.files,
-            parser: this.parser,
+            // parser: this.parser,
             uuid: this.uuid,
         };
         if (def.file !== undefined) {
@@ -199,7 +193,7 @@ export class Definition implements EntryConvertable, Equal<Definition> {
             s: this.stream?.minify(),
             f: this.file?.minify(),
             c: this.concat?.minify(),
-            p: this.parser,
+            // p: this.parser,
             u: this.uuid,
         };
     }

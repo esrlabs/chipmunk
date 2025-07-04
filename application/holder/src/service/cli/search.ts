@@ -37,27 +37,28 @@ export class Action extends CLIAction {
         if (!this.defined()) {
             return Promise.resolve();
         }
-        if (cli.state().sessions().length === 0) {
-            return Promise.resolve();
-        }
-        return new Promise((resolve, _reject) => {
-            Requests.IpcRequest.send(
-                Requests.Cli.Search.Response,
-                new Requests.Cli.Search.Request({
-                    sessions: cli.state().sessions(),
-                    filters: this.filters,
-                }),
-            )
-                .then((response) => {
-                    if (response.error !== undefined) {
-                        cli.log().error(`Fail apply search via CLI: ${response.error}`);
-                    }
-                })
-                .catch((err: Error) => {
-                    cli.log().error(`Fail apply CLI.Search: ${err.message}`);
-                })
-                .finally(resolve);
-        });
+        // if (cli.state().sessions().length === 0) {
+        //     return Promise.resolve();
+        // }
+        // return new Promise((resolve, _reject) => {
+        //     Requests.IpcRequest.send(
+        //         Requests.Cli.Search.Response,
+        //         new Requests.Cli.Search.Request({
+        //             sessions: cli.state().sessions(),
+        //             filters: this.filters,
+        //         }),
+        //     )
+        //         .then((response) => {
+        //             if (response.error !== undefined) {
+        //                 cli.log().error(`Fail apply search via CLI: ${response.error}`);
+        //             }
+        //         })
+        //         .catch((err: Error) => {
+        //             cli.log().error(`Fail apply CLI.Search: ${err.message}`);
+        //         })
+        //         .finally(resolve);
+        // });
+        return Promise.reject(new Error(`Not implemented!`));
     }
 
     public type(): Type {

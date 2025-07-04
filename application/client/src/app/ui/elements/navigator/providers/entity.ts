@@ -26,8 +26,10 @@ export class Entity extends PassiveMatchee {
 
     public override asObj(): object {
         if (this.origin instanceof Action) {
+            console.error(`Not Implemented`);
             return {
-                criteria: this.origin.description().major,
+                // criteria: this.origin.description().major,
+                criteria: '',
             };
         } else {
             return {
@@ -42,12 +44,17 @@ export class Entity extends PassiveMatchee {
     } {
         const major: string | undefined = this.getHtmlOf('html_criteria');
         if (this.origin instanceof Action) {
-            return major === undefined
-                ? this.origin.description()
-                : {
-                      major,
-                      minor: this.origin.description().minor,
-                  };
+            console.error(`Not Implemented`);
+            return {
+                major: 'Not Implemented',
+                minor: 'Not Implemented',
+            };
+            // return major === undefined
+            //     ? this.origin.description()
+            //     : {
+            //           major,
+            //           minor: this.origin.description().minor,
+            //       };
         } else {
             return {
                 major: major === undefined ? this.origin.name : major,

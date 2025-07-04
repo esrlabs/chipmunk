@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { ISourceLink } from '../../../types/observe/types/index';
+import { ISourceLink } from '../../../types/source';
 
 import * as validator from '../../../env/obj';
 

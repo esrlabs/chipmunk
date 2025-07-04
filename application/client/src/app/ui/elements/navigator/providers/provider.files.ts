@@ -5,8 +5,6 @@ import { bridge } from '@service/bridge';
 import { getFileName } from '@platform/types/files';
 import { notifications, Notification } from '@ui/service/notifications';
 import { FolderEntityType } from '@platform/types/bindings';
-
-import * as Factory from '@platform/types/observe/factory';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { SessionOrigin } from '@service/session/origin';
 
@@ -136,28 +134,29 @@ export class Provider extends Base<IFileDescription> {
                             this.ilc.log().info('More than one file detected');
                             return;
                         }
-                        const filetype = files[0].type;
-                        if (filetype === Factory.FileType.Text) {
-                            this.ilc
-                                .ilc()
-                                .services.system.session.initialize()
-                                .observe(SessionOrigin.file(item.filename))
-                                .catch((err: Error) => {
-                                    this.ilc
-                                        .log()
-                                        .error(`Fail to open text file; error: ${err.message}`);
-                                });
-                        } else {
-                            this.ilc
-                                .ilc()
-                                .services.system.session.initialize()
-                                .configure(SessionOrigin.file(item.filename))
-                                .catch((err: Error) => {
-                                    this.ilc
-                                        .log()
-                                        .error(`Fail to open text file; error: ${err.message}`);
-                                });
-                        }
+                        console.error(`Not implemented`);
+                        // const filetype = files[0].type;
+                        // if (filetype === Factory.FileType.Text) {
+                        //     this.ilc
+                        //         .ilc()
+                        //         .services.system.session.initialize()
+                        //         .observe(SessionOrigin.file(item.filename))
+                        //         .catch((err: Error) => {
+                        //             this.ilc
+                        //                 .log()
+                        //                 .error(`Fail to open text file; error: ${err.message}`);
+                        //         });
+                        // } else {
+                        //     this.ilc
+                        //         .ilc()
+                        //         .services.system.session.initialize()
+                        //         .configure(SessionOrigin.file(item.filename))
+                        //         .catch((err: Error) => {
+                        //             this.ilc
+                        //                 .log()
+                        //                 .error(`Fail to open text file; error: ${err.message}`);
+                        //         });
+                        // }
                     })
                     .catch((error) => {
                         this.ilc.log().error(error);

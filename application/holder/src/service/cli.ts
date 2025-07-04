@@ -18,7 +18,6 @@ import * as Actions from './cli/index';
 import * as Events from 'platform/ipc/event';
 import * as Requests from 'platform/ipc/request';
 import * as fs from 'fs';
-import * as $ from 'platform/types/observe';
 
 const UNIX_LOCAL_BIN = '/usr/local/bin';
 const UNIX_SYMLINK_PATH = `${UNIX_LOCAL_BIN}/cm`;
@@ -32,13 +31,13 @@ export class Service extends Implementation {
     protected args: string[] = [];
 
     private _available: boolean | undefined;
-    private readonly _state: {
-        sessions: string[];
-        parser: $.Parser.Protocol;
-    } = {
-        sessions: [],
-        parser: $.Parser.Protocol.Text,
-    };
+    // private readonly _state: {
+    //     sessions: string[];
+    //     parser: $.Parser.Protocol;
+    // } = {
+    //     sessions: [],
+    //     parser: $.Parser.Protocol.Text,
+    // };
 
     public override ready(): Promise<void> {
         this.log().debug(`Incoming arguments:\n\t${process.argv.join('\n\t')}`);
@@ -106,25 +105,25 @@ export class Service extends Implementation {
         return Promise.resolve();
     }
 
-    public state(): {
-        sessions(sessions?: string[]): string[];
-        parser(parser?: $.Parser.Protocol): $.Parser.Protocol;
-    } {
-        return {
-            sessions: (sessions?: string[]): string[] => {
-                if (sessions !== undefined) {
-                    this._state.sessions = sessions;
-                }
-                return this._state.sessions;
-            },
-            parser: (parser?: $.Parser.Protocol): $.Parser.Protocol => {
-                if (parser !== undefined) {
-                    this._state.parser = parser;
-                }
-                return this._state.parser;
-            },
-        };
-    }
+    // public state(): {
+    //     sessions(sessions?: string[]): string[];
+    //     parser(parser?: $.Parser.Protocol): $.Parser.Protocol;
+    // } {
+    //     return {
+    //         sessions: (sessions?: string[]): string[] => {
+    //             if (sessions !== undefined) {
+    //                 this._state.sessions = sessions;
+    //             }
+    //             return this._state.sessions;
+    //         },
+    //         parser: (parser?: $.Parser.Protocol): $.Parser.Protocol => {
+    //             if (parser !== undefined) {
+    //                 this._state.parser = parser;
+    //             }
+    //             return this._state.parser;
+    //         },
+    //     };
+    // }
 
     public support(): {
         install(): Promise<void>;
