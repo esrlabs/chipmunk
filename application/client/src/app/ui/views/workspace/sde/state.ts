@@ -2,7 +2,6 @@ import { Session } from '@service/session';
 import { IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { ObserveOperation } from '@service/session/dependencies/stream';
-import { IOriginDetails } from '@platform/types/observe';
 import { Destroyable } from '@platform/types/life/destroyable';
 import { Notification } from '@ui/service/notifications';
 import { getSourceColor } from '@ui/styles/colors';

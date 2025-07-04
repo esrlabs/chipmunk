@@ -1,22 +1,16 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { IObserve, Observe } from '../../../types/observe/index';
+import { SessionSetup } from '../../../types/bindings/observe';
 
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'ObserveCLICommandRequest' })
 export class Request extends SignatureRequirement {
-    public observe: IObserve[];
+    public observe: SessionSetup[];
 
-    constructor(input: { observe: IObserve[] }) {
+    constructor(input: { observe: SessionSetup[] }) {
         super();
         validator.isObject(input);
         this.observe = validator.getAsObj(input, 'observe');
-        for (const obsv of this.observe) {
-            const error = Observe.validate(obsv);
-            if (error instanceof Error) {
-                throw error;
-            }
-        }
     }
 }
 

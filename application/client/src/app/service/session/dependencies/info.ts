@@ -1,8 +1,7 @@
 import { Subject } from '@platform/env/subscription';
 import { unique } from '@platform/env/sequence';
-import { Observe } from '@platform/types/observe';
-import { Protocol } from '@platform/types/observe/parser';
 import { getFileName } from '@platform/types/files';
+import { ObserveOperation } from './stream';
 
 export interface IInfoBlock {
     caption: string;
@@ -19,62 +18,63 @@ export class Info {
         this.updated.destroy();
     }
 
-    public fromObserveInfo(observe: Observe) {
-        const uuid = observe.hash().toString();
-        if (observe.configuration.parser[Protocol.Dlt] !== undefined) {
-            const cfg = observe.configuration.parser[Protocol.Dlt];
-            if (cfg.fibex_file_paths !== undefined) {
-                if (cfg.fibex_file_paths.length === 1) {
-                    this.add(
-                        {
-                            caption: `FIBEX: ${getFileName(cfg.fibex_file_paths[0])}`,
-                            tooltip: `Used FIBEX: ${cfg.fibex_file_paths[0]}`,
-                        },
-                        `fibex_${uuid}`,
-                    );
-                } else if (cfg.fibex_file_paths.length > 1) {
-                    this.add(
-                        {
-                            caption: `FIBEX: ${cfg.fibex_file_paths.length} files`,
-                            tooltip: cfg.fibex_file_paths.join('\n'),
-                        },
-                        `fibex_${uuid}`,
-                    );
-                }
-            }
-            if (cfg.tz !== undefined) {
-                this.add(
-                    {
-                        caption: `TZ: ${cfg.tz}`,
-                        tooltip: `Used TimeZone: ${cfg.tz}`,
-                    },
-                    `tz_${uuid}`,
-                );
-            }
-        } else if (observe.configuration.parser[Protocol.SomeIp] !== undefined) {
-            const cfg = observe.configuration.parser[Protocol.SomeIp];
-            if (cfg.fibex_file_paths !== undefined) {
-                if (cfg.fibex_file_paths.length === 1) {
-                    this.add(
-                        {
-                            caption: `FIBEX: ${getFileName(cfg.fibex_file_paths[0])}`,
-                            tooltip: `Used FIBEX: ${cfg.fibex_file_paths[0]}`,
-                        },
-                        `fibex_${uuid}`,
-                    );
-                } else if (cfg.fibex_file_paths.length > 1) {
-                    this.add(
-                        {
-                            caption: `FIBEX: ${cfg.fibex_file_paths.length} files`,
-                            tooltip: cfg.fibex_file_paths.join('\n'),
-                        },
-                        `fibex_${uuid}`,
-                    );
-                }
-            }
-        } else if (observe.configuration.parser[Protocol.Text] !== undefined) {
-            // ignore
-        }
+    public fromOperation(operation: ObserveOperation) {
+        const uuid = operation.uuid;
+        console.error(`Not Implemented`);
+        // if (observe.configuration.parser[Protocol.Dlt] !== undefined) {
+        //     const cfg = observe.configuration.parser[Protocol.Dlt];
+        //     if (cfg.fibex_file_paths !== undefined) {
+        //         if (cfg.fibex_file_paths.length === 1) {
+        //             this.add(
+        //                 {
+        //                     caption: `FIBEX: ${getFileName(cfg.fibex_file_paths[0])}`,
+        //                     tooltip: `Used FIBEX: ${cfg.fibex_file_paths[0]}`,
+        //                 },
+        //                 `fibex_${uuid}`,
+        //             );
+        //         } else if (cfg.fibex_file_paths.length > 1) {
+        //             this.add(
+        //                 {
+        //                     caption: `FIBEX: ${cfg.fibex_file_paths.length} files`,
+        //                     tooltip: cfg.fibex_file_paths.join('\n'),
+        //                 },
+        //                 `fibex_${uuid}`,
+        //             );
+        //         }
+        //     }
+        //     if (cfg.tz !== undefined) {
+        //         this.add(
+        //             {
+        //                 caption: `TZ: ${cfg.tz}`,
+        //                 tooltip: `Used TimeZone: ${cfg.tz}`,
+        //             },
+        //             `tz_${uuid}`,
+        //         );
+        //     }
+        // } else if (observe.configuration.parser[Protocol.SomeIp] !== undefined) {
+        //     const cfg = observe.configuration.parser[Protocol.SomeIp];
+        //     if (cfg.fibex_file_paths !== undefined) {
+        //         if (cfg.fibex_file_paths.length === 1) {
+        //             this.add(
+        //                 {
+        //                     caption: `FIBEX: ${getFileName(cfg.fibex_file_paths[0])}`,
+        //                     tooltip: `Used FIBEX: ${cfg.fibex_file_paths[0]}`,
+        //                 },
+        //                 `fibex_${uuid}`,
+        //             );
+        //         } else if (cfg.fibex_file_paths.length > 1) {
+        //             this.add(
+        //                 {
+        //                     caption: `FIBEX: ${cfg.fibex_file_paths.length} files`,
+        //                     tooltip: cfg.fibex_file_paths.join('\n'),
+        //                 },
+        //                 `fibex_${uuid}`,
+        //             );
+        //         }
+        //     }
+        // } else if (observe.configuration.parser[Protocol.Text] !== undefined) {
+        //     // ignore
+        // }
     }
 
     public add(block: IInfoBlock, uuid?: string): string {

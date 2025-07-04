@@ -16,7 +16,6 @@ import { Exporter } from './dependencies/exporter';
 import { IRange, fromIndexes } from '@platform/types/range';
 import { Attachments } from './dependencies/attachments';
 import { Info } from './dependencies/info';
-import { session } from '@service/session';
 import { Highlights } from './dependencies/search/highlights';
 import { TeamWork } from './dependencies/teamwork';
 import { Cli } from './dependencies/cli';
@@ -30,10 +29,6 @@ import { SessionDescriptor } from '@platform/types/bindings';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
-import * as Origins from '@platform/types/observe/origin/index';
-import * as Factory from '@platform/types/observe/factory';
-import * as Parsers from '@platform/types/observe/parser/index';
-import * as Types from '@platform/types/observe/types/index';
 
 export { Stream };
 

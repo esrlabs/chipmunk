@@ -9,8 +9,8 @@ import { EFileOptionsRequirements } from '../api/executors/session.stream.observ
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
-import { IRange, fromTuple } from 'platform/types/range';
-import { ISourceLink } from 'platform/types/observe/types';
+import { IRange } from 'platform/types/range';
+import { ISourceLink } from 'platform/types/source';
 import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';

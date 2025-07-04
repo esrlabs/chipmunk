@@ -1,7 +1,6 @@
 import { SetupLogger, LoggerInterface } from '@platform/entity/logger';
 import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { cutUuid } from '@log/index';
-import { Observe } from '@platform/types/observe';
 import { GitHubRepo } from '@platform/types/github';
 import { FileMetaDataDefinition, FileMetaData } from '@platform/types/github/filemetadata';
 import { Session } from '@service/session';

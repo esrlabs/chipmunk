@@ -9,12 +9,12 @@ import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
 import { TextExportOptions } from '@platform/types/exporting';
-import { SessionSetup, SessionDescriptor } from '@platform/types/bindings';
+import { SessionDescriptor } from '@platform/types/bindings';
+import { SessionOrigin } from '../origin';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
-import * as $ from '@platform/types/observe';
-import { SessionOrigin } from '../origin';
+import { ISourceLink } from '@platform/types/source';
 
 export { ObserveOperation };
 
@@ -50,7 +50,7 @@ export class Stream extends Subscriber {
 
     public readonly observed: {
         operations: Map<string, ObserveOperation>;
-        map: Map<number, $.Types.ISourceLink>;
+        map: Map<number, ISourceLink>;
     } = {
         operations: new Map(),
         map: new Map(),
@@ -139,9 +139,9 @@ export class Stream extends Subscriber {
         isFileSource(): boolean;
         getSourceFileName(): string | undefined;
         descriptions: {
-            get(id: number): $.Types.ISourceLink | undefined;
+            get(id: number): ISourceLink | undefined;
             id(alias: string): number | undefined;
-            request(): Promise<$.Types.ISourceLink[]>;
+            request(): Promise<ISourceLink[]>;
             count(): number;
         };
     } {
@@ -286,7 +286,7 @@ export class Stream extends Subscriber {
                 return sources[0].getOrigin().getFirstFilename();
             },
             descriptions: {
-                get: (id: number): $.Types.ISourceLink | undefined => {
+                get: (id: number): ISourceLink | undefined => {
                     return this.observed.map.get(id);
                 },
                 id: (alias: string): number | undefined => {
@@ -295,7 +295,7 @@ export class Stream extends Subscriber {
                     );
                     return link !== undefined ? link.id : undefined;
                 },
-                request: (): Promise<$.Types.ISourceLink[]> => {
+                request: (): Promise<ISourceLink[]> => {
                     return new Promise((resolve, reject) => {
                         Requests.IpcRequest.send(
                             Requests.Observe.SourcesDefinitionsList.Response,

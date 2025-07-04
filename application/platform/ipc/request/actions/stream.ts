@@ -1,19 +1,18 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Protocol } from '../../../types/observe/parser';
-import { Source } from '../../../types/observe/origin/stream/index';
+import { Ident } from '../../../types/bindings/observe';
 
 import * as validator from '../../../env/obj';
 
 @Define({ name: 'StreamActionRequest' })
 export class Request extends SignatureRequirement {
-    public protocol: Protocol;
-    public source?: Source;
+    public parser?: Ident;
+    public source?: Ident;
 
-    constructor(input: { protocol: Protocol; source: Source | undefined }) {
+    constructor(input: { parser: Ident | undefined; source: Ident | undefined }) {
         super();
         validator.isObject(input);
-        this.protocol = validator.getAsNotEmptyString(input, 'protocol') as Protocol;
-        this.source = validator.getAsNotEmptyStringOrAsUndefined(input, 'source') as Source;
+        this.parser = validator.getAsObjOrUndefined(input, 'parser');
+        this.source = validator.getAsObjOrUndefined(input, 'source');
     }
 }
 export interface Request extends Interface {}

@@ -6,11 +6,11 @@
     (contextmenu)="onAllActions($event, action.action)"
 >
     <div class="column_0">
-        <app-recent-nature-icon [observe]="action.action.observe"></app-recent-nature-icon>
+        <app-recent-nature-icon [operation]="operation"></app-recent-nature-icon>
     </div>
     <div class="column_1">
-        <app-recent-nature [observe]="action.action.observe"></app-recent-nature>
-        <app-recent-parser [observe]="action.action.observe"></app-recent-parser>
+        <app-recent-nature [operation]="operation"></app-recent-nature>
+        <app-recent-parser [operation]="operation"></app-recent-parser>
     </div>
 </div>
 <p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">

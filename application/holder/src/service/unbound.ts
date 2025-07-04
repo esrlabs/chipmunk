@@ -25,15 +25,6 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Dlt.Stat.Request,
-                    RequestHandlers.Dlt.Stat.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.Os.Shells.Request,
                     RequestHandlers.Os.Shells.handler,
                 ),
