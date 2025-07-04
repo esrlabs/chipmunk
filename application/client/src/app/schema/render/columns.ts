@@ -7,7 +7,6 @@ import { LimittedValue } from '@ui/env/entities/value.limited';
 import { Render } from './index';
 
 import * as num from '@platform/env/num';
-import { Protocol } from '@platform/types/observe/parser';
 
 const MIN_COLUMN_WIDTH = 30;
 const MAX_COLUMN_WIDTH = 600;
@@ -24,10 +23,6 @@ export class ColumnsRender extends Render<Columns> {
                 MAX_COLUMN_WIDTH,
             ),
         );
-    }
-
-    public override protocol(): Protocol {
-        return Protocol.Dlt;
     }
 
     public override columns(): number {

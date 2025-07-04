@@ -10,7 +10,6 @@ import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
-import * as Factory from '@platform/types/observe/factory';
 import { SessionOrigin } from '@service/session/origin';
 
 @Component({

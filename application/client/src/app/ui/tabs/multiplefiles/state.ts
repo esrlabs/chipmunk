@@ -1,7 +1,7 @@
 import { FileHolder } from './file.holder';
 import { bytesToStr } from '@env/str';
 import { File } from '@platform/types/files';
-import { FileType } from '@platform/types/observe/types/file';
+import { FileType } from '@platform/types/files';
 import { Subject } from '@platform/env/subscription';
 import { EEventType, IEvent } from './structure/component';
 import { Holder } from '@module/matcher';
@@ -12,7 +12,6 @@ import { getUniqueColorTo } from '@ui/styles/colors';
 import { Sort } from '@angular/material/sort';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
-import * as Factory from '@platform/types/observe/factory';
 import { SessionOrigin } from '@service/session/origin';
 
 export interface IMultifile {

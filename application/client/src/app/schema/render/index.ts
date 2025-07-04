@@ -1,14 +1,9 @@
-import { Protocol } from '@platform/types/observe/parser/index';
-
 export interface RenderReference<T> {
     new (): Render<T>;
 }
 
 export abstract class Render<T> {
     private _bound: T | undefined;
-
-    // TODO: not need any more this method
-    abstract protocol(): Protocol;
 
     public delimiter(): string | undefined {
         return undefined;

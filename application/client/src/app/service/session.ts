@@ -18,13 +18,10 @@ import { unique } from '@platform/env/sequence';
 import { history } from '@service/history';
 import { Render } from '@schema/render';
 import { File } from '@platform/types/files';
-import { getRender, getDltRender } from '@schema/render/tools';
 import { SetupObserve } from '@tabs/setup/component';
 import { recent } from '@service/recent';
 import { bridge } from '@service/bridge';
 import { SessionOrigin } from './session/origin';
-
-import * as Factory from '@platform/types/observe/factory';
 
 export { Session, TabControls, UnboundTab, Base };
 

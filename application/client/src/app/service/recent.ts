@@ -10,8 +10,7 @@ import { bridge } from '@service/bridge';
 import { Action } from './recent/action';
 import { error } from '@platform/log/utils';
 import { Subject } from '@platform/env/subscription';
-
-import * as $ from '@platform/types/observe';
+import { ObserveOperation } from './session/dependencies/stream';
 
 const STORAGE_KEY = 'user_recent_actions';
 
@@ -77,15 +76,17 @@ export class Service extends Implementation {
             }
             action.merge(found);
         });
-        return bridge
-            .entries({ key: STORAGE_KEY })
-            .update(actions.map((a) => a.entry().to()))
-            .then(() => {
-                this.updated.emit();
-            })
-            .catch((err: Error) => {
-                this.log().error(`Fail to update recent storage: ${err.message}`);
-            });
+        console.error(`Not implemented`);
+        return Promise.resolve();
+        // return bridge
+        //     .entries({ key: STORAGE_KEY })
+        //     .update(actions.map((a) => a.entry().to()))
+        //     .then(() => {
+        //         this.updated.emit();
+        //     })
+        //     .catch((err: Error) => {
+        //         this.log().error(`Fail to update recent storage: ${err.message}`);
+        //     });
     }
 
     public delete(uuids: string[]): Promise<void> {
@@ -103,8 +104,8 @@ export class Service extends Implementation {
         });
     }
 
-    public add(observe: $.Observe): Promise<void> {
-        const action = new Action(observe);
+    public add(operation: ObserveOperation): Promise<void> {
+        const action = new Action(operation.getOrigin());
         return this.update([action]);
     }
 }
