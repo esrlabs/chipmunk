@@ -2,7 +2,6 @@ import { CancelablePromise } from 'platform/env/promise';
 import { Base, Cancelled, decode } from '../native/native.jobs';
 import { error } from 'platform/log/utils';
 import { IFilter } from 'platform/types/filter';
-import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import {
     FoldersScanningResult,
     DltStatisticInfo,
@@ -128,27 +127,6 @@ export class Jobs extends Base {
             this.native.getDltStats(sequence, paths),
             sequence,
             'getDltStats',
-        );
-        return job;
-    }
-
-    public getSomeipStatistic(paths: string[]): CancelablePromise<SomeipStatistic> {
-        const sequence = this.sequence();
-        const job: CancelablePromise<SomeipStatistic> = this.execute(
-            (buf: Uint8Array): any | Error => {
-                const decoded = decode<string>(buf, protocol.decodeCommandOutcomeWithString);
-                if (decoded instanceof Error) {
-                    return decoded;
-                }
-                try {
-                    return JSON.parse(decoded) as SomeipStatistic;
-                } catch (e) {
-                    return new Error(error(e));
-                }
-            },
-            this.native.getSomeipStatistic(sequence, paths),
-            sequence,
-            'getSomeipStatistic',
         );
         return job;
     }

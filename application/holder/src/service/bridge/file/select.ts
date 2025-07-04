@@ -2,7 +2,7 @@ import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { electron } from '@service/electron';
 import { File } from 'platform/types/files';
-import { FileType } from 'platform/types/observe/types/file';
+import { FileType } from 'platform/types/files';
 import { getFileEntities } from '@env/fs';
 
 import * as Requests from 'platform/ipc/request';
