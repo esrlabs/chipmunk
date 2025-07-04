@@ -1,7 +1,7 @@
 // #![deny(unused_crate_dependencies)]
 
 use components::Components;
-use definitions::{LogRecordOutput, ParseReturnIterator, ParserError};
+use definitions::ParseReturnIterator;
 pub mod dlt;
 pub mod prelude;
 pub mod someip;
@@ -12,6 +12,10 @@ pub enum Parser {
     Dlt(dlt::DltParser),
     SomeIp(someip::SomeipParser),
     Text(text::StringTokenizer),
+    // NOTE: We can't reference plugins parser directly because of circular
+    // references between parsers and plugins_host library.
+    // TODO AAZ: This is a workaround until we find a proper solution.
+    Plugin(Box<dyn definitions::Parser + Send>),
 }
 
 /**
@@ -27,6 +31,7 @@ impl definitions::Parser for Parser {
             Self::DltRaw(inst) => inst.parse(input, timestamp),
             Self::SomeIp(inst) => inst.parse(input, timestamp),
             Self::Text(inst) => inst.parse(input, timestamp),
+            Self::Plugin(inst) => inst.parse(input, timestamp),
         }
     }
 }

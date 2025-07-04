@@ -12,12 +12,9 @@ use crate::{
 };
 use cleanup::cleanup_temp_dir;
 use log::{debug, error, warn};
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 use tokio::{
-    sync::{
-        RwLock,
-        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-    },
+    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     time::{Duration, timeout},
 };
 use tokio_util::sync::CancellationToken;
@@ -46,13 +43,6 @@ impl UnboundSession {
     }
 
     pub async fn init(&mut self) -> Result<(), stypes::ComputationError> {
-        // TODO: Plugins manager is used temporally here in initial phase and we should consider
-        // moving it to its own module. Reasons:
-        // * It doesn't need parallelism for most of task.
-        // * It'll need different state and locking management for downloading plugins, Updating
-        // caches etc...
-        let plugins_manager = commands::plugins::load_manager().await?;
-        let plugins_manager = Arc::new(RwLock::new(plugins_manager));
         let finished = self.finished.clone();
         let mut rx = self
             .rx
@@ -86,10 +76,9 @@ impl UnboundSession {
                         jobs.insert(id, signal.clone());
                         UnboundSession::started(&progress, job.to_string(), &mut uuids, &id);
                         let api = session_api.clone();
-                        let plugs_ref_clone = Arc::clone(&plugins_manager);
                         tokio::spawn(async move {
                             debug!("Job {job} has been called");
-                            commands::process(job, signal.clone(), plugs_ref_clone.as_ref()).await;
+                            commands::process(job, signal.clone()).await;
                             signal.confirm();
                             let _ = api.remove_command(id);
                         });

@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 
 use wasmtime::component::Component;
 
-use components::ComponentDescriptor;
 use definitions::{self as defs, ParseReturnIterator};
 use stypes::{PluginInfo, SemanticVersion};
 
@@ -175,26 +174,5 @@ impl defs::Parser for PluginsParser {
         }
 
         res
-    }
-}
-
-#[derive(Default)]
-struct Descriptor {}
-
-impl ComponentDescriptor for Descriptor {
-    fn is_compatible(&self, _origin: &stypes::SessionAction) -> bool {
-        true
-    }
-    /// **ATTANTION** That's placeholder. Should be another way to delivery data
-    fn ident(&self) -> stypes::Ident {
-        stypes::Ident {
-            name: String::from("Plugin"),
-            desc: String::from("Plugin"),
-            io: stypes::IODataType::Any,
-            uuid: uuid::Uuid::new_v4(),
-        }
-    }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Parser
     }
 }

@@ -18,6 +18,8 @@ wasmtime = "33.0"
 wasmtime-wasi = "33.0"
 uuid = { workspace = true , features = ["serde", "v4"] }
 components = { path = "../components" }
+# TODO AAZ: Remove when `DescriptorGetter::create` function is async.
+tokio-util.workspace = true
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
 stypes = { path = "../stypes" }

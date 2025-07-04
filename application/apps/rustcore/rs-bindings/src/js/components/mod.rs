@@ -319,4 +319,121 @@ impl Components {
             .await
             .map_err(stypes::ComputationError::NativeError)
     }
+
+    #[node_bindgen]
+    async fn installed_plugins_list(
+        &self,
+    ) -> Result<stypes::PluginsList, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .installed_plugins_list()
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn invalid_plugins_list(
+        &self,
+    ) -> Result<stypes::InvalidPluginsList, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .invalid_plugins_list()
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn installed_plugins_paths(
+        &self,
+    ) -> Result<stypes::PluginsPathsList, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .installed_plugins_paths()
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn invalid_plugins_paths(
+        &self,
+    ) -> Result<stypes::PluginsPathsList, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .invalid_plugins_paths()
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn installed_plugin_info(
+        &self,
+        plugin_path: String,
+    ) -> Result<Option<stypes::PluginEntity>, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .installed_plugin_info(plugin_path)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn invalid_plugin_info(
+        &self,
+        plugin_path: String,
+    ) -> Result<Option<stypes::InvalidPluginEntity>, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .invalid_plugin_info(plugin_path)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn get_plugin_run_data(
+        &self,
+        plugin_path: String,
+    ) -> Result<Option<stypes::PluginRunData>, stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .get_plugin_run_data(plugin_path)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn reload_plugins(&self) -> Result<(), stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .reload_plugins()
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn add_plugin(&self, plugin_path: String) -> Result<(), stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .add_plugin(plugin_path, None)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    #[node_bindgen]
+    async fn remove_plugin(&self, plugin_path: String) -> Result<(), stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .remove_plugin(plugin_path)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
 }

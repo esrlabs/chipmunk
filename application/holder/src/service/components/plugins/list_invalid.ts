@@ -1,6 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
-import { unbound } from '@service/unbound';
+import { components } from '@service/components';
 
 import * as Requests from 'platform/ipc/request';
 
@@ -13,7 +13,7 @@ export const handler = Requests.InjectLogger<
         _request: Requests.Plugins.ListInvalid.Request,
     ): CancelablePromise<Requests.Plugins.ListInvalid.Response> => {
         return new CancelablePromise((reslove, reject) => {
-            unbound.jobs
+            components.components
                 .invalidPluginsList()
                 .then((invalidPlugins) => {
                     reslove(new Requests.Plugins.ListInvalid.Response({ invalidPlugins }));
