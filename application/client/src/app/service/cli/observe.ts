@@ -1,7 +1,6 @@
 import { CancelablePromise } from '@platform/env/promise';
 import { Service } from '@service/cli';
 import { session } from '@service/session';
-import { Observe } from '@platform/types/observe';
 
 import * as Requests from '@platform/ipc/request';
 

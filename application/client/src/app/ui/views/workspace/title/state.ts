@@ -60,21 +60,25 @@ export class State implements Destroyable<void> {
             return;
         }
         this.flags.sde = this.session.stream.sde.isAvailable();
-        const sources = this.session.stream.observe().sources();
-        if (sources.length === 0) {
+        const operations = this.session.stream.observe().operations();
+        if (operations.length === 0) {
             this.states.sde = false;
             this.title = 'no sources are bound with session';
-        } else if (sources.length === 1) {
+        } else if (operations.length === 1) {
             this.states.sde = !this.session.stream.sde.visibility().hidden();
             this.title = ((): string => {
-                const observe = sources[0].observe;
-                const desc = observe.origin.desc();
-                return `${desc.major}: ${desc.minor}`;
+                const descriptor = operations[0].getDescriptor();
+                if (descriptor) {
+                    return `${descriptor.s_desc} (${descriptor.p_desc})`;
+                } else {
+                    const origin = operations[0].getOrigin();
+                    return origin.getTitle();
+                }
             })();
         } else {
-            const running = sources.filter((s) => s.observer !== undefined).length;
-            this.title = `multiple ${sources.length} sources; ${running} running; ${
-                sources.length - running
+            const running = operations.filter((opr) => opr.isRunning()).length;
+            this.title = `multiple ${operations.length} sources; ${running} running; ${
+                operations.length - running
             } stopped`;
         }
         this.safe().updateRefComp();

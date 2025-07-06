@@ -6,20 +6,21 @@ import { Stat, IStat } from './stat';
 import { recent } from '@service/recent';
 import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
+import { SessionOrigin } from '@service/session/origin';
 
-import * as $ from '@platform/types/observe';
 import * as compatibility from './compatibility';
 
 interface IActionContent {
     stat: IStat;
-    observe: $.IObserve;
+    origin: SessionOrigin;
 }
 
 export class Action {
     static from(entry: Entry): Action | Error {
-        const action = new Action($.Observe.new());
-        const error = action.entry().from(entry);
-        return error instanceof Error ? error : action;
+        return new Error(`Not Implemented`);
+        // const action = new Action($.Observe.new());
+        // const error = action.entry().from(entry);
+        // return error instanceof Error ? error : action;
     }
 
     protected logger: Logger;
@@ -34,108 +35,119 @@ export class Action {
         invalidUuid: undefined,
     };
 
-    constructor(public observe: $.Observe) {
-        this.uuid = observe.signature();
-        this.logger = scope.getLogger(`Action: ${this.uuid}`);
+    constructor(public origin: SessionOrigin) {
+        this.uuid = `Not implemented`;
+        // this.logger = scope.getLogger(`Action: ${this.uuid}`);
+        this.logger = scope.getLogger(`Action`);
     }
 
-    public isSuitable(observe?: $.Observe): boolean {
-        if (observe === undefined) {
-            return true;
-        }
-        if (observe.origin.nature().alias() !== this.observe.origin.nature().alias()) {
-            return false;
-        }
-        return this.observe.parser.alias() === observe.parser.alias();
+    public isSuitable(origin: SessionOrigin): boolean {
+        console.error(`Not implemented`);
+        return false;
+        // if (observe === undefined) {
+        //     return true;
+        // }
+        // if (observe.origin.nature().alias() !== this.observe.origin.nature().alias()) {
+        //     return false;
+        // }
+        // return this.observe.parser.alias() === observe.parser.alias();
     }
 
-    public description(): $.Description.IOriginDetails {
-        return this.observe.origin.desc();
+    public description(): { major: string; minor: string } {
+        console.error(`Not implemented`);
+        return { major: '', minor: '' };
     }
 
     public entry(): {
         from(entry: Entry): Error | undefined;
-        to(): Entry;
+        // to(): Entry;
     } {
         return {
             from: (entry: Entry): Error | undefined => {
-                try {
-                    const body: IActionContent = JSON.parse(entry.content);
-                    if (body.observe === undefined) {
-                        // Check previous version (chipmunk <= 3.8.1)
-                        this.observe = compatibility.from_3_8_1(entry);
-                        this.compatibility.converted = true;
-                    } else {
-                        const observe = new $.Observe(body.observe);
-                        this.observe = observe;
-                    }
-                    this.stat = Stat.from(body.stat);
-                    this.uuid = this.observe.signature();
-                    this.compatibility.invalidUuid =
-                        entry.uuid !== this.uuid ? entry.uuid : undefined;
-                    return undefined;
-                } catch (err) {
-                    return new Error(`Fail to parse action: ${error(err)}`);
-                }
+                console.error(`Not implemented`);
+                return undefined;
+                // try {
+                //     const body: IActionContent = JSON.parse(entry.content);
+                //     if (body.observe === undefined) {
+                //         // Check previous version (chipmunk <= 3.8.1)
+                //         this.observe = compatibility.from_3_8_1(entry);
+                //         this.compatibility.converted = true;
+                //     } else {
+                //         const observe = new $.Observe(body.observe);
+                //         this.observe = observe;
+                //     }
+                //     this.stat = Stat.from(body.stat);
+                //     this.uuid = this.observe.signature();
+                //     this.compatibility.invalidUuid =
+                //         entry.uuid !== this.uuid ? entry.uuid : undefined;
+                //     return undefined;
+                // } catch (err) {
+                //     return new Error(`Fail to parse action: ${error(err)}`);
+                // }
             },
-            to: (): Entry => {
-                return {
-                    uuid: this.uuid,
-                    content: JSON.stringify({
-                        stat: this.stat.asObj(),
-                        observe: this.observe.storable(),
-                    } as IActionContent),
-                };
-            },
+            // to: (): Entry => {
+            //                     console.error(`Not implemented`);
+            //     return undefined;
+            //     return {
+            //         uuid: this.uuid,
+            //         content: JSON.stringify({
+            //             stat: this.stat.asObj(),
+            //             observe: this.observe.storable(),
+            //         } as IActionContent),
+            //     };
+            // },
         };
     }
 
     public getActions(): { caption?: string; handler?: () => void }[] {
-        const observe = this.observe;
-        const configurable = observe.isConfigurable();
-        const nature = observe.origin.nature().desc();
-        return [
-            // **Note**: Recent actions isn't supported yet for plugins. Support of this
-            // feature will be included with general refactoring of Observe Configuration
-            // and a way to delivery available parser/source to client
-            ...(nature.type === $.Description.OriginType.plugin
-                ? []
-                : [
-                      {
-                          caption: ((): string => {
-                              switch (nature.type) {
-                                  case $.Description.OriginType.file:
-                                      return 'Open with recent configuration';
-                                  case $.Description.OriginType.net:
-                                  case $.Description.OriginType.serial:
-                                      return 'Connect with recent configuration';
-                                  case $.Description.OriginType.command:
-                                      return 'Execute with recent configuration';
-                              }
-                          })(),
-                          handler: this.apply.bind(this),
-                      },
-                  ]),
-            ...(configurable
-                ? [
-                      {
-                          caption: 'Open with new configuration',
-                          handler: () => {
-                              console.error(`Not implemented`);
+        console.error(`Not Implemented`);
+        return [];
+        // const observe = this.observe;
+        // const configurable = observe.isConfigurable();
+        // const nature = observe.origin.nature().desc();
 
-                              //   session
-                              //       .initialize()
-                              //       .configure(observe)
-                              //       .catch((err: Error) => {
-                              //           this.logger.error(
-                              //               `Fail to configure observe object: ${err.message}`,
-                              //           );
-                              //       });
-                          },
-                      },
-                  ]
-                : []),
-        ];
+        // return [
+        //     // **Note**: Recent actions isn't supported yet for plugins. Support of this
+        //     // feature will be included with general refactoring of Observe Configuration
+        //     // and a way to delivery available parser/source to client
+        //     ...(nature.type === $.Description.OriginType.plugin
+        //         ? []
+        //         : [
+        //               {
+        //                   caption: ((): string => {
+        //                       switch (nature.type) {
+        //                           case $.Description.OriginType.file:
+        //                               return 'Open with recent configuration';
+        //                           case $.Description.OriginType.net:
+        //                           case $.Description.OriginType.serial:
+        //                               return 'Connect with recent configuration';
+        //                           case $.Description.OriginType.command:
+        //                               return 'Execute with recent configuration';
+        //                       }
+        //                   })(),
+        //                   handler: this.apply.bind(this),
+        //               },
+        //           ]),
+        //     ...(configurable
+        //         ? [
+        //               {
+        //                   caption: 'Open with new configuration',
+        //                   handler: () => {
+        //                       console.error(`Not implemented`);
+
+        //                       //   session
+        //                       //       .initialize()
+        //                       //       .configure(observe)
+        //                       //       .catch((err: Error) => {
+        //                       //           this.logger.error(
+        //                       //               `Fail to configure observe object: ${err.message}`,
+        //                       //           );
+        //                       //       });
+        //                   },
+        //               },
+        //           ]
+        //         : []),
+        // ];
     }
 
     public remove(): Promise<void> {

@@ -10,11 +10,10 @@ import { cli } from '@service/cli';
 import { Menu, MenuItem } from 'electron';
 import { notifications } from '@service/notifications';
 import { unique } from 'platform/env/sequence';
-import { FileType } from 'platform/types/observe/types/file';
+import { FileType } from 'platform/types/files';
 import { ChipmunkGlobal } from '@register/global';
 
 import * as Actions from './actions';
-import * as $ from 'platform/types/observe';
 
 declare const global: ChipmunkGlobal;
 
@@ -455,89 +454,89 @@ export class Service extends Implementation {
                     },
                 ],
             },
-            {
-                label: 'Connections',
-                submenu: [
-                    {
-                        label: 'DLT on UDP',
-                        click: async () => {
-                            Actions.stream(
-                                $.Parser.Protocol.Dlt,
-                                $.Origin.Stream.Stream.Source.UDP,
-                            ).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                    {
-                        label: 'DLT on TCP',
-                        click: async () => {
-                            Actions.stream(
-                                $.Parser.Protocol.Dlt,
-                                $.Origin.Stream.Stream.Source.TCP,
-                            ).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                    {
-                        label: 'DLT on Serial Port',
-                        click: async () => {
-                            Actions.stream(
-                                $.Parser.Protocol.Dlt,
-                                $.Origin.Stream.Stream.Source.Serial,
-                            ).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                    { type: 'separator' },
-                    {
-                        label: 'Plain text Serial Port',
-                        click: async () => {
-                            Actions.stream(
-                                $.Parser.Protocol.Text,
-                                $.Origin.Stream.Stream.Source.Serial,
-                            ).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                    { type: 'separator' },
-                    {
-                        label: 'Select Source for Plain text',
-                        click: async () => {
-                            Actions.stream($.Parser.Protocol.Text).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                    {
-                        label: 'Select Source for DLT',
-                        click: async () => {
-                            Actions.stream($.Parser.Protocol.Dlt).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                ],
-            },
-            {
-                label: 'Terminal',
-                submenu: [
-                    {
-                        label: 'Execute command',
-                        click: async () => {
-                            Actions.stream(
-                                $.Parser.Protocol.Text,
-                                $.Origin.Stream.Stream.Source.Process,
-                            ).catch((err: Error) => {
-                                this.log().error(`Fail call action Stream: ${err.message}`);
-                            });
-                        },
-                    },
-                ],
-            },
+            // {
+            //     label: 'Connections',
+            //     submenu: [
+            //         {
+            //             label: 'DLT on UDP',
+            //             click: async () => {
+            //                 Actions.stream(
+            //                     $.Parser.Protocol.Dlt,
+            //                     $.Origin.Stream.Stream.Source.UDP,
+            //                 ).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //         {
+            //             label: 'DLT on TCP',
+            //             click: async () => {
+            //                 Actions.stream(
+            //                     $.Parser.Protocol.Dlt,
+            //                     $.Origin.Stream.Stream.Source.TCP,
+            //                 ).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //         {
+            //             label: 'DLT on Serial Port',
+            //             click: async () => {
+            //                 Actions.stream(
+            //                     $.Parser.Protocol.Dlt,
+            //                     $.Origin.Stream.Stream.Source.Serial,
+            //                 ).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //         { type: 'separator' },
+            //         {
+            //             label: 'Plain text Serial Port',
+            //             click: async () => {
+            //                 Actions.stream(
+            //                     $.Parser.Protocol.Text,
+            //                     $.Origin.Stream.Stream.Source.Serial,
+            //                 ).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //         { type: 'separator' },
+            //         {
+            //             label: 'Select Source for Plain text',
+            //             click: async () => {
+            //                 Actions.stream($.Parser.Protocol.Text).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //         {
+            //             label: 'Select Source for DLT',
+            //             click: async () => {
+            //                 Actions.stream($.Parser.Protocol.Dlt).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //     ],
+            // },
+            // {
+            //     label: 'Terminal',
+            //     submenu: [
+            //         {
+            //             label: 'Execute command',
+            //             click: async () => {
+            //                 Actions.stream(
+            //                     $.Parser.Protocol.Text,
+            //                     $.Origin.Stream.Stream.Source.Process,
+            //                 ).catch((err: Error) => {
+            //                     this.log().error(`Fail call action Stream: ${err.message}`);
+            //                 });
+            //             },
+            //         },
+            //     ],
+            // },
             {
                 label: 'Edit',
                 submenu: [

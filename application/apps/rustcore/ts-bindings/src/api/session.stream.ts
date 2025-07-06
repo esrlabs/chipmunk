@@ -8,7 +8,7 @@ import { Executors } from './executors/session.stream.executors';
 import { EFileOptionsRequirements } from './executors/session.stream.observe.executor';
 import { GrabbedElement } from 'platform/types/bindings/miscellaneous';
 import { IRange } from 'platform/types/range';
-import { ISourceLink } from 'platform/types/observe/types';
+import { ISourceLink } from 'platform/types/source';
 import { Attachment, IndexingMode } from 'platform/types/content';
 import { SessionSetup } from 'platform/types/bindings';
 import { TextExportOptions } from 'platform/types/exporting';

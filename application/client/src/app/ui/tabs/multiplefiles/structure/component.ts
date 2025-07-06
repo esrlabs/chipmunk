@@ -11,7 +11,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { FileHolder } from '../file.holder';
-import { FileType } from '@platform/types/observe/types/file';
+import { FileType } from '@platform/types/files';
 import { Subscription } from 'rxjs';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { State } from '../state';

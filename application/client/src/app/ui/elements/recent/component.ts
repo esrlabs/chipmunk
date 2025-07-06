@@ -17,8 +17,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HiddenFilter } from '@elements/filter.hidden/component';
-
-import * as $ from '@platform/types/observe';
+import { ObserveOperation } from '@service/session/dependencies/stream';
 
 @Component({
     selector: 'app-recent-actions',
@@ -31,7 +30,7 @@ import * as $ from '@platform/types/observe';
 @Initial()
 @Ilc()
 export class RecentActions extends ChangesDetector implements AfterContentInit, AfterViewInit {
-    @Input() public observe?: $.Observe;
+    @Input() public operation!: ObserveOperation;
 
     @Output() public applied: EventEmitter<void> = new EventEmitter();
 
@@ -45,19 +44,20 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
 
     public ngAfterContentInit(): void {
         this.markChangesForCheck();
-        this.state = new State(this, this.observe);
+        this.state = new State(this, this.operation);
         this.env().subscriber.register(
             this.state.update.subscribe(() => {
                 this.detectChanges();
             }),
         );
-        if (this.observe !== undefined) {
-            this.env().subscriber.register(
-                this.observe.subscribe(() => {
-                    this.state.reload();
-                    this.detectChanges();
-                }),
-            );
+        if (this.operation !== undefined) {
+            console.error(`Not Implemented`);
+            // this.env().subscriber.register(
+            //     this.operation.subscribe(() => {
+            //         this.state.reload();
+            //         this.detectChanges();
+            //     }),
+            // );
         }
     }
 

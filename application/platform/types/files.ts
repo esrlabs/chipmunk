@@ -1,6 +1,44 @@
-import { FileType } from './observe/types/file';
-
 import * as obj from '../env/obj';
+
+export abstract class Support {
+    public abstract getSupportedFileType(): FileName[];
+}
+
+// TODO: remove it!
+export enum FileType {
+    PcapNG = 'PcapNG',
+    PcapLegacy = 'PcapLegacy',
+    Text = 'Text',
+    Binary = 'Binary',
+    ParserPlugin = 'ParserPlugin',
+}
+
+export function getFileTypeFrom(smth: unknown): FileType | Error {
+    switch (smth as FileType) {
+        case FileType.Binary:
+            return FileType.Binary;
+        case FileType.PcapNG:
+            return FileType.PcapNG;
+        case FileType.PcapLegacy:
+            return FileType.PcapLegacy;
+        case FileType.Text:
+            return FileType.Text;
+        case FileType.ParserPlugin:
+            return FileType.ParserPlugin;
+        default:
+            return new Error(`${smth} isn't FileType`);
+    }
+}
+
+export function extname(filename: string): string {
+    const matches = filename.match(/\.[\w\d_]*$/gi);
+    if (matches !== null) {
+        return matches[0];
+    }
+    return '';
+}
+
+export type FileName = string;
 
 export enum EntityType {
     BlockDevice = 0,

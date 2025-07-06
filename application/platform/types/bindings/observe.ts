@@ -42,7 +42,28 @@ export type DltParserSettings = {
  */
 export type FileFormat = 'PcapNG' | 'PcapLegacy' | 'Text' | 'Binary';
 
-export type Ident = { name: string; desc: string; io: IODataType; uuid: string };
+export type Ident = {
+    /**
+     * A short, human-readable name of the component (parser/source), independent of context.
+     * Used on the client side to display available components.
+     */
+    name: string;
+    /**
+     * A more detailed description of the component. This information is displayed in a separate
+     * area and can contain an extended explanation.
+     */
+    desc: string;
+    /**
+     * The type of data the component produces or expects.
+     * For sources, this is the type of data they emit.
+     * For parsers, this is the type of data they expect as input.
+     */
+    io: IODataType;
+    /**
+     * A unique identifier of the component.
+     */
+    uuid: string;
+};
 
 export type IdentList = Array<Ident>;
 
@@ -151,9 +172,21 @@ export type SessionAction =
     | 'Source';
 
 export type SessionDescriptor = {
+    /**
+     * Identifier of the parser being used. Provides a general description of the parser.
+     */
     parser: Ident;
+    /**
+     * Identifier of the source being used. Provides a general description of the source.
+     */
     source: Ident;
+    /**
+     * Parser description in the context of the current session.
+     */
     p_desc: string | null;
+    /**
+     * Source description in the context of the current session. For example, instead of "UDP", it might be "UDP on 0.0.0.0::8888".
+     */
     s_desc: string | null;
 };
 

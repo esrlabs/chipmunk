@@ -18,13 +18,10 @@ import { unique } from '@platform/env/sequence';
 import { history } from '@service/history';
 import { Render } from '@schema/render';
 import { File } from '@platform/types/files';
-import { getRender, getDltRender } from '@schema/render/tools';
 import { SetupObserve } from '@tabs/setup/component';
 import { recent } from '@service/recent';
 import { bridge } from '@service/bridge';
 import { SessionOrigin } from './session/origin';
-
-import * as Factory from '@platform/types/observe/factory';
 
 export { Session, TabControls, UnboundTab, Base };
 
@@ -287,13 +284,12 @@ export class Service extends Implementation {
             },
             observe: async (origin: SessionOrigin, existed?: Session): Promise<string> => {
                 const render = await origin.getRender();
-
                 const session =
                     existed !== undefined ? existed : await this.add(false).empty(render);
                 return new Promise((resolve, reject) => {
                     session.stream
                         .observe()
-                        .start(origin.getSessionSetup())
+                        .start(origin)
                         .then((uuid: string) => {
                             const error = this.bind(session.uuid(), uuid, true);
                             if (error instanceof Error) {

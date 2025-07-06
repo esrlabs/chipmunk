@@ -100,6 +100,7 @@ export class SessionOrigin {
                 .catch(reject);
         });
     }
+
     public getTitle(): string {
         if (this.origin === 'Source') {
             // TODO: Check idents
@@ -112,6 +113,7 @@ export class SessionOrigin {
             return `unknown`;
         }
     }
+
     public getDescription(): { title: string; desctiption: string | undefined } {
         if (this.origin === 'Source') {
             // TODO: Check idents
@@ -128,6 +130,27 @@ export class SessionOrigin {
             };
         } else {
             return { title: 'Unknown', desctiption: undefined };
+        }
+    }
+
+    public isSdeSupported(): Promise<boolean> {
+        /// TODO: add API implementation
+        console.error(`Not Implemented`);
+        return Promise.resolve(true);
+    }
+
+    public isFile(): boolean {
+        return typeof (this.origin as { File: string }).File === 'string';
+    }
+
+    public getFirstFilename(): string | undefined {
+        if ((this.origin as { File: string }).File) {
+            return (this.origin as { File: string }).File;
+        } else if ((this.origin as { Files: string[] }).Files) {
+            const files = (this.origin as { Files: string[] }).Files;
+            return files.length > 0 ? files[0] : undefined;
+        } else {
+            return undefined;
         }
     }
 }

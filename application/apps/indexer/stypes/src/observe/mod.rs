@@ -89,9 +89,20 @@ pub struct IdentList(pub Vec<Ident>);
     ts(export, export_to = "observe.ts")
 )]
 pub struct Ident {
+    /// A short, human-readable name of the component (parser/source), independent of context.
+    /// Used on the client side to display available components.
     pub name: String,
+
+    /// A more detailed description of the component. This information is displayed in a separate
+    /// area and can contain an extended explanation.
     pub desc: String,
+
+    /// The type of data the component produces or expects.
+    /// For sources, this is the type of data they emit.
+    /// For parsers, this is the type of data they expect as input.
     pub io: IODataType,
+
+    /// A unique identifier of the component.
     pub uuid: Uuid,
 }
 

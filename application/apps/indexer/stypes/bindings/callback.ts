@@ -3,6 +3,7 @@ import type { AttachmentInfo } from "./attachment";
 import type { FilterMatchList } from "./miscellaneous";
 import type { NativeError } from "./error";
 import type { Progress } from "./progress";
+import type { SessionDescriptor } from "./observe";
 
 /**
  * Represents events sent to the client.
@@ -21,7 +22,15 @@ stat: Map<string, number>, } } | { "IndexedMapUpdated": {
 /**
  * The number of log entries from search results available for reading.
  */
-len: number, } } | { "SearchMapUpdated": FilterMatchList | null } | { "SearchValuesUpdated": Map<number, [number, number]> } | { "AttachmentsUpdated": { 
+len: number, } } | { "SearchMapUpdated": FilterMatchList | null } | { "SessionDescriptor": { 
+/**
+ * Uuid of the observe operation, which adds new `SessionDescriptor`
+ */
+uuid: string, 
+/**
+ * Added `SessionDescriptor`
+ */
+desc: SessionDescriptor, } } | { "SearchValuesUpdated": Map<number, [number, number]> } | { "AttachmentsUpdated": { 
 /**
  * The size of the attachment in bytes.
  */

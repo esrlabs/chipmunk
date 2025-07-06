@@ -24,6 +24,7 @@ use self::{bindings::Parse, parser_plugin_state::ParserPluginState};
 /// Host of the parser plugin for plugins API version 0.1.0
 pub struct PluginParser {
     store: Store<ParserPluginState>,
+
     plugin_bindings: Parse,
 }
 
@@ -132,6 +133,7 @@ impl PluginParser {
 }
 
 use definitions::{self as defs, LogRecordOutput, ParseReturnIterator};
+
 impl defs::Parser for PluginParser {
     fn parse<'a>(&mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         // Calls on plugins must be async. To solve that we got the following solutions:

@@ -5,10 +5,10 @@ import { scope } from 'platform/env/scope';
 import { Logger } from 'platform/log';
 import { jobs } from '@service/jobs';
 import { ICancelablePromise } from 'platform/env/promise';
-import { Tys } from 'rustcore';
+import { SessionSetup } from 'platform/types/bindings';
 
 import * as Events from 'platform/ipc/event';
-import * as path from 'path';
+import { IJob } from '@service/jobs/job';
 
 export enum Jobs {
     search = 'search',
@@ -20,11 +20,11 @@ export class Holder {
     public readonly subscriber: Subscriber;
     protected readonly jobs: Map<string, JobsTracker> = new Map();
     protected readonly observing: {
-        active: Map<string, { options: Tys.bindings.SessionSetup; observer: ICancelablePromise }>;
-        finished: Map<string, Tys.bindings.SessionSetup>;
+        active: Map<string, ICancelablePromise>;
+        finished: Set<string>;
     } = {
         active: new Map(),
-        finished: new Map(),
+        finished: new Set(),
     };
     protected readonly logger: Logger;
     protected shutdown = false;
@@ -69,43 +69,35 @@ export class Holder {
     }
 
     public observe(): {
-        start(options: Tys.bindings.SessionSetup): Promise<string>;
+        start(setup: SessionSetup): Promise<string>;
         cancel(uuid: string): Promise<void>;
-        list(): { [key: string]: string };
+        list(): string[];
     } {
         return {
-            start: (options: Tys.bindings.SessionSetup): Promise<string> => {
-                const holder = new Tys.sessionsetup.SessionSetupHolder(options);
+            start: (setup: SessionSetup): Promise<string> => {
                 if (this.shutdown) {
                     return Promise.reject(new Error(`Session is closing`));
                 }
-                let jobDesc = holder.asJob();
-                if (jobDesc instanceof Error) {
-                    this.logger.error(`Fail to get job description: ${jobDesc.message}`);
-                    jobDesc = {
-                        name: 'unknown',
-                        desc: 'unknown',
-                        icon: undefined,
-                    };
-                }
+                const description = this.getDescription(setup);
                 const job = jobs
                     .create({
                         session: this.session.getUUID(),
-                        name: jobDesc.name,
-                        desc: jobDesc.desc,
-                        icon: jobDesc.icon,
+                        name: description.title,
+                        desc: description.desctiption,
+                        // TODO: probably we should refuse from icons
+                        icon: '',
                     })
                     .start();
                 return new Promise((resolve, reject) => {
                     const observer = this.session
                         .getStream()
-                        .observe(options)
+                        .observe(setup)
                         .on('confirmed', () => {
                             Events.IpcEvent.emit(
                                 new Events.Observe.Started.Event({
                                     session: this.session.getUUID(),
                                     operation: observer.uuid(),
-                                    options,
+                                    options: setup,
                                 }),
                             );
                         })
@@ -119,38 +111,33 @@ export class Holder {
                         .finally(() => {
                             job.done();
                             this.observing.active.delete(observer.uuid());
-                            this.observing.finished.set(observer.uuid(), options);
+                            this.observing.finished.add(observer.uuid());
                             Events.IpcEvent.emit(
                                 new Events.Observe.Finished.Event({
                                     session: this.session.getUUID(),
                                     operation: observer.uuid(),
-                                    options,
+                                    options: setup,
                                 }),
                             );
                         });
-                    this.observing.active.set(observer.uuid(), { options, observer });
+                    this.observing.active.set(observer.uuid(), observer);
                 });
             },
             cancel: (uuid: string): Promise<void> => {
-                const operation = this.observing.active.get(uuid);
-                if (operation === undefined) {
+                const observer = this.observing.active.get(uuid);
+                if (observer === undefined) {
                     return Promise.reject(new Error(`Operation isn't found`));
                 }
                 return new Promise((resolve) => {
-                    operation.observer
+                    observer
                         .finally(() => {
                             resolve();
                         })
                         .abort();
                 });
             },
-            list: (): { [key: string]: string } => {
-                const list: { [key: string]: string } = {};
-                console.error(`Not implemented`);
-                // this.observing.active.forEach((operation, uuid) => {
-                //     list[uuid] = operation.source.json().to();
-                // });
-                return list;
+            list: (): string[] => {
+                return Array.from(this.observing.active.keys());
             },
         };
     }
@@ -201,5 +188,27 @@ export class Holder {
 
     public isShutdowning(): boolean {
         return this.shutdown;
+    }
+
+    protected getDescription(setup: SessionSetup): {
+        title: string;
+        desctiption: string | undefined;
+    } {
+        if (setup.origin === 'Source') {
+            // TODO: Check idents
+            return {
+                title: 'Custom Source',
+                desctiption: `Data comes from selected source provider`,
+            };
+        } else if ((setup.origin as { File: string }).File) {
+            return { title: `Selected File`, desctiption: (setup.origin as { File: string }).File };
+        } else if ((setup.origin as { Files: string[] }).Files) {
+            return {
+                title: `Collection of Files`,
+                desctiption: `${(setup.origin as { Files: string[] }).Files.length} files`,
+            };
+        } else {
+            return { title: 'Unknown', desctiption: undefined };
+        }
     }
 }
