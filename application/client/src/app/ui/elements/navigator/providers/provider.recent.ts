@@ -25,7 +25,7 @@ export class Provider extends Base<Action> {
                 recent
                     .get()
                     .then((actions: Action[]) => {
-                        this.storage().remove(actions.map((action: Action) => action.uuid));
+                        this.storage().remove(actions.map((action: Action) => action.hash));
                         this.reload.emit();
                     })
                     .catch((err: Error) => {
@@ -74,7 +74,7 @@ export class Provider extends Base<Action> {
             {
                 caption: 'Remove recent',
                 handler: () => {
-                    this.storage().remove([entity.uuid]);
+                    this.storage().remove([entity.hash]);
                 },
             },
             {

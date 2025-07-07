@@ -55,7 +55,7 @@ export class State extends Holder {
         recent
             .get()
             .then((actions: Action[]) => {
-                this.remove(actions.map((action: Action) => action.uuid));
+                this.remove(actions.map((action: Action) => action.hash));
             })
             .catch((err: Error) => {
                 this._logger.error(`Fail to remove all recent actions: ${err.message}`);
