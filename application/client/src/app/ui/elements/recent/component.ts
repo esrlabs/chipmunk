@@ -87,7 +87,7 @@ export class RecentActions extends ChangesDetector implements AfterContentInit, 
             {
                 caption: 'Remove recent',
                 handler: () => {
-                    this.state.remove([action.uuid]);
+                    this.state.remove([action.hash]);
                 },
             },
             {
