@@ -62,12 +62,12 @@ This script will handle installing dependencies required for building and runnin
 
 A custom Command Line Interface (CLI) tool has been implemented to provide an easier way to manage various development tasks specific to Chipmunk.
 
-For installation steps and detailed documentation regarding the Chipmunk Development CLI tool, please refer to its dedicated README file: [Chipmunk Development CLI Tool Documentation](cli/development-cli/README.md).
+For installation steps and detailed documentation regarding the Chipmunk Development CLI tool, please refer to its dedicated README file: [Chipmunk Development CLI Tool Documentation](./dev-cli.md).
 
 
 ## Build
 
-Chipmunk consists of a Rust backend for log processing, an Electron/Angular frontend application, and smaller libraries facilitating communication between them. Development tasks across these different components are managed using the [Chipmunk Development CLI Tool](cli/development-cli/README.md).
+Chipmunk consists of a Rust backend for log processing, an Electron/Angular frontend application, and smaller libraries facilitating communication between them. Development tasks across these different components are managed using the [Chipmunk Development CLI Tool](./dev-cli.md).
 
 This tool simplifies common operations such as building, linting, and running various parts of Chipmunk. It automatically handles project dependencies and tracks changes in source files, ensuring that only necessary components are rebuilt.
 For comprehensive details on all available commands and functionalities, please consult the documentation for the development CLI tool.
