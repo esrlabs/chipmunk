@@ -1,4 +1,4 @@
-import { SessionAction, Ident, IODataType } from '@platform/types/bindings';
+import { Ident, IODataType } from '@platform/types/bindings';
 import { components } from '@service/components';
 import { Logger } from '@env/logs';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
