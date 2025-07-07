@@ -562,6 +562,7 @@ checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 name = "components"
 version = "0.1.0"
 dependencies = [
+ "definitions",
  "log",
  "stypes",
  "thiserror 2.0.12",
@@ -886,6 +887,7 @@ dependencies = [
 name = "definitions"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "etherparse",
  "serde",
  "stypes",
@@ -3201,6 +3203,7 @@ name = "sources"
 version = "0.1.0"
 dependencies = [
  "async-stream",
+ "async-trait",
  "bufread",
  "bytes",
  "components",

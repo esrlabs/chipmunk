@@ -316,10 +316,7 @@ impl PluginsManager {
         Ok(())
     }
 
-    pub fn register_plugins(
-        &self,
-        components: &mut Components<sources::Source, parsers::Parser>,
-    ) -> Result<(), stypes::NativeError> {
+    pub fn register_plugins(&self, components: &mut Components) -> Result<(), stypes::NativeError> {
         for plugin in &self.installed_plugins {
             let plug_info = plugin.entity.clone();
             match plugin.entity.plugin_type {

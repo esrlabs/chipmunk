@@ -60,6 +60,7 @@ impl MockReloadSeed {
     }
 }
 
+#[async_trait]
 impl ByteSource for MockByteSource {
     fn consume(&mut self, offset: usize) {
         assert!(

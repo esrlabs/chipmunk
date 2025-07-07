@@ -1,5 +1,6 @@
 mod descriptor;
 
+use async_trait::async_trait;
 use bufread::BufReader;
 use definitions::*;
 pub use descriptor::*;
@@ -35,6 +36,7 @@ where
     }
 }
 
+#[async_trait]
 impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
     async fn load(&mut self, _: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, SourceError> {
         let initial_buf_len = self.reader.len();
@@ -104,6 +106,7 @@ impl BinaryByteSourceFromFile {
     }
 }
 
+#[async_trait]
 impl ByteSource for BinaryByteSourceFromFile {
     async fn load(
         &mut self,

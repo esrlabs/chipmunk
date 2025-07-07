@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
 use definitions::*;
@@ -137,6 +138,7 @@ impl SerialSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for SerialSource {
     async fn load(
         &mut self,

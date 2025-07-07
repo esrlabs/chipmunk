@@ -1,4 +1,5 @@
 use components::{ComponentDescriptor, ComponentFactory};
+use definitions::Parser;
 use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
 
 use super::SomeipParser;
@@ -12,17 +13,17 @@ const SOMEIP_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 const FIELD_FIBEX_FILES: &str = "SOMEIP_PARSER_FIELD_FIBEX_FILES";
 const FIELD_TZ: &str = "SOMEIP_PARSER_FIELD_TIMEZONE";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<Box<dyn Parser>> for Descriptor {
     fn create(
         &self,
         _origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
+    ) -> Result<Option<(Box<dyn Parser>, Option<String>)>, stypes::NativeError> {
         Ok(Some((
-            crate::Parser::SomeIp(SomeipParser::new()),
+            Box::new(SomeipParser::new()),
             Some("SomeIp".to_owned()),
         )))
     }

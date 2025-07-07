@@ -5,7 +5,7 @@ use stypes::{
     SessionAction, Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 
-use crate::prelude::SerialSource;
+use crate::{SourceDyn, prelude::SerialSource};
 
 use super::serialport::SerialConfig;
 
@@ -32,15 +32,15 @@ const FIELD_EXCLUSIVE: &str = "SERIAL_SOURCE_FIELD_EXCLUSIVE";
 /// List of ports
 const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<SourceDyn> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
+    ) -> Result<Option<(SourceDyn, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -90,10 +90,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 .ok_or(missed(FIELD_EXCLUSIVE))?
                 .value,
         };
-        Ok(Some((
-            crate::Source::Serial(SerialSource::new(config)?),
-            Some(path),
-        )))
+        Ok(Some((Box::new(SerialSource::new(config)?), Some(path))))
     }
 }
 

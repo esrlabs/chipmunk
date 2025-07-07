@@ -1,4 +1,5 @@
 use components::{ComponentDescriptor, ComponentFactory};
+use definitions::{ByteSource, Parser};
 use stypes::{
     Field, NativeError, NativeErrorKind, PluginConfigItem, PluginEntity, PluginParserSettings,
     SessionAction, Severity, StaticFieldDesc,
@@ -134,12 +135,12 @@ impl ComponentDescriptor for PluginDescriptor {
     }
 }
 
-impl ComponentFactory<parsers::Parser> for PluginDescriptor {
+impl ComponentFactory<Box<dyn Parser>> for PluginDescriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<(parsers::Parser, Option<String>)>, NativeError> {
+    ) -> Result<Option<(Box<dyn Parser>, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -188,18 +189,18 @@ impl ComponentFactory<parsers::Parser> for PluginDescriptor {
             })
         })?;
 
-        let parser = parsers::Parser::Plugin(Box::new(parse_res));
+        let parser = Box::new(parse_res);
 
         Ok(Some((parser, Some(self.entity.metadata.title.to_owned()))))
     }
 }
 
-impl ComponentFactory<sources::Source> for PluginDescriptor {
+impl ComponentFactory<Box<dyn ByteSource>> for PluginDescriptor {
     fn create(
         &self,
         _origin: &SessionAction,
         _options: &[Field],
-    ) -> Result<Option<(sources::Source, Option<String>)>, NativeError> {
+    ) -> Result<Option<(Box<dyn ByteSource>, Option<String>)>, NativeError> {
         //TODO: Update once sources are implemented
         Err(NativeError {
             severity: Severity::WARNING,

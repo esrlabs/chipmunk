@@ -1,5 +1,6 @@
 mod descriptor;
 
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
@@ -72,6 +73,7 @@ impl TcpSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for TcpSource {
     async fn load(
         &mut self,

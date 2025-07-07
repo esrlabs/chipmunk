@@ -1,6 +1,7 @@
 mod scheme;
 mod tys;
 
+use definitions::{ByteSource, Parser};
 use std::{collections::HashMap, fmt};
 use stypes::SessionDescriptor;
 use tokio_util::sync::CancellationToken;
@@ -55,11 +56,12 @@ pub use tys::*;
 /// - Component instances are created on demand and immediately passed upwards for further use; they
 ///   are not retained by `Components`.
 ///
-pub struct Components<S, P> {
-    components: HashMap<Uuid, Entry<S, P>>,
+#[derive(Debug)]
+pub struct Components {
+    components: HashMap<Uuid, Entry>,
 }
 
-impl<S, P> Components<S, P> {
+impl Components {
     /// Creates an empty `Components` registry.
     ///
     /// This method initializes the `Components` structure without any registered parsers or sources.
@@ -87,7 +89,7 @@ impl<S, P> Components<S, P> {
     ///
     /// # Errors
     /// Returns a configuration error if a parser with the same UUID already exists in the registry.
-    pub fn add_parser<D: ComponentFactory<P> + 'static>(
+    pub fn add_parser<D: ComponentFactory<Box<dyn Parser>> + 'static>(
         &mut self,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {
@@ -118,7 +120,7 @@ impl<S, P> Components<S, P> {
     ///
     /// # Errors
     /// Returns a configuration error if a source with the same UUID already exists in the registry.
-    pub fn add_source<D: ComponentFactory<S> + 'static>(
+    pub fn add_source<D: ComponentFactory<Box<dyn ByteSource>> + 'static>(
         &mut self,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {
@@ -202,7 +204,7 @@ impl<S, P> Components<S, P> {
         origin: stypes::SessionAction,
         mut targets: Vec<Uuid>,
     ) -> Result<HashMap<Uuid, OptionsScheme>, stypes::NativeError> {
-        let descriptors: Vec<&Entry<S, P>> = self
+        let descriptors: Vec<&Entry> = self
             .components
             .iter()
             .filter_map(|(uuid, desc)| {
@@ -340,7 +342,8 @@ impl<S, P> Components<S, P> {
     pub fn setup(
         &self,
         options: &stypes::SessionSetup,
-    ) -> Result<(SessionDescriptor, S, P), stypes::NativeError> {
+    ) -> Result<(SessionDescriptor, Box<dyn ByteSource>, Box<dyn Parser>), stypes::NativeError>
+    {
         let Some(Entry::Parser(parser)) = self.components.get(&options.parser.uuid) else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -376,11 +379,5 @@ impl<S, P> Components<S, P> {
         };
         descriptor.set_source_desc(desc);
         Ok((descriptor, source, parser))
-    }
-}
-
-impl<S, P> fmt::Debug for Components<S, P> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Components")
     }
 }

@@ -1,3 +1,5 @@
+use crate::SourceDyn;
+
 use super::ProcessSource;
 use components::{ComponentDescriptor, ComponentFactory};
 use std::{collections::HashMap, env};
@@ -14,15 +16,15 @@ const FIELD_COMMAND: &str = "COMMAND_FIELD_COMMAND";
 const FIELD_CWD: &str = "COMMAND_FIELD_CWD";
 const FIELD_SHELLS: &str = "COMMAND_FIELD_SHELLS";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<SourceDyn> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
+    ) -> Result<Option<(SourceDyn, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -42,7 +44,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
             .ok_or(missed(FIELD_COMMAND))?
             .value;
         Ok(Some((
-            crate::Source::Process(
+            Box::new(
                 ProcessSource::new(&command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
             ),
             Some(command),

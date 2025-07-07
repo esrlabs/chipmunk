@@ -3,19 +3,21 @@ use file_tools::is_binary;
 
 use stypes::SessionAction;
 
+use crate::SourceDyn;
+
 const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
 ]);
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<SourceDyn> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, stypes::NativeError> {
+    ) -> Result<Option<(SourceDyn, Option<String>)>, stypes::NativeError> {
         let filename = match origin {
             SessionAction::File(filename) => filename,
             SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
@@ -30,7 +32,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
         };
 
         Ok(Some((
-            crate::Source::Raw(super::BinaryByteSourceFromFile::new(filename)?),
+            Box::new(super::BinaryByteSourceFromFile::new(filename)?),
             Some(filename.to_string_lossy().to_string()),
         )))
     }

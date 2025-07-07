@@ -14,6 +14,7 @@ impl MockByteSource {
 // inline and the trait method should be always inline. This remove unnecessary `Future::poll()`
 // calls from the runtime to reduce its noise.
 
+#[async_trait]
 impl ByteSource for MockByteSource {
     #[inline(always)]
     fn consume(&mut self, offset: usize) {

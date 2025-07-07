@@ -27,6 +27,7 @@ shellexpand = "3.1"
 socket2 = "0.5.8"
 serialport.workspace = true
 envvars.workspace = true
+async-trait.workspace = true
 
 file-tools = { path = "../addons/file-tools" }
 stypes = { path = "../stypes", features=["rustcore"] }

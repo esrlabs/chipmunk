@@ -5,6 +5,8 @@ use stypes::{
     SessionAction, Severity, StaticFieldDesc, Value, ValueInput, missed_field_err as missed,
 };
 
+use crate::SourceDyn;
+
 use super::{MulticastInfo, UdpSource};
 
 const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
@@ -14,15 +16,15 @@ const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 const FIELD_IP_ADDR: &str = "UDP_SOURCE_FIELD_IP_ADDR";
 const FIELD_MULTICAST_ADDR: &str = "UDP_SOURCE_FIELD_MULTICAST_ADDR";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<SourceDyn> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
+    ) -> Result<Option<(SourceDyn, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -73,7 +75,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
             })
         }
         Ok(Some((
-            crate::Source::Udp(
+            Box::new(
                 UdpSource::new(&addr, multicasts).map_err(|err| NativeError {
                     kind: NativeErrorKind::Io,
                     severity: Severity::ERROR,

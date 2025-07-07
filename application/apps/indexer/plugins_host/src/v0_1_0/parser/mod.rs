@@ -170,7 +170,7 @@ impl defs::Parser for PluginParser {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct Descriptor {}
 
 impl ComponentDescriptor for Descriptor {
