@@ -38,7 +38,7 @@ export class Job {
         this.session = validator.getAsNotEmptyStringOrAsUndefined(job, 'session');
         this.name = validator.getAsNotEmptyStringOrAsUndefined(job, 'name');
         this.desc = validator.getAsNotEmptyStringOrAsUndefined(job, 'desc');
-        this.icon = validator.getAsNotEmptyStringOrAsUndefined(job, 'icon');
+        this.icon = validator.getAsStringOrAsUndefined(job, 'icon');
         this.progress = validator.getAsValidNumber(job, 'progress', {
             defaults: 0,
             max: 100,
@@ -122,7 +122,12 @@ export class Job {
                 name: this.name,
                 desc: this.desc,
                 progress: this.progress,
-                icon: this.icon,
+                icon:
+                    this.icon !== undefined
+                        ? this.icon.trim() === ''
+                            ? undefined
+                            : this.icon
+                        : undefined,
             }),
         );
         this._done(this);
