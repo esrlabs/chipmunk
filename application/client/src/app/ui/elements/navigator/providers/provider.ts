@@ -2,7 +2,7 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { Subject } from '@platform/env/subscription';
-import { ObserveOperation } from '@service/session/dependencies/stream';
+import { SessionOrigin } from '@service/session/origin';
 
 export interface IStatistics {
     title: string;
@@ -23,7 +23,7 @@ export abstract class Provider<T> {
     constructor(
         public readonly ilc: IlcInterface & ChangesDetector,
         public readonly index: number,
-        protected readonly operation: ObserveOperation | undefined,
+        protected readonly origin: SessionOrigin | undefined,
     ) {}
 
     public abstract load(): Promise<T[]>;

@@ -5,12 +5,10 @@
     (click)="onDefaultAction(action.action)"
     (contextmenu)="onAllActions($event, action.action)"
 >
-    <div class="column_0">
-        <app-recent-nature-icon [operation]="operation"></app-recent-nature-icon>
-    </div>
+    <div class="column_0">IC</div>
     <div class="column_1">
-        <app-recent-nature [operation]="operation"></app-recent-nature>
-        <app-recent-parser [operation]="operation"></app-recent-parser>
+        <p class="t-medium major">{{action.description().major}}</p>
+        <p class="t-medium minor">{{action.description().minor}}</p>
     </div>
 </div>
 <p class="t-medium nowrap description" *ngIf="state.getFilteredActions().length === 0">
