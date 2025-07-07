@@ -35,16 +35,16 @@ export class Provider extends Base<Action> {
         };
     }
     public load(): Promise<Action[]> {
-        console.error(`Not Implemented`);
-        return Promise.resolve([]);
-        // return recent.get().then((actions: Action[]) => {
-        //     actions = actions.filter((action) => action.isSuitable(this.operation));
-        //     actions.sort((a: Action, b: Action) => {
-        //         return b.stat.score().recent() >= a.stat.score().recent() ? 1 : -1;
-        //     });
-        //     this.count = actions.length;
-        //     return actions;
-        // });
+        return recent.get().then((actions: Action[]) => {
+            actions = actions.filter((action) =>
+                this.origin ? action.isSuitable(this.origin) : true,
+            );
+            actions.sort((a: Action, b: Action) => {
+                return b.stat.score().recent() >= a.stat.score().recent() ? 1 : -1;
+            });
+            this.count = actions.length;
+            return actions;
+        });
     }
 
     public action(action: unknown): void {
