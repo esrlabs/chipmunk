@@ -6,19 +6,19 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher';
 import { Logger } from '@platform/log';
-import { ObserveOperation } from '@service/session/dependencies/stream';
+import { SessionOrigin } from '@service/session/origin';
 
 export class State extends Holder {
     public actions: WrappedAction[] = [];
 
     public readonly update: Subject<void> = new Subject<void>();
-    public readonly operation: ObserveOperation | undefined;
+    public origin: SessionOrigin | undefined;
 
     private _logger: Logger;
 
-    constructor(ilc: IlcInterface & ChangesDetector, operation: ObserveOperation) {
+    constructor(ilc: IlcInterface & ChangesDetector, origin: SessionOrigin | undefined) {
         super();
-        this.operation = operation;
+        this.origin = origin;
         this._logger = ilc.log();
         ilc.env().subscriber.register(recent.updated.subscribe(this.reload.bind(this)));
         this.reload();
@@ -63,22 +63,23 @@ export class State extends Holder {
     }
 
     public reload(): void {
-        console.error(`Not implemented`);
-        // recent
-        //     .get()
-        //     .then((actions: Action[]) => {
-        //         this.actions = actions
-        //             .filter((action) => action.isSuitable(this.operation))
-        //             .map((action) => new WrappedAction(action, this.matcher));
-        //         this.actions.sort((a: WrappedAction, b: WrappedAction) => {
-        //             return b.action.stat.score().recent() >= a.action.stat.score().recent()
-        //                 ? 1
-        //                 : -1;
-        //         });
-        //         this.update.emit();
-        //     })
-        //     .catch((error: Error) => {
-        //         this._logger.error(`Fail to get recent due error: ${error.message}`);
-        //     });
+        recent
+            .get()
+            .then((actions: Action[]) => {
+                this.actions = actions
+                    .filter((action) => {
+                        this.origin ? action.isSuitable(this.origin) : true;
+                    })
+                    .map((action) => new WrappedAction(action, this.matcher));
+                this.actions.sort((a: WrappedAction, b: WrappedAction) => {
+                    return b.action.stat.score().recent() >= a.action.stat.score().recent()
+                        ? 1
+                        : -1;
+                });
+                this.update.emit();
+            })
+            .catch((error: Error) => {
+                this._logger.error(`Fail to get recent due error: ${error.message}`);
+            });
     }
 }
