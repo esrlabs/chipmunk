@@ -37,30 +37,6 @@ export class Service extends Implementation {
                 }
             })
             .filter((a) => a !== undefined) as Action[];
-        const invalid = actions.filter((a) => a.compatibility.invalidUuid !== undefined);
-        if (invalid.length > 0) {
-            await this.delete(invalid.map((a) => a.compatibility.invalidUuid as string))
-                .then(() => {
-                    this.log().debug(
-                        `${invalid.length} actions with invalid UUIDs has been removed`,
-                    );
-                })
-                .catch((err: Error) => {
-                    this.log().error(
-                        `Fail to remove recent actions with invalid uuid: ${err.message}`,
-                    );
-                });
-        }
-        const converted = actions.filter((a) => a.compatibility.converted);
-        if (converted.length > 0) {
-            await this.update(converted)
-                .then(() => {
-                    this.log().debug(`${converted.length} converted actions has been updated`);
-                })
-                .catch((err: Error) => {
-                    this.log().error(`Fail to update converted recent actions: ${err.message}`);
-                });
-        }
         return actions;
     }
 
@@ -70,23 +46,21 @@ export class Service extends Implementation {
         }
         const stored = await this.get();
         actions.forEach((action) => {
-            const found = stored.find((a) => a.uuid === action.uuid);
+            const found = stored.find((a) => a.hash === action.hash);
             if (found === undefined) {
                 return;
             }
             action.merge(found);
         });
-        console.error(`Not implemented`);
-        return Promise.resolve();
-        // return bridge
-        //     .entries({ key: STORAGE_KEY })
-        //     .update(actions.map((a) => a.entry().to()))
-        //     .then(() => {
-        //         this.updated.emit();
-        //     })
-        //     .catch((err: Error) => {
-        //         this.log().error(`Fail to update recent storage: ${err.message}`);
-        //     });
+        return bridge
+            .entries({ key: STORAGE_KEY })
+            .update(actions.map((a) => a.entry().to()))
+            .then(() => {
+                this.updated.emit();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to update recent storage: ${err.message}`);
+            });
     }
 
     public delete(uuids: string[]): Promise<void> {
@@ -105,7 +79,10 @@ export class Service extends Implementation {
     }
 
     public add(operation: ObserveOperation): Promise<void> {
-        const action = new Action(operation.getOrigin());
+        const action = Action.fromOperation(operation);
+        if (action instanceof Error) {
+            return Promise.reject(action);
+        }
         return this.update([action]);
     }
 }

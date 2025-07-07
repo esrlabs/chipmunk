@@ -4,6 +4,7 @@ import {
     SessionSetup,
     ComponentOptions,
     OutputRender,
+    SessionDescriptor,
 } from '@platform/types/bindings';
 import { Render } from '@schema/render';
 import { ColumnsRender } from '@schema/render/columns';
@@ -13,6 +14,14 @@ import { components } from '@service/components';
 export class SessionComponents {
     public parser: Ident | undefined;
     public source: Ident | undefined;
+    public setParser(ident: Ident): SessionComponents {
+        this.parser = ident;
+        return this;
+    }
+    public setSource(ident: Ident): SessionComponents {
+        this.source = ident;
+        return this;
+    }
 }
 
 export class ComponentsOptions {
@@ -29,6 +38,14 @@ export class ComponentsOptions {
 }
 
 export class SessionOrigin {
+    static fromSessionSetup(setup: SessionSetup, descriptor: SessionDescriptor): SessionOrigin {
+        return new SessionOrigin(
+            setup.origin,
+            new SessionComponents().setSource(descriptor.source).setParser(descriptor.source),
+            new ComponentsOptions().setParser(setup.parser).setSource(setup.source),
+        );
+    }
+
     static file(path: string): SessionOrigin {
         return new SessionOrigin({ File: path }, undefined);
     }
@@ -44,8 +61,9 @@ export class SessionOrigin {
     constructor(
         public readonly origin: SessionAction,
         public components: SessionComponents | undefined,
+        options?: ComponentsOptions,
     ) {
-        this.options = new ComponentsOptions();
+        this.options = options ? options : new ComponentsOptions();
     }
 
     public setComponents(components: SessionComponents) {
@@ -141,6 +159,21 @@ export class SessionOrigin {
 
     public isFile(): boolean {
         return typeof (this.origin as { File: string }).File === 'string';
+    }
+
+    public isSameAction(other: SessionAction): boolean {
+        if ((this.origin as { File: string }).File && (other as { File: string }).File) {
+            return true;
+        } else if (
+            (this.origin as { Files: string[] }).Files &&
+            (other as { Files: string[] }).Files
+        ) {
+            return true;
+        } else if (this.origin === 'Source' && other === 'Source') {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public getFirstFilename(): string | undefined {

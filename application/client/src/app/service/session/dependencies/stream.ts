@@ -11,10 +11,11 @@ import { Sde } from './observing/sde';
 import { TextExportOptions } from '@platform/types/exporting';
 import { SessionDescriptor } from '@platform/types/bindings';
 import { SessionOrigin } from '../origin';
+import { ISourceLink } from '@platform/types/source';
+import { recent } from '@service/recent';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
-import { ISourceLink } from '@platform/types/source';
 
 export { ObserveOperation };
 
@@ -206,6 +207,10 @@ export class Stream extends Subscriber {
                             });
                         this.sde.overwrite(this.observed.operations);
                         this.subjects.get().started.emit(operation);
+                        if (this.observed.operations.size === 1) {
+                            // Only if it's the first operation, save as recent
+                            recent.add(operation);
+                        }
                         return response.session;
                     })
                     .finally(lockers.progress(`Creating session...`));
