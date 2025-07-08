@@ -35,8 +35,8 @@ export class Action {
                     `No descriptor object. It might be old format. No converting support`,
                 );
             }
-            obj.getAsObj(body.descriptor, 'p_desc');
-            obj.getAsObj(body.descriptor, 's_desc');
+            obj.getAsStringOrAsUndefined(body.descriptor, 'p_desc');
+            obj.getAsStringOrAsUndefined(body.descriptor, 's_desc');
             obj.getAsObj(body.descriptor, 'parser');
             obj.getAsObj(body.descriptor, 'source');
             return new Action(body.setup, body.descriptor, body.stat);

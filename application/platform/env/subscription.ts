@@ -44,7 +44,7 @@ export function validateEventDesc(desc: IEventDesc, target: any): Error | undefi
             )}`,
         );
     }
-    if (typeof desc.self !== 'string') {
+    if (typeof desc.self === 'object') {
         if (!(target instanceof desc.self)) {
             return new Error(`Expecting ${desc.self}, but has been gotten ${target}`);
         } else {
@@ -80,7 +80,18 @@ export function validateEventDesc(desc: IEventDesc, target: any): Error | undefi
                 (typeof target[name] === typeRef || typeRef === 'any')
             ) {
                 valid = true;
-            } else if (typeof typeRef !== 'string' && target[name] instanceof typeRef) {
+            } else if (typeof typeRef === 'object' && typeRef === null && target[name] === null) {
+                valid = true;
+            } else if (
+                typeof typeRef === 'object' &&
+                typeRef !== null &&
+                target[name] instanceof typeRef
+            ) {
+                valid = true;
+            } else if (
+                (typeRef === null && target[name] === null) ||
+                (typeRef === undefined && target[name] === undefined)
+            ) {
                 valid = true;
             }
         });
