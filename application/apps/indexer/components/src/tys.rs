@@ -1,6 +1,7 @@
-use std::{future::Future, pin::Pin};
+use std::{fmt::Debug, future::Future, pin::Pin};
 
 use crate::*;
+use definitions::{ByteSource, Parser};
 use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
@@ -65,12 +66,13 @@ pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send
 /// Variants:
 /// - `Parser`: A descriptor for a parser component.
 /// - `Source`: A descriptor for a source component.
-pub enum Entry<S, P> {
-    Parser(Box<dyn ComponentFactory<P>>),
-    Source(Box<dyn ComponentFactory<S>>),
+#[derive(Debug)]
+pub enum Entry {
+    Parser(Box<dyn ComponentFactory<Box<dyn Parser>>>),
+    Source(Box<dyn ComponentFactory<Box<dyn ByteSource>>>),
 }
 
-impl<S, P> ComponentDescriptor for Entry<S, P> {
+impl ComponentDescriptor for Entry {
     fn get_render(&self) -> Option<stypes::OutputRender> {
         match self {
             Self::Source(inner) => inner.get_render(),
@@ -174,7 +176,7 @@ pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
 /// The actual parser and source implementations remain hidden behind the descriptor,
 /// making it possible to swap, reconfigure, or isolate components without touching
 /// the application core.
-pub trait ComponentDescriptor {
+pub trait ComponentDescriptor: Debug {
     fn get_render(&self) -> Option<stypes::OutputRender> {
         None
     }

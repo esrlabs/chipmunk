@@ -1,11 +1,12 @@
 mod descriptor;
 
 use crate::binary::pcap::debug_block;
+use async_trait::async_trait;
 use bufread::DeqBuffer;
 use definitions::*;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
-use pcap_parser::{traits::PcapReaderIterator, PcapBlockOwned, PcapError, PcapNGReader};
+use pcap_parser::{PcapBlockOwned, PcapError, PcapNGReader, traits::PcapReaderIterator};
 use std::{fs::File, io::Read, path::Path};
 
 pub use descriptor::*;
@@ -29,6 +30,7 @@ impl<R: Read> PcapngByteSource<R> {
     }
 }
 
+#[async_trait]
 impl<R: Read + Send + Sync> ByteSource for PcapngByteSource<R> {
     async fn load(
         &mut self,
@@ -191,6 +193,7 @@ impl PcapngByteSourceFromFile {
     }
 }
 
+#[async_trait]
 impl ByteSource for PcapngByteSourceFromFile {
     async fn load(
         &mut self,

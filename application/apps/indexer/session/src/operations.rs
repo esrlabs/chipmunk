@@ -74,10 +74,7 @@ impl Operation {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum OperationKind {
-    Observe(
-        stypes::SessionSetup,
-        Arc<Components<sources::Source, parsers::Parser>>,
-    ),
+    Observe(stypes::SessionSetup, Arc<Components>),
     Search {
         filters: Vec<SearchFilter>,
     },

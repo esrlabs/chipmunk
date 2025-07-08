@@ -11,3 +11,4 @@ tokio = { workspace = true , features = ["full"] }
 log.workspace = true
 
 stypes = { path = "../stypes", features=["rustcore"] }
+definitions = {path  = "../definitions"}

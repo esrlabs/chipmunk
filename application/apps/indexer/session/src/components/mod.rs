@@ -60,7 +60,7 @@ impl ComponentsSession {
             UnboundedSender<stypes::CallbackOptionsEvent>,
             UnboundedReceiver<stypes::CallbackOptionsEvent>,
         ) = unbounded_channel();
-        let mut components: Components<sources::Source, parsers::Parser> = Components::new();
+        let mut components = Components::new();
         // Registre parsers
         parsers::registration(&mut components)?;
         // Registre sources

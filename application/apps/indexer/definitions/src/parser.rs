@@ -27,7 +27,7 @@ impl From<NativeError> for ParserError {
 
 /// Parser trait that needs to be implemented for any parser we support
 /// in chipmunk
-pub trait Parser {
+pub trait Parser: Send {
     /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
     /// it will return iterator of items each with the consumed bytes count along with `Some(log_message)`
     ///
@@ -42,6 +42,21 @@ pub trait Parser {
     /// return those items without the error, then on the next call it can return the errors in
     /// case it was provided with the same slice of bytes.
     fn parse<'a>(&'a mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a>;
+}
+
+// Rust doesn't support a blanket implementation like `impl<T> T for Box<dyn T>`.
+// Normally, it uses `Deref` coercion to allow calling trait methods on a reference
+// to a Box (e.g., `&Box<dyn Parser>`).
+//
+// However, that coercion doesn't apply in this case because the `Producer` is
+// takes ownership of its `Parser`.
+// Therefore, we must manually implement the `Parser` trait for `Box<dyn Parser>`,
+// redirecting each method call to the underlying trait object.
+impl Parser for Box<dyn Parser> {
+    #[inline]
+    fn parse<'a>(&'a mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
+        self.as_mut().parse(input, timestamp)
+    }
 }
 
 /// A trait for parsers that extract one item at a time from a byte slice.
@@ -59,7 +74,7 @@ pub trait Parser {
 /// - If `parse_item()` succeeds, parsing continues until:
 ///   - The remaining input is too short to parse another item.
 ///   - `parse_item()` returns an error, which is ignored after the first successful parse.
-pub trait SingleParser {
+pub trait SingleParser: Send {
     /// The minimum number of bytes required to parse an item.
     ///
     /// # Notes:

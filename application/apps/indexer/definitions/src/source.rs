@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,7 +86,7 @@ pub trait InnerReader: std::io::Read + Send + Unpin + 'static {}
 /// want to extract the data part from certain frames, the `relaod` method will load only the relevant
 /// data into an internal buffer.
 /// This data can then be accessed via the `current_slice` method.
-#[allow(async_fn_in_trait)]
+#[async_trait]
 pub trait ByteSource: Send {
     /// Indicate that we have consumed a certain amount of data from our internal
     /// buffer and that this part can be discarded
@@ -136,5 +137,57 @@ pub trait ByteSource: Send {
         _msg: stypes::SdeRequest,
     ) -> Result<stypes::SdeResponse, SourceError> {
         Err(SourceError::NotSupported)
+    }
+}
+
+// Rust doesn't support a blanket implementation like `impl<T> T for Box<dyn T>`.
+// Normally, it uses `Deref` coercion to allow calling trait methods on a reference
+// to a Box (e.g., `&Box<dyn ByteSource>`).
+//
+// However, that coercion doesn't apply in this case because the `Producer` is
+// takes ownership of its `ByteSource`.
+// Therefore, we must manually implement the `ByteSource` trait for `Box<dyn ByteSource>`,
+// redirecting each method call to the underlying trait object.
+#[async_trait]
+impl ByteSource for Box<dyn ByteSource> {
+    #[inline]
+    fn consume(&mut self, offset: usize) {
+        self.as_mut().consume(offset);
+    }
+
+    #[inline]
+    fn current_slice(&self) -> &[u8] {
+        self.as_ref().current_slice()
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        self.as_ref().len()
+    }
+
+    #[inline]
+    async fn load(
+        &mut self,
+        filter: Option<&SourceFilter>,
+    ) -> Result<Option<ReloadInfo>, SourceError> {
+        self.as_mut().load(filter).await
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.as_ref().is_empty()
+    }
+
+    #[inline]
+    async fn cancel(&mut self) -> Result<(), SourceError> {
+        self.as_mut().cancel().await
+    }
+
+    #[inline]
+    async fn income(
+        &mut self,
+        msg: stypes::SdeRequest,
+    ) -> Result<stypes::SdeResponse, SourceError> {
+        self.as_mut().income(msg).await
     }
 }

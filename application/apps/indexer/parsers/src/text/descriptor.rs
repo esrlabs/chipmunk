@@ -1,4 +1,5 @@
 use components::{ComponentDescriptor, ComponentFactory};
+use definitions::Parser;
 use file_tools::is_binary;
 use stypes::SessionAction;
 
@@ -8,16 +9,16 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
 ]);
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<Box<dyn Parser>> for Descriptor {
     fn create(
         &self,
         _origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
-        Ok(Some((crate::Parser::Text(StringTokenizer {}), None)))
+    ) -> Result<Option<(Box<dyn Parser>, Option<String>)>, stypes::NativeError> {
+        Ok(Some((Box::new(StringTokenizer {}), None)))
     }
 }
 

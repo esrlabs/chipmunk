@@ -7,17 +7,17 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x01, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
 ]);
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<Box<dyn Parser>> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
+    ) -> Result<Option<(Box<dyn Parser>, Option<String>)>, stypes::NativeError> {
         Ok(Some((
-            crate::Parser::DltRaw(DltRawParser::new(!matches!(origin, SessionAction::Source))),
+            Box::new(DltRawParser::new(!matches!(origin, SessionAction::Source))),
             Some("DLT".to_string()),
         )))
     }

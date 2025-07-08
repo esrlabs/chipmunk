@@ -25,7 +25,7 @@ const FIELD_FIBEX_FILES: &str = "DLT_PARSER_FIELD_FIBEX_FILES";
 const FIELD_STATISTICS: &str = "DLT_PARSER_FIELD_STATISTICS";
 const FIELD_TZ: &str = "DLT_PARSER_FIELD_TIMEZONE";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
 enum StatFields {
@@ -48,12 +48,12 @@ impl fmt::Display for StatFields {
     }
 }
 
-impl ComponentFactory<crate::Parser> for Descriptor {
+impl ComponentFactory<Box<dyn Parser>> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, NativeError> {
+    ) -> Result<Option<(Box<dyn Parser>, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -105,7 +105,7 @@ impl ComponentFactory<crate::Parser> for Descriptor {
             context_id_count: 0,
         };
         Ok(Some((
-            crate::Parser::Dlt(DltParser::new(
+            Box::new(DltParser::new(
                 Some(filter_config),
                 dlt_metadata,
                 None,

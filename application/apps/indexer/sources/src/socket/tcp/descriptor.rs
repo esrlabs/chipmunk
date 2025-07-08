@@ -6,7 +6,7 @@ use stypes::{
     Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 
-use crate::prelude::TcpSource;
+use crate::{SourceDyn, prelude::TcpSource};
 
 const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
@@ -15,15 +15,15 @@ const TCP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 // TODO: make fields ids more generic, for example prefix can be taken from source trait somehow
 const FIELD_IP_ADDR: &str = "TCP_SOURCE_FIELD_IP_ADDR";
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
+impl ComponentFactory<SourceDyn> for Descriptor {
     fn create(
         &self,
         origin: &SessionAction,
         options: &[Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
+    ) -> Result<Option<(SourceDyn, Option<String>)>, NativeError> {
         let errors = self.validate(origin, options)?;
         if !errors.is_empty() {
             return Err(NativeError {
@@ -43,7 +43,7 @@ impl ComponentFactory<crate::Source> for Descriptor {
             .ok_or(missed(FIELD_IP_ADDR))?
             .value;
         Ok(Some((
-            crate::Source::Tcp(TcpSource::new(&addr, None, None)?),
+            Box::new(TcpSource::new(&addr, None, None)?),
             Some(format!("TCP on {}", addr)),
         )))
     }

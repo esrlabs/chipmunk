@@ -1,4 +1,5 @@
 mod descriptor;
+use async_trait::async_trait;
 pub use descriptor::*;
 
 use bufread::DeqBuffer;
@@ -158,6 +159,7 @@ impl ProcessSource {
     }
 }
 
+#[async_trait]
 impl ByteSource for ProcessSource {
     async fn load(
         &mut self,
