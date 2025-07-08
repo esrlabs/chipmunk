@@ -150,8 +150,8 @@ interface ISessionEventsInterfaces {
             self: 'object';
             parser: 'object';
             source: 'object';
-            s_desc: ['string', null, undefined];
-            p_desc: ['string', null, undefined];
+            s_desc: ['string', null];
+            p_desc: ['string', null];
         };
     };
     OperationProcessing: { self: 'string' };
@@ -191,8 +191,8 @@ const SessionEventsInterfaces: ISessionEventsInterfaces = {
             self: 'object',
             parser: 'object',
             source: 'object',
-            s_desc: ['string', null, undefined],
-            p_desc: ['string', null, undefined],
+            s_desc: ['string', null],
+            p_desc: ['string', null],
         },
     },
     OperationProcessing: { self: 'string' },

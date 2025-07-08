@@ -289,6 +289,7 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                     (this.getEventsInterfaces() as any)[event],
                     data,
                 );
+
                 if (err instanceof Error) {
                     this.debug().emit.error(`Error: ${error(err)}. Input: ${JSON.stringify(data)}`);
                     this.logger.error(`Failed to parse event "${event}" due error: ${error(err)}`);

@@ -28,8 +28,7 @@ export class Entity extends PassiveMatchee {
         if (this.origin instanceof Action) {
             console.error(`Not Implemented`);
             return {
-                // criteria: this.origin.description().major,
-                criteria: '',
+                criteria: this.origin.description().major,
             };
         } else {
             return {
@@ -44,17 +43,12 @@ export class Entity extends PassiveMatchee {
     } {
         const major: string | undefined = this.getHtmlOf('html_criteria');
         if (this.origin instanceof Action) {
-            console.error(`Not Implemented`);
-            return {
-                major: 'Not Implemented',
-                minor: 'Not Implemented',
-            };
-            // return major === undefined
-            //     ? this.origin.description()
-            //     : {
-            //           major,
-            //           minor: this.origin.description().minor,
-            //       };
+            return major === undefined
+                ? this.origin.description()
+                : {
+                      major,
+                      minor: this.origin.description().minor,
+                  };
         } else {
             return {
                 major: major === undefined ? this.origin.name : major,
@@ -63,11 +57,11 @@ export class Entity extends PassiveMatchee {
         }
     }
 
-    // public hash(): string {
-    //     if (this.origin instanceof Action) {
-    //         return `${this.origin.description().major}-${this.origin.description().minor}`;
-    //     } else {
-    //         return `${this.origin.name}-${this.origin.parent}`;
-    //     }
-    // }
+    public hash(): string {
+        if (this.origin instanceof Action) {
+            return `${this.origin.description().major}-${this.origin.description().minor}`;
+        } else {
+            return `${this.origin.name}-${this.origin.parent}`;
+        }
+    }
 }
