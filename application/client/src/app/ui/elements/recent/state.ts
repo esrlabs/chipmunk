@@ -67,9 +67,7 @@ export class State extends Holder {
             .get()
             .then((actions: Action[]) => {
                 this.actions = actions
-                    .filter((action) => {
-                        this.origin ? action.isSuitable(this.origin) : true;
-                    })
+                    .filter((action) => (this.origin ? action.isSuitable(this.origin) : true))
                     .map((action) => new WrappedAction(action, this.matcher));
                 this.actions.sort((a: WrappedAction, b: WrappedAction) => {
                     return b.action.stat.score().recent() >= a.action.stat.score().recent()
