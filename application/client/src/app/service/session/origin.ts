@@ -161,6 +161,14 @@ export class SessionOrigin {
         return typeof (this.origin as { File: string }).File === 'string';
     }
 
+    public isFiles(): boolean {
+        return (this.origin as { Files: string[] }).Files instanceof Array;
+    }
+
+    public isStream(): boolean {
+        return typeof this.origin === 'string' && this.origin === 'Source';
+    }
+
     public isSameAction(other: SessionAction): boolean {
         if ((this.origin as { File: string }).File && (other as { File: string }).File) {
             return true;
@@ -182,6 +190,14 @@ export class SessionOrigin {
         } else if ((this.origin as { Files: string[] }).Files) {
             const files = (this.origin as { Files: string[] }).Files;
             return files.length > 0 ? files[0] : undefined;
+        } else {
+            return undefined;
+        }
+    }
+    public getFiles(): string[] | undefined {
+        if ((this.origin as { Files: string[] }).Files) {
+            const files = (this.origin as { Files: string[] }).Files;
+            return files instanceof Array ? files : undefined;
         } else {
             return undefined;
         }
