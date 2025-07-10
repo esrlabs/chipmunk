@@ -27,7 +27,11 @@ export class Action {
             if (body.setup === undefined || typeof body.setup !== 'object') {
                 throw new Error(`No origin object. It might be old format. No converting support`);
             }
-            obj.getAsObj(body.setup, 'origin');
+            if (!body.setup.origin) {
+                throw new Error(
+                    `No origin in setup object. It might be old format. No converting support`,
+                );
+            }
             obj.getAsObj(body.setup, 'parser');
             obj.getAsObj(body.setup, 'source');
             if (body.descriptor === undefined || typeof body.descriptor !== 'object') {
