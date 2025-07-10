@@ -240,6 +240,15 @@ export class Service extends Implementation {
             auto: (origin: SessionOrigin, session?: Session): Promise<string | undefined> => {
                 console.error(`Not implemented`);
                 return Promise.reject(new Error(`Not implemented`));
+                // Okay. Here actually we need make auto-run for text files for example. This requires some addition
+                // API on backend. We should send SessionAction.File or SessionAction.Files and try to detect on backend
+                // is possible to open without options or not. It means we are checking:
+                // 1) is only one source and only one parser to open this file(s) or maybe stream.
+                // 2) does parser and source have some options/settings
+                // 3) if only one parser and only one source and no options/settings are requred - we make preselection
+                //
+                // This workflow lived before on front-end, now it should lives on rustcore side.
+                //
                 // return observe.locker().is()
                 //     ? this.initialize().observe(observe, session)
                 //     : this.initialize().configure(observe, session);
@@ -290,20 +299,13 @@ export class Service extends Implementation {
                         .observe()
                         .start(origin)
                         .then((uuid: string) => {
-                            const error = this.bind(session.uuid(), uuid, true);
+                            const error =
+                                existed === undefined
+                                    ? this.bind(session.uuid(), uuid, true)
+                                    : undefined;
                             if (error instanceof Error) {
                                 this.log().error(`Fail to bind session: ${error.message}`);
                             }
-                            // if (existed === undefined) {
-                            //     const error = this.bind(
-                            //         session.uuid(),
-                            //         observe.origin.desc().major,
-                            //         true,
-                            //     );
-                            //     if (error instanceof Error) {
-                            //         this.log().error(`Fail to bind session: ${error.message}`);
-                            //     }
-                            // }
                             resolve(uuid);
                         })
                         .catch((err: Error) => {
@@ -319,48 +321,6 @@ export class Service extends Implementation {
                                 });
                         });
                 });
-
-                // const render = await getRender(observe);
-                // if (render instanceof Error) {
-                //     throw render;
-                // }
-                // const session =
-                //     existed !== undefined ? existed : await this.add(false).empty(render);
-                // return new Promise((resolve, reject) => {
-                //     session.stream
-                //         .observe()
-                //         .start(observe)
-                //         .then((uuid: string) => {
-                //             if (existed === undefined) {
-                //                 const error = this.bind(
-                //                     session.uuid(),
-                //                     observe.origin.desc().major,
-                //                     true,
-                //                 );
-                //                 if (error instanceof Error) {
-                //                     this.log().error(`Fail to bind session: ${error.message}`);
-                //                 }
-                //                 recent.add(observe).catch((err: Error) => {
-                //                     this.log().error(
-                //                         `Fail to save action as recent: ${err.message}`,
-                //                     );
-                //                 });
-                //             }
-                //             resolve(uuid);
-                //         })
-                //         .catch((err: Error) => {
-                //             if (existed !== undefined) {
-                //                 return reject(err);
-                //             }
-                //             this.kill(session.uuid())
-                //                 .catch((closeErr: Error) => {
-                //                     this.log().error(`Fail to close session: ${closeErr.message}`);
-                //                 })
-                //                 .finally(() => {
-                //                     reject(err);
-                //                 });
-                //         });
-                // });
             },
             multiple: (files: File[]): Promise<string | undefined> => {
                 return new Promise((resolve, reject) => {
@@ -371,26 +331,24 @@ export class Service extends Implementation {
                             inputs: {
                                 files,
                                 setTitle: (title: string) => {
-                                    api?.setTitle(title);
+                                    api && api.setTitle(title);
                                 },
                                 done: (origin: SessionOrigin) => {
-                                    console.error(`Not implemented`);
-                                    //     .observe(observe)
-                                    //     .then((session) => {
-                                    //         resolve(session);
-                                    //     })
-                                    //     .catch((err: Error) => {
-                                    //         this.log().error(
-                                    //             `Fail to setup observe: ${err.message}`,
-                                    //         );
-                                    //         reject(err);
-                                    //     })
-                                    //     .finally(() => {
-                                    //         api?.close();
-                                    //     });
+                                    this.initialize()
+                                        .observe(origin)
+                                        .then(resolve)
+                                        .catch((err: Error) => {
+                                            this.log().error(
+                                                `Fail to setup observe: ${err.message}`,
+                                            );
+                                            reject(err);
+                                        })
+                                        .finally(() => {
+                                            api && api.close();
+                                        });
                                 },
                                 cancel: () => {
-                                    api?.close();
+                                    api && api.close();
                                     resolve(undefined);
                                 },
                             },

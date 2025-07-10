@@ -26,7 +26,6 @@ export class Entity extends PassiveMatchee {
 
     public override asObj(): object {
         if (this.origin instanceof Action) {
-            console.error(`Not Implemented`);
             return {
                 criteria: this.origin.description().major,
             };
