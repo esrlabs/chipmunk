@@ -66,23 +66,22 @@ export class HistorySession extends Subscriber {
             this.pendings.push(operation);
             return;
         }
-        console.error(`Not implemented`);
-        // Definition.fromDataSource(operation)
-        //     .then((definition) => {
-        //         definition = this.storage.definitions.update(definition);
-        //         this.definitions.add(definition);
-        //         this.collections.bind(definition);
-        //         if (cli.isFiltersImported(this.session.uuid())) {
-        //             // Filters are imported from CLI. Recent filters/charts should not
-        //             // be applied
-        //             return;
-        //         }
-        //         this.save();
-        //         this.check().all();
-        //     })
-        //     .catch((err: Error) => {
-        //         this.log().error(`Fail to get definition of source: ${err.message}`);
-        //     });
+        Definition.fromDataSource(operation)
+            .then((definition) => {
+                definition = this.storage.definitions.update(definition);
+                this.definitions.add(definition);
+                this.collections.bind(definition);
+                if (cli.isFiltersImported(this.session.uuid())) {
+                    // Filters are imported from CLI. Recent filters/charts should not
+                    // be applied
+                    return;
+                }
+                this.save();
+                this.check().all();
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get definition of source: ${err.message}`);
+            });
     }
 
     protected save() {
