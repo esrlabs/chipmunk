@@ -19,8 +19,8 @@ export class StreamDesc implements IStreamDesc {
             return Promise.resolve(undefined);
         }
         return Promise.resolve({
-            major: descriptor.s_desc ? descriptor.s_desc : descriptor.source.name,
-            minor: descriptor.p_desc ? descriptor.p_desc : descriptor.parser.name,
+            major: descriptor.parser.name,
+            minor: descriptor.s_desc ? descriptor.s_desc : descriptor.source.name,
             source: descriptor.source.name,
         });
     }
@@ -48,15 +48,12 @@ export class StreamDesc implements IStreamDesc {
     }
 
     public isSame(stream: StreamDesc): boolean {
-        console.error(`Not implemented`);
-        return false;
-        // return stream.source === this.source && this.major === stream.major;
+        return stream.source === this.source && this.major === stream.major;
     }
 
     public minify(): { [key: string]: number | string } {
-        console.error(`Not implemented`);
         return {
-            s: '',
+            s: this.source,
             mi: this.minor,
             ma: this.major,
         };
