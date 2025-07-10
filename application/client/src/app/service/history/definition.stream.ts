@@ -1,53 +1,50 @@
-import { SessionOrigin } from '@service/session/origin';
+import { ObserveOperation } from '@service/session/dependencies/stream';
+import { SessionDescriptor } from '@platform/types/bindings';
 
 import * as obj from '@platform/env/obj';
 
 export interface IStreamDesc {
-    origin: SessionOrigin;
+    source: string;
     major: string;
     minor: string;
 }
 
 export class StreamDesc implements IStreamDesc {
-    static async fromDataSource(origin: SessionOrigin): Promise<IStreamDesc | undefined> {
-        return Promise.reject(new Error(`Not implemented`));
-
-        // const stream = source.origin.as<$.Origin.Stream.Configuration>(
-        //     $.Origin.Stream.Configuration,
-        // );
-        // if (stream === undefined) {
-        //     return undefined;
-        // }
-        // const def = stream.desc();
-        // return {
-        //     major: def.major,
-        //     minor: def.minor,
-        //     source: stream.instance.instance.alias(),
-        // };
+    static fromDataSource(operation: ObserveOperation): Promise<IStreamDesc | undefined> {
+        if (operation.getOrigin().isStream()) {
+            return Promise.resolve(undefined);
+        }
+        const descriptor = operation.getDescriptor();
+        if (!descriptor) {
+            return Promise.resolve(undefined);
+        }
+        return Promise.resolve({
+            major: descriptor.s_desc ? descriptor.s_desc : descriptor.source.name,
+            minor: descriptor.p_desc ? descriptor.p_desc : descriptor.parser.name,
+            source: descriptor.source.name,
+        });
     }
 
     static fromMinifiedStr(
         src: { [key: string]: number | string } | undefined,
     ): StreamDesc | undefined {
-        console.error(`Not implemented`);
-        return undefined;
-        // return src === undefined
-        //     ? undefined
-        //     : new StreamDesc({
-        //           origin: obj.getAsNotEmptyString(src, 's') as $.Origin.Stream.Stream.Source,
-        //           major: obj.getAsString(src, 'ma'),
-        //           minor: obj.getAsString(src, 'mi'),
-        //       });
+        return src === undefined
+            ? undefined
+            : new StreamDesc({
+                  source: obj.getAsNotEmptyString(src, 's'),
+                  major: obj.getAsString(src, 'ma'),
+                  minor: obj.getAsString(src, 'mi'),
+              });
     }
 
-    public origin: SessionOrigin;
-    public major: string;
-    public minor: string;
+    public readonly source: string;
+    public readonly major: string;
+    public readonly minor: string;
 
-    constructor(definition: IStreamDesc) {
-        this.origin = definition.origin;
-        this.major = definition.major;
-        this.minor = definition.minor;
+    constructor(desc: IStreamDesc) {
+        this.source = desc.source;
+        this.major = desc.major;
+        this.minor = desc.minor;
     }
 
     public isSame(stream: StreamDesc): boolean {

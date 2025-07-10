@@ -1,15 +1,15 @@
 import { FileDesc, IFileDesc } from './definition.file';
 import { StreamDesc, IStreamDesc } from './definition.stream';
-import { ConcatDesc } from './definition.concat';
+import { ConcatDesc } from './definition.files';
 import { unique } from '@platform/env/sequence';
 import { EntryConvertable, Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 import { Subject } from '@platform/env/subscription';
 import { Equal } from '@platform/types/env/types';
 import { Collections } from './collections';
+import { ObserveOperation } from '@service/session/dependencies/stream';
 
 import * as obj from '@platform/env/obj';
-import { SessionOrigin } from '@service/session/origin';
 
 export interface IDefinition {
     stream?: IStreamDesc;
@@ -22,15 +22,15 @@ export interface GroupRelations {
     rank: number;
     caption?: string;
 }
+
 export class Definition implements EntryConvertable, Equal<Definition> {
     static from(entry: Entry): Definition {
         return Definition.fromMinifiedStr(JSON.parse(entry.content));
     }
-    static async fromDataSource(origin: SessionOrigin): Promise<Definition> {
-        console.error(`Not Implemented (parser isn't considered)`);
-        const file = await FileDesc.fromDataSource(origin);
-        const concat = await ConcatDesc.fromDataSource(origin);
-        const stream = await StreamDesc.fromDataSource(origin);
+    static async fromDataSource(operation: ObserveOperation): Promise<Definition> {
+        const file = await FileDesc.fromDataSource(operation);
+        const concat = await ConcatDesc.fromDataSource(operation);
+        const stream = await StreamDesc.fromDataSource(operation);
         if (file !== undefined) {
             return new Definition({
                 file,
