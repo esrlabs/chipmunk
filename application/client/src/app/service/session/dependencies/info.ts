@@ -19,62 +19,23 @@ export class Info {
     }
 
     public fromOperation(operation: ObserveOperation) {
-        const uuid = operation.uuid;
-        console.error(`Not Implemented`);
-        // if (observe.configuration.parser[Protocol.Dlt] !== undefined) {
-        //     const cfg = observe.configuration.parser[Protocol.Dlt];
-        //     if (cfg.fibex_file_paths !== undefined) {
-        //         if (cfg.fibex_file_paths.length === 1) {
-        //             this.add(
-        //                 {
-        //                     caption: `FIBEX: ${getFileName(cfg.fibex_file_paths[0])}`,
-        //                     tooltip: `Used FIBEX: ${cfg.fibex_file_paths[0]}`,
-        //                 },
-        //                 `fibex_${uuid}`,
-        //             );
-        //         } else if (cfg.fibex_file_paths.length > 1) {
-        //             this.add(
-        //                 {
-        //                     caption: `FIBEX: ${cfg.fibex_file_paths.length} files`,
-        //                     tooltip: cfg.fibex_file_paths.join('\n'),
-        //                 },
-        //                 `fibex_${uuid}`,
-        //             );
-        //         }
-        //     }
-        //     if (cfg.tz !== undefined) {
-        //         this.add(
-        //             {
-        //                 caption: `TZ: ${cfg.tz}`,
-        //                 tooltip: `Used TimeZone: ${cfg.tz}`,
-        //             },
-        //             `tz_${uuid}`,
-        //         );
-        //     }
-        // } else if (observe.configuration.parser[Protocol.SomeIp] !== undefined) {
-        //     const cfg = observe.configuration.parser[Protocol.SomeIp];
-        //     if (cfg.fibex_file_paths !== undefined) {
-        //         if (cfg.fibex_file_paths.length === 1) {
-        //             this.add(
-        //                 {
-        //                     caption: `FIBEX: ${getFileName(cfg.fibex_file_paths[0])}`,
-        //                     tooltip: `Used FIBEX: ${cfg.fibex_file_paths[0]}`,
-        //                 },
-        //                 `fibex_${uuid}`,
-        //             );
-        //         } else if (cfg.fibex_file_paths.length > 1) {
-        //             this.add(
-        //                 {
-        //                     caption: `FIBEX: ${cfg.fibex_file_paths.length} files`,
-        //                     tooltip: cfg.fibex_file_paths.join('\n'),
-        //                 },
-        //                 `fibex_${uuid}`,
-        //             );
-        //         }
-        //     }
-        // } else if (observe.configuration.parser[Protocol.Text] !== undefined) {
-        //     // ignore
-        // }
+        // TODO (Not implemented. API required):
+        //
+        // Purpose of this service
+        //
+        // When a session is created, auxiliary information may be displayed in the bottom toolbar.
+        // For example, for DLT and SomeIP files (or TCP/UDP connections), this could be information
+        // about the associated FIBEX file.
+        //
+        // In the previous version, the client had knowledge about the used parser/source,
+        // so this information was generated directly on the client side.
+        //
+        // Due to the updated paradigm, where the client "knows nothing" about the parsers
+        // and sources being used, an additional API on the rustcore side is required.
+        // This API provides the "messages" that need to be displayed in the toolbar.
+        //
+        // Currently, this functionality is disabled.
+        console.warn(`API for toolbar notes is not implemented yet`);
     }
 
     public add(block: IInfoBlock, uuid?: string): string {
