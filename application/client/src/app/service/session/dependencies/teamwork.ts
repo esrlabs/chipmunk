@@ -390,22 +390,21 @@ export class TeamWork extends Subscriber {
                 if (this.checksum === null) {
                     return;
                 }
-                console.error(`Not implemented`);
-                // FileDesc.fromDataSource(operation)
-                //     .then((desc) => {
-                //         if (desc === undefined) {
-                //             this.checksum = null;
-                //         } else if (this.checksum === undefined) {
-                //             this.checksum = desc.checksum;
-                //             this.file().check();
-                //         } else {
-                //             this.checksum = null;
-                //         }
-                //     })
-                //     .catch((err: Error) => {
-                //         this.checksum = null;
-                //         this.error().add(`Fail get chechsum of file: ${err.message}`);
-                //     });
+                FileDesc.fromDataSource(operation)
+                    .then((desc) => {
+                        if (desc === undefined) {
+                            this.checksum = null;
+                        } else if (this.checksum === undefined) {
+                            this.checksum = desc.checksum;
+                            this.file().check();
+                        } else {
+                            this.checksum = null;
+                        }
+                    })
+                    .catch((err: Error) => {
+                        this.checksum = null;
+                        this.error().add(`Fail get chechsum of file: ${err.message}`);
+                    });
             }),
             history.subjects.get().created.subscribe((uuid: string) => {
                 const session = history.get(uuid);

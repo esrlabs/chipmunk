@@ -54,20 +54,15 @@ export class Filters extends ChangesDetector implements OnDestroy, AfterContentI
         this._focused = false;
     }
     @HostListener('contextmenu', ['$event']) onContextMenu(event: MouseEvent) {
-        const items: IMenuItem[] = [
-            {
-                caption: `Clear recent history`,
-                handler: () => {
-                    this.log().debug(`Not implemented yet`);
-                },
-            },
-        ];
+        const items: IMenuItem[] = [];
         this.providers.injectGeneralMenuItems(items);
-        contextmenu.show({
-            items,
-            x: event.pageX,
-            y: event.pageY,
-        });
+        if (items.length > 0) {
+            contextmenu.show({
+                items,
+                x: event.pageX,
+                y: event.pageY,
+            });
+        }
         dom.stop(event);
     }
 
