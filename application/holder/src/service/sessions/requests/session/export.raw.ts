@@ -24,7 +24,7 @@ export const handler = Requests.InjectLogger<
                 if (request.dest !== undefined) {
                     return request.dest;
                 } else {
-                    const ext = stored.getFileExt();
+                    const ext = stored.getExportedFileExt();
                     if (ext instanceof Error) {
                         return ext;
                     }

@@ -142,48 +142,19 @@ export class Holder {
         };
     }
 
-    public getFileExt(): string | Error {
-        return new Error(`Not implemented`);
-        // const all = [
-        //     Array.from(this.observing.active.values()).map((o) => o.source),
-        //     Array.from(this.observing.finished.values()),
-        // ].flat();
-        // const files: Array<string | undefined> = all
-        //     .map((o) => o.origin.files())
-        //     .filter((f) => f !== undefined)
-        //     .flat();
-        // if (files.filter((f) => f === undefined).length > 0) {
-        //     return new Error(`Streams arn't supported yet`);
-        // }
-        // const parsers: $.Parser.Protocol[] = [];
-        // all.forEach((observe) => {
-        //     if (parsers.includes(observe.parser.alias())) {
-        //         return;
-        //     }
-        //     parsers.push(observe.parser.alias());
-        // });
-        // if (parsers.length > 1) {
-        //     return new Error(`Multiple parsers are used`);
-        // } else if (parsers.length === 0) {
-        //     return new Error(`No parsers has been found`);
-        // }
-        // const exts: string[] = files
-        //     .map((f) => path.extname(f as string))
-        //     .filter((ex) => ex.trim() !== '');
-        // switch (parsers[0]) {
-        //     case $.Parser.Protocol.Text:
-        //         return `.txt`;
-        //     case $.Parser.Protocol.Plugin:
-        //         return exts.length === 0 ? '.plg' : exts[0];
-        //     case $.Parser.Protocol.Dlt:
-        //     case $.Parser.Protocol.SomeIp:
-        //         if (files.length === 0) {
-        //             return new Error(
-        //                 `No assigned files are found. Exporting from stream into new session arn't supported`,
-        //             );
-        //         }
-        //         return exts.length === 0 ? '' : exts[0];
-        // }
+    public getExportedFileExt(): string | Error {
+        // TODO (Not implemented. API required)
+        // Since in the new paradigm the client has no knowledge of which specific
+        // parser/source is being used, implementing this functionality requires an additional API.
+        // Specifically, rustcore should return the appropriate file extension for exporting data,
+        // based on the parser UUID.
+        //
+        // For example, if the active session is DLT over UDP, the file extension should be *.dlt.
+        // If it’s SomeIP over TCP, the expected extension would likely be *.pcap.
+        //
+        // The client cannot determine this reliably on its own, which is why an API is needed
+        // to associate the parser with the correct logic for exporting data.
+        return new Error(`getExportedFileExt requires API. Not implemented`);
     }
 
     public isShutdowning(): boolean {
