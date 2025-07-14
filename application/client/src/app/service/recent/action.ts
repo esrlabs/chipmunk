@@ -6,7 +6,7 @@ import { Stat, IStat } from './stat';
 import { recent } from '@service/recent';
 import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
-import { SessionComponents, SessionOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 import { ObserveOperation } from '@service/session/dependencies/stream';
 import { SessionDescriptor, SessionSetup } from '@platform/types/bindings';
 import { hash } from '@platform/env/hash';
