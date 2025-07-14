@@ -14,25 +14,28 @@ app-recent-actions {
         flex-direction: row;
         align-items: flex-start;
         & div.column_0 {
-   
+            & mat-icon {
+                height: 16px;
+                width: 16px;
+                font-size: 16px;
+                padding-right: 8px;
+            }
         }
         & div.column_1 {
             flex: auto;
+            & p.major {
+                color: var(--scheme-color-0);
+            }
+            & p.minor {
+                color: var(--scheme-color-2);
+            }
+            & * {
+                user-select: none;
+                cursor: default;
+            }
         }
         &:hover {
             background: var(--scheme-color-hover);
-            &::before {
-                background: var(--scheme-color-hover);
-            }
-        }
-        &::before {
-            position: absolute;
-            display: block;
-            width: ~"calc(100% + 30px)";
-            content: '';
-            top:0;
-            left: -15px;
-            height: 100%;
         }
         & p.description {
             position: relative;

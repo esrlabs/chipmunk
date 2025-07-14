@@ -4,15 +4,23 @@
         <ng-container *ngFor="let collection of state.filtered;">
             <div class="collection-title">
                 <span class="title t-small">{{collection.title}}</span>
-                <span class="divider"></span>    
+                <span class="divider"></span>
             </div>
-            <div [attr.class]="'action ' + (state.entries.selected === entity.uuid ? 'selected' : '')" 
+            <div
+                [attr.class]="'action ' + (state.entries.selected === entity.uuid ? 'selected' : '')"
                 *ngFor="let entity of collection.entries;"
                 (click)="ngAction(entity)"
-                (contextmenu)="ngItemContextMenu($event, entity)">
-                <p class="t-medium nowrap description">
-                    <span class="color-scheme-1 major" [innerHTML]="safeHtml(entity.description().major)"></span>
-                    <span class="color-scheme-2 minor" [innerHTML]="safeHtml(entity.description().minor)"></span>
+                (contextmenu)="ngItemContextMenu($event, entity)"
+            >
+                <p class="t-medium nowrap description" [attr.title]="entity.description().major">
+                    <span
+                        class="color-scheme-1 major"
+                        [innerHTML]="safeHtml(entity.description().major)"
+                    ></span>
+                    <span
+                        class="color-scheme-2 minor"
+                        [innerHTML]="safeHtml(entity.description().minor)"
+                    ></span>
                 </p>
             </div>
         </ng-container>
@@ -21,7 +29,7 @@
         <div *ngFor="let statistics of state.statistics">
             <ng-container *ngIf="statistics.total > 0">
                 <p class="info t-small">{{statistics.title}}</p>
-                <p class="sub-info t-small" *ngFor="let info of statistics.info">{{info}}</p>    
+                <p class="sub-info t-small" *ngFor="let info of statistics.info">{{info}}</p>
             </ng-container>
         </div>
     </div>
@@ -34,10 +42,18 @@
     <ng-container *ngFor="let collection of state.entries.stat();">
         <div class="collection-actions" *ngIf="collection.total === 0">
             <p class="warning t-medium">{{state.getNoContentActions(collection.index).title}}</p>
-            <div class="controlls" *ngIf="state.getNoContentActions(collection.index).buttons.length > 0">
-                <button mat-stroked-button *ngFor="let button of state.getNoContentActions(collection.index).buttons" (click)="button.handler()">{{button.caption}}</button>
+            <div
+                class="controlls"
+                *ngIf="state.getNoContentActions(collection.index).buttons.length > 0"
+            >
+                <button
+                    mat-stroked-button
+                    *ngFor="let button of state.getNoContentActions(collection.index).buttons"
+                    (click)="button.handler()"
+                >
+                    {{button.caption}}
+                </button>
             </div>
         </div>
     </ng-container>
 </div>
-
