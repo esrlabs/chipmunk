@@ -5,7 +5,7 @@
     (click)="onDefaultAction(action.action)"
     (contextmenu)="onAllActions($event, action.action)"
 >
-    <div class="column_0">IC</div>
+    <div class="column_0"><mat-icon>{{action.description().icon}}</mat-icon></div>
     <div class="column_1">
         <p class="t-medium major">{{action.description().major}}</p>
         <p class="t-medium minor">{{action.description().minor}}</p>
