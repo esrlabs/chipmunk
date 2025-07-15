@@ -16,7 +16,7 @@ export interface IOrderStat {
     emitted: number; // Time of emitting event or operation
     duration: number;
 }
-export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces> {
+export abstract class Computation<TEvents, IEventsSignatures> {
     private _destroyed: boolean = false;
     protected readonly uuid: string;
     protected readonly tracking: {
@@ -76,10 +76,6 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
     public abstract getEvents(): TEvents;
 
     public abstract getEventsSignatures(): IEventsSignatures;
-
-    public abstract getEventsInterfaces(): IEventsInterfaces;
-
-    public abstract getConvertor<T, O>(event: string, data: T): T | O | Error;
 
     public debug(): {
         getEvents(): {
@@ -285,26 +281,8 @@ export abstract class Computation<TEvents, IEventsSignatures, IEventsInterfaces>
                 } else {
                     this.debug().emit.event(event);
                 }
-                const err: Error | undefined = validateEventDesc(
-                    (this.getEventsInterfaces() as any)[event],
-                    data,
-                );
-
-                if (err instanceof Error) {
-                    this.debug().emit.error(`Error: ${error(err)}. Input: ${JSON.stringify(data)}`);
-                    this.logger.error(`Failed to parse event "${event}" due error: ${error(err)}`);
-                } else {
-                    const converted = data === null ? data : this.getConvertor(event, data);
-                    if (converted instanceof Error) {
-                        this.logger.error(
-                            `Failed to convert results fro event "${event}" due error: ${error(
-                                converted,
-                            )}`,
-                        );
-                    }
-                    (this.getEvents() as any)[event].emit(converted);
-                    this.logger.verbose(`Event "${event}" is processed`);
-                }
+                (this.getEvents() as any)[event].emit(data);
+                this.logger.verbose(`Event "${event}" is processed`);
             }
         }, 0);
     }
