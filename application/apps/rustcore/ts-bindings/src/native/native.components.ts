@@ -16,11 +16,7 @@ import { Logger, utils } from 'platform/log';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
 import { Subscriber } from 'platform/env/subscription';
-import {
-    IComponentsEvents,
-    IComponentsEventsSignatures,
-    IComponentsEventsInterfaces,
-} from '../api/components.provider';
+import { IComponentsEvents, IComponentsEventsSignatures } from '../api/components.provider';
 
 import {
     InvalidPluginEntity,
@@ -86,20 +82,12 @@ type DestroyResolver = () => void;
 export class Base extends Subscriber {
     protected readonly logger: Logger = scope.getLogger(`Components`);
     protected readonly native: ComponentsNative;
-    protected readonly provider: Computation<
-        IComponentsEvents,
-        IComponentsEventsSignatures,
-        IComponentsEventsInterfaces
-    >;
+    protected readonly provider: Computation<IComponentsEvents, IComponentsEventsSignatures>;
     private state: State = State.Created;
     private destroyResolver: DestroyResolver | undefined;
 
     constructor(
-        provider: Computation<
-            IComponentsEvents,
-            IComponentsEventsSignatures,
-            IComponentsEventsInterfaces
-        >,
+        provider: Computation<IComponentsEvents, IComponentsEventsSignatures>,
         resolver: (err: Error | undefined) => void,
     ) {
         super();
