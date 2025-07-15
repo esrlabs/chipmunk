@@ -163,7 +163,7 @@ export type SerialTransportConfig = {
 };
 
 /**
- * Описывает операцию, которая должна быть произведена
+ * Described user basic action. Source means, user is selecting custom source & parser
  */
 export type SessionAction =
     | { File: string }

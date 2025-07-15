@@ -373,9 +373,17 @@ export class Session extends Base {
                 if (!this._descriptor) {
                     return;
                 }
-                if (this._descriptor.s_desc && this._descriptor.p_desc) {
-                    this._tab.setTitle(`${this._descriptor.s_desc} (${this._descriptor.p_desc})`);
-                }
+                this._tab.setTitle(
+                    `${
+                        this._descriptor.s_desc
+                            ? this._descriptor.s_desc
+                            : this._descriptor.source.name
+                    } (${
+                        this._descriptor.p_desc
+                            ? this._descriptor.p_desc
+                            : this._descriptor.parser.name
+                    })`,
+                );
             },
         };
     }

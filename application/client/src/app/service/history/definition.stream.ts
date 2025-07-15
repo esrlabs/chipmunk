@@ -11,7 +11,7 @@ export interface IStreamDesc {
 
 export class StreamDesc implements IStreamDesc {
     static fromDataSource(operation: ObserveOperation): Promise<IStreamDesc | undefined> {
-        if (operation.getOrigin().isStream()) {
+        if (!operation.getOrigin().isStream()) {
             return Promise.resolve(undefined);
         }
         const descriptor = operation.getDescriptor();
