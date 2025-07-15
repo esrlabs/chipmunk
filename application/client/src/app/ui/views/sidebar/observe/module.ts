@@ -9,6 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
+import { Operation } from './operation/component';
 
 @NgModule({
     imports: [
@@ -17,17 +18,12 @@ import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
         MatButtonModule,
         MatCardModule,
         MatExpansionModule,
-        // FileListModule,
-        // ProcessListModule,
-        // SerialListModule,
-        // TcpListModule,
-        // UdpListModule,
         MatMenuModule,
         MatIconModule,
         MatDividerModule,
         AttachSourceMenuModule,
     ],
-    declarations: [Observed],
+    declarations: [Observed, Operation],
     exports: [Observed],
     bootstrap: [Observed],
 })

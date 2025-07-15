@@ -1,15 +1,17 @@
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
-import { SessionSetup, SessionDescriptor } from '@platform/types/bindings';
+import { SessionDescriptor } from '@platform/types/bindings';
 import { SessionOrigin } from '@service/session/origin';
+import { Subject } from '@platform/env/subscription';
 
 type SdeAPIFunc = (msg: SdeRequest) => Promise<SdeResponse>;
 type RestartingAPIFunc = (setup: SessionOrigin) => Promise<string>;
 type CancelAPIFunc = () => Promise<void>;
 
 export enum State {
-    Started,
-    Running,
-    Done,
+    Started = 'started',
+    Running = 'running',
+    Done = 'finished',
+    Aborted = 'aborted',
 }
 
 export class ObserveOperation {
@@ -20,8 +22,10 @@ export class ObserveOperation {
     protected restarting: RestartingAPIFunc | undefined;
     protected cancel: CancelAPIFunc | undefined;
     protected origin: SessionOrigin | undefined;
+    protected sourceId: number = -1;
 
     public state: State = State.Started;
+    public stateUpdateEvent: Subject<void> = new Subject();
 
     constructor(public readonly uuid: string) {}
 
@@ -36,15 +40,26 @@ export class ObserveOperation {
         this.restarting = restarting;
         this.cancel = cancel;
         this.state = State.Running;
+        this.stateUpdateEvent.emit();
+    }
+
+    public destroy() {
+        this.stateUpdateEvent.destroy();
     }
 
     public abort(): Promise<void> {
+        if (this.state === State.Aborted || this.state === State.Done) {
+            return Promise.resolve();
+        }
         if (!this.cancel) {
             return Promise.reject(
                 new Error(`"abort" cannot be called, because ObserveOperation isn't bound`),
             );
         }
-        return this.cancel();
+        return this.cancel().finally(() => {
+            this.state = State.Aborted;
+            this.stateUpdateEvent.emit();
+        });
     }
 
     public restart(): Promise<string> {
@@ -58,10 +73,15 @@ export class ObserveOperation {
 
     public finish() {
         this.state = State.Done;
+        this.stateUpdateEvent.emit();
     }
 
     public isRunning(): boolean {
         return this.state === State.Running;
+    }
+
+    public isStopped(): boolean {
+        return this.state === State.Done || this.state == State.Aborted;
     }
 
     public isSame(operation: ObserveOperation): boolean {

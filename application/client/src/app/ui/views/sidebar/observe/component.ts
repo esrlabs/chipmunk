@@ -26,6 +26,8 @@ export class Observed extends ChangesDetector implements AfterContentInit {
 
     public stream!: Stream;
     public operations: ObserveOperation[] = [];
+    public active: ObserveOperation[] = [];
+    public inactive: ObserveOperation[] = [];
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
@@ -33,23 +35,27 @@ export class Observed extends ChangesDetector implements AfterContentInit {
 
     public ngAfterContentInit(): void {
         this.stream = this.session.stream;
-        this.operations = this.stream.observe().operations();
+        this.update();
         this.env().subscriber.register(
             this.stream.subjects.get().sources.subscribe(() => {
                 this.update();
+                this.detectChanges();
             }),
             this.stream.subjects.get().finished.subscribe(() => {
                 this.update();
+                this.detectChanges();
             }),
             this.stream.sde.subjects.get().selected.subscribe(() => {
                 this.update();
+                this.detectChanges();
             }),
         );
     }
 
     protected update() {
         this.operations = this.stream.observe().operations();
-        this.detectChanges();
+        this.active = this.operations.filter((operation) => operation.isRunning());
+        this.inactive = this.operations.filter((operation) => !operation.isRunning());
     }
 }
 export interface Observed extends IlcInterface {}

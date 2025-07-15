@@ -1,0 +1,38 @@
+@import '../../../../styles/variables.less';
+
+:host {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    padding: 0 12px;
+    align-items: center;
+    &:hover {
+        background: var(--scheme-color-5);
+    }
+    & div.desc {
+        flex: auto;
+        & p.title {
+            color: var(--scheme-color-2);
+        }
+        & p.subtitle {
+            color: var(--scheme-color-3);
+        }
+        & p.status {
+            &.started {
+                color: var(--scheme-color-accent);
+            }
+            &.running {
+                color: var(--scheme-color-accent);
+            }
+            &.finished {
+                color: var(--scheme-color-2);
+            }
+            &.aborted {
+                color: var(--scheme-color-error-light);
+            }
+        }
+    }
+    & div.buttons {
+
+    }
+}
