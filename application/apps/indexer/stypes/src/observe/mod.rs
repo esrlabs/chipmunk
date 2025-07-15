@@ -22,7 +22,7 @@ use dlt_core::filtering::DltFilterConfig;
     derive(TS),
     ts(export, export_to = "observe.ts")
 )]
-/// Описывает операцию, которая должна быть произведена
+/// Described user basic action. Source means, user is selecting custom source & parser
 pub enum SessionAction {
     File(PathBuf),
     Files(Vec<PathBuf>),
