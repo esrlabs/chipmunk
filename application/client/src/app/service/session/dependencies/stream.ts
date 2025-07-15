@@ -125,6 +125,12 @@ export class Stream extends Subscriber {
         this.unsubscribe();
         this.subjects.destroy();
         this.sde.destroy();
+        this.observed.operations.forEach((operation) => {
+            operation.abort().catch((err: Error) => {
+                this.log().warn(`Fail to abort operation: ${err.message}`);
+            });
+            operation.destroy();
+        });
     }
 
     public len(): number {
@@ -216,6 +222,15 @@ export class Stream extends Subscriber {
                     .finally(lockers.progress(`Creating session...`));
             },
             abort: (uuid: string): Promise<void> => {
+                const operation = this.observed.operations.get(uuid);
+                if (!operation) {
+                    return Promise.reject(
+                        new Error(`Operation ${uuid} doesn't exist. Cannot abort`),
+                    );
+                }
+                if (operation.isStopped()) {
+                    return Promise.resolve();
+                }
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Observe.Abort.Response,
@@ -238,6 +253,12 @@ export class Stream extends Subscriber {
                 });
             },
             restart: (uuid: string, options: SessionOrigin): Promise<string> => {
+                const operation = this.observed.operations.get(uuid);
+                if (!operation) {
+                    return Promise.reject(
+                        new Error(`Operation ${uuid} doesn't exist. Cannot restart`),
+                    );
+                }
                 return this.observe()
                     .abort(uuid)
                     .then(() => {

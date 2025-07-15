@@ -5,10 +5,30 @@
     <app-attach-new-source-menu [session]="session"></app-attach-new-source-menu>
 </div>
 <mat-expansion-panel
-    *ngIf="operations.length > 0"
+    *ngIf="active.length > 0"
     [disabled]="true"
     [hideToggle]="true"
     [expanded]="true"
 >
-    <div *ngFor="let operation of operations">{{operation.getOrigin().getTitle()}}</div>
+    <mat-expansion-panel-header>
+        <mat-panel-title>Active</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="operations">
+        <app-views-observed-operation *ngFor="let operation of active" [operation]="operation">
+        </app-views-observed-operation>
+    </div>
+</mat-expansion-panel>
+<mat-expansion-panel
+    *ngIf="inactive.length > 0"
+    [disabled]="true"
+    [hideToggle]="true"
+    [expanded]="true"
+>
+    <mat-expansion-panel-header>
+        <mat-panel-title>Inactive</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="operations">
+        <app-views-observed-operation *ngFor="let operation of inactive" [operation]="operation">
+        </app-views-observed-operation>
+    </div>
 </mat-expansion-panel>
