@@ -1,0 +1,13 @@
+<div class="desc">
+    <p class="t-medium title" [attr.title]="title">{{title}}</p>
+    <p class="t-medium subtitle" *ngIf="subtitle !== undefined" [attr.title]="subtitle">
+        {{subtitle}}
+    </p>
+    <p [attr.class]="'t-medium status ' + state">{{state}}</p>
+</div>
+<div class="buttons">
+    <mat-icon *ngIf="state == State.Running" (click)="stop()">stop</mat-icon>
+    <mat-icon *ngIf="state == State.Aborted || state == State.Done" (click)="restart()"
+        >loop</mat-icon
+    >
+</div>
