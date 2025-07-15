@@ -22,14 +22,14 @@ import * as types from 'platform/types';
 
 export type RustSessionConstructorImpl<T> = new (
     uuid: string,
-    provider: Computation<any, any, any>,
+    provider: Computation<any, any>,
     cb: (err: Error | undefined) => void,
 ) => T;
 export type TCanceler = () => void;
 
 // Create abstract class to declare available methods
 export abstract class RustSession extends RustSessionRequiered {
-    constructor(uuid: string, provider: Computation<any, any, any>) {
+    constructor(uuid: string, provider: Computation<any, any>) {
         super();
     }
 
@@ -373,7 +373,7 @@ export abstract class RustSessionNative {
 
 export function rustSessionFactory(
     uuid: string,
-    provider: Computation<any, any, any>,
+    provider: Computation<any, any>,
 ): Promise<RustSession> {
     return new Promise((resolve, reject) => {
         const session = new RustSessionConstructor(uuid, provider, (err: Error | undefined) => {
@@ -393,11 +393,11 @@ export class RustSessionWrapper extends RustSession {
     private readonly _uuid: string;
     private readonly _native: RustSessionNative;
     private _assigned: boolean = false;
-    private _provider: Computation<any, any, any>;
+    private _provider: Computation<any, any>;
 
     constructor(
         uuid: string,
-        provider: Computation<any, any, any>,
+        provider: Computation<any, any>,
         cb: (err: Error | undefined) => void,
     ) {
         super(uuid, provider);
