@@ -1,5 +1,5 @@
 import { SdeRequest, SdeResponse } from '@platform/types/sde';
-import { SessionDescriptor } from '@platform/types/bindings';
+import { SessionDescriptor, SourceDefinition } from '@platform/types/bindings';
 import { SessionOrigin } from '@service/session/origin';
 import { Subject } from '@platform/env/subscription';
 
@@ -22,7 +22,7 @@ export class ObserveOperation {
     protected restarting: RestartingAPIFunc | undefined;
     protected cancel: CancelAPIFunc | undefined;
     protected origin: SessionOrigin | undefined;
-    protected sourceId: number = -1;
+    protected sources: Map<number, SourceDefinition> = new Map();
 
     public state: State = State.Started;
     public stateUpdateEvent: Subject<void> = new Subject();
@@ -41,6 +41,26 @@ export class ObserveOperation {
         this.cancel = cancel;
         this.state = State.Running;
         this.stateUpdateEvent.emit();
+    }
+
+    public addSource(source: SourceDefinition): boolean {
+        if (this.sources.has(source.id)) {
+            return false;
+        }
+        this.sources.set(source.id, source);
+        return true;
+    }
+
+    public getSourcesCount(): number {
+        return this.sources.size;
+    }
+
+    public getSource(id: number): SourceDefinition | undefined {
+        return this.sources.get(id);
+    }
+
+    public getFirstSourceKey(): number | undefined {
+        return this.sources.keys().next().value;
     }
 
     public destroy() {
