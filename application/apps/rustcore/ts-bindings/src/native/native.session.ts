@@ -3,14 +3,13 @@ import { RustSessionRequiered } from '../native/native.session.required';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
 import { IFilter } from 'platform/types/filter';
-import { GrabbedElement } from 'platform/types/bindings/miscellaneous';
+import { GrabbedElement, SourceDefinition } from 'platform/types/bindings/miscellaneous';
 import { getNativeModule } from '../native/native';
 import { EFileOptionsRequirements } from '../api/executors/session.stream.observe.executor';
 import { Type, Source, NativeError } from '../interfaces/errors';
 import { v4 as uuidv4 } from 'uuid';
 import { getValidNum } from '../util/numbers';
 import { IRange } from 'platform/types/range';
-import { ISourceLink } from 'platform/types/source';
 import { IndexingMode, Attachment } from 'platform/types/content';
 import { Logger, utils } from 'platform/log';
 import { scope } from 'platform/env/scope';
@@ -87,7 +86,7 @@ export abstract class RustSession extends RustSessionRequiered {
      * Returns list of observed sources.
      * @returns { string }
      */
-    public abstract getSourcesDefinitions(): Promise<ISourceLink[]>;
+    public abstract getSourcesDefinitions(): Promise<SourceDefinition[]>;
 
     public abstract getUuid(): string;
 
@@ -463,7 +462,7 @@ export class RustSessionWrapper extends RustSession {
         return this._native.getUuid();
     }
 
-    public getSourcesDefinitions(): Promise<ISourceLink[]> {
+    public getSourcesDefinitions(): Promise<SourceDefinition[]> {
         return new Promise((resolve, reject) => {
             this._provider.debug().emit.operation('getSourcesDefinitions');
             this._native

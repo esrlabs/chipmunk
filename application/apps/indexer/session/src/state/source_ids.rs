@@ -75,8 +75,9 @@ impl SourceIDs {
     pub fn get_sources_definitions(&self) -> Vec<stypes::SourceDefinition> {
         self.sources
             .iter()
-            .map(|(id, (_uuid, descriptor))| stypes::SourceDefinition {
+            .map(|(id, (uuid, descriptor))| stypes::SourceDefinition {
                 id: *id,
+                uuid: *uuid,
                 descriptor: descriptor.clone(),
             })
             .collect::<Vec<stypes::SourceDefinition>>()
