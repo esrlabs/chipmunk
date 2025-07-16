@@ -1,5 +1,4 @@
 import { ObserveOperation } from '@service/session/dependencies/stream';
-import { SessionDescriptor } from '@platform/types/bindings';
 
 import * as obj from '@platform/env/obj';
 

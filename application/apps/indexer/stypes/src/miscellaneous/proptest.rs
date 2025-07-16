@@ -45,7 +45,11 @@ impl Arbitrary for SourceDefinition {
 
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         (any::<u16>(), any::<SessionDescriptor>())
-            .prop_map(|(id, descriptor)| SourceDefinition { id, descriptor })
+            .prop_map(|(id, descriptor)| SourceDefinition {
+                id,
+                uuid: Uuid::new_v4(),
+                descriptor,
+            })
             .boxed()
     }
 }

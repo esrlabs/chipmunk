@@ -3,7 +3,7 @@ import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { Range, IRange } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
-import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
+import { GrabbedElement, SourceDefinition } from '@platform/types/bindings/miscellaneous';
 import { ObserveOperation } from './observing/operation';
 import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
@@ -11,7 +11,6 @@ import { Sde } from './observing/sde';
 import { TextExportOptions } from '@platform/types/exporting';
 import { SessionDescriptor } from '@platform/types/bindings';
 import { SessionOrigin } from '../origin';
-import { ISourceLink } from '@platform/types/source';
 import { recent } from '@service/recent';
 
 import * as Requests from '@platform/ipc/request';
@@ -49,13 +48,7 @@ export class Stream extends Subscriber {
     private _uuid!: string;
     private _info!: Info;
 
-    public readonly observed: {
-        operations: Map<string, ObserveOperation>;
-        map: Map<number, ISourceLink>;
-    } = {
-        operations: new Map(),
-        map: new Map(),
-    };
+    public readonly operations: Map<string, ObserveOperation> = new Map();
     public readonly rank: Rank = new Rank();
     public sde!: Sde;
 
@@ -83,7 +76,7 @@ export class Stream extends Subscriber {
                     return;
                 }
                 this.subjects.get().descriptor.emit(event.descriptor);
-                const operation = this.observed.operations.get(event.operation);
+                const operation = this.operations.get(event.operation);
                 if (!operation) {
                     this.log().error(
                         `Event "Stream.SessionDescriptor" emmited for operation "${event.operation}", but there no started operation with same uuid.`,
@@ -96,10 +89,7 @@ export class Stream extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                this.observed.operations.set(
-                    event.operation,
-                    new ObserveOperation(event.operation),
-                );
+                this.operations.set(event.operation, new ObserveOperation(event.operation));
             }),
         );
         this.register(
@@ -107,7 +97,7 @@ export class Stream extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                const operation = this.observed.operations.get(event.operation);
+                const operation = this.operations.get(event.operation);
                 if (!operation) {
                     this.log().error(
                         `Event "Observe.Finished" emmited for operation "${event.operation}", but there no started operation with same uuid.`,
@@ -115,7 +105,7 @@ export class Stream extends Subscriber {
                     return;
                 }
                 operation.finish();
-                this.sde.overwrite(this.observed.operations);
+                this.sde.overwrite(this.operations);
                 this.subjects.get().finished.emit(operation);
             }),
         );
@@ -125,7 +115,7 @@ export class Stream extends Subscriber {
         this.unsubscribe();
         this.subjects.destroy();
         this.sde.destroy();
-        this.observed.operations.forEach((operation) => {
+        this.operations.forEach((operation) => {
             operation.abort().catch((err: Error) => {
                 this.log().warn(`Fail to abort operation: ${err.message}`);
             });
@@ -146,9 +136,9 @@ export class Stream extends Subscriber {
         isFileSource(): boolean;
         getSourceFileName(): string | undefined;
         descriptions: {
-            get(id: number): ISourceLink | undefined;
-            id(alias: string): number | undefined;
-            request(): Promise<ISourceLink[]>;
+            get(id: number): SourceDefinition | undefined;
+            id(uuid: string): number | undefined;
+            request(): Promise<SourceDefinition[]>;
             count(): number;
         };
     } {
@@ -180,7 +170,7 @@ export class Stream extends Subscriber {
                                 ),
                             );
                         }
-                        const operation = this.observed.operations.get(operationUuid);
+                        const operation = this.operations.get(operationUuid);
                         if (!operation) {
                             return Promise.reject(
                                 new Error(
@@ -201,19 +191,16 @@ export class Stream extends Subscriber {
                             .then((sources) => {
                                 let updated = false;
                                 sources.forEach((source) => {
-                                    if (!this.observed.map.has(source.id)) {
-                                        this.observed.map.set(source.id, source);
-                                        updated = true;
-                                    }
+                                    updated = updated ? updated : operation.addSource(source);
                                 });
                                 updated && this.subjects.get().sources.emit();
                             })
                             .catch((err: Error) => {
                                 this.log().error(`Fail get sources description: ${err.message}`);
                             });
-                        this.sde.overwrite(this.observed.operations);
+                        this.sde.overwrite(this.operations);
                         this.subjects.get().started.emit(operation);
-                        if (this.observed.operations.size === 1) {
+                        if (this.operations.size === 1) {
                             // Only if it's the first operation, save as recent
                             recent.add(operation);
                         }
@@ -222,7 +209,7 @@ export class Stream extends Subscriber {
                     .finally(lockers.progress(`Creating session...`));
             },
             abort: (uuid: string): Promise<void> => {
-                const operation = this.observed.operations.get(uuid);
+                const operation = this.operations.get(uuid);
                 if (!operation) {
                     return Promise.reject(
                         new Error(`Operation ${uuid} doesn't exist. Cannot abort`),
@@ -253,7 +240,7 @@ export class Stream extends Subscriber {
                 });
             },
             restart: (uuid: string, options: SessionOrigin): Promise<string> => {
-                const operation = this.observed.operations.get(uuid);
+                const operation = this.operations.get(uuid);
                 if (!operation) {
                     return Promise.reject(
                         new Error(`Operation ${uuid} doesn't exist. Cannot restart`),
@@ -276,7 +263,7 @@ export class Stream extends Subscriber {
                         .then((response: Requests.Observe.List.Response) => {
                             const operations: Map<string, ObserveOperation> = new Map();
                             response.operations.forEach((uuid: string) => {
-                                const operation = this.observed.operations.get(uuid);
+                                const operation = this.operations.get(uuid);
                                 if (!operation) {
                                     this.log().error(
                                         `Fail to find operation ${uuid} in local scope`,
@@ -295,7 +282,7 @@ export class Stream extends Subscriber {
                 });
             },
             operations: (): ObserveOperation[] => {
-                return Array.from(this.observed.operations.values());
+                return Array.from(this.operations.values());
             },
             isFileSource: (): boolean => {
                 const sources = this.observe().operations();
@@ -312,16 +299,21 @@ export class Stream extends Subscriber {
                 return sources[0].getOrigin().getFirstFilename();
             },
             descriptions: {
-                get: (id: number): ISourceLink | undefined => {
-                    return this.observed.map.get(id);
+                get: (id: number): SourceDefinition | undefined => {
+                    const operation = Array.from(this.operations.values()).find((operation) => {
+                        return operation.getSource(id);
+                    });
+                    return operation ? operation.getSource(id) : undefined;
                 },
-                id: (alias: string): number | undefined => {
-                    const link = Array.from(this.observed.map.values()).find(
-                        (s) => s.alias === alias,
-                    );
-                    return link !== undefined ? link.id : undefined;
+                id: (uuid: string): number | undefined => {
+                    console.error('Not implemented');
+                    // TODO:
+                    // `uuid` - is an uuid of observe operation, but if it's Files (aka concat)
+                    // we would have multiple sources (files) for a one operation
+                    const operation = this.operations.get(uuid);
+                    return operation ? operation.getFirstSourceKey() : undefined;
                 },
-                request: (): Promise<ISourceLink[]> => {
+                request: (): Promise<SourceDefinition[]> => {
                     return new Promise((resolve, reject) => {
                         Requests.IpcRequest.send(
                             Requests.Observe.SourcesDefinitionsList.Response,
@@ -336,7 +328,9 @@ export class Stream extends Subscriber {
                     });
                 },
                 count: (): number => {
-                    return this.observed.map.size;
+                    return Array.from(this.operations.values())
+                        .map((operation) => operation.getSourcesCount())
+                        .reduce((sum, a) => sum + a, 0);
                 },
             },
         };

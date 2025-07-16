@@ -55,6 +55,8 @@ pub struct Ranges(pub Vec<Range>);
 pub struct SourceDefinition {
     /// The unique identifier of the source.
     pub id: u16,
+    /// Parent observe opeartion Uuid
+    pub uuid: Uuid,
     /// The user-friendly name of the source for display purposes.
     pub descriptor: SessionDescriptor,
 }
