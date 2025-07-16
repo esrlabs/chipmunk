@@ -97,7 +97,6 @@
     "./types/exporting": "./dist/types/exporting.js",
     "./types/sessionsetup": "./dist/types/sessionsetup/index.js",
     "./types/range": "./dist/types/range.js",
-    "./types/source": "./dist/types/source.js",
     "./types/hotkeys/map": "./dist/types/hotkeys/map.js",
     "./types/parsers": "./dist/types/parsers/index.js",
     "./types/parsers/dlt": "./dist/types/parsers/dlt.js",
