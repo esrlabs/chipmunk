@@ -8,7 +8,6 @@ members = [
     "addons/text_grep",
     "addons/bufread",
     "components",
-    "definitions",
     "indexer_base",
     "merging",
     "parsers",

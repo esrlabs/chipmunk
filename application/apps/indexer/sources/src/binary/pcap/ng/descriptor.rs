@@ -1,8 +1,8 @@
-use components::{ComponentFactory,ComponentDescriptor};
+use components::{CommonDescriptor, SourceDescriptor};
 use file_tools::is_binary;
 use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
-
 use super::PcapngByteSourceFromFile;
+use crate::*;
 
 const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09, 0x09,
@@ -11,12 +11,10 @@ const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
-    fn create(
-        &self,
+     pub fn factory(
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, stypes::NativeError> {
+    ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
                 let filepath = match origin {
             SessionAction::File(file) => file,
             SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
@@ -27,11 +25,11 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 })
             }
         };
-        Ok(Some((crate::Source::PcapNg(PcapngByteSourceFromFile::new(filepath)?), Some("PcapNg".to_owned()))))
+        Ok(Some((Sources::PcapNg(PcapngByteSourceFromFile::new(filepath)?), Some("PcapNg".to_owned()))))
     }
-}
 
-impl ComponentDescriptor for Descriptor {
+
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -60,8 +58,8 @@ impl ComponentDescriptor for Descriptor {
             uuid: PCAPNG_SOURCE_UUID,
         }
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Source
-    }
 }
+
+impl SourceDescriptor for Descriptor {}
+
 

@@ -18,9 +18,9 @@ someip-messages = { git = "https://github.com/esrlabs/someip" }
 someip-payload = { git = "https://github.com/esrlabs/someip-payload" }
 uuid = { workspace = true , features = ["serde", "v4"] }
 tokio-util.workspace = true
+thiserror.workspace = true
 
 stypes = { path = "../stypes", features=["rustcore"] }
-definitions = { path = "../definitions" }
 file-tools = { path = "../addons/file-tools" }
 someip-tools = { path = "../addons/someip-tools" }
 components = { path = "../components" }

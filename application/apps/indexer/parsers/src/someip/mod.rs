@@ -1,5 +1,15 @@
 pub mod descriptor;
-use definitions::*;
+use crate::*;
+use lazy_static::lazy_static;
+use log::{debug, error};
+use regex::Regex;
+use serde::Serialize;
+use someip_messages::*;
+use someip_payload::{
+    fibex::{FibexModel, FibexParser, FibexReader, FibexServiceInterface, FibexTypeDeclaration},
+    fibex2som::FibexTypes,
+    som::{SOMParser, SOMType},
+};
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -8,18 +18,6 @@ use std::{
     path::PathBuf,
     sync::Mutex,
 };
-
-use someip_messages::*;
-use someip_payload::{
-    fibex::{FibexModel, FibexParser, FibexReader, FibexServiceInterface, FibexTypeDeclaration},
-    fibex2som::FibexTypes,
-    som::{SOMParser, SOMType},
-};
-
-use lazy_static::lazy_static;
-use log::{debug, error};
-use regex::Regex;
-use serde::Serialize;
 
 /// Marker for a column separator in the output string.
 const COLUMN_SEP: &str = "\u{0004}"; // EOT

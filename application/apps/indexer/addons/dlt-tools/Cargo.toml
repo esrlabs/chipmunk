@@ -8,7 +8,6 @@ dlt-core.workspace = true
 log.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-util = { workspace = true, features = ["codec", "net"] }
-definitions = { path = "../../definitions" }
 indexer_base = { path = "../../indexer_base" }
 parsers = { path = "../../parsers" }
 sources = { path = "../../sources" }

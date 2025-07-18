@@ -60,7 +60,7 @@ impl ComponentsSession {
             UnboundedSender<stypes::CallbackOptionsEvent>,
             UnboundedReceiver<stypes::CallbackOptionsEvent>,
         ) = unbounded_channel();
-        let mut components: Components<sources::Source, parsers::Parser> = Components::new();
+        let mut components: Components<sources::Sources, parsers::Parsers> = Components::new();
         // Registre parsers
         parsers::registration(&mut components)?;
         // Registre sources
@@ -179,7 +179,7 @@ impl ComponentsSession {
                         }
                     }
                     Api::GetComponents(origin, ty, tx) => {
-                        log_if_err(tx.send(components.get_components(&ty, origin)));
+                        // log_if_err(tx.send(components.get_components(&ty, origin)));
                     }
                     // Client doesn't need any more field data. Loading task should be cancelled
                     Api::CancelLoading(fields) => {

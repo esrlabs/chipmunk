@@ -26,7 +26,6 @@ text_grep = { path = "../addons/text_grep" }
 stypes = { path = "../stypes", features=["rustcore"] }
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
-definitions = { path = "../definitions" }
 indexer_base = { path = "../indexer_base" }
 
 [dev-dependencies]

@@ -1,6 +1,15 @@
+mod record;
+
 use crate::*;
-use stypes::NativeError;
+use stypes::{NativeError, SessionAction};
 use thiserror::Error;
+
+pub use record::*;
+
+pub type ParserFactory = fn(
+    &SessionAction,
+    &[stypes::Field],
+) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError>;
 
 pub type ParseReturnIterator<'a> =
     Result<Box<dyn Iterator<Item = (usize, Option<LogRecordOutput<'a>>)> + 'a>, ParserError>;

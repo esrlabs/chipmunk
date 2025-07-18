@@ -1,4 +1,11 @@
+use crate::*;
+use stypes::SessionAction;
 use thiserror::Error;
+
+pub type SourceFactory = fn(
+    &SessionAction,
+    &[stypes::Field],
+) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransportProtocol {
