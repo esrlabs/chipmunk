@@ -1,6 +1,6 @@
 mod api;
 
-pub use api::Components;
+pub use api::Register;
 use api::*;
 use components::{LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
@@ -51,7 +51,7 @@ impl ComponentsSession {
             UnboundedSender<stypes::CallbackOptionsEvent>,
             UnboundedReceiver<stypes::CallbackOptionsEvent>,
         ) = unbounded_channel();
-        let mut components: Components = Components::new();
+        let mut components: Register = Register::new();
         // Registre parsers
         parsers_registration(&mut components)?;
         // Registre sources
@@ -412,7 +412,7 @@ impl ComponentsSession {
 /// * `res` - A `Result` that may contain an error. If `Err`, it will be logged.
 fn log_if_err<E>(res: Result<(), E>) {
     if res.is_err() {
-        error!("[Components] Fail to send response to Api");
+        error!("[Register] Fail to send response to Api");
     }
 }
 
@@ -465,7 +465,7 @@ fn response<T, S: AsRef<str>>(res: Result<T, RecvError>, msg: S) -> Result<T, st
 
 use parsers::api::*;
 use sources::api::*;
-pub fn parsers_registration(components: &mut Components) -> Result<(), stypes::NativeError> {
+pub fn parsers_registration(components: &mut Register) -> Result<(), stypes::NativeError> {
     components.add_parser(
         parsers::dlt::descriptor::factory,
         parsers::dlt::descriptor::Descriptor::default(),
@@ -485,7 +485,7 @@ pub fn parsers_registration(components: &mut Components) -> Result<(), stypes::N
     Ok(())
 }
 
-pub fn sources_registration(components: &mut Components) -> Result<(), stypes::NativeError> {
+pub fn sources_registration(components: &mut Register) -> Result<(), stypes::NativeError> {
     components.add_source(
         sources::binary::raw::factory,
         sources::binary::raw::Descriptor::default(),

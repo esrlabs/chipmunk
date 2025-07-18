@@ -1,6 +1,6 @@
 use crate::{
-    components::{Components, parsers_registration, sources_registration},
     operations::{self, Operation},
+    register::{Register, parsers_registration, sources_registration},
     state::{self, IndexesMode, SessionStateAPI},
     tracker::{self, OperationTrackerAPI},
 };
@@ -29,7 +29,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
-    components: Arc<Components>,
+    components: Arc<Register>,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -53,7 +53,7 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
-        let mut components: Components = Components::new();
+        let mut components: Register = Register::new();
         // Registre parsers
         parsers_registration(&mut components)
             .map_err(|err| stypes::ComputationError::NativeError(err))?;

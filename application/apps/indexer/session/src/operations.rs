@@ -1,4 +1,4 @@
-use crate::components::Components;
+use crate::register::Register;
 use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
@@ -74,7 +74,7 @@ impl Operation {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum OperationKind {
-    Observe(stypes::SessionSetup, Arc<Components>),
+    Observe(stypes::SessionSetup, Arc<Register>),
     Search {
         filters: Vec<SearchFilter>,
     },
