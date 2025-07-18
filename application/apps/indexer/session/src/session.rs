@@ -1,12 +1,9 @@
 use crate::{
-    operations,
-    operations::Operation,
-    state,
-    state::{IndexesMode, SessionStateAPI},
-    tracker,
-    tracker::OperationTrackerAPI,
+    components::{Components, parsers_registration, sources_registration},
+    operations::{self, Operation},
+    state::{self, IndexesMode, SessionStateAPI},
+    tracker::{self, OperationTrackerAPI},
 };
-use components::Components;
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
@@ -32,7 +29,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
-    components: Arc<Components<sources::Sources, parsers::Parsers>>,
+    components: Arc<Components>,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -56,12 +53,12 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
-        let mut components: Components<sources::Sources, parsers::Parsers> = Components::new();
+        let mut components: Components = Components::new();
         // Registre parsers
-        parsers::registration(&mut components)
+        parsers_registration(&mut components)
             .map_err(|err| stypes::ComputationError::NativeError(err))?;
         // Registre sources
-        sources::registration(&mut components)
+        sources_registration(&mut components)
             .map_err(|err| stypes::ComputationError::NativeError(err))?;
         // Create a session
         let session = Self {

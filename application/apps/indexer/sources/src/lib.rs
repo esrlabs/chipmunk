@@ -1,7 +1,6 @@
 pub mod api;
 
 pub use api::*;
-use components::Components;
 
 // Rust can't currently distinguish between dev and none-dev dependencies at the moment. There is
 // an open issue for this case: "https://github.com/rust-lang/rust/issues/129637"
@@ -105,26 +104,4 @@ impl ByteSource for Sources {
             Self::Process(inner) => inner.income(msg).await,
         }
     }
-}
-
-// TODO: this registration function will fail if some of source would not be registred. That's wrong.
-// If some of sources are failed, another sources should still be registred as well
-pub fn registration<P>(components: &mut Components<Sources, P>) -> Result<(), stypes::NativeError> {
-    components.add_source(binary::raw::factory, binary::raw::Descriptor::default())?;
-    components.add_source(
-        binary::pcap::legacy::factory,
-        binary::pcap::legacy::Descriptor::default(),
-    )?;
-    components.add_source(
-        binary::pcap::ng::factory,
-        binary::pcap::ng::Descriptor::default(),
-    )?;
-    components.add_source(socket::tcp::factory, socket::tcp::Descriptor::default())?;
-    components.add_source(socket::udp::factory, socket::udp::Descriptor::default())?;
-    components.add_source(
-        serial::descriptor::factory,
-        serial::descriptor::Descriptor::default(),
-    )?;
-    components.add_source(command::factory, command::Descriptor::default())?;
-    Ok(())
 }
