@@ -2,8 +2,8 @@ mod export_raw;
 mod session;
 
 use crate::{
-    components::Components,
     operations::{OperationAPI, OperationResult},
+    register::Register,
     state::SessionStateAPI,
 };
 use processor::producer::{MessageProducer, sde::*};
@@ -14,7 +14,7 @@ pub async fn observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     options: SessionSetup,
-    components: Arc<Components>,
+    components: Arc<Register>,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     match &options.origin {
