@@ -1,7 +1,7 @@
 mod descriptor;
 
+use crate::*;
 use bufread::BufReader;
-use definitions::*;
 pub use descriptor::*;
 use std::{
     fs::File,

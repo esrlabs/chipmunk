@@ -1,8 +1,8 @@
 mod descriptor;
 pub use descriptor::*;
 
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};

@@ -21,7 +21,6 @@ components = { path = "../components" }
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
 stypes = { path = "../stypes" }
-definitions = { path = "../definitions" }
 # TODO : Introduce shared crates and move dir_checksum to it.
 dir_checksum = { path = "../../../../cli/development-cli/dir_checksum" }
 

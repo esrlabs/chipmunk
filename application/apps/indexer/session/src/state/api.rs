@@ -191,7 +191,7 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
-    AddAttachment(definitions::Attachment),
+    AddAttachment(parsers::api::Attachment),
     GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
     // Used for tests of error handeling
     ShutdownWithError,
@@ -692,7 +692,7 @@ impl SessionStateAPI {
 
     pub fn add_attachment(
         &self,
-        origin: definitions::Attachment,
+        origin: parsers::api::Attachment,
     ) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
             stypes::NativeError::channel(

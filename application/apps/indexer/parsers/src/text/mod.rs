@@ -1,9 +1,8 @@
 pub mod descriptor;
 
-use std::borrow::Cow;
-
-use definitions::*;
+use crate::*;
 use serde::Serialize;
+use std::borrow::Cow;
 
 /// The most likely minimal bytes count needed to parse a text message.
 const MIN_MSG_LEN: usize = 1;

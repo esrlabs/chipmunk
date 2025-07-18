@@ -1,13 +1,12 @@
 mod descriptor;
 
+use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{net::SocketAddr, time::Duration};
 use tokio::{net::TcpStream, runtime::Handle};
-
-use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
 
 pub mod reconnect;
 pub use descriptor::*;

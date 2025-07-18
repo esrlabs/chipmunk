@@ -99,7 +99,7 @@ impl Attachments {
     }
 
     pub fn get_attch_from(
-        origin: definitions::Attachment,
+        origin: parsers::api::Attachment,
         store_folder: &PathBuf,
     ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
         if !store_folder.exists() {
@@ -146,7 +146,7 @@ impl Attachments {
 
     pub fn add(
         &mut self,
-        attachment: definitions::Attachment,
+        attachment: parsers::api::Attachment,
     ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
         if let Some(dest) = self.dest.as_ref() {
             let uuid = Uuid::new_v4();

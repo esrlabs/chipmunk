@@ -1,6 +1,5 @@
+use parsers::api;
 use std::borrow::Cow;
-
-use definitions::{self as defs, LogRecordOutput};
 use stypes::ParserRenderOptions;
 
 pub use self::chipmunk::parser::parse_types::*;
@@ -42,22 +41,26 @@ impl From<&stypes::PluginParserGeneralSettings> for ParserConfig {
     }
 }
 
-impl From<ParseYield> for LogRecordOutput<'_> {
+impl From<ParseYield> for api::LogRecordOutput<'_> {
     fn from(value: ParseYield) -> Self {
         match value {
             ParseYield::Message(parsed_message) => parsed_message.into(),
-            ParseYield::Attachment(attachment) => LogRecordOutput::Attachment(attachment.into()),
-            ParseYield::MessageAndAttachment((msg, attachment)) => LogRecordOutput::Multiple(vec![
-                msg.into(),
-                LogRecordOutput::Attachment(attachment.into()),
-            ]),
+            ParseYield::Attachment(attachment) => {
+                api::LogRecordOutput::Attachment(attachment.into())
+            }
+            ParseYield::MessageAndAttachment((msg, attachment)) => {
+                api::LogRecordOutput::Multiple(vec![
+                    msg.into(),
+                    api::LogRecordOutput::Attachment(attachment.into()),
+                ])
+            }
         }
     }
 }
 
-impl From<Attachment> for defs::Attachment {
+impl From<Attachment> for api::Attachment {
     fn from(att: Attachment) -> Self {
-        defs::Attachment {
+        api::Attachment {
             data: att.data,
             name: att.name,
             size: att.size as usize,
@@ -68,23 +71,23 @@ impl From<Attachment> for defs::Attachment {
     }
 }
 
-impl From<ParseError> for defs::ParserError {
+impl From<ParseError> for api::ParserError {
     fn from(err: ParseError) -> Self {
         match err {
-            ParseError::Unrecoverable(msg) => defs::ParserError::Unrecoverable(msg),
-            ParseError::Parse(msg) => defs::ParserError::Parse(msg),
-            ParseError::Incomplete => defs::ParserError::Incomplete,
-            ParseError::Eof => defs::ParserError::Eof,
+            ParseError::Unrecoverable(msg) => api::ParserError::Unrecoverable(msg),
+            ParseError::Parse(msg) => api::ParserError::Parse(msg),
+            ParseError::Incomplete => api::ParserError::Incomplete,
+            ParseError::Eof => api::ParserError::Eof,
         }
     }
 }
 
-impl From<ParsedMessage> for LogRecordOutput<'_> {
+impl From<ParsedMessage> for api::LogRecordOutput<'_> {
     fn from(msg: ParsedMessage) -> Self {
         match msg {
-            ParsedMessage::Line(msg) => LogRecordOutput::Message(msg.into()),
+            ParsedMessage::Line(msg) => api::LogRecordOutput::Message(msg.into()),
             ParsedMessage::Columns(columns) => {
-                LogRecordOutput::Columns(columns.into_iter().map(Cow::Owned).collect())
+                api::LogRecordOutput::Columns(columns.into_iter().map(Cow::Owned).collect())
             }
         }
     }

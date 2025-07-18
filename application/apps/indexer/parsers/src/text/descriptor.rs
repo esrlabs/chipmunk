@@ -1,4 +1,4 @@
-use components::{ComponentDescriptor, ComponentFactory};
+use components::{CommonDescriptor, ParserDescriptor};
 use file_tools::is_binary;
 use stypes::SessionAction;
 
@@ -11,20 +11,14 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
-    fn create(
-        &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
-        Ok(Some((crate::Parser::Text(StringTokenizer {}), None)))
-    }
+pub fn factory(
+    _origin: &SessionAction,
+    _options: &[stypes::Field],
+) -> Result<Option<(crate::Parsers, Option<String>)>, stypes::NativeError> {
+    Ok(Some((crate::Parsers::Text(StringTokenizer {}), None)))
 }
 
-impl ComponentDescriptor for Descriptor {
-    fn get_render(&self) -> Option<stypes::OutputRender> {
-        Some(stypes::OutputRender::PlaitText)
-    }
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &stypes::SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -49,7 +43,10 @@ impl ComponentDescriptor for Descriptor {
             uuid: TEXT_PARSER_UUID,
         }
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Parser
+}
+
+impl ParserDescriptor for Descriptor {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::PlaitText)
     }
 }
