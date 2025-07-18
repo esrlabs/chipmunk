@@ -180,13 +180,13 @@ use components::*;
 use parsers::{Parsers, api::*};
 use sources::{Sources, api::*};
 
-pub struct Components {
+pub struct Register {
     sources: HashMap<Uuid, (SourceFactory, Box<dyn SourceDescriptor>)>,
     parsers: HashMap<Uuid, (ParserFactory, Box<dyn ParserDescriptor>)>,
 }
 
-impl Components {
-    pub fn new() -> Components {
+impl Register {
+    pub fn new() -> Register {
         Self {
             sources: HashMap::new(),
             parsers: HashMap::new(),
@@ -468,8 +468,8 @@ impl Components {
     }
 }
 
-impl fmt::Debug for Components {
+impl fmt::Debug for Register {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Components")
+        write!(f, "Register")
     }
 }

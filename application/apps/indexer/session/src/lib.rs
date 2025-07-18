@@ -1,8 +1,8 @@
-pub mod components;
 mod handlers;
 pub mod operations;
 pub mod paths;
 pub mod progress;
+pub mod register;
 pub mod session;
 pub mod state;
 pub mod tail;
