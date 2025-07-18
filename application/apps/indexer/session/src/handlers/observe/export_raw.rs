@@ -1,7 +1,8 @@
 use crate::operations::{OperationAPI, OperationResult};
-use definitions::{ByteSource, LogRecordOutput, LogRecordsBuffer, Parser};
 use log::debug;
+use parsers::api::*;
 use processor::producer::MessageProducer;
+use sources::api::*;
 
 use std::{
     fs::File,
@@ -64,7 +65,7 @@ impl LogRecordsBuffer for ExportLogsBuffer {
                 if let Some(first_item) = items.next() {
                     self.bytes_buffer.extend_from_slice(first_item.as_bytes());
                     for item in items {
-                        self.bytes_buffer.push(definitions::COLUMN_SENTINAL as u8);
+                        self.bytes_buffer.push(parsers::api::COLUMN_SENTINAL as u8);
                         self.bytes_buffer.extend_from_slice(item.as_bytes());
                     }
                 }

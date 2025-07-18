@@ -2,8 +2,8 @@ mod descriptor;
 
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::socket::{BuffCapacityState, handle_buff_capacity};
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
 use thiserror::Error;

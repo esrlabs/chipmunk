@@ -56,130 +56,77 @@ pub use tys::*;
 ///   are not retained by `Components`.
 ///
 pub struct Components<S, P> {
-    components: HashMap<Uuid, Entry<S, P>>,
+    sources: HashMap<Uuid, (Factory<S>, Box<dyn SourceDescriptor>)>,
+    parsers: HashMap<Uuid, (Factory<P>, Box<dyn ParserDescriptor>)>,
 }
 
 impl<S, P> Components<S, P> {
-    /// Creates an empty `Components` registry.
-    ///
-    /// This method initializes the `Components` structure without any registered parsers or sources.
-    /// Components should be registered manually using `add_parser` or `add_source` before use.
-    ///
-    /// # Returns
-    /// A new instance of `Components` with no components registered.
-    pub fn new() -> Self {
+    pub fn new() -> Components<S, P> {
         Self {
-            components: HashMap::new(),
+            sources: HashMap::new(),
+            parsers: HashMap::new(),
         }
     }
-
-    /// Registers a parser component.
-    ///
-    /// This method adds a new parser to the registry. The parser is described by a `ComponentFactory`,
-    /// which defines how it should be instantiated and validated.
-    ///
-    /// # Arguments
-    /// * `descriptor` – A descriptor implementing `ComponentFactory<P>` that encapsulates parser metadata and behavior.
-    ///
-    /// # Returns
-    /// * `Ok(())` – If the parser was successfully registered.
-    /// * `Err(NativeError)` – If a component with the same UUID is already registered.
-    ///
-    /// # Errors
-    /// Returns a configuration error if a parser with the same UUID already exists in the registry.
-    pub fn add_parser<D: ComponentFactory<P> + 'static>(
+    pub fn add_parser<D: ParserDescriptor + 'static>(
         &mut self,
+        factory: Factory<P>,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {
         let ident = descriptor.ident();
-        if self.components.contains_key(&ident.uuid) {
+        if self.parsers.contains_key(&ident.uuid) {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
             });
         }
-        self.components
-            .insert(ident.uuid, Entry::Parser(Box::new(descriptor)));
+        self.parsers
+            .insert(ident.uuid, (factory, Box::new(descriptor)));
         Ok(())
     }
 
-    /// Registers a source component.
-    ///
-    /// Similar to `add_parser`, this method registers a data source implementation.
-    /// The descriptor provides construction logic and compatibility metadata.
-    ///
-    /// # Arguments
-    /// * `descriptor` – A descriptor implementing `ComponentFactory<S>` for the source.
-    ///
-    /// # Returns
-    /// * `Ok(())` – If the source was successfully registered.
-    /// * `Err(NativeError)` – If a component with the same UUID is already registered.
-    ///
-    /// # Errors
-    /// Returns a configuration error if a source with the same UUID already exists in the registry.
-    pub fn add_source<D: ComponentFactory<S> + 'static>(
+    pub fn add_source<D: SourceDescriptor + 'static>(
         &mut self,
+        factory: Factory<S>,
         descriptor: D,
     ) -> Result<(), stypes::NativeError> {
-        let ident = descriptor.ident();
-        if self.components.contains_key(&ident.uuid) {
+        let ident: stypes::Ident = descriptor.ident();
+        if self.sources.contains_key(&ident.uuid) {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
             });
         }
-        self.components
-            .insert(ident.uuid, Entry::Source(Box::new(descriptor)));
+        self.sources
+            .insert(ident.uuid, (factory, Box::new(descriptor)));
         Ok(())
     }
 
-    /// Returns a list of registered components of the specified type that are compatible with a given session.
-    ///
-    /// This is used to retrieve a filtered list of component identifiers for parsers or sources based on their compatibility
-    /// with the current session context.
-    ///
-    /// # Arguments
-    /// * `target` – The desired component type (`Parser` or `Source`).
-    /// * `origin` – The session action (e.g., export, view) to determine compatibility.
-    ///
-    /// # Returns
-    /// * `Ok(Vec<Ident>)` – List of matching component identifiers.
-    /// * `Err(NativeError)` – On internal logic failure (should be rare).
-    pub fn get_components(
-        &self,
-        target: &stypes::ComponentType,
-        origin: stypes::SessionAction,
-    ) -> Result<Vec<stypes::Ident>, stypes::NativeError> {
-        Ok(self
-            .components
+    pub fn get_parsers(&self, origin: stypes::SessionAction) -> Vec<stypes::Ident> {
+        self.parsers
             .iter()
-            .filter_map(|(_, desc)| match target {
-                stypes::ComponentType::Parser => {
-                    if let Entry::Parser(desc) = desc {
-                        if desc.is_compatible(&origin) {
-                            Some(desc.ident())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                }
-                stypes::ComponentType::Source => {
-                    if let Entry::Source(desc) = desc {
-                        if desc.is_compatible(&origin) {
-                            Some(desc.ident())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
+            .filter_map(|(_, (_, desc))| {
+                if desc.is_compatible(&origin) {
+                    Some(desc.ident())
+                } else {
+                    None
                 }
             })
-            .collect())
+            .collect()
+    }
+
+    pub fn get_sources(&self, origin: stypes::SessionAction) -> Vec<stypes::Ident> {
+        self.sources
+            .iter()
+            .filter_map(|(_, (_, desc))| {
+                if desc.is_compatible(&origin) {
+                    Some(desc.ident())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// Returns configuration schemas for the specified component UUIDs.
@@ -202,9 +149,9 @@ impl<S, P> Components<S, P> {
         origin: stypes::SessionAction,
         mut targets: Vec<Uuid>,
     ) -> Result<HashMap<Uuid, OptionsScheme>, stypes::NativeError> {
-        let descriptors: Vec<&Entry<S, P>> = self
-            .components
-            .iter()
+        let descriptors = self
+            .descriptors()
+            .into_iter()
             .filter_map(|(uuid, desc)| {
                 if targets.contains(uuid) {
                     targets.retain(|v| v != uuid);
@@ -213,7 +160,7 @@ impl<S, P> Components<S, P> {
                     None
                 }
             })
-            .collect();
+            .collect::<Vec<&dyn CommonDescriptor>>();
         if !targets.is_empty() {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -263,20 +210,11 @@ impl<S, P> Components<S, P> {
         &self,
         uuid: &Uuid,
     ) -> Result<Option<stypes::OutputRender>, stypes::NativeError> {
-        let Entry::Parser(descriptor) = self.components.get(&uuid).ok_or(stypes::NativeError {
+        let (_, descriptor) = self.parsers.get(&uuid).ok_or(stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::Configuration,
             message: Some(format!("Fail to find component {uuid}")),
-        })?
-        else {
-            return Err(stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Configuration,
-                message: Some(format!(
-                    "Fail to get render for {uuid}, because it isn't parser"
-                )),
-            });
-        };
+        })?;
         Ok(descriptor.get_render())
     }
 
@@ -289,7 +227,13 @@ impl<S, P> Components<S, P> {
     /// * `Some(Ident)` – If the parser or source has been found.
     /// * `None` – If no component is defined.
     pub fn get_ident(&self, uuid: &Uuid) -> Option<stypes::Ident> {
-        self.components.get(&uuid).map(|entity| entity.ident())
+        self.descriptors().into_iter().find_map(|(inner, desc)| {
+            if uuid == inner {
+                Some(desc.ident())
+            } else {
+                None
+            }
+        })
     }
 
     /// Validates the configuration fields for a specified component within a session context.
@@ -314,11 +258,15 @@ impl<S, P> Components<S, P> {
         target: &Uuid,
         fields: &[stypes::Field],
     ) -> Result<HashMap<String, String>, stypes::NativeError> {
-        let descriptor = self.components.get(target).ok_or(stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Configuration,
-            message: Some(format!("Fail to find component {target}")),
-        })?;
+        let (_, descriptor) = self
+            .descriptors()
+            .into_iter()
+            .find(|(uuid, _)| *uuid == target)
+            .ok_or(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Configuration,
+                message: Some(format!("Fail to find component {target}")),
+            })?;
         descriptor.validate(origin, fields)
     }
 
@@ -341,14 +289,16 @@ impl<S, P> Components<S, P> {
         &self,
         options: &stypes::SessionSetup,
     ) -> Result<(SessionDescriptor, S, P), stypes::NativeError> {
-        let Some(Entry::Parser(parser)) = self.components.get(&options.parser.uuid) else {
+        let Some((parser_factory, parser_descriptor)) = self.parsers.get(&options.parser.uuid)
+        else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("Fail to find parser {}", options.parser.uuid)),
             });
         };
-        let Some(Entry::Source(source)) = self.components.get(&options.source.uuid) else {
+        let Some((source_factory, source_descriptor)) = self.sources.get(&options.source.uuid)
+        else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -356,10 +306,10 @@ impl<S, P> Components<S, P> {
             });
         };
         let mut descriptor = SessionDescriptor::new(
-            source.bound_ident(&options.origin, &options.source.fields),
-            source.bound_ident(&options.origin, &options.parser.fields),
+            source_descriptor.bound_ident(&options.origin, &options.source.fields),
+            parser_descriptor.bound_ident(&options.origin, &options.parser.fields),
         );
-        let Some((parser, desc)) = parser.create(&options.origin, &options.parser.fields)? else {
+        let Some((parser, desc)) = parser_factory(&options.origin, &options.parser.fields)? else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -367,7 +317,7 @@ impl<S, P> Components<S, P> {
             });
         };
         descriptor.set_parser_desc(desc);
-        let Some((source, desc)) = source.create(&options.origin, &options.source.fields)? else {
+        let Some((source, desc)) = source_factory(&options.origin, &options.source.fields)? else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -376,6 +326,20 @@ impl<S, P> Components<S, P> {
         };
         descriptor.set_source_desc(desc);
         Ok((descriptor, source, parser))
+    }
+
+    fn descriptors(&self) -> Vec<(&Uuid, &dyn CommonDescriptor)> {
+        [
+            self.sources
+                .iter()
+                .map(|(uuid, (_, desc))| (uuid, desc.as_ref() as &dyn CommonDescriptor))
+                .collect::<Vec<(&Uuid, &dyn CommonDescriptor)>>(),
+            self.parsers
+                .iter()
+                .map(|(uuid, (_, desc))| (uuid, desc.as_ref() as &dyn CommonDescriptor))
+                .collect::<Vec<(&Uuid, &dyn CommonDescriptor)>>(),
+        ]
+        .concat()
     }
 }
 

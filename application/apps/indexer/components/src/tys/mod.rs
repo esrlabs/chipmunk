@@ -1,6 +1,11 @@
+mod parser;
+mod source;
+
 use std::{future::Future, pin::Pin};
 
 use crate::*;
+pub use parser::*;
+pub use source::*;
 use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
@@ -55,111 +60,10 @@ pub type StaticFieldsResult = Result<Vec<StaticFieldResult>, stypes::NativeError
 /// * `StaticFieldsResult` - A result containing static field data or a native error.
 pub type LazyFieldsTask = Pin<Box<dyn Future<Output = StaticFieldsResult> + Send>>;
 
-/// A wrapper for storing the full descriptor of a component.
-///
-/// Although the internal value is stored as a `ComponentFactory`, it is important to note
-/// that all factories are also required to implement `ComponentDescriptor`, i.e.,
-/// `ComponentFactory<T>: ComponentDescriptor`.
-/// Therefore, this enum represents a full component descriptor, not just a factory.
-///
-/// Variants:
-/// - `Parser`: A descriptor for a parser component.
-/// - `Source`: A descriptor for a source component.
-pub enum Entry<S, P> {
-    Parser(Box<dyn ComponentFactory<P>>),
-    Source(Box<dyn ComponentFactory<S>>),
-}
-
-impl<S, P> ComponentDescriptor for Entry<S, P> {
-    fn get_render(&self) -> Option<stypes::OutputRender> {
-        match self {
-            Self::Source(inner) => inner.get_render(),
-            Self::Parser(inner) => inner.get_render(),
-        }
-    }
-    fn fields_getter(&self, origin: &stypes::SessionAction) -> FieldsResult {
-        match self {
-            Self::Source(inner) => inner.fields_getter(origin),
-            Self::Parser(inner) => inner.fields_getter(origin),
-        }
-    }
-    fn ident(&self) -> stypes::Ident {
-        match self {
-            Self::Source(inner) => inner.ident(),
-            Self::Parser(inner) => inner.ident(),
-        }
-    }
-    fn is_compatible(&self, origin: &stypes::SessionAction) -> bool {
-        match self {
-            Self::Source(inner) => inner.is_compatible(origin),
-            Self::Parser(inner) => inner.is_compatible(origin),
-        }
-    }
-    fn is_ty(&self, ty: &stypes::ComponentType) -> bool {
-        match self {
-            Self::Source(inner) => inner.is_ty(ty),
-            Self::Parser(inner) => inner.is_ty(ty),
-        }
-    }
-    fn lazy_fields_getter(
-        &self,
-        origin: stypes::SessionAction,
-        cancel: CancellationToken,
-    ) -> LazyFieldsTask {
-        match self {
-            Self::Source(inner) => inner.lazy_fields_getter(origin, cancel),
-            Self::Parser(inner) => inner.lazy_fields_getter(origin, cancel),
-        }
-    }
-    fn ty(&self) -> stypes::ComponentType {
-        match self {
-            Self::Source(inner) => inner.ty(),
-            Self::Parser(inner) => inner.ty(),
-        }
-    }
-    fn validate(
-        &self,
-        origin: &stypes::SessionAction,
-        fields: &[stypes::Field],
-    ) -> Result<HashMap<String, String>, stypes::NativeError> {
-        match self {
-            Self::Source(inner) => inner.validate(origin, fields),
-            Self::Parser(inner) => inner.validate(origin, fields),
-        }
-    }
-}
-
-/// Defines a factory interface for creating instances of components.
-///
-/// In the application architecture, components (such as parsers, sources, etc.)
-/// are not instantiated directly. Instead, component instantiation is handled
-/// by the `Components` controller, which creates component instances based on
-/// registrations made during system initialization.
-///
-/// This level of indirection is a key architectural decision, as it allows
-/// components to remain decoupled from the application core. This makes it
-/// possible to replace or update components without modifying the core logic.
-pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
-    /// Creates an instance of the component of type `T`.
-    ///
-    /// # Arguments
-    /// * `origin` - A reference to a `SessionAction` representing the creation context.
-    ///   For example, it could point to a file, a group of files, or any other data source.
-    /// * `options` - A slice of `stypes::Field` values representing component options or settings.
-    ///
-    /// # Returns
-    /// * `Ok(Some(T, Option<String>))` if the component was successfully created, where `T` - an
-    ///   instance of component; `Option<String>` - self description for client (e.g. "TCP on 0.0.0.0:8888").
-    /// * `Ok(None)` if the factory declined to create a component for the given context.
-    /// * `Err(stypes::NativeError)` if an error occurred during creation.
-    fn create(
-        &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<(T, Option<String>)>, stypes::NativeError> {
-        Ok(None)
-    }
-}
+pub type Factory<T> = fn(
+    &SessionAction,
+    &[stypes::Field],
+) -> Result<Option<(T, Option<String>)>, stypes::NativeError>;
 
 /// Describes a component in terms of its identity, configuration schema,
 /// validation logic, support for lazy-loading configuration, and its type within the system.
@@ -174,11 +78,7 @@ pub trait ComponentFactory<T>: ComponentDescriptor + Sync + Send {
 /// The actual parser and source implementations remain hidden behind the descriptor,
 /// making it possible to swap, reconfigure, or isolate components without touching
 /// the application core.
-pub trait ComponentDescriptor {
-    fn get_render(&self) -> Option<stypes::OutputRender> {
-        None
-    }
-
+pub trait CommonDescriptor: Sync + Send {
     /// Check is component is campatible with given origin
     ///
     /// * `origin` - The source origin
@@ -221,27 +121,6 @@ pub trait ComponentDescriptor {
         _fields: &[stypes::Field],
     ) -> stypes::Ident {
         self.ident()
-    }
-
-    /// Retrieves the type of the component.
-    ///
-    /// # Returns
-    ///
-    /// * `stypes::ComponentType` - The type of the component (e.g., parser, source).
-    fn ty(&self) -> stypes::ComponentType;
-
-    /// Checks if the component's type matches the given type.
-    ///
-    /// # Arguments
-    ///
-    /// * `ty` - A reference to the type to check against.
-    ///
-    /// # Returns
-    ///
-    /// * `true` if the component type matches the given type.
-    /// * `false` otherwise.
-    fn is_ty(&self, ty: &stypes::ComponentType) -> bool {
-        &self.ty() == ty
     }
 
     /// Retrieves the static field descriptors for the component.

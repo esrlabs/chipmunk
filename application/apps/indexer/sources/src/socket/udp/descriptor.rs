@@ -1,11 +1,11 @@
-use components::{ComponentDescriptor, ComponentFactory};
+use super::{MulticastInfo, UdpSource};
+use crate::*;
+use components::{CommonDescriptor, SourceDescriptor};
 use std::collections::HashMap;
 use stypes::{
     ExtractAs, ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind,
     SessionAction, Severity, StaticFieldDesc, Value, ValueInput, missed_field_err as missed,
 };
-
-use super::{MulticastInfo, UdpSource};
 
 const UDP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
@@ -17,75 +17,58 @@ const FIELD_MULTICAST_ADDR: &str = "UDP_SOURCE_FIELD_MULTICAST_ADDR";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
-    fn create(
-        &self,
-        origin: &SessionAction,
-        options: &[Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
-        let errors = self.validate(origin, options)?;
-        if !errors.is_empty() {
+pub fn factory(
+    origin: &SessionAction,
+    options: &[Field],
+) -> Result<Option<(Sources, Option<String>)>, NativeError> {
+    let addr: String = options
+        .extract_by_key(FIELD_IP_ADDR)
+        .ok_or(missed(FIELD_IP_ADDR))?
+        .value;
+    let multicast: &Vec<Field> = options
+        .extract_by_key(FIELD_MULTICAST_ADDR)
+        .ok_or(missed(FIELD_MULTICAST_ADDR))?
+        .value;
+    let mut multicasts = Vec::new();
+    for field in multicast {
+        let pair: &Vec<Field> = field.extract_as().ok_or(missed("Multicast Addr"))?;
+        if pair.len() != 2 {
             return Err(NativeError {
                 kind: NativeErrorKind::Configuration,
                 severity: Severity::ERROR,
-                message: Some(
-                    errors
-                        .values()
-                        .map(String::as_str)
-                        .collect::<Vec<_>>()
-                        .join("; "),
-                ),
+                message: Some("Invalid settings of multicast address".to_owned()),
             });
         }
-        let addr: String = options
-            .extract_by_key(FIELD_IP_ADDR)
-            .ok_or(missed(FIELD_IP_ADDR))?
-            .value;
-        let multicast: &Vec<Field> = options
-            .extract_by_key(FIELD_MULTICAST_ADDR)
-            .ok_or(missed(FIELD_MULTICAST_ADDR))?
-            .value;
-        let mut multicasts = Vec::new();
-        for field in multicast {
-            let pair: &Vec<Field> = field.extract_as().ok_or(missed("Multicast Addr"))?;
-            if pair.len() != 2 {
-                return Err(NativeError {
+        let addr: String = (&pair[0]).extract_as().ok_or(missed("Multicast"))?;
+        let interface: String = (&pair[1]).extract_as().ok_or(missed("Interface"))?;
+        multicasts.push(MulticastInfo {
+            multiaddr: addr
+                .parse::<std::net::IpAddr>()
+                .map_err(|err| NativeError {
                     kind: NativeErrorKind::Configuration,
                     severity: Severity::ERROR,
-                    message: Some("Invalid settings of multicast address".to_owned()),
-                });
-            }
-            let addr: String = (&pair[0]).extract_as().ok_or(missed("Multicast"))?;
-            let interface: String = (&pair[1]).extract_as().ok_or(missed("Interface"))?;
-            multicasts.push(MulticastInfo {
-                multiaddr: addr
-                    .parse::<std::net::IpAddr>()
-                    .map_err(|err| NativeError {
-                        kind: NativeErrorKind::Configuration,
-                        severity: Severity::ERROR,
-                        message: Some(format!("Fail to parse IP: {err}")),
-                    })?,
-                interface: if interface.is_empty() {
-                    None
-                } else {
-                    Some(interface)
-                },
-            })
-        }
-        Ok(Some((
-            crate::Source::Udp(
-                UdpSource::new(&addr, multicasts).map_err(|err| NativeError {
-                    kind: NativeErrorKind::Io,
-                    severity: Severity::ERROR,
-                    message: Some(err.to_string()),
+                    message: Some(format!("Fail to parse IP: {err}")),
                 })?,
-            ),
-            Some(format!("UDP on {addr}")),
-        )))
+            interface: if interface.is_empty() {
+                None
+            } else {
+                Some(interface)
+            },
+        })
     }
+    Ok(Some((
+        Sources::Udp(
+            UdpSource::new(&addr, multicasts).map_err(|err| NativeError {
+                kind: NativeErrorKind::Io,
+                severity: Severity::ERROR,
+                message: Some(err.to_string()),
+            })?,
+        ),
+        Some(format!("UDP on {addr}")),
+    )))
 }
 
-impl ComponentDescriptor for Descriptor {
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         match origin {
             SessionAction::File(..) | SessionAction::Files(..) | SessionAction::ExportRaw(..) => {
@@ -103,9 +86,6 @@ impl ComponentDescriptor for Descriptor {
             io: stypes::IODataType::NetworkFramePayload,
             uuid: UDP_SOURCE_UUID,
         }
-    }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Source
     }
     fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         Ok(vec![
@@ -205,3 +185,4 @@ impl ComponentDescriptor for Descriptor {
         Ok(errors)
     }
 }
+impl SourceDescriptor for Descriptor {}

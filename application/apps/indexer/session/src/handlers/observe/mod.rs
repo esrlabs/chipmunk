@@ -14,7 +14,7 @@ pub async fn observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     options: SessionSetup,
-    components: Arc<Components<sources::Source, parsers::Parser>>,
+    components: Arc<Components<sources::Sources, parsers::Parsers>>,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     match &options.origin {

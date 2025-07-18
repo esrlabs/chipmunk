@@ -1,5 +1,6 @@
 use super::ProcessSource;
-use components::{ComponentDescriptor, ComponentFactory};
+use crate::*;
+use components::{CommonDescriptor, SourceDescriptor};
 use std::{collections::HashMap, env};
 use stypes::{
     ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
@@ -17,40 +18,23 @@ const FIELD_SHELLS: &str = "COMMAND_FIELD_SHELLS";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
-    fn create(
-        &self,
-        origin: &SessionAction,
-        options: &[Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, NativeError> {
-        let errors = self.validate(origin, options)?;
-        if !errors.is_empty() {
-            return Err(NativeError {
-                kind: NativeErrorKind::Configuration,
-                severity: Severity::ERROR,
-                message: Some(
-                    errors
-                        .values()
-                        .map(String::as_str)
-                        .collect::<Vec<_>>()
-                        .join("; "),
-                ),
-            });
-        }
-        let command: String = options
-            .extract_by_key(FIELD_COMMAND)
-            .ok_or(missed(FIELD_COMMAND))?
-            .value;
-        Ok(Some((
-            crate::Source::Process(
-                ProcessSource::new(&command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
-            ),
-            Some(command),
-        )))
-    }
+pub fn factory(
+    origin: &SessionAction,
+    options: &[Field],
+) -> Result<Option<(Sources, Option<String>)>, NativeError> {
+    let command: String = options
+        .extract_by_key(FIELD_COMMAND)
+        .ok_or(missed(FIELD_COMMAND))?
+        .value;
+    Ok(Some((
+        Sources::Process(
+            ProcessSource::new(&command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
+        ),
+        Some(command),
+    )))
 }
 
-impl ComponentDescriptor for Descriptor {
+impl CommonDescriptor for Descriptor {
     fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
         let mut shells = vec![("".to_owned(), "Default".to_owned())];
         if let Ok(profiles) = envvars::get_profiles() {
@@ -111,9 +95,6 @@ impl ComponentDescriptor for Descriptor {
             uuid: TERM_SOURCE_UUID,
         }
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Source
-    }
     fn validate(
         &self,
         _origin: &SessionAction,
@@ -129,3 +110,4 @@ impl ComponentDescriptor for Descriptor {
         Ok(errors)
     }
 }
+impl SourceDescriptor for Descriptor {}

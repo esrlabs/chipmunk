@@ -3,9 +3,11 @@ use crate::{
     state::SessionStateAPI,
     tail,
 };
-use definitions::*;
 use log::{trace, warn};
+use parsers::api;
+use parsers::api::*;
 use processor::producer::{MessageProducer, MessageStreamItem, sde::*};
+use sources::api::*;
 use std::time::Instant;
 use tokio::{select, sync::mpsc::Receiver};
 
@@ -70,7 +72,7 @@ impl LogRecordsBuffer for LogsBuffer {
                 if let Some(first_item) = items.next() {
                     self.text_buffer.push_str(&first_item);
                     for item in items {
-                        self.text_buffer.push(definitions::COLUMN_SENTINAL);
+                        self.text_buffer.push(api::COLUMN_SENTINAL);
                         self.text_buffer.push_str(&item);
                     }
                 }

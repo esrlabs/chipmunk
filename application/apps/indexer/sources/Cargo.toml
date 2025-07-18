@@ -31,7 +31,6 @@ envvars.workspace = true
 file-tools = { path = "../addons/file-tools" }
 stypes = { path = "../stypes", features=["rustcore"] }
 components = { path = "../components" }
-definitions = { path = "../definitions" }
 
 [dev-dependencies]
 env_logger.workspace = true

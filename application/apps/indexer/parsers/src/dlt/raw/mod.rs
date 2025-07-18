@@ -1,7 +1,7 @@
 pub mod descriptor;
 
 use super::{MIN_MSG_LEN, map_dlt_err};
-use definitions::*;
+use crate::*;
 pub use descriptor::*;
 use dlt_core::parse::dlt_consume_msg;
 pub use dlt_core::{

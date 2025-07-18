@@ -4,7 +4,8 @@
 mod bindings;
 mod parser_plugin_state;
 
-use components::ComponentDescriptor;
+use components::{CommonDescriptor, ParserDescriptor};
+use parsers::api::*;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use tokio::runtime::Handle;
 use wasmtime::{
@@ -132,9 +133,7 @@ impl PluginParser {
     }
 }
 
-use definitions::{self as defs, LogRecordOutput, ParseReturnIterator};
-
-impl defs::Parser for PluginParser {
+impl Parser for PluginParser {
     fn parse<'a>(&mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         // Calls on plugins must be async. To solve that we got the following solutions:
         // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
@@ -155,7 +154,7 @@ impl defs::Parser for PluginParser {
             Ok(results) => results?,
             Err(call_err) => {
                 // Wasmtime uses anyhow error, which provides error context in debug print only.
-                return Err(defs::ParserError::Unrecoverable(format!(
+                return Err(ParserError::Unrecoverable(format!(
                     "Call parse on the plugin failed. Error: {call_err:?}"
                 )));
             }
@@ -175,7 +174,7 @@ impl defs::Parser for PluginParser {
 #[derive(Default)]
 struct Descriptor {}
 
-impl ComponentDescriptor for Descriptor {
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, _origin: &stypes::SessionAction) -> bool {
         true
     }
@@ -188,7 +187,10 @@ impl ComponentDescriptor for Descriptor {
             uuid: uuid::Uuid::new_v4(),
         }
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Parser
+}
+
+impl ParserDescriptor for Descriptor {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::PlaitText)
     }
 }
