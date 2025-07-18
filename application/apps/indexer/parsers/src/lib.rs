@@ -1,6 +1,5 @@
 // #![deny(unused_crate_dependencies)]
 
-use components::Components;
 pub mod api;
 pub mod dlt;
 pub mod prelude;
@@ -40,22 +39,3 @@ impl Parser for Parsers {
 
 // TODO: this registration function will fail if some of parser would not be registred. That's wrong.
 // If some of parsers are failed, another parsers should still be registred as well
-pub fn registration<S>(components: &mut Components<S, Parsers>) -> Result<(), stypes::NativeError> {
-    components.add_parser(
-        dlt::descriptor::factory,
-        dlt::descriptor::Descriptor::default(),
-    )?;
-    components.add_parser(
-        dlt::descriptor::factory,
-        dlt::raw::descriptor::Descriptor::default(),
-    )?;
-    components.add_parser(
-        someip::descriptor::factory,
-        someip::descriptor::Descriptor::default(),
-    )?;
-    components.add_parser(
-        text::descriptor::factory,
-        text::descriptor::Descriptor::default(),
-    )?;
-    Ok(())
-}
