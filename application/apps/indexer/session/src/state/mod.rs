@@ -495,7 +495,7 @@ impl SessionState {
 
     fn handle_add_attachment(
         &mut self,
-        origin: definitions::Attachment,
+        origin: parsers::api::Attachment,
         tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
     ) -> Result<(), stypes::NativeError> {
         let attachment = self.attachments.add(origin)?;

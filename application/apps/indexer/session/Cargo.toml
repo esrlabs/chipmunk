@@ -28,7 +28,6 @@ walkdir.workspace = true
 indexer_base = { path = "../indexer_base" }
 plugins_host = { path = "../plugins_host/"}
 components = { path = "../components" }
-definitions = { path = "../definitions" }
 stypes = { path = "../stypes", features=["rustcore"] }
 parsers = { path = "../parsers" }
 processor = { path = "../processor" }

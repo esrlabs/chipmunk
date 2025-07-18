@@ -2,7 +2,8 @@ use std::path::{Path, PathBuf};
 
 use wasmtime::component::Component;
 
-use definitions::{self as defs, ParseReturnIterator};
+use components::{CommonDescriptor, ParserDescriptor};
+use parsers::api::*;
 use stypes::{PluginInfo, SemanticVersion};
 
 use crate::{
@@ -135,7 +136,7 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-impl defs::Parser for PluginsParser {
+impl Parser for PluginsParser {
     fn parse<'a>(&'a mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
@@ -143,36 +144,60 @@ impl defs::Parser for PluginsParser {
 
         // Check for consecutive errors.
         match &res {
-            Ok(_) | Err(defs::ParserError::Unrecoverable(_)) | Err(defs::ParserError::Eof) => {
+            Ok(_) | Err(ParserError::Unrecoverable(_)) | Err(ParserError::Eof) => {
                 self.errors_counter = 0;
             }
-            Err(defs::ParserError::Parse(err)) => {
+            Err(ParserError::Parse(err)) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::PARSE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(defs::ParserError::Unrecoverable(format!(
+                    return Err(ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable parse errors consecutively\n. Parse Error: {err}",
                         PluginErrorLimits::PARSE_ERROR_LIMIT
                     )));
                 }
             }
-            Err(defs::ParserError::Incomplete) => {
+            Err(ParserError::Incomplete) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::INCOMPLETE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(defs::ParserError::Unrecoverable(format!(
+                    return Err(ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable incomplete errors consecutively",
                         PluginErrorLimits::INCOMPLETE_ERROR_LIMIT
                     )));
                 }
             }
-            Err(defs::ParserError::Native(err)) => {
+            Err(ParserError::Native(err)) => {
                 todo!("Not implemented")
             }
         }
 
         res
+    }
+}
+
+#[derive(Default)]
+struct Descriptor {}
+
+impl CommonDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &stypes::SessionAction) -> bool {
+        true
+    }
+    /// **ATTANTION** That's placeholder. Should be another way to delivery data
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Plugin"),
+            desc: String::from("Plugin"),
+            io: stypes::IODataType::Any,
+            uuid: uuid::Uuid::new_v4(),
+        }
+    }
+}
+
+impl ParserDescriptor for Descriptor {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::PlaitText)
     }
 }

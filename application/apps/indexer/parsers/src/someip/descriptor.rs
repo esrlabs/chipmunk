@@ -1,4 +1,4 @@
-use components::{ComponentDescriptor, ComponentFactory};
+use components::{CommonDescriptor, ParserDescriptor};
 use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
 
 use super::SomeipParser;
@@ -15,34 +15,17 @@ const FIELD_TZ: &str = "SOMEIP_PARSER_FIELD_TIMEZONE";
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
-    fn create(
-        &self,
-        _origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
-        Ok(Some((
-            crate::Parser::SomeIp(SomeipParser::new()),
-            Some("SomeIp".to_owned()),
-        )))
-    }
+pub fn factory(
+    _origin: &SessionAction,
+    _options: &[stypes::Field],
+) -> Result<Option<(crate::Parsers, Option<String>)>, stypes::NativeError> {
+    Ok(Some((
+        crate::Parsers::SomeIp(SomeipParser::new()),
+        Some("SomeIp".to_owned()),
+    )))
 }
 
-impl ComponentDescriptor for Descriptor {
-    fn get_render(&self) -> Option<stypes::OutputRender> {
-        Some(stypes::OutputRender::Columns(vec![
-            ("SOME/IP".to_owned(), 50),
-            ("SERV".to_owned(), 50),
-            ("METH".to_owned(), 50),
-            ("LENG".to_owned(), 30),
-            ("CLID".to_owned(), 30),
-            ("SEID".to_owned(), 30),
-            ("IVER".to_owned(), 30),
-            ("MSTP".to_owned(), 30),
-            ("RETC".to_owned(), 30),
-            ("PAYLOAD".to_owned(), 0),
-        ]))
-    }
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -92,7 +75,21 @@ impl ComponentDescriptor for Descriptor {
             uuid: SOMEIP_PARSER_UUID,
         }
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Parser
+}
+
+impl ParserDescriptor for Descriptor {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::Columns(vec![
+            ("SOME/IP".to_owned(), 50),
+            ("SERV".to_owned(), 50),
+            ("METH".to_owned(), 50),
+            ("LENG".to_owned(), 30),
+            ("CLID".to_owned(), 30),
+            ("SEID".to_owned(), 30),
+            ("IVER".to_owned(), 30),
+            ("MSTP".to_owned(), 30),
+            ("RETC".to_owned(), 30),
+            ("PAYLOAD".to_owned(), 0),
+        ]))
     }
 }

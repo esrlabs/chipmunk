@@ -15,8 +15,8 @@ extern crate indexer_base;
 #[macro_use]
 extern crate log;
 
-use definitions::Attachment;
 use dlt_core::filtering::DltFilterConfig;
+use parsers::api::*;
 use parsers::dlt::DltParser;
 use processor::producer::MessageProducer;
 use sources::binary::raw::BinaryByteSource;
