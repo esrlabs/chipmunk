@@ -1,5 +1,8 @@
+mod api;
+mod plugins;
+
 use api::*;
-use components::{Components, LazyLoadingResult, LazyLoadingTaskMeta};
+use components::{LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
@@ -11,9 +14,6 @@ use tokio::{
     task::{self, JoinHandle},
 };
 use uuid::Uuid;
-
-mod api;
-mod plugins;
 
 /// A controller responsible for managing all available components in the system (such as parsers, sources, etc.).
 ///
@@ -60,15 +60,13 @@ impl ComponentsSession {
             UnboundedSender<stypes::CallbackOptionsEvent>,
             UnboundedReceiver<stypes::CallbackOptionsEvent>,
         ) = unbounded_channel();
-        let mut components: Components<sources::Sources, parsers::Parsers> = Components::new();
+        let mut components: Components = Components::new();
         // Registre parsers
-        parsers::registration(&mut components)?;
+        parsers_registration(&mut components)?;
         // Registre sources
-        sources::registration(&mut components)?;
-
         plugins_manager.register_plugins(&mut components)?;
-
         let plugins_manager = Arc::new(RwLock::new(plugins_manager));
+        sources_registration(&mut components)?;
         let tx_api_inner = tx_api.clone();
         let session = Self { tx_api };
         task::spawn(async move {
@@ -642,4 +640,58 @@ fn response<T, S: AsRef<str>>(res: Result<T, RecvError>, msg: S) -> Result<T, st
         kind: stypes::NativeErrorKind::ChannelError,
         message: Some(format!("{}: {e:?}", msg.as_ref())),
     })
+}
+
+use parsers::api::*;
+use sources::api::*;
+pub fn parsers_registration(components: &mut Components) -> Result<(), stypes::NativeError> {
+    components.add_parser(
+        parsers::dlt::descriptor::factory,
+        parsers::dlt::descriptor::Descriptor::default(),
+    )?;
+    components.add_parser(
+        parsers::dlt::descriptor::factory,
+        parsers::dlt::raw::descriptor::Descriptor::default(),
+    )?;
+    components.add_parser(
+        parsers::someip::descriptor::factory,
+        parsers::someip::descriptor::Descriptor::default(),
+    )?;
+    components.add_parser(
+        parsers::text::descriptor::factory,
+        parsers::text::descriptor::Descriptor::default(),
+    )?;
+    Ok(())
+}
+
+pub fn sources_registration(components: &mut Components) -> Result<(), stypes::NativeError> {
+    components.add_source(
+        sources::binary::raw::factory,
+        sources::binary::raw::Descriptor::default(),
+    )?;
+    components.add_source(
+        sources::binary::pcap::legacy::factory,
+        sources::binary::pcap::legacy::Descriptor::default(),
+    )?;
+    components.add_source(
+        sources::binary::pcap::ng::factory,
+        sources::binary::pcap::ng::Descriptor::default(),
+    )?;
+    components.add_source(
+        sources::socket::tcp::factory,
+        sources::socket::tcp::Descriptor::default(),
+    )?;
+    components.add_source(
+        sources::socket::udp::factory,
+        sources::socket::udp::Descriptor::default(),
+    )?;
+    components.add_source(
+        sources::serial::descriptor::factory,
+        sources::serial::descriptor::Descriptor::default(),
+    )?;
+    components.add_source(
+        sources::command::factory,
+        sources::command::Descriptor::default(),
+    )?;
+    Ok(())
 }
