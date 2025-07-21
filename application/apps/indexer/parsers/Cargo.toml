@@ -23,7 +23,7 @@ thiserror.workspace = true
 stypes = { path = "../stypes", features=["rustcore"] }
 file-tools = { path = "../addons/file-tools" }
 someip-tools = { path = "../addons/someip-tools" }
-components = { path = "../components" }
+descriptor = { path = "../descriptor" }
 
 [dev-dependencies]
 stringreader = "0.1"

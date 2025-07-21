@@ -1,4 +1,4 @@
-use components::{SourceDescriptor, CommonDescriptor};
+use descriptor::{SourceDescriptor, CommonDescriptor};
 use file_tools::is_binary;
 use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
 use crate::*;
