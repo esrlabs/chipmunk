@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use wasmtime::component::Component;
 
-use components::{CommonDescriptor, ParserDescriptor};
+use descriptor::{CommonDescriptor, ParserDescriptor};
 use parsers::api::*;
 use stypes::{PluginInfo, SemanticVersion};
 

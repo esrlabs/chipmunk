@@ -1,6 +1,8 @@
 use crate::prelude::SerialSource;
 use crate::*;
-use components::{CommonDescriptor, SourceDescriptor, StaticFieldResult};
+use descriptor::{
+    CommonDescriptor, FieldsResult, LazyFieldsTask, SourceDescriptor, StaticFieldResult,
+};
 use std::{collections::HashMap, str};
 use stypes::{
     ExtractByKey, Extracted, Field, FieldDesc, LazyFieldDesc, NativeError, NativeErrorKind,
@@ -99,7 +101,7 @@ impl CommonDescriptor for Descriptor {
             uuid: SERIAL_SOURCE_UUID,
         }
     }
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_PATH.to_owned(),
@@ -201,7 +203,7 @@ impl CommonDescriptor for Descriptor {
         &self,
         _origin: SessionAction,
         _cancel: tokio_util::sync::CancellationToken,
-    ) -> components::LazyFieldsTask {
+    ) -> LazyFieldsTask {
         Box::pin(async move {
             let ports = serialport::available_ports()
                 .map_err(|e| stypes::ComputationError::IoOperation(e.to_string()))?

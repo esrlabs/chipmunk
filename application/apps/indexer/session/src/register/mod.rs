@@ -2,7 +2,7 @@ mod api;
 mod plugins;
 
 use api::*;
-use components::{LazyLoadingResult, LazyLoadingTaskMeta};
+use descriptor::{LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
