@@ -30,7 +30,7 @@ envvars.workspace = true
 
 file-tools = { path = "../addons/file-tools" }
 stypes = { path = "../stypes", features=["rustcore"] }
-components = { path = "../components" }
+descriptor = { path = "../descriptor" }
 
 [dev-dependencies]
 env_logger.workspace = true

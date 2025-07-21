@@ -4,7 +4,7 @@
 mod bindings;
 mod parser_plugin_state;
 
-use components::{CommonDescriptor, ParserDescriptor};
+use descriptor::{CommonDescriptor, ParserDescriptor};
 use parsers::api::*;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use tokio::runtime::Handle;

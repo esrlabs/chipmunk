@@ -1,6 +1,6 @@
 use super::ProcessSource;
 use crate::*;
-use components::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, FieldsResult, SourceDescriptor};
 use std::{collections::HashMap, env};
 use stypes::{
     ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
@@ -35,7 +35,7 @@ pub fn factory(
 }
 
 impl CommonDescriptor for Descriptor {
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         let mut shells = vec![("".to_owned(), "Default".to_owned())];
         if let Ok(profiles) = envvars::get_profiles() {
             shells = profiles

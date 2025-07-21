@@ -1,4 +1,4 @@
-use components::{CommonDescriptor, ParserDescriptor};
+use descriptor::{CommonDescriptor, ParserDescriptor};
 use file_tools::is_binary;
 use stypes::SessionAction;
 
