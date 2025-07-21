@@ -211,7 +211,7 @@ mod tests {
         let send_handle = tokio::spawn(async move {
             accept_and_send(&listener, 100).await;
         });
-        let mut tcp_source = TcpSource::new(SERVER, None, None).await?;
+        let mut tcp_source = TcpSource::new(SERVER, None, None)?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
                 tcp_source.load(None).await.expect("reload failed");
@@ -240,7 +240,7 @@ mod tests {
         tokio::spawn(async move {
             accept_and_send(&listener, 100).await;
         });
-        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, None).unwrap();
 
         general_source_reload_test(&mut tcp_source).await;
     }
@@ -270,7 +270,7 @@ mod tests {
             }
         });
 
-        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, None).unwrap();
 
         while let Ok(Some(info)) = tcp_source.load(None).await {
             if info.available_bytes == 0 {
@@ -298,7 +298,7 @@ mod tests {
         // Enable reconnect without configuring state channels.
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(20), None);
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
         let receive_handle = tokio::spawn(async move {
             // Byte source must receive same data twice without errors with active reconnect
             for _ in 0..2 {
@@ -339,7 +339,7 @@ mod tests {
 
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(50), Some(state_tx));
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         // Tests reconnecting state messages.
         let reconnect_handler = tokio::spawn(async move {
@@ -405,7 +405,7 @@ mod tests {
         const MAX_ATTEMPTS: usize = 7;
         let rec_info = ReconnectInfo::new(MAX_ATTEMPTS, Duration::from_millis(10), Some(state_tx));
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         // Tests reconnecting state messages.
         // Failed state message with MAX_ATTEMPTS is expected.
@@ -469,7 +469,7 @@ mod tests {
 
         let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         let cancel_handle = tokio::spawn(async move {
             // Keep sending notifications causing load method to be dropped while both
@@ -534,7 +534,7 @@ mod tests {
         // Enable reconnect without configuring state channels.
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(30), None);
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         let receive_handle = tokio::spawn(async move {
             // TCP source must receive three messages, reconnect then receive three

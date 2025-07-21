@@ -162,7 +162,7 @@ mod tests {
                     .expect("could not send on socket");
             }
         });
-        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await?;
+        let mut udp_source = UdpSource::new(RECEIVER, vec![])?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
                 udp_source.load(None).await.unwrap();
@@ -194,7 +194,7 @@ mod tests {
                     .expect("could not send on socket");
             }
         });
-        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).unwrap();
 
         general_source_reload_test(&mut udp_source).await;
     }
@@ -234,7 +234,7 @@ mod tests {
             }
         });
 
-        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).unwrap();
 
         while let Ok(Some(info)) = udp_source.load(None).await {
             if info.newly_loaded_bytes == 0 {
