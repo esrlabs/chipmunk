@@ -59,14 +59,14 @@ mod tests {
         let content = b"hello\nworld\n";
         let (consumed_1, first_msg) = parser.parse(content, None).unwrap().next().unwrap();
         match first_msg {
-            Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
+            Some(LogRecordOutput::Message(content)) if content.eq("hello") => {}
             _ => panic!("First message did not match"),
         }
         let rest_1 = &content[consumed_1..];
         println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
         let (consumed_2, second_msg) = parser.parse(rest_1, None).unwrap().next().unwrap();
         match second_msg {
-            Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
+            Some(LogRecordOutput::Message(content)) if content.eq("world") => {}
             _ => panic!("Second message did not match"),
         }
         let rest_2 = &rest_1[consumed_2..];
@@ -86,12 +86,12 @@ mod tests {
 
         let (_consumed_1, first_msg) = items_iter.next().unwrap();
         match first_msg {
-            Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
+            Some(LogRecordOutput::Message(content)) if content.eq("hello") => {}
             _ => panic!("First message did not match"),
         }
         let (_consumed_2, second_msg) = items_iter.next().unwrap();
         match second_msg {
-            Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
+            Some(LogRecordOutput::Message(content)) if content.eq("world") => {}
             _ => panic!("Second message did not match"),
         }
         assert!(items_iter.next().is_none());

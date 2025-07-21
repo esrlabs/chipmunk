@@ -244,7 +244,7 @@ mod tests {
             command = "ls -lsa";
         }
         let envs = HashMap::new();
-        match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
+        match ProcessSource::new(command, env::current_dir().unwrap(), envs) {
             Ok(mut process_source) => {
                 while process_source
                     .load(None)
@@ -293,9 +293,7 @@ mod tests {
         }
         let envs = HashMap::new();
         let mut process_source =
-            ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs)
-                .await
-                .unwrap();
+            ProcessSource::new(command, env::current_dir().unwrap(), envs).unwrap();
 
         general_source_reload_test(&mut process_source).await;
     }

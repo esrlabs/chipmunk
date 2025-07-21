@@ -216,7 +216,7 @@ mod tests {
     use crate::{
         ByteSource,
         binary::pcap::ng::PcapngByteSource,
-        tests::{general_source_reload_test, mock_read::MockRepeatRead},
+        tests::{MockRepeatRead, general_source_reload_test},
     };
     use env_logger;
 
