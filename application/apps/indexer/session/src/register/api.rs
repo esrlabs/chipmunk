@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt};
 
-use components::{LazyLoadingResult, LazyLoadingTaskMeta};
+use descriptor::{LazyLoadingResult, LazyLoadingTaskMeta};
 use stypes::{Ident, NativeError, SessionAction, SessionDescriptor};
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
@@ -142,7 +142,7 @@ pub enum Api {
     ),
 }
 
-use components::*;
+use descriptor::*;
 use parsers::{Parsers, api::*};
 use sources::{Sources, api::*};
 

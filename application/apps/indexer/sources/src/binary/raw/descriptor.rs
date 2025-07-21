@@ -1,5 +1,5 @@
 use crate::*;
-use components::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, SourceDescriptor};
 use file_tools::is_binary;
 use stypes::SessionAction;
 

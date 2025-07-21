@@ -1,4 +1,4 @@
-use components::{CommonDescriptor, ParserDescriptor};
+use ::descriptor::{CommonDescriptor, FieldsResult, ParserDescriptor};
 use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
 
 use super::SomeipParser;
@@ -44,7 +44,7 @@ impl CommonDescriptor for Descriptor {
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_FIBEX_FILES.to_owned(),

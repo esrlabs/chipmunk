@@ -2,7 +2,7 @@ mod api;
 
 pub use api::Register;
 use api::*;
-use components::{LazyLoadingResult, LazyLoadingTaskMeta};
+use descriptor::{LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
 use std::collections::HashMap;
 use tokio::{

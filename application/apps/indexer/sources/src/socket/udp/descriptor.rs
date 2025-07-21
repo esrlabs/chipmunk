@@ -1,6 +1,6 @@
 use super::{MulticastInfo, UdpSource};
 use crate::*;
-use components::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, FieldsResult, SourceDescriptor};
 use std::collections::HashMap;
 use stypes::{
     ExtractAs, ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind,
@@ -87,7 +87,7 @@ impl CommonDescriptor for Descriptor {
             uuid: UDP_SOURCE_UUID,
         }
     }
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         Ok(vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_IP_ADDR.to_owned(),

@@ -1,5 +1,5 @@
 use crate::*;
-use components::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, FieldsResult, SourceDescriptor};
 use std::collections::HashMap;
 use stypes::{
     ExtractByKey, Extracted, Field, FieldDesc, NativeError, SessionAction, StaticFieldDesc,
@@ -51,7 +51,7 @@ impl CommonDescriptor for Descriptor {
             uuid: TCP_SOURCE_UUID,
         }
     }
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         Ok(vec![FieldDesc::Static(StaticFieldDesc {
             id: FIELD_IP_ADDR.to_owned(),
             name: "IP address and port".to_owned(),

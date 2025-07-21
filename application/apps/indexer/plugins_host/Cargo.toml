@@ -17,7 +17,7 @@ rand.workspace = true
 wasmtime = "33.0"
 wasmtime-wasi = "33.0"
 uuid = { workspace = true , features = ["serde", "v4"] }
-components = { path = "../components" }
+descriptor = { path = "../descriptor" }
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
 stypes = { path = "../stypes" }

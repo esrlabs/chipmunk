@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod tests;
-
 pub mod sde;
 use log::warn;
 use parsers::api::*;

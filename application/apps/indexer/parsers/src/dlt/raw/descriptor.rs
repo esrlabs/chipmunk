@@ -1,6 +1,6 @@
 use super::*;
 use crate::*;
-use components::{CommonDescriptor, ParserDescriptor};
+use ::descriptor::{CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor};
 use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
@@ -35,7 +35,7 @@ impl CommonDescriptor for Descriptor {
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         Ok(Vec::new())
     }
     fn ident(&self) -> stypes::Ident {
@@ -53,7 +53,7 @@ impl CommonDescriptor for Descriptor {
         &self,
         _origin: SessionAction,
         _cancel: CancellationToken,
-    ) -> components::LazyFieldsTask {
+    ) -> LazyFieldsTask {
         Box::pin(async move { Ok(Vec::new()) })
     }
 }

@@ -1,5 +1,7 @@
 use crate::dlt::*;
-use components::{CommonDescriptor, ParserDescriptor, StaticFieldResult};
+use ::descriptor::{
+    CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor, StaticFieldResult,
+};
 use dlt_core::{
     read::DltMessageReader,
     statistics::{
@@ -117,7 +119,7 @@ impl CommonDescriptor for Descriptor {
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, origin: &SessionAction) -> FieldsResult {
         let mut options = vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_LOG_LEVEL.to_owned(),
@@ -181,7 +183,7 @@ impl CommonDescriptor for Descriptor {
         &self,
         origin: SessionAction,
         cancel: CancellationToken,
-    ) -> components::LazyFieldsTask {
+    ) -> LazyFieldsTask {
         Box::pin(async move {
             let file_paths = match origin {
                 SessionAction::File(fp) => {

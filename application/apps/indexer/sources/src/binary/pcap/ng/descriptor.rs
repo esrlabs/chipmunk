@@ -1,4 +1,4 @@
-use components::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, SourceDescriptor};
 use file_tools::is_binary;
 use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
 use super::PcapngByteSourceFromFile;
