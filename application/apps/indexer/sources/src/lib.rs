@@ -1,5 +1,6 @@
 pub mod api;
-
+#[cfg(test)]
+pub mod tests;
 pub use api::*;
 
 // Rust can't currently distinguish between dev and none-dev dependencies at the moment. There is

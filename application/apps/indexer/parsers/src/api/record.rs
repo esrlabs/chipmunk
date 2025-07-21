@@ -1,6 +1,9 @@
 use serde::Serialize;
 use std::borrow::Cow;
 
+#[cfg(test)]
+use std::fmt;
+
 pub const COLUMN_SENTINAL: char = '\u{0004}';
 
 /// Some log records (e.g., in binary formats like DLT) may include attached files.
@@ -99,6 +102,39 @@ pub enum LogRecordOutput<'a> {
     /// A compound message containing multiple outputs found during a single parsing iteration.
     /// This is useful when the parser extracts several independent pieces of data at once.
     Multiple(Vec<LogRecordOutput<'a>>),
+}
+
+#[cfg(test)]
+impl<'a> fmt::Display for LogRecordOutput<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LogRecordOutput::Raw(inner) => {
+                write!(
+                    f,
+                    "{}",
+                    &inner
+                        .iter()
+                        .map(|b| format!("{:02X}", b))
+                        .collect::<String>()
+                )
+            }
+            LogRecordOutput::Message(msg) => {
+                write!(f, "{msg}")
+            }
+            LogRecordOutput::Columns(inner) => {
+                write!(f, "{}", inner.join(&COLUMN_SENTINAL.to_string()))
+            }
+            LogRecordOutput::Multiple(inner) => {
+                for rec in inner {
+                    write!(f, "{}", rec)?;
+                }
+                Ok(())
+            }
+            LogRecordOutput::Attachment(inner) => {
+                write!(f, "{:?}", inner)
+            }
+        }
+    }
 }
 
 /// Defines an interface for buffering log records before they are persisted.
