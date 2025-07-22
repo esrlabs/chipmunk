@@ -13,8 +13,8 @@ use std::fmt;
 use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 use stypes::{
-    ExtractByKey, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction, Severity,
-    StaticFieldDesc, ValueInput, missed_field_err as missed,
+    ComponentOptions, ExtractByKey, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, Value, ValueInput, missed_field_err as missed,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -329,5 +329,25 @@ fn u8_to_log_level(level: u8) -> Option<dlt::LogLevel> {
         5 => Some(dlt::LogLevel::Debug),
         6 => Some(dlt::LogLevel::Verbose),
         _ => None,
+    }
+}
+
+pub fn get_default_options(fibex: Option<Vec<PathBuf>>) -> ComponentOptions {
+    ComponentOptions {
+        uuid: DLT_PARSER_UUID,
+        fields: vec![
+            Field {
+                id: FIELD_FIBEX_FILES.to_owned(),
+                value: Value::Files(fibex.unwrap_or(Vec::new())),
+            },
+            Field {
+                id: FIELD_LOG_LEVEL.to_owned(),
+                value: Value::Number(6),
+            },
+            Field {
+                id: FIELD_STATISTICS.to_owned(),
+                value: Value::KeyStrings(HashMap::new()),
+            },
+        ],
     }
 }

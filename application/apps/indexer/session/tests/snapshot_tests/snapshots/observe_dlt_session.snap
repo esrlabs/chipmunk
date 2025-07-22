@@ -1,12 +1,25 @@
 ---
 source: session/tests/snapshot_tests/mod.rs
+assertion_line: 43
 description: Snapshot for DLT file with text attachments.
 info:
-  filter_config: ~
-  fibex_file_paths: ~
-  with_storage_header: true
-  tz: ~
-snapshot_kind: text
+  origin:
+    File: "../../../developing/resources/attachments.dlt"
+  parser:
+    fields:
+      - id: DLT_PARSER_FIELD_FIBEX_FILES
+        value:
+          Files: []
+      - id: DLT_PARSER_FIELD_LOG_LEVEL
+        value:
+          Number: 6
+      - id: DLT_PARSER_FIELD_STATISTICS
+        value:
+          KeyStrings: {}
+    uuid: 01010101-0101-0101-0101-010101010101
+  source:
+    fields: []
+    uuid: 08080808-0808-0808-0808-080808080808
 ---
 session_file:
   - "1970-01-01T00:00:00.000000000Z\u0004ecu\u00040\u0004\u00040\u0004\u0004ecu1\u0004\u0004\u0004LogLevel INFO\u0004\u0005FLST\u0005129721424\u0005test1.txt\u00055\u0005date\u00051\u00050\u0005FLST"

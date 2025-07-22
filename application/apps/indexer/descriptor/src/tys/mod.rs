@@ -198,5 +198,5 @@ impl ValidationErrors {
     pub fn insert_field_bound_err(&mut self, field: &str, msg: String) {
         self.errors.insert(field.to_owned(), msg);
     }
-    pub fn insert_values_bound_err(&mut self, field: &str, idx: usize) {}
+    pub fn insert_values_bound_err(&mut self, _field: &str, _idx: usize) {}
 }

@@ -1,13 +1,26 @@
 ---
 source: session/tests/snapshot_tests/mod.rs
+assertion_line: 66
 description: Snapshot for DLT file with SomeIP network trace.
 info:
-  filter_config: ~
-  fibex_file_paths:
-    - "../../../developing/resources/someip.xml"
-  with_storage_header: true
-  tz: ~
-snapshot_kind: text
+  origin:
+    File: "../../../developing/resources/someip.dlt"
+  parser:
+    fields:
+      - id: DLT_PARSER_FIELD_FIBEX_FILES
+        value:
+          Files:
+            - "../../../developing/resources/someip.xml"
+      - id: DLT_PARSER_FIELD_LOG_LEVEL
+        value:
+          Number: 6
+      - id: DLT_PARSER_FIELD_STATISTICS
+        value:
+          KeyStrings: {}
+    uuid: 01010101-0101-0101-0101-010101010101
+  source:
+    fields: []
+    uuid: 08080808-0808-0808-0808-080808080808
 ---
 session_file:
   - "2024-02-20T13:17:26.713537000Z\u0004ECU1\u00041\u0004571\u0004204\u000428138506\u0004ECU1\u0004APP1\u0004C1\u0004IPC\u0004SOME/IP 0.0.0.0:0 >> INST:1 RPC SERV:123 METH:32773 LENG:16 CLID:0 SEID:58252 IVER:1 MSTP:2 RETC:0 TestService::timeEvent {\u0006\ttimestamp (INT64) : 1683656786973,\u0006}"
