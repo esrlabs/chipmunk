@@ -1,5 +1,10 @@
+use crate::someip::FibexMetadata;
 use ::descriptor::{CommonDescriptor, FieldsResult, ParserDescriptor};
-use stypes::{FieldDesc, SessionAction, StaticFieldDesc, ValueInput};
+use std::path::PathBuf;
+use stypes::{
+    ComponentOptions, ExtractByKey, Field, FieldDesc, SessionAction, StaticFieldDesc, Value,
+    ValueInput, missed_field_err as missed,
+};
 
 use super::SomeipParser;
 
@@ -17,10 +22,16 @@ pub struct Descriptor {}
 
 pub fn factory(
     _origin: &SessionAction,
-    _options: &[stypes::Field],
+    options: &[stypes::Field],
 ) -> Result<Option<(crate::Parsers, Option<String>)>, stypes::NativeError> {
+    let fibex_file_paths: &Vec<PathBuf> = options
+        .extract_by_key(FIELD_FIBEX_FILES)
+        .ok_or(missed(FIELD_FIBEX_FILES))?
+        .value;
     Ok(Some((
-        crate::Parsers::SomeIp(SomeipParser::new()),
+        crate::Parsers::SomeIp(SomeipParser {
+            fibex_metadata: FibexMetadata::from_fibex_files(fibex_file_paths),
+        }),
         Some("SomeIp".to_owned()),
     )))
 }
@@ -91,5 +102,15 @@ impl ParserDescriptor for Descriptor {
             ("RETC".to_owned(), 30),
             ("PAYLOAD".to_owned(), 0),
         ]))
+    }
+}
+
+pub fn get_default_options(fibex: Option<Vec<PathBuf>>) -> ComponentOptions {
+    ComponentOptions {
+        uuid: SOMEIP_PARSER_UUID,
+        fields: vec![Field {
+            id: FIELD_FIBEX_FILES.to_owned(),
+            value: Value::Files(fibex.unwrap_or(Vec::new())),
+        }],
     }
 }

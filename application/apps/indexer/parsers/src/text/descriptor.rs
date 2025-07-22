@@ -1,6 +1,6 @@
 use descriptor::{CommonDescriptor, ParserDescriptor};
 use file_tools::is_binary;
-use stypes::SessionAction;
+use stypes::{ComponentOptions, SessionAction};
 
 use super::StringTokenizer;
 
@@ -48,5 +48,12 @@ impl CommonDescriptor for Descriptor {
 impl ParserDescriptor for Descriptor {
     fn get_render(&self) -> Option<stypes::OutputRender> {
         Some(stypes::OutputRender::PlaitText)
+    }
+}
+
+pub fn get_default_options() -> ComponentOptions {
+    ComponentOptions {
+        uuid: TEXT_PARSER_UUID,
+        fields: Vec::new(),
     }
 }
