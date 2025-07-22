@@ -1,6 +1,6 @@
 use descriptor::{SourceDescriptor, CommonDescriptor};
 use file_tools::is_binary;
-use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
+use stypes::{ComponentOptions, NativeError, NativeErrorKind, SessionAction, Severity};
 use crate::*;
 use super::PcapLegacyByteSourceFromFile;
 
@@ -63,6 +63,12 @@ impl CommonDescriptor for Descriptor {
 
 impl SourceDescriptor for Descriptor {}
 
+pub fn get_default_options() -> ComponentOptions {
+    ComponentOptions {
+        uuid: PCAP_SOURCE_UUID,
+        fields: Vec::new(),
+    }
+}
 
 #[cfg(test)]
 mod tests {

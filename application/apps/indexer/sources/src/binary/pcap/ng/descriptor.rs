@@ -1,6 +1,6 @@
 use descriptor::{CommonDescriptor, SourceDescriptor};
 use file_tools::is_binary;
-use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
+use stypes::{ComponentOptions, NativeError, NativeErrorKind, SessionAction, Severity};
 use super::PcapngByteSourceFromFile;
 use crate::*;
 
@@ -63,3 +63,9 @@ impl CommonDescriptor for Descriptor {
 impl SourceDescriptor for Descriptor {}
 
 
+pub fn get_default_options() -> ComponentOptions {
+    ComponentOptions {
+        uuid: PCAPNG_SOURCE_UUID,
+        fields: Vec::new(),
+    }
+}
