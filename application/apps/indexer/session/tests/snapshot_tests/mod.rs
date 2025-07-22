@@ -18,24 +18,25 @@
 mod utls;
 
 use std::path::PathBuf;
+use stypes::{SessionAction, SessionSetup};
 use utls::*;
 
 #[tokio::test]
 async fn observe_dlt_session() {
-    let input = "../../../developing/resources/attachments.dlt";
-    let parser_settings = stypes::DltParserSettings::default();
-    let session_main_file = run_observe_session(
-        input,
-        stypes::FileFormat::Binary,
-        stypes::ParserType::Dlt(parser_settings.clone()),
-    )
-    .await;
+    let setup = SessionSetup {
+        origin: SessionAction::File(PathBuf::from(
+            "../../../developing/resources/attachments.dlt",
+        )),
+        parser: parsers::dlt::descriptor::get_default_options(None),
+        source: sources::binary::raw::get_default_options(),
+    };
+    let session_main_file = run_observe_session(setup.clone()).await;
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for DLT file with text attachments.",
-        info => &parser_settings,
+        info => &setup,
         omit_expression => true,
         prepend_module_to_snapshot => false,
     }, {
@@ -45,31 +46,20 @@ async fn observe_dlt_session() {
 
 #[tokio::test]
 async fn observe_dlt_with_someip_session() {
-    let input = "../../../developing/resources/someip.dlt";
-    let fibex_file = "../../../developing/resources/someip.xml";
-
-    assert!(
-        PathBuf::from(fibex_file).exists(),
-        "Fibex file path doesn't exist. Path: {fibex_file}"
-    );
-
-    let parser_settings = stypes::DltParserSettings {
-        fibex_file_paths: Some(vec![String::from(fibex_file)]),
-        ..Default::default()
+    let setup = SessionSetup {
+        origin: SessionAction::File(PathBuf::from("../../../developing/resources/someip.dlt")),
+        parser: parsers::dlt::descriptor::get_default_options(Some(vec![PathBuf::from(
+            "../../../developing/resources/someip.xml",
+        )])),
+        source: sources::binary::raw::get_default_options(),
     };
-
-    let session_main_file = run_observe_session(
-        input,
-        stypes::FileFormat::Binary,
-        stypes::ParserType::Dlt(parser_settings.clone()),
-    )
-    .await;
+    let session_main_file = run_observe_session(setup.clone()).await;
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for DLT file with SomeIP network trace.",
-        info => &parser_settings,
+        info => &setup,
         omit_expression => true,
         prepend_module_to_snapshot => false,
     }, {
@@ -79,30 +69,21 @@ async fn observe_dlt_with_someip_session() {
 
 #[tokio::test]
 async fn observe_someip_bcapng_session() {
-    let input = "../../../developing/resources/someip.pcapng";
-    let fibex_file = "../../../developing/resources/someip.xml";
-
-    assert!(
-        PathBuf::from(fibex_file).exists(),
-        "Fibex file path doesn't exist. Path: {fibex_file}"
-    );
-
-    let parser_settings = stypes::SomeIpParserSettings {
-        fibex_file_paths: Some(vec![String::from(fibex_file)]),
+    let setup = SessionSetup {
+        origin: SessionAction::File(PathBuf::from("../../../developing/resources/someip.pcapng")),
+        parser: parsers::someip::descriptor::get_default_options(Some(vec![PathBuf::from(
+            "../../../developing/resources/someip.xml",
+        )])),
+        source: sources::binary::pcap::ng::get_default_options(),
     };
 
-    let session_main_file = run_observe_session(
-        input,
-        stypes::FileFormat::PcapNG,
-        stypes::ParserType::SomeIp(parser_settings.clone()),
-    )
-    .await;
+    let session_main_file = run_observe_session(setup.clone()).await;
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for SomeIP file with Pcapng byte source.",
-        info => &parser_settings,
+        info => &setup,
         omit_expression => true,
         prepend_module_to_snapshot => false,
     }, {
@@ -112,30 +93,21 @@ async fn observe_someip_bcapng_session() {
 
 #[tokio::test]
 async fn observe_someip_legacy_session() {
-    let input = "../../../developing/resources/someip.pcap";
-    let fibex_file = "../../../developing/resources/someip.xml";
-
-    assert!(
-        PathBuf::from(fibex_file).exists(),
-        "Fibex file path doesn't exist. Path: {fibex_file}"
-    );
-
-    let parser_settings = stypes::SomeIpParserSettings {
-        fibex_file_paths: Some(vec![String::from(fibex_file)]),
+    let setup = SessionSetup {
+        origin: SessionAction::File(PathBuf::from("../../../developing/resources/someip.pcap")),
+        parser: parsers::someip::descriptor::get_default_options(Some(vec![PathBuf::from(
+            "../../../developing/resources/someip.xml",
+        )])),
+        source: sources::binary::pcap::legacy::get_default_options(),
     };
 
-    let session_main_file = run_observe_session(
-        input,
-        stypes::FileFormat::PcapLegacy,
-        stypes::ParserType::SomeIp(parser_settings.clone()),
-    )
-    .await;
+    let session_main_file = run_observe_session(setup.clone()).await;
 
     let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for SomeIP file with Pcap Legacy byte source.",
-        info => &parser_settings,
+        info => &setup,
         omit_expression => true,
         prepend_module_to_snapshot => false,
     }, {

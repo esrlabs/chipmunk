@@ -1,7 +1,7 @@
 use crate::*;
 use descriptor::{CommonDescriptor, SourceDescriptor};
 use file_tools::is_binary;
-use stypes::SessionAction;
+use stypes::{ComponentOptions, SessionAction};
 
 const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
     0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
@@ -60,3 +60,10 @@ impl CommonDescriptor for Descriptor {
 }
 
 impl SourceDescriptor for Descriptor {}
+
+pub fn get_default_options() -> ComponentOptions {
+    ComponentOptions {
+        uuid: BIN_SOURCE_UUID,
+        fields: Vec::new(),
+    }
+}
