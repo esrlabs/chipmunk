@@ -29,7 +29,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
-    components: Arc<Register>,
+    pub register: Arc<Register>,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -53,12 +53,12 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
-        let mut components: Register = Register::new();
+        let mut register: Register = Register::new();
         // Registre parsers
-        parsers_registration(&mut components)
+        parsers_registration(&mut register)
             .map_err(|err| stypes::ComputationError::NativeError(err))?;
         // Registre sources
-        sources_registration(&mut components)
+        sources_registration(&mut register)
             .map_err(|err| stypes::ComputationError::NativeError(err))?;
         // Create a session
         let session = Self {
@@ -66,7 +66,7 @@ impl Session {
             tx_operations: tx_operations.clone(),
             destroyed: CancellationToken::new(),
             destroying: CancellationToken::new(),
-            components: Arc::new(components),
+            register: Arc::new(register),
             state: state_api.clone(),
             tracker: tracker_api.clone(),
         };
@@ -389,7 +389,7 @@ impl Session {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Observe(options, self.components.clone()),
+                operations::OperationKind::Observe(options, self.register.clone()),
             ))
             .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
