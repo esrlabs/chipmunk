@@ -180,18 +180,54 @@ use descriptor::*;
 use parsers::{Parsers, api::*};
 use sources::{Sources, api::*};
 
+/// Registry of all available parsers and sources in the system.
+///
+/// This struct acts as a central repository that holds references to all registered
+/// parser and source components, along with their factory functions and descriptors.
+///
+/// During session setup, the appropriate factory functions and metadata can be
+/// retrieved using UUIDs to create concrete parser and source instances, validate
+/// configuration fields, and present component metadata to the user interface.
 pub struct Register {
+    /// A map of source component UUIDs to their factory functions and descriptors.
+    ///
+    /// Each entry contains:
+    /// - a [`SourceFactory`] used to instantiate the component,
+    /// - a boxed [`SourceDescriptor`] that describes its capabilities and configuration.
     sources: HashMap<Uuid, (SourceFactory, Box<dyn SourceDescriptor>)>,
+
+    /// A map of parser component UUIDs to their factory functions and descriptors.
+    ///
+    /// Each entry contains:
+    /// - a [`ParserFactory`] used to instantiate the component,
+    /// - a boxed [`ParserDescriptor`] that describes its capabilities and configuration.
     parsers: HashMap<Uuid, (ParserFactory, Box<dyn ParserDescriptor>)>,
 }
 
 impl Register {
+    /// Creates an empty `Register` with no registered parsers or sources.
+    ///
+    /// This is typically used at system startup before components are added via
+    /// [`add_parser`] or [`add_source`].
     pub fn new() -> Register {
         Self {
             sources: HashMap::new(),
             parsers: HashMap::new(),
         }
     }
+
+    /// Registers a new parser component in the system.
+    ///
+    /// Associates a parser factory and descriptor with the parser's UUID.
+    /// If a parser with the same UUID is already registered, this will return an error.
+    ///
+    /// # Arguments
+    /// * `factory` – A function capable of instantiating the parser.
+    /// * `descriptor` – Metadata describing the parser's behavior and configuration.
+    ///
+    /// # Returns
+    /// * `Ok(())` – If the parser was successfully registered.
+    /// * `Err(NativeError)` – If a parser with the same UUID already exists.
     pub fn add_parser<D: ParserDescriptor + 'static>(
         &mut self,
         factory: ParserFactory,
@@ -210,6 +246,18 @@ impl Register {
         Ok(())
     }
 
+    /// Registers a new source component in the system.
+    ///
+    /// Associates a source factory and descriptor with the source's UUID.
+    /// If a source with the same UUID is already registered, this will return an error.
+    ///
+    /// # Arguments
+    /// * `factory` – A function capable of instantiating the source.
+    /// * `descriptor` – Metadata describing the source's behavior and configuration.
+    ///
+    /// # Returns
+    /// * `Ok(())` – If the source was successfully registered.
+    /// * `Err(NativeError)` – If a source with the same UUID already exists.
     pub fn add_source<D: SourceDescriptor + 'static>(
         &mut self,
         factory: SourceFactory,
@@ -228,6 +276,16 @@ impl Register {
         Ok(())
     }
 
+    /// Returns a list of parser identifiers compatible with the given session context.
+    ///
+    /// Filters registered parsers using their `is_compatible` logic and returns
+    /// only those that can be used for the given session action.
+    ///
+    /// # Arguments
+    /// * `origin` – The session action context to filter compatible parsers.
+    ///
+    /// # Returns
+    /// A list of identifiers (`Ident`) describing the matching parser components.
     pub fn get_parsers(&self, origin: stypes::SessionAction) -> Vec<stypes::Ident> {
         self.parsers
             .iter()
@@ -241,6 +299,16 @@ impl Register {
             .collect()
     }
 
+    /// Returns a list of source identifiers compatible with the given session context.
+    ///
+    /// Filters registered sources using their `is_compatible` logic and returns
+    /// only those that can be used for the given session action.
+    ///
+    /// # Arguments
+    /// * `origin` – The session action context to filter compatible sources.
+    ///
+    /// # Returns
+    /// A list of identifiers (`Ident`) describing the matching source components.
     pub fn get_sources(&self, origin: stypes::SessionAction) -> Vec<stypes::Ident> {
         self.sources
             .iter()

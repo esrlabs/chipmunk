@@ -1,12 +1,12 @@
 use log::{debug, error};
 use node_bindgen::{core::buffer::JSArrayBuffer, derive::node_bindgen};
-use session::components::ComponentsSession;
+use session::register::SessionRegister;
 use std::{str::FromStr, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
 struct Components {
-    session: Option<ComponentsSession>,
+    session: Option<SessionRegister>,
 }
 
 #[node_bindgen]
@@ -51,7 +51,7 @@ impl Components {
         let (tx_session, rx_session) = oneshot::channel();
         thread::spawn(move || {
             rt.block_on(async {
-                match ComponentsSession::new().await {
+                match SessionRegister::new().await {
                     Ok((session, mut rx_callback_events)) => {
                         if tx_session.send(Some(session)).is_err() {
                             error!("Cannot setup session instance");

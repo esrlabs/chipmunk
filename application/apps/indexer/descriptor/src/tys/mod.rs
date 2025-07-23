@@ -68,7 +68,7 @@ pub type Factory<T> = fn(
 /// Describes a component in terms of its identity, configuration schema,
 /// validation logic, support for lazy-loading configuration, and its type within the system.
 ///
-/// The `ComponentDescriptor` trait serves as an abstraction layer that decouples
+/// The `CommonDescriptor` trait serves as an abstraction layer that decouples
 /// the core system from concrete component implementations. Instead of referring
 /// to component types directly (e.g., a specific parser or source), the application
 /// interacts with components through their descriptors.
@@ -189,14 +189,44 @@ pub trait CommonDescriptor: Sync + Send {
     }
 }
 
+/// Represents validation errors that occurred during client-side input processing.
+///
+/// This structure is used to convey validation failures back to the client.
+/// The client typically sends a list of fields as `(UUID as string, value)` pairs.
+/// During validation, if any field contains invalid input, an error message is added
+/// to the `errors` map, keyed by the stringified UUID of the field. These messages
+/// are then displayed to the user in the UI.
 #[derive(Debug, Default)]
 pub struct ValidationErrors {
+    /// A map of field UUIDs (as strings) to corresponding validation error messages.
+    ///
+    /// Each key represents a specific field for which validation failed,
+    /// and the value is the error message intended for the user.
     errors: HashMap<String, String>,
 }
 
 impl ValidationErrors {
+    /// Inserts a validation error message associated with a specific field.
+    ///
+    /// This method is typically called when a field fails a validation check,
+    /// such as range bounds, format constraints, or required value checks.
+    ///
+    /// # Arguments
+    ///
+    /// * `field` - The string identifier of the field (usually a UUID).
+    /// * `msg` - The error message to associate with the field.
     pub fn insert_field_bound_err(&mut self, field: &str, msg: String) {
         self.errors.insert(field.to_owned(), msg);
     }
+
+    /// Placeholder for reporting validation errors in a field that contains a list of values.
+    ///
+    /// This method is intended to be used when a specific value at a given index
+    /// in a collection (e.g., array, vector) is invalid. Currently, it is not implemented.
+    ///
+    /// # Arguments
+    ///
+    /// * `_field` - The string identifier of the field.
+    /// * `_idx` - The index of the invalid value in the list.
     pub fn insert_values_bound_err(&mut self, _field: &str, _idx: usize) {}
 }
