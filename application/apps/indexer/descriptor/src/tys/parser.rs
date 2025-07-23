@@ -1,18 +1,28 @@
 use super::CommonDescriptor;
 
-/// Describes a component in terms of its identity, configuration schema,
-/// validation logic, support for lazy-loading configuration, and its type within the system.
+/// Defines parser-specific behavior and capabilities.
 ///
-/// The `ComponentDescriptor` trait serves as an abstraction layer that decouples
-/// the core system from concrete component implementations. Instead of referring
-/// to component types directly (e.g., a specific parser or source), the application
-/// interacts with components through their descriptors.
+/// This trait extends [`CommonDescriptor`] and provides an interface for
+/// describing rendering behavior specific to a parser implementation.
 ///
-/// This design enables a fully modular architecture where, for example, a session
-/// can be created using a parser and source identified solely by their UUIDs.
-/// The actual parser and source implementations remain hidden behind the descriptor,
-/// making it possible to swap, reconfigure, or isolate components without touching
-/// the application core.
+/// A parser may define which render should be used to display its content.
+/// However, not all parsers are intended for rendering; some may serve
+/// other purposes such as exporting or transforming data and thus return `None`
+/// instead of a rendering strategy.
+///
+/// Implementors of this trait should document the semantics of `get_render()`
+/// in the context of their specific parser functionality.
 pub trait ParserDescriptor: CommonDescriptor {
+    /// Returns the rendering strategy associated with this parser, if any.
+    ///
+    /// This method determines how (and whether) the parser's output should be
+    /// rendered in the user interface. If the parser is not intended to produce
+    /// visual output—e.g., when used for data export or structural analysis—
+    /// this function returns `None`.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(OutputRender)` if the parser provides a specific rendering strategy.
+    /// - `None` if rendering is not applicable to this parser.
     fn get_render(&self) -> Option<stypes::OutputRender>;
 }
