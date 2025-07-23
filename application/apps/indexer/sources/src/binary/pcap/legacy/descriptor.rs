@@ -79,7 +79,7 @@ mod tests {
         binary::pcap::legacy::PcapLegacyByteSource, tests::general_source_reload_test, ByteSource,
     };
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_read_one_message_from_pcap() {
         let _ = env_logger::try_init();
 
@@ -119,7 +119,7 @@ mod tests {
         assert_eq!(slice, udp_payload);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_general_source_reload() {
         // This is part of the file "chipmunk/application/developing/resources".
         // In this test we just need enough bytes to call reload twice on it, and we will not

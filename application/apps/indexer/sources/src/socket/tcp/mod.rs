@@ -202,7 +202,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_tcp_reload() -> Result<(), std::io::Error> {
         static SERVER: &str = "127.0.0.1:4000";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -231,7 +231,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_general_source_reload() {
         static SERVER: &str = "127.0.0.1:4001";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -247,7 +247,7 @@ mod tests {
 
     /// Tests will send packets with fixed lengths while consuming
     /// half of the sent length, ensuring the source won't break.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_source_buffer_overflow() {
         const SERVER: &str = "127.0.0.1:4002";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -280,7 +280,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn reconnect_no_msgs() {
         static SERVER: &str = "127.0.0.1:4003";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -319,7 +319,7 @@ mod tests {
         assert!(rec_res.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn reconnect_with_state_msgs() {
         static SERVER: &str = "127.0.0.1:4004";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -391,7 +391,7 @@ mod tests {
         assert!(reconnect_res.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn reconnect_fail() {
         static SERVER: &str = "127.0.0.1:4005";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -449,7 +449,7 @@ mod tests {
 
     /// Ensure load and reconnect functions are cancel safe by keep sending notifications
     /// in rapid interval while calling them.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn load_reconnect_cancel_safe() {
         static SERVER: &str = "127.0.0.1:4006";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -516,7 +516,7 @@ mod tests {
 
     /// Ensure load and reconnect functions are cancel safe by keep calling it within a timeout
     /// function with rapid interval.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn load_reconnect_cancel_safe_timeout() {
         static SERVER: &str = "127.0.0.1:4007";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
