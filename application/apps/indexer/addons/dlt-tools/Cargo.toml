@@ -12,5 +12,8 @@ indexer_base = { path = "../../indexer_base" }
 parsers = { path = "../../parsers" }
 sources = { path = "../../sources" }
 processor = { path = "../../processor" }
+stypes = { path = "../../stypes" }
+session = { path = "../../session" }
+uuid.workspace = true
 
 [dev-dependencies]

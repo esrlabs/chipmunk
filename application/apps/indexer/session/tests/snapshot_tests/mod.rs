@@ -27,7 +27,7 @@ async fn observe_dlt_session() {
         origin: SessionAction::File(PathBuf::from(
             "../../../developing/resources/attachments.dlt",
         )),
-        parser: parsers::dlt::descriptor::get_default_options(None),
+        parser: parsers::dlt::descriptor::get_default_options(None, None),
         source: sources::binary::raw::get_default_options(),
     };
     let session_main_file = run_observe_session(setup.clone()).await;
@@ -48,9 +48,12 @@ async fn observe_dlt_session() {
 async fn observe_dlt_with_someip_session() {
     let setup = SessionSetup {
         origin: SessionAction::File(PathBuf::from("../../../developing/resources/someip.dlt")),
-        parser: parsers::dlt::descriptor::get_default_options(Some(vec![PathBuf::from(
-            "../../../developing/resources/someip.xml",
-        )])),
+        parser: parsers::dlt::descriptor::get_default_options(
+            Some(vec![PathBuf::from(
+                "../../../developing/resources/someip.xml",
+            )]),
+            None,
+        ),
         source: sources::binary::raw::get_default_options(),
     };
     let session_main_file = run_observe_session(setup.clone()).await;
