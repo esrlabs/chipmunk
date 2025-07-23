@@ -207,17 +207,16 @@ mod tests {
     /// even that the buffer has bytes in it.
     #[tokio::test(flavor = "multi_thread")]
     async fn test_source_buffer_overflow() {
+        // TODO: fix this test
         const SENDER: &str = "127.0.0.1:4002";
         const RECEIVER: &str = "127.0.0.1:5002";
 
         const SENT_LEN: usize = MAX_DATAGRAM_SIZE;
         const CONSUME_LEN: usize = MAX_DATAGRAM_SIZE / 2;
-
         let send_socket = UdpSocket::bind(SENDER)
             .await
             .map_err(UdpSourceError::Io)
             .unwrap();
-
         // Spawn server in background.
         tokio::spawn(async move {
             let msg = [b'a'; SENT_LEN];
@@ -233,9 +232,7 @@ mod tests {
                 total_sent += msg.len();
             }
         });
-
         let mut udp_source = UdpSource::new(RECEIVER, vec![]).unwrap();
-
         while let Ok(Some(info)) = udp_source.load(None).await {
             if info.newly_loaded_bytes == 0 {
                 println!(
