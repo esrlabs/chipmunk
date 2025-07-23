@@ -10,83 +10,104 @@
 // Dissemination of this information or reproduction of this material
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
-extern crate indexer_base;
-
 #[macro_use]
 extern crate log;
 
-use dlt_core::filtering::DltFilterConfig;
 use parsers::api::*;
-use parsers::dlt::DltParser;
-use processor::producer::MessageProducer;
-use sources::binary::raw::BinaryByteSource;
+use processor::producer::{MessageProducer, MessageStreamItem};
+use session::session::Session;
 use std::{
+    collections::HashMap,
     fs::File,
-    io::{BufReader, BufWriter, Write},
+    io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
+use stypes::{SessionAction, SessionSetup};
 use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
+
+#[derive(Default)]
+pub struct AttachmentsCollector {
+    pub attachments: Vec<Attachment>,
+    messages: usize,
+}
+
+impl LogRecordsBuffer for AttachmentsCollector {
+    fn append(&mut self, record: LogRecordOutput<'_>) {
+        match record {
+            LogRecordOutput::Raw(..)
+            | LogRecordOutput::Message(..)
+            | LogRecordOutput::Columns(..) => {
+                self.messages += 1;
+            }
+            LogRecordOutput::Multiple(inner) => {
+                for rec in inner {
+                    self.append(rec);
+                }
+            }
+            LogRecordOutput::Attachment(inner) => {
+                self.attachments.push(inner);
+            }
+        }
+    }
+
+    async fn flush(&mut self) -> Result<(), stypes::NativeError> {
+        Ok(())
+    }
+
+    fn get_source_id(&self) -> u16 {
+        0
+    }
+}
 
 pub async fn scan_dlt_ft(
-    input: PathBuf,
-    filter: Option<DltFilterConfig>,
-    with_storage_header: bool,
+    filename: PathBuf,
+    filters: Option<HashMap<String, Vec<String>>>,
     cancel: CancellationToken,
 ) -> Result<Vec<Attachment>, String> {
-    match File::open(input) {
-        Ok(input) => {
-            todo!("Not implemented")
-            // let reader = BufReader::new(&input);
-            // let source = BinaryByteSource::new(reader);
-            // let parser = DltParser::new(
-            //     filter.map(|f| f.into()),
-            //     None,
-            //     None,
-            //     None,
-            //     with_storage_header,
-            // );
-            // let mut producer = MessageProducer::new(parser, source);
-
-            // let mut canceled = false;
-
-            // let mut attachments = vec![];
-            // loop {
-            //     tokio::select! {
-            //         // Check on events in current order ensuring cancel will be checked at first
-            //         // as it's defined in the current unit tests.
-            //         biased;
-            //         _ = cancel.cancelled() => {
-            //             debug!("scan canceled");
-            //             canceled = true;
-            //             break;
-            //         }
-            //         items = producer.read_next_segment() => {
-            //             match items {
-            //                 Some(items) => {
-            //                     for (_, item) in items {
-            //                         if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
-            //                             attachments.push(attachment.to_owned());
-            //                         } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
-            //                             attachments.push(attachment.to_owned());
-            //                         }
-            //                     }
-            //                 }
-            //                 _ => {
-            //                     break;
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-
-            // if canceled {
-            //     return Ok(Vec::new());
-            // }
-
-            // Ok(attachments)
+    let setup = SessionSetup {
+        origin: SessionAction::File(filename),
+        parser: parsers::dlt::descriptor::get_default_options(None, filters),
+        source: sources::binary::raw::get_default_options(),
+    };
+    let (session, receiver) = Session::new(Uuid::new_v4())
+        .await
+        .map_err(|err| err.to_string())?;
+    let (_, source, parser) = session
+        .register
+        .setup(&setup)
+        .map_err(|err| err.to_string())?;
+    let mut collector = AttachmentsCollector::default();
+    let mut producer = MessageProducer::new(parser, source, &mut collector);
+    let mut canceled = false;
+    loop {
+        tokio::select! {
+            // Check on events in current order ensuring cancel will be checked at first
+            // as it's defined in the current unit tests.
+            biased;
+            _ = cancel.cancelled() => {
+                debug!("scan canceled");
+                canceled = true;
+                break;
+            }
+            item = producer.read_next_segment() => {
+                match item {
+                    Some((_, MessageStreamItem::Done)) | None => {
+                        break;
+                    },
+                    Some(..) => {
+                        continue;
+                    },
+                }
+            }
         }
-        Err(error) => Err(format!("failed to open file: {error}")),
     }
+    if canceled {
+        return Ok(Vec::new());
+    }
+    // Keep receiver alive until here
+    drop(receiver);
+    Ok(collector.attachments)
 }
 
 pub fn extract_dlt_ft(
@@ -128,14 +149,14 @@ mod tests {
     use super::*;
     use std::path::Path;
 
-    const DLT_FT_SAMPLE: &str = "../../../../../application/developing/resources/attachments.dlt";
+    const DLT_FT_SAMPLE: &str = "../../../../developing/resources/attachments.dlt";
 
     #[tokio::test]
     async fn test_scan_dlt_ft() {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
 
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input, None, true, cancel).await {
+        match scan_dlt_ft(input, None, cancel).await {
             Ok(files) => {
                 assert_eq!(files.len(), 3);
                 assert_eq!("test1.txt", files.first().unwrap().name);
@@ -155,7 +176,7 @@ mod tests {
         let cancel = CancellationToken::new();
         cancel.cancel();
 
-        match scan_dlt_ft(input, None, true, cancel).await {
+        match scan_dlt_ft(input, None, cancel).await {
             Ok(files) => {
                 assert_eq!(files.len(), 0);
             }
@@ -168,18 +189,10 @@ mod tests {
     #[tokio::test]
     async fn test_scan_dlt_ft_with_filter() {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
-
-        let filter = DltFilterConfig {
-            min_log_level: None,
-            app_ids: None,
-            ecu_ids: Some(vec!["ecu2".to_string()]),
-            context_ids: None,
-            app_id_count: 0,
-            context_id_count: 0,
-        };
-
+        let mut filters = HashMap::new();
+        filters.insert("ecu_ids".to_string(), vec!["ecu2".to_string()]);
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input, Some(filter), true, cancel).await {
+        match scan_dlt_ft(input, Some(filters), cancel).await {
             Ok(files) => {
                 assert_eq!(files.len(), 1);
                 assert_eq!("test2.txt", files.first().unwrap().name);
@@ -196,7 +209,7 @@ mod tests {
         let output = TempDir::new();
 
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input.clone(), None, true, cancel.clone()).await {
+        match scan_dlt_ft(input.clone(), None, cancel.clone()).await {
             Ok(files) => {
                 match extract_dlt_ft(
                     &output.dir,
@@ -227,7 +240,7 @@ mod tests {
         let output = TempDir::new();
 
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+        match scan_dlt_ft(input.clone(), None, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 cancel.cancel();
@@ -250,18 +263,10 @@ mod tests {
     async fn test_extract_dlt_ft_with_filter() {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
-
-        let filter = DltFilterConfig {
-            min_log_level: None,
-            app_ids: None,
-            ecu_ids: Some(vec!["ecu2".to_string()]),
-            context_ids: None,
-            app_id_count: 0,
-            context_id_count: 0,
-        };
-
+        let mut filters = HashMap::new();
+        filters.insert("ecu_ids".to_string(), vec!["ecu2".to_string()]);
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
+        match scan_dlt_ft(input.clone(), Some(filters), cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 match extract_dlt_ft(&output.dir, FileExtractor::files_with_names(files), cancel) {
@@ -287,7 +292,7 @@ mod tests {
         let output = TempDir::new();
 
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input.clone(), None, true, cancel).await {
+        match scan_dlt_ft(input.clone(), None, cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 match extract_dlt_ft(
@@ -315,18 +320,10 @@ mod tests {
     async fn test_extract_dlt_ft_with_filtered_index() {
         let input: PathBuf = Path::new(DLT_FT_SAMPLE).into();
         let output = TempDir::new();
-
-        let filter = DltFilterConfig {
-            min_log_level: None,
-            app_ids: None,
-            ecu_ids: Some(vec!["ecu2".to_string()]),
-            context_ids: None,
-            app_id_count: 0,
-            context_id_count: 0,
-        };
-
+        let mut filters = HashMap::new();
+        filters.insert("ecu_ids".to_string(), vec!["ecu2".to_string()]);
         let cancel = CancellationToken::new();
-        match scan_dlt_ft(input.clone(), Some(filter), true, cancel).await {
+        match scan_dlt_ft(input.clone(), Some(filters), cancel).await {
             Ok(files) => {
                 let cancel = CancellationToken::new();
                 match extract_dlt_ft(&output.dir, FileExtractor::files_with_names(files), cancel) {

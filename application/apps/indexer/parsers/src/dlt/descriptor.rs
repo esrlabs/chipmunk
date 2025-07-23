@@ -332,7 +332,10 @@ fn u8_to_log_level(level: u8) -> Option<dlt::LogLevel> {
     }
 }
 
-pub fn get_default_options(fibex: Option<Vec<PathBuf>>) -> ComponentOptions {
+pub fn get_default_options(
+    fibex: Option<Vec<PathBuf>>,
+    filters: Option<HashMap<String, Vec<String>>>,
+) -> ComponentOptions {
     ComponentOptions {
         uuid: DLT_PARSER_UUID,
         fields: vec![
@@ -346,7 +349,7 @@ pub fn get_default_options(fibex: Option<Vec<PathBuf>>) -> ComponentOptions {
             },
             Field {
                 id: FIELD_STATISTICS.to_owned(),
-                value: Value::KeyStrings(HashMap::new()),
+                value: Value::KeyStrings(filters.unwrap_or(HashMap::new())),
             },
         ],
     }
