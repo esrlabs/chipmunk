@@ -559,18 +559,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
 
 [[package]]
-name = "components"
-version = "0.1.0"
-dependencies = [
- "log",
- "stypes",
- "thiserror 2.0.12",
- "tokio",
- "tokio-util",
- "uuid",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -883,16 +871,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "definitions"
-version = "0.1.0"
-dependencies = [
- "etherparse",
- "serde",
- "stypes",
- "thiserror 2.0.12",
-]
-
-[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -932,6 +910,18 @@ checksum = "ab63b0e2bf4d5928aff72e83a7dace85d7bba5fe12dcc3c5a572d78caffd3f3c"
 dependencies = [
  "derive_builder_core",
  "syn 2.0.102",
+]
+
+[[package]]
+name = "descriptor"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]
@@ -2411,8 +2401,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "chrono-tz",
- "components",
- "definitions",
+ "descriptor",
  "dlt-core",
  "file-tools",
  "lazy_static",
@@ -2425,6 +2414,7 @@ dependencies = [
  "someip-payload",
  "someip-tools",
  "stypes",
+ "thiserror 2.0.12",
  "tokio-util",
  "uuid",
 ]
@@ -2519,8 +2509,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "blake3",
- "components",
- "definitions",
+ "descriptor",
  "dir_checksum",
  "dirs",
  "log",
@@ -2600,7 +2589,6 @@ dependencies = [
  "bincode",
  "bufread",
  "bytecount",
- "definitions",
  "futures",
  "grep-regex",
  "grep-searcher",
@@ -3056,9 +3044,8 @@ name = "session"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "components",
  "crossbeam-channel",
- "definitions",
+ "descriptor",
  "dirs",
  "dlt-core",
  "envvars",
@@ -3203,8 +3190,7 @@ dependencies = [
  "async-stream",
  "bufread",
  "bytes",
- "components",
- "definitions",
+ "descriptor",
  "envvars",
  "etherparse",
  "file-tools",

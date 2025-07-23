@@ -2,6 +2,37 @@ use crate::*;
 use stypes::SessionAction;
 use thiserror::Error;
 
+/// Defines the function type used to construct a source instance for a session.
+///
+/// This factory function is stored in the [`Register`] and invoked when a new session
+/// is initialized. It produces a source instance based on the provided session context
+/// and configuration fields.
+///
+/// The return value is a tuple:
+/// - [`Sources`] – An enum-wrapped instance of the constructed source.
+/// - `Option<String>` – A human-readable label that describes the configured source in context.
+///
+/// The key difference between this label and the one returned by [`CommonDescriptor`] is
+/// that this one is **contextual**. While `CommonDescriptor` may return a generic name such
+/// as `"Serial port connector"`, this factory may return a context-specific name like
+/// `"Serial on /dev/tty001"` that reflects actual settings.
+///
+/// # Arguments
+///
+/// * `&SessionAction` – The session action context (e.g., user-triggered session creation).
+/// * `&[stypes::Field]` – A list of configuration fields provided by the client or system.
+///
+/// # Returns
+///
+/// * `Ok(Some((Sources, Option<String>)))` – A constructed source instance with an optional
+///   context-specific name for display.
+/// * `Ok(None)` – Indicates that no source should be created (e.g., conditionally skipped).
+/// * `Err(NativeError)` – If source creation fails due to invalid data or internal error.
+///
+/// # Errors
+///
+/// Returns an `Err(NativeError)` if the source cannot be created due to misconfiguration,
+/// validation failure, or runtime errors during instantiation.
 pub type SourceFactory = fn(
     &SessionAction,
     &[stypes::Field],
