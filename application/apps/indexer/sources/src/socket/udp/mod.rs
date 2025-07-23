@@ -149,7 +149,7 @@ mod tests {
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_udp_reload() -> Result<(), UdpSourceError> {
         static SENDER: &str = "127.0.0.1:4000";
         static RECEIVER: &str = "127.0.0.1:5000";
@@ -178,7 +178,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_general_source_reload() {
         static SENDER: &str = "127.0.0.1:4001";
         static RECEIVER: &str = "127.0.0.1:5001";
@@ -205,7 +205,7 @@ mod tests {
     /// This test demonstrate that parsers which consume the bytes of one result at a
     /// time while miss parsing the whole bytes when the server isn't sending more data
     /// even that the buffer has bytes in it.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_source_buffer_overflow() {
         const SENDER: &str = "127.0.0.1:4002";
         const RECEIVER: &str = "127.0.0.1:5002";
