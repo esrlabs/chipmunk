@@ -6,6 +6,37 @@ use thiserror::Error;
 
 pub use record::*;
 
+/// Defines the function type used to construct a parser instance for a session.
+///
+/// This factory function is stored in the [`Register`] and invoked when a new session
+/// is initialized. It produces a parser instance based on the provided session context
+/// and configuration fields.
+///
+/// The return value is a tuple:
+/// - [`Parsers`] – An enum-wrapped instance of the constructed parser.
+/// - `Option<String>` – A human-readable label that describes the configured parser in context.
+///
+/// The difference between this label and the one returned by [`CommonDescriptor`] is that
+/// this one is **context-aware**. While `CommonDescriptor` may return a general name such as
+/// `"DLT parser"`, this factory may return something more specific like
+/// `"DLT with fibex /few/fibex.xml"` depending on user configuration or input.
+///
+/// # Arguments
+///
+/// * `&SessionAction` – The session action context (e.g., user-triggered session creation).
+/// * `&[stypes::Field]` – A list of configuration fields provided by the client or system.
+///
+/// # Returns
+///
+/// * `Ok(Some((Parsers, Option<String>)))` – A constructed parser instance with an optional
+///   context-specific name for display.
+/// * `Ok(None)` – Indicates that no parser should be created.
+/// * `Err(NativeError)` – If parser creation fails due to misconfiguration or internal error.
+///
+/// # Errors
+///
+/// Returns an `Err(NativeError)` if the parser cannot be created due to invalid configuration,
+/// missing required fields, or runtime failure during instantiation.
 pub type ParserFactory = fn(
     &SessionAction,
     &[stypes::Field],

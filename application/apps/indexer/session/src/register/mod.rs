@@ -22,14 +22,14 @@ use uuid::Uuid;
 ///
 /// * `tx_api` - An unbounded sender used for communicating with the API. It allows sending API-related messages
 ///   or commands to manage components or respond to client requests.
-pub struct ComponentsSession {
+pub struct SessionRegister {
     tx_api: UnboundedSender<Api>,
 }
 
-impl ComponentsSession {
+impl SessionRegister {
     /// Creates a new components session.
     ///
-    /// This method initializes the `ComponentsSession` and returns a tuple containing the session instance
+    /// This method initializes the `SessionRegister` and returns a tuple containing the session instance
     /// and an unbounded receiver. The receiver acts as a feedback channel, allowing the delivery of
     /// asynchronous operation results to the client.
     ///
