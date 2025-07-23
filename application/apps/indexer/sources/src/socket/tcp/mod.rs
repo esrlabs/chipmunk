@@ -251,7 +251,6 @@ mod tests {
     async fn test_source_buffer_overflow() {
         const SERVER: &str = "127.0.0.1:4002";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
-
         const SENT_LEN: usize = MAX_DATAGRAM_SIZE;
         const CONSUME_LEN: usize = MAX_DATAGRAM_SIZE / 2;
 
@@ -271,7 +270,6 @@ mod tests {
         });
 
         let mut tcp_source = TcpSource::new(SERVER, None, None).unwrap();
-
         while let Ok(Some(info)) = tcp_source.load(None).await {
             if info.available_bytes == 0 {
                 break;
