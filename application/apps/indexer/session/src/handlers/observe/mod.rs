@@ -3,10 +3,10 @@ mod session;
 
 use crate::{
     operations::{OperationAPI, OperationResult},
-    register::Register,
     state::SessionStateAPI,
 };
 use processor::producer::{MessageProducer, sde::*};
+use register::Register;
 use std::sync::Arc;
 use stypes::{SessionAction, SessionSetup};
 

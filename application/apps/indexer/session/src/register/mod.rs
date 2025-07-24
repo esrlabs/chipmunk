@@ -4,6 +4,7 @@ mod plugins;
 use api::*;
 use descriptor::{LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
+use register::Register;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::{
