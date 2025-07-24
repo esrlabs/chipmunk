@@ -39,3 +39,44 @@ file-tools = { path = "../addons/file-tools" }
 lazy_static.workspace = true
 tempfile.workspace = true
 insta.workspace = true
+env_logger.workspace = true
+criterion = { workspace = true, features = ["async_tokio"] }
+plugins_host = {path = "../plugins_host/"}
+toml.workspace = true
+
+[[bench]]
+name = "dlt_producer"
+harness = false
+
+[[bench]]
+name = "someip_producer"
+harness = false
+
+[[bench]]
+name = "someip_legacy_producer"
+harness = false
+
+[[bench]]
+name = "text_producer"
+harness = false
+
+[[bench]]
+name = "plugin_praser_producer"
+harness = false
+
+[[bench]]
+name = "mocks_once_producer"
+harness = false
+
+[[bench]]
+name = "mocks_once_parallel"
+harness = false
+
+[[bench]]
+name = "mocks_multi_producer"
+harness = false
+
+[[bench]]
+name = "mocks_multi_parallel"
+harness = false
+
