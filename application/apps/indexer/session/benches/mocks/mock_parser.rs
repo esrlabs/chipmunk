@@ -1,7 +1,6 @@
-use std::{fmt::Display, iter, marker::PhantomData};
+use std::{iter, marker::PhantomData};
 
-use parsers::{Attachment, LogMessage, Parser};
-use serde::Serialize;
+use parsers::{Attachment, LogRecordOutput, ParseReturnIterator, Parser};
 use std::hint::black_box;
 
 /// Empty type used as phantom data with mock parser to indicate that its [`Parser::parse()`]
@@ -56,69 +55,44 @@ impl MockParser<IterMany> {
     }
 }
 
-#[derive(Debug, Serialize)]
-/// Return type of [`Parser::parse()`] method for [`MockParser`]
-pub struct MockMessage {
-    content: String,
-}
-
-impl Display for MockMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.content)
-    }
-}
-
-impl LogMessage for MockMessage {
-    fn to_writer<W: std::io::prelude::Write>(
-        &self,
-        writer: &mut W,
-    ) -> Result<usize, std::io::Error> {
-        let len = self.content.len();
-        writer.write_all(self.content.as_bytes())?;
-        Ok(len)
-    }
-}
-
 impl<T> MockParser<T> {
     /// Method to replicate parse behavior with artificial if statements with black boxes to avoid
     /// any uncounted compiler optimization.
     #[inline(never)]
-    fn inner_parse(
+    fn inner_parse<'a>(
         counter: usize,
         max_count: usize,
-        input: &[u8],
+        input: &'a [u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
+    ) -> Result<(usize, Option<LogRecordOutput<'a>>), parsers::ParserError> {
         // Return `Eof` Once the counter reaches max_count.
         if counter >= max_count {
-            const ERR: parsers::Error = parsers::Error::Eof;
+            const ERR: parsers::ParserError = parsers::ParserError::Eof;
 
             return Err(black_box(ERR));
         }
 
         // Unnecessary check to convince the compiler that we are using the input.
         if input.is_empty() {
-            return Err(black_box(parsers::Error::Eof));
+            return Err(black_box(parsers::ParserError::Eof));
         }
 
         const MSG: &str = "msg";
 
         // Unnecessary checks to convince the compiler that all return options are possible.
         if black_box(50) > black_box(60) {
-            Err(parsers::Error::Incomplete)
+            Err(parsers::ParserError::Incomplete)
         } else if black_box(50) > black_box(0) {
             // Only this value will be always returned if the calls counter still smaller than
             // the max value.
             Ok((
                 black_box(input.len()),
-                Some(parsers::ParseYield::Message(MockMessage {
-                    content: black_box(MSG).into(),
-                })),
+                Some(LogRecordOutput::Message(black_box(MSG).into())),
             ))
         } else if black_box(20) > black_box(30) {
             Ok((
                 black_box(input.len()),
-                Some(parsers::ParseYield::Attachment(Attachment {
+                Some(LogRecordOutput::Attachment(Attachment {
                     size: black_box(10),
                     name: String::from(black_box(MSG)),
                     data: Vec::new(),
@@ -130,19 +104,17 @@ impl<T> MockParser<T> {
         } else {
             Ok((
                 black_box(input.len()),
-                Some(parsers::ParseYield::MessageAndAttachment((
-                    MockMessage {
-                        content: black_box(MSG).into(),
-                    },
-                    Attachment {
+                Some(LogRecordOutput::Multiple(vec![
+                    LogRecordOutput::Message(black_box(MSG).into()),
+                    LogRecordOutput::Attachment(Attachment {
                         size: black_box(10),
                         name: String::from(black_box(MSG)),
                         data: Vec::new(),
                         messages: Vec::new(),
                         created_date: None,
                         modified_date: None,
-                    },
-                ))),
+                    }),
+                ])),
             ))
         }
     }
@@ -150,49 +122,35 @@ impl<T> MockParser<T> {
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
 // inline and the trait method should be always inline. This reduces the noise in the benchmarks.
-impl Parser<MockMessage> for MockParser<IterOnce> {
+impl Parser for MockParser<IterOnce> {
     /// This will keep returning a valid item result withing an [`iter::once`] until the counter
     /// reaches max count then it will be return [`parsers::Error::Eof`]
-    fn parse(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-    ) -> Result<
-        impl Iterator<Item = (usize, Option<parsers::ParseYield<MockMessage>>)>,
-        parsers::Error,
-    > {
+    fn parse<'a>(&mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         self.counter += 1;
 
         let item = Self::inner_parse(self.counter, self.max_count, input, timestamp)?;
 
-        Ok(iter::once(item))
+        Ok(Box::new(iter::once(item)))
     }
 }
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
 // inline and the trait method should be always inline. This reduces the noise in the benchmarks.
-impl Parser<MockMessage> for MockParser<IterMany> {
+impl Parser for MockParser<IterMany> {
     /// This will keep returning an iterator of multiple valid items until the counter reaches max
     /// count then it will be return [`parsers::Error::Eof`]
-    fn parse(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-    ) -> Result<
-        impl Iterator<Item = (usize, Option<parsers::ParseYield<MockMessage>>)>,
-        parsers::Error,
-    > {
+    fn parse<'a>(&mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         self.counter += 1;
 
         if self.counter >= self.max_count {
-            const ERR: parsers::Error = parsers::Error::Eof;
+            const ERR: parsers::ParserError = parsers::ParserError::Eof;
 
             return Err(black_box(ERR));
         }
 
         const REPEAT: usize = 10;
         let mut counter = 0;
-        let res = iter::from_fn(move || {
+        let iter = iter::from_fn(move || {
             counter += 1;
             if counter < black_box(REPEAT) {
                 Self::inner_parse(self.counter, self.max_count, input, timestamp).ok()
@@ -200,7 +158,6 @@ impl Parser<MockMessage> for MockParser<IterMany> {
                 None
             }
         });
-
         black_box(Ok(res))
     }
 }
