@@ -291,13 +291,6 @@ impl SessionStateAPI {
         })
     }
 
-    fn sync_exec_operation(&self, api: Api) -> Result<(), stypes::NativeError> {
-        let api_str = api.to_string();
-        self.tx_api.send(api).map_err(|e| {
-            stypes::NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
-        })
-    }
-
     pub async fn grab(&self, range: LineRange) -> Result<Vec<GrabbedElement>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::Grab((range.clone(), tx)), rx)

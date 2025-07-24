@@ -55,12 +55,8 @@ impl LogRecordsBuffer for LogsBuffer {
             LogRecordOutput::Raw(inner) => {
                 // TODO: Needs to be optimized. Also this use-case doesn't seem normal, should be some logs
                 // because during observe we do not expect raw data
-                self.text_buffer.push_str(
-                    &inner
-                        .iter()
-                        .map(|b| format!("{:02X}", b))
-                        .collect::<String>(),
-                );
+                self.text_buffer
+                    .push_str(&inner.iter().map(|b| format!("{b:02X}")).collect::<String>());
                 self.text_buffer.push('\n');
             }
             LogRecordOutput::Message(msg) => {
@@ -166,7 +162,7 @@ pub async fn run_producer<P: Parser, S: ByteSource, B: LogRecordsBuffer>(
     } {
         match next {
             Next::Parsed(_consumed, results) => match results {
-                MessageStreamItem::Parsed(results) => {
+                MessageStreamItem::Parsed(..) => {
                     //Just continue
                 }
                 MessageStreamItem::Done => {

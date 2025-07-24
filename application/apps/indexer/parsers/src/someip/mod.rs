@@ -36,7 +36,7 @@ pub struct FibexMetadata {
 
 impl FibexMetadata {
     /// Returns a new meta-data from the given fibex-files.
-    pub fn from_fibex_files(paths: &Vec<PathBuf>) -> Option<Self> {
+    pub fn from_fibex_files(paths: &[PathBuf]) -> Option<Self> {
         let readers: Vec<_> = paths
             .iter()
             .filter_map(|path| FibexReader::from_file(path).ok())
@@ -192,7 +192,7 @@ impl SomeipParser {
     }
 
     /// Creates a new parser with the given files.
-    pub fn from_fibex_files(paths: &Vec<PathBuf>) -> Self {
+    pub fn from_fibex_files(paths: &[PathBuf]) -> Self {
         SomeipParser {
             fibex_metadata: FibexMetadata::from_fibex_files(paths),
         }

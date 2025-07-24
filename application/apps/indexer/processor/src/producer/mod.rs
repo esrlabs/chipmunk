@@ -135,9 +135,8 @@ impl<'a, P: Parser, D: ByteSource, B: LogRecordsBuffer> MessageProducer<'a, P, D
                             // Reset skipped bytes since it had been counted here.
                             skipped_bytes = 0;
                             debug!(
-                            "Extracted a valid message, consumed {} bytes (total used {} bytes)",
-                            consumed, total_used_bytes
-                        );
+                                "Extracted a valid message, consumed {consumed} bytes (total used {total_used_bytes} bytes)"
+                            );
                             total_consumed += consumed;
                         messages_received += 1;
 
@@ -145,7 +144,7 @@ impl<'a, P: Parser, D: ByteSource, B: LogRecordsBuffer> MessageProducer<'a, P, D
                         }
                         (consumed, None) => {
                             total_consumed += consumed;
-                            trace!("None, consumed {} bytes", consumed);
+                            trace!("None, consumed {consumed} bytes");
                         }
                     }})
                 }) {
@@ -190,10 +189,7 @@ impl<'a, P: Parser, D: ByteSource, B: LogRecordsBuffer> MessageProducer<'a, P, D
                     }
                 }
                 Err(ParserError::Eof) => {
-                    trace!(
-                        "EOF reached...no more messages (skipped_bytes={})",
-                        skipped_bytes
-                    );
+                    trace!("EOF reached...no more messages (skipped_bytes={skipped_bytes})",);
                     self.done = true;
                     return None;
                 }
@@ -245,7 +241,7 @@ impl<'a, P: Parser, D: ByteSource, B: LogRecordsBuffer> MessageProducer<'a, P, D
                     }
                     return Some((0, MessageStreamItem::Done));
                 }
-                Err(ParserError::Native(err)) => {
+                Err(ParserError::Native(_err)) => {
                     todo!("Not Implemented")
                 }
             }

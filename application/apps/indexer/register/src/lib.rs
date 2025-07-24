@@ -231,7 +231,7 @@ impl Register {
         &self,
         uuid: &Uuid,
     ) -> Result<Option<stypes::OutputRender>, stypes::NativeError> {
-        let (_, descriptor) = self.parsers.get(&uuid).ok_or(stypes::NativeError {
+        let (_, descriptor) = self.parsers.get(uuid).ok_or(stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::Configuration,
             message: Some(format!("Fail to find component {uuid}")),

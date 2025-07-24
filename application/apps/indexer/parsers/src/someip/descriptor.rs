@@ -110,7 +110,7 @@ pub fn get_default_options(fibex: Option<Vec<PathBuf>>) -> ComponentOptions {
         uuid: SOMEIP_PARSER_UUID,
         fields: vec![Field {
             id: FIELD_FIBEX_FILES.to_owned(),
-            value: Value::Files(fibex.unwrap_or(Vec::new())),
+            value: Value::Files(fibex.unwrap_or_default()),
         }],
     }
 }
