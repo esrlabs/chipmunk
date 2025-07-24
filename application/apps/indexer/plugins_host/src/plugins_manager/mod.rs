@@ -14,10 +14,10 @@ use std::path::{Path, PathBuf};
 
 use crate::plugins_shared::load::{WasmComponentInfo, load_and_inspect};
 use cache::CacheManager;
-use components::Components;
-use descriptor::PluginDescriptor;
+use descriptor::{PluginDescriptor, parser_factory, source_factory};
 use load::{PluginEntityState, PluginFilesStatus, load_plugin, validate_plugin_files};
 use paths::extract_plugin_file_paths;
+use register::Register;
 use stypes::{
     ExtendedInvalidPluginEntity, ExtendedPluginEntity, InvalidPluginEntity, PluginEntity,
     PluginLogLevel, PluginRunData, PluginType,
@@ -318,18 +318,15 @@ impl PluginsManager {
         Ok(())
     }
 
-    pub fn register_plugins(
-        &self,
-        components: &mut Components<sources::Source, parsers::Parser>,
-    ) -> Result<(), stypes::NativeError> {
+    pub fn register_plugins(&self, components: &mut Register) -> Result<(), stypes::NativeError> {
         for plugin in &self.installed_plugins {
             let plug_info = plugin.entity.clone();
             match plugin.entity.plugin_type {
                 PluginType::Parser => {
-                    components.add_parser(PluginDescriptor::new(plug_info))?;
+                    components.add_parser(parser_factory, PluginDescriptor::new(plug_info))?;
                 }
                 PluginType::ByteSource => {
-                    components.add_source(PluginDescriptor::new(plug_info))?;
+                    components.add_source(source_factory, PluginDescriptor::new(plug_info))?;
                 }
             }
         }
