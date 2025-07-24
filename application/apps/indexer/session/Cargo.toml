@@ -33,6 +33,7 @@ parsers = { path = "../parsers" }
 processor = { path = "../processor" }
 sources = { path = "../sources" }
 merging = { path = "../merging" }
+register = { path = "../register" }
 file-tools = { path = "../addons/file-tools" }
 
 [dev-dependencies]
