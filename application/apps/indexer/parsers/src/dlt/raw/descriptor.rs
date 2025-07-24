@@ -31,7 +31,7 @@ impl CommonDescriptor for Descriptor {
         };
         files.iter().any(|fp| {
             fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "dlt")
+                .map(|ext| ext.eq_ignore_ascii_case("dlt"))
                 .unwrap_or_default()
         })
     }

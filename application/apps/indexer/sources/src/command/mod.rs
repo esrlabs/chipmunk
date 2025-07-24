@@ -121,7 +121,7 @@ impl ProcessSource {
         cwd: PathBuf,
         envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
-        let mut args = ProcessSource::parse_command(&command)?;
+        let mut args = ProcessSource::parse_command(command)?;
         let cmd = if args.is_empty() {
             return Err(ProcessError::Setup(format!(
                 "Not command has been found in \"{command}\""

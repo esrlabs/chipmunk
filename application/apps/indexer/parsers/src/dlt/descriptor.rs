@@ -115,7 +115,7 @@ impl CommonDescriptor for Descriptor {
         };
         files.iter().any(|fp| {
             fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "dlt")
+                .map(|ext| ext.eq_ignore_ascii_case("dlt"))
                 .unwrap_or_default()
         })
     }
@@ -262,7 +262,7 @@ impl CommonDescriptor for Descriptor {
                     StatFields::EcuIds => &stat.ecu_ids,
                 };
                 let mut entity: HashMap<String, HashMap<String, usize>> = HashMap::new();
-                inner.into_iter().for_each(|(id, levels)| {
+                inner.iter().for_each(|(id, levels)| {
                     let mut map: HashMap<String, usize> = HashMap::new();
                     map.insert(NON_LOG.to_owned(), levels.non_log);
                     map.insert(LOG_FATAL.to_owned(), levels.log_fatal);
@@ -341,7 +341,7 @@ pub fn get_default_options(
         fields: vec![
             Field {
                 id: FIELD_FIBEX_FILES.to_owned(),
-                value: Value::Files(fibex.unwrap_or(Vec::new())),
+                value: Value::Files(fibex.unwrap_or_default()),
             },
             Field {
                 id: FIELD_LOG_LEVEL.to_owned(),
@@ -349,7 +349,7 @@ pub fn get_default_options(
             },
             Field {
                 id: FIELD_STATISTICS.to_owned(),
-                value: Value::KeyStrings(filters.unwrap_or(HashMap::new())),
+                value: Value::KeyStrings(filters.unwrap_or_default()),
             },
         ],
     }

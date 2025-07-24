@@ -104,13 +104,15 @@ pub async fn run_producer<P: Parser, S: ByteSource, B: LogRecordsBuffer>(
 ) -> OperationResult<bool> {
     operation_api.processing();
     let cancel = operation_api.cancellation_token();
-    while let Some(..) = select! {
+    while select! {
         next_from_stream = producer.read_next_segment() => next_from_stream,
         _ = async {
             cancel.cancelled().await;
             debug!("exporting operation has been cancelled");
         } => None,
-    } {
+    }
+    .is_some()
+    {
         // Do nothing. Writing happens on MessageProducer level
     }
     debug!("exporting is done");

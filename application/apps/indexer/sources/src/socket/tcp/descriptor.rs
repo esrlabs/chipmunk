@@ -19,7 +19,7 @@ const FIELD_IP_ADDR: &str = "TCP_SOURCE_FIELD_IP_ADDR";
 pub struct Descriptor {}
 
 pub fn factory(
-    origin: &SessionAction,
+    _origin: &SessionAction,
     options: &[Field],
 ) -> Result<Option<(Sources, Option<String>)>, NativeError> {
     let addr: String = options
@@ -28,7 +28,7 @@ pub fn factory(
         .value;
     Ok(Some((
         Sources::Tcp(TcpSource::new(&addr, None, None)?),
-        Some(format!("TCP on {}", addr)),
+        Some(format!("TCP on {addr}")),
     )))
 }
 

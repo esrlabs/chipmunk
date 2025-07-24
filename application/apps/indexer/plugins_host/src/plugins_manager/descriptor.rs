@@ -1,12 +1,8 @@
 use descriptor::{CommonDescriptor, ParserDescriptor, SourceDescriptor};
 use stypes::{
-    Field, NativeError, NativeErrorKind, PluginConfigItem, PluginEntity, PluginParserSettings,
-    SessionAction, Severity, StaticFieldDesc,
+    Field, NativeError, NativeErrorKind, PluginEntity, SessionAction, Severity, StaticFieldDesc,
 };
-use tokio::runtime::Handle;
 use tokio_util::sync::CancellationToken;
-
-use crate::PluginsParser;
 
 #[derive(Debug)]
 pub struct PluginDescriptor {
@@ -70,7 +66,7 @@ impl CommonDescriptor for PluginDescriptor {
                     desc: conf
                         .description
                         .as_ref()
-                        .map_or_else(|| String::new(), |d| d.to_owned()),
+                        .map_or_else(String::new, |d| d.to_owned()),
                     //TODO AAZ: Map this to plugins API
                     required: true,
                     interface,

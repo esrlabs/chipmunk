@@ -3,8 +3,8 @@ use crate::*;
 use descriptor::{CommonDescriptor, FieldsResult, SourceDescriptor};
 use std::{collections::HashMap, env};
 use stypes::{
-    ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
-    Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
+    ExtractByKey, Extracted, Field, FieldDesc, NativeError, SessionAction, StaticFieldDesc,
+    ValueInput, missed_field_err as missed,
 };
 
 const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
@@ -19,7 +19,7 @@ const FIELD_SHELLS: &str = "COMMAND_FIELD_SHELLS";
 pub struct Descriptor {}
 
 pub fn factory(
-    origin: &SessionAction,
+    _origin: &SessionAction,
     options: &[Field],
 ) -> Result<Option<(Sources, Option<String>)>, NativeError> {
     let command: String = options

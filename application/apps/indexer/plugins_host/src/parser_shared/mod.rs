@@ -169,7 +169,7 @@ impl Parser for PluginsParser {
                     )));
                 }
             }
-            Err(ParserError::Native(err)) => {
+            Err(ParserError::Native(_err)) => {
                 todo!("Not implemented")
             }
         }

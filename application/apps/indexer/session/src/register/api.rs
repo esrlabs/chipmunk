@@ -1,9 +1,8 @@
-use std::{collections::HashMap, fmt};
+use std::collections::HashMap;
 
 use descriptor::{LazyLoadingResult, LazyLoadingTaskMeta};
-use stypes::{Ident, NativeError, SessionAction, SessionDescriptor};
+use stypes::{Ident, NativeError, SessionAction};
 use tokio::sync::oneshot;
-use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 /// Represents the various API commands for managing component sessions and operations.
