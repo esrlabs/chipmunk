@@ -18,7 +18,7 @@ const FIELD_MULTICAST_ADDR: &str = "UDP_SOURCE_FIELD_MULTICAST_ADDR";
 pub struct Descriptor {}
 
 pub fn factory(
-    origin: &SessionAction,
+    _origin: &SessionAction,
     options: &[Field],
 ) -> Result<Option<(Sources, Option<String>)>, NativeError> {
     let addr: String = options
