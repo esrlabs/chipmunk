@@ -16,7 +16,7 @@ pub enum Parsers {
     // NOTE: We can't reference plugins parser directly because of circular
     // references between parsers and plugins_host library.
     // TODO AAZ: This is a workaround until we find a proper solution.
-    Plugin(Box<dyn definitions::Parser + Send>),
+    Plugin(Box<dyn Parser + Send>),
 }
 
 /**
