@@ -25,6 +25,7 @@ sources = { path = "../sources" }
 stypes = { path = "../stypes" }
 # TODO : Introduce shared crates and move dir_checksum to it.
 dir_checksum = { path = "../../../../cli/development-cli/dir_checksum" }
+register = { path = "../register" }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
