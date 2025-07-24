@@ -56,11 +56,9 @@ impl Session {
         ) = unbounded_channel();
         let mut register: Register = Register::new();
         // Registre parsers
-        parsers_registration(&mut register)
-            .map_err(|err| stypes::ComputationError::NativeError(err))?;
+        parsers_registration(&mut register).map_err(stypes::ComputationError::NativeError)?;
         // Registre sources
-        sources_registration(&mut register)
-            .map_err(|err| stypes::ComputationError::NativeError(err))?;
+        sources_registration(&mut register).map_err(stypes::ComputationError::NativeError)?;
         // Create a session
         let session = Self {
             uuid,
@@ -446,9 +444,9 @@ impl Session {
 
     pub fn export_raw(
         &self,
-        operation_id: Uuid,
-        out_path: PathBuf,
-        ranges: Vec<RangeInclusive<u64>>,
+        _operation_id: Uuid,
+        _out_path: PathBuf,
+        _ranges: Vec<RangeInclusive<u64>>,
     ) -> Result<(), stypes::ComputationError> {
         // We should not ask client for stypes::SessionSetup and we should take it from state
         todo!("Not implemented")

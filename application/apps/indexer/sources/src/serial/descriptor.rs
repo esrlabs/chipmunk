@@ -5,8 +5,8 @@ use descriptor::{
 };
 use std::{collections::HashMap, str};
 use stypes::{
-    ExtractByKey, Extracted, Field, FieldDesc, LazyFieldDesc, NativeError, NativeErrorKind,
-    SessionAction, Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
+    ExtractByKey, Extracted, Field, FieldDesc, LazyFieldDesc, NativeError, SessionAction,
+    StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 
 use super::serialport::SerialConfig;
@@ -38,7 +38,7 @@ const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 pub struct Descriptor {}
 
 pub fn factory(
-    origin: &SessionAction,
+    _origin: &SessionAction,
     options: &[Field],
 ) -> Result<Option<(Sources, Option<String>)>, NativeError> {
     let path: String = options

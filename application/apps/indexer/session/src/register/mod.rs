@@ -177,7 +177,7 @@ impl SessionRegister {
                             }
                         }
                     }
-                    Api::GetComponents(origin, ty, tx) => {
+                    Api::GetComponents(_origin, _ty, _tx) => {
                         // log_if_err(tx.send(components.get_components(&ty, origin)));
                     }
                     // Client doesn't need any more field data. Loading task should be cancelled
@@ -643,54 +643,55 @@ fn response<T, S: AsRef<str>>(res: Result<T, RecvError>, msg: S) -> Result<T, st
     })
 }
 
-use parsers::api::*;
-use sources::api::*;
-pub fn parsers_registration(components: &mut Register) -> Result<(), stypes::NativeError> {
-    components.add_parser(
+// use parsers::api::*;
+// use sources::api::*;
+
+pub fn parsers_registration(register: &mut Register) -> Result<(), stypes::NativeError> {
+    register.add_parser(
         parsers::dlt::descriptor::factory,
         parsers::dlt::descriptor::Descriptor::default(),
     )?;
-    components.add_parser(
+    register.add_parser(
         parsers::dlt::descriptor::factory,
         parsers::dlt::raw::descriptor::Descriptor::default(),
     )?;
-    components.add_parser(
+    register.add_parser(
         parsers::someip::descriptor::factory,
         parsers::someip::descriptor::Descriptor::default(),
     )?;
-    components.add_parser(
+    register.add_parser(
         parsers::text::descriptor::factory,
         parsers::text::descriptor::Descriptor::default(),
     )?;
     Ok(())
 }
 
-pub fn sources_registration(components: &mut Register) -> Result<(), stypes::NativeError> {
-    components.add_source(
+pub fn sources_registration(register: &mut Register) -> Result<(), stypes::NativeError> {
+    register.add_source(
         sources::binary::raw::factory,
         sources::binary::raw::Descriptor::default(),
     )?;
-    components.add_source(
+    register.add_source(
         sources::binary::pcap::legacy::factory,
         sources::binary::pcap::legacy::Descriptor::default(),
     )?;
-    components.add_source(
+    register.add_source(
         sources::binary::pcap::ng::factory,
         sources::binary::pcap::ng::Descriptor::default(),
     )?;
-    components.add_source(
+    register.add_source(
         sources::socket::tcp::factory,
         sources::socket::tcp::Descriptor::default(),
     )?;
-    components.add_source(
+    register.add_source(
         sources::socket::udp::factory,
         sources::socket::udp::Descriptor::default(),
     )?;
-    components.add_source(
+    register.add_source(
         sources::serial::descriptor::factory,
         sources::serial::descriptor::Descriptor::default(),
     )?;
-    components.add_source(
+    register.add_source(
         sources::command::factory,
         sources::command::Descriptor::default(),
     )?;

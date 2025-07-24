@@ -42,7 +42,7 @@ impl CommonDescriptor for Descriptor {
         };
         files.iter().any(|fp| {
             fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "pcapng")
+                .map(|ext| ext.eq_ignore_ascii_case("pcapng"))
                 .unwrap_or_default()
         }) &&        
         // If at least some file doesn't exist or not binary - do not recommend this source

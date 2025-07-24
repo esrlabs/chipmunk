@@ -37,12 +37,11 @@ where
     fields
         .iter()
         .find(|field| field.id == key)
-        .map(|field| {
+        .and_then(|field| {
             field
                 .extract_as()
                 .map(|v| Extracted::new(field.id.as_str(), v))
         })
-        .flatten()
 }
 
 /// Trait that provides typed extraction from a collection of `Field` objects using a string key.
@@ -56,61 +55,61 @@ pub trait ExtractByKey<T> {
 
 impl ExtractByKey<String> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, String>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<i64> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, i64>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<u8> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, u8>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<u16> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, u16>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<u32> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, u32>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<u64> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, u64>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<usize> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, usize>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl ExtractByKey<bool> for &[Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, bool>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl<'l> ExtractByKey<&'l Vec<Field>> for &'l [Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, &'l Vec<Field>>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
 impl<'l> ExtractByKey<&'l Vec<PathBuf>> for &'l [Field] {
     fn extract_by_key<'a>(&'a self, key: &str) -> Option<Extracted<'a, &'l Vec<PathBuf>>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 
@@ -119,7 +118,7 @@ impl<'l> ExtractByKey<&'l HashMap<String, Vec<String>>> for &'l [Field] {
         &'a self,
         key: &str,
     ) -> Option<Extracted<'a, &'l HashMap<String, Vec<String>>>> {
-        extract_from_fields_by_key(&self, key)
+        extract_from_fields_by_key(self, key)
     }
 }
 /// A trait that provides type-specific extraction logic from a `Field`.
@@ -178,7 +177,7 @@ impl ExtractAs<i64> for &Field {
 impl ExtractAs<u8> for &Field {
     fn extract_as(&self) -> Option<u8> {
         match &self.value {
-            Value::Number(value) => (*value).try_into().map(|v| v).ok(),
+            Value::Number(value) => (*value).try_into().ok(),
             Value::Boolean(..)
             | Value::Directories(..)
             | Value::Directory(..)

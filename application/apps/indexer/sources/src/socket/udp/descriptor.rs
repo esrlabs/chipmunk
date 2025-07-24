@@ -143,7 +143,7 @@ impl CommonDescriptor for Descriptor {
             .extract_by_key(FIELD_MULTICAST_ADDR)
             .ok_or(missed(FIELD_MULTICAST_ADDR))?;
         let mut errors = HashMap::new();
-        for pair in multicast.value.into_iter() {
+        for pair in multicast.value.iter() {
             if let Value::Fields(pair) = &pair.value {
                 if pair.len() != 2 {
                     errors.insert(
