@@ -61,10 +61,10 @@ impl ByteSource for MockByteSource {
     async fn load(
         &mut self,
         _filter: Option<&sources::SourceFilter>,
-    ) -> Result<Option<sources::ReloadInfo>, sources::Error> {
+    ) -> Result<Option<sources::ReloadInfo>, sources::SourceError> {
         #[inline(never)]
-        fn inner() -> Result<Option<sources::ReloadInfo>, sources::Error> {
-            const AA: Result<Option<sources::ReloadInfo>, sources::Error> =
+        fn inner() -> Result<Option<sources::ReloadInfo>, sources::SourceError> {
+            const AA: Result<Option<sources::ReloadInfo>, sources::SourceError> =
                 Ok(Some(sources::ReloadInfo {
                     available_bytes: 5,
                     newly_loaded_bytes: 5,
