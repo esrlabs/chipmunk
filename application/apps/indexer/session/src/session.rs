@@ -1,12 +1,13 @@
 use crate::{
     operations::{self, Operation},
-    register::{Register, parsers_registration, sources_registration},
+    register::{parsers_registration, sources_registration},
     state::{self, IndexesMode, SessionStateAPI},
     tracker::{self, OperationTrackerAPI},
 };
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
+use register::Register;
 use std::{ops::RangeInclusive, path::PathBuf, sync::Arc};
 use tokio::{
     join,

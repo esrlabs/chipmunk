@@ -1,9 +1,9 @@
-use crate::register::Register;
 use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::producer::sde::{SdeReceiver, SdeSender};
 use processor::search::filter::SearchFilter;
+use register::Register;
 use serde::Serialize;
 use std::{
     ops::RangeInclusive,

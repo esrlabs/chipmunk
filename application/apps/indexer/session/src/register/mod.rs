@@ -1,9 +1,9 @@
 mod api;
 
-pub use api::Register;
 use api::*;
 use descriptor::{LazyLoadingResult, LazyLoadingTaskMeta};
 use log::{debug, error};
+use register::Register;
 use std::collections::HashMap;
 use tokio::{
     sync::{
