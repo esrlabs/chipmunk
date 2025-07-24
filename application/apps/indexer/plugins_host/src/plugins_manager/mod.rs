@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use crate::plugins_shared::load::{WasmComponentInfo, load_and_inspect};
 use cache::CacheManager;
 use descriptor::{PluginDescriptor, parser_factory, source_factory};
-use load::{PluginEntityState, PluginFilesStatus, load_plugin, validate_plugin_files};
+use load::{PluginEntityState, load_plugin};
 use paths::extract_plugin_file_paths;
 use register::Register;
 use stypes::{
