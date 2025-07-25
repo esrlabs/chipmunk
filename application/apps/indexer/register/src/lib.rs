@@ -150,6 +150,36 @@ impl Register {
             .collect()
     }
 
+    /// Returns the identifiers of all registered components of a given type.
+    ///
+    /// This method retrieves the list of identifiers (`Ident`) for all components
+    /// that match the specified [`ComponentType`], such as parsers or sources. The
+    /// results can be filtered based on the provided [`SessionAction`] origin,
+    /// allowing context-specific queries.
+    ///
+    /// # Arguments
+    ///
+    /// * `ty` - The type of component to retrieve (e.g., `Parser` or `Source`).
+    /// * `origin` - The session origin used to filter components by their scope or context.
+    ///
+    /// # Returns
+    ///
+    /// A `Vec<Ident>` containing the identifiers of all matching components.
+    ///
+    /// # See Also
+    ///
+    /// [`get_parsers`], [`get_sources`]
+    pub fn get_components(
+        &self,
+        ty: stypes::ComponentType,
+        origin: stypes::SessionAction,
+    ) -> Vec<stypes::Ident> {
+        match ty {
+            stypes::ComponentType::Parser => self.get_parsers(origin),
+            stypes::ComponentType::Source => self.get_sources(origin),
+        }
+    }
+
     /// Returns configuration schemas for the specified component UUIDs.
     ///
     /// For each component (parser or source), this method returns the `OptionsScheme` used to render configuration UI

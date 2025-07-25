@@ -61,13 +61,13 @@ impl SessionRegister {
             UnboundedSender<stypes::CallbackOptionsEvent>,
             UnboundedReceiver<stypes::CallbackOptionsEvent>,
         ) = unbounded_channel();
-        let mut components: Register = Register::new();
+        let mut register: Register = Register::new();
         // Registre parsers
-        parsers_registration(&mut components)?;
+        parsers_registration(&mut register)?;
         // Registre sources
-        plugins_manager.register_plugins(&mut components)?;
+        plugins_manager.register_plugins(&mut register)?;
         let plugins_manager = Arc::new(RwLock::new(plugins_manager));
-        sources_registration(&mut components)?;
+        sources_registration(&mut register)?;
         let tx_api_inner = tx_api.clone();
         let session = Self { tx_api };
         task::spawn(async move {
@@ -76,17 +76,17 @@ impl SessionRegister {
             while let Some(msg) = rx_api.recv().await {
                 match msg {
                     Api::GetOutputRender(uuid, tx) => {
-                        log_if_err(tx.send(components.get_output_render(&uuid)));
+                        log_if_err(tx.send(register.get_output_render(&uuid)));
                     }
                     Api::GetIdent(uuid, tx) => {
-                        log_if_err(tx.send(components.get_ident(&uuid)));
+                        log_if_err(tx.send(register.get_ident(&uuid)));
                     }
                     Api::GetOptions {
                         origin,
                         targets,
                         tx,
                     } => {
-                        let mut options = match components.get_options(origin, targets) {
+                        let mut options = match register.get_options(origin, targets) {
                             Ok(options) => options,
                             Err(err) => {
                                 log_if_err(tx.send(Err(err)));
@@ -177,8 +177,8 @@ impl SessionRegister {
                             }
                         }
                     }
-                    Api::GetComponents(_origin, _ty, _tx) => {
-                        // log_if_err(tx.send(components.get_components(&ty, origin)));
+                    Api::GetComponents(origin, ty, tx) => {
+                        log_if_err(tx.send(Ok(register.get_components(ty, origin))));
                     }
                     // Client doesn't need any more field data. Loading task should be cancelled
                     Api::CancelLoading(fields) => {
@@ -189,7 +189,7 @@ impl SessionRegister {
                         }
                     }
                     Api::Validate(origin, target, fields, tx) => {
-                        log_if_err(tx.send(components.validate(&origin, &target, &fields)));
+                        log_if_err(tx.send(register.validate(&origin, &target, &fields)));
                     }
                     Api::Shutdown(tx) => {
                         // Cancel / kill pending tasks
