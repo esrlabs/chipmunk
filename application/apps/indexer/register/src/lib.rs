@@ -269,6 +269,38 @@ impl Register {
         Ok(descriptor.get_render())
     }
 
+    /// Checks whether the specified source supports the Source Data Exchange (SDE) mechanism.
+    ///
+    /// The SDE mechanism determines whether the user is allowed to send data to the source.
+    /// This method queries the source descriptor by its UUID and evaluates SDE support
+    /// in the context of the given session origin.
+    ///
+    /// # Arguments
+    ///
+    /// * `uuid` - The unique identifier of the source component.
+    /// * `origin` - The session context used to evaluate access permissions.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(true)` if the source supports SDE; `Ok(false)` otherwise.  
+    /// Returns an error if the source with the specified UUID is not found.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NativeError`] with kind [`Configuration`] if the source is not registered.
+    pub fn is_sde_supported(
+        &self,
+        uuid: &Uuid,
+        origin: &stypes::SessionAction,
+    ) -> Result<bool, stypes::NativeError> {
+        let (_, descriptor) = self.sources.get(uuid).ok_or(stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Configuration,
+            message: Some(format!("Fail to find component {uuid}")),
+        })?;
+        Ok(descriptor.is_sde_supported(origin))
+    }
+
     /// Returns the Ident of component (parser or source).
     ///
     /// # Arguments

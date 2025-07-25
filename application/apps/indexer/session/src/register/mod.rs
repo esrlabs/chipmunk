@@ -180,6 +180,9 @@ impl SessionRegister {
                     Api::GetComponents(origin, ty, tx) => {
                         log_if_err(tx.send(Ok(register.get_components(ty, origin))));
                     }
+                    Api::IsSdeSupported(origin, uuid, tx) => {
+                        log_if_err(tx.send(register.is_sde_supported(&uuid, &origin)));
+                    }
                     // Client doesn't need any more field data. Loading task should be cancelled
                     Api::CancelLoading(fields) => {
                         for (_, (meta, _)) in tasks.iter() {
@@ -359,9 +362,38 @@ impl SessionRegister {
         let (tx, rx) = oneshot::channel();
         send(
             self.tx_api.send(Api::GetComponents(origin, ty, tx)),
-            "Fail to send Api::GetParsers",
+            "Fail to send Api::GetComponents",
         )?;
         response(rx.await, "Fail to get response from Api::GetComponents")?
+    }
+
+    /// Asynchronously checks whether the specified source supports the Source Data Exchange (SDE) mechanism.
+    ///
+    /// This is a high-level wrapper that sends an [`Api::IsSdeSupported`] request to the internal API
+    /// and awaits the result. The method is asynchronous and returns either the result of the check
+    /// or an error if the request fails or the source is not found.
+    ///
+    /// # Arguments
+    ///
+    /// * `uuid` — The unique identifier of the source component to check.
+    /// * `origin` — The session context used to evaluate SDE permissions.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(true)` — if the source supports SDE.
+    /// * `Ok(false)` — if the source does not support SDE.
+    /// * `Err(NativeError)` — if the request could not be sent or the response failed.
+    pub async fn is_sde_supported(
+        &self,
+        uuid: Uuid,
+        origin: stypes::SessionAction,
+    ) -> Result<bool, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::IsSdeSupported(origin, uuid, tx)),
+            "Fail to send Api::IsSdeSupported",
+        )?;
+        response(rx.await, "Fail to get response from Api::IsSdeSupported")?
     }
 
     /// Aborts the lazy loading tasks for the specified fields.

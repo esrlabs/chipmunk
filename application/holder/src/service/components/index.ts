@@ -6,3 +6,4 @@ export * as GetIdent from './get_ident';
 export * as Abort from './abort';
 export * as Validate from './validate';
 export * as Plugins from './plugins';
+export * as IsSdeSupported from './is_sde_supported';

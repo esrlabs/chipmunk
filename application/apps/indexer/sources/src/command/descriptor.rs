@@ -110,4 +110,8 @@ impl CommonDescriptor for Descriptor {
         Ok(errors)
     }
 }
-impl SourceDescriptor for Descriptor {}
+impl SourceDescriptor for Descriptor {
+    fn is_sde_supported(&self, _origin: &stypes::SessionAction) -> bool {
+        true
+    }
+}

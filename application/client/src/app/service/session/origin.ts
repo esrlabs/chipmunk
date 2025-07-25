@@ -152,9 +152,10 @@ export class SessionOrigin {
     }
 
     public isSdeSupported(): Promise<boolean> {
-        /// TODO: add API implementation
-        console.error(`Not Implemented`);
-        return Promise.resolve(true);
+        if (!this.components || !this.components.source) {
+            return Promise.reject(new Error(`Source isn't defined`));
+        }
+        return components.isSdeSupported(this.components.source.uuid, this.origin);
     }
 
     public isFile(): boolean {

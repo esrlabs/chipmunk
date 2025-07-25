@@ -193,7 +193,7 @@ pub fn parser_factory(
 // }
 
 impl SourceDescriptor for PluginDescriptor {
-    fn is_sde_supported(&self, _origin: &stypes::SessionAction, _fields: &[stypes::Field]) -> bool {
+    fn is_sde_supported(&self, _origin: &stypes::SessionAction) -> bool {
         false
     }
 }
