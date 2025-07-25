@@ -7,9 +7,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { HiddenFilterModule } from '@elements/filter.hidden/module';
 
 import { RecentActions } from './component';
-import { RecentIcon } from './icon/component';
-import { RecentNatureModule } from './nature/module';
-import { RecentParserModule } from './parser/module';
 
 @NgModule({
     imports: [
@@ -19,10 +16,8 @@ import { RecentParserModule } from './parser/module';
         MatIconModule,
         MatMenuModule,
         HiddenFilterModule,
-        RecentNatureModule,
-        RecentParserModule,
     ],
-    declarations: [RecentActions, RecentIcon],
+    declarations: [RecentActions],
     exports: [RecentActions],
 })
 export class RecentActionsModule {}

@@ -4,6 +4,7 @@ import {
     SessionSetup,
     ComponentOptions,
     OutputRender,
+    SessionDescriptor,
 } from '@platform/types/bindings';
 import { Render } from '@schema/render';
 import { ColumnsRender } from '@schema/render/columns';
@@ -13,6 +14,14 @@ import { components } from '@service/components';
 export class SessionComponents {
     public parser: Ident | undefined;
     public source: Ident | undefined;
+    public setParser(ident: Ident): SessionComponents {
+        this.parser = ident;
+        return this;
+    }
+    public setSource(ident: Ident): SessionComponents {
+        this.source = ident;
+        return this;
+    }
 }
 
 export class ComponentsOptions {
@@ -29,6 +38,14 @@ export class ComponentsOptions {
 }
 
 export class SessionOrigin {
+    static fromSessionSetup(setup: SessionSetup, descriptor: SessionDescriptor): SessionOrigin {
+        return new SessionOrigin(
+            setup.origin,
+            new SessionComponents().setSource(descriptor.source).setParser(descriptor.source),
+            new ComponentsOptions().setParser(setup.parser).setSource(setup.source),
+        );
+    }
+
     static file(path: string): SessionOrigin {
         return new SessionOrigin({ File: path }, undefined);
     }
@@ -44,8 +61,9 @@ export class SessionOrigin {
     constructor(
         public readonly origin: SessionAction,
         public components: SessionComponents | undefined,
+        options?: ComponentsOptions,
     ) {
-        this.options = new ComponentsOptions();
+        this.options = options ? options : new ComponentsOptions();
     }
 
     public setComponents(components: SessionComponents) {
@@ -100,6 +118,7 @@ export class SessionOrigin {
                 .catch(reject);
         });
     }
+
     public getTitle(): string {
         if (this.origin === 'Source') {
             // TODO: Check idents
@@ -112,6 +131,7 @@ export class SessionOrigin {
             return `unknown`;
         }
     }
+
     public getDescription(): { title: string; desctiption: string | undefined } {
         if (this.origin === 'Source') {
             // TODO: Check idents
@@ -128,6 +148,59 @@ export class SessionOrigin {
             };
         } else {
             return { title: 'Unknown', desctiption: undefined };
+        }
+    }
+
+    public isSdeSupported(): Promise<boolean> {
+        if (!this.components || !this.components.source) {
+            return Promise.reject(new Error(`Source isn't defined`));
+        }
+        return components.isSdeSupported(this.components.source.uuid, this.origin);
+    }
+
+    public isFile(): boolean {
+        return typeof (this.origin as { File: string }).File === 'string';
+    }
+
+    public isFiles(): boolean {
+        return (this.origin as { Files: string[] }).Files instanceof Array;
+    }
+
+    public isStream(): boolean {
+        return typeof this.origin === 'string' && this.origin === 'Source';
+    }
+
+    public isSameAction(other: SessionAction): boolean {
+        if ((this.origin as { File: string }).File && (other as { File: string }).File) {
+            return true;
+        } else if (
+            (this.origin as { Files: string[] }).Files &&
+            (other as { Files: string[] }).Files
+        ) {
+            return true;
+        } else if (this.origin === 'Source' && other === 'Source') {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public getFirstFilename(): string | undefined {
+        if ((this.origin as { File: string }).File) {
+            return (this.origin as { File: string }).File;
+        } else if ((this.origin as { Files: string[] }).Files) {
+            const files = (this.origin as { Files: string[] }).Files;
+            return files.length > 0 ? files[0] : undefined;
+        } else {
+            return undefined;
+        }
+    }
+    public getFiles(): string[] | undefined {
+        if ((this.origin as { Files: string[] }).Files) {
+            const files = (this.origin as { Files: string[] }).Files;
+            return files instanceof Array ? files : undefined;
+        } else {
+            return undefined;
         }
     }
 }

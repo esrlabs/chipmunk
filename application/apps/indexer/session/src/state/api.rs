@@ -42,7 +42,7 @@ pub enum Api {
     FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
     GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
     UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
-    AddSource(SessionDescriptor, oneshot::Sender<u16>),
+    AddSource(Uuid, SessionDescriptor, oneshot::Sender<u16>),
     GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((stypes::ObserveOptions, oneshot::Sender<()>)),
@@ -191,7 +191,7 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
-    AddAttachment(definitions::Attachment),
+    AddAttachment(parsers::api::Attachment),
     GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
     // Used for tests of error handeling
     ShutdownWithError,
@@ -288,13 +288,6 @@ impl SessionStateAPI {
         })?;
         rx_response.await.map_err(|_| {
             stypes::NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
-        })
-    }
-
-    fn sync_exec_operation(&self, api: Api) -> Result<(), stypes::NativeError> {
-        let api_str = api.to_string();
-        self.tx_api.send(api).map_err(|e| {
-            stypes::NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })
     }
 
@@ -472,10 +465,12 @@ impl SessionStateAPI {
 
     pub async fn add_source(
         &self,
+        operation_uuid: Uuid,
         desciptor: SessionDescriptor,
     ) -> Result<u16, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::AddSource(desciptor, tx), rx).await
+        self.exec_operation(Api::AddSource(operation_uuid, desciptor, tx), rx)
+            .await
     }
 
     pub async fn get_sources_definitions(
@@ -690,7 +685,7 @@ impl SessionStateAPI {
 
     pub fn add_attachment(
         &self,
-        origin: definitions::Attachment,
+        origin: parsers::api::Attachment,
     ) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
             stypes::NativeError::channel(

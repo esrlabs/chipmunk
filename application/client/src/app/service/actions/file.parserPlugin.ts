@@ -3,7 +3,6 @@ import { bridge } from '@service/bridge';
 import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 
-import * as Factory from '@platform/types/observe/factory';
 import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_file_parser_plugins';

@@ -56,11 +56,11 @@ export class Entity extends PassiveMatchee {
         }
     }
 
-    // public hash(): string {
-    //     if (this.origin instanceof Action) {
-    //         return `${this.origin.description().major}-${this.origin.description().minor}`;
-    //     } else {
-    //         return `${this.origin.name}-${this.origin.parent}`;
-    //     }
-    // }
+    public hash(): string {
+        if (this.origin instanceof Action) {
+            return `${this.origin.description().major}-${this.origin.description().minor}`;
+        } else {
+            return `${this.origin.name}-${this.origin.parent}`;
+        }
+    }
 }

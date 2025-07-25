@@ -203,6 +203,13 @@ export function getAsNotEmptyStringOrAsUndefined(src: any, key: string): string 
     }
     return src[key];
 }
+export function getAsStringOrAsUndefined(src: any, key: string): string | undefined {
+    if (typeof src[key] === 'string' && src[key].trim() !== '') {
+        return src[key];
+    } else {
+        return undefined;
+    }
+}
 
 export function getAsBool(src: any, key: string, defaults?: boolean): boolean {
     if (typeof src[key] !== 'boolean') {

@@ -91,6 +91,10 @@ export class Components extends Subscriber {
         return this.native.getOutputRender(uuid);
     }
 
+    public isSdeSupported(uuid: String, origin: SessionAction): Promise<boolean> {
+        return this.native.isSdeSupported(uuid, origin);
+    }
+
     public getIdent(uuid: string): Promise<Ident | null> {
         return this.native.getIdent(uuid);
     }

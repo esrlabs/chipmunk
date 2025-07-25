@@ -2,8 +2,8 @@ mod descriptor;
 
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 use crate::socket::{BuffCapacityState, handle_buff_capacity};
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use log::trace;
 use std::net::{IpAddr, Ipv4Addr};
 use thiserror::Error;
@@ -149,7 +149,7 @@ mod tests {
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_udp_reload() -> Result<(), UdpSourceError> {
         static SENDER: &str = "127.0.0.1:4000";
         static RECEIVER: &str = "127.0.0.1:5000";
@@ -162,7 +162,7 @@ mod tests {
                     .expect("could not send on socket");
             }
         });
-        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await?;
+        let mut udp_source = UdpSource::new(RECEIVER, vec![])?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
                 udp_source.load(None).await.unwrap();
@@ -178,7 +178,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_general_source_reload() {
         static SENDER: &str = "127.0.0.1:4001";
         static RECEIVER: &str = "127.0.0.1:5001";
@@ -194,7 +194,7 @@ mod tests {
                     .expect("could not send on socket");
             }
         });
-        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).unwrap();
 
         general_source_reload_test(&mut udp_source).await;
     }
@@ -205,19 +205,18 @@ mod tests {
     /// This test demonstrate that parsers which consume the bytes of one result at a
     /// time while miss parsing the whole bytes when the server isn't sending more data
     /// even that the buffer has bytes in it.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_source_buffer_overflow() {
+        // TODO: fix this test
         const SENDER: &str = "127.0.0.1:4002";
         const RECEIVER: &str = "127.0.0.1:5002";
 
         const SENT_LEN: usize = MAX_DATAGRAM_SIZE;
         const CONSUME_LEN: usize = MAX_DATAGRAM_SIZE / 2;
-
         let send_socket = UdpSocket::bind(SENDER)
             .await
             .map_err(UdpSourceError::Io)
             .unwrap();
-
         // Spawn server in background.
         tokio::spawn(async move {
             let msg = [b'a'; SENT_LEN];
@@ -233,9 +232,7 @@ mod tests {
                 total_sent += msg.len();
             }
         });
-
-        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
-
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).unwrap();
         while let Ok(Some(info)) = udp_source.load(None).await {
             if info.newly_loaded_bytes == 0 {
                 println!(

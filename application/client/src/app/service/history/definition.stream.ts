@@ -1,26 +1,27 @@
-import * as $ from '@platform/types/observe';
+import { ObserveOperation } from '@service/session/dependencies/stream';
+
 import * as obj from '@platform/env/obj';
 
 export interface IStreamDesc {
-    source: $.Origin.Stream.Stream.Source;
+    source: string;
     major: string;
     minor: string;
 }
 
 export class StreamDesc implements IStreamDesc {
-    static async fromDataSource(source: $.Observe): Promise<IStreamDesc | undefined> {
-        const stream = source.origin.as<$.Origin.Stream.Configuration>(
-            $.Origin.Stream.Configuration,
-        );
-        if (stream === undefined) {
-            return undefined;
+    static fromDataSource(operation: ObserveOperation): Promise<IStreamDesc | undefined> {
+        if (!operation.getOrigin().isStream()) {
+            return Promise.resolve(undefined);
         }
-        const def = stream.desc();
-        return {
-            major: def.major,
-            minor: def.minor,
-            source: stream.instance.instance.alias(),
-        };
+        const descriptor = operation.getDescriptor();
+        if (!descriptor) {
+            return Promise.resolve(undefined);
+        }
+        return Promise.resolve({
+            major: descriptor.parser.name,
+            minor: descriptor.s_desc ? descriptor.s_desc : descriptor.source.name,
+            source: descriptor.source.name,
+        });
     }
 
     static fromMinifiedStr(
@@ -29,20 +30,20 @@ export class StreamDesc implements IStreamDesc {
         return src === undefined
             ? undefined
             : new StreamDesc({
-                  source: obj.getAsNotEmptyString(src, 's') as $.Origin.Stream.Stream.Source,
+                  source: obj.getAsNotEmptyString(src, 's'),
                   major: obj.getAsString(src, 'ma'),
                   minor: obj.getAsString(src, 'mi'),
               });
     }
 
-    public source: $.Origin.Stream.Stream.Source;
-    public major: string;
-    public minor: string;
+    public readonly source: string;
+    public readonly major: string;
+    public readonly minor: string;
 
-    constructor(definition: IStreamDesc) {
-        this.source = definition.source;
-        this.major = definition.major;
-        this.minor = definition.minor;
+    constructor(desc: IStreamDesc) {
+        this.source = desc.source;
+        this.major = desc.major;
+        this.minor = desc.minor;
     }
 
     public isSame(stream: StreamDesc): boolean {

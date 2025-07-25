@@ -1,8 +1,8 @@
 mod descriptor;
 pub use descriptor::*;
 
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use regex::{Captures, Regex};
 use shellexpand::tilde;
 use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
@@ -121,7 +121,7 @@ impl ProcessSource {
         cwd: PathBuf,
         envs: HashMap<String, String>,
     ) -> Result<Self, ProcessError> {
-        let mut args = ProcessSource::parse_command(&command)?;
+        let mut args = ProcessSource::parse_command(command)?;
         let cmd = if args.is_empty() {
             return Err(ProcessError::Setup(format!(
                 "Not command has been found in \"{command}\""
@@ -244,7 +244,7 @@ mod tests {
             command = "ls -lsa";
         }
         let envs = HashMap::new();
-        match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
+        match ProcessSource::new(command, env::current_dir().unwrap(), envs) {
             Ok(mut process_source) => {
                 while process_source
                     .load(None)
@@ -293,9 +293,7 @@ mod tests {
         }
         let envs = HashMap::new();
         let mut process_source =
-            ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs)
-                .await
-                .unwrap();
+            ProcessSource::new(command, env::current_dir().unwrap(), envs).unwrap();
 
         general_source_reload_test(&mut process_source).await;
     }

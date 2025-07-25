@@ -1,6 +1,6 @@
+use crate::*;
 use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
-use definitions::*;
 use futures::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},

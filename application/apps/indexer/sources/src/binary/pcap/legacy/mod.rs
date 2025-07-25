@@ -1,11 +1,11 @@
 mod descriptor;
 
 use crate::binary::pcap::debug_block;
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use etherparse::{SlicedPacket, TransportSlice};
 use log::{debug, error, trace};
-use pcap_parser::{traits::PcapReaderIterator, LegacyPcapReader, PcapBlockOwned, PcapError};
+use pcap_parser::{LegacyPcapReader, PcapBlockOwned, PcapError, traits::PcapReaderIterator};
 use std::{fs::File, io::Read, path::Path};
 
 pub use descriptor::*;

@@ -5,11 +5,11 @@ import { Provider as ProviderFiles } from './provider.files';
 import { Provider as ProviderRecent } from './provider.recent';
 import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-import { Observe } from '@platform/types/observe';
 
 import * as wasm from '@loader/wasm';
 
 import { IMenuItem } from '@ui/service/contextmenu';
+import { SessionOrigin } from '@service/session/origin';
 
 const PROVIDERS = [ProviderRecent, ProviderFiles];
 
@@ -20,9 +20,9 @@ export class Providers {
         protected readonly ilc: IlcInterface & ChangesDetector,
         protected readonly matcher: wasm.Matcher,
         protected readonly entries: Entries,
-        observe: Observe | undefined,
+        origin: SessionOrigin | undefined,
     ) {
-        this.providers = PROVIDERS.map((Ref, i) => new Ref(ilc, i, observe));
+        this.providers = PROVIDERS.map((Ref, i) => new Ref(ilc, i, origin));
         this.providers.forEach((provider: Provider<TEntity>, i: number) => {
             ilc.env().subscriber.register(
                 provider.reload.subscribe(() => {

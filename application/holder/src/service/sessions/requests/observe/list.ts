@@ -20,7 +20,7 @@ export const handler = Requests.InjectLogger<
             resolve(
                 new Requests.Observe.List.Response({
                     session: stored.session.getUUID(),
-                    sources: stored.observe().list(),
+                    operations: stored.observe().list(),
                 }),
             );
         });

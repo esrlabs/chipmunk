@@ -50,6 +50,11 @@ export interface IAttachmentsUpdatedUpdated {
     attachment: AttachmentInfo;
 }
 
+export interface SessionDescriptorEvent {
+    uuid: string;
+    desc: SessionDescriptor;
+}
+
 export interface ISessionEvents {
     StreamUpdated: Subject<number>;
     FileRead: Subject<void>;
@@ -64,13 +69,11 @@ export interface ISessionEvents {
     SessionError: Subject<IError>;
     OperationError: Subject<IErrorEvent>;
     SessionDestroyed: Subject<void>;
-    SessionDescriptor: Subject<SessionDescriptor>;
+    SessionDescriptor: Subject<SessionDescriptorEvent>;
     OperationStarted: Subject<string>;
     OperationProcessing: Subject<string>;
     OperationDone: Subject<IOperationDoneEvent>;
 }
-
-export interface ISessionEventsConvertors {}
 
 interface ISessionEventsSignatures {
     StreamUpdated: 'StreamUpdated';
@@ -112,85 +115,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     OperationDone: 'OperationDone',
 };
 
-interface ISessionEventsInterfaces {
-    StreamUpdated: { self: 'number' };
-    FileRead: { self: null };
-    SearchUpdated: { self: 'object'; found: 'number'; stat: typeof Map };
-    SearchValuesUpdated: { self: ['object', null] };
-    SearchMapUpdated: { self: [typeof Array, null] };
-    MapUpdated: { self: 'object'; map: typeof Array };
-    IndexedMapUpdated: { self: 'object'; len: 'number' };
-    MatchesUpdated: { self: 'object'; matches: typeof Array };
-    Progress: {
-        self: 'object';
-        uuid: 'string';
-        progress: [
-            { self: 'object'; total: 'number'; count: 'number' },
-            { self: 'object'; type: 'string' },
-        ];
-    };
-    AttachmentsUpdated: { self: 'object'; len: 'number'; attachment: typeof Object };
-    SessionError: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
-    OperationError: {
-        self: 'object';
-        uuid: 'string';
-        error: { self: 'object'; severity: 'string'; message: 'string'; kind: 'string' };
-    };
-    SessionDestroyed: { self: null };
-    OperationStarted: { self: 'string' };
-    SessionDescriptor: {
-        self: 'object';
-        parser: 'object';
-        source: 'object';
-        s_desc: ['string', null, undefined];
-        p_desc: ['string', null, undefined];
-    };
-    OperationProcessing: { self: 'string' };
-    OperationDone: { self: 'object'; uuid: 'string'; result: 'any' };
-}
-
-const SessionEventsInterfaces: ISessionEventsInterfaces = {
-    StreamUpdated: { self: 'number' },
-    FileRead: { self: null },
-    SearchUpdated: { self: 'object', found: 'number', stat: Map },
-    SearchValuesUpdated: { self: ['object', null] },
-    SearchMapUpdated: { self: [Array, null] },
-    MapUpdated: { self: 'object', map: Array },
-    IndexedMapUpdated: { self: 'object', len: 'number' },
-    MatchesUpdated: { self: 'object', matches: Array },
-    Progress: {
-        self: 'object',
-        uuid: 'string',
-        progress: [
-            { self: 'object', total: 'number', count: 'number' },
-            { self: 'object', type: 'string' },
-        ],
-    },
-    AttachmentsUpdated: { self: 'object', len: 'number', attachment: Object },
-    SessionError: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
-    OperationError: {
-        self: 'object',
-        uuid: 'string',
-        error: { self: 'object', severity: 'string', message: 'string', kind: 'string' },
-    },
-    SessionDestroyed: { self: null },
-    OperationStarted: { self: 'string' },
-    SessionDescriptor: {
-        self: 'object',
-        parser: 'object',
-        source: 'object',
-        s_desc: ['string', null, undefined],
-        p_desc: ['string', null, undefined],
-    },
-    OperationProcessing: { self: 'string' },
-    OperationDone: { self: 'object', uuid: 'string', result: 'any' },
-};
-
-export class EventProvider extends Computation<
-    ISessionEvents,
-    ISessionEventsSignatures,
-    ISessionEventsInterfaces
-> {
+export class EventProvider extends Computation<ISessionEvents, ISessionEventsSignatures> {
     private readonly _events: ISessionEvents = {
         StreamUpdated: new Subject<number>(),
         FileRead: new Subject<void>(),
@@ -207,11 +132,9 @@ export class EventProvider extends Computation<
         SessionDestroyed: new Subject<void>(),
         OperationStarted: new Subject<string>(),
         OperationProcessing: new Subject<string>(),
-        SessionDescriptor: new Subject<SessionDescriptor>(),
+        SessionDescriptor: new Subject<SessionDescriptorEvent>(),
         OperationDone: new Subject<IOperationDoneEvent>(),
     };
-
-    private readonly _convertors: ISessionEventsConvertors = {};
 
     constructor(uuid: string) {
         super(uuid, protocol.decodeCallbackEvent);
@@ -227,18 +150,5 @@ export class EventProvider extends Computation<
 
     public getEventsSignatures(): ISessionEventsSignatures {
         return SessionEventsSignatures;
-    }
-
-    public getEventsInterfaces(): ISessionEventsInterfaces {
-        return SessionEventsInterfaces;
-    }
-
-    public getConvertor<T, O>(event: keyof ISessionEventsSignatures, data: T): T | O | Error {
-        const convertors = this._convertors as unknown as { [key: string]: (data: T) => T | O };
-        if (typeof convertors[event] !== 'function') {
-            return data;
-        } else {
-            return convertors[event](data);
-        }
     }
 }

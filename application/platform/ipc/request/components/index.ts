@@ -5,3 +5,4 @@ export * as GetIdent from './get_ident';
 export * as GetOutputRender from './get_output_render';
 export * as Abort from './abort';
 export * as Validate from './validate';
+export * as IsSdeSupported from './is_sde_supported';

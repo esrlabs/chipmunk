@@ -1,5 +1,6 @@
 use super::*;
-use components::{ComponentDescriptor, ComponentFactory};
+use crate::*;
+use ::descriptor::{CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor};
 use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
@@ -10,20 +11,17 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Parser> for Descriptor {
-    fn create(
-        &self,
-        origin: &SessionAction,
-        _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, stypes::NativeError> {
-        Ok(Some((
-            crate::Parser::DltRaw(DltRawParser::new(!matches!(origin, SessionAction::Source))),
-            Some("DLT".to_string()),
-        )))
-    }
+pub fn factory(
+    origin: &SessionAction,
+    _options: &[stypes::Field],
+) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError> {
+    Ok(Some((
+        Parsers::DltRaw(DltRawParser::new(!matches!(origin, SessionAction::Source))),
+        Some("DLT".to_string()),
+    )))
 }
 
-impl ComponentDescriptor for Descriptor {
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(..) | SessionAction::Files(..) | SessionAction::Source => {
@@ -33,11 +31,11 @@ impl ComponentDescriptor for Descriptor {
         };
         files.iter().any(|fp| {
             fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "dlt")
+                .map(|ext| ext.eq_ignore_ascii_case("dlt"))
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, _origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, _origin: &SessionAction) -> FieldsResult {
         Ok(Vec::new())
     }
     fn ident(&self) -> stypes::Ident {
@@ -55,10 +53,13 @@ impl ComponentDescriptor for Descriptor {
         &self,
         _origin: SessionAction,
         _cancel: CancellationToken,
-    ) -> components::LazyFieldsTask {
+    ) -> LazyFieldsTask {
         Box::pin(async move { Ok(Vec::new()) })
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Parser
+}
+
+impl ParserDescriptor for Descriptor {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        None
     }
 }

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use session::session::Session;
 use std::path::{Path, PathBuf};
+use stypes::SessionSetup;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,28 +90,11 @@ fn session_dir_form_file(session_file: &Path) -> PathBuf {
 /// and returning the path of the main session file.
 /// # Note:
 /// This function it made for test purposes with snapshots.
-pub async fn run_observe_session<P: Into<PathBuf>>(
-    input: P,
-    file_format: stypes::FileFormat,
-    parser_type: stypes::ParserType,
-) -> PathBuf {
-    let input: PathBuf = input.into();
-
-    assert!(
-        input.exists(),
-        "Input file doesn't exist. Path {}",
-        input.display()
-    );
-
+pub async fn run_observe_session(setup: SessionSetup) -> PathBuf {
     let uuid = Uuid::new_v4();
     let (session, mut receiver) = Session::new(uuid).await.expect("Session should be created");
 
-    session
-        .observe(
-            uuid,
-            stypes::ObserveOptions::file(input.clone(), file_format, parser_type),
-        )
-        .unwrap();
+    session.observe(uuid, setup).unwrap();
 
     while let Some(feedback) = receiver.recv().await {
         match feedback {

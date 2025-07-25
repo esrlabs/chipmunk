@@ -16,7 +16,7 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, CloseHandler } from './state';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { InputFilter } from '@elements/filter/component';
-import { Observe } from '@platform/types/observe';
+import { SessionOrigin } from '@service/session/origin';
 
 @Component({
     selector: 'app-navigator',
@@ -35,7 +35,7 @@ export class Navigator
     @ViewChild('filter') public filterInputRef!: InputFilter;
 
     @Input() close: CloseHandler | undefined;
-    @Input() public observe?: Observe;
+    @Input() public origin: SessionOrigin | undefined;
 
     public state!: State;
 
@@ -56,7 +56,7 @@ export class Navigator
                     ? this.filterInputRef.getInputElementRef()
                     : undefined;
             },
-            this.observe,
+            this.origin,
         );
         this.close !== undefined && this.state.bind(this.close);
     }

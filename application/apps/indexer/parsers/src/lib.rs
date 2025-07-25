@@ -1,13 +1,14 @@
 // #![deny(unused_crate_dependencies)]
 
-use components::Components;
-use definitions::ParseReturnIterator;
+pub mod api;
 pub mod dlt;
 pub mod prelude;
 pub mod someip;
 pub mod text;
 
-pub enum Parser {
+pub use api::*;
+
+pub enum Parsers {
     DltRaw(dlt::raw::DltRawParser),
     Dlt(dlt::DltParser),
     SomeIp(someip::SomeipParser),
@@ -15,7 +16,7 @@ pub enum Parser {
     // NOTE: We can't reference plugins parser directly because of circular
     // references between parsers and plugins_host library.
     // TODO AAZ: This is a workaround until we find a proper solution.
-    Plugin(Box<dyn definitions::Parser + Send>),
+    Plugin(Box<dyn Parser + Send>),
 }
 
 /**
@@ -24,7 +25,7 @@ pub enum Parser {
  * Into MessageProducer we should put exact instances of parsers instead enum-wrapper
  */
 
-impl definitions::Parser for Parser {
+impl Parser for Parsers {
     fn parse<'a>(&'a mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         match self {
             Self::Dlt(inst) => inst.parse(input, timestamp),
@@ -38,10 +39,3 @@ impl definitions::Parser for Parser {
 
 // TODO: this registration function will fail if some of parser would not be registred. That's wrong.
 // If some of parsers are failed, another parsers should still be registred as well
-pub fn registration<S>(components: &mut Components<S, Parser>) -> Result<(), stypes::NativeError> {
-    components.add_parser(dlt::descriptor::Descriptor::default())?;
-    components.add_parser(dlt::raw::descriptor::Descriptor::default())?;
-    components.add_parser(someip::descriptor::Descriptor::default())?;
-    components.add_parser(text::descriptor::Descriptor::default())?;
-    Ok(())
-}

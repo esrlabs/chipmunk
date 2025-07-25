@@ -1,15 +1,13 @@
 use crate::{
-    operations,
-    operations::Operation,
-    state,
-    state::{IndexesMode, SessionStateAPI},
-    tracker,
-    tracker::OperationTrackerAPI,
+    operations::{self, Operation},
+    register::{parsers_registration, sources_registration},
+    state::{self, IndexesMode, SessionStateAPI},
+    tracker::{self, OperationTrackerAPI},
 };
-use components::Components;
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
+use register::Register;
 use std::{ops::RangeInclusive, path::PathBuf, sync::Arc};
 use tokio::{
     join,
@@ -32,7 +30,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
-    components: Arc<Components<sources::Source, parsers::Parser>>,
+    pub register: Arc<Register>,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -56,20 +54,18 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
-        let mut components: Components<sources::Source, parsers::Parser> = Components::new();
+        let mut register: Register = Register::new();
         // Registre parsers
-        parsers::registration(&mut components)
-            .map_err(|err| stypes::ComputationError::NativeError(err))?;
+        parsers_registration(&mut register).map_err(stypes::ComputationError::NativeError)?;
         // Registre sources
-        sources::registration(&mut components)
-            .map_err(|err| stypes::ComputationError::NativeError(err))?;
+        sources_registration(&mut register).map_err(stypes::ComputationError::NativeError)?;
         // Create a session
         let session = Self {
             uuid,
             tx_operations: tx_operations.clone(),
             destroyed: CancellationToken::new(),
             destroying: CancellationToken::new(),
-            components: Arc::new(components),
+            register: Arc::new(register),
             state: state_api.clone(),
             tracker: tracker_api.clone(),
         };
@@ -392,7 +388,7 @@ impl Session {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::Observe(options, self.components.clone()),
+                operations::OperationKind::Observe(options, self.register.clone()),
             ))
             .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
@@ -448,9 +444,9 @@ impl Session {
 
     pub fn export_raw(
         &self,
-        operation_id: Uuid,
-        out_path: PathBuf,
-        ranges: Vec<RangeInclusive<u64>>,
+        _operation_id: Uuid,
+        _out_path: PathBuf,
+        _ranges: Vec<RangeInclusive<u64>>,
     ) -> Result<(), stypes::ComputationError> {
         // We should not ask client for stypes::SessionSetup and we should take it from state
         todo!("Not implemented")

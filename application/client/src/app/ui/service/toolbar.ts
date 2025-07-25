@@ -10,7 +10,6 @@ import { Tabs } from './toolbar/tabs';
 
 @SetupService(ui['toolbar'])
 export class Service extends Implementation {
-    private _emitter!: Emitter;
     private _channel!: Channel;
     private _services!: Services;
     private _available!: Tabs;
@@ -18,10 +17,8 @@ export class Service extends Implementation {
     private _sessions: Map<string, TabsService> = new Map();
 
     public override ready(): Promise<void> {
-        this._emitter = ilc.emitter(this.getName(), this.log());
         this._channel = ilc.channel(this.getName(), this.log());
         this._services = ilc.services(this.getName(), this.log());
-        this._channel.ux.hotkey(this._onHotKey.bind(this));
         this._channel.session.change(this._onSessionChange.bind(this));
         this._channel.session.closed(this._onSessionClosed.bind(this));
         this._channel.ui.toolbar.view(this._onViewChange.bind(this));
@@ -135,19 +132,6 @@ export class Service extends Implementation {
         return this._available.all().filter((tab: ITab) => {
             return tab.uuid === undefined ? false : !service.has(tab.uuid);
         });
-    }
-
-    private _onHotKey(event: Declarations.HotkeyEvent) {
-        console.log(`Not implemented: ${event}`);
-        // if (this._active === undefined) {
-        //     return;
-        // }
-        // const service: TabsService | undefined = this._sessions.get(this._active);
-        // if (service === undefined) {
-        //     return;
-        // }
-        // LayoutStateService.toolbarMax();
-        // service.setActive(UUIDs.search);
     }
 
     private _onSessionClosed(session: string) {

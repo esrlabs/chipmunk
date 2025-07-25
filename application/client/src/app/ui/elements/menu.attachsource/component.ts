@@ -10,7 +10,6 @@ import { Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
-import * as Factory from '@platform/types/observe/factory';
 import { SessionOrigin } from '@service/session/origin';
 
 @Component({
@@ -83,11 +82,15 @@ export class AttachSourceMenu extends ChangesDetector {
     } {
         return {
             disabled: (): boolean => {
-                return this.session.observed.getNewSourceError() instanceof Error;
+                // return this.session.observed.getNewSourceError() instanceof Error;
+                console.error(`Not implemented`);
+                return true;
             },
             error: (): string | undefined => {
-                const error = this.session.observed.getNewSourceError();
-                return error instanceof Error ? error.message : undefined;
+                // const error = this.session.observed.getNewSourceError();
+                // return error instanceof Error ? error.message : undefined;
+                console.error(`Not implemented`);
+                return undefined;
             },
         };
     }

@@ -1,10 +1,20 @@
 ---
 source: session/tests/snapshot_tests/mod.rs
+assertion_line: 90
 description: Snapshot for SomeIP file with Pcapng byte source.
 info:
-  fibex_file_paths:
-    - "../../../developing/resources/someip.xml"
-snapshot_kind: text
+  origin:
+    File: "../../../developing/resources/someip.pcapng"
+  parser:
+    fields:
+      - id: SOMEIP_PARSER_FIELD_FIBEX_FILES
+        value:
+          Files:
+            - "../../../developing/resources/someip.xml"
+    uuid: 02020202-0202-0202-0202-020202020202
+  source:
+    fields: []
+    uuid: 09090909-0909-0909-0909-090909090909
 ---
 session_file:
   - "SD\u000465535\u000433024\u000460\u00040\u00040\u00041\u00042\u00040\u0004Flags [C0], Offer 123 v1.0 Inst 1 Ttl 3 UDP 192.168.178.58:30000 TCP 192.168.178.58:30000"

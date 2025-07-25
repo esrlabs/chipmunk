@@ -1,5 +1,7 @@
 use crate::dlt::*;
-use components::{ComponentDescriptor, ComponentFactory, StaticFieldResult};
+use ::descriptor::{
+    CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor, StaticFieldResult,
+};
 use dlt_core::{
     read::DltMessageReader,
     statistics::{
@@ -11,8 +13,8 @@ use std::fmt;
 use std::fs::File;
 use std::{collections::HashMap, path::PathBuf};
 use stypes::{
-    ExtractByKey, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction, Severity,
-    StaticFieldDesc, ValueInput, missed_field_err as missed,
+    ComponentOptions, ExtractByKey, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, Value, ValueInput, missed_field_err as missed,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -48,92 +50,60 @@ impl fmt::Display for StatFields {
     }
 }
 
-impl ComponentFactory<crate::Parser> for Descriptor {
-    fn create(
-        &self,
-        origin: &SessionAction,
-        options: &[Field],
-    ) -> Result<Option<(crate::Parser, Option<String>)>, NativeError> {
-        let errors = self.validate(origin, options)?;
-        if !errors.is_empty() {
-            return Err(NativeError {
-                kind: NativeErrorKind::Configuration,
-                severity: Severity::ERROR,
-                message: Some(
-                    errors
-                        .values()
-                        .map(String::as_str)
-                        .collect::<Vec<_>>()
-                        .join("; "),
-                ),
-            });
-        }
-        let fibex_file_paths: &Vec<PathBuf> = options
-            .extract_by_key(FIELD_FIBEX_FILES)
-            .ok_or(missed(FIELD_FIBEX_FILES))?
-            .value;
-        let dlt_metadata = dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
-            fibex_file_paths: fibex_file_paths
-                .iter()
-                .map(|p| p.to_string_lossy().to_string())
-                .collect(),
-        });
-        let someip_metadata = FibexSomeipMetadata::from_fibex_files(fibex_file_paths);
-        let min_log_level = u8_to_log_level(
-            options
-                .extract_by_key(FIELD_LOG_LEVEL)
-                .ok_or(missed(FIELD_LOG_LEVEL))?
-                .value,
-        )
-        .ok_or(missed(FIELD_LOG_LEVEL))?;
-        let stats: &HashMap<String, Vec<String>> = options
-            .extract_by_key(FIELD_STATISTICS)
-            .ok_or(missed(FIELD_STATISTICS))?
-            .value;
-        let filter_config: ProcessedDltFilterConfig = ProcessedDltFilterConfig {
-            min_log_level: Some(min_log_level),
-            app_ids: stats
-                .get(&StatFields::AppIds.to_string())
-                .map(|fields| fields.iter().cloned().collect()),
-            ecu_ids: stats
-                .get(&StatFields::EcuIds.to_string())
-                .map(|fields| fields.iter().cloned().collect()),
-            context_ids: stats
-                .get(&StatFields::ContextIds.to_string())
-                .map(|fields| fields.iter().cloned().collect()),
-            app_id_count: 0,
-            context_id_count: 0,
-        };
-        Ok(Some((
-            crate::Parser::Dlt(DltParser::new(
-                Some(filter_config),
-                dlt_metadata,
-                None,
-                someip_metadata,
-                // If it's source - no storage header expected
-                !matches!(origin, SessionAction::Source),
-            )),
-            Some("DLT".to_owned()),
-        )))
-    }
+pub fn factory(
+    origin: &SessionAction,
+    options: &[Field],
+) -> Result<Option<(crate::Parsers, Option<String>)>, NativeError> {
+    let fibex_file_paths: &Vec<PathBuf> = options
+        .extract_by_key(FIELD_FIBEX_FILES)
+        .ok_or(missed(FIELD_FIBEX_FILES))?
+        .value;
+    let dlt_metadata = dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
+        fibex_file_paths: fibex_file_paths
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect(),
+    });
+    let someip_metadata = FibexSomeipMetadata::from_fibex_files(fibex_file_paths);
+    let min_log_level = u8_to_log_level(
+        options
+            .extract_by_key(FIELD_LOG_LEVEL)
+            .ok_or(missed(FIELD_LOG_LEVEL))?
+            .value,
+    )
+    .ok_or(missed(FIELD_LOG_LEVEL))?;
+    let stats: &HashMap<String, Vec<String>> = options
+        .extract_by_key(FIELD_STATISTICS)
+        .ok_or(missed(FIELD_STATISTICS))?
+        .value;
+    let filter_config: ProcessedDltFilterConfig = ProcessedDltFilterConfig {
+        min_log_level: Some(min_log_level),
+        app_ids: stats
+            .get(&StatFields::AppIds.to_string())
+            .map(|fields| fields.iter().cloned().collect()),
+        ecu_ids: stats
+            .get(&StatFields::EcuIds.to_string())
+            .map(|fields| fields.iter().cloned().collect()),
+        context_ids: stats
+            .get(&StatFields::ContextIds.to_string())
+            .map(|fields| fields.iter().cloned().collect()),
+        app_id_count: 0,
+        context_id_count: 0,
+    };
+    Ok(Some((
+        crate::Parsers::Dlt(DltParser::new(
+            Some(filter_config),
+            dlt_metadata,
+            None,
+            someip_metadata,
+            // If it's source - no storage header expected
+            !matches!(origin, SessionAction::Source),
+        )),
+        Some("DLT".to_owned()),
+    )))
 }
 
-impl ComponentDescriptor for Descriptor {
-    fn get_render(&self) -> Option<stypes::OutputRender> {
-        Some(stypes::OutputRender::Columns(vec![
-            ("Datetime".to_owned(), 150),
-            ("ECUID".to_owned(), 80),
-            ("VERS".to_owned(), 80),
-            ("SID".to_owned(), 80),
-            ("MCNT".to_owned(), 80),
-            ("TMS".to_owned(), 80),
-            ("EID".to_owned(), 80),
-            ("APID".to_owned(), 80),
-            ("CTID".to_owned(), 80),
-            ("MSTP".to_owned(), 80),
-            ("PAYLOAD".to_owned(), 0),
-        ]))
-    }
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -145,11 +115,11 @@ impl ComponentDescriptor for Descriptor {
         };
         files.iter().any(|fp| {
             fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "dlt")
+                .map(|ext| ext.eq_ignore_ascii_case("dlt"))
                 .unwrap_or_default()
         })
     }
-    fn fields_getter(&self, origin: &SessionAction) -> components::FieldsResult {
+    fn fields_getter(&self, origin: &SessionAction) -> FieldsResult {
         let mut options = vec![
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_LOG_LEVEL.to_owned(),
@@ -213,7 +183,7 @@ impl ComponentDescriptor for Descriptor {
         &self,
         origin: SessionAction,
         cancel: CancellationToken,
-    ) -> components::LazyFieldsTask {
+    ) -> LazyFieldsTask {
         Box::pin(async move {
             let file_paths = match origin {
                 SessionAction::File(fp) => {
@@ -292,7 +262,7 @@ impl ComponentDescriptor for Descriptor {
                     StatFields::EcuIds => &stat.ecu_ids,
                 };
                 let mut entity: HashMap<String, HashMap<String, usize>> = HashMap::new();
-                inner.into_iter().for_each(|(id, levels)| {
+                inner.iter().for_each(|(id, levels)| {
                     let mut map: HashMap<String, usize> = HashMap::new();
                     map.insert(NON_LOG.to_owned(), levels.non_log);
                     map.insert(LOG_FATAL.to_owned(), levels.log_fatal);
@@ -331,11 +301,25 @@ impl ComponentDescriptor for Descriptor {
             })])
         })
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Parser
-    }
 }
 
+impl ParserDescriptor for Descriptor {
+    fn get_render(&self) -> Option<stypes::OutputRender> {
+        Some(stypes::OutputRender::Columns(vec![
+            ("Datetime".to_owned(), 150),
+            ("ECUID".to_owned(), 80),
+            ("VERS".to_owned(), 80),
+            ("SID".to_owned(), 80),
+            ("MCNT".to_owned(), 80),
+            ("TMS".to_owned(), 80),
+            ("EID".to_owned(), 80),
+            ("APID".to_owned(), 80),
+            ("CTID".to_owned(), 80),
+            ("MSTP".to_owned(), 80),
+            ("PAYLOAD".to_owned(), 0),
+        ]))
+    }
+}
 fn u8_to_log_level(level: u8) -> Option<dlt::LogLevel> {
     match level {
         1 => Some(dlt::LogLevel::Fatal),
@@ -345,5 +329,28 @@ fn u8_to_log_level(level: u8) -> Option<dlt::LogLevel> {
         5 => Some(dlt::LogLevel::Debug),
         6 => Some(dlt::LogLevel::Verbose),
         _ => None,
+    }
+}
+
+pub fn get_default_options(
+    fibex: Option<Vec<PathBuf>>,
+    filters: Option<HashMap<String, Vec<String>>>,
+) -> ComponentOptions {
+    ComponentOptions {
+        uuid: DLT_PARSER_UUID,
+        fields: vec![
+            Field {
+                id: FIELD_FIBEX_FILES.to_owned(),
+                value: Value::Files(fibex.unwrap_or_default()),
+            },
+            Field {
+                id: FIELD_LOG_LEVEL.to_owned(),
+                value: Value::Number(6),
+            },
+            Field {
+                id: FIELD_STATISTICS.to_owned(),
+                value: Value::KeyStrings(filters.unwrap_or_default()),
+            },
+        ],
     }
 }

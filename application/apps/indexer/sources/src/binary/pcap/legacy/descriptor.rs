@@ -1,7 +1,7 @@
-use components::{ComponentFactory, ComponentDescriptor};
+use descriptor::{SourceDescriptor, CommonDescriptor};
 use file_tools::is_binary;
-use stypes::{NativeError, NativeErrorKind, SessionAction, Severity};
-
+use stypes::{ComponentOptions, NativeError, NativeErrorKind, SessionAction, Severity};
+use crate::*;
 use super::PcapLegacyByteSourceFromFile;
 
 const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
@@ -11,12 +11,10 @@ const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-impl ComponentFactory<crate::Source> for Descriptor {
-    fn create(
-        &self,
+     pub fn factory(
         origin: &SessionAction,
         _options: &[stypes::Field],
-    ) -> Result<Option<(crate::Source, Option<String>)>, stypes::NativeError> {
+    ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
         let filepath = match origin {
             SessionAction::File(file) => file,
             SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(.. ) => {
@@ -27,11 +25,11 @@ impl ComponentFactory<crate::Source> for Descriptor {
                 })
             }
         };
-        Ok(Some((crate::Source::Pcap(PcapLegacyByteSourceFromFile::new(filepath)?), Some("Pcap".to_owned()))))
+        Ok(Some((Sources::Pcap(PcapLegacyByteSourceFromFile::new(filepath)?), Some("Pcap".to_owned()))))
     }
-}
 
-impl ComponentDescriptor for Descriptor {
+
+impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {
         let files = match origin {
             SessionAction::File(filepath) => {
@@ -44,7 +42,7 @@ impl ComponentDescriptor for Descriptor {
         };
         files.iter().any(|fp| {
             fp.extension()
-                .map(|ext| ext.to_ascii_lowercase() == "pcap")
+                .map(|ext| ext.eq_ignore_ascii_case("pcap"))
                 .unwrap_or_default()
         }) &&        
         // If at least some file doesn't exist or not binary - do not recommend this source
@@ -60,11 +58,17 @@ impl ComponentDescriptor for Descriptor {
             uuid: PCAP_SOURCE_UUID,
         }
     }
-    fn ty(&self) -> stypes::ComponentType {
-        stypes::ComponentType::Source
-    }
+
 }
 
+impl SourceDescriptor for Descriptor {}
+
+pub fn get_default_options() -> ComponentOptions {
+    ComponentOptions {
+        uuid: PCAP_SOURCE_UUID,
+        fields: Vec::new(),
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -75,7 +79,7 @@ mod tests {
         binary::pcap::legacy::PcapLegacyByteSource, tests::general_source_reload_test, ByteSource,
     };
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_read_one_message_from_pcap() {
         let _ = env_logger::try_init();
 
@@ -115,7 +119,7 @@ mod tests {
         assert_eq!(slice, udp_payload);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_general_source_reload() {
         // This is part of the file "chipmunk/application/developing/resources".
         // In this test we just need enough bytes to call reload twice on it, and we will not

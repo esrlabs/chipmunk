@@ -2,9 +2,7 @@ import { SetupService, Interface, Implementation, register } from '@platform/ent
 import { services } from '@register/services';
 import { api } from '@service/api';
 import { CancelablePromise } from '@platform/env/promise';
-import { FileType } from '@platform/types/observe/types/file';
-import { Protocol } from '@platform/types/observe/parser';
-import { Source } from '@platform/types/observe/origin/stream/index';
+import { FileType } from '@platform/types/files';
 
 import * as Requests from '@platform/ipc/request';
 import * as handlers from '@service/actions/index';
@@ -105,59 +103,60 @@ export class Service extends Implementation {
                     ): CancelablePromise<Requests.Actions.Stream.Response> => {
                         return new CancelablePromise((resolve, _reject) => {
                             (() => {
-                                switch (request.protocol) {
-                                    case Protocol.Text:
-                                        switch (request.source) {
-                                            case undefined:
-                                            case Source.Process:
-                                                return new handlers.StdoutText.Action().apply();
-                                            case Source.Serial:
-                                                return new handlers.SerialText.Action().apply();
-                                            default:
-                                                return Promise.reject(
-                                                    new Error(
-                                                        `Unsupported transport for Text: ${request.source}`,
-                                                    ),
-                                                );
-                                        }
-                                    case Protocol.Dlt:
-                                        switch (request.source) {
-                                            case undefined:
-                                            case Source.UDP:
-                                                return new handlers.UdpDlt.Action().apply();
-                                            case Source.TCP:
-                                                return new handlers.TcpDlt.Action().apply();
-                                            default:
-                                                return Promise.reject(
-                                                    new Error(
-                                                        `Unsupported transport for DLT: ${request.source}`,
-                                                    ),
-                                                );
-                                        }
-                                    case Protocol.Plugin: {
-                                        switch (request.source) {
-                                            case undefined:
-                                            case Source.Process:
-                                                return new handlers.StdoutPlugin.Action().apply();
-                                            case Source.Serial:
-                                                return new handlers.SerialParserPlugin.Action().apply();
-                                            case Source.UDP:
-                                                return new handlers.UdpParserPlugin.Action().apply();
-                                            case Source.TCP:
-                                                return new handlers.TcpParserPlugin.Action().apply();
-                                            default:
-                                                return Promise.reject(
-                                                    new Error(
-                                                        `Unsupported transport for Plugins: ${request.source}`,
-                                                    ),
-                                                );
-                                        }
-                                    }
-                                    default:
-                                        return Promise.reject(
-                                            new Error(`Unsupported format: ${request.protocol}`),
-                                        );
-                                }
+                                return Promise.reject(new Error(`Not implemented`));
+                                // switch (request.protocol) {
+                                //     case Protocol.Text:
+                                //         switch (request.source) {
+                                //             case undefined:
+                                //             case Source.Process:
+                                //                 return new handlers.StdoutText.Action().apply();
+                                //             case Source.Serial:
+                                //                 return new handlers.SerialText.Action().apply();
+                                //             default:
+                                //                 return Promise.reject(
+                                //                     new Error(
+                                //                         `Unsupported transport for Text: ${request.source}`,
+                                //                     ),
+                                //                 );
+                                //         }
+                                //     case Protocol.Dlt:
+                                //         switch (request.source) {
+                                //             case undefined:
+                                //             case Source.UDP:
+                                //                 return new handlers.UdpDlt.Action().apply();
+                                //             case Source.TCP:
+                                //                 return new handlers.TcpDlt.Action().apply();
+                                //             default:
+                                //                 return Promise.reject(
+                                //                     new Error(
+                                //                         `Unsupported transport for DLT: ${request.source}`,
+                                //                     ),
+                                //                 );
+                                //         }
+                                //     case Protocol.Plugin: {
+                                //         switch (request.source) {
+                                //             case undefined:
+                                //             case Source.Process:
+                                //                 return new handlers.StdoutPlugin.Action().apply();
+                                //             case Source.Serial:
+                                //                 return new handlers.SerialParserPlugin.Action().apply();
+                                //             case Source.UDP:
+                                //                 return new handlers.UdpParserPlugin.Action().apply();
+                                //             case Source.TCP:
+                                //                 return new handlers.TcpParserPlugin.Action().apply();
+                                //             default:
+                                //                 return Promise.reject(
+                                //                     new Error(
+                                //                         `Unsupported transport for Plugins: ${request.source}`,
+                                //                     ),
+                                //                 );
+                                //         }
+                                //     }
+                                //     default:
+                                //         return Promise.reject(
+                                //             new Error(`Unsupported format: ${request.protocol}`),
+                                //         );
+                                // }
                             })()
                                 .then(() =>
                                     resolve(

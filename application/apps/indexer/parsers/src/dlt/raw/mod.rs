@@ -1,7 +1,7 @@
 pub mod descriptor;
 
 use super::{MIN_MSG_LEN, map_dlt_err};
-use definitions::*;
+use crate::*;
 pub use descriptor::*;
 use dlt_core::parse::dlt_consume_msg;
 pub use dlt_core::{
@@ -29,8 +29,7 @@ impl DltRawParser {
         let (rest, consumed) = dlt_consume_msg(input).map_err(map_dlt_err)?;
         let msg = consumed.map(|c| &input[0..c as usize]);
         let total_consumed = input.len() - rest.len();
-        let item = (total_consumed, msg.map(|m| m.into()));
-        Ok(item)
+        Ok((total_consumed, msg))
     }
 }
 

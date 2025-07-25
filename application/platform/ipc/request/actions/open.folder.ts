@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { FileType } from '../../../types/observe/types/file';
+import { FileType } from '../../../types/files';
 
 import * as validator from '../../../env/obj';
 

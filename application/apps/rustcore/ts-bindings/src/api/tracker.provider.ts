@@ -36,37 +36,7 @@ const SessionEventsSignatures: ISessionEventsSignatures = {
     Ticks: 'Ticks',
 };
 
-interface ISessionEventsInterfaces {
-    Started: { self: 'object'; uuid: 'string'; alias: 'string' };
-    Stopped: { self: 'string' };
-    Ticks: {
-        self: 'object';
-        uuid: 'string';
-        progress: [
-            { self: 'object'; total: 'number'; count: 'number' },
-            { self: 'object'; type: 'string' },
-        ];
-    };
-}
-
-const SessionEventsInterfaces: ISessionEventsInterfaces = {
-    Started: { self: 'object', uuid: 'string', alias: 'string' },
-    Stopped: { self: 'string' },
-    Ticks: {
-        self: 'object',
-        uuid: 'string',
-        progress: [
-            { self: 'object', total: 'number', count: 'number' },
-            { self: 'object', type: 'string' },
-        ],
-    },
-};
-
-export class EventProvider extends Computation<
-    ISessionEvents,
-    ISessionEventsSignatures,
-    ISessionEventsInterfaces
-> {
+export class EventProvider extends Computation<ISessionEvents, ISessionEventsSignatures> {
     private readonly _events: ISessionEvents = {
         Started: new Subject<Job>(),
         Stopped: new Subject<string>(),
@@ -89,18 +59,5 @@ export class EventProvider extends Computation<
 
     public getEventsSignatures(): ISessionEventsSignatures {
         return SessionEventsSignatures;
-    }
-
-    public getEventsInterfaces(): ISessionEventsInterfaces {
-        return SessionEventsInterfaces;
-    }
-
-    public getConvertor<T, O>(event: keyof ISessionEventsSignatures, data: T): T | O | Error {
-        const convertors = this._convertors as unknown as { [key: string]: (data: T) => T | O };
-        if (typeof convertors[event] !== 'function') {
-            return data;
-        } else {
-            return convertors[event](data);
-        }
     }
 }

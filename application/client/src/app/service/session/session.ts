@@ -14,10 +14,8 @@ import { Bookmarks } from './dependencies/bookmarks';
 import { Comments } from './dependencies/comments';
 import { Exporter } from './dependencies/exporter';
 import { IRange, fromIndexes } from '@platform/types/range';
-import { Providers } from './dependencies/observing/providers';
 import { Attachments } from './dependencies/attachments';
 import { Info } from './dependencies/info';
-import { session } from '@service/session';
 import { Highlights } from './dependencies/search/highlights';
 import { TeamWork } from './dependencies/teamwork';
 import { Cli } from './dependencies/cli';
@@ -27,13 +25,10 @@ import { DisabledRequest } from './dependencies/search/disabled/request';
 import { StoredEntity } from './dependencies/search/store';
 import { Notification, notifications } from '@ui/service/notifications';
 import { error } from '@platform/log/utils';
+import { SessionDescriptor } from '@platform/types/bindings';
 
 import * as ids from '@schema/ids';
 import * as Requests from '@platform/ipc/request';
-import * as Origins from '@platform/types/observe/origin/index';
-import * as Factory from '@platform/types/observe/factory';
-import * as Parsers from '@platform/types/observe/parser/index';
-import * as Types from '@platform/types/observe/types/index';
 
 export { Stream };
 
@@ -56,7 +51,6 @@ export class Session extends Base {
     public readonly highlights: Highlights = new Highlights();
     public readonly exporter: Exporter = new Exporter();
     public readonly render: Render<unknown>;
-    public readonly observed: Providers = new Providers();
     public readonly attachments: Attachments = new Attachments();
     public readonly info: Info = new Info();
     public readonly teamwork: TeamWork = new TeamWork();
@@ -64,6 +58,7 @@ export class Session extends Base {
 
     private _uuid!: string;
     private _tab!: ITabAPI;
+    private _descriptor: SessionDescriptor | undefined;
     private readonly _toolbar: TabsService = new TabsService();
     private readonly _sidebar: TabsService = new TabsService({
         options: new TabsOptions({ direction: ETabsListDirection.left }),
@@ -208,13 +203,23 @@ export class Session extends Base {
                     this.comments.init(this);
                     this.search.init(this);
                     this.exporter.init(this._uuid, this.stream, this.indexed);
-                    this.observed.init(this);
                     this.attachments.init(this._uuid);
                     this.charts.init(this._uuid, this.stream, this.search);
                     this.highlights.init(this);
                     this.teamwork.init(this);
                     this.cli.init(this);
                     this.inited = true;
+                    this.register(
+                        this.stream.subjects
+                            .get()
+                            .descriptor.subscribe((descriptor: SessionDescriptor) => {
+                                if (this._descriptor) {
+                                    return;
+                                }
+                                this._descriptor = descriptor;
+                                this.title().check();
+                            }),
+                    );
                     resolve(this._uuid);
                 })
                 .catch(reject);
@@ -231,7 +236,6 @@ export class Session extends Base {
         this.comments.destroy();
         this.cursor.destroy();
         this.exporter.destroy();
-        this.observed.destroy();
         this.attachments.destroy();
         this.charts.destroy();
         this.info.destroy();
@@ -261,6 +265,7 @@ export class Session extends Base {
 
     public bind(tab: ITabAPI) {
         this._tab = tab;
+        this.title().check();
     }
 
     public uuid(): string {
@@ -352,6 +357,7 @@ export class Session extends Base {
     public title(): {
         set(title: string): Error | undefined;
         get(): Error | string;
+        check(): void;
     } {
         return {
             set: (title: string): Error | undefined => {
@@ -359,6 +365,25 @@ export class Session extends Base {
             },
             get: (): Error | string => {
                 return this._tab.getTitle();
+            },
+            check: () => {
+                if (!this._tab) {
+                    return;
+                }
+                if (!this._descriptor) {
+                    return;
+                }
+                this._tab.setTitle(
+                    `${
+                        this._descriptor.s_desc
+                            ? this._descriptor.s_desc
+                            : this._descriptor.source.name
+                    } (${
+                        this._descriptor.p_desc
+                            ? this._descriptor.p_desc
+                            : this._descriptor.parser.name
+                    })`,
+                );
             },
         };
     }
@@ -457,48 +482,48 @@ export class Session extends Base {
         if (filepath === undefined) {
             return;
         }
-        const sources = this.stream.observe().sources();
+        const sources = this.stream.observe().operations();
         if (sources.length === 0) {
             throw new Error(`Fail to find bound source`);
         }
-        const current = sources[0].observe.clone();
-        const parentSearchStore = this.search.store();
-        const observe = (() => {
-            const file = current.origin.as<Origins.File.Configuration>(Origins.File.Configuration);
-            const concat = current.origin.as<Origins.Concat.Configuration>(
-                Origins.Concat.Configuration,
-            );
-            if (file !== undefined) {
-                file.set().filename(filepath);
-                return current;
-            } else if (concat !== undefined) {
-                if (concat.filetypes().length === 0) {
-                    throw new Error(`Cannot find type of concated files`);
-                }
-                return new Factory.File().type(concat.filetypes()[0]).file(filepath).asDlt().get();
-            } else {
-                const observe = new Factory.File()
-                    .type(
-                        (() => {
-                            switch (current.parser.alias()) {
-                                case Parsers.Protocol.Text:
-                                case Parsers.Protocol.Plugin:
-                                    return Types.File.FileType.Text;
-                                case Parsers.Protocol.Dlt:
-                                case Parsers.Protocol.SomeIp:
-                                    throw new Error(
-                                        `Exporting from none-text streams to create new session aren't supported yet`,
-                                    );
-                            }
-                        })(),
-                    )
-                    .file(filepath)
-                    .asText()
-                    .get();
-                observe.parser.overwrite(current.parser.configuration);
-                return observe;
-            }
-        })();
+        // const current = sources[0].observe.clone();
+        // const parentSearchStore = this.search.store();
+        // const observe = (() => {
+        //     const file = current.origin.as<Origins.File.Configuration>(Origins.File.Configuration);
+        //     const concat = current.origin.as<Origins.Concat.Configuration>(
+        //         Origins.Concat.Configuration,
+        //     );
+        //     if (file !== undefined) {
+        //         file.set().filename(filepath);
+        //         return current;
+        //     } else if (concat !== undefined) {
+        //         if (concat.filetypes().length === 0) {
+        //             throw new Error(`Cannot find type of concated files`);
+        //         }
+        //         return new Factory.File().type(concat.filetypes()[0]).file(filepath).asDlt().get();
+        //     } else {
+        //         const observe = new Factory.File()
+        //             .type(
+        //                 (() => {
+        //                     switch (current.parser.alias()) {
+        //                         case Parsers.Protocol.Text:
+        //                         case Parsers.Protocol.Plugin:
+        //                             return Types.File.FileType.Text;
+        //                         case Parsers.Protocol.Dlt:
+        //                         case Parsers.Protocol.SomeIp:
+        //                             throw new Error(
+        //                                 `Exporting from none-text streams to create new session aren't supported yet`,
+        //                             );
+        //                     }
+        //                 })(),
+        //             )
+        //             .file(filepath)
+        //             .asText()
+        //             .get();
+        //         observe.parser.overwrite(current.parser.configuration);
+        //         return observe;
+        //     }
+        // })();
         console.error(`Not implemented`);
         return Promise.reject(new Error(`Not implemented`));
         // return session

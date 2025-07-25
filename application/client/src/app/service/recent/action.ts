@@ -6,51 +6,102 @@ import { Stat, IStat } from './stat';
 import { recent } from '@service/recent';
 import { scope } from '@platform/env/scope';
 import { Logger } from '@platform/log';
+import { SessionOrigin } from '@service/session/origin';
+import { ObserveOperation } from '@service/session/dependencies/stream';
+import { SessionDescriptor, SessionSetup } from '@platform/types/bindings';
+import { hash } from '@platform/env/hash';
 
-import * as $ from '@platform/types/observe';
-import * as compatibility from './compatibility';
+import * as obj from '@platform/env/obj';
 
 interface IActionContent {
+    hash: string;
     stat: IStat;
-    observe: $.IObserve;
+    descriptor: SessionDescriptor;
+    setup: SessionSetup;
 }
 
 export class Action {
     static from(entry: Entry): Action | Error {
-        const action = new Action($.Observe.new());
-        const error = action.entry().from(entry);
-        return error instanceof Error ? error : action;
+        try {
+            const body: IActionContent = JSON.parse(entry.content);
+            if (body.setup === undefined || typeof body.setup !== 'object') {
+                throw new Error(`No origin object. It might be old format. No converting support`);
+            }
+            if (!body.setup.origin) {
+                throw new Error(
+                    `No origin in setup object. It might be old format. No converting support`,
+                );
+            }
+            obj.getAsObj(body.setup, 'parser');
+            obj.getAsObj(body.setup, 'source');
+            if (body.descriptor === undefined || typeof body.descriptor !== 'object') {
+                throw new Error(
+                    `No descriptor object. It might be old format. No converting support`,
+                );
+            }
+            obj.getAsStringOrAsUndefined(body.descriptor, 'p_desc');
+            obj.getAsStringOrAsUndefined(body.descriptor, 's_desc');
+            obj.getAsObj(body.descriptor, 'parser');
+            obj.getAsObj(body.descriptor, 'source');
+            return new Action(body.setup, body.descriptor, body.stat);
+        } catch (err) {
+            return new Error(`Fail to parse action: ${error(err)}`);
+        }
+    }
+
+    static getSetupHash(setup: SessionSetup): string {
+        return hash(JSON.stringify(setup)).toString();
+    }
+
+    static fromOperation(operation: ObserveOperation): Error | Action {
+        const setup = operation.getOrigin().getSessionSetup();
+        const descriptor = operation.getDescriptor();
+        if (!descriptor) {
+            return new Error(
+                `Action ${JSON.stringify(setup.origin)} doesn't have session descriptor`,
+            );
+        }
+        return new Action(setup, descriptor);
     }
 
     protected logger: Logger;
 
     public stat: Stat = Stat.defaults();
-    public uuid: string;
-    public compatibility: {
-        converted: boolean;
-        invalidUuid: string | undefined;
-    } = {
-        converted: false,
-        invalidUuid: undefined,
-    };
+    public hash: string;
 
-    constructor(public observe: $.Observe) {
-        this.uuid = observe.signature();
-        this.logger = scope.getLogger(`Action: ${this.uuid}`);
+    constructor(
+        public readonly setup: SessionSetup,
+        public readonly descriptor: SessionDescriptor,
+        stat?: IStat,
+    ) {
+        this.hash = Action.getSetupHash(this.setup);
+        this.logger = scope.getLogger(`Action: ${this.hash}`);
+        if (stat) {
+            this.stat = new Stat(stat);
+        }
     }
 
-    public isSuitable(observe?: $.Observe): boolean {
-        if (observe === undefined) {
-            return true;
-        }
-        if (observe.origin.nature().alias() !== this.observe.origin.nature().alias()) {
+    public isSuitable(origin: SessionOrigin): boolean {
+        if (!origin.isSameAction(this.setup.origin)) {
             return false;
         }
-        return this.observe.parser.alias() === observe.parser.alias();
+        if (!origin.components) {
+            return false;
+        }
+        if (!origin.components.parser || !origin.components.source) {
+            return false;
+        }
+        return (
+            origin.components.parser.uuid === this.descriptor.parser.uuid &&
+            origin.components.source.uuid === this.descriptor.source.uuid
+        );
     }
 
-    public description(): $.Description.IOriginDetails {
-        return this.observe.origin.desc();
+    public description(): { major: string; minor: string } {
+        return {
+            major: this.descriptor.s_desc ? this.descriptor.s_desc : this.descriptor.source.name,
+            minor: this.descriptor.p_desc ? this.descriptor.p_desc : this.descriptor.parser.name,
+        };
     }
 
     public entry(): {
@@ -58,32 +109,19 @@ export class Action {
         to(): Entry;
     } {
         return {
-            from: (entry: Entry): Error | undefined => {
-                try {
-                    const body: IActionContent = JSON.parse(entry.content);
-                    if (body.observe === undefined) {
-                        // Check previous version (chipmunk <= 3.8.1)
-                        this.observe = compatibility.from_3_8_1(entry);
-                        this.compatibility.converted = true;
-                    } else {
-                        const observe = new $.Observe(body.observe);
-                        this.observe = observe;
-                    }
-                    this.stat = Stat.from(body.stat);
-                    this.uuid = this.observe.signature();
-                    this.compatibility.invalidUuid =
-                        entry.uuid !== this.uuid ? entry.uuid : undefined;
-                    return undefined;
-                } catch (err) {
-                    return new Error(`Fail to parse action: ${error(err)}`);
-                }
+            from: (_entry: Entry): Error | undefined => {
+                return new Error(
+                    `Instance method cannot be used on Action. Please use static methed instead.`,
+                );
             },
             to: (): Entry => {
                 return {
-                    uuid: this.uuid,
+                    uuid: this.hash,
                     content: JSON.stringify({
                         stat: this.stat.asObj(),
-                        observe: this.observe.storable(),
+                        descriptor: this.descriptor,
+                        hash: this.hash,
+                        setup: this.setup,
                     } as IActionContent),
                 };
             },
@@ -91,46 +129,23 @@ export class Action {
     }
 
     public getActions(): { caption?: string; handler?: () => void }[] {
-        const observe = this.observe;
-        const configurable = observe.isConfigurable();
-        const nature = observe.origin.nature().desc();
+        const configurable = this.setup.parser.fields.length + this.setup.source.fields.length > 0;
         return [
-            // **Note**: Recent actions isn't supported yet for plugins. Support of this
-            // feature will be included with general refactoring of Observe Configuration
-            // and a way to delivery available parser/source to client
-            ...(nature.type === $.Description.OriginType.plugin
-                ? []
-                : [
-                      {
-                          caption: ((): string => {
-                              switch (nature.type) {
-                                  case $.Description.OriginType.file:
-                                      return 'Open with recent configuration';
-                                  case $.Description.OriginType.net:
-                                  case $.Description.OriginType.serial:
-                                      return 'Connect with recent configuration';
-                                  case $.Description.OriginType.command:
-                                      return 'Execute with recent configuration';
-                              }
-                          })(),
-                          handler: this.apply.bind(this),
-                      },
-                  ]),
             ...(configurable
                 ? [
                       {
                           caption: 'Open with new configuration',
                           handler: () => {
-                              console.error(`Not implemented`);
-
-                              //   session
-                              //       .initialize()
-                              //       .configure(observe)
-                              //       .catch((err: Error) => {
-                              //           this.logger.error(
-                              //               `Fail to configure observe object: ${err.message}`,
-                              //           );
-                              //       });
+                              session
+                                  .initialize()
+                                  .configure(
+                                      SessionOrigin.fromSessionSetup(this.setup, this.descriptor),
+                                  )
+                                  .catch((err: Error) => {
+                                      this.logger.error(
+                                          `Fail to configure session setup: ${err.message}`,
+                                      );
+                                  });
                           },
                       },
                   ]
@@ -139,46 +154,44 @@ export class Action {
     }
 
     public remove(): Promise<void> {
-        return recent.delete([this.uuid]).catch((err: Error) => {
+        return recent.delete([this.hash]).catch((err: Error) => {
             this.logger.error(`Fail to remove recent action: ${err.message}`);
         });
     }
 
     public apply(): Promise<void> {
-        console.error(`Not implemented`);
-        return Promise.reject(new Error(`Not implemented`));
-        // return session
-        //     .initialize()
-        //     .auto(this.observe.locker().lock())
-        //     .then(() => {
-        //         return undefined;
-        //     })
-        //     .catch((err: Error) => {
-        //         const message = lockers.lock(
-        //             new Locker(false, `Fail to apply action via error: ${err.message}`)
-        //                 .set()
-        //                 .buttons([
-        //                     {
-        //                         caption: `Remove`,
-        //                         handler: () => {
-        //                             this.remove().finally(() => {
-        //                                 message.popup.close();
-        //                             });
-        //                         },
-        //                     },
-        //                     {
-        //                         caption: `Cancel`,
-        //                         handler: () => {
-        //                             message.popup.close();
-        //                         },
-        //                     },
-        //                 ])
-        //                 .end(),
-        //             {
-        //                 closable: false,
-        //             },
-        //         );
-        //     });
+        return session
+            .initialize()
+            .observe(SessionOrigin.fromSessionSetup(this.setup, this.descriptor))
+            .then(() => {
+                return undefined;
+            })
+            .catch((err: Error) => {
+                const message = lockers.lock(
+                    new Locker(false, `Fail to apply action via error: ${err.message}`)
+                        .set()
+                        .buttons([
+                            {
+                                caption: `Remove`,
+                                handler: () => {
+                                    this.remove().finally(() => {
+                                        message.popup.close();
+                                    });
+                                },
+                            },
+                            {
+                                caption: `Cancel`,
+                                handler: () => {
+                                    message.popup.close();
+                                },
+                            },
+                        ])
+                        .end(),
+                    {
+                        closable: false,
+                    },
+                );
+            });
     }
 
     public merge(action: Action): void {

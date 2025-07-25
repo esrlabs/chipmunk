@@ -6,20 +6,19 @@ import { IlcInterface } from '@service/ilc';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { Holder } from '@module/matcher';
 import { Logger } from '@platform/log';
-
-import * as $ from '@platform/types/observe';
+import { SessionOrigin } from '@service/session/origin';
 
 export class State extends Holder {
     public actions: WrappedAction[] = [];
 
     public readonly update: Subject<void> = new Subject<void>();
-    public readonly observe: $.Observe | undefined;
+    public origin: SessionOrigin | undefined;
 
     private _logger: Logger;
 
-    constructor(ilc: IlcInterface & ChangesDetector, observe?: $.Observe) {
+    constructor(ilc: IlcInterface & ChangesDetector, origin: SessionOrigin | undefined) {
         super();
-        this.observe = observe;
+        this.origin = origin;
         this._logger = ilc.log();
         ilc.env().subscriber.register(recent.updated.subscribe(this.reload.bind(this)));
         this.reload();
@@ -56,7 +55,7 @@ export class State extends Holder {
         recent
             .get()
             .then((actions: Action[]) => {
-                this.remove(actions.map((action: Action) => action.uuid));
+                this.remove(actions.map((action: Action) => action.hash));
             })
             .catch((err: Error) => {
                 this._logger.error(`Fail to remove all recent actions: ${err.message}`);
@@ -68,7 +67,7 @@ export class State extends Holder {
             .get()
             .then((actions: Action[]) => {
                 this.actions = actions
-                    .filter((action) => action.isSuitable(this.observe))
+                    .filter((action) => (this.origin ? action.isSuitable(this.origin) : true))
                     .map((action) => new WrappedAction(action, this.matcher));
                 this.actions.sort((a: WrappedAction, b: WrappedAction) => {
                     return b.action.stat.score().recent() >= a.action.stat.score().recent()

@@ -5,8 +5,8 @@ use crate::{
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
 };
-use components::Components;
 use processor::producer::{MessageProducer, sde::*};
+use register::Register;
 use std::sync::Arc;
 use stypes::{SessionAction, SessionSetup};
 
@@ -14,21 +14,25 @@ pub async fn observing(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     options: SessionSetup,
-    components: Arc<Components<sources::Source, parsers::Parser>>,
+    components: Arc<Register>,
     rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
     match &options.origin {
         SessionAction::File(..) => {
             let (desciptor, source, parser) = components.setup(&options)?;
-            let mut logs_buffer =
-                session::LogsBuffer::new(state.clone(), state.add_source(desciptor).await?);
+            let mut logs_buffer = session::LogsBuffer::new(
+                state.clone(),
+                state.add_source(operation_api.id(), desciptor).await?,
+            );
             let producer = MessageProducer::new(parser, source, &mut logs_buffer);
             Ok(session::run_producer(operation_api, state, producer, None, None).await?)
         }
         SessionAction::Source => {
             let (desciptor, source, parser) = components.setup(&options)?;
-            let mut logs_buffer =
-                session::LogsBuffer::new(state.clone(), state.add_source(desciptor).await?);
+            let mut logs_buffer = session::LogsBuffer::new(
+                state.clone(),
+                state.add_source(operation_api.id(), desciptor).await?,
+            );
             let producer = MessageProducer::new(parser, source, &mut logs_buffer);
             Ok(session::run_producer(operation_api, state, producer, None, rx_sde).await?)
         }
@@ -37,8 +41,10 @@ pub async fn observing(
             for file in files {
                 let (desciptor, source, parser) =
                     components.setup(&options.inherit(SessionAction::File(file.to_owned())))?;
-                let mut logs_buffer =
-                    session::LogsBuffer::new(state.clone(), state.add_source(desciptor).await?);
+                let mut logs_buffer = session::LogsBuffer::new(
+                    state.clone(),
+                    state.add_source(operation_api.id(), desciptor).await?,
+                );
                 let producer = MessageProducer::new(parser, source, &mut logs_buffer);
                 session::run_producer(operation_api.clone(), state.clone(), producer, None, None)
                     .await?;

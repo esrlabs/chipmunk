@@ -87,7 +87,8 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
     );
 
     let results = jobs_runner::run(
-        &[Target::App, Target::Updater, Target::CliChipmunk],
+        // &[Target::App, Target::Updater, Target::CliChipmunk],
+        &[Target::App, Target::Updater],
         JobType::Build {
             production: !development,
         },
@@ -159,26 +160,26 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
 
     // *** Compressing ***
 
-    println!(
-        "{}",
-        style("Start Compressing release files...")
-            .blue()
-            .bright()
-            .bold()
-    );
+    // println!(
+    //     "{}",
+    //     style("Start Compressing release files...")
+    //         .blue()
+    //         .bright()
+    //         .bold()
+    // );
 
-    let compress_start = Instant::now();
+    // let compress_start = Instant::now();
 
-    compress().await?;
-    compress_cli()
-        .await
-        .context("Error while compressing Chipmunk CLI binary")?;
+    // compress().await?;
+    // compress_cli()
+    //     .await
+    //     .context("Error while compressing Chipmunk CLI binary")?;
 
-    let finish_msg = format!(
-        "Compressing succeeded in {} seconds.",
-        compress_start.elapsed().as_secs().max(1)
-    );
-    println!("{}", style(finish_msg).green().bold());
+    // let finish_msg = format!(
+    //     "Compressing succeeded in {} seconds.",
+    //     compress_start.elapsed().as_secs().max(1)
+    // );
+    // println!("{}", style(finish_msg).green().bold());
 
     print_log_separator();
 

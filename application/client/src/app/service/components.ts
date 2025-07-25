@@ -166,6 +166,33 @@ export class Service extends Implementation {
     }
 
     /**
+     * Checks whether the specified source supports the Source Data Exchange (SDE) mechanism.
+     *
+     * The SDE mechanism allows sending data *to* a source. This method verifies
+     * if the given source component (by UUID) permits such operations
+     * in the context of the provided session.
+     *
+     * @param uuid - The unique identifier of the source component.
+     * @param origin - The session context used to evaluate SDE permissions.
+     * @returns A promise that resolves to `true` if SDE is supported by the source, or `false` otherwise.
+     */
+    public isSdeSupported(uuid: string, origin: SessionAction): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Components.IsSdeSupported.Response,
+                new Requests.Components.IsSdeSupported.Request({
+                    uuid,
+                    origin,
+                }),
+            )
+                .then((response) => {
+                    resolve(response.support);
+                })
+                .catch(reject);
+        });
+    }
+
+    /**
      * Validates the provided configuration fields for the specified component.
      *
      * Validation is context-aware and may depend on the `SessionAction` (e.g., file vs. stream).

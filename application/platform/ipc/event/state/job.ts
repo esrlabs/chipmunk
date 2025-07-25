@@ -28,7 +28,7 @@ export class Event extends SignatureRequirement {
         this.session = validator.getAsNotEmptyStringOrAsUndefined(input, 'session');
         this.name = validator.getAsNotEmptyStringOrAsUndefined(input, 'name');
         this.desc = validator.getAsNotEmptyStringOrAsUndefined(input, 'desc');
-        this.icon = validator.getAsNotEmptyStringOrAsUndefined(input, 'icon');
+        this.icon = validator.getAsStringOrAsUndefined(input, 'icon');
         this.spinner = typeof input.spinner === 'boolean' ? input.spinner : undefined;
     }
 }

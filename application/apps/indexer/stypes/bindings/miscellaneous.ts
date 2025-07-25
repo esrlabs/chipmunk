@@ -96,6 +96,10 @@ export type SourceDefinition = {
  */
 id: number, 
 /**
+ * Parent observe opeartion Uuid
+ */
+uuid: string, 
+/**
  * The user-friendly name of the source for display purposes.
  */
 descriptor: SessionDescriptor, };

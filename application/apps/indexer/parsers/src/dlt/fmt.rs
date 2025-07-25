@@ -501,7 +501,7 @@ impl<'a> FormattableMessage<'a> {
 
     fn info_from_metadata<'b>(&'b self, id: u32, data: &[u8]) -> Option<NonVerboseInfo<'b>> {
         let fibex = self.fibex_dlt_metadata.as_ref()?;
-        let md = extract_metadata(&fibex, id, self.message.extended_header.as_ref())?;
+        let md = extract_metadata(fibex, id, self.message.extended_header.as_ref())?;
         let msg_type: Option<MessageType> = message_type(&self.message, md.message_info.as_deref());
         let app_id = md.application_id.as_deref().or_else(|| {
             self.message
@@ -613,11 +613,7 @@ impl<'a> fmt::Display for FormattableMessage<'a> {
                     })
                 {
                     if let Some(slice) = slices.get(1) {
-                        match SomeipParser::parse_message(
-                            self.fibex_someip_metadata.as_deref(),
-                            slice,
-                            None,
-                        ) {
+                        match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
                             Ok((_, message)) => {
                                 let prefix = slices.first().map_or_else(String::default, |s| {
                                     parse_prefix(s)

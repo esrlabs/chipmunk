@@ -20,10 +20,8 @@ export {
     IEventMatchesUpdated,
     IEventIndexedMapUpdated,
 } from '../api/session.provider';
-export { EventProvider, SessionStream, SessionSearch };
 
-export * as $ from 'platform/types/observe';
-export * as Factory from 'platform/types/observe/factory';
+export { EventProvider, SessionStream, SessionSearch };
 
 enum ESessionState {
     destroyed,

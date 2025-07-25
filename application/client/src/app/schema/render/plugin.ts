@@ -1,7 +1,6 @@
 import { PluginEntity } from '@platform/types/bindings';
 import { Render } from './index';
 import { Columns } from './columns';
-import { Protocol } from '@platform/types/observe/parser';
 
 export class Implementation extends Render<Columns> {
     private _columnsCount: number = 0;
@@ -44,10 +43,6 @@ export class Implementation extends Render<Columns> {
                 ),
             );
         }
-    }
-
-    override protocol(): Protocol {
-        return Protocol.Plugin;
     }
 
     public override columns(): number {

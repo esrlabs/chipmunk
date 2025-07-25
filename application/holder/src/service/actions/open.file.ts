@@ -1,4 +1,4 @@
-import { FileType } from 'platform/types/observe/types/file';
+import { FileType } from 'platform/types/files';
 
 import * as Requests from 'platform/ipc/request';
 

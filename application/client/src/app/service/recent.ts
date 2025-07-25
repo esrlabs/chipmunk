@@ -10,8 +10,7 @@ import { bridge } from '@service/bridge';
 import { Action } from './recent/action';
 import { error } from '@platform/log/utils';
 import { Subject } from '@platform/env/subscription';
-
-import * as $ from '@platform/types/observe';
+import { ObserveOperation } from './session/dependencies/stream';
 
 const STORAGE_KEY = 'user_recent_actions';
 
@@ -38,30 +37,6 @@ export class Service extends Implementation {
                 }
             })
             .filter((a) => a !== undefined) as Action[];
-        const invalid = actions.filter((a) => a.compatibility.invalidUuid !== undefined);
-        if (invalid.length > 0) {
-            await this.delete(invalid.map((a) => a.compatibility.invalidUuid as string))
-                .then(() => {
-                    this.log().debug(
-                        `${invalid.length} actions with invalid UUIDs has been removed`,
-                    );
-                })
-                .catch((err: Error) => {
-                    this.log().error(
-                        `Fail to remove recent actions with invalid uuid: ${err.message}`,
-                    );
-                });
-        }
-        const converted = actions.filter((a) => a.compatibility.converted);
-        if (converted.length > 0) {
-            await this.update(converted)
-                .then(() => {
-                    this.log().debug(`${converted.length} converted actions has been updated`);
-                })
-                .catch((err: Error) => {
-                    this.log().error(`Fail to update converted recent actions: ${err.message}`);
-                });
-        }
         return actions;
     }
 
@@ -71,7 +46,7 @@ export class Service extends Implementation {
         }
         const stored = await this.get();
         actions.forEach((action) => {
-            const found = stored.find((a) => a.uuid === action.uuid);
+            const found = stored.find((a) => a.hash === action.hash);
             if (found === undefined) {
                 return;
             }
@@ -103,8 +78,11 @@ export class Service extends Implementation {
         });
     }
 
-    public add(observe: $.Observe): Promise<void> {
-        const action = new Action(observe);
+    public add(operation: ObserveOperation): Promise<void> {
+        const action = Action.fromOperation(operation);
+        if (action instanceof Error) {
+            return Promise.reject(action);
+        }
         return this.update([action]);
     }
 }

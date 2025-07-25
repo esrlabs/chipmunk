@@ -1,12 +1,12 @@
 use log::{debug, error};
 use node_bindgen::{core::buffer::JSArrayBuffer, derive::node_bindgen};
-use session::components::ComponentsSession;
+use session::register::SessionRegister;
 use std::{str::FromStr, thread};
 use tokio::{runtime::Runtime, sync::oneshot};
 use uuid::Uuid;
 
 struct Components {
-    session: Option<ComponentsSession>,
+    session: Option<SessionRegister>,
 }
 
 #[node_bindgen]
@@ -51,7 +51,7 @@ impl Components {
         let (tx_session, rx_session) = oneshot::channel();
         thread::spawn(move || {
             rt.block_on(async {
-                match ComponentsSession::new().await {
+                match SessionRegister::new().await {
                     Ok((session, mut rx_callback_events)) => {
                         if tx_session.send(Some(session)).is_err() {
                             error!("Cannot setup session instance");
@@ -119,6 +119,48 @@ impl Components {
             .get_components(origin, ty)
             .await
             .map(|idents| idents.into())
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    /// Checks whether a source supports the Source Data Exchange (SDE) mechanism.
+    ///
+    /// This is an asynchronous Node.js-exposed method that receives a source UUID and a serialized
+    /// [`SessionAction`] buffer. It decodes the session context, parses the UUID, and delegates
+    /// the actual check to the internal session logic. This method allows JavaScript code
+    /// to determine if sending data to a specific source is permitted.
+    ///
+    /// # Arguments
+    ///
+    /// * `uuid` - A string representation of the source UUID.
+    /// * `origin` - A JavaScript `ArrayBuffer` containing a serialized [`SessionAction`] object.
+    ///
+    /// # Returns
+    ///
+    /// A `Promise` resolving to `true` if SDE is supported, `false` otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ComputationError`] in the following cases:
+    /// - If the session is not available,
+    /// - If decoding the `origin` buffer fails,
+    /// - If the UUID is invalid,
+    /// - If the underlying native API returns an error.
+    #[node_bindgen]
+    async fn is_sde_supported(
+        &self,
+        uuid: String,
+        origin: JSArrayBuffer,
+    ) -> Result<bool, stypes::ComputationError> {
+        let origin =
+            stypes::SessionAction::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+        let uuid = Uuid::from_str(&uuid).map_err(|_| stypes::ComputationError::InvalidData)?;
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?;
+        session
+            .is_sde_supported(uuid, origin)
+            .await
             .map_err(stypes::ComputationError::NativeError)
     }
 

@@ -25,7 +25,7 @@ export class Provider extends Base<Action> {
                 recent
                     .get()
                     .then((actions: Action[]) => {
-                        this.storage().remove(actions.map((action: Action) => action.uuid));
+                        this.storage().remove(actions.map((action: Action) => action.hash));
                         this.reload.emit();
                     })
                     .catch((err: Error) => {
@@ -36,7 +36,9 @@ export class Provider extends Base<Action> {
     }
     public load(): Promise<Action[]> {
         return recent.get().then((actions: Action[]) => {
-            actions = actions.filter((action) => action.isSuitable(this.observe));
+            actions = actions.filter((action) =>
+                this.origin ? action.isSuitable(this.origin) : true,
+            );
             actions.sort((a: Action, b: Action) => {
                 return b.stat.score().recent() >= a.stat.score().recent() ? 1 : -1;
             });
@@ -72,7 +74,7 @@ export class Provider extends Base<Action> {
             {
                 caption: 'Remove recent',
                 handler: () => {
-                    this.storage().remove([entity.uuid]);
+                    this.storage().remove([entity.hash]);
                 },
             },
             {

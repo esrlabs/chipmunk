@@ -3,19 +3,18 @@ import { Subscriber, Subjects, Subject } from '@platform/env/subscription';
 import { Range, IRange } from '@platform/types/range';
 import { cutUuid } from '@log/index';
 import { Rank } from './rank';
-import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
-import { Observe } from '@platform/types/observe';
+import { GrabbedElement, SourceDefinition } from '@platform/types/bindings/miscellaneous';
 import { ObserveOperation } from './observing/operation';
-import { ObserveSource } from './observing/source';
 import { Info } from './info';
 import { lockers } from '@ui/service/lockers';
 import { Sde } from './observing/sde';
 import { TextExportOptions } from '@platform/types/exporting';
-import { SessionSetup } from '@platform/types/bindings';
+import { SessionDescriptor } from '@platform/types/bindings';
+import { SessionOrigin } from '../origin';
+import { recent } from '@service/recent';
 
 import * as Requests from '@platform/ipc/request';
 import * as Events from '@platform/ipc/event';
-import * as $ from '@platform/types/observe';
 
 export { ObserveOperation };
 
@@ -25,36 +24,31 @@ export class Stream extends Subscriber {
         // Stream is updated (new rows came)
         updated: Subject<number>;
         // New observe operation is started
-        started: Subject<Observe>;
+        started: Subject<ObserveOperation>;
         // Observe operation for source is finished
-        finished: Subject<Observe>;
+        finished: Subject<ObserveOperation>;
         // List of sources (observed operations has been changed)
         sources: Subject<void>;
         // Session rank is changed
         rank: Subject<number>;
         // Grabber is inited
         readable: Subject<void>;
+        // New session descriptor has been gotten (describe a observe operation in human readable way)
+        descriptor: Subject<SessionDescriptor>;
     }> = new Subjects({
         updated: new Subject<number>(),
-        started: new Subject<Observe>(),
-        finished: new Subject<Observe>(),
+        started: new Subject<ObserveOperation>(),
+        finished: new Subject<ObserveOperation>(),
         sources: new Subject<void>(),
         rank: new Subject<number>(),
         readable: new Subject<void>(),
+        descriptor: new Subject<SessionDescriptor>(),
     });
     private _len: number = 0;
     private _uuid!: string;
     private _info!: Info;
 
-    public readonly observed: {
-        running: Map<string, ObserveOperation>;
-        done: Map<string, Observe>;
-        map: Map<number, $.Types.ISourceLink>;
-    } = {
-        running: new Map(),
-        done: new Map(),
-        map: new Map(),
-    };
+    public readonly operations: Map<string, ObserveOperation> = new Map();
     public readonly rank: Rank = new Rank();
     public sde!: Sde;
 
@@ -77,44 +71,25 @@ export class Stream extends Subscriber {
             }),
         );
         this.register(
+            Events.IpcEvent.subscribe(Events.Stream.SessionDescriptor.Event, (event) => {
+                if (event.session !== this._uuid) {
+                    return;
+                }
+                this.subjects.get().descriptor.emit(event.descriptor);
+                const operation = this.operations.get(event.operation);
+                if (!operation) {
+                    this.log().error(
+                        `Event "Stream.SessionDescriptor" emmited for operation "${event.operation}", but there no started operation with same uuid.`,
+                    );
+                    return;
+                }
+                operation.setDescriptor(event.descriptor);
+            }),
             Events.IpcEvent.subscribe(Events.Observe.Started.Event, (event) => {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                console.error(`Not implemented`);
-                // const observe = Observe.from(event.source);
-                // if (observe instanceof Error) {
-                //     this.log().error(`Fail to parse Observe: ${observe.message}`);
-                //     return;
-                // }
-                // this.observed.running.set(
-                //     event.operation,
-                //     new ObserveOperation(
-                //         event.operation,
-                //         observe,
-                //         this.sde.send.bind(this.sde, event.operation),
-                //         this.observe().restart.bind(this, event.operation),
-                //         this.observe().abort.bind(this, event.operation),
-                //     ),
-                // );
-                // this.observe()
-                //     .descriptions.request()
-                //     .then((sources) => {
-                //         let updated = false;
-                //         sources.forEach((source) => {
-                //             if (!this.observed.map.has(source.id)) {
-                //                 this.observed.map.set(source.id, source);
-                //                 updated = true;
-                //             }
-                //         });
-                //         updated && this.subjects.get().sources.emit();
-                //     })
-                //     .catch((err: Error) => {
-                //         this.log().error(`Fail get sources description: ${err.message}`);
-                //     });
-                // this.sde.overwrite(this.observed.running);
-                let observe = Observe.new();
-                this.subjects.get().started.emit(observe);
+                this.operations.set(event.operation, new ObserveOperation(event.operation));
             }),
         );
         this.register(
@@ -122,14 +97,16 @@ export class Stream extends Subscriber {
                 if (event.session !== this._uuid) {
                     return;
                 }
-                const stored = this.observed.running.get(event.operation);
-                if (stored === undefined) {
+                const operation = this.operations.get(event.operation);
+                if (!operation) {
+                    this.log().error(
+                        `Event "Observe.Finished" emmited for operation "${event.operation}", but there no started operation with same uuid.`,
+                    );
                     return;
                 }
-                this.observed.done.set(event.operation, stored.asObserve());
-                this.observed.running.delete(event.operation);
-                this.sde.overwrite(this.observed.running);
-                this.subjects.get().finished.emit(stored.asObserve());
+                operation.finish();
+                this.sde.overwrite(this.operations);
+                this.subjects.get().finished.emit(operation);
             }),
         );
     }
@@ -138,6 +115,12 @@ export class Stream extends Subscriber {
         this.unsubscribe();
         this.subjects.destroy();
         this.sde.destroy();
+        this.operations.forEach((operation) => {
+            operation.abort().catch((err: Error) => {
+                this.log().warn(`Fail to abort operation: ${err.message}`);
+            });
+            operation.destroy();
+        });
     }
 
     public len(): number {
@@ -145,39 +128,96 @@ export class Stream extends Subscriber {
     }
 
     public observe(): {
-        start(options: SessionSetup): Promise<string>;
+        start(options: SessionOrigin): Promise<string>;
         abort(uuid: string): Promise<void>;
-        restart(uuid: string, options: SessionSetup): Promise<string>;
-        list(): Promise<Map<string, Observe>>;
-        sources(): ObserveSource[];
+        restart(uuid: string, options: SessionOrigin): Promise<string>;
+        list(): Promise<Map<string, ObserveOperation>>;
+        operations(): ObserveOperation[];
         isFileSource(): boolean;
         getSourceFileName(): string | undefined;
         descriptions: {
-            get(id: number): $.Types.ISourceLink | undefined;
-            id(alias: string): number | undefined;
-            request(): Promise<$.Types.ISourceLink[]>;
+            get(id: number): SourceDefinition | undefined;
+            id(uuid: string): number | undefined;
+            request(): Promise<SourceDefinition[]>;
             count(): number;
         };
     } {
         return {
-            start: (options: SessionSetup): Promise<string> => {
+            start: (origin: SessionOrigin): Promise<string> => {
                 return Requests.IpcRequest.send<Requests.Observe.Start.Response>(
                     Requests.Observe.Start.Response,
                     new Requests.Observe.Start.Request({
                         session: this._uuid,
-                        options,
+                        options: origin.getSessionSetup(),
                     }),
                 )
                     .then((response) => {
                         if (typeof response.error === 'string' && response.error !== '') {
                             return Promise.reject(new Error(response.error));
                         }
-                        // this._info.fromObserveInfo(observe);
+                        if (typeof response.uuid !== 'string' || response.uuid.trim() === '') {
+                            return Promise.reject(
+                                new Error(`Invalid session start operation UUID`),
+                            );
+                        }
+                        const operationUuid = response.uuid;
+                        if (!operationUuid) {
+                            return Promise.reject(
+                                new Error(
+                                    `No operation UUID has been recieved: ${JSON.stringify(
+                                        response,
+                                    )}`,
+                                ),
+                            );
+                        }
+                        const operation = this.operations.get(operationUuid);
+                        if (!operation) {
+                            return Promise.reject(
+                                new Error(
+                                    `Operation ${operationUuid} didn't sent Started event: ${JSON.stringify(
+                                        response,
+                                    )}`,
+                                ),
+                            );
+                        }
+                        operation.bind(
+                            origin,
+                            this.sde.send.bind(this.sde, operationUuid),
+                            this.observe().restart.bind(this, operationUuid),
+                            this.observe().abort.bind(this, operationUuid),
+                        );
+                        this.observe()
+                            .descriptions.request()
+                            .then((sources) => {
+                                let updated = false;
+                                sources.forEach((source) => {
+                                    updated = updated ? updated : operation.addSource(source);
+                                });
+                                updated && this.subjects.get().sources.emit();
+                            })
+                            .catch((err: Error) => {
+                                this.log().error(`Fail get sources description: ${err.message}`);
+                            });
+                        this.sde.overwrite(this.operations);
+                        this.subjects.get().started.emit(operation);
+                        if (this.operations.size === 1) {
+                            // Only if it's the first operation, save as recent
+                            recent.add(operation);
+                        }
                         return response.session;
                     })
                     .finally(lockers.progress(`Creating session...`));
             },
             abort: (uuid: string): Promise<void> => {
+                const operation = this.operations.get(uuid);
+                if (!operation) {
+                    return Promise.reject(
+                        new Error(`Operation ${uuid} doesn't exist. Cannot abort`),
+                    );
+                }
+                if (operation.isStopped()) {
+                    return Promise.resolve();
+                }
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
                         Requests.Observe.Abort.Response,
@@ -199,14 +239,20 @@ export class Stream extends Subscriber {
                         });
                 });
             },
-            restart: (uuid: string, options: SessionSetup): Promise<string> => {
+            restart: (uuid: string, options: SessionOrigin): Promise<string> => {
+                const operation = this.operations.get(uuid);
+                if (!operation) {
+                    return Promise.reject(
+                        new Error(`Operation ${uuid} doesn't exist. Cannot restart`),
+                    );
+                }
                 return this.observe()
                     .abort(uuid)
                     .then(() => {
                         return this.observe().start(options);
                     });
             },
-            list: (): Promise<Map<string, Observe>> => {
+            list: (): Promise<Map<string, ObserveOperation>> => {
                 return new Promise((resolve) => {
                     Requests.IpcRequest.send(
                         Requests.Observe.List.Response,
@@ -215,16 +261,18 @@ export class Stream extends Subscriber {
                         }),
                     )
                         .then((response: Requests.Observe.List.Response) => {
-                            const sources: Map<string, Observe> = new Map();
-                            Object.keys(response.sources).forEach((uuid: string) => {
-                                const source = Observe.from(response.sources[uuid]);
-                                if (source instanceof Error) {
-                                    this.log().error(`Fail to parse Observe: ${source.message}`);
-                                    return;
+                            const operations: Map<string, ObserveOperation> = new Map();
+                            response.operations.forEach((uuid: string) => {
+                                const operation = this.operations.get(uuid);
+                                if (!operation) {
+                                    this.log().error(
+                                        `Fail to find operation ${uuid} in local scope`,
+                                    );
+                                } else {
+                                    operations.set(uuid, operation);
                                 }
-                                sources.set(uuid, source);
                             });
-                            resolve(sources);
+                            resolve(operations);
                         })
                         .catch((error: Error) => {
                             this.log().error(
@@ -233,45 +281,39 @@ export class Stream extends Subscriber {
                         });
                 });
             },
-            sources: (): ObserveSource[] => {
-                const sources: ObserveSource[] = [];
-                Array.from(this.observed.running.values()).forEach((observed: ObserveOperation) => {
-                    sources.push(new ObserveSource(observed.asObserve(), observed));
-                });
-                Array.from(this.observed.done.values()).forEach((source: Observe) => {
-                    sources.push(new ObserveSource(source));
-                });
-                return sources;
+            operations: (): ObserveOperation[] => {
+                return Array.from(this.operations.values());
             },
             isFileSource: (): boolean => {
-                const sources = this.observe().sources();
+                const sources = this.observe().operations();
                 if (sources.length !== 1) {
                     return false;
                 }
-                return sources[0].observe.origin.files() !== undefined;
+                return sources[0].getOrigin().getFirstFilename() !== undefined;
             },
             getSourceFileName: (): string | undefined => {
-                const sources = this.observe().sources();
+                const sources = this.observe().operations();
                 if (sources.length !== 1) {
                     return undefined;
                 }
-                const files = sources[0].observe.origin.files();
-                if (files === undefined || (files instanceof Array && files.length === 0)) {
-                    return undefined;
-                }
-                return files instanceof Array ? files[0] : files;
+                return sources[0].getOrigin().getFirstFilename();
             },
             descriptions: {
-                get: (id: number): $.Types.ISourceLink | undefined => {
-                    return this.observed.map.get(id);
+                get: (id: number): SourceDefinition | undefined => {
+                    const operation = Array.from(this.operations.values()).find((operation) => {
+                        return operation.getSource(id);
+                    });
+                    return operation ? operation.getSource(id) : undefined;
                 },
-                id: (alias: string): number | undefined => {
-                    const link = Array.from(this.observed.map.values()).find(
-                        (s) => s.alias === alias,
-                    );
-                    return link !== undefined ? link.id : undefined;
+                id: (uuid: string): number | undefined => {
+                    console.error('Not implemented');
+                    // TODO:
+                    // `uuid` - is an uuid of observe operation, but if it's Files (aka concat)
+                    // we would have multiple sources (files) for a one operation
+                    const operation = this.operations.get(uuid);
+                    return operation ? operation.getFirstSourceKey() : undefined;
                 },
-                request: (): Promise<$.Types.ISourceLink[]> => {
+                request: (): Promise<SourceDefinition[]> => {
                     return new Promise((resolve, reject) => {
                         Requests.IpcRequest.send(
                             Requests.Observe.SourcesDefinitionsList.Response,
@@ -286,7 +328,9 @@ export class Stream extends Subscriber {
                     });
                 },
                 count: (): number => {
-                    return this.observed.map.size;
+                    return Array.from(this.operations.values())
+                        .map((operation) => operation.getSourcesCount())
+                        .reduce((sum, a) => sum + a, 0);
                 },
             },
         };

@@ -16,11 +16,7 @@ import { Logger, utils } from 'platform/log';
 import { TEventEmitter } from '../provider/provider.general';
 import { Computation } from '../provider/provider';
 import { Subscriber } from 'platform/env/subscription';
-import {
-    IComponentsEvents,
-    IComponentsEventsSignatures,
-    IComponentsEventsInterfaces,
-} from '../api/components.provider';
+import { IComponentsEvents, IComponentsEventsSignatures } from '../api/components.provider';
 
 import {
     InvalidPluginEntity,
@@ -39,6 +35,8 @@ export abstract class ComponentsNative {
     public abstract destroy(): Promise<void>;
 
     public abstract getComponents(origin: Uint8Array, ty: Uint8Array): Promise<Uint8Array>;
+
+    public abstract isSdeSupported(uuid: String, origin: Uint8Array): Promise<boolean>;
 
     public abstract getOptions(origin: Uint8Array, targets: string[]): Promise<Uint8Array>;
 
@@ -86,20 +84,12 @@ type DestroyResolver = () => void;
 export class Base extends Subscriber {
     protected readonly logger: Logger = scope.getLogger(`Components`);
     protected readonly native: ComponentsNative;
-    protected readonly provider: Computation<
-        IComponentsEvents,
-        IComponentsEventsSignatures,
-        IComponentsEventsInterfaces
-    >;
+    protected readonly provider: Computation<IComponentsEvents, IComponentsEventsSignatures>;
     private state: State = State.Created;
     private destroyResolver: DestroyResolver | undefined;
 
     constructor(
-        provider: Computation<
-            IComponentsEvents,
-            IComponentsEventsSignatures,
-            IComponentsEventsInterfaces
-        >,
+        provider: Computation<IComponentsEvents, IComponentsEventsSignatures>,
         resolver: (err: Error | undefined) => void,
     ) {
         super();
@@ -207,6 +197,13 @@ export class Base extends Subscriber {
                     }
                 });
         });
+    }
+    public isSdeSupported(uuid: String, origin: SessionAction): Promise<boolean> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return this.native.isSdeSupported(uuid, protocol.encodeSessionAction(origin));
     }
 
     public getOptions(origin: SessionAction, targets: string[]): Promise<ComponentsOptionsList> {

@@ -1,9 +1,9 @@
 use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
-use components::Components;
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::producer::sde::{SdeReceiver, SdeSender};
 use processor::search::filter::SearchFilter;
+use register::Register;
 use serde::Serialize;
 use std::{
     ops::RangeInclusive,
@@ -74,10 +74,7 @@ impl Operation {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum OperationKind {
-    Observe(
-        stypes::SessionSetup,
-        Arc<Components<sources::Source, parsers::Parser>>,
-    ),
+    Observe(stypes::SessionSetup, Arc<Register>),
     Search {
         filters: Vec<SearchFilter>,
     },

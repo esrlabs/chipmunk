@@ -9,11 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { AttachSourceMenuModule } from '@elements/menu.attachsource/module';
-import { ListModule as FileListModule } from './lists/file/module';
-import { ListModule as ProcessListModule } from './lists/process/module';
-import { ListModule as SerialListModule } from './lists/serial/module';
-import { ListModule as TcpListModule } from './lists/tcp/module';
-import { ListModule as UdpListModule } from './lists/udp/module';
+import { Operation } from './operation/component';
 
 @NgModule({
     imports: [
@@ -22,17 +18,12 @@ import { ListModule as UdpListModule } from './lists/udp/module';
         MatButtonModule,
         MatCardModule,
         MatExpansionModule,
-        FileListModule,
-        ProcessListModule,
-        SerialListModule,
-        TcpListModule,
-        UdpListModule,
         MatMenuModule,
         MatIconModule,
         MatDividerModule,
         AttachSourceMenuModule,
     ],
-    declarations: [Observed],
+    declarations: [Observed, Operation],
     exports: [Observed],
     bootstrap: [Observed],
 })

@@ -1,13 +1,12 @@
 mod descriptor;
 
+use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
+use crate::*;
 use bufread::DeqBuffer;
-use definitions::*;
 use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use std::{net::SocketAddr, time::Duration};
 use tokio::{net::TcpStream, runtime::Handle};
-
-use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
 
 pub mod reconnect;
 pub use descriptor::*;
@@ -203,7 +202,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_tcp_reload() -> Result<(), std::io::Error> {
         static SERVER: &str = "127.0.0.1:4000";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -212,7 +211,7 @@ mod tests {
         let send_handle = tokio::spawn(async move {
             accept_and_send(&listener, 100).await;
         });
-        let mut tcp_source = TcpSource::new(SERVER, None, None).await?;
+        let mut tcp_source = TcpSource::new(SERVER, None, None)?;
         let receive_handle = tokio::spawn(async move {
             for msg in MESSAGES {
                 tcp_source.load(None).await.expect("reload failed");
@@ -232,7 +231,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_general_source_reload() {
         static SERVER: &str = "127.0.0.1:4001";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -241,18 +240,17 @@ mod tests {
         tokio::spawn(async move {
             accept_and_send(&listener, 100).await;
         });
-        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, None).unwrap();
 
         general_source_reload_test(&mut tcp_source).await;
     }
 
     /// Tests will send packets with fixed lengths while consuming
     /// half of the sent length, ensuring the source won't break.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_source_buffer_overflow() {
         const SERVER: &str = "127.0.0.1:4002";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
-
         const SENT_LEN: usize = MAX_DATAGRAM_SIZE;
         const CONSUME_LEN: usize = MAX_DATAGRAM_SIZE / 2;
 
@@ -271,8 +269,7 @@ mod tests {
             }
         });
 
-        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
-
+        let mut tcp_source = TcpSource::new(SERVER, None, None).unwrap();
         while let Ok(Some(info)) = tcp_source.load(None).await {
             if info.available_bytes == 0 {
                 break;
@@ -281,7 +278,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn reconnect_no_msgs() {
         static SERVER: &str = "127.0.0.1:4003";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -299,7 +296,7 @@ mod tests {
         // Enable reconnect without configuring state channels.
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(20), None);
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
         let receive_handle = tokio::spawn(async move {
             // Byte source must receive same data twice without errors with active reconnect
             for _ in 0..2 {
@@ -320,7 +317,7 @@ mod tests {
         assert!(rec_res.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn reconnect_with_state_msgs() {
         static SERVER: &str = "127.0.0.1:4004";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -340,7 +337,7 @@ mod tests {
 
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(50), Some(state_tx));
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         // Tests reconnecting state messages.
         let reconnect_handler = tokio::spawn(async move {
@@ -392,7 +389,7 @@ mod tests {
         assert!(reconnect_res.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn reconnect_fail() {
         static SERVER: &str = "127.0.0.1:4005";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -406,7 +403,7 @@ mod tests {
         const MAX_ATTEMPTS: usize = 7;
         let rec_info = ReconnectInfo::new(MAX_ATTEMPTS, Duration::from_millis(10), Some(state_tx));
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         // Tests reconnecting state messages.
         // Failed state message with MAX_ATTEMPTS is expected.
@@ -450,7 +447,7 @@ mod tests {
 
     /// Ensure load and reconnect functions are cancel safe by keep sending notifications
     /// in rapid interval while calling them.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn load_reconnect_cancel_safe() {
         static SERVER: &str = "127.0.0.1:4006";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -470,7 +467,7 @@ mod tests {
 
         let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         let cancel_handle = tokio::spawn(async move {
             // Keep sending notifications causing load method to be dropped while both
@@ -517,7 +514,7 @@ mod tests {
 
     /// Ensure load and reconnect functions are cancel safe by keep calling it within a timeout
     /// function with rapid interval.
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn load_reconnect_cancel_safe_timeout() {
         static SERVER: &str = "127.0.0.1:4007";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -535,7 +532,7 @@ mod tests {
         // Enable reconnect without configuring state channels.
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(30), None);
 
-        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
+        let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).unwrap();
 
         let receive_handle = tokio::spawn(async move {
             // TCP source must receive three messages, reconnect then receive three

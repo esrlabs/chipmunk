@@ -4,7 +4,6 @@ import { session } from '@service/session';
 import { notifications, Notification } from '@ui/service/notifications';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 
-import * as Factory from '@platform/types/observe/factory';
 import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_folder_parser_plugins';
