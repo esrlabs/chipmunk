@@ -2,6 +2,7 @@
 //! providing plugins state, infos and metadata.
 
 mod cache;
+mod descriptor;
 mod errors;
 mod load;
 pub mod paths;
@@ -13,6 +14,8 @@ use std::path::{Path, PathBuf};
 
 use crate::plugins_shared::load::{WasmComponentInfo, load_and_inspect};
 use cache::CacheManager;
+use components::Components;
+use descriptor::PluginDescriptor;
 use load::{PluginEntityState, load_plugin};
 use paths::extract_plugin_file_paths;
 use stypes::{
@@ -311,6 +314,25 @@ impl PluginsManager {
 
         std::fs::remove_dir_all(plugin_dir)?;
         self.cache_manager.remove_plugin(plugin_dir, true)?;
+
+        Ok(())
+    }
+
+    pub fn register_plugins(
+        &self,
+        components: &mut Components<sources::Source, parsers::Parser>,
+    ) -> Result<(), stypes::NativeError> {
+        for plugin in &self.installed_plugins {
+            let plug_info = plugin.entity.clone();
+            match plugin.entity.plugin_type {
+                PluginType::Parser => {
+                    components.add_parser(PluginDescriptor::new(plug_info))?;
+                }
+                PluginType::ByteSource => {
+                    components.add_source(PluginDescriptor::new(plug_info))?;
+                }
+            }
+        }
 
         Ok(())
     }

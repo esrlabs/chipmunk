@@ -12,7 +12,8 @@ on:
 
 jobs:
   ts_and_rust_lint:
-    if: github.event.pull_request.draft == false
+    # TODO AAZ: Make sure this check works upon merging into master.
+    if: github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -63,7 +64,8 @@ jobs:
         run: yarn run check
 
   integration_and_unit_tests:
-    if: github.event.pull_request.draft == false
+    # TODO AAZ: Make sure this check works upon merging into master.
+    if: github.event.pull_request.draft == false && github.event.pull_request.base.ref == 'master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

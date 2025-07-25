@@ -5,11 +5,13 @@ edition = "2024"
 
 [dependencies]
 dlt-core.workspace = true
-indexer_base = { path = "../../indexer_base" }
 log.workspace = true
-parsers = { path = "../../parsers" }
-sources = { path = "../../sources" }
 tokio = { workspace = true , features = ["full"] }
 tokio-util = { workspace = true, features = ["codec", "net"] }
+definitions = { path = "../../definitions" }
+indexer_base = { path = "../../indexer_base" }
+parsers = { path = "../../parsers" }
+sources = { path = "../../sources" }
+processor = { path = "../../processor" }
 
 [dev-dependencies]

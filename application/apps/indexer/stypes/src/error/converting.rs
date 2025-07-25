@@ -1,5 +1,40 @@
 use crate::*;
 
+impl std::fmt::Display for NativeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.message
+                .as_ref()
+                .map(|s| s.to_owned())
+                .unwrap_or_else(|| format!("Error without message ({})", self.kind))
+        )
+    }
+}
+
+impl std::fmt::Display for NativeErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::FileNotFound => "FileNotFound",
+                Self::UnsupportedFileType => "UnsupportedFileType",
+                Self::ComputationFailed => "ComputationFailed",
+                Self::Configuration => "Configuration",
+                Self::Interrupted => "Interrupted",
+                Self::OperationSearch => "OperationSearch",
+                Self::NotYetImplemented => "NotYetImplemented",
+                Self::ChannelError => "ChannelError",
+                Self::Io => "Io",
+                Self::Grabber => "Grabber",
+                Self::Plugins => "Plugins",
+            }
+        )
+    }
+}
+
 impl From<std::io::Error> for NativeError {
     /// Converts a `std::io::Error` into a `NativeError`.
     ///

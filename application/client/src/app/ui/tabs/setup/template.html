@@ -1,0 +1,83 @@
+<div class="title">
+    <app-tabs-setup-origin [origin]="origin"></app-tabs-setup-origin>
+    <div class="entity filler">
+        <mat-form-field class="material-mofication-normal black">
+            <mat-select
+                [(ngModel)]="state.selected.source"
+                (ngModelChange)="state.change().source()"
+                [disabled]="state.sources.length <= 1"
+            >
+                <mat-option *ngFor="let source of state.sources" [value]="source.uuid">
+                    {{source.name}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    <div class="entity">
+        <p class="t-normal info">Used Parser:</p>
+        <mat-form-field class="material-mofication-normal black">
+            <mat-select
+                [(ngModel)]="state.selected.parser"
+                (ngModelChange)="state.change().parser()"
+                [disabled]="state.parsers.length <= 1"
+            >
+                <mat-option
+                    *ngFor="let parser of state.parsers"
+                    [value]="parser.uuid"
+                    [disabled]="!state.isParserIOCompatible(parser.uuid)"
+                >
+                    {{parser.name}}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+    </div>
+    <div class="entity">
+        <button
+            class="major-button"
+            mat-stroked-button
+            [disabled]="state.locked"
+            (click)="onStart()"
+        >
+            Start
+        </button>
+        <button mat-stroked-button>Cancel</button>
+    </div>
+</div>
+<div class="preset-container">
+    <div class="preset-container-content w-1400">
+        <div class="preset-container-left vertical-scrolling">
+            <mat-card
+                class="top"
+                *ngIf="state.providers.source !== undefined && state.description.source !== undefined && !state.providers.source.isEmpty()"
+            >
+                <mat-card-title>{{state.description.source.ident.name}}</mat-card-title>
+                <mat-card-content>
+                    <app-settings-scheme [provider]="state.providers.source"></app-settings-scheme>
+                </mat-card-content>
+            </mat-card>
+            <mat-card
+                class="top"
+                *ngIf="state.providers.parser !== undefined && state.description.parser !== undefined && !state.providers.parser.isEmpty()"
+            >
+                <mat-card-title>{{state.description.parser.ident.name}}</mat-card-title>
+                <mat-card-content>
+                    <app-settings-scheme [provider]="state.providers.parser"></app-settings-scheme>
+                </mat-card-content>
+            </mat-card>
+        </div>
+        <div class="preset-container-right">
+            <mat-card class="top" *ngIf="state.description.source !== undefined">
+                <mat-card-title>{{state.description.source.ident.name}}</mat-card-title>
+                <mat-card-content
+                    ><p class="desc">{{state.description.source.ident.desc}}</p></mat-card-content
+                >
+            </mat-card>
+            <mat-card class="top" *ngIf="state.description.parser !== undefined">
+                <mat-card-title>{{state.description.parser.ident.name}}</mat-card-title>
+                <mat-card-content
+                    ><p class="desc">{{state.description.parser.ident.desc}}</p></mat-card-content
+                >
+            </mat-card>
+        </div>
+    </div>
+</div>

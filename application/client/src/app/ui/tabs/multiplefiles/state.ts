@@ -13,6 +13,7 @@ import { Sort } from '@angular/material/sort';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionOrigin } from '@service/session/origin';
 
 export interface IMultifile {
     usedColors: string[];
@@ -147,57 +148,27 @@ export class State extends Holder {
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .observe(
-                                    new Factory.Concat()
-                                        .asText()
-                                        .type(Factory.FileType.Text)
-                                        .files(files)
-                                        .get(),
-                                );
+                                .observe(SessionOrigin.files(files));
                         case FileType.PcapNG:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.Concat()
-                                        .asDlt()
-                                        .type(Factory.FileType.PcapNG)
-                                        .files(files)
-                                        .get(),
-                                );
+                                .configure(SessionOrigin.files(files));
                         case FileType.PcapLegacy:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.Concat()
-                                        .asDlt()
-                                        .type(Factory.FileType.PcapLegacy)
-                                        .files(files)
-                                        .get(),
-                                );
+                                .configure(SessionOrigin.files(files));
                         case FileType.Binary:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.Concat()
-                                        .asDlt()
-                                        .type(Factory.FileType.Binary)
-                                        .files(files)
-                                        .get(),
-                                );
+                                .configure(SessionOrigin.files(files));
                         case FileType.ParserPlugin:
                             return this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.Concat()
-                                        .asParserPlugin()
-                                        .type(Factory.FileType.ParserPlugin)
-                                        .files(files)
-                                        .get(),
-                                );
+                                .configure(SessionOrigin.files(files));
                         default:
                             return Promise.reject(
                                 new Error(`Unsupported type ${this.files[0].type}`),
@@ -230,13 +201,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .observe(
-                                    new Factory.File()
-                                        .asText()
-                                        .type(Factory.FileType.Text)
-                                        .file(file.filename)
-                                        .get(),
-                                )
+                                .observe(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -249,13 +214,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.File()
-                                        .asDlt()
-                                        .type(Factory.FileType.Binary)
-                                        .file(file.filename)
-                                        .get(),
-                                )
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -268,13 +227,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.File()
-                                        .asDlt()
-                                        .type(Factory.FileType.PcapNG)
-                                        .file(file.filename)
-                                        .get(),
-                                )
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -287,13 +240,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.File()
-                                        .asDlt()
-                                        .type(Factory.FileType.PcapLegacy)
-                                        .file(file.filename)
-                                        .get(),
-                                )
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()
@@ -306,13 +253,7 @@ export class State extends Holder {
                             this._ref
                                 .ilc()
                                 .services.system.session.initialize()
-                                .configure(
-                                    new Factory.File()
-                                        .asParserPlugin()
-                                        .type(Factory.FileType.ParserPlugin)
-                                        .file(file.filename)
-                                        .get(),
-                                )
+                                .configure(SessionOrigin.file(file.filename))
                                 .catch((err: Error) => {
                                     this._ref
                                         .ilc()

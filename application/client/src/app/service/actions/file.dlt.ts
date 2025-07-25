@@ -4,6 +4,7 @@ import { session } from '@service/session';
 import { TabSourceMultipleFiles } from '@ui/tabs/multiplefiles/component';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_dlt_file';
 
@@ -35,11 +36,7 @@ export class Action extends Base {
                 },
             });
         } else {
-            session
-                .initialize()
-                .configure(
-                    new Factory.File().type(files[0].type).file(files[0].filename).asDlt().get(),
-                );
+            session.initialize().configure(SessionOrigin.file(files[0].filename));
         }
         return Promise.resolve();
     }

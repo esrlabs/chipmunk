@@ -1,0 +1,26 @@
+@import '../../../styles/variables.less';
+
+
+:host {
+    position: relative;
+    display: block;
+    p.title {
+        max-width: 200px;
+        color: var(--scheme-color-0);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        position: relative;
+        display: inline-block;
+        overflow: hidden;
+    }
+    p.description {
+        max-width: 400px;
+        color: var(--scheme-color-2);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        position: relative;
+        display: inline-block;
+        overflow: hidden;
+        direction: rtl;
+    }
+}

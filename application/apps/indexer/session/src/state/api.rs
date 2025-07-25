@@ -7,7 +7,6 @@ use crate::{
     tracker::OperationTrackerAPI,
 };
 use log::error;
-use parsers;
 use processor::{
     grabber::LineRange,
     map::{FiltersStats, ScaledDistribution},
@@ -17,7 +16,7 @@ use processor::{
     },
 };
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
-use stypes::GrabbedElement;
+use stypes::{GrabbedElement, SessionDescriptor};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     oneshot,
@@ -43,8 +42,7 @@ pub enum Api {
     FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
     GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
     UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
-    AddSource((String, oneshot::Sender<u16>)),
-    GetSource((String, oneshot::Sender<Option<u16>>)),
+    AddSource(SessionDescriptor, oneshot::Sender<u16>),
     GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
     #[allow(clippy::large_enum_variant)]
     AddExecutedObserve((stypes::ObserveOptions, oneshot::Sender<()>)),
@@ -193,7 +191,7 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
-    AddAttachment(parsers::Attachment),
+    AddAttachment(definitions::Attachment),
     GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
     // Used for tests of error handeling
     ShutdownWithError,
@@ -212,8 +210,7 @@ impl Display for Api {
                 Self::FlushSessionFile(_) => "FlushSessionFile",
                 Self::GetSessionFileOrigin(_) => "GetSessionFileOrigin",
                 Self::UpdateSession(_) => "UpdateSession",
-                Self::AddSource(_) => "AddSource",
-                Self::GetSource(_) => "GetSource",
+                Self::AddSource(..) => "AddSource",
                 Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
                 Self::AddExecutedObserve(_) => "AddExecutedObserve",
                 Self::GetExecutedHolder(_) => "GetExecutedHolder",
@@ -291,6 +288,13 @@ impl SessionStateAPI {
         })?;
         rx_response.await.map_err(|_| {
             stypes::NativeError::channel(&format!("Failed to get response from Api::{api_str}"))
+        })
+    }
+
+    fn sync_exec_operation(&self, api: Api) -> Result<(), stypes::NativeError> {
+        let api_str = api.to_string();
+        self.tx_api.send(api).map_err(|e| {
+            stypes::NativeError::channel(&format!("Failed to send to Api::{api_str}; error: {e}"))
         })
     }
 
@@ -466,16 +470,12 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn add_source(&self, uuid: &str) -> Result<u16, stypes::NativeError> {
+    pub async fn add_source(
+        &self,
+        desciptor: SessionDescriptor,
+    ) -> Result<u16, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::AddSource((uuid.to_owned(), tx)), rx)
-            .await
-    }
-
-    pub async fn get_source(&self, uuid: &str) -> Result<Option<u16>, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetSource((uuid.to_owned(), tx)), rx)
-            .await
+        self.exec_operation(Api::AddSource(desciptor, tx), rx).await
     }
 
     pub async fn get_sources_definitions(
@@ -688,7 +688,10 @@ impl SessionStateAPI {
         })
     }
 
-    pub fn add_attachment(&self, origin: parsers::Attachment) -> Result<(), stypes::NativeError> {
+    pub fn add_attachment(
+        &self,
+        origin: definitions::Attachment,
+    ) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
             stypes::NativeError::channel(
                 &format!("fail to send to Api::AddAttachment; error: {e}",),

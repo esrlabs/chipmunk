@@ -10,3 +10,5 @@ export * as comment from './comment';
 export * as bookmark from './bookmark';
 export * as sde from './sde';
 export * as bindings from './bindings';
+export * as components from './components';
+export * as sessionsetup from './sessionsetup';

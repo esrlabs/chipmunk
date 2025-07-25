@@ -1,0 +1,86 @@
+<mat-form-field class="material-mofication-normal" *ngIf="inline">
+    <ng-container *ngIf="elListElement !== undefined">
+        <mat-select [(ngModel)]="elListElement.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of elListElement.items" [value]="item">
+                {{item}}
+            </mat-option>
+        </mat-select>
+    </ng-container>
+    <ng-container *ngIf="elKeyValueElement !== undefined">
+        <mat-select [(ngModel)]="elKeyValueElement.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of elKeyValueElement.items" [value]="item[1]">
+                {{item[0]}}
+            </mat-option>
+        </mat-select>
+    </ng-container>
+    <ng-container *ngIf="elNamedValuesElement !== undefined">
+        <mat-select [(ngModel)]="elNamedValuesElement.value" (ngModelChange)="element.change()">
+            <mat-option *ngFor="let item of elNamedValuesElement.items" [value]="item.value">
+                {{item.key}}
+            </mat-option>
+        </mat-select>
+    </ng-container>
+    <ng-container *ngIf="elInputElement !== undefined">
+        <input
+            [attr.type]="(elInputElement.isString() ? 'text' : 'number')"
+            [placeholder]="elInputElement.placeholder"
+            matInput
+            [(ngModel)]="elInputElement.value"
+            (ngModelChange)="element.change()"
+        />
+    </ng-container>
+</mat-form-field>
+<ng-container *ngIf="elNestedDictionaryElement !== undefined">
+    <app-settings-scheme-nested-dictionary [element]="element" [inner]="elNestedDictionaryElement">
+    </app-settings-scheme-nested-dictionary>
+</ng-container>
+
+<ng-container *ngIf="elFilesFolderSelectorElement !== undefined">
+    <app-settings-scheme-files-selector [element]="element" [inner]="elFilesFolderSelectorElement">
+    </app-settings-scheme-files-selector>
+</ng-container>
+
+<ng-container *ngIf="elTimezoneSelectorElement !== undefined">
+    <app-settings-scheme-tz-selector [element]="element" [inner]="elTimezoneSelectorElement">
+    </app-settings-scheme-tz-selector>
+</ng-container>
+
+<div class="collections" *ngIf="elFieldsCollectionElement !== undefined">
+    <div
+        class="collection"
+        *ngFor="let collection of elFieldsCollectionElement.collections; let idx = index;"
+    >
+        <div class="element" *ngFor="let element of collection.elements">
+            <app-settings-scheme-element
+                [element]="element"
+                [provider]="elFieldsCollectionElement.provider"
+            >
+            </app-settings-scheme-element>
+            <p class="t-small error" *ngIf="element.error !== undefined">{{element.error}}</p>
+        </div>
+        <button
+            class="material-mofication-mini"
+            mat-icon-button
+            (click)="ngOnRemoveCollection(idx)"
+        >
+            <mat-icon>remove_circle_outline</mat-icon>
+        </button>
+    </div>
+    <div class="controls">
+        <button
+            mat-icon-button
+            *ngIf="elFieldsCollectionElement.addTitle === undefined"
+            (click)="ngOnAddCollection()"
+        >
+            <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
+        </button>
+        <button
+            mat-stroked-button
+            *ngIf="elFieldsCollectionElement.addTitle !== undefined"
+            (click)="ngOnAddCollection()"
+        >
+            <mat-icon aria-hidden="false" class="mini-button">add_circle_outline</mat-icon>
+            {{elFieldsCollectionElement.addTitle}}
+        </button>
+    </div>
+</div>

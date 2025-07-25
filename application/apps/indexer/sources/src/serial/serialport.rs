@@ -1,6 +1,6 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
 use bytes::{BufMut, BytesMut};
+use definitions::*;
 use futures::{
     SinkExt,
     stream::{SplitSink, SplitStream, StreamExt},
@@ -81,15 +81,27 @@ pub struct SerialSource {
     send_data_delay: u8,
 }
 
-// Do we need to do some actions of destructor?
-// impl Drop for SerialSource {
-//     fn drop(&mut self) {
-//         // Todo something good
-//     }
-// }
+pub struct SerialConfig {
+    /// The path to the serial port.
+    pub path: String,
+    /// The baud rate for the connection.
+    pub baud_rate: u32,
+    /// The number of data bits per frame.
+    pub data_bits: u8,
+    /// The flow control setting.
+    pub flow_control: u8,
+    /// The parity setting.
+    pub parity: u8,
+    /// The number of stop bits.
+    pub stop_bits: u8,
+    /// The delay in sending data, in milliseconds.
+    pub send_data_delay: u8,
+    /// Whether the connection is exclusive.
+    pub exclusive: bool,
+}
 
 impl SerialSource {
-    pub fn new(config: &stypes::SerialTransportConfig) -> Result<Self, SourceError> {
+    pub fn new(config: SerialConfig) -> Result<Self, SourceError> {
         match tokio_serial::new(config.path.as_str(), config.baud_rate)
             .data_bits(data_bits(&config.data_bits))
             .flow_control(flow_control(&config.flow_control))

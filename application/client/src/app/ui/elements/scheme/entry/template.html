@@ -1,0 +1,12 @@
+<p class="title t-medium">{{name}}</p>
+<p class="desc t-small" *ngIf="desc !== undefined">{{desc}}</p>
+<p class="title t-medium error" *ngIf="error !== undefined">{{error}}</p>
+<div class="loading" *ngIf="element === undefined">
+    <p class="t-small">Loading...</p>
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</div>
+<app-settings-scheme-element
+    class="mat-form-disable-background"
+    *ngIf="element !== undefined"
+    [element]="element"
+></app-settings-scheme-element>

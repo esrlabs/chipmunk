@@ -12,9 +12,10 @@ rustcore = [
     "dep:regex",
     "dep:envvars",
     "dlt-core/fibex",
+    "dep:anyhow",
+    "dep:tokio-util",
     "dlt-core/statistics",
     "dlt-core/serialization",
-    "dep:anyhow",
 ]
 nodejs = [
     "dep:node-bindgen"
@@ -26,13 +27,14 @@ dlt-core = { workspace = true, features = ["fibex", "serialization"] }
 regex = { workspace = true, optional = true }
 bincode = "1.3"
 extend = { path = "../tools/extend"}
-uuid = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["serde", "v4", "js"] }
 tokio = { workspace = true, optional = true }
 node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master", optional = true}
 thiserror.workspace = true
 walkdir = { workspace = true, optional = true }
 envvars = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
+tokio-util = { workspace = true , features = ["full"], optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true  }

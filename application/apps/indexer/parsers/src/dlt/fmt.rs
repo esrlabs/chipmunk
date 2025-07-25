@@ -213,7 +213,7 @@ pub struct FormattableMessage<'a> {
     pub options: Option<&'a FormatOptions>,
 }
 
-impl Serialize for FormattableMessage<'_> {
+impl<'a> Serialize for FormattableMessage<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -310,7 +310,7 @@ impl Serialize for FormattableMessage<'_> {
     }
 }
 
-impl From<Message> for FormattableMessage<'_> {
+impl<'a> From<Message> for FormattableMessage<'a> {
     fn from(message: Message) -> Self {
         FormattableMessage {
             message,
@@ -344,7 +344,7 @@ impl<'a> PrintableMessage<'a> {
     }
 }
 
-impl FormattableMessage<'_> {
+impl<'a> FormattableMessage<'a> {
     pub fn printable_parts<'b>(
         &'b self,
         ext_h_app_id: &'b str,
@@ -500,8 +500,8 @@ impl FormattableMessage<'_> {
     }
 
     fn info_from_metadata<'b>(&'b self, id: u32, data: &[u8]) -> Option<NonVerboseInfo<'b>> {
-        let fibex = self.fibex_dlt_metadata?;
-        let md = extract_metadata(fibex, id, self.message.extended_header.as_ref())?;
+        let fibex = self.fibex_dlt_metadata.as_ref()?;
+        let md = extract_metadata(&fibex, id, self.message.extended_header.as_ref())?;
         let msg_type: Option<MessageType> = message_type(&self.message, md.message_info.as_deref());
         let app_id = md.application_id.as_deref().or_else(|| {
             self.message
@@ -549,7 +549,7 @@ impl FormattableMessage<'_> {
     }
 }
 
-impl fmt::Display for FormattableMessage<'_> {
+impl<'a> fmt::Display for FormattableMessage<'a> {
     /// will format dlt Message with those fields:
     /// ********* storage-header ********
     /// date-time
@@ -568,7 +568,7 @@ impl fmt::Display for FormattableMessage<'_> {
     /// payload
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         if let Some(h) = &self.message.storage_header {
-            let tz = self.options.map(|o| o.tz);
+            let tz = self.options.as_ref().map(|o| o.tz);
             match tz {
                 Some(Some(tz)) => {
                     write_tz_string(f, &h.timestamp, &tz)?;
@@ -613,7 +613,11 @@ impl fmt::Display for FormattableMessage<'_> {
                     })
                 {
                     if let Some(slice) = slices.get(1) {
-                        match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
+                        match SomeipParser::parse_message(
+                            self.fibex_someip_metadata.as_deref(),
+                            slice,
+                            None,
+                        ) {
                             Ok((_, message)) => {
                                 let prefix = slices.first().map_or_else(String::default, |s| {
                                     parse_prefix(s)

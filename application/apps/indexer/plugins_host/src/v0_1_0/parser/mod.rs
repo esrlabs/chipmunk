@@ -4,6 +4,7 @@
 mod bindings;
 mod parser_plugin_state;
 
+use components::ComponentDescriptor;
 use stypes::{ParserRenderOptions, RenderOptions, SemanticVersion};
 use tokio::runtime::Handle;
 use wasmtime::{
@@ -13,7 +14,7 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, p2::WasiCtx};
 
 use crate::{
-    PluginGuestError, PluginHostError, PluginParseMessage,
+    PluginGuestError, PluginHostError,
     plugins_shared::{PluginInfo, get_wasi_ctx_builder, plugin_errors::PluginError},
     wasm_host::get_wasm_host,
 };
@@ -130,14 +131,9 @@ impl PluginParser {
     }
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginParser {
-    fn parse(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+use definitions::{self as defs, LogRecordOutput, ParseReturnIterator};
+impl defs::Parser for PluginParser {
+    fn parse<'a>(&mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         // Calls on plugins must be async. To solve that we got the following solutions:
         // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
         //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
@@ -157,15 +153,40 @@ impl p::Parser<PluginParseMessage> for PluginParser {
             Ok(results) => results?,
             Err(call_err) => {
                 // Wasmtime uses anyhow error, which provides error context in debug print only.
-                return Err(p::Error::Unrecoverable(format!(
+                return Err(defs::ParserError::Unrecoverable(format!(
                     "Call parse on the plugin failed. Error: {call_err:?}"
                 )));
             }
         };
 
-        let res = parse_results
+        let items = parse_results
             .into_iter()
             .map(|item| (item.consumed as usize, item.value.map(|v| v.into())));
-        Ok(res)
+
+        let iter = Box::new(items)
+            as Box<(dyn Iterator<Item = (usize, Option<LogRecordOutput<'a>>)> + 'a)>;
+
+        Ok(iter)
+    }
+}
+
+#[derive(Default)]
+struct Descriptor {}
+
+impl ComponentDescriptor for Descriptor {
+    fn is_compatible(&self, _origin: &stypes::SessionAction) -> bool {
+        true
+    }
+    /// **ATTANTION** That's placeholder. Should be another way to delivery data
+    fn ident(&self) -> stypes::Ident {
+        stypes::Ident {
+            name: String::from("Plugin Parser"),
+            desc: String::from("Plugin Parser"),
+            io: stypes::IODataType::Any,
+            uuid: uuid::Uuid::new_v4(),
+        }
+    }
+    fn ty(&self) -> stypes::ComponentType {
+        stypes::ComponentType::Parser
     }
 }

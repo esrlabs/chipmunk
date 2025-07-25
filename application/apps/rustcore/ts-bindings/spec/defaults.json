@@ -285,6 +285,16 @@
         },
         "files": {}
       }
+    },
+    "components": {
+      "regular": {
+        "execute_only": [],
+        "list": {
+          "1": "Test 1. Cancel loading options",
+          "2": "Test 2. Wait for lazy fields"
+        },
+        "files": {}
+      }
     }
   }
 }

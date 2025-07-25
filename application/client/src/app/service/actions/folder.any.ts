@@ -6,6 +6,7 @@ import { FileType } from '@platform/types/observe/types/file';
 import { notifications, Notification } from '@ui/service/notifications';
 
 import * as Factory from '@platform/types/observe/factory';
+import { SessionOrigin } from '@service/session/origin';
 
 export const ACTION_UUID = 'open_any_folder';
 
@@ -47,37 +48,13 @@ export class Action extends Base {
                 case FileType.Binary:
                 case FileType.PcapNG:
                 case FileType.PcapLegacy:
-                    session
-                        .initialize()
-                        .configure(
-                            new Factory.File()
-                                .type(files[0].type)
-                                .file(files[0].filename)
-                                .asDlt()
-                                .get(),
-                        );
+                    session.initialize().configure(SessionOrigin.file(files[0].filename));
                     break;
                 case FileType.Text:
-                    session
-                        .initialize()
-                        .observe(
-                            new Factory.File()
-                                .type(files[0].type)
-                                .file(files[0].filename)
-                                .asText()
-                                .get(),
-                        );
+                    session.initialize().observe(SessionOrigin.file(files[0].filename));
                     break;
                 case FileType.ParserPlugin:
-                    session
-                        .initialize()
-                        .observe(
-                            new Factory.File()
-                                .type(files[0].type)
-                                .file(files[0].filename)
-                                .asParserPlugin()
-                                .get(),
-                        );
+                    session.initialize().observe(SessionOrigin.file(files[0].filename));
                     break;
             }
         }

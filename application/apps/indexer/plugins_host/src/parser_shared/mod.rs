@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use stypes::{PluginInfo, SemanticVersion};
 use wasmtime::component::Component;
 
+use definitions::{self as defs, ParseReturnIterator};
+use stypes::{PluginInfo, SemanticVersion};
+
 use crate::{
-    PluginHostError, PluginParseMessage, PluginType, WasmPlugin,
+    PluginHostError, PluginType, WasmPlugin,
     plugins_shared::{
         load::{WasmComponentInfo, load_and_inspect},
         plugin_errors::PluginError,
@@ -13,9 +15,6 @@ use crate::{
 };
 
 pub mod plugin_parse_message;
-
-/// Marker for a column separator in the output string.
-pub const COLUMN_SEP: &str = "\u{0004}";
 
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
 pub struct PluginsParser {
@@ -136,44 +135,41 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginsParser {
-    fn parse(
-        &mut self,
-        input: &[u8],
-        timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+impl defs::Parser for PluginsParser {
+    fn parse<'a>(&'a mut self, input: &'a [u8], timestamp: Option<u64>) -> ParseReturnIterator<'a> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };
 
         // Check for consecutive errors.
         match &res {
-            Ok(_) | Err(p::Error::Unrecoverable(_)) | Err(p::Error::Eof) => {
+            Ok(_) | Err(defs::ParserError::Unrecoverable(_)) | Err(defs::ParserError::Eof) => {
                 self.errors_counter = 0;
             }
-            Err(p::Error::Parse(err)) => {
+            Err(defs::ParserError::Parse(err)) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::PARSE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(p::Error::Unrecoverable(format!(
+                    return Err(defs::ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable parse errors consecutively\n. Parse Error: {err}",
                         PluginErrorLimits::PARSE_ERROR_LIMIT
                     )));
                 }
             }
-            Err(p::Error::Incomplete) => {
+            Err(defs::ParserError::Incomplete) => {
                 self.errors_counter += 1;
                 if self.errors_counter > PluginErrorLimits::INCOMPLETE_ERROR_LIMIT {
                     self.errors_counter = 0;
-                    return Err(p::Error::Unrecoverable(format!(
+                    return Err(defs::ParserError::Unrecoverable(format!(
                         "Plugin parser returned more than \
                         {} recoverable incomplete errors consecutively",
                         PluginErrorLimits::INCOMPLETE_ERROR_LIMIT
                     )));
                 }
+            }
+            Err(defs::ParserError::Native(err)) => {
+                todo!("Not implemented")
             }
         }
 
