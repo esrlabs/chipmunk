@@ -26,7 +26,7 @@ pub trait SourceDescriptor: CommonDescriptor {
     /// # Returns
     ///
     /// `true` if SDE is supported by the source, `false` otherwise.
-    fn is_sde_supported(&self, _origin: &stypes::SessionAction, _fields: &[stypes::Field]) -> bool {
+    fn is_sde_supported(&self, _origin: &stypes::SessionAction) -> bool {
         false
     }
 }

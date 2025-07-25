@@ -117,6 +117,26 @@ pub enum Api {
         stypes::ComponentType,
         oneshot::Sender<Result<Vec<Ident>, NativeError>>,
     ),
+    /// A request to check whether a source supports the Source Data Exchange (SDE) mechanism.
+    ///
+    /// This variant is used to query if the specified source, identified by its `Uuid`, allows data
+    /// to be sent to it in the given session context. The result of the check is returned asynchronously
+    /// through the provided `oneshot::Sender`.
+    ///
+    /// # Arguments
+    ///
+    /// * `SessionAction` - The session context in which the SDE support should be evaluated.
+    /// * `Uuid` - The unique identifier of the source component.
+    /// * `oneshot::Sender<Result<bool, NativeError>>` - A channel sender used to return
+    ///   the result of the check asynchronously:
+    ///   - `Ok(true)` if SDE is supported,
+    ///   - `Ok(false)` if not supported,
+    ///   - `Err(NativeError)` if the source was not found or another error occurred.
+    IsSdeSupported(
+        SessionAction,
+        Uuid,
+        oneshot::Sender<Result<bool, NativeError>>,
+    ),
     /// Validates the configuration for correctness.
     ///
     /// # Arguments
@@ -139,7 +159,6 @@ pub enum Api {
         Vec<stypes::Field>,
         oneshot::Sender<Result<HashMap<String, String>, NativeError>>,
     ),
-
     /// Get all information of the installed plugins .
     InstalledPluginsList(oneshot::Sender<Result<stypes::PluginsList, NativeError>>),
     /// Get all information of invalid plugins .

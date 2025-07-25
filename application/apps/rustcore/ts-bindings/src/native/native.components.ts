@@ -36,6 +36,8 @@ export abstract class ComponentsNative {
 
     public abstract getComponents(origin: Uint8Array, ty: Uint8Array): Promise<Uint8Array>;
 
+    public abstract isSdeSupported(uuid: String, origin: Uint8Array): Promise<boolean>;
+
     public abstract getOptions(origin: Uint8Array, targets: string[]): Promise<Uint8Array>;
 
     public abstract getOutputRender(uuid: String): Promise<Uint8Array | null>;
@@ -195,6 +197,13 @@ export class Base extends Subscriber {
                     }
                 });
         });
+    }
+    public isSdeSupported(uuid: String, origin: SessionAction): Promise<boolean> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return this.native.isSdeSupported(uuid, protocol.encodeSessionAction(origin));
     }
 
     public getOptions(origin: SessionAction, targets: string[]): Promise<ComponentsOptionsList> {

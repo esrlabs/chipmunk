@@ -2515,6 +2515,7 @@ dependencies = [
  "log",
  "parsers",
  "rand 0.9.1",
+ "register",
  "serde",
  "serde_json",
  "sources",
@@ -2832,6 +2833,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
+name = "register"
+version = "0.1.0"
+dependencies = [
+ "descriptor",
+ "log",
+ "parsers",
+ "sources",
+ "stypes",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3059,6 +3075,7 @@ dependencies = [
  "parsers",
  "plugins_host",
  "processor",
+ "register",
  "rustc-hash",
  "serde",
  "serde_json",
