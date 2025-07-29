@@ -18,6 +18,7 @@ export class SearchInput {
         word: false,
         cases: false,
         reg: true,
+        invert: false,
     };
     public actions: {
         drop: Subject<void>;
@@ -129,6 +130,7 @@ export class SearchInput {
         caseSensitive(): void;
         wholeWord(): void;
         regex(): void;
+        invert(): void;
     } {
         return {
             value: (value: string | IFilter): void => {
@@ -155,6 +157,10 @@ export class SearchInput {
                 }
                 this.flags.reg = !this.flags.reg;
                 this.error.set().regex(this.flags.reg);
+            },
+            invert: () => {
+                this.flags.invert = !this.flags.invert;
+                this.error.set().invert(this.flags.invert);
             },
         };
     }

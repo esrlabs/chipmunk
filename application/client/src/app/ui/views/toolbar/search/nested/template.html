@@ -55,22 +55,28 @@
         [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : input.error.isValidRegex() ? 'inactive' : 'invalid')"
         (click)="input.set().regex()"
     ></span>
+    <span
+        tabindex="24"
+        title="Invert Filter"
+        [attr.class]="'small-icon-button codicon codicon-diff-removed ' + (input.flags.invert ? 'active' : 'inactive')"
+        (click)="input.set().invert()"
+    ></span>
 </div>
 <div class="arrows">
     <span
-        tabindex="24"
+        tabindex="25"
         title="Previos"
         class="small-icon-button codicon codicon-arrow-up"
         (click)="prev()"
     ></span>
     <span
-        tabindex="25"
+        tabindex="26"
         title="Next"
         class="small-icon-button codicon codicon-arrow-down"
         (click)="next()"
     ></span>
     <span
-        tabindex="26"
+        tabindex="27"
         title="Close"
         class="small-icon-button codicon codicon-close"
         (click)="close()"

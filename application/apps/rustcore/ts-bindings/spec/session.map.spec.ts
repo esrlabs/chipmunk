@@ -50,7 +50,7 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: 'match',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -114,7 +114,7 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: 'match',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -170,7 +170,7 @@ describe('Map', function () {
                     .observe(
                         new Factory.File()
                             .asText()
-                            .type(Factory.FileType.Text)
+                           .type(Factory.FileType.Text)
                             .file(tmpobj.name)
                             .get()
                             .sterilized(),
@@ -180,15 +180,15 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: 'match',
-                                    flags: { reg: false, word: false, cases: true },
+                                    flags: { reg: false, word: false, cases: true , invert: false },
                                 },
                                 {
                                     filter: 'not',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false , invert: false },
                                 },
                                 {
                                     filter: 'line',
-                                    flags: { reg: false, word: false, cases: true },
+                                    flags: { reg: false, word: false, cases: true , invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -296,7 +296,7 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: 'file.txt',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -360,7 +360,7 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: '1:1',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -426,7 +426,7 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: '0.0:1',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -492,7 +492,7 @@ describe('Map', function () {
                             .search([
                                 {
                                     filter: 'word(0.0:1',
-                                    flags: { reg: false, word: false, cases: false },
+                                    flags: { reg: false, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {

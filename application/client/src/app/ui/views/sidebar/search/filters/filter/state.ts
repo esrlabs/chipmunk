@@ -117,6 +117,7 @@ export class State {
                 cases: this.filter.flags.cases,
                 word: this.filter.flags.word,
                 reg: true,
+                invert: this.filter.flags.invert,
             },
         });
     }

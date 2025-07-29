@@ -39,7 +39,7 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'match',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((_) => {
@@ -207,15 +207,15 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'match A',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                             {
                                 filter: 'match B',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                             {
                                 filter: '666',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((result) => {
@@ -323,7 +323,7 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'not relevant search',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((found) => {
@@ -360,7 +360,7 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'match',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((_) => {
@@ -483,7 +483,7 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'match',
-                                flags: { reg: true, word: true, cases: false },
+                                flags: { reg: true, word: true, cases: false, invert: false },
                             },
                         ])
                         .then((_) => {
@@ -606,11 +606,11 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'match A',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                             {
                                 filter: 'match [A,B]',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((_) => {
@@ -718,7 +718,7 @@ describe('Search', function () {
                             .search([
                                 {
                                     filter,
-                                    flags: { reg: true, word: false, cases: false },
+                                    flags: { reg: true, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then((_) => {
@@ -813,7 +813,7 @@ describe('Search', function () {
                         .search([
                             {
                                 filter: 'match',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((_) => {
@@ -821,7 +821,7 @@ describe('Search', function () {
                                 .searchNestedMatch(
                                     {
                                         filter: 'Nested',
-                                        flags: { reg: true, cases: false, word: false },
+                                        flags: { reg: true, cases: false, word: false, invert: false },
                                     },
                                     10,
                                     false,

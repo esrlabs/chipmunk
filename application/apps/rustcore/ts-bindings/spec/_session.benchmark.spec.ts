@@ -224,7 +224,12 @@ describe('Benchmark Tests', function () {
                                     await search.search([
                                         {
                                             filter: 'HTTP',
-                                            flags: { reg: true, word: true, cases: false },
+                                            flags: {
+                                                reg: true,
+                                                word: true,
+                                                cases: false,
+                                                invert: false,
+                                            },
                                         },
                                     ]);
                                     let items = await stream.grabIndexed(0, countMatches);
@@ -258,7 +263,12 @@ describe('Benchmark Tests', function () {
                                         .search([
                                             {
                                                 filter: 'http',
-                                                flags: { reg: true, word: false, cases: false },
+                                                flags: {
+                                                    reg: true,
+                                                    word: false,
+                                                    cases: false,
+                                                    invert: false,
+                                                },
                                             },
                                         ])
                                         .catch(finish.bind(null, session, done));
@@ -280,15 +290,30 @@ describe('Benchmark Tests', function () {
                                         .search([
                                             {
                                                 filter: 'http://www.almhuette-raith.at',
-                                                flags: { reg: true, word: false, cases: false },
+                                                flags: {
+                                                    reg: true,
+                                                    word: false,
+                                                    cases: false,
+                                                    invert: false,
+                                                },
                                             },
                                             {
                                                 filter: 'com.apple.hiservices-xpcservice',
-                                                flags: { reg: true, word: false, cases: false },
+                                                flags: {
+                                                    reg: true,
+                                                    word: false,
+                                                    cases: false,
+                                                    invert: false,
+                                                },
                                             },
                                             {
                                                 filter: 'Google Chrome Helper',
-                                                flags: { reg: true, word: false, cases: false },
+                                                flags: {
+                                                    reg: true,
+                                                    word: false,
+                                                    cases: false,
+                                                    invert: false,
+                                                },
                                             },
                                         ])
                                         .catch(finish.bind(null, session, done));

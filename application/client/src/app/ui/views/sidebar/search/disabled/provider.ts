@@ -198,7 +198,7 @@ export class ProviderDisabled extends Provider<DisabledRequest> {
                 .state()
                 .setActive({
                     filter: entity.definition.filter,
-                    flags: { reg: true, word: false, cases: false },
+                    flags: { reg: true, word: false, cases: false, invert: false },
                 })
                 .catch((error: Error) => {
                     this.logger.error(`Fail to make search: ${error.message}`);

@@ -1,4 +1,3 @@
-
 describe('test', function () {
     let wasm: typeof import('../pkg');
     beforeAll(async function () {
@@ -11,7 +10,8 @@ describe('test', function () {
         const caseSensitive = true;
         const wholeWord = false;
         const regex = true;
-        const result = get_filter_error(filter, caseSensitive, wholeWord, regex);
+        const invert = false;
+        const result = get_filter_error(filter, caseSensitive, wholeWord, regex, invert);
         expect(result).toBeUndefined();
         done();
     });
@@ -22,7 +22,8 @@ describe('test', function () {
         const caseSensitive = false;
         const wholeWord = true;
         const regex = true;
-        const result = get_filter_error(filter, caseSensitive, wholeWord, regex);
+        const invert = false;
+        const result = get_filter_error(filter, caseSensitive, wholeWord, regex, invert);
         expect(typeof result).toEqual('string');
         done();
     });
@@ -33,7 +34,8 @@ describe('test', function () {
         const caseSensitive = true;
         const wholeWord = false;
         const regex = false;
-        const result = get_filter_error(filter, caseSensitive, wholeWord, regex);
+        const invert = false;
+        const result = get_filter_error(filter, caseSensitive, wholeWord, regex, invert);
         expect(result).toBeUndefined();
         done();
     });
@@ -44,7 +46,8 @@ describe('test', function () {
         const caseSensitive = false;
         const wholeWord = false;
         const regex = true;
-        const result = get_filter_error(filter, caseSensitive, wholeWord, regex);
+        const invert = false;
+        const result = get_filter_error(filter, caseSensitive, wholeWord, regex, invert);
         expect(result).toBeUndefined();
         done();
     });

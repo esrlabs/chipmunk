@@ -1,7 +1,7 @@
 use crate::search::{error::SearchError, filter, filter::SearchFilter};
 use grep_regex::RegexMatcher;
-use grep_searcher::{Searcher, sinks::UTF8};
-use itertools::Itertools;
+use grep_searcher::{SearcherBuilder, sinks::UTF8};
+use itertools::{Either, Itertools};
 use regex::Regex;
 use std::{
     path::{Path, PathBuf},
@@ -54,38 +54,56 @@ impl MatchesExtractor {
                 "Cannot search without filters".to_owned(),
             ));
         }
-        let combined_regex: String =
-            format!("({})", self.filters.iter().map(filter::as_regex).join("|"));
+
+        let (include_regexs, exclude_regexs): (Vec<_>, Vec<_>) =
+            self.filters.iter().partition_map(|f| {
+                let as_regex = filter::as_regex(f);
+                if f.invert {
+                    Either::Right(as_regex)
+                } else {
+                    Either::Left(as_regex)
+                }
+            });
+
         let mut values: Vec<stypes::ExtractedMatchValue> = vec![];
-        let mut regexs: Vec<Regex> = vec![];
-        for filter in self.filters.iter() {
-            regexs.push(
-                Regex::from_str(&filter::as_regex(filter))
-                    .map_err(|err| SearchError::Regex(format!("{err}")))?,
-            );
+
+        for (idx, patterns) in [include_regexs, exclude_regexs].into_iter().enumerate() {
+            if patterns.is_empty() {
+                continue;
+            }
+            let invert = idx == 1;
+            let regexs: Vec<_> = patterns
+                .iter()
+                .map(|as_regex| {
+                    Regex::from_str(as_regex).map_err(|err| SearchError::Regex(format!("{err}")))
+                })
+                .try_collect()?;
+
+            let combined = format!("({})", patterns.join("|"));
+
+            let regex_matcher = match RegexMatcher::new(&combined) {
+                Ok(regex) => regex,
+                Err(err) => return Err(SearchError::Regex(format!("{err}"))),
+            };
+
+            SearcherBuilder::new()
+                .invert_match(invert)
+                .build()
+                .search_path(
+                    &regex_matcher,
+                    &self.file_path,
+                    UTF8(|lnum, line| {
+                        values.push(get_extracted_value(lnum - 1, line, &regexs));
+                        Ok(true)
+                    }),
+                )
+                .map_err(|e| {
+                    SearchError::IoOperation(format!(
+                        "Could not search in file {:?}; error: {}",
+                        &self.file_path, e
+                    ))
+                })?;
         }
-        let regex_matcher = match RegexMatcher::new(&combined_regex) {
-            Ok(regex) => regex,
-            Err(err) => return Err(SearchError::Regex(format!("{err}"))),
-        };
-        // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
-        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
-        // lnum - 1
-        Searcher::new()
-            .search_path(
-                &regex_matcher,
-                &self.file_path,
-                UTF8(|lnum, line| {
-                    values.push(get_extracted_value(lnum - 1, line, &regexs));
-                    Ok(true)
-                }),
-            )
-            .map_err(|e| {
-                SearchError::IoOperation(format!(
-                    "Could not search in file {:?}; error: {}",
-                    &self.file_path, e
-                ))
-            })?;
 
         Ok(values)
     }

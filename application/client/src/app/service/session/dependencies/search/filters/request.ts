@@ -61,6 +61,10 @@ export class FilterRequest
             def.colors.color = obj.getAsNotEmptyString(def.colors, 'color');
             def.colors.background = obj.getAsNotEmptyString(def.colors, 'background');
             def.active = obj.getAsBool(def, 'active');
+
+            // Default invert flag to false for backward compatibility with older filters.
+            def.filter.flags.invert ??= false;
+
             return new FilterRequest(def);
         } catch (e) {
             return new Error(error(e));
@@ -78,6 +82,7 @@ export class FilterRequest
                         cases: obj.getAsBool(flags, 'casesensitive'),
                         word: obj.getAsBool(flags, 'wholeword'),
                         reg: obj.getAsBool(flags, 'regexp'),
+                        invert: false,
                     },
                 },
                 colors: {
@@ -98,6 +103,7 @@ export class FilterRequest
                 filter.flags.cases,
                 filter.flags.word,
                 filter.flags.reg,
+                filter.flags.invert,
             ) === undefined
         );
     }
@@ -108,6 +114,7 @@ export class FilterRequest
             filter.flags.cases,
             filter.flags.word,
             filter.flags.reg,
+            filter.flags.invert,
         );
         if (error !== undefined) {
             const match: RegExpMatchArray | null = error.match(/error:.+/i);
@@ -121,7 +128,10 @@ export class FilterRequest
     static defaults(value: string): FilterRequest {
         const color = getNextColor();
         return new FilterRequest({
-            filter: { filter: value, flags: { reg: true, word: false, cases: false } },
+            filter: {
+                filter: value,
+                flags: { reg: true, word: false, cases: false, invert: false },
+            },
             colors: {
                 background: color,
                 color: getContrastColor(color, true),
@@ -132,7 +142,7 @@ export class FilterRequest
     static getHashByDefinition(def: FilterDefinition): string {
         return `${def.filter.filter}${def.filter.flags.cases ? 'c' : ''}${
             def.filter.flags.reg ? 'r' : ''
-        }${def.filter.flags.word ? 'w' : ''}${def.colors.color}${def.colors.background}${
+        }${def.filter.flags.word ? 'w' : ''}${def.filter.flags.invert ? 'n' : ''}${def.colors.color}${def.colors.background}${
             def.active ? '1' : '0'
         }`;
     }
@@ -163,14 +173,14 @@ export class FilterRequest
                     def.colors === undefined
                         ? getContrastColor(defaultMatchColor, true)
                         : def.colors.color === undefined
-                        ? getContrastColor(defaultMatchColor, true)
-                        : def.colors.color,
+                          ? getContrastColor(defaultMatchColor, true)
+                          : def.colors.color,
                 background:
                     def.colors === undefined
                         ? defaultMatchColor
                         : def.colors.background === undefined
-                        ? defaultMatchColor
-                        : def.colors.background,
+                          ? defaultMatchColor
+                          : def.colors.background,
             },
         };
         this.update();
@@ -226,7 +236,7 @@ export class FilterRequest
     public alias(): string {
         return `${this.definition.filter.filter}:${this.definition.filter.flags.reg ? '1' : '0'}${
             !this.definition.filter.flags.cases ? '1' : '0'
-        }${this.definition.filter.flags.word ? '1' : '0'}`;
+        }${this.definition.filter.flags.word ? '1' : '0'}${this.definition.filter.flags.invert ? '1' : '0'}`;
     }
 
     public set(silence: boolean = false): {
@@ -333,7 +343,7 @@ export class FilterRequest
 
     public isSame(filter: FilterRequest): boolean {
         const hash = (f: FilterRequest) => {
-            return `${f.definition.filter.filter}|${f.definition.filter.flags.cases}|${f.definition.filter.flags.reg}|${f.definition.filter.flags.word}`;
+            return `${f.definition.filter.filter}|${f.definition.filter.flags.cases}|${f.definition.filter.flags.reg}|${f.definition.filter.flags.word}|${f.definition.filter.flags.invert}`;
         };
         return hash(filter) === hash(this);
     }
@@ -352,7 +362,7 @@ export class FilterRequest
             this.definition.filter.flags.cases ? 'c' : ''
         }${this.definition.filter.flags.reg ? 'r' : ''}${
             this.definition.filter.flags.word ? 'w' : ''
-        }${this.definition.colors.color}${this.definition.colors.background}${
+        }${this.definition.filter.flags.invert ? 'n' : ''}${this.definition.colors.color}${this.definition.colors.background}${
             this.definition.active ? '1' : '0'
         }`;
         return prev !== this._hash;

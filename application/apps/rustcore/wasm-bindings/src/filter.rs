@@ -11,12 +11,22 @@ pub fn get_filter_error(
     case_sensitive: bool,
     whole_word: bool,
     regex: bool,
+    invert: bool,
 ) -> Option<String> {
-    let regex_as_str = filter_as_regex(filter, case_sensitive, whole_word, regex);
+    let regex_as_str = filter_as_regex(filter, case_sensitive, whole_word, regex, invert);
     Regex::from_str(&regex_as_str).map_or_else(|err| Some(err.to_string()), |_| None)
 }
 
-fn filter_as_regex(filter: String, case_sensitive: bool, whole_word: bool, regex: bool) -> String {
+fn filter_as_regex(
+    filter: String,
+    case_sensitive: bool,
+    whole_word: bool,
+    regex: bool,
+    _invert: bool,
+) -> String {
+    // Note:
+    // invert isn't included in regex because it needs look-around support,
+    // which isn't supported in rust.
     let word_marker = if whole_word { "\\b" } else { "" };
     let ignore_case_start = if case_sensitive { "(?i)" } else { "" };
     let ignore_case_end = if case_sensitive { "(?-i)" } else { "" };
@@ -35,8 +45,9 @@ fn plain_string_regex_on() {
     let case_sesitive = false;
     let whole_word = false;
     let regex = true;
+    let invert = false;
     assert_eq!(
-        get_filter_error(filter, case_sesitive, whole_word, regex),
+        get_filter_error(filter, case_sesitive, whole_word, regex, invert),
         None
     );
 }
@@ -48,8 +59,9 @@ fn plain_string_regex_off() {
     let case_sesitive = false;
     let whole_word = false;
     let regex = false;
+    let invert = false;
     assert_eq!(
-        get_filter_error(filter, case_sesitive, whole_word, regex),
+        get_filter_error(filter, case_sesitive, whole_word, regex, invert),
         None
     );
 }
@@ -61,8 +73,9 @@ fn valid_regex() {
     let case_sesitive = false;
     let whole_word = false;
     let regex = true;
+    let invert = false;
     assert_eq!(
-        get_filter_error(filter, case_sesitive, whole_word, regex),
+        get_filter_error(filter, case_sesitive, whole_word, regex, invert),
         None
     );
 }
@@ -74,7 +87,8 @@ fn invalid_regex() {
     let case_sesitive = false;
     let whole_word = false;
     let regex = true;
-    match get_filter_error(filter, case_sesitive, whole_word, regex) {
+    let invert = false;
+    match get_filter_error(filter, case_sesitive, whole_word, regex, invert) {
         Some(result) => assert_eq!(
             result,
             "regex parse error:\n    \\[Warn(\\]\n          ^\nerror: unclosed group"

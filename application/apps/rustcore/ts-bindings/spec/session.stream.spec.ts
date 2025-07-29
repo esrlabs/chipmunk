@@ -326,7 +326,7 @@ if (process.platform === 'win32') {
                             .search([
                                 {
                                     filter,
-                                    flags: { reg: true, word: false, cases: false },
+                                    flags: { reg: true, word: false, cases: false, invert: false },
                                 },
                             ])
                             .then(() => {

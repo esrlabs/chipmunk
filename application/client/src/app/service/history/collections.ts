@@ -305,7 +305,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 .elements()
                 .map((request) => {
                     const def = request.definition;
-                    return `${def.filter.filter}${def.filter.flags.cases}${def.filter.flags.word}${def.filter.flags.reg}${def.colors.color}${def.colors.background}${def.active}`;
+                    return `${def.filter.filter}${def.filter.flags.cases}${def.filter.flags.word}${def.filter.flags.reg}${def.filter.flags.invert}${def.colors.color}${def.colors.background}${def.active}`;
                 })
                 .join(';') +
             this.collections.charts
@@ -325,7 +325,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             )
                 .map((request: FilterRequest) => {
                     const def = request.definition;
-                    return `${def.filter.filter}${def.filter.flags.cases}${def.filter.flags.word}${def.filter.flags.reg}${def.colors.color}${def.colors.background}${def.active}`;
+                    return `${def.filter.filter}${def.filter.flags.cases}${def.filter.flags.word}${def.filter.flags.reg}${def.filter.flags.invert}${def.colors.color}${def.colors.background}${def.active}`;
                 })
                 .join(';') +
             (

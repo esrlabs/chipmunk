@@ -67,6 +67,7 @@ export class State {
             cases: false,
             word: false,
             reg: true,
+            invert: false,
         },
     };
 

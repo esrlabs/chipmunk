@@ -280,7 +280,7 @@ export class ProviderFilters extends Provider<FilterRequest> {
                     .filters()
                     .addFromFilter({
                         filter: entity.as().filter(),
-                        flags: { reg: true, word: false, cases: false },
+                        flags: { reg: true, word: false, cases: false, invert: false },
                     })
             ) {
                 this.session.search.store().charts().delete([entity.uuid()]);

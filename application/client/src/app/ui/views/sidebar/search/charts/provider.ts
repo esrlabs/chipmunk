@@ -176,7 +176,12 @@ export class ProviderCharts extends Provider<ChartRequest> {
                                     .filters()
                                     .addFromFilter({
                                         filter: entity.as().filter(),
-                                        flags: { reg: true, word: false, cases: false },
+                                        flags: {
+                                            reg: true,
+                                            word: false,
+                                            cases: false,
+                                            invert: false,
+                                        },
                                     })
                             ) {
                                 return;
@@ -261,7 +266,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
             .state()
             .setActive({
                 filter: entity.extract().definition.filter,
-                flags: { reg: true, word: false, cases: false },
+                flags: { reg: true, word: false, cases: false, invert: false },
             })
             .catch((error: Error) => {
                 this.logger.error(`Fail to make search: ${error.message}`);

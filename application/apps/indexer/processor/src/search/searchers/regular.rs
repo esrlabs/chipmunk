@@ -12,7 +12,7 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::{BaseSearcher, SearchState};
+use super::{BaseSearcher, SearchState, SearchTerms};
 
 pub type SearchResults =
     Result<(Range<usize>, Vec<stypes::FilterMatch>, FiltersStats), SearchError>;
@@ -33,11 +33,28 @@ impl Results {
 }
 
 #[derive(Debug)]
+/// A regex-based matcher with an option to invert its matching logic.
+pub struct SearchMatcher {
+    /// Regex engine.
+    pub regex: Regex,
+    /// Invert regex match.
+    pub invert: bool,
+}
+
+impl SearchMatcher {
+    /// Check if the provided text matches.
+    pub fn is_match(&self, haystack: &str) -> bool {
+        let do_match = self.regex.is_match(haystack);
+        if self.invert { !do_match } else { do_match }
+    }
+}
+
+#[derive(Debug)]
 pub struct RegularSearchState {
     pub file_path: PathBuf,
     pub uuid: Uuid,
     filters: Vec<SearchFilter>,
-    matchers: Vec<Regex>,
+    matchers: Vec<SearchMatcher>,
     aliases: HashMap<usize, String>,
     results: Results,
 }
@@ -61,9 +78,14 @@ impl RegularSearchHolder {
         for (pos, filter) in filters.iter().enumerate() {
             aliases.insert(pos, filter::as_alias(filter));
             let regex_as_str = filter::as_regex(filter);
-            matchers.push(Regex::from_str(&regex_as_str).map_err(|err| {
+            let regex = Regex::from_str(&regex_as_str).map_err(|err| {
                 SearchError::Regex(format!("Failed to create regex for {regex_as_str}: {err}"))
-            })?);
+            })?;
+            let matcher = SearchMatcher {
+                regex,
+                invert: filter.invert,
+            };
+            matchers.push(matcher);
         }
         self.search_state.filters = filters;
         self.search_state.matchers = matchers;
@@ -84,8 +106,19 @@ impl SearchState for RegularSearchState {
             results: Results::new(),
         }
     }
-    fn get_terms(&self) -> Vec<String> {
-        self.filters.iter().map(filter::as_regex).collect()
+    fn get_terms(&self) -> SearchTerms {
+        let mut include = Vec::new();
+        let mut exclude = Vec::new();
+        self.filters.iter().for_each(|f| {
+            let regex = filter::as_regex(f);
+            if f.invert {
+                exclude.push(regex);
+            } else {
+                include.push(regex);
+            }
+        });
+
+        SearchTerms::new(include, exclude)
     }
 }
 

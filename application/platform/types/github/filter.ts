@@ -14,6 +14,7 @@ const protocols: { [key: string]: (def: FilterDefinition) => FilterDefinition } 
         def.filter.flags.cases = validator.getAsBool(def.filter.flags, 'cases');
         def.filter.flags.word = validator.getAsBool(def.filter.flags, 'word');
         def.filter.flags.reg = validator.getAsBool(def.filter.flags, 'reg');
+        def.filter.flags.invert = validator.getAsBool(def.filter.flags, 'invert');
         def.filter.filter = validator.getAsNotEmptyString(def.filter, 'filter');
         def.active = validator.getAsBool(def, 'active');
         return def;

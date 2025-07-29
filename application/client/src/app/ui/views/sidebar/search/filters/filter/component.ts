@@ -33,6 +33,7 @@ export class Filter extends EntityItem<ProviderFilters, FilterRequest> implement
                 cases: this.state.filter.flags.cases,
                 word: this.state.filter.flags.word,
                 reg: this.state.filter.flags.reg,
+                invert: this.state.filter.flags.invert,
             },
         });
     }

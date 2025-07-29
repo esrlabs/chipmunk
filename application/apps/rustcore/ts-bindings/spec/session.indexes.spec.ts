@@ -49,7 +49,7 @@ describe('Indexes', function () {
                         await comps.search.search([
                             {
                                 filter: 'match A',
-                                flags: { reg: true, word: true, cases: false },
+                                flags: { reg: true, word: true, cases: false, invert: false },
                             },
                         ]);
                         let items = await comps.stream.grabIndexed(0, countMatches);

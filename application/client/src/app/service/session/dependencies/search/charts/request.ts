@@ -95,13 +95,13 @@ export class ChartRequest
     static isValid(filter: string | undefined): boolean {
         return filter === undefined
             ? false
-            : getFilterError(filter, false, false, true) === undefined
-            ? regexFilters.hasGroups(filter)
-            : false;
+            : getFilterError(filter, false, false, true, false) === undefined
+              ? regexFilters.hasGroups(filter)
+              : false;
     }
 
     static getValidationError(filter: string): string | undefined {
-        let error: string | undefined = getFilterError(filter, false, false, true);
+        let error: string | undefined = getFilterError(filter, false, false, true, false);
         if (error !== undefined) {
             const match: RegExpMatchArray | null = error.match(/error:.+/i);
             if (match !== null && match[0] !== undefined) {
@@ -315,11 +315,13 @@ export class ChartRequest
             reg: true,
             word: false,
             cases: false,
+            invert: false,
         });
         this._safeRegExp = regexFilters.getMarkerRegExp(serializeHtml(this.definition.filter), {
             reg: true,
             word: false,
             cases: false,
+            invert: false,
         });
         this._hash = `${this.definition.filter}${this.definition.color}${
             this.definition.widths.line

@@ -59,11 +59,21 @@ impl JSValue<'_> for WrappedSearchFilter {
                     return Err(e);
                 }
             };
+            let invert: bool = match js_obj.get_property("invert") {
+                Ok(Some(value)) => value.as_value()?,
+                Ok(None) => {
+                    return Err(NjError::Other("[invert] property is not found".to_owned()));
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            };
             Ok(WrappedSearchFilter(SearchFilter::new(
                 value,
                 is_regex,
                 ignore_case,
                 is_word,
+                invert,
             )))
         } else {
             Err(NjError::Other("not valid format".to_owned()))

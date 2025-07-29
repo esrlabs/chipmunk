@@ -1,6 +1,6 @@
 use crate::{grabber::GrabError, search::error::SearchError};
 use grep_regex::RegexMatcher;
-use grep_searcher::{Searcher, sinks::UTF8};
+use grep_searcher::{SearcherBuilder, sinks::UTF8};
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
@@ -21,6 +21,22 @@ pub mod tests_regular;
 pub mod tests_values;
 pub mod values;
 
+/// A group of search terms to be used with regex using inclusion and exclusion patterns.
+#[derive(Debug, Clone)]
+pub struct SearchTerms {
+    /// Inclusion patterns.
+    pub include: Vec<String>,
+    /// Exclusion patterns.
+    pub exclude: Vec<String>,
+}
+
+impl SearchTerms {
+    /// Create an instance with the provided arguments.
+    pub fn new(include: Vec<String>, exclude: Vec<String>) -> Self {
+        Self { include, exclude }
+    }
+}
+
 #[derive(Debug)]
 pub struct BaseSearcher<State: SearchState> {
     pub file_path: PathBuf,
@@ -32,7 +48,7 @@ pub struct BaseSearcher<State: SearchState> {
 pub trait SearchState {
     type SearchResultType;
     fn new(path: &Path, uuid: Uuid) -> Self;
-    fn get_terms(&self) -> Vec<String>;
+    fn get_terms(&self) -> SearchTerms;
 }
 
 impl<State: SearchState> BaseSearcher<State> {
@@ -78,55 +94,68 @@ impl<State: SearchState> BaseSearcher<State> {
             )));
         }
         let terms = self.search_state.get_terms();
-        if terms.is_empty() {
+        if terms.include.is_empty() && terms.exclude.is_empty() {
             return Err(SearchError::Input(
                 "Cannot search without filters".to_owned(),
             ));
         }
-        let combined_regex: String = format!("({})", terms.join("|"));
-        let matcher = match RegexMatcher::new(&combined_regex) {
-            Ok(regex) => regex,
-            Err(err) => {
-                return Err(SearchError::Regex(format!(
-                    "Failed to create combined regex for {combined_regex}: {err}"
-                )));
-            }
-        };
-        let in_file = File::open(&self.file_path).map_err(|_| {
-            GrabError::IoOperation(format!("Could not open file {:?}", self.file_path))
-        })?;
-        let mut in_file_reader = CancellableBufReader::new(in_file, cancel_token);
-        in_file_reader
-            .seek(SeekFrom::Start(self.bytes_read))
-            .map_err(|_| {
-                GrabError::IoOperation(format!(
-                    "Could not seek file {:?} to {}",
-                    self.file_path, self.bytes_read
-                ))
-            })?;
-        let mut reader_handler = in_file_reader.take(read_bytes - self.bytes_read);
-        // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
-        // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
-        // lnum - 1
-        let lines_read = self.lines_read;
+
         let mut processed: usize = 0;
-        Searcher::new()
-            .search_reader(
-                &matcher,
-                &mut reader_handler,
-                UTF8(|row, line| {
-                    // self.matching(row + lines_read - 1, line);
-                    f(row + lines_read - 1, line, &mut self.search_state);
-                    processed += 1;
-                    Ok(true)
-                }),
-            )
-            .map_err(|e| {
-                SearchError::IoOperation(format!(
-                    "Could not search in file {:?}; error: {e}",
-                    self.file_path
-                ))
+        let lines_read = self.lines_read;
+        let SearchTerms { include, exclude } = terms;
+
+        for (idx, terms) in [include, exclude].into_iter().enumerate() {
+            if terms.is_empty() {
+                continue;
+            }
+            let invert = idx == 1;
+
+            let combined_regex: String = format!("({})", terms.join("|"));
+            let matcher = match RegexMatcher::new(&combined_regex) {
+                Ok(regex) => regex,
+                Err(err) => {
+                    return Err(SearchError::Regex(format!(
+                        "Failed to create combined regex for {combined_regex}: {err}"
+                    )));
+                }
+            };
+            let in_file = File::open(&self.file_path).map_err(|_| {
+                GrabError::IoOperation(format!("Could not open file {:?}", self.file_path))
             })?;
+            let mut in_file_reader = CancellableBufReader::new(in_file, cancel_token.clone());
+            in_file_reader
+                .seek(SeekFrom::Start(self.bytes_read))
+                .map_err(|_| {
+                    GrabError::IoOperation(format!(
+                        "Could not seek file {:?} to {}",
+                        self.file_path, self.bytes_read
+                    ))
+                })?;
+            let mut reader_handler = in_file_reader.take(read_bytes - self.bytes_read);
+            // Take in account: we are counting on all levels (grabbing search, grabbing stream etc)
+            // from 0 line always. But grep gives results from 1. That's why here is a point of correct:
+            // lnum - 1
+            SearcherBuilder::new()
+                .invert_match(invert)
+                .build()
+                .search_reader(
+                    &matcher,
+                    &mut reader_handler,
+                    UTF8(|row, line| {
+                        // self.matching(row + lines_read - 1, line);
+                        f(row + lines_read - 1, line, &mut self.search_state);
+                        processed += 1;
+                        Ok(true)
+                    }),
+                )
+                .map_err(|e| {
+                    SearchError::IoOperation(format!(
+                        "Could not search in file {:?}; error: {e}",
+                        self.file_path
+                    ))
+                })?;
+        }
+
         self.lines_read = rows_count;
         self.bytes_read = read_bytes + 1;
         Ok(lines_read as usize..(lines_read as usize + processed))

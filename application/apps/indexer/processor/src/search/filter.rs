@@ -8,15 +8,23 @@ pub struct SearchFilter {
     is_regex: bool,
     ignore_case: bool,
     is_word: bool,
+    pub invert: bool,
 }
 
 impl SearchFilter {
-    pub fn new(value: String, is_regex: bool, ignore_case: bool, is_word: bool) -> Self {
+    pub fn new(
+        value: String,
+        is_regex: bool,
+        ignore_case: bool,
+        is_word: bool,
+        invert: bool,
+    ) -> Self {
         SearchFilter {
             value,
             is_regex,
             ignore_case,
             is_word,
+            invert,
         }
     }
 
@@ -26,6 +34,7 @@ impl SearchFilter {
             is_regex: false,
             ignore_case: false,
             is_word: false,
+            invert: false,
         }
     }
 
@@ -57,11 +66,17 @@ impl SearchFilter {
         self.is_word = word;
         self
     }
+
+    #[must_use]
+    pub fn invert(mut self, invert: bool) -> Self {
+        self.invert = invert;
+        self
+    }
 }
 
 pub fn get_filter_error(filter: &SearchFilter) -> Option<String> {
-    let regex_as_str = as_regex(filter);
-    Regex::from_str(&regex_as_str).map_or_else(|err| Some(err.to_string()), |_| None)
+    let regex_info = as_regex(filter);
+    Regex::from_str(&regex_info).map_or_else(|err| Some(err.to_string()), |_| None)
 }
 
 pub fn as_regex(filter: &SearchFilter) -> String {
@@ -73,15 +88,17 @@ pub fn as_regex(filter: &SearchFilter) -> String {
     } else {
         regex::escape(&filter.value)
     };
-    format!("{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}",)
+
+    format!("{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}")
 }
 
 pub fn as_alias(filter: &SearchFilter) -> String {
     let word_marker = if filter.is_word { "1" } else { "0" };
     let ignore_case = if filter.ignore_case { "1" } else { "0" };
     let is_regex = if filter.is_regex { "1" } else { "0" };
+    let invert = if filter.invert { "1" } else { "0" };
     format!(
-        "{}:{}{}{}",
-        filter.value, is_regex, ignore_case, word_marker
+        "{}:{}{}{}{}",
+        filter.value, is_regex, ignore_case, word_marker, invert
     )
 }

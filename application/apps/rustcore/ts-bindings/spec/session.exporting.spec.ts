@@ -225,7 +225,7 @@ describe('Exporting', function () {
                         .search([
                             {
                                 filter: '__\\d+__',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((_found) => {

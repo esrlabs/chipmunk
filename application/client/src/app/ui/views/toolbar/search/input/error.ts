@@ -10,6 +10,7 @@ export class ErrorHandler {
             reg: true,
             word: false,
             cases: false,
+            invert: false,
         },
     };
 
@@ -36,6 +37,7 @@ export class ErrorHandler {
         caseSensitive(value: boolean): void;
         wholeWord(value: boolean): void;
         regex(value: boolean): void;
+        invert(value: boolean): void;
     } {
         return {
             value: (value: string) => {
@@ -54,6 +56,10 @@ export class ErrorHandler {
                 this.filter.flags.reg = value;
                 this._checkRegex();
             },
+            invert: (value: boolean) => {
+                this.filter.flags.invert = value;
+                this._checkRegex();
+            },
         };
     }
 
@@ -68,6 +74,7 @@ export class ErrorHandler {
                 cases: this.filter.flags.cases,
                 word: this.filter.flags.word,
                 reg: true,
+                invert: this.filter.flags.invert,
             },
         });
     }

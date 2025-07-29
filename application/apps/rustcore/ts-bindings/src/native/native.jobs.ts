@@ -48,6 +48,7 @@ export abstract class JobsNative {
             is_regex: boolean;
             ignore_case: boolean;
             is_word: boolean;
+            invert: boolean;
         },
     ): Promise<Uint8Array>;
     public abstract installedPluginsList(sequence: number): Promise<Uint8Array>;

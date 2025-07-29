@@ -229,6 +229,7 @@ export class Jobs extends Base {
                 is_regex: filter.flags.reg,
                 ignore_case: !filter.flags.cases,
                 is_word: filter.flags.word,
+                invert: filter.flags.invert,
             }),
             sequence,
             'getRegexError',

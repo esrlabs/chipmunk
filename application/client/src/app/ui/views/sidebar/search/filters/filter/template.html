@@ -16,4 +16,5 @@
     <span [attr.class]="'small-icon-button codicon codicon-case-sensitive ' + (state.filter.flags.cases ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, EFlag.cases)"></span>
     <span [attr.class]="'small-icon-button codicon codicon-whole-word ' + (state.filter.flags.word ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, EFlag.word)"></span>
     <span [attr.class]="'small-icon-button codicon codicon-regex ' + (state.filter.flags.reg ? 'active' : state.isValidRegex ? 'inactive' : 'invalid')" (click)="_ng_flagsToggle($event, EFlag.reg)"></span>
+    <span [attr.class]="'small-icon-button codicon codicon-diff-removed ' + (state.filter.flags.invert ? 'active' : 'inactive')" (click)="_ng_flagsToggle($event, EFlag.invert)"></span>
 </span>

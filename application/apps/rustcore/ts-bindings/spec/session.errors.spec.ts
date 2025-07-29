@@ -22,7 +22,7 @@ describe('Errors', () => {
                 .search([
                     {
                         filter: 'match',
-                        flags: { reg: true, word: true, cases: false },
+                        flags: { reg: true, word: true, cases: false, invert: false },
                     },
                 ])
                 .then((_found: number) =>
@@ -117,7 +117,7 @@ describe('Errors', () => {
                         .search([
                             {
                                 filter: 'match',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((found: number) => {
@@ -319,7 +319,7 @@ describe('Errors', () => {
                         .search([
                             {
                                 filter: 'invalid search { condition',
-                                flags: { reg: true, word: false, cases: false },
+                                flags: { reg: true, word: false, cases: false, invert: false },
                             },
                         ])
                         .then((_) => {

@@ -26,6 +26,12 @@ export class ActiveSearch {
     }
 
     public isPossibleToSaveAsChart(): boolean {
+        // Inverted filters can't be saved as charts
+        if (this.filter.flags.invert) {
+            return false;
+        }
+
+        // Check if chart already exist
         const request = new ChartRequest({ filter: this.filter.filter });
         return (
             !this.search.store().charts().has(request) &&

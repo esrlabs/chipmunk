@@ -8,6 +8,8 @@ use std::str::FromStr;
 pub struct LineSearcher {
     /// A compiled regular expression used for matching lines.
     re: Regex,
+    /// invert the match result.
+    invert: bool,
 }
 
 impl LineSearcher {
@@ -27,6 +29,7 @@ impl LineSearcher {
             re: Regex::from_str(&regex_as_str).map_err(|err| {
                 SearchError::Regex(format!("Failed to create regex for {regex_as_str}: {err}"))
             })?,
+            invert: filter.invert,
         })
     }
 
@@ -41,6 +44,7 @@ impl LineSearcher {
     /// * `true` - If the line matches the regular expression.
     /// * `false` - Otherwise.
     pub fn is_match(&self, ln: &str) -> bool {
-        self.re.is_match(ln)
+        let do_match = self.re.is_match(ln);
+        if self.invert { !do_match } else { do_match }
     }
 }

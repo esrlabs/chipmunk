@@ -69,7 +69,7 @@ export class DisabledRequest
 
     public isSame(disabled: DisabledRequest): boolean {
         const getFilterHash = (f: FilterRequest) => {
-            return `${f.definition.filter.filter}|${f.definition.filter.flags.cases}|${f.definition.filter.flags.reg}|${f.definition.filter.flags.word}`;
+            return `${f.definition.filter.filter}|${f.definition.filter.flags.cases}|${f.definition.filter.flags.reg}|${f.definition.filter.flags.word}|${f.definition.filter.flags.invert}`;
         };
         const left = disabled.entity();
         const right = this.entity();

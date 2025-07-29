@@ -1,30 +1,23 @@
 import { IFilterFlags } from '../types/filter';
 import { serialize, fromStr } from './regex';
 
-export function getSearchRegExp(request: string, flags: IFilterFlags): RegExp {
-    if (flags.reg) {
-        return fromStr(
-            flags.word ? `\\b${request}\\b` : request,
-            `g${flags.cases ? '' : 'i'}m`,
-        ) as RegExp;
-    } else if (flags.word) {
-        return fromStr(`\\b${serialize(request)}\\b`, `g${flags.cases ? '' : 'i'}m`) as RegExp;
-    } else {
-        return fromStr(`${serialize(request)}`, `g${flags.cases ? '' : 'i'}m`) as RegExp;
-    }
-}
-
 export function getMarkerRegExp(request: string, flags: IFilterFlags): RegExp {
-    if (flags.reg) {
-        return fromStr(
-            flags.word ? `\\b${request}\\b` : request,
-            `g${flags.cases ? '' : 'i'}m`,
-        ) as RegExp;
-    } else if (flags.word) {
-        return fromStr(`\\b${serialize(request)}\\b`, `g${flags.cases ? '' : 'i'}m`) as RegExp;
-    } else {
-        return fromStr(serialize(request), `g${flags.cases ? '' : 'i'}m`) as RegExp;
+    // Common regex for to all scenarios.
+    // Note: The 'm' (multiline) flag is crucial for negation to work on a line-by-line basis.
+    const regexFlags = `g${flags.cases ? '' : 'i'}m`;
+
+    let pattern = flags.reg ? request : serialize(request);
+    if (flags.word) {
+        pattern = `\\b${pattern}\\b`;
     }
+
+    // Negative lookahead on 'invert' flag.
+    if (flags.invert) {
+        const invertPattern = `^((?!${pattern}).)*$`;
+        return fromStr(invertPattern, regexFlags) as RegExp;
+    }
+
+    return fromStr(pattern, regexFlags) as RegExp;
 }
 
 export function hasGroups(strReg: string): boolean {

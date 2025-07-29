@@ -284,6 +284,7 @@ export abstract class RustSessionNative {
             is_regex: boolean;
             ignore_case: boolean;
             is_word: boolean;
+            invert: boolean;
         }>,
         operationUuid: string,
     ): Promise<void>;
@@ -294,6 +295,7 @@ export abstract class RustSessionNative {
             is_regex: boolean;
             ignore_case: boolean;
             is_word: boolean;
+            invert: boolean;
         },
         from: number,
         rev: boolean,
@@ -312,6 +314,7 @@ export abstract class RustSessionNative {
             is_regex: boolean;
             ignore_case: boolean;
             is_word: boolean;
+            invert: boolean;
         }>,
         operationUuid: string,
     ): Promise<void>;
@@ -829,6 +832,7 @@ export class RustSessionWrapper extends RustSession {
                                 is_regex: filter.flags.reg,
                                 ignore_case: !filter.flags.cases,
                                 is_word: filter.flags.word,
+                                invert: filter.flags.invert,
                             };
                         }),
                         operationUuid,
@@ -857,6 +861,7 @@ export class RustSessionWrapper extends RustSession {
                             is_regex: filter.flags.reg,
                             ignore_case: !filter.flags.cases,
                             is_word: filter.flags.word,
+                            invert: filter.flags.invert,
                         },
                         from,
                         rev,
@@ -907,6 +912,7 @@ export class RustSessionWrapper extends RustSession {
                                 is_regex: filter.flags.reg,
                                 ignore_case: !filter.flags.cases,
                                 is_word: filter.flags.word,
+                                invert: filter.flags.invert,
                             };
                         }),
                         operationUuid,

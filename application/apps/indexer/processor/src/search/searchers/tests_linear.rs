@@ -19,36 +19,99 @@ fn test_linear() -> Result<(), std::io::Error> {
             SearchFilter::plain(r"[Err]")
                 .regex(false)
                 .ignore_case(true)
-                .word(false),
+                .word(false)
+                .invert(false),
             &[3, 4],
         ),
         (
             SearchFilter::plain(r"[err]")
                 .regex(false)
                 .ignore_case(true)
-                .word(false),
+                .word(false)
+                .invert(false),
             &[3, 4],
         ),
         (
             SearchFilter::plain(r"[err]")
                 .regex(false)
                 .ignore_case(false)
-                .word(false),
+                .word(false)
+                .invert(false),
             &[4],
         ),
         (
             SearchFilter::plain(r"\[Warn\]")
                 .regex(true)
                 .ignore_case(true)
-                .word(false),
+                .word(false)
+                .invert(false),
             &[1, 7],
         ),
         (
             SearchFilter::plain(r"warn")
                 .regex(true)
                 .ignore_case(false)
-                .word(false),
+                .word(false)
+                .invert(false),
             &[7],
+        ),
+    ];
+    for (filter, matches) in cases.into_iter() {
+        let searcher =
+            LineSearcher::new(&filter).map_err(|err| std::io::Error::other(err.to_string()))?;
+        for (n, smpl) in SAMPLES.iter().enumerate() {
+            if searcher.is_match(smpl) {
+                assert!(matches.contains(&n));
+            } else {
+                assert!(!matches.contains(&n));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn test_linear_invert() -> Result<(), std::io::Error> {
+    let cases: Vec<(SearchFilter, &[usize])> = vec![
+        (
+            SearchFilter::plain(r"[Err]")
+                .regex(false)
+                .ignore_case(true)
+                .word(false)
+                .invert(true),
+            &[0, 1, 2, 5, 6, 7],
+        ),
+        (
+            SearchFilter::plain(r"[err]")
+                .regex(false)
+                .ignore_case(true)
+                .word(false)
+                .invert(true),
+            &[0, 1, 2, 5, 6, 7],
+        ),
+        (
+            SearchFilter::plain(r"[err]")
+                .regex(false)
+                .ignore_case(false)
+                .word(false)
+                .invert(true),
+            &[0, 1, 2, 3, 5, 6, 7],
+        ),
+        (
+            SearchFilter::plain(r"\[Warn\]")
+                .regex(true)
+                .ignore_case(true)
+                .word(false)
+                .invert(true),
+            &[0, 2, 3, 4, 5, 6],
+        ),
+        (
+            SearchFilter::plain(r"warn")
+                .regex(true)
+                .ignore_case(false)
+                .word(false)
+                .invert(true),
+            &[0, 1, 2, 3, 4, 5, 6],
         ),
     ];
     for (filter, matches) in cases.into_iter() {

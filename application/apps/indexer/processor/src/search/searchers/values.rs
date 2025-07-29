@@ -9,7 +9,7 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use super::{BaseSearcher, SearchState};
+use super::{BaseSearcher, SearchState, SearchTerms};
 
 pub type OperationResults = Result<(Range<usize>, HashMap<u8, Vec<(u64, f64)>>), SearchError>;
 
@@ -46,6 +46,7 @@ fn is_valid(filter: &str) -> bool {
 }
 
 #[derive(Debug)]
+/// Value Search is used for charts only and it works with include regex only.
 pub struct ValueSearchState {
     pub file_path: PathBuf,
     pub uuid: Uuid,
@@ -92,8 +93,10 @@ impl SearchState for ValueSearchState {
             errors: HashMap::new(),
         }
     }
-    fn get_terms(&self) -> Vec<String> {
-        self.terms.iter().map(|f| as_regex(f)).collect()
+    fn get_terms(&self) -> SearchTerms {
+        // Value Searcher works in charts with include regex only.
+        let include = self.terms.iter().map(|f| as_regex(f)).collect();
+        SearchTerms::new(include, Vec::new())
     }
 }
 

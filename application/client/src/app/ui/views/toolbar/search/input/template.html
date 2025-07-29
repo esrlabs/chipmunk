@@ -66,10 +66,15 @@
         (click)="input.set().wholeWord()"
     ></span>
     <span
-        tabindex="13"
         title="Use Regular Expression"
         [attr.class]="'small-icon-button codicon codicon-regex ' + (input.flags.reg ? 'active' : input.error.isValidRegex() ? 'inactive' : 'invalid')"
         (click)="input.set().regex()"
+    ></span>
+    <span
+        tabindex="14"
+        title="Invert Filter"
+        [attr.class]="'small-icon-button codicon codicon-diff-removed ' + (input.flags.invert ? 'active' : 'inactive')"
+        (click)="input.set().invert()"
     ></span>
 </div>
 <div class="summary">
@@ -82,12 +87,12 @@
 </div>
 <div class="extantions">
     <span
-        tabindex="14"
+        tabindex="15"
         (click)="indexed.modes().toggle().breadcrumbs()"
         [attr.class]="'small-icon-button codicon codicon-list-tree ' + (indexed.modes().breadcrumbs() ? 'active' : 'inactive')"
     ></span>
     <span
-        tabindex="15"
+        tabindex="16"
         (click)="ilc().services.ui.layout.toolbar().occupy()"
         [attr.class]="'small-icon-button occupied codicon codicon-fold-' + (occupied ? 'down' : 'up')"
     ></span>

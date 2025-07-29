@@ -2,6 +2,7 @@ export interface IFilterFlags {
     reg: boolean;
     word: boolean;
     cases: boolean;
+    invert: boolean;
 }
 
 export interface IFilter {
@@ -39,6 +40,7 @@ export enum EFlag {
     cases = 'cases',
     word = 'word',
     reg = 'reg',
+    invert = 'invert',
 }
 
 export type ISearchMap = Array<[number, number][]>;
