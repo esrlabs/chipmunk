@@ -18,6 +18,8 @@ export type Field = { id: string; value: Value };
 
 export type FieldDesc = { Static: StaticFieldDesc } | { Lazy: LazyFieldDesc };
 
+export type FieldList = Array<Field>;
+
 export type FieldLoadingError = { id: string; err: string };
 
 export type FieldsValidationErrors = { errors: Map<string, string> };

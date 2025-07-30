@@ -14,3 +14,4 @@ stypes = { path = "../stypes", features=["rustcore"] }
 descriptor = { path = "../descriptor" }
 parsers = { path = "../parsers" }
 sources = { path = "../sources" }
+file-tools = { path = "../addons/file-tools" }

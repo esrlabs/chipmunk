@@ -18,6 +18,13 @@ impl NativeError {
             message: Some(String::from(msg)),
         }
     }
+    pub fn io(msg: &str) -> Self {
+        NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(String::from(msg)),
+        }
+    }
 }
 
 impl Severity {

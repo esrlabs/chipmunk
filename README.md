@@ -2,7 +2,7 @@
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)
 
-`chipmunk` is one of the fastest desktop applications for viewing log files, with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space — nothing more. With no caching and no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.
+`chipmunk` is one of the fastest desktop applications for viewing log files, with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space - nothing more. With no caching and no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.
 
 ## Automotive and Network Traces
 
@@ -19,7 +19,7 @@ Additionally, `chipmunk` allows you to work with DLT traces both as standalone f
 - Serial Port  
 - Output from a command or program
 
-For each source, you can assign a parser — for example, to collect DLT packets over a UDP connection for analysis or to save them as a standalone trace file.
+For each source, you can assign a parser - for example, to collect DLT packets over a UDP connection for analysis or to save them as a standalone trace file.
 
 Another key feature is the ability to launch any command or program and collect its output, which can be analyzed in real time as it's generated.
 
@@ -29,7 +29,7 @@ At its core, `chipmunk` is a log analysis tool. It goes beyond simple search que
 
 ![filters_create](./docs/assets/search/filters_create.gif)
 
-The search engine works dynamically — results are updated in real time as new data is added. If you're connected to a live data source, your active filters will continuously update the search results as new logs arrive.
+The search engine works dynamically - results are updated in real time as new data is added. If you're connected to a live data source, your active filters will continuously update the search results as new logs arrive.
 
 ## Metrics, Measurements, and Graphs
 
@@ -47,6 +47,6 @@ See more details in the [documentation](https://esrlabs.github.io/chipmunk/) abo
 
 ## Contributing
 
-We welcome contributions of all kinds — bug reports, performance improvements, documentation fixes, or new features.
+We welcome contributions of all kinds - bug reports, performance improvements, documentation fixes, or new features.
 
 [Click here to view it](https://esrlabs.github.io/chipmunk/contributing/welcome/)

@@ -43,6 +43,9 @@ impl CommonDescriptor for Descriptor {
             uuid: TEXT_PARSER_UUID,
         }
     }
+    fn get_default_options(&self, origin: &stypes::SessionAction) -> Option<Vec<stypes::Field>> {
+        Some(vec![])
+    }
 }
 
 impl ParserDescriptor for Descriptor {

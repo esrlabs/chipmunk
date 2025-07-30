@@ -74,6 +74,7 @@ export enum Source {
     GetIndexedLen = 'GetIndexedLen',
     getAroundIndexes = 'getAroundIndexes',
     ComponentsOptions = 'ComponentsOptions',
+    ComponentsList = 'ComponentsList',
     GetIdent = 'GetIdent',
     ComponentsValidate = 'ComponentsValidate',
     IdentList = 'IdentList',

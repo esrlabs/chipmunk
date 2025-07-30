@@ -13,6 +13,11 @@ pub fn is_binary(file_path: String) -> Result<bool> {
     Ok(from_utf8(&buffer).map_or(true, |_file_content| false))
 }
 
+pub fn is_path_binary<P: AsRef<Path>>(file_path: P) -> Result<bool> {
+    let buffer = fetch_starting_chunk(file_path.as_ref())?;
+    Ok(from_utf8(&buffer).map_or(true, |_file_content| false))
+}
+
 fn fetch_starting_chunk(file_path: &Path) -> Result<Vec<u8>> {
     let bytes_to_read: u64 = (metadata(file_path)?.len().max(1) - 1).min(BYTES_TO_READ);
 

@@ -183,6 +183,12 @@ impl SessionRegister {
                     Api::IsSdeSupported(origin, uuid, tx) => {
                         log_if_err(tx.send(register.is_sde_supported(&uuid, &origin)));
                     }
+                    Api::GetCompatibleSetup(origin, tx) => {
+                        log_if_err(tx.send(register.get_compatible_setup(&origin)));
+                    }
+                    Api::GetDefaultOptions(origin, target, tx) => {
+                        log_if_err(tx.send(register.get_default_options(&origin, &target)));
+                    }
                     // Client doesn't need any more field data. Loading task should be cancelled
                     Api::CancelLoading(fields) => {
                         for (_, (meta, _)) in tasks.iter() {
@@ -205,7 +211,6 @@ impl SessionRegister {
                         log_if_err(tx.send(()));
                         break;
                     }
-
                     Api::InstalledPluginsList(tx) => {
                         // let plugs_ref_clone = Arc::clone(&plugins_manager);
                         log_if_err(tx.send(plugins::installed_plugins_list(&plugins_manager).await))
@@ -375,14 +380,14 @@ impl SessionRegister {
     ///
     /// # Arguments
     ///
-    /// * `uuid` — The unique identifier of the source component to check.
-    /// * `origin` — The session context used to evaluate SDE permissions.
+    /// * `uuid` - The unique identifier of the source component to check.
+    /// * `origin` - The session context used to evaluate SDE permissions.
     ///
     /// # Returns
     ///
-    /// * `Ok(true)` — if the source supports SDE.
-    /// * `Ok(false)` — if the source does not support SDE.
-    /// * `Err(NativeError)` — if the request could not be sent or the response failed.
+    /// * `Ok(true)` - if the source supports SDE.
+    /// * `Ok(false)` - if the source does not support SDE.
+    /// * `Err(NativeError)` - if the request could not be sent or the response failed.
     pub async fn is_sde_supported(
         &self,
         uuid: Uuid,
@@ -396,6 +401,101 @@ impl SessionRegister {
         response(rx.await, "Fail to get response from Api::IsSdeSupported")?
     }
 
+    /// Returns a list of source and parser components that are compatible with the given session context
+    /// and can be used without explicit configuration.
+    ///
+    /// This method is designed to support "quick start" scenarios, where the user initiates a session
+    /// (e.g., opening a file) without manually selecting or configuring components. It filters available
+    /// sources and parsers based on the following criteria:
+    ///
+    /// - The component must declare compatibility with the provided [`SessionAction`].
+    /// - The component must support default options (i.e., `get_default_options()` returns `Some`).
+    /// - The component's IO type must match the detected IO data type inferred from the session context
+    ///   (e.g., plain text or raw binary).
+    ///
+    /// This method is typically used to automatically select a default setup when the user opens
+    /// a file (such as a text or DLT file), allowing immediate parsing and display without prompting
+    /// for configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` - The session context (e.g., a file or set of files) used to infer compatibility and IO type.
+    ///
+    /// # Returns
+    ///
+    /// A [`ComponentsList`] containing identifiers of all matching sources and parsers.
+    /// If no fully compatible combination is found, an empty list is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`NativeError`] if binary detection fails for one or more files.
+    ///
+    /// # Behavior
+    ///
+    /// - For a single file: detects whether the file is binary or plain text.
+    /// - For multiple files: only returns components if all are plain text, or all are binary.
+    ///   Mixed types result in an empty list.
+    /// - For unsupported session types (e.g., `Source`, `ExportRaw`), returns an empty list.
+    pub async fn get_compatible_setup(
+        &self,
+        origin: stypes::SessionAction,
+    ) -> Result<stypes::ComponentsList, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::GetCompatibleSetup(origin, tx)),
+            "Fail to send Api::GetCompatibleSetup",
+        )?;
+        response(
+            rx.await,
+            "Fail to get response from Api::GetCompatibleSetup",
+        )?
+    }
+
+    /// Returns the default configuration options for the specified component, or an error if none are available.
+    ///
+    /// This method retrieves the default options for a parser or source component in the context of
+    /// the given [`SessionAction`]. It is used to determine whether the component can be instantiated
+    /// automatically, without requiring manual configuration by the user.
+    ///
+    /// Unlike earlier versions, this method no longer returns `Option`. If the component does not
+    /// support default options (i.e., it **must** be explicitly configured), the method returns a
+    /// [`NativeError`] indicating that it cannot be used in automatic setup scenarios.
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` - The session context used to evaluate compatibility and scope.
+    /// * `target` - The UUID of the component for which default options are requested.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(FieldList)` - A list of fields to be used for instantiating the component.
+    ///   If the list is empty, it means the component has no configurable options, but can still be used by default.
+    /// * `Err(NativeError)` - If the component:
+    ///   - is not registered,
+    ///   - does not support default options (and therefore cannot be used blindly).
+    ///
+    /// # Semantics
+    ///
+    /// - Empty `FieldList` (`FieldList(vec![])`) means the component has no settings but **is safe to use as default**.
+    /// - An error means the component **requires explicit configuration** and must not be auto-selected.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`NativeError`] with kind `Configuration` if:
+    /// - The component is not found,
+    /// - The component does not support default options in the given session context.
+    pub async fn get_default_options(
+        &self,
+        origin: stypes::SessionAction,
+        target: Uuid,
+    ) -> Result<stypes::FieldList, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        send(
+            self.tx_api.send(Api::GetDefaultOptions(origin, target, tx)),
+            "Fail to send Api::GetDefaultOptions",
+        )?;
+        response(rx.await, "Fail to get response from Api::GetDefaultOptions")?
+    }
     /// Aborts the lazy loading tasks for the specified fields.
     ///
     /// This method sends a cancellation request for ongoing lazy loading tasks associated with the given field IDs.

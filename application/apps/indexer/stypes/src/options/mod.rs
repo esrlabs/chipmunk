@@ -22,7 +22,7 @@ pub enum OutputRender {
     PlaitText,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[extend::encode_decode]
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
@@ -128,6 +128,15 @@ pub struct Field {
     pub id: String,
     pub value: Value,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "options.ts")
+)]
+pub struct FieldList(pub Vec<Field>);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]

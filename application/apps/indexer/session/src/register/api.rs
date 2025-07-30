@@ -137,6 +137,42 @@ pub enum Api {
         Uuid,
         oneshot::Sender<Result<bool, NativeError>>,
     ),
+    /// API request to resolve all components compatible with a given session context.
+    ///
+    /// This variant is used to automatically select sources and parsers that:
+    /// - Are compatible with the provided [`SessionAction`],
+    /// - Support default options (i.e., can be used without user configuration),
+    /// - Match the inferred IO data type (e.g., plain text or binary).
+    ///
+    /// This request is typically used to implement default behavior when the user
+    /// opens a file or data stream without specifying any components.
+    ///
+    /// # Fields
+    ///
+    /// - [`SessionAction`] - The session context used to infer IO type and compatibility.
+    /// - [`oneshot::Sender<Result<ComponentsList, NativeError>>`] - The response channel
+    ///   returning a list of matching component identifiers or an error.
+    GetCompatibleSetup(
+        SessionAction,
+        oneshot::Sender<Result<stypes::ComponentsList, NativeError>>,
+    ),
+    /// API request to obtain the default configuration options for a specific component.
+    ///
+    /// This variant is used to retrieve the default `FieldList` associated with a source or parser
+    /// in the context of the given [`SessionAction`]. If the component cannot be used
+    /// without explicit configuration (i.e., it does not support defaults), an error is returned.
+    ///
+    /// # Fields
+    ///
+    /// - [`SessionAction`] - The session context that affects the component’s option set.
+    /// - [`Uuid`] - The unique identifier of the component.
+    /// - [`oneshot::Sender<Result<FieldList, NativeError>>`] - The response channel returning
+    ///   the default options or an error if the component is not suitable for automatic setup.
+    GetDefaultOptions(
+        SessionAction,
+        Uuid,
+        oneshot::Sender<Result<stypes::FieldList, NativeError>>,
+    ),
     /// Validates the configuration for correctness.
     ///
     /// # Arguments

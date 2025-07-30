@@ -11,6 +11,8 @@ import {
     FieldsValidationErrors,
     OutputRender,
     Ident,
+    ComponentsList,
+    FieldList,
 } from 'platform/types/bindings';
 import { Logger, utils } from 'platform/log';
 import { TEventEmitter } from '../provider/provider.general';
@@ -37,6 +39,10 @@ export abstract class ComponentsNative {
     public abstract getComponents(origin: Uint8Array, ty: Uint8Array): Promise<Uint8Array>;
 
     public abstract isSdeSupported(uuid: String, origin: Uint8Array): Promise<boolean>;
+
+    public abstract getCompatibleSetup(origin: Uint8Array): Promise<Uint8Array>;
+
+    public abstract getDefaultOptions(origin: Uint8Array, target: string): Promise<Uint8Array>;
 
     public abstract getOptions(origin: Uint8Array, targets: string[]): Promise<Uint8Array>;
 
@@ -198,12 +204,71 @@ export class Base extends Subscriber {
                 });
         });
     }
+
     public isSdeSupported(uuid: String, origin: SessionAction): Promise<boolean> {
         const err = this.getSessionAccessErr();
         if (err instanceof Error) {
             return Promise.reject(err);
         }
         return this.native.isSdeSupported(uuid, protocol.encodeSessionAction(origin));
+    }
+
+    public getCompatibleSetup(origin: SessionAction): Promise<ComponentsList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return new Promise((resolve, reject) => {
+            this.native;
+            this.native
+                .getCompatibleSetup(protocol.encodeSessionAction(origin))
+                .then((buf: Uint8Array) => {
+                    try {
+                        resolve(protocol.decodeComponentsList(buf));
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this.logger.error(
+                                        `Fail to decode message: ${utils.error(err)}`,
+                                    ),
+                                ),
+                                Type.InvalidOutput,
+                                Source.ComponentsList,
+                            ),
+                        );
+                    }
+                });
+        });
+    }
+
+    public getDefaultOptions(origin: SessionAction, target: string): Promise<FieldList> {
+        const err = this.getSessionAccessErr();
+        if (err instanceof Error) {
+            return Promise.reject(err);
+        }
+        return new Promise((resolve, reject) => {
+            this.native;
+            this.native
+                .getDefaultOptions(protocol.encodeSessionAction(origin), target)
+                .then((buf: Uint8Array) => {
+                    try {
+                        resolve(protocol.decodeFieldList(buf));
+                    } catch (err) {
+                        reject(
+                            new NativeError(
+                                new Error(
+                                    this.logger.error(
+                                        `Fail to decode message: ${utils.error(err)}`,
+                                    ),
+                                ),
+                                Type.InvalidOutput,
+                                Source.ComponentsList,
+                            ),
+                        );
+                    }
+                });
+        });
     }
 
     public getOptions(origin: SessionAction, targets: string[]): Promise<ComponentsOptionsList> {

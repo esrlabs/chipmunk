@@ -2837,6 +2837,7 @@ name = "register"
 version = "0.1.0"
 dependencies = [
  "descriptor",
+ "file-tools",
  "log",
  "parsers",
  "sources",

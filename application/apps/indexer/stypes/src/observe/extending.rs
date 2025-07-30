@@ -3,6 +3,11 @@ use std::net::IpAddr;
 use crate::*;
 use thiserror::Error;
 
+impl ComponentsList {
+    pub fn new(sources: Vec<Ident>, parsers: Vec<Ident>) -> Self {
+        Self { parsers, sources }
+    }
+}
 impl SessionSetup {
     pub fn inherit(&self, origin: SessionAction) -> Self {
         Self {
