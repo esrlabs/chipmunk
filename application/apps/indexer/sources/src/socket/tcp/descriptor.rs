@@ -55,7 +55,7 @@ impl CommonDescriptor for Descriptor {
         Ok(vec![FieldDesc::Static(StaticFieldDesc {
             id: FIELD_IP_ADDR.to_owned(),
             name: "IP address and port".to_owned(),
-            desc: "Specifies the target address of the remote TCP server. The value must include both the IP address and the port, using the format IP:PORT — for example, 192.168.0.100:8888. This field is mandatory, and the parser will attempt to connect to the given endpoint exactly as specified. Use 0.0.0.0:PORT to bind to all local interfaces, if applicable.".to_owned(),
+            desc: "Specifies the target address of the remote TCP server. The value must include both the IP address and the port, using the format IP:PORT - for example, 192.168.0.100:8888. This field is mandatory, and the parser will attempt to connect to the given endpoint exactly as specified. Use 0.0.0.0:PORT to bind to all local interfaces, if applicable.".to_owned(),
             required: true,
             interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
             binding: None,

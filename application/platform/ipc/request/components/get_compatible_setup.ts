@@ -1,30 +1,28 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { SessionAction } from '../../../types/bindings';
+import { ComponentsList, SessionAction } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
-@Define({ name: 'IsSdeSupportedRequest' })
+@Define({ name: 'GetCompatibleSetupRequest' })
 export class Request extends SignatureRequirement {
-    public uuid: string;
     public origin: SessionAction;
 
-    constructor(input: { uuid: string; origin: SessionAction }) {
+    constructor(input: { origin: SessionAction }) {
         super();
         validator.isObject(input);
-        this.uuid = validator.getAsNotEmptyString(input, 'uuid');
         this.origin = input.origin;
     }
 }
 export interface Request extends Interface {}
 
-@Define({ name: 'IsSdeSupportedResponse' })
+@Define({ name: 'GetCompatibleSetupResponse' })
 export class Response extends SignatureRequirement {
-    public support: boolean;
+    public components: ComponentsList;
 
-    constructor(input: { support: boolean }) {
+    constructor(input: { components: ComponentsList }) {
         super();
         validator.isObject(input);
-        this.support = validator.getAsBool(input, 'support');
+        this.components = validator.getAsObj(input, 'components');
     }
 }
 

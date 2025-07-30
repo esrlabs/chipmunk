@@ -15,3 +15,4 @@ try_into_js!(ObserveOptions);
 try_into_js!(Ident);
 try_into_js!(IdentList);
 try_into_js!(SessionAction);
+try_into_js!(ComponentsList);

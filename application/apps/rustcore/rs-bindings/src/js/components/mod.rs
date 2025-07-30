@@ -18,7 +18,7 @@ impl Components {
 
     /// Initializes a new session bound to the `Components` instance at the core level.
     /// On the client side, there should only be a single global session; multiple instances of
-    /// `Components` are not required—only one is necessary.
+    /// `Components` are not required-only one is necessary.
     ///
     /// The `Components` structure maintains the list of all available components in the system,
     /// specifically parsers and data sources. It is responsible for:
@@ -160,6 +160,96 @@ impl Components {
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         session
             .is_sde_supported(uuid, origin)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    /// Returns a list of compatible source and parser components that can be used without configuration.
+    ///
+    /// This method is exposed to JavaScript and is typically used in "quick start" workflows,
+    /// such as opening a file without specifying any component settings. It decodes the session context
+    /// from the provided binary buffer and delegates the lookup to the internal API.
+    ///
+    /// The result includes only those components that:
+    /// - Are compatible with the provided session (`SessionAction`);
+    /// - Support default options (i.e., do not require explicit configuration);
+    /// - Match the inferred IO type (e.g., text vs binary).
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` – A serialized [`SessionAction`] (as `ArrayBuffer` from JavaScript),
+    ///              describing the context of the session (e.g., file path, multiple files).
+    ///
+    /// # Returns
+    ///
+    /// A `Promise` resolving to a [`ComponentsList`] object containing matching sources and parsers.
+    /// If no compatible components are found, the list will be empty.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ComputationError`] in the following cases:
+    /// - Invalid or undecodable session data (`Decoding`);
+    /// - Session not initialized (`SessionUnavailable`);
+    /// - Internal failure in component resolution (`NativeError`).
+    #[node_bindgen]
+    async fn get_compatible_setup(
+        &self,
+        origin: JSArrayBuffer,
+    ) -> Result<stypes::ComponentsList, stypes::ComputationError> {
+        let origin =
+            stypes::SessionAction::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?;
+        session
+            .get_compatible_setup(origin)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
+    /// Retrieves the default configuration options for a specific component,
+    /// if it can be used without explicit user configuration.
+    ///
+    /// This method is exposed to JavaScript and is typically used when attempting to automatically
+    /// initialize a source or parser. It decodes the session context and validates the component UUID,
+    /// then queries whether the component provides default options for that context.
+    ///
+    /// If the component requires manual configuration, the method returns an error.
+    ///
+    /// # Arguments
+    ///
+    /// * `origin` – A serialized [`SessionAction`] passed from JavaScript as `ArrayBuffer`.
+    ///              This provides context such as the file being opened or the session type.
+    /// * `uuid` – The string representation of the component’s UUID.
+    ///
+    /// # Returns
+    ///
+    /// A `Promise` resolving to a [`FieldList`] object representing the component’s default settings.
+    /// If the component has no configurable fields, the list will be empty (`FieldList([])`).
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ComputationError`] in the following cases:
+    /// - Invalid or undecodable session data (`Decoding`);
+    /// - Malformed or invalid UUID (`InvalidData`);
+    /// - Session is not initialized (`SessionUnavailable`);
+    /// - The component does not support default options (`NativeError`).
+    #[node_bindgen]
+    async fn get_default_options(
+        &self,
+        origin: JSArrayBuffer,
+        uuid: String,
+    ) -> Result<stypes::FieldList, stypes::ComputationError> {
+        let origin =
+            stypes::SessionAction::decode(&origin).map_err(stypes::ComputationError::Decoding)?;
+        let uuid = Uuid::from_str(&uuid).map_err(|_| stypes::ComputationError::InvalidData)?;
+        let session = self
+            .session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?;
+        session
+            .get_default_options(origin, uuid)
             .await
             .map_err(stypes::ComputationError::NativeError)
     }

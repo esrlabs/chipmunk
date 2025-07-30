@@ -92,7 +92,7 @@ impl CommonDescriptor for Descriptor {
             FieldDesc::Static(StaticFieldDesc {
                 id: FIELD_IP_ADDR.to_owned(),
                 name: "IP address and port".to_owned(),
-                desc: "Specifies the local address and port on which the application should listen for incoming UDP packets. The value must include both the IP address and the port, using the format IP:PORT — for example, 0.0.0.0:9000. This field is mandatory, and determines the network interface and port bound by the listener. Use 0.0.0.0:PORT to listen on all available interfaces.".to_owned(),
+                desc: "Specifies the local address and port on which the application should listen for incoming UDP packets. The value must include both the IP address and the port, using the format IP:PORT - for example, 0.0.0.0:9000. This field is mandatory, and determines the network interface and port bound by the listener. Use 0.0.0.0:PORT to listen on all available interfaces.".to_owned(),
                 required: true,
                 interface: ValueInput::String(String::new(), "0.0.0.0:8888".to_owned()),
                 binding: None,

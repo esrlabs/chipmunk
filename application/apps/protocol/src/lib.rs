@@ -213,3 +213,5 @@ gen_encode_decode_fns!(ComponentOptions);
 gen_encode_decode_fns!(SessionSetup);
 gen_encode_decode_fns!(SessionDescriptor);
 gen_encode_decode_fns!(OutputRender);
+gen_encode_decode_fns!(ComponentsList);
+gen_encode_decode_fns!(FieldList);

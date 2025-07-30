@@ -187,6 +187,35 @@ pub trait CommonDescriptor: Sync + Send {
     ) -> Result<HashMap<String, String>, stypes::NativeError> {
         Ok(HashMap::new())
     }
+
+    /// Indicates whether the component (parser or source) provides default options.
+    ///
+    /// This method is used to determine if a component can be automatically selected
+    /// and instantiated in response to a user request, without requiring manual configuration.
+    /// For example, when a user opens a plain text file, there may be no need to configure
+    /// the source or parser manually.
+    ///
+    /// The method receives a [`SessionAction`] representing the context of the request.  
+    /// If the component supports default configuration, it returns `Some(Vec<Field>)`,
+    /// where the fields can be used to create an instance of the component.
+    ///
+    /// If the component **must** be explicitly configured by the user (i.e., it cannot
+    /// be used blindly), the method returns `None`.  
+    /// If the component has **no settings at all**, it returns `Some(Vec::new())` -
+    /// meaning it can be safely used without configuration.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(Vec<Field>)` - Default fields to use for instantiating the component.  
+    /// * `Some(Vec::new())` - The component has no settings but is still valid for auto-selection.  
+    /// * `None` - The component requires explicit configuration and cannot be auto-selected.
+    ///
+    /// # Important
+    ///
+    /// Returning `None` will **exclude** the component from automatic selection logic.
+    fn get_default_options(&self, _origin: &stypes::SessionAction) -> Option<Vec<stypes::Field>> {
+        None
+    }
 }
 
 /// Represents validation errors that occurred during client-side input processing.

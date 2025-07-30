@@ -15,6 +15,8 @@ export type ComponentDef = { Source: ComponentOptions } | { Parser: ComponentOpt
  */
 export type ComponentType = 'Parser' | 'Source';
 
+export type ComponentsList = { parsers: Array<Ident>; sources: Array<Ident> };
+
 /**
  * Settings for the DLT parser.
  */

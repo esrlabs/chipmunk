@@ -11,7 +11,15 @@ import {
 import * as Events from '@platform/ipc/event/index';
 import * as Requests from '@platform/ipc/request/index';
 
-import { Field, FieldDesc, Ident, OutputRender, SessionAction } from '@platform/types/bindings';
+import {
+    ComponentsList,
+    Field,
+    FieldDesc,
+    FieldList,
+    Ident,
+    OutputRender,
+    SessionAction,
+} from '@platform/types/bindings';
 
 @SetupService(services['components'])
 export class Service extends Implementation {
@@ -187,6 +195,61 @@ export class Service extends Implementation {
             )
                 .then((response) => {
                     resolve(response.support);
+                })
+                .catch(reject);
+        });
+    }
+
+    /**
+     * Finds all components (sources and parsers) that are compatible with the given session
+     * and can be used without requiring manual configuration.
+     *
+     * This method is typically used in "quick start" workflows, such as when a user opens a file
+     * and the system needs to automatically determine which components can handle it.
+     * Only components that support default options and match the detected I/O type (e.g. text or binary)
+     * are included in the result.
+     *
+     * @param origin - The session context used to infer compatibility and I/O type.
+     * @returns A promise that resolves to a list of compatible component identifiers.
+     */
+    public getCompatibleSetup(origin: SessionAction): Promise<ComponentsList> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Components.GetCompatibleSetup.Response,
+                new Requests.Components.GetCompatibleSetup.Request({
+                    origin,
+                }),
+            )
+                .then((response) => {
+                    resolve(response.components);
+                })
+                .catch(reject);
+        });
+    }
+
+    /**
+     * Retrieves the default configuration options for the specified component.
+     *
+     * If the component supports usage without explicit configuration, this method returns a list
+     * of default fields. An empty list indicates that the component has no configurable options
+     * but can still be used as default.
+     * If the component cannot be used without configuration, the promise will be rejected.
+     *
+     * @param uuid - The unique identifier of the component (source or parser).
+     * @param origin - The session context used to resolve the appropriate default options.
+     * @returns A promise that resolves to a list of fields (possibly empty) for automatic setup.
+     */
+    public getDefaultOptions(uuid: string, origin: SessionAction): Promise<FieldList> {
+        return new Promise((resolve, reject) => {
+            Requests.IpcRequest.send(
+                Requests.Components.GetDefaultOptions.Response,
+                new Requests.Components.GetDefaultOptions.Request({
+                    uuid,
+                    origin,
+                }),
+            )
+                .then((response) => {
+                    resolve(response.fields);
                 })
                 .catch(reject);
         });

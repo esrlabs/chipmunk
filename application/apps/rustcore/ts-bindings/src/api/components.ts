@@ -5,9 +5,11 @@ import { Base as Native } from '../native/native.components';
 import { ComponentsEventProvider, IComponentsEvents } from '../api/components.provider';
 import { Subscriber } from 'platform/env/subscription';
 import {
+    ComponentsList,
     ComponentsOptionsList,
     Field,
     FieldDesc,
+    FieldList,
     FieldsValidationErrors,
     Ident,
     OutputRender,
@@ -93,6 +95,14 @@ export class Components extends Subscriber {
 
     public isSdeSupported(uuid: String, origin: SessionAction): Promise<boolean> {
         return this.native.isSdeSupported(uuid, origin);
+    }
+
+    public getCompatibleSetup(origin: SessionAction): Promise<ComponentsList> {
+        return this.native.getCompatibleSetup(origin);
+    }
+
+    public getDefaultOptions(origin: SessionAction, target: string): Promise<FieldList> {
+        return this.native.getDefaultOptions(origin, target);
     }
 
     public getIdent(uuid: string): Promise<Ident | null> {

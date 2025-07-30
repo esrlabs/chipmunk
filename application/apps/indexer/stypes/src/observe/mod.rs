@@ -42,6 +42,18 @@ pub enum ComponentDef {
     Parser(ComponentOptions),
 }
 
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "observe.ts")
+)]
+pub struct ComponentsList {
+    pub parsers: Vec<Ident>,
+    pub sources: Vec<Ident>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[extend::encode_decode]
 #[cfg_attr(

@@ -1,7 +1,6 @@
 import { CancelablePromise } from 'platform/env/promise';
 import { Logger } from 'platform/log';
 import { components } from '@service/components';
-import { FieldDesc, OutputRender } from 'platform/types/bindings';
 
 import * as Requests from 'platform/ipc/request';
 

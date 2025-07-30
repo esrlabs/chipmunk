@@ -1,9 +1,9 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { SessionAction } from '../../../types/bindings';
+import { FieldList, SessionAction } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
-@Define({ name: 'IsSdeSupportedRequest' })
+@Define({ name: 'GetDefaultOptionsRequest' })
 export class Request extends SignatureRequirement {
     public uuid: string;
     public origin: SessionAction;
@@ -17,14 +17,14 @@ export class Request extends SignatureRequirement {
 }
 export interface Request extends Interface {}
 
-@Define({ name: 'IsSdeSupportedResponse' })
+@Define({ name: 'GetDefaultOptionsResponse' })
 export class Response extends SignatureRequirement {
-    public support: boolean;
+    public fields: FieldList;
 
-    constructor(input: { support: boolean }) {
+    constructor(input: { fields: FieldList }) {
         super();
         validator.isObject(input);
-        this.support = validator.getAsBool(input, 'support');
+        this.fields = validator.getAsArray(input, 'fields');
     }
 }
 

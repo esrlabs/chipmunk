@@ -17,7 +17,7 @@ pub trait ParserDescriptor: CommonDescriptor {
     ///
     /// This method determines how (and whether) the parser's output should be
     /// rendered in the user interface. If the parser is not intended to produce
-    /// visual output—e.g., when used for data export or structural analysis—
+    /// visual output-e.g., when used for data export or structural analysis-
     /// this function returns `None`.
     ///
     /// # Returns
