@@ -1,4 +1,4 @@
-use descriptor::{SourceDescriptor, CommonDescriptor};
+use descriptor::{CommonDescriptor, SourceDescriptor, SourceFactory};
 use file_tools::is_binary;
 use stypes::{ComponentOptions, NativeError, NativeErrorKind, SessionAction, Severity};
 use crate::*;
@@ -11,8 +11,10 @@ const PCAP_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-     pub fn factory(
-        origin: &SessionAction,
+impl SourceFactory<Sources> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
         let filepath = match origin {
@@ -27,7 +29,7 @@ pub struct Descriptor {}
         };
         Ok(Some((Sources::Pcap(PcapLegacyByteSourceFromFile::new(filepath)?), Some("Pcap".to_owned()))))
     }
-
+}
 
 impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {

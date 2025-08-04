@@ -1,12 +1,13 @@
 use crate::prelude::SerialSource;
 use crate::*;
 use descriptor::{
-    CommonDescriptor, FieldsResult, LazyFieldsTask, SourceDescriptor, StaticFieldResult,
+    CommonDescriptor, FieldsResult, LazyFieldsTask, SourceDescriptor, SourceFactory,
+    StaticFieldResult,
 };
 use std::{collections::HashMap, str};
 use stypes::{
-    ExtractByKey, Extracted, Field, FieldDesc, LazyFieldDesc, NativeError, SessionAction,
-    StaticFieldDesc, ValueInput, missed_field_err as missed,
+    ExtractByKey, Extracted, Field, FieldDesc, LazyFieldDesc, NativeError, NativeErrorKind,
+    SessionAction, Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 
 use super::serialport::SerialConfig;
@@ -37,49 +38,66 @@ const FIELD_PORTS_LIST: &str = "SERIAL_SOURCE_PORTS_LIST_FIELD";
 #[derive(Default)]
 pub struct Descriptor {}
 
-pub fn factory(
-    _origin: &SessionAction,
-    options: &[Field],
-) -> Result<Option<(Sources, Option<String>)>, NativeError> {
-    let path: String = options
-        .extract_by_key(FIELD_PATH)
-        .ok_or(missed(FIELD_PATH))?
-        .value;
-    let config = SerialConfig {
-        path: path.clone(),
-        baud_rate: options
-            .extract_by_key(FIELD_BAUD_RATE)
-            .ok_or(missed(FIELD_BAUD_RATE))?
-            .value,
-        data_bits: options
-            .extract_by_key(FIELD_DATA_BITS)
-            .ok_or(missed(FIELD_DATA_BITS))?
-            .value,
-        flow_control: options
-            .extract_by_key(FIELD_FLOW_CONTROL)
-            .ok_or(missed(FIELD_FLOW_CONTROL))?
-            .value,
-        parity: options
-            .extract_by_key(FIELD_PARITY)
-            .ok_or(missed(FIELD_PARITY))?
-            .value,
-        stop_bits: options
-            .extract_by_key(FIELD_STOP_BITS)
-            .ok_or(missed(FIELD_STOP_BITS))?
-            .value,
-        send_data_delay: options
-            .extract_by_key(FIELD_SEND_DATA_DELAY)
-            .ok_or(missed(FIELD_SEND_DATA_DELAY))?
-            .value,
-        exclusive: options
-            .extract_by_key(FIELD_EXCLUSIVE)
-            .ok_or(missed(FIELD_EXCLUSIVE))?
-            .value,
-    };
-    Ok(Some((
-        Sources::Serial(SerialSource::new(config)?),
-        Some(path),
-    )))
+impl SourceFactory<Sources> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
+        options: &[stypes::Field],
+    ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let path: String = options
+            .extract_by_key(FIELD_PATH)
+            .ok_or(missed(FIELD_PATH))?
+            .value;
+        let config = SerialConfig {
+            path: path.clone(),
+            baud_rate: options
+                .extract_by_key(FIELD_BAUD_RATE)
+                .ok_or(missed(FIELD_BAUD_RATE))?
+                .value,
+            data_bits: options
+                .extract_by_key(FIELD_DATA_BITS)
+                .ok_or(missed(FIELD_DATA_BITS))?
+                .value,
+            flow_control: options
+                .extract_by_key(FIELD_FLOW_CONTROL)
+                .ok_or(missed(FIELD_FLOW_CONTROL))?
+                .value,
+            parity: options
+                .extract_by_key(FIELD_PARITY)
+                .ok_or(missed(FIELD_PARITY))?
+                .value,
+            stop_bits: options
+                .extract_by_key(FIELD_STOP_BITS)
+                .ok_or(missed(FIELD_STOP_BITS))?
+                .value,
+            send_data_delay: options
+                .extract_by_key(FIELD_SEND_DATA_DELAY)
+                .ok_or(missed(FIELD_SEND_DATA_DELAY))?
+                .value,
+            exclusive: options
+                .extract_by_key(FIELD_EXCLUSIVE)
+                .ok_or(missed(FIELD_EXCLUSIVE))?
+                .value,
+        };
+        Ok(Some((
+            Sources::Serial(SerialSource::new(config)?),
+            Some(path),
+        )))
+    }
 }
 
 impl CommonDescriptor for Descriptor {

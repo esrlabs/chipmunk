@@ -1,9 +1,10 @@
-use crate::someip::FibexMetadata;
+use crate::{Parsers, someip::FibexMetadata};
 use ::descriptor::{CommonDescriptor, FieldsResult, ParserDescriptor};
+use descriptor::ParserFactory;
 use std::path::PathBuf;
 use stypes::{
-    ComponentOptions, ExtractByKey, Field, FieldDesc, SessionAction, StaticFieldDesc, Value,
-    ValueInput, missed_field_err as missed,
+    ComponentOptions, ExtractByKey, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, Value, ValueInput, missed_field_err as missed,
 };
 
 use super::SomeipParser;
@@ -20,20 +21,37 @@ const FIELD_TZ: &str = "SOMEIP_PARSER_FIELD_TIMEZONE";
 #[derive(Default)]
 pub struct Descriptor {}
 
-pub fn factory(
-    _origin: &SessionAction,
-    options: &[stypes::Field],
-) -> Result<Option<(crate::Parsers, Option<String>)>, stypes::NativeError> {
-    let fibex_file_paths: &Vec<PathBuf> = options
-        .extract_by_key(FIELD_FIBEX_FILES)
-        .ok_or(missed(FIELD_FIBEX_FILES))?
-        .value;
-    Ok(Some((
-        crate::Parsers::SomeIp(SomeipParser {
-            fibex_metadata: FibexMetadata::from_fibex_files(fibex_file_paths),
-        }),
-        Some("SomeIp".to_owned()),
-    )))
+impl ParserFactory<Parsers> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
+        options: &[stypes::Field],
+    ) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let fibex_file_paths: &Vec<PathBuf> = options
+            .extract_by_key(FIELD_FIBEX_FILES)
+            .ok_or(missed(FIELD_FIBEX_FILES))?
+            .value;
+        Ok(Some((
+            crate::Parsers::SomeIp(SomeipParser {
+                fibex_metadata: FibexMetadata::from_fibex_files(fibex_file_paths),
+            }),
+            Some("SomeIp".to_owned()),
+        )))
+    }
 }
 
 impl CommonDescriptor for Descriptor {

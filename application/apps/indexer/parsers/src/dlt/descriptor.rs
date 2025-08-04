@@ -1,6 +1,7 @@
-use crate::dlt::*;
+use crate::{Parsers, dlt::*};
 use ::descriptor::{
-    CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor, StaticFieldResult,
+    CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor, ParserFactory,
+    StaticFieldResult,
 };
 use dlt_core::{
     read::DltMessageReader,
@@ -50,57 +51,74 @@ impl fmt::Display for StatFields {
     }
 }
 
-pub fn factory(
-    origin: &SessionAction,
-    options: &[Field],
-) -> Result<Option<(crate::Parsers, Option<String>)>, NativeError> {
-    let fibex_file_paths: &Vec<PathBuf> = options
-        .extract_by_key(FIELD_FIBEX_FILES)
-        .ok_or(missed(FIELD_FIBEX_FILES))?
-        .value;
-    let dlt_metadata = dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
-        fibex_file_paths: fibex_file_paths
-            .iter()
-            .map(|p| p.to_string_lossy().to_string())
-            .collect(),
-    });
-    let someip_metadata = FibexSomeipMetadata::from_fibex_files(fibex_file_paths);
-    let min_log_level = u8_to_log_level(
-        options
-            .extract_by_key(FIELD_LOG_LEVEL)
-            .ok_or(missed(FIELD_LOG_LEVEL))?
-            .value,
-    )
-    .ok_or(missed(FIELD_LOG_LEVEL))?;
-    let stats: &HashMap<String, Vec<String>> = options
-        .extract_by_key(FIELD_STATISTICS)
-        .ok_or(missed(FIELD_STATISTICS))?
-        .value;
-    let filter_config: ProcessedDltFilterConfig = ProcessedDltFilterConfig {
-        min_log_level: Some(min_log_level),
-        app_ids: stats
-            .get(&StatFields::AppIds.to_string())
-            .map(|fields| fields.iter().cloned().collect()),
-        ecu_ids: stats
-            .get(&StatFields::EcuIds.to_string())
-            .map(|fields| fields.iter().cloned().collect()),
-        context_ids: stats
-            .get(&StatFields::ContextIds.to_string())
-            .map(|fields| fields.iter().cloned().collect()),
-        app_id_count: 0,
-        context_id_count: 0,
-    };
-    Ok(Some((
-        crate::Parsers::Dlt(DltParser::new(
-            Some(filter_config),
-            dlt_metadata,
-            None,
-            someip_metadata,
-            // If it's source - no storage header expected
-            !matches!(origin, SessionAction::Source),
-        )),
-        Some("DLT".to_owned()),
-    )))
+impl ParserFactory<Parsers> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
+        options: &[stypes::Field],
+    ) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let fibex_file_paths: &Vec<PathBuf> = options
+            .extract_by_key(FIELD_FIBEX_FILES)
+            .ok_or(missed(FIELD_FIBEX_FILES))?
+            .value;
+        let dlt_metadata = dlt_core::fibex::gather_fibex_data(dlt_core::fibex::FibexConfig {
+            fibex_file_paths: fibex_file_paths
+                .iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect(),
+        });
+        let someip_metadata = FibexSomeipMetadata::from_fibex_files(fibex_file_paths);
+        let min_log_level = u8_to_log_level(
+            options
+                .extract_by_key(FIELD_LOG_LEVEL)
+                .ok_or(missed(FIELD_LOG_LEVEL))?
+                .value,
+        )
+        .ok_or(missed(FIELD_LOG_LEVEL))?;
+        let stats: &HashMap<String, Vec<String>> = options
+            .extract_by_key(FIELD_STATISTICS)
+            .ok_or(missed(FIELD_STATISTICS))?
+            .value;
+        let filter_config: ProcessedDltFilterConfig = ProcessedDltFilterConfig {
+            min_log_level: Some(min_log_level),
+            app_ids: stats
+                .get(&StatFields::AppIds.to_string())
+                .map(|fields| fields.iter().cloned().collect()),
+            ecu_ids: stats
+                .get(&StatFields::EcuIds.to_string())
+                .map(|fields| fields.iter().cloned().collect()),
+            context_ids: stats
+                .get(&StatFields::ContextIds.to_string())
+                .map(|fields| fields.iter().cloned().collect()),
+            app_id_count: 0,
+            context_id_count: 0,
+        };
+        Ok(Some((
+            crate::Parsers::Dlt(DltParser::new(
+                Some(filter_config),
+                dlt_metadata,
+                None,
+                someip_metadata,
+                // If it's source - no storage header expected
+                !matches!(origin, SessionAction::Source),
+            )),
+            Some("DLT".to_owned()),
+        )))
+    }
 }
 
 impl CommonDescriptor for Descriptor {

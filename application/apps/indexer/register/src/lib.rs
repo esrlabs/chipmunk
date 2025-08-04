@@ -6,31 +6,26 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use descriptor::*;
-use parsers::{api::*, Parsers};
-use sources::{api::*, Sources};
+use parsers::Parsers;
+use sources::Sources;
 
-/// Registry of all available parsers and sources in the system.
+/// The `Register` struct holds information about all available source and parser components
+/// in the system. It is used as a central registry during initialization and component creation.
 ///
-/// This struct acts as a central repository that holds references to all registered
-/// parser and source components, along with their factory functions and descriptors.
+/// Each entry associates a unique identifier (`Uuid`) with the corresponding factory object.
+/// These factories are responsible for creating concrete instances of sources and parsers
+/// and also act as their descriptors by implementing the associated traits.
 ///
-/// During session setup, the appropriate factory functions and metadata can be
-/// retrieved using UUIDs to create concrete parser and source instances, validate
-/// configuration fields, and present component metadata to the user interface.
+/// - `sources`: A map of source factories. Each factory implements `SourceFactory<Sources>`
+///   and provides metadata and construction logic for a specific source type.
+/// - `parsers`: A map of parser factories. Each factory implements `ParserFactory<Parsers>`
+///   and defines both the parser metadata and instantiation logic.
+///
+/// By storing trait objects (`Box<dyn ...>`), the registry supports dynamic extensibility,
+/// including plugin-based components.
 pub struct Register {
-    /// A map of source component UUIDs to their factory functions and descriptors.
-    ///
-    /// Each entry contains:
-    /// - a [`SourceFactory`] used to instantiate the component,
-    /// - a boxed [`SourceDescriptor`] that describes its capabilities and configuration.
-    sources: HashMap<Uuid, (SourceFactory, Box<dyn SourceDescriptor>)>,
-
-    /// A map of parser component UUIDs to their factory functions and descriptors.
-    ///
-    /// Each entry contains:
-    /// - a [`ParserFactory`] used to instantiate the component,
-    /// - a boxed [`ParserDescriptor`] that describes its capabilities and configuration.
-    parsers: HashMap<Uuid, (ParserFactory, Box<dyn ParserDescriptor>)>,
+    sources: HashMap<Uuid, Box<dyn SourceFactory<Sources>>>,
+    parsers: HashMap<Uuid, Box<dyn ParserFactory<Parsers>>>,
 }
 
 impl Register {
@@ -45,24 +40,22 @@ impl Register {
         }
     }
 
-    /// Registers a new parser component in the system.
+    /// Registers a new parser factory in the registry.
     ///
-    /// Associates a parser factory and descriptor with the parser's UUID.
-    /// If a parser with the same UUID is already registered, this will return an error.
+    /// The factory must implement the `ParserFactory<Parsers>` trait and will be stored
+    /// under its associated UUID. If a parser with the same UUID has already been registered,
+    /// an error of kind `Configuration` will be returned.
     ///
-    /// # Arguments
-    /// * `factory` – A function capable of instantiating the parser.
-    /// * `descriptor` – Metadata describing the parser's behavior and configuration.
+    /// # Type Parameters
+    /// - `D`: A concrete type that implements `ParserFactory<Parsers>`.
     ///
-    /// # Returns
-    /// * `Ok(())` – If the parser was successfully registered.
-    /// * `Err(NativeError)` – If a parser with the same UUID already exists.
-    pub fn add_parser<D: ParserDescriptor + 'static>(
+    /// # Errors
+    /// Returns `NativeError` if a parser with the same UUID is already registered.
+    pub fn add_parser<D: ParserFactory<Parsers> + 'static>(
         &mut self,
-        factory: ParserFactory,
-        descriptor: D,
+        factory: D,
     ) -> Result<(), stypes::NativeError> {
-        let ident = descriptor.ident();
+        let ident = factory.ident();
         if self.parsers.contains_key(&ident.uuid) {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -70,29 +63,26 @@ impl Register {
                 message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
             });
         }
-        self.parsers
-            .insert(ident.uuid, (factory, Box::new(descriptor)));
+        self.parsers.insert(ident.uuid, Box::new(factory));
         Ok(())
     }
 
-    /// Registers a new source component in the system.
+    /// Registers a new source factory in the registry.
     ///
-    /// Associates a source factory and descriptor with the source's UUID.
-    /// If a source with the same UUID is already registered, this will return an error.
+    /// The factory must implement the `SourceFactory<Sources>` trait and will be stored
+    /// under its associated UUID. If a source with the same UUID has already been registered,
+    /// an error of kind `Configuration` will be returned.
     ///
-    /// # Arguments
-    /// * `factory` – A function capable of instantiating the source.
-    /// * `descriptor` – Metadata describing the source's behavior and configuration.
+    /// # Type Parameters
+    /// - `D`: A concrete type that implements `SourceFactory<Sources>`.
     ///
-    /// # Returns
-    /// * `Ok(())` – If the source was successfully registered.
-    /// * `Err(NativeError)` – If a source with the same UUID already exists.
-    pub fn add_source<D: SourceDescriptor + 'static>(
+    /// # Errors
+    /// Returns `NativeError` if a source with the same UUID is already registered.
+    pub fn add_source<D: SourceFactory<Sources> + 'static>(
         &mut self,
-        factory: SourceFactory,
-        descriptor: D,
+        factory: D,
     ) -> Result<(), stypes::NativeError> {
-        let ident: stypes::Ident = descriptor.ident();
+        let ident: stypes::Ident = factory.ident();
         if self.sources.contains_key(&ident.uuid) {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -100,8 +90,7 @@ impl Register {
                 message: Some(format!("{} ({}) already registred", ident.name, ident.uuid)),
             });
         }
-        self.sources
-            .insert(ident.uuid, (factory, Box::new(descriptor)));
+        self.sources.insert(ident.uuid, Box::new(factory));
         Ok(())
     }
 
@@ -118,9 +107,9 @@ impl Register {
     pub fn get_parsers(&self, origin: stypes::SessionAction) -> Vec<stypes::Ident> {
         self.parsers
             .iter()
-            .filter_map(|(_, (_, desc))| {
-                if desc.is_compatible(&origin) {
-                    Some(desc.ident())
+            .filter_map(|(_, entity)| {
+                if entity.is_compatible(&origin) {
+                    Some(entity.ident())
                 } else {
                     None
                 }
@@ -141,9 +130,9 @@ impl Register {
     pub fn get_sources(&self, origin: stypes::SessionAction) -> Vec<stypes::Ident> {
         self.sources
             .iter()
-            .filter_map(|(_, (_, desc))| {
-                if desc.is_compatible(&origin) {
-                    Some(desc.ident())
+            .filter_map(|(_, entity)| {
+                if entity.is_compatible(&origin) {
+                    Some(entity.ident())
                 } else {
                     None
                 }
@@ -204,10 +193,10 @@ impl Register {
         let descriptors = self
             .descriptors()
             .into_iter()
-            .filter_map(|(uuid, desc)| {
+            .filter_map(|(uuid, entity)| {
                 if targets.contains(uuid) {
                     targets.retain(|v| v != uuid);
-                    Some(desc)
+                    Some(entity)
                 } else {
                     None
                 }
@@ -228,17 +217,17 @@ impl Register {
             });
         }
         let mut list: HashMap<Uuid, OptionsScheme> = HashMap::new();
-        for desc in descriptors.into_iter() {
-            let mut options = OptionsScheme::new(desc.fields_getter(&origin)?);
+        for entity in descriptors.into_iter() {
+            let mut options = OptionsScheme::new(entity.fields_getter(&origin)?);
             if options.has_lazy() {
                 let cancel = CancellationToken::new();
                 options.set_lazy(
-                    desc.ident(),
-                    desc.lazy_fields_getter(origin.clone(), cancel.clone()),
+                    entity.ident(),
+                    entity.lazy_fields_getter(origin.clone(), cancel.clone()),
                     &cancel,
                 );
             }
-            list.insert(desc.ident().uuid, options);
+            list.insert(entity.ident().uuid, options);
         }
         Ok(list)
     }
@@ -262,7 +251,7 @@ impl Register {
         &self,
         uuid: &Uuid,
     ) -> Result<Option<stypes::OutputRender>, stypes::NativeError> {
-        let (_, descriptor) = self.parsers.get(uuid).ok_or(stypes::NativeError {
+        let descriptor = self.parsers.get(uuid).ok_or(stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::Configuration,
             message: Some(format!("Fail to find component {uuid}")),
@@ -294,7 +283,7 @@ impl Register {
         uuid: &Uuid,
         origin: &stypes::SessionAction,
     ) -> Result<bool, stypes::NativeError> {
-        let (_, descriptor) = self.sources.get(uuid).ok_or(stypes::NativeError {
+        let descriptor = self.sources.get(uuid).ok_or(stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::Configuration,
             message: Some(format!("Fail to find component {uuid}")),
@@ -311,9 +300,9 @@ impl Register {
     /// * `Some(Ident)` – If the parser or source has been found.
     /// * `None` – If no component is defined.
     pub fn get_ident(&self, uuid: &Uuid) -> Option<stypes::Ident> {
-        self.descriptors().into_iter().find_map(|(inner, desc)| {
+        self.descriptors().into_iter().find_map(|(inner, entity)| {
             if uuid == inner {
-                Some(desc.ident())
+                Some(entity.ident())
             } else {
                 None
             }
@@ -427,7 +416,7 @@ impl Register {
         let sources: Vec<stypes::Ident> = self
             .sources
             .iter()
-            .filter_map(|(_, (_, entity))| {
+            .filter_map(|(_, entity)| {
                 if entity.is_compatible(origin)
                     && entity.get_default_options(origin).is_some()
                     && entity.ident().io == io_type
@@ -441,7 +430,7 @@ impl Register {
         let parsers: Vec<stypes::Ident> = self
             .parsers
             .iter()
-            .filter_map(|(_, (_, entity))| {
+            .filter_map(|(_, entity)| {
                 if entity.is_compatible(origin)
                     && entity.get_default_options(origin).is_some()
                     && entity.ident().io == io_type
@@ -534,16 +523,14 @@ impl Register {
         &self,
         options: &stypes::SessionSetup,
     ) -> Result<(SessionDescriptor, Sources, Parsers), stypes::NativeError> {
-        let Some((parser_factory, parser_descriptor)) = self.parsers.get(&options.parser.uuid)
-        else {
+        let Some(parser_factory) = self.parsers.get(&options.parser.uuid) else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
                 message: Some(format!("Fail to find parser {}", options.parser.uuid)),
             });
         };
-        let Some((source_factory, source_descriptor)) = self.sources.get(&options.source.uuid)
-        else {
+        let Some(source_factory) = self.sources.get(&options.source.uuid) else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -551,10 +538,12 @@ impl Register {
             });
         };
         let mut descriptor = SessionDescriptor::new(
-            source_descriptor.bound_ident(&options.origin, &options.source.fields),
-            parser_descriptor.bound_ident(&options.origin, &options.parser.fields),
+            source_factory.bound_ident(&options.origin, &options.source.fields),
+            parser_factory.bound_ident(&options.origin, &options.parser.fields),
         );
-        let Some((parser, desc)) = parser_factory(&options.origin, &options.parser.fields)? else {
+        let Some((parser, desc)) =
+            parser_factory.create(&options.origin, &options.parser.fields)?
+        else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -562,7 +551,9 @@ impl Register {
             });
         };
         descriptor.set_parser_desc(desc);
-        let Some((source, desc)) = source_factory(&options.origin, &options.source.fields)? else {
+        let Some((source, desc)) =
+            source_factory.create(&options.origin, &options.source.fields)?
+        else {
             return Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Configuration,
@@ -577,11 +568,11 @@ impl Register {
         [
             self.sources
                 .iter()
-                .map(|(uuid, (_, desc))| (uuid, desc.as_ref() as &dyn CommonDescriptor))
+                .map(|(uuid, entity)| (uuid, entity.as_ref() as &dyn CommonDescriptor))
                 .collect::<Vec<(&Uuid, &dyn CommonDescriptor)>>(),
             self.parsers
                 .iter()
-                .map(|(uuid, (_, desc))| (uuid, desc.as_ref() as &dyn CommonDescriptor))
+                .map(|(uuid, entity)| (uuid, entity.as_ref() as &dyn CommonDescriptor))
                 .collect::<Vec<(&Uuid, &dyn CommonDescriptor)>>(),
         ]
         .concat()
