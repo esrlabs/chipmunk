@@ -779,53 +779,20 @@ fn response<T, S: AsRef<str>>(res: Result<T, RecvError>, msg: S) -> Result<T, st
 // use sources::api::*;
 
 pub fn parsers_registration(register: &mut Register) -> Result<(), stypes::NativeError> {
-    register.add_parser(
-        parsers::dlt::descriptor::factory,
-        parsers::dlt::descriptor::Descriptor::default(),
-    )?;
-    register.add_parser(
-        parsers::dlt::descriptor::factory,
-        parsers::dlt::raw::descriptor::Descriptor::default(),
-    )?;
-    register.add_parser(
-        parsers::someip::descriptor::factory,
-        parsers::someip::descriptor::Descriptor::default(),
-    )?;
-    register.add_parser(
-        parsers::text::descriptor::factory,
-        parsers::text::descriptor::Descriptor::default(),
-    )?;
+    register.add_parser(parsers::dlt::descriptor::Descriptor::default())?;
+    register.add_parser(parsers::dlt::raw::descriptor::Descriptor::default())?;
+    register.add_parser(parsers::someip::descriptor::Descriptor::default())?;
+    register.add_parser(parsers::text::descriptor::Descriptor::default())?;
     Ok(())
 }
 
 pub fn sources_registration(register: &mut Register) -> Result<(), stypes::NativeError> {
-    register.add_source(
-        sources::binary::raw::factory,
-        sources::binary::raw::Descriptor::default(),
-    )?;
-    register.add_source(
-        sources::binary::pcap::legacy::factory,
-        sources::binary::pcap::legacy::Descriptor::default(),
-    )?;
-    register.add_source(
-        sources::binary::pcap::ng::factory,
-        sources::binary::pcap::ng::Descriptor::default(),
-    )?;
-    register.add_source(
-        sources::socket::tcp::factory,
-        sources::socket::tcp::Descriptor::default(),
-    )?;
-    register.add_source(
-        sources::socket::udp::factory,
-        sources::socket::udp::Descriptor::default(),
-    )?;
-    register.add_source(
-        sources::serial::descriptor::factory,
-        sources::serial::descriptor::Descriptor::default(),
-    )?;
-    register.add_source(
-        sources::command::factory,
-        sources::command::Descriptor::default(),
-    )?;
+    register.add_source(sources::binary::raw::Descriptor::default())?;
+    register.add_source(sources::binary::pcap::legacy::Descriptor::default())?;
+    register.add_source(sources::binary::pcap::ng::Descriptor::default())?;
+    register.add_source(sources::socket::tcp::Descriptor::default())?;
+    register.add_source(sources::socket::udp::Descriptor::default())?;
+    register.add_source(sources::serial::descriptor::Descriptor::default())?;
+    register.add_source(sources::command::Descriptor::default())?;
     Ok(())
 }

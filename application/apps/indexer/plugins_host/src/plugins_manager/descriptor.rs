@@ -1,8 +1,14 @@
-use descriptor::{CommonDescriptor, ParserDescriptor, SourceDescriptor};
-use stypes::{
-    Field, NativeError, NativeErrorKind, PluginEntity, SessionAction, Severity, StaticFieldDesc,
+use descriptor::{
+    CommonDescriptor, ParserDescriptor, ParserFactory, SourceDescriptor, SourceFactory,
 };
+use stypes::{
+    Field, NativeError, NativeErrorKind, PluginConfigItem, PluginEntity, PluginParserSettings,
+    SessionAction, Severity, StaticFieldDesc,
+};
+use tokio::runtime::Handle;
 use tokio_util::sync::CancellationToken;
+
+use crate::PluginsParser;
 
 #[derive(Debug)]
 pub struct PluginDescriptor {
@@ -121,76 +127,65 @@ impl ParserDescriptor for PluginDescriptor {
     }
 }
 
-pub fn parser_factory(
-    _origin: &SessionAction,
-    _options: &[Field],
-) -> Result<Option<(parsers::Parsers, Option<String>)>, NativeError> {
-    Err(NativeError {
-        severity: Severity::WARNING,
-        kind: NativeErrorKind::NotYetImplemented,
-        message: Some("Support for sources isn't implemented yet".into()),
-    })
+impl ParserFactory<parsers::Parsers> for PluginDescriptor {
+    fn create(
+        &self,
+        origin: &SessionAction,
+        options: &[Field],
+    ) -> Result<Option<(parsers::Parsers, Option<String>)>, NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+
+        let configs: Vec<PluginConfigItem> = options
+            .iter()
+            .map(|opt| {
+                use stypes::PluginConfigValue as PlVal;
+
+                let val = match opt.value.clone() {
+                    stypes::Value::Boolean(val) => PlVal::Boolean(val),
+                    stypes::Value::Number(num) => PlVal::Integer(num as i32),
+                    stypes::Value::String(txt) => PlVal::Text(txt),
+                    stypes::Value::Directories(path_bufs) => PlVal::Directories(path_bufs),
+                    stypes::Value::Files(path_bufs) => PlVal::Files(path_bufs),
+                    unsupported => panic!("Config {unsupported:?} is unsupported by plugins"),
+                };
+                PluginConfigItem::new(opt.id.to_owned(), val)
+            })
+            .collect();
+
+        let settings =
+            PluginParserSettings::new(self.entity.dir_path.to_owned(), Default::default(), configs);
+
+        //TODO AAZ: Temp solution by blocking here.
+        //Create function should be async
+        let parse_res = tokio::task::block_in_place(move || {
+            Handle::current().block_on(async move {
+                PluginsParser::initialize(
+                    &settings.plugin_path,
+                    &settings.general_settings,
+                    settings.plugin_configs.clone(),
+                )
+                .await
+            })
+        })?;
+
+        let parser = parsers::Parsers::Plugin(Box::new(parse_res));
+
+        Ok(Some((parser, Some(self.entity.metadata.title.to_owned()))))
+    }
 }
-
-// impl ComponentFactory<parsers::Parser> for PluginDescriptor {
-//     fn create(
-//         &self,
-//         origin: &SessionAction,
-//         options: &[Field],
-//     ) -> Result<Option<(parsers::Parser, Option<String>)>, NativeError> {
-//         let errors = self.validate(origin, options)?;
-//         if !errors.is_empty() {
-//             return Err(NativeError {
-//                 kind: NativeErrorKind::Configuration,
-//                 severity: Severity::ERROR,
-//                 message: Some(
-//                     errors
-//                         .values()
-//                         .map(String::as_str)
-//                         .collect::<Vec<_>>()
-//                         .join("; "),
-//                 ),
-//             });
-//         }
-
-//         let configs: Vec<PluginConfigItem> = options
-//             .iter()
-//             .map(|opt| {
-//                 use stypes::PluginConfigValue as PlVal;
-
-//                 let val = match opt.value.clone() {
-//                     stypes::Value::Boolean(val) => PlVal::Boolean(val),
-//                     stypes::Value::Number(num) => PlVal::Integer(num as i32),
-//                     stypes::Value::String(txt) => PlVal::Text(txt),
-//                     stypes::Value::Directories(path_bufs) => PlVal::Directories(path_bufs),
-//                     stypes::Value::Files(path_bufs) => PlVal::Files(path_bufs),
-//                     unsupported => panic!("Config {unsupported:?} is unsupported by plugins"),
-//                 };
-//                 PluginConfigItem::new(opt.id.to_owned(), val)
-//             })
-//             .collect();
-
-//         let settings =
-//             PluginParserSettings::new(self.entity.dir_path.to_owned(), Default::default(), configs);
-
-//         //TODO AAZ: Temp solution by blocking here.
-//         //Create function should be async
-//         let parse_res = tokio::task::block_in_place(move || {
-//             Handle::current().block_on(async move {
-//                 PluginsParser::initialize(
-//                     &settings.plugin_path,
-//                     &settings.general_settings,
-//                     settings.plugin_configs.clone(),
-//                 )
-//                 .await
-//             })
-//         })?;
-
-//         let parser = parsers::Parser::Plugin(Box::new(parse_res));
-
-//         Ok(Some((parser, Some(self.entity.metadata.title.to_owned()))))
-//     }
-// }
 
 impl SourceDescriptor for PluginDescriptor {
     fn is_sde_supported(&self, _origin: &stypes::SessionAction) -> bool {
@@ -198,13 +193,16 @@ impl SourceDescriptor for PluginDescriptor {
     }
 }
 
-pub fn source_factory(
-    _origin: &SessionAction,
-    _options: &[Field],
-) -> Result<Option<(sources::Sources, Option<String>)>, NativeError> {
-    Err(NativeError {
-        severity: Severity::WARNING,
-        kind: NativeErrorKind::NotYetImplemented,
-        message: Some("Support for sources isn't implemented yet".into()),
-    })
+impl SourceFactory<sources::Sources> for PluginDescriptor {
+    fn create(
+        &self,
+        _origin: &stypes::SessionAction,
+        _options: &[stypes::Field],
+    ) -> Result<Option<(sources::Sources, Option<String>)>, stypes::NativeError> {
+        Err(NativeError {
+            severity: Severity::WARNING,
+            kind: NativeErrorKind::NotYetImplemented,
+            message: Some("Support for sources isn't implemented yet".into()),
+        })
+    }
 }

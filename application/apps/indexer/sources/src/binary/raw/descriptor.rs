@@ -1,5 +1,5 @@
 use crate::*;
-use descriptor::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, SourceDescriptor, SourceFactory};
 use file_tools::is_binary;
 use stypes::{ComponentOptions, SessionAction};
 
@@ -10,27 +10,30 @@ const BIN_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-pub fn factory(
-    origin: &SessionAction,
-    _options: &[stypes::Field],
-) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
-    let filename = match origin {
-        SessionAction::File(filename) => filename,
-        SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
-            return Err(stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Configuration,
-                message: Some(
-                    "origin isn't supported by this source (BinaryByteSource)".to_owned(),
-                ),
-            });
-        }
-    };
+impl SourceFactory<Sources> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
+        _options: &[stypes::Field],
+    ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
+        let filename = match origin {
+            SessionAction::File(filename) => filename,
+            SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
+                return Err(stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Configuration,
+                    message: Some(
+                        "origin isn't supported by this source (BinaryByteSource)".to_owned(),
+                    ),
+                });
+            }
+        };
 
-    Ok(Some((
-        Sources::Raw(super::BinaryByteSourceFromFile::new(filename)?),
-        Some(filename.to_string_lossy().to_string()),
-    )))
+        Ok(Some((
+            Sources::Raw(super::BinaryByteSourceFromFile::new(filename)?),
+            Some(filename.to_string_lossy().to_string()),
+        )))
+    }
 }
 
 impl CommonDescriptor for Descriptor {

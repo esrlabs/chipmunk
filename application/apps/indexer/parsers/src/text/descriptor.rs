@@ -1,6 +1,8 @@
-use descriptor::{CommonDescriptor, ParserDescriptor};
+use descriptor::{CommonDescriptor, ParserDescriptor, ParserFactory};
 use file_tools::is_binary;
 use stypes::{ComponentOptions, SessionAction};
+
+use crate::Parsers;
 
 use super::StringTokenizer;
 
@@ -11,11 +13,14 @@ const TEXT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-pub fn factory(
-    _origin: &SessionAction,
-    _options: &[stypes::Field],
-) -> Result<Option<(crate::Parsers, Option<String>)>, stypes::NativeError> {
-    Ok(Some((crate::Parsers::Text(StringTokenizer {}), None)))
+impl ParserFactory<Parsers> for Descriptor {
+    fn create(
+        &self,
+        _origin: &stypes::SessionAction,
+        _options: &[stypes::Field],
+    ) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError> {
+        Ok(Some((crate::Parsers::Text(StringTokenizer {}), None)))
+    }
 }
 
 impl CommonDescriptor for Descriptor {

@@ -1,4 +1,4 @@
-use descriptor::{CommonDescriptor, SourceDescriptor};
+use descriptor::{CommonDescriptor, SourceDescriptor, SourceFactory};
 use file_tools::is_binary;
 use stypes::{ComponentOptions, NativeError, NativeErrorKind, SessionAction, Severity};
 use super::PcapngByteSourceFromFile;
@@ -11,11 +11,13 @@ const PCAPNG_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-     pub fn factory(
-        origin: &SessionAction,
+impl SourceFactory<Sources> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
         _options: &[stypes::Field],
     ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
-                let filepath = match origin {
+        let filepath = match origin {
             SessionAction::File(file) => file,
             SessionAction::Files(..) | SessionAction::Source | SessionAction::ExportRaw(..) => {
                 return Err(NativeError {
@@ -27,7 +29,7 @@ pub struct Descriptor {}
         };
         Ok(Some((Sources::PcapNg(PcapngByteSourceFromFile::new(filepath)?), Some("PcapNg".to_owned()))))
     }
-
+}
 
 impl CommonDescriptor for Descriptor {
     fn is_compatible(&self, origin: &SessionAction) -> bool {

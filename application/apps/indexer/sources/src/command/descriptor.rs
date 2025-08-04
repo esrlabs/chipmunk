@@ -1,10 +1,10 @@
 use super::ProcessSource;
 use crate::*;
-use descriptor::{CommonDescriptor, FieldsResult, SourceDescriptor};
+use descriptor::{CommonDescriptor, FieldsResult, SourceDescriptor, SourceFactory};
 use std::{collections::HashMap, env};
 use stypes::{
-    ExtractByKey, Extracted, Field, FieldDesc, NativeError, SessionAction, StaticFieldDesc,
-    ValueInput, missed_field_err as missed,
+    ExtractByKey, Extracted, Field, FieldDesc, NativeError, NativeErrorKind, SessionAction,
+    Severity, StaticFieldDesc, ValueInput, missed_field_err as missed,
 };
 
 const TERM_SOURCE_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
@@ -18,20 +18,37 @@ const FIELD_SHELLS: &str = "COMMAND_FIELD_SHELLS";
 #[derive(Default)]
 pub struct Descriptor {}
 
-pub fn factory(
-    _origin: &SessionAction,
-    options: &[Field],
-) -> Result<Option<(Sources, Option<String>)>, NativeError> {
-    let command: String = options
-        .extract_by_key(FIELD_COMMAND)
-        .ok_or(missed(FIELD_COMMAND))?
-        .value;
-    Ok(Some((
-        Sources::Process(
-            ProcessSource::new(&command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
-        ),
-        Some(command),
-    )))
+impl SourceFactory<Sources> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
+        options: &[stypes::Field],
+    ) -> Result<Option<(Sources, Option<String>)>, stypes::NativeError> {
+        let errors = self.validate(origin, options)?;
+        if !errors.is_empty() {
+            return Err(NativeError {
+                kind: NativeErrorKind::Configuration,
+                severity: Severity::ERROR,
+                message: Some(
+                    errors
+                        .values()
+                        .map(String::as_str)
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                ),
+            });
+        }
+        let command: String = options
+            .extract_by_key(FIELD_COMMAND)
+            .ok_or(missed(FIELD_COMMAND))?
+            .value;
+        Ok(Some((
+            Sources::Process(
+                ProcessSource::new(&command, env::current_dir().unwrap(), HashMap::new()).unwrap(),
+            ),
+            Some(command),
+        )))
+    }
 }
 
 impl CommonDescriptor for Descriptor {

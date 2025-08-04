@@ -1,6 +1,8 @@
 use super::*;
 use crate::*;
-use ::descriptor::{CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor};
+use ::descriptor::{
+    CommonDescriptor, FieldsResult, LazyFieldsTask, ParserDescriptor, ParserFactory,
+};
 use stypes::SessionAction;
 use tokio_util::sync::CancellationToken;
 
@@ -11,14 +13,17 @@ const DLT_PARSER_UUID: uuid::Uuid = uuid::Uuid::from_bytes([
 #[derive(Default)]
 pub struct Descriptor {}
 
-pub fn factory(
-    origin: &SessionAction,
-    _options: &[stypes::Field],
-) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError> {
-    Ok(Some((
-        Parsers::DltRaw(DltRawParser::new(!matches!(origin, SessionAction::Source))),
-        Some("DLT".to_string()),
-    )))
+impl ParserFactory<Parsers> for Descriptor {
+    fn create(
+        &self,
+        origin: &stypes::SessionAction,
+        _options: &[stypes::Field],
+    ) -> Result<Option<(Parsers, Option<String>)>, stypes::NativeError> {
+        Ok(Some((
+            Parsers::DltRaw(DltRawParser::new(!matches!(origin, SessionAction::Source))),
+            Some("DLT".to_string()),
+        )))
+    }
 }
 
 impl CommonDescriptor for Descriptor {
