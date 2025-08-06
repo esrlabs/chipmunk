@@ -14,7 +14,11 @@
         <mat-panel-title>Active</mat-panel-title>
     </mat-expansion-panel-header>
     <div class="operations">
-        <app-views-observed-operation *ngFor="let operation of active" [operation]="operation">
+        <app-views-observed-operation
+            *ngFor="let operation of active"
+            [operation]="operation"
+            [stream]="stream"
+        >
         </app-views-observed-operation>
     </div>
 </mat-expansion-panel>
@@ -28,7 +32,11 @@
         <mat-panel-title>Inactive</mat-panel-title>
     </mat-expansion-panel-header>
     <div class="operations">
-        <app-views-observed-operation *ngFor="let operation of inactive" [operation]="operation">
+        <app-views-observed-operation
+            *ngFor="let operation of inactive"
+            [operation]="operation"
+            [stream]="stream"
+        >
         </app-views-observed-operation>
     </div>
 </mat-expansion-panel>

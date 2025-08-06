@@ -152,10 +152,10 @@ export class SessionOrigin {
     }
 
     public isSdeSupported(): Promise<boolean> {
-        if (!this.components || !this.components.source) {
+        if (!this.options || !this.options.source) {
             return Promise.reject(new Error(`Source isn't defined`));
         }
-        return components.isSdeSupported(this.components.source.uuid, this.origin);
+        return components.isSdeSupported(this.options.source.uuid, this.origin);
     }
 
     public isFile(): boolean {
