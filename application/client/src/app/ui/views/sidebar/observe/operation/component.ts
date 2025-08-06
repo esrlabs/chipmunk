@@ -20,6 +20,7 @@ export class Operation extends ChangesDetector implements AfterContentInit {
     public title!: string;
     public subtitle: string | undefined = undefined;
     public state!: State;
+    public color!: string;
 
     protected update() {
         const descriptor = this.operation.getDescriptor();
@@ -32,6 +33,12 @@ export class Operation extends ChangesDetector implements AfterContentInit {
             this.title = this.operation.getOrigin().getTitle();
             this.subtitle = undefined;
         }
+        this.color = this.getSourceColor();
+    }
+
+    protected getSourceColor(): string {
+        const id = this.stream.observe().descriptions.id(this.operation.uuid);
+        return id === undefined ? '' : getSourceColor(id);
     }
 
     constructor(cdRef: ChangeDetectorRef) {

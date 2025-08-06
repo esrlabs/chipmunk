@@ -1,4 +1,5 @@
 <div class="desc" (click)="select()">
+    <span class="source-color" [ngStyle]="{'background': color}"></span>
     <p class="t-medium title" [attr.title]="title">{{title}}</p>
     <p class="t-medium subtitle" *ngIf="subtitle !== undefined" [attr.title]="subtitle">
         {{subtitle}}
