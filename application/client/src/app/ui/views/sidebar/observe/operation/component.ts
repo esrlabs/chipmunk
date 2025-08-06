@@ -4,6 +4,7 @@ import { State } from '@service/session/dependencies/observing/operation';
 import { ObserveOperation } from '@service/session/dependencies/stream';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { getSourceColor } from '@ui/styles/colors';
+import { Stream } from '@service/session/dependencies/stream';
 
 @Component({
     selector: 'app-views-observed-operation',
@@ -14,6 +15,7 @@ import { getSourceColor } from '@ui/styles/colors';
 @Ilc()
 export class Operation extends ChangesDetector implements AfterContentInit {
     @Input() operation!: ObserveOperation;
+    @Input() stream!: Stream;
 
     public title!: string;
     public subtitle: string | undefined = undefined;
@@ -48,6 +50,10 @@ export class Operation extends ChangesDetector implements AfterContentInit {
                 this.detectChanges();
             }),
         );
+    }
+
+    public select() {
+        this.stream.sde.selecting().select(this.operation.uuid);
     }
 
     public stop() {
