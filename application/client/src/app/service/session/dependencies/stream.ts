@@ -190,9 +190,12 @@ export class Stream extends Subscriber {
                             .descriptions.request()
                             .then((sources) => {
                                 let updated = false;
-                                sources.forEach((source) => {
-                                    updated = updated ? updated : operation.addSource(source);
-                                });
+                                sources
+                                    .filter((source) => source.uuid === operationUuid)
+                                    .forEach((source) => {
+                                        const added = operation.addSource(source);
+                                        updated = updated ? updated : added;
+                                    });
                                 updated && this.subjects.get().sources.emit();
                             })
                             .catch((err: Error) => {
@@ -306,7 +309,6 @@ export class Stream extends Subscriber {
                     return operation ? operation.getSource(id) : undefined;
                 },
                 id: (uuid: string): number | undefined => {
-                    console.error('Not implemented');
                     // TODO:
                     // `uuid` - is an uuid of observe operation, but if it's Files (aka concat)
                     // we would have multiple sources (files) for a one operation
