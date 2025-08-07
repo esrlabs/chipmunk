@@ -542,18 +542,18 @@ impl RustSession {
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?;
         let mut range: Option<(u64, u64)> = None;
-        if let Some(from) = from {
-            if let Some(to) = to {
-                if from >= 0 && to >= 0 {
-                    if from <= to {
-                        range = Some((from as u64, to as u64));
-                    } else {
-                        warn!(
-                            target: targets::SESSION,
-                            "Invalid range (operation: {operation_id}): from = {from}; to = {to}"
-                        );
-                    }
-                }
+        if let Some(from) = from
+            && let Some(to) = to
+            && from >= 0
+            && to >= 0
+        {
+            if from <= to {
+                range = Some((from as u64, to as u64));
+            } else {
+                warn!(
+                    target: targets::SESSION,
+                    "Invalid range (operation: {operation_id}): from = {from}; to = {to}"
+                );
             }
         }
         info!(

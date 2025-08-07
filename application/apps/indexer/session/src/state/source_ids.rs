@@ -89,7 +89,7 @@ impl SourceIDs {
         self.map.push((range, source_id));
     }
 
-    pub fn get_mapped_ranges(&self, requested: &RangeInclusive<u64>) -> MappedRanges {
+    pub fn get_mapped_ranges(&self, requested: &RangeInclusive<u64>) -> MappedRanges<'_> {
         MappedRanges::new(
             self.map
                 .iter()

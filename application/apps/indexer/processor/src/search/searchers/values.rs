@@ -99,24 +99,24 @@ impl SearchState for ValueSearchState {
 
 fn collect(row: u64, line: &str, state: &mut ValueSearchState) {
     for (term_index, re) in state.matchers.iter().enumerate() {
-        if let Some(caps) = re.captures(line) {
-            if let Some(value) = caps.get(1) {
-                let value_str = value.as_str().to_owned();
-                if let Ok(value_i64) = value_str.parse::<f64>() {
-                    if let Some(indexes) = state.results.indexes.as_mut() {
-                        if let Some(matches) = indexes.get_mut(&(term_index as u8)) {
-                            matches.push((row, value_i64));
-                        } else {
-                            indexes.insert(term_index as u8, vec![(row, value_i64)]);
-                        }
+        if let Some(caps) = re.captures(line)
+            && let Some(value) = caps.get(1)
+        {
+            let value_str = value.as_str().to_owned();
+            if let Ok(value_i64) = value_str.parse::<f64>() {
+                if let Some(indexes) = state.results.indexes.as_mut() {
+                    if let Some(matches) = indexes.get_mut(&(term_index as u8)) {
+                        matches.push((row, value_i64));
+                    } else {
+                        indexes.insert(term_index as u8, vec![(row, value_i64)]);
                     }
-                } else if let Some(errors) = state.errors.get_mut(&row) {
-                    errors.push((term_index as u8, value_str));
-                } else {
-                    state
-                        .errors
-                        .insert(row, vec![(term_index as u8, value_str)]);
                 }
+            } else if let Some(errors) = state.errors.get_mut(&row) {
+                errors.push((term_index as u8, value_str));
+            } else {
+                state
+                    .errors
+                    .insert(row, vec![(term_index as u8, value_str)]);
             }
         }
     }

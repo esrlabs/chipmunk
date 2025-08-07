@@ -138,10 +138,10 @@ impl Map {
     }
 
     fn remove_if(&mut self, position: u64, nature: Nature) {
-        if let Some(index) = self.indexes.get_mut(&position) {
-            if index == &nature {
-                self.index_remove(&position, true);
-            }
+        if let Some(index) = self.indexes.get_mut(&position)
+            && index == &nature
+        {
+            self.index_remove(&position, true);
         }
     }
 
@@ -650,11 +650,10 @@ impl Map {
                 }
                 if let Some((position, nature)) =
                     self.indexes.get_key_value(&self.keys.get_position(cursor)?)
+                    && filter.cross(*nature)
                 {
-                    if filter.cross(*nature) {
-                        result = Some((position, nature));
-                        break;
-                    }
+                    result = Some((position, nature));
+                    break;
                 }
                 cursor += 1;
             }
@@ -662,11 +661,10 @@ impl Map {
             loop {
                 if let Some((position, nature)) =
                     self.indexes.get_key_value(&self.keys.get_position(cursor)?)
+                    && filter.cross(*nature)
                 {
-                    if filter.cross(*nature) {
-                        result = Some((position, nature));
-                        break;
-                    }
+                    result = Some((position, nature));
+                    break;
                 }
                 if cursor == 0 {
                     break;

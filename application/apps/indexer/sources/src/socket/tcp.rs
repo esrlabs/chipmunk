@@ -86,23 +86,23 @@ impl ByteSource for TcpSource {
 
         // TODO use filter
         loop {
-            if let Some(reconnecter) = self.reconnecter.as_mut() {
-                if let Some(handle) = reconnecter.task_handle.as_mut() {
-                    match handle.await {
-                        Ok(ReconnectResult::Reconnected(socket)) => self.socket = socket,
-                        Ok(ReconnectResult::Error(err)) => {
-                            return Err(SourceError::Unrecoverable(format!(
-                                "Reconnect to TCP failed. Error: {err}"
-                            )));
-                        }
-                        Err(err) => {
-                            return Err(SourceError::Unrecoverable(format!(
-                                "Reconnect to TCP task panicked. Error: {err}"
-                            )));
-                        }
+            if let Some(reconnecter) = self.reconnecter.as_mut()
+                && let Some(handle) = reconnecter.task_handle.as_mut()
+            {
+                match handle.await {
+                    Ok(ReconnectResult::Reconnected(socket)) => self.socket = socket,
+                    Ok(ReconnectResult::Error(err)) => {
+                        return Err(SourceError::Unrecoverable(format!(
+                            "Reconnect to TCP failed. Error: {err}"
+                        )));
                     }
-                    reconnecter.task_handle = None;
+                    Err(err) => {
+                        return Err(SourceError::Unrecoverable(format!(
+                            "Reconnect to TCP task panicked. Error: {err}"
+                        )));
+                    }
                 }
+                reconnecter.task_handle = None;
             }
 
             debug!("Wait for tcp socket to become readable");

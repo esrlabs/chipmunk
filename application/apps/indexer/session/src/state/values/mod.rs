@@ -161,24 +161,24 @@ impl Values {
                             break;
                         }
                     }
-                    if let (Some(right_point), Some(left_left)) = (included.first(), borders.0) {
-                        if right_point.row > *frame.start() {
-                            included.insert(
-                                0,
-                                CandlePoint::between(left_left, right_point, frame.start()),
-                            );
-                        }
+                    if let (Some(right_point), Some(left_left)) = (included.first(), borders.0)
+                        && right_point.row > *frame.start()
+                    {
+                        included.insert(
+                            0,
+                            CandlePoint::between(left_left, right_point, frame.start()),
+                        );
                     }
-                    if let (Some(left), Some(right)) = (included.last(), borders.1) {
-                        if left.row < *frame.end() {
-                            included.push(CandlePoint::between(left, right, frame.end()));
-                        }
+                    if let (Some(left), Some(right)) = (included.last(), borders.1)
+                        && left.row < *frame.end()
+                    {
+                        included.push(CandlePoint::between(left, right, frame.end()));
                     }
-                    if included.is_empty() {
-                        if let (Some(left), Some(right)) = (borders.0, borders.1) {
-                            included.push(CandlePoint::between(left, right, frame.start()));
-                            included.push(CandlePoint::between(left, right, frame.end()));
-                        }
+                    if included.is_empty()
+                        && let (Some(left), Some(right)) = (borders.0, borders.1)
+                    {
+                        included.push(CandlePoint::between(left, right, frame.start()));
+                        included.push(CandlePoint::between(left, right, frame.end()));
                     }
                     excerpt.insert(*k, (*min, *max, included));
                 });

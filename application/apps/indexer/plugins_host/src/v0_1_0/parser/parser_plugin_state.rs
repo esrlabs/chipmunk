@@ -37,12 +37,12 @@ impl Drop for ParserPluginState {
     fn drop(&mut self) {
         // Remove temp directory on drop.
         if let Some(tmp_dir) = self.temp_dir.as_ref() {
-            if let Err(err) = std::fs::remove_dir_all(tmp_dir) {
+            let _ = std::fs::remove_dir_all(tmp_dir).inspect_err(|err| {
                 log::error!(
                     "Error while removing plugin temporary directory. Path: {}, err: {err}",
                     tmp_dir.display()
                 );
-            }
+            });
         }
     }
 }

@@ -40,9 +40,9 @@ impl Drop for ProcessSource {
     fn drop(&mut self) {
         let is_process_alive = self.process.try_wait().is_ok_and(|state| state.is_none());
         if is_process_alive {
-            if let Err(err) = self.process.start_kill() {
+            let _ = self.process.start_kill().inspect_err(|err| {
                 warn!("Fail to kill child process: {err}");
-            }
+            });
         }
     }
 }

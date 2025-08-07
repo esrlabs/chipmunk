@@ -62,20 +62,18 @@ pub struct FtMessageParser;
 
 impl FtMessageParser {
     /// Parses a DLT-FT message from a DLT message, if any.
-    pub fn parse(message: &Message) -> Option<FtMessage> {
-        if let MessageType::Log(LogLevel::Info) = message.extended_header.as_ref()?.message_type {
-            if let PayloadContent::Verbose(args) = &message.payload {
-                if args.len() > 2 {
-                    if let (Some(arg1), Some(arg2)) = (args.first(), args.last()) {
-                        if Self::is_kind_of(FT_START_TAG, arg1, arg2) {
-                            return Self::start_message(message.header.timestamp, args);
-                        } else if Self::is_kind_of(FT_DATA_TAG, arg1, arg2) {
-                            return Self::data_message(message.header.timestamp, args);
-                        } else if Self::is_kind_of(FT_END_TAG, arg1, arg2) {
-                            return Self::end_message(message.header.timestamp, args);
-                        }
-                    }
-                }
+    pub fn parse(message: &Message) -> Option<FtMessage<'_>> {
+        if let MessageType::Log(LogLevel::Info) = message.extended_header.as_ref()?.message_type
+            && let PayloadContent::Verbose(args) = &message.payload
+            && args.len() > 2
+            && let (Some(arg1), Some(arg2)) = (args.first(), args.last())
+        {
+            if Self::is_kind_of(FT_START_TAG, arg1, arg2) {
+                return Self::start_message(message.header.timestamp, args);
+            } else if Self::is_kind_of(FT_DATA_TAG, arg1, arg2) {
+                return Self::data_message(message.header.timestamp, args);
+            } else if Self::is_kind_of(FT_END_TAG, arg1, arg2) {
+                return Self::end_message(message.header.timestamp, args);
             }
         }
 
@@ -84,10 +82,10 @@ impl FtMessageParser {
 
     /// Returns weather both arguments contain given tag.
     fn is_kind_of(tag: &str, arg1: &Argument, arg2: &Argument) -> bool {
-        if let Some(string1) = Self::get_string(arg1) {
-            if let Some(string2) = Self::get_string(arg2) {
-                return (string1 == tag) && (string2 == tag);
-            }
+        if let Some(string1) = Self::get_string(arg1)
+            && let Some(string2) = Self::get_string(arg2)
+        {
+            return (string1 == tag) && (string2 == tag);
         }
 
         false
@@ -105,7 +103,7 @@ impl FtMessageParser {
     /// * 5 DLT_UINT(packets-count)
     /// * 6 DLT_UINT(buffer-size)
     /// * 7 DLT_STRING("FLST")
-    fn start_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage> {
+    fn start_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage<'_>> {
         Some(FtMessage::Start(FileStart {
             timestamp,
             id: Self::get_number(args.get(1)?)?,
@@ -125,7 +123,7 @@ impl FtMessageParser {
     /// * 2 DLT_UINT(packet-num)
     /// * 3 DLT_RAW(bytes)
     /// * 4 DLT_STRING("FLDA")
-    fn data_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage> {
+    fn data_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage<'_>> {
         let id;
         let packet;
         let bytes;
@@ -175,7 +173,7 @@ impl FtMessageParser {
     /// * 0 DLT_STRING("FLFI")
     /// * 1 DLT_UINT(file-id)
     /// * 2 DLT_STRING("FLFI")
-    fn end_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage> {
+    fn end_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage<'_>> {
         let id;
 
         if let Some(arg) = args.get(1) {
