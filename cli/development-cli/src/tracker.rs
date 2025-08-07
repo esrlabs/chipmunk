@@ -2,7 +2,7 @@
 //! console using TUI progress bars and caching commands output to be used later when commands'
 //! logs are needed.
 
-use anyhow::{Context, Error, anyhow};
+use anyhow::{Context, Error};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::{
@@ -485,9 +485,7 @@ impl Tracker {
             return;
         }
 
-        if let Err(e) = self.ui_tx.send(UiTick::Progress(job_def, pos)) {
-            eprintln!("Fail to communicate with tracker: {e}");
-        }
+        self.send_ui_tick(UiTick::Progress(job_def, pos));
     }
 
     /// Send a message of the job to be shown on UI and saved in logs cache.
@@ -514,18 +512,11 @@ impl Tracker {
         }
 
         if self.cache_logs() {
-            if let Err(err) = self
-                .log_tx
-                .send(LogTick::SendSingleLog(job_def, log.to_owned()))
-            {
-                eprintln!("Fail to communicate with tracker: {err}");
-            }
+            self.send_log_tick(LogTick::SendSingleLog(job_def, log.to_owned()));
         }
 
         if self.show_bars() {
-            if let Err(e) = self.ui_tx.send(UiTick::Message(job_def, log.to_owned())) {
-                eprintln!("Fail to communicate with tracker: {e}");
-            }
+            self.send_ui_tick(UiTick::Message(job_def, log.to_owned()));
         }
     }
 
@@ -552,24 +543,14 @@ impl Tracker {
         }
 
         if self.cache_logs() {
-            if let Err(err) = self
-                .log_tx
-                .send(LogTick::SendSingleLog(job_def, log.to_owned()))
-            {
-                eprintln!("Fail to communicate with tracker: {err}");
-            }
+            self.send_log_tick(LogTick::SendSingleLog(job_def, log.to_owned()));
         }
     }
 
     /// Sets the job on UI as finished providing successful result and a message.
     pub fn success(&self, job_def: JobDefinition, msg: String) {
         if self.show_bars() {
-            if let Err(e) =
-                self.ui_tx
-                    .send(UiTick::Finished(job_def, OperationResult::Success, msg))
-            {
-                eprintln!("Fail to communicate with tracker: {e}");
-            }
+            self.send_ui_tick(UiTick::Finished(job_def, OperationResult::Success, msg));
         } else if self.print_immediately() {
             let success_txt = format!("Job '{}' succeeded", job_def.job_title());
             println!("{}", style(success_txt).green().bold());
@@ -579,12 +560,7 @@ impl Tracker {
     /// Sets the job on UI as finished providing skipped result and a message.
     pub fn skipped(&self, job_def: JobDefinition, msg: String) {
         if self.show_bars() {
-            if let Err(e) =
-                self.ui_tx
-                    .send(UiTick::Finished(job_def, OperationResult::Skipped, msg))
-            {
-                eprintln!("Fail to communicate with tracker: {e}");
-            }
+            self.send_ui_tick(UiTick::Finished(job_def, OperationResult::Skipped, msg));
         } else if self.print_immediately() {
             let success_txt = format!("Job '{}' Skipped", job_def.job_title());
             println!("{}", style(success_txt).cyan().bold());
@@ -594,12 +570,7 @@ impl Tracker {
     /// Sets the job on UI as finished providing failed result and a message
     pub fn fail(&self, job_def: JobDefinition, msg: String) {
         if self.show_bars() {
-            if let Err(e) = self
-                .ui_tx
-                .send(UiTick::Finished(job_def, OperationResult::Failed, msg))
-            {
-                eprintln!("Fail to communicate with tracker: {e}");
-            }
+            self.send_ui_tick(UiTick::Finished(job_def, OperationResult::Failed, msg));
         } else if self.print_immediately() {
             let fail_txt = format!("Job '{}' failed", job_def.job_title());
             println!("{}", style(fail_txt).red().bold());
@@ -635,13 +606,7 @@ impl Tracker {
     pub fn print(&self, msg: impl Into<String>) {
         let msg = msg.into();
         if self.show_bars() {
-            if let Err(e) = self
-                .ui_tx
-                .send(UiTick::Print(msg))
-                .map_err(|e| anyhow!("Fail to send tick: {e}"))
-            {
-                eprintln!("Fail to communicate with tracker: {e}");
-            }
+            self.send_ui_tick(UiTick::Print(msg));
         } else {
             println!("{msg}",);
         }
@@ -710,5 +675,17 @@ impl Tracker {
         })?;
 
         Ok(Some(logs))
+    }
+
+    fn send_log_tick(&self, tick: LogTick) {
+        if let Err(err) = self.log_tx.send(tick) {
+            eprintln!("Fail to communicate with tracker: {err}");
+        }
+    }
+
+    fn send_ui_tick(&self, tick: UiTick) {
+        if let Err(err) = self.ui_tx.send(tick) {
+            eprintln!("Fail to communicate with tracker: {err}");
+        }
     }
 }

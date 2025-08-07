@@ -147,12 +147,12 @@ pub fn run_benchmark(
 ///
 /// This function is needed to resolve the relative paths before changing the current directory
 /// while running the benchmark commands.
-fn resolve_if_path(arg: &str) -> Cow<OsStr> {
+fn resolve_if_path(arg: &str) -> Cow<'_, OsStr> {
     let potential_path = PathBuf::from(&arg);
-    if potential_path.exists() {
-        if let Ok(path) = std::path::absolute(potential_path) {
-            return Cow::Owned(path.into_os_string());
-        }
+    if potential_path.exists()
+        && let Ok(path) = std::path::absolute(potential_path)
+    {
+        return Cow::Owned(path.into_os_string());
     }
 
     Cow::Borrowed(arg.as_ref())

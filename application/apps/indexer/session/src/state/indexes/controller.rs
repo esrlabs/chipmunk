@@ -206,9 +206,10 @@ impl Controller {
 
     fn notify(&self) {
         if let Some(tx) = self.tx_callback_events.as_ref() {
-            if let Err(err) = tx.send(stypes::CallbackEvent::IndexedMapUpdated {
+            let event = stypes::CallbackEvent::IndexedMapUpdated {
                 len: self.map.len() as u64,
-            }) {
+            };
+            if let Err(err) = tx.send(event) {
                 error!("Fail to send indexed map notification: {err:?}");
             }
         }

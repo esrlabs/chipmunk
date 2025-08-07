@@ -74,10 +74,10 @@ impl FibexMetadata {
 
     /// Returns a SOME/IP service for the given id and matching or latest version, if any.
     pub fn get_service(&self, id: usize, version: usize) -> Option<&FibexServiceInterface> {
-        if let Ok(mut lock) = self.services.lock() {
-            if let Some(index) = lock.get_service_index(&self.model, id, version) {
-                return self.model.services.get(index);
-            }
+        if let Ok(mut lock) = self.services.lock()
+            && let Some(index) = lock.get_service_index(&self.model, id, version)
+        {
+            return self.model.services.get(index);
         }
 
         None
@@ -89,22 +89,22 @@ impl FibexMetadata {
         fibex_type: &FibexTypeDeclaration,
         payload: &RpcPayload,
     ) -> Option<String> {
-        if let Ok(mut lock) = self.types.lock() {
-            if let Some(som_type) = lock.get_som_type(fibex_type) {
-                match som_type.parse(&mut SOMParser::new(payload).non_strict()) {
-                    Ok(_) => {
-                        return Some(
-                            som_type
-                                .to_string()
-                                .replace('\n', LINE_SEP)
-                                .replace(&" ".repeat(4), "\t"),
-                        );
-                    }
-                    Err(error) => {
-                        return Some(format!("'{}' {:02X?}", error, *payload));
-                    }
-                };
-            }
+        if let Ok(mut lock) = self.types.lock()
+            && let Some(som_type) = lock.get_som_type(fibex_type)
+        {
+            match som_type.parse(&mut SOMParser::new(payload).non_strict()) {
+                Ok(_) => {
+                    return Some(
+                        som_type
+                            .to_string()
+                            .replace('\n', LINE_SEP)
+                            .replace(&" ".repeat(4), "\t"),
+                    );
+                }
+                Err(error) => {
+                    return Some(format!("'{}' {:02X?}", error, *payload));
+                }
+            };
         }
 
         None
@@ -164,10 +164,10 @@ struct FibexTypeCache {
 
 impl FibexTypeCache {
     fn get_som_type(&mut self, fibex_type: &FibexTypeDeclaration) -> Option<&mut Box<dyn SOMType>> {
-        if !self.map.contains_key(&fibex_type.id) {
-            if let Ok(som_type) = FibexTypes::build(fibex_type) {
-                self.map.insert(fibex_type.id.clone(), som_type);
-            }
+        if !self.map.contains_key(&fibex_type.id)
+            && let Ok(som_type) = FibexTypes::build(fibex_type)
+        {
+            self.map.insert(fibex_type.id.clone(), som_type);
         }
 
         self.map.get_mut(&fibex_type.id)
@@ -516,7 +516,7 @@ impl fmt::Debug for SomeipLogMessage {
 }
 
 /// Merges the SOME/IP message columns to a single column with additional info.
-fn merge_columns(columns: &str) -> Cow<str> {
+fn merge_columns(columns: &str) -> Cow<'_, str> {
     lazy_static! {
         static ref REGEX : Regex = Regex::new(
             &format!("(SD|RPC){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(.*)")

@@ -122,9 +122,11 @@ async fn reconnect(
         match super::TcpSource::create_socket(binding_address, keep_alive.as_ref()).await {
             Ok(socket) => {
                 if let Some(sender) = &reconnect_info.state_sender {
-                    if let Err(err) = sender.send(ReconnectStateMsg::Connected) {
-                        log::error!("Failed to send connected state with err: {err}");
-                    }
+                    let _ = sender
+                        .send(ReconnectStateMsg::Connected)
+                        .inspect_err(|err| {
+                            log::error!("Failed to send connected state with err: {err}");
+                        });
                 }
                 return ReconnectResult::Reconnected(socket);
             }

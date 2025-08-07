@@ -42,13 +42,6 @@ pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
 /// Separator to used between the arguments in the payload of DLT [`FormattableMessage`].
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
 
-const DLT_NEWLINE_SENTINAL_SLICE: &[u8] = &[0x6];
-
-lazy_static::lazy_static! {
-    static ref DLT_NEWLINE_SENTINAL_STR: &'static str =
-        unsafe { str::from_utf8_unchecked(DLT_NEWLINE_SENTINAL_SLICE) };
-}
-
 fn try_new_from_fibex_message_info(message_info: &str) -> Option<MessageType> {
     Some(MessageType::Log(match message_info {
         "DLT_LOG_FATAL" => LogLevel::Fatal,
@@ -611,20 +604,19 @@ impl fmt::Display for FormattableMessage<'_> {
                                 | MessageType::NetworkTrace(NetworkTraceType::Someip)
                         )
                     })
+                    && let Some(slice) = slices.get(1)
                 {
-                    if let Some(slice) = slices.get(1) {
-                        match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
-                            Ok((_, message)) => {
-                                let prefix = slices.first().map_or_else(String::default, |s| {
-                                    parse_prefix(s)
-                                        .ok()
-                                        .map_or_else(String::default, |p| format!("{} ", p.1))
-                                });
-                                return write!(f, "SOME/IP {prefix}{message:?}");
-                            }
-                            Err(error) => {
-                                return write!(f, "SOME/IP '{error}' {slice:02X?}");
-                            }
+                    match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
+                        Ok((_, message)) => {
+                            let prefix = slices.first().map_or_else(String::default, |s| {
+                                parse_prefix(s)
+                                    .ok()
+                                    .map_or_else(String::default, |p| format!("{} ", p.1))
+                            });
+                            return write!(f, "SOME/IP {prefix}{message:?}");
+                        }
+                        Err(error) => {
+                            return write!(f, "SOME/IP '{error}' {slice:02X?}");
                         }
                     }
                 }

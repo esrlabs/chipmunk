@@ -96,10 +96,10 @@ fn collect(row: u64, line: &str, state: &mut RegularSearchState) {
         if re.is_match(line) {
             matched_rows.push(index as u8);
             line_indexes.filters.push(index as u8);
-            if let Some(alias) = state.aliases.get(&index) {
-                if let Some(stats) = state.results.stats.as_mut() {
-                    stats.inc(alias, None);
-                }
+            if let Some(alias) = state.aliases.get(&index)
+                && let Some(stats) = state.results.stats.as_mut()
+            {
+                stats.inc(alias, None);
             }
         }
     }

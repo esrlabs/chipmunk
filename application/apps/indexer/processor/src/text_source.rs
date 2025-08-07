@@ -138,10 +138,10 @@ impl TextFileSource {
         let mut reader = BufReader::new(BIN_READER_CAPACITY, BIN_MIN_BUFFER_SPACE, f);
         let mut pending: Option<Slot> = None;
         loop {
-            if let Some(shutdown_token) = &shutdown_token {
-                if shutdown_token.is_cancelled() {
-                    return Ok((ComputationResult::Stopped, None));
-                }
+            if let Some(shutdown_token) = &shutdown_token
+                && shutdown_token.is_cancelled()
+            {
+                return Ok((ComputationResult::Stopped, None));
             }
             match reader.fill_buf() {
                 Ok(content) => {

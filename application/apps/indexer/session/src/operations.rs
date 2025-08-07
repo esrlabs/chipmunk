@@ -256,7 +256,8 @@ impl OperationAPI {
             }
         };
         if !self.state_api.is_closing() && !self.cancellation_token().is_cancelled() {
-            if let Err(err) = self.tracker_api.remove_operation(self.id()).await {
+            let id = self.id();
+            if let Err(err) = self.tracker_api.remove_operation(id).await {
                 error!("Failed to remove operation; error: {err:?}");
             }
         }
