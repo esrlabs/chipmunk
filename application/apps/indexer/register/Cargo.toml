@@ -9,6 +9,7 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 tokio-util.workspace = true
 tokio = { workspace = true , features = ["full"] }
 log.workspace = true
+indexmap.workspace = true
 
 stypes = { path = "../stypes", features=["rustcore"] }
 descriptor = { path = "../descriptor" }
