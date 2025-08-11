@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use file_tools::is_path_binary;
+use indexmap::IndexMap;
 use stypes::{NativeError, SessionDescriptor};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -24,8 +25,8 @@ use sources::Sources;
 /// By storing trait objects (`Box<dyn ...>`), the registry supports dynamic extensibility,
 /// including plugin-based components.
 pub struct Register {
-    sources: HashMap<Uuid, Box<dyn SourceFactory<Sources>>>,
-    parsers: HashMap<Uuid, Box<dyn ParserFactory<Parsers>>>,
+    sources: IndexMap<Uuid, Box<dyn SourceFactory<Sources>>>,
+    parsers: IndexMap<Uuid, Box<dyn ParserFactory<Parsers>>>,
 }
 
 impl Register {
@@ -35,8 +36,8 @@ impl Register {
     /// [`add_parser`] or [`add_source`].
     pub fn new() -> Register {
         Self {
-            sources: HashMap::new(),
-            parsers: HashMap::new(),
+            sources: IndexMap::new(),
+            parsers: IndexMap::new(),
         }
     }
 
