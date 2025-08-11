@@ -53,10 +53,10 @@ impl CodeSign {
         }
     }
 
-    pub fn notarize(&self) -> anyhow::Result<()> {
+    pub fn notarize(&self, custom_platform: Option<&str>) -> anyhow::Result<()> {
         assert!(self.allowed(), "Code Notarizing isn't allowed");
         match self {
-            CodeSign::MacOs(config) => macos::notarize(config),
+            CodeSign::MacOs(config) => macos::notarize(config, custom_platform),
         }
     }
 }

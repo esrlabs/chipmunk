@@ -194,6 +194,9 @@ pub enum Command {
         /// Path to the configuration file for code signing
         #[arg(short, long)]
         code_sign: Option<PathBuf>,
+        /// Custom platform name to be used in release archive file name.
+        #[arg(short = 'p', long = "platform")]
+        custom_platform: Option<String>,
     },
     /// Runs benchmarks for the given target, its input source and configuration.
     #[clap(visible_alias = "bench")]

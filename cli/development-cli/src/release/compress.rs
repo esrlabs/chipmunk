@@ -2,6 +2,7 @@
 //! for each per platform and including the current version of Chipmunk in the file name.
 
 use std::{
+    borrow::Cow,
     fs::{self, File},
     io::BufReader,
 };
@@ -19,8 +20,9 @@ use super::env_utls::is_arm_archit;
 
 /// Compresses the bundled Chipmunk on the current platform, Creating one compressed file to be
 /// used on releases.
-pub async fn compress() -> anyhow::Result<()> {
-    let release_file_name = release_file_name()?;
+/// * `custom_platform`: Optional Custom platform name to be used in archive name.
+pub async fn compress(custom_platform: Option<&str>) -> anyhow::Result<()> {
+    let release_file_name = release_file_name(custom_platform)?;
     let archname = format!("{release_file_name}.tgz");
 
     let mut tar_cmd = format!("tar -czf ../{archname} ");
@@ -66,19 +68,22 @@ pub async fn compress() -> anyhow::Result<()> {
 
 /// Provides the release file on the current platform, reading and adding
 /// Chipmunk version to the filename.
-pub fn release_file_name() -> anyhow::Result<String> {
+///
+/// * `custom_platform`: Optional Custom platform name to be used in archive name,
+///   to replace the default operating system when provided.
+pub fn release_file_name(custom_platform: Option<&str>) -> anyhow::Result<String> {
     let version = chipmunk_version().context("Error while retrieving Chipmunk version")?;
-    let prefix = os_env_prefix();
+    let platform = custom_platform.map_or_else(|| os_env_platform().into(), Cow::from);
 
-    let file_name = format!("chipmunk@{version}-{prefix}-portable");
+    let file_name = format!("chipmunk@{version}-{platform}-portable");
 
     Ok(file_name)
 }
 
-/// Provides the prefix for release file names based on the operating system and
+/// Provides the platform for release file names based on the operating system and
 /// the system's architecture.
-fn os_env_prefix() -> String {
-    let mut prefix = if cfg!(target_os = "linux") {
+fn os_env_platform() -> String {
+    let mut platform = if cfg!(target_os = "linux") {
         String::from("linux")
     } else if cfg!(target_os = "macos") {
         String::from("darwin")
@@ -93,10 +98,10 @@ fn os_env_prefix() -> String {
     };
 
     if is_arm_archit() {
-        prefix.push_str("-arm64");
+        platform.push_str("-arm64");
     }
 
-    prefix
+    platform
 }
 
 /// Reads current Chipmunk version from `package.json` file.
@@ -135,8 +140,8 @@ fn chipmunk_version() -> anyhow::Result<String> {
 
 /// Compresses the bundled Chipmunk CLI on the current platform, Creating one compressed file
 /// to be used on releases.
-pub async fn compress_cli() -> anyhow::Result<()> {
-    let release_file_name = cli_release_file_name()?;
+pub async fn compress_cli(custom_platform: Option<&str>) -> anyhow::Result<()> {
+    let release_file_name = cli_release_file_name(custom_platform)?;
 
     let arch_name = format!("{release_file_name}.tgz");
 
@@ -179,11 +184,16 @@ pub async fn compress_cli() -> anyhow::Result<()> {
 }
 
 /// Provides the release file name for Chipmunk CLI on the current platform.
-pub fn cli_release_file_name() -> anyhow::Result<String> {
+///
+/// * `custom_platform`: Optional Custom platform name to be used in archive name,
+///   to replace the default operating system when provided.
+pub fn cli_release_file_name(custom_platform: Option<&str>) -> anyhow::Result<String> {
     let version = chipmunk_cli_version().context("Error while retrieving chipmunk cli version")?;
-    let prefix = os_env_prefix();
+    let platform: Cow<_> = custom_platform
+        .map(|p| p.into())
+        .unwrap_or_else(|| os_env_platform().into());
 
-    let file_name = format!("chipmunk-cli@{version}-{prefix}-portable");
+    let file_name = format!("chipmunk-cli@{version}-{platform}-portable");
 
     Ok(file_name)
 }

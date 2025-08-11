@@ -9,6 +9,7 @@ mod bundle;
 mod codesign;
 mod compress;
 mod env_utls;
+mod metadata;
 mod paths;
 
 use std::{fs, path::PathBuf, time::Instant};
@@ -30,7 +31,12 @@ use crate::{
 ///
 /// * `development`: Sets if Chipmunk should be built in development mode.
 /// * `code_sign_path`: Path to the configuration file to do code signing.
-pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> anyhow::Result<()> {
+/// * `custom_platform`: Custom platform name to be used in release archive file name.
+pub async fn do_release(
+    development: bool,
+    code_sign_path: Option<PathBuf>,
+    custom_platform: Option<&str>,
+) -> anyhow::Result<()> {
     debug_assert!(
         !get_tracker().show_bars(),
         "Release shouldn't run with UI bars"
@@ -121,7 +127,7 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
 
     let bundle_start = Instant::now();
 
-    bundle_release().await?;
+    bundle_release(custom_platform).await?;
 
     let finish_msg = format!(
         "Release Bundle succeeded in {} seconds.",
@@ -169,8 +175,8 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
 
     let compress_start = Instant::now();
 
-    compress().await?;
-    compress_cli()
+    compress(custom_platform).await?;
+    compress_cli(custom_platform)
         .await
         .context("Error while compressing Chipmunk CLI binary")?;
 
@@ -191,7 +197,7 @@ pub async fn do_release(development: bool, code_sign_path: Option<PathBuf>) -> a
                 style("Start Code Notarizing...").blue().bright().bold()
             );
             let notarizing_start = Instant::now();
-            code_sign.notarize()?;
+            code_sign.notarize(custom_platform)?;
 
             let finish_msg = format!(
                 "Code notarizing succeeded in {} seconds.",

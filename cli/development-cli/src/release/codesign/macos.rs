@@ -183,7 +183,7 @@ pub fn apply_codesign(config: &MacOsConfig) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
+pub fn notarize(config: &MacOsConfig, custom_platform: Option<&str>) -> anyhow::Result<()> {
     assert!(allowed(config), "Code notarizing isn't allowed");
     let apple_id = env::var(&config.notarize_command.env_apple_id).with_context(|| {
         format!(
@@ -206,10 +206,10 @@ pub fn notarize(config: &MacOsConfig) -> anyhow::Result<()> {
         )
     })?;
 
-    let release_file_name = release_file_name()?;
+    let release_file_name = release_file_name(custom_platform)?;
     let archname = format!("{release_file_name}.tgz");
 
-    let cli_archname = format!("{}.tgz", cli_release_file_name()?);
+    let cli_archname = format!("{}.tgz", cli_release_file_name(custom_platform)?);
 
     for arch in [archname, cli_archname] {
         println!("Running notarize command on `{arch}`...");
