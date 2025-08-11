@@ -9,12 +9,14 @@ use paths::release_bin_path;
 
 use super::*;
 use crate::{
+    release::metadata::write_metadata,
     shell::shell_tokio_command,
     target::{ProcessCommand, Target},
 };
 
-/// Runs bundle command on the already built Chipmunk, providing a snapshot file if needed.
-pub async fn bundle_release() -> anyhow::Result<()> {
+/// Runs bundle command on the already built Chipmunk, providing a snapshot file and release
+/// metadata file if needed.
+pub async fn bundle_release(custom_platform: Option<&str>) -> anyhow::Result<()> {
     debug_assert!(
         !get_tracker().show_bars(),
         "Release shouldn't run with UI bars"
@@ -58,6 +60,22 @@ pub async fn bundle_release() -> anyhow::Result<()> {
     println!();
     println!("-----------------------------------------------");
     println!();
+
+    if let Some(platform) = custom_platform {
+        println!(
+            "{}",
+            style("Start creating release metadata file...")
+                .blue()
+                .bright()
+        );
+
+        write_metadata(platform).context("Creating release metadata file failed")?;
+
+        println!(
+            "{}",
+            style("Createing relasee metadata file succeeded...").green()
+        );
+    }
 
     Ok(())
 }

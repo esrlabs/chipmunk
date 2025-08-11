@@ -223,6 +223,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             no_fail_fast,
             development,
             code_sign,
+            custom_platform,
         } => {
             JobsState::init(JobsConfig::new(!no_fail_fast).release_build(true));
             let ui_mode = if verbose {
@@ -232,7 +233,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
             };
             init_tracker(Some(ui_mode));
             validate_dev_tools()?;
-            do_release(development, code_sign).await?;
+            do_release(development, code_sign, custom_platform.as_deref()).await?;
             let tracker = get_tracker();
             tracker.shutdown(false).await?;
 
