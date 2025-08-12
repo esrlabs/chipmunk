@@ -1,14 +1,17 @@
 //! The module handles serializing and writing release metadata such as custom prefix for
 //! archive name ...etc.
 
-use std::fs::{self, File};
+use std::{
+    fs::{self, File},
+    path::PathBuf,
+};
 
 use anyhow::Context;
 use serde::Serialize;
 
 use crate::release::paths::release_bin_path;
 
-const METADATA_FILENAME: &str = ".metadata";
+pub const METADATA_FILENAME: &str = ".metadata";
 
 /// Includes metadata related to the app and the release such as custom platform for
 /// archive name...
@@ -38,9 +41,8 @@ pub fn write_metadata(custom_platform: &str) -> anyhow::Result<()> {
         "We shouldn't write an empty metadata file."
     );
 
-    let release_bin = release_bin_path();
+    let metadata_file = metadata_path();
 
-    let metadata_file = release_bin.join(METADATA_FILENAME);
     if metadata_file.exists() {
         println!(
             "Removing already existing metadata file to be rewritten. File: {}",
@@ -52,4 +54,8 @@ pub fn write_metadata(custom_platform: &str) -> anyhow::Result<()> {
     let mut file = File::create(metadata_file).context("Error while creating metadata file")?;
 
     serde_json::to_writer_pretty(&mut file, &metadata).context("Error while writing metadata file")
+}
+
+pub fn metadata_path() -> PathBuf {
+    release_bin_path().join(METADATA_FILENAME)
 }

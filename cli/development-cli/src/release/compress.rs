@@ -11,7 +11,10 @@ use anyhow::{Context, ensure};
 use serde_json::Value;
 
 use crate::{
-    release::paths::{cli_binary_dir, cli_binary_name, release_build_path, release_path},
+    release::{
+        metadata::{METADATA_FILENAME, metadata_path},
+        paths::{cli_binary_dir, cli_binary_name, release_build_path, release_path},
+    },
     shell::shell_tokio_command,
     target::Target,
 };
@@ -32,6 +35,12 @@ pub async fn compress(custom_platform: Option<&str>) -> anyhow::Result<()> {
     } else {
         tar_cmd.push_str("* .release");
     };
+
+    let metafile = metadata_path();
+    if metafile.exists() {
+        use std::fmt::Write;
+        let _ = write!(&mut tar_cmd, " {METADATA_FILENAME}");
+    }
 
     println!("Running command: '{tar_cmd}'");
 
