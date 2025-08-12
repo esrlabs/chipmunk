@@ -43,4 +43,4 @@ WORKDIR /chipmunk
 
 # This will run the release setting output in `application/holder/release`
 # To run the image: `docker run -v .:/chipmunk:rw chipmunk`
-CMD ["cargo", "chipmunk", "release"]
+CMD ["cargo", "chipmunk", "release", "-p", "ubuntu-20.04"]

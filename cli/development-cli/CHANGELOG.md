@@ -1,3 +1,10 @@
+# 0.5.3
+
+## Added:
+
+* Custom platform name via command line argument.
+* Write metadata file once custom platform is provided.
+
 # 0.5.2
 
 ## Fixes:
