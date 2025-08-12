@@ -21,6 +21,8 @@ import { File } from '@platform/types/files';
 import { SetupObserve } from '@tabs/setup/component';
 import { bridge } from '@service/bridge';
 import { SessionOrigin } from './session/origin';
+import { popup, Vertical, Horizontal } from '@ui/service/popup';
+import { IApi } from '@ui/tabs/setup/state';
 
 export { Session, TabControls, UnboundTab, Base };
 
@@ -223,7 +225,8 @@ export class Service extends Implementation {
     public initialize(): {
         suggest(filename: string, session?: Session): Promise<string | undefined>;
         auto(origin: SessionOrigin, session?: Session): Promise<string | undefined>;
-        configure(origin: SessionOrigin, session?: Session): Promise<string | undefined>;
+        configure(origin: SessionOrigin): Promise<string | undefined>;
+        attach(session: Session): Promise<string | undefined>;
         observe(origin: SessionOrigin, session?: Session): Promise<string>;
         multiple(files: File[]): Promise<string | undefined>;
     } {
@@ -253,40 +256,93 @@ export class Service extends Implementation {
                 //     ? this.initialize().observe(observe, session)
                 //     : this.initialize().configure(observe, session);
             },
-            configure: (origin: SessionOrigin, session?: Session): Promise<string | undefined> => {
+            configure: (origin: SessionOrigin): Promise<string | undefined> => {
                 return new Promise((resolve) => {
+                    const inputs: {
+                        origin: SessionOrigin;
+                        api: IApi;
+                    } = {
+                        origin,
+                        api: {
+                            finish: (origin: SessionOrigin): Promise<string> => {
+                                return new Promise((success, failed) => {
+                                    this.initialize()
+                                        .observe(origin)
+                                        .then((session) => {
+                                            success(session);
+                                            api?.close();
+                                            resolve(session);
+                                        })
+                                        .catch((err: Error) => {
+                                            failed(err);
+                                        });
+                                });
+                            },
+                            cancel: (): void => {
+                                api?.close();
+                                resolve(undefined);
+                            },
+                        },
+                    };
                     const api = this.add().tab({
                         name: origin.getTitle(),
                         content: {
                             factory: SetupObserve,
-                            inputs: {
-                                origin,
-                                api: {
-                                    finish: (origin: SessionOrigin): Promise<void> => {
-                                        return new Promise((success, failed) => {
-                                            this.initialize()
-                                                .observe(origin, session)
-                                                .then((session) => {
-                                                    success();
-                                                    api?.close();
-                                                    resolve(session);
-                                                })
-                                                .catch((err: Error) => {
-                                                    failed(err);
-                                                });
-                                        });
-                                    },
-                                    cancel: (): void => {
-                                        api?.close();
-                                        resolve(undefined);
-                                    },
-                                    tab: (): TabControls => {
-                                        return api as unknown as TabControls;
-                                    },
-                                },
-                            },
+                            inputs,
                         },
                         active: true,
+                    });
+                });
+            },
+            attach: (session: Session): Promise<string | undefined> => {
+                const origin = session.stream.getOrigin();
+                if (!origin) {
+                    return Promise.reject(new Error(`No origin to attach new one`));
+                }
+                const parser = origin.components?.parser?.uuid;
+                if (!parser) {
+                    return Promise.reject(new Error(`No original parser to attach new one`));
+                }
+                return new Promise((resolve) => {
+                    const inputs: {
+                        origin: SessionOrigin;
+                        parser: string;
+                        api: IApi;
+                    } = {
+                        origin,
+                        parser,
+                        api: {
+                            finish: (origin: SessionOrigin): Promise<string> => {
+                                return new Promise((success, failed) => {
+                                    this.initialize()
+                                        .observe(origin)
+                                        .then((session) => {
+                                            success(session);
+                                            instance.close();
+                                            resolve(session);
+                                        })
+                                        .catch((err: Error) => {
+                                            failed(err);
+                                        });
+                                });
+                            },
+                            cancel: (): void => {
+                                instance.close();
+                                resolve(undefined);
+                            },
+                        },
+                    };
+                    const instance = popup.open({
+                        component: {
+                            factory: SetupObserve,
+                            inputs,
+                        },
+                        position: {
+                            vertical: Vertical.center,
+                            horizontal: Horizontal.center,
+                        },
+                        closeOnKey: 'Escape',
+                        uuid: session.uuid(),
                     });
                 });
             },
