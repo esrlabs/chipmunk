@@ -7,9 +7,8 @@ import { Proivder } from './provider';
 import { SessionOrigin } from '@service/session/origin';
 
 export interface IApi {
-    finish(): Promise<void>;
+    finish(origin: SessionOrigin): Promise<string>;
     cancel(): void;
-    tab(): TabControls;
 }
 
 export interface ComponentDescription {
@@ -54,12 +53,18 @@ export class State extends Subscriber {
         source: undefined,
         parser: undefined,
     };
+    public preselected: {
+        parser: string | undefined;
+    } = {
+        parser: undefined,
+    };
     public locked: boolean = false;
 
     protected readonly logger = new Logger(`Setup`);
 
-    constructor(protected readonly origin: SessionOrigin) {
+    constructor(protected readonly origin: SessionOrigin, parser: string | undefined) {
         super();
+        this.preselected.parser = parser;
     }
     public destroy() {
         this.unsubscribe();
@@ -103,7 +108,13 @@ export class State extends Subscriber {
             .parsers()
             .then((parsers: Ident[]) => {
                 this.parsers = parsers;
-                if (this.parsers.length > 0) {
+                if (
+                    this.preselected.parser &&
+                    this.parsers.find((parser) => parser.uuid === this.preselected.parser)
+                ) {
+                    this.selected.parser = this.preselected.parser;
+                } else if (this.parsers.length > 0) {
+                    this.preselected.parser = undefined;
                     this.selected.parser = this.parsers[0].uuid;
                 }
                 this.subjects.get().parsers.emit(this.parsers);

@@ -6,10 +6,11 @@ import {
     ViewEncapsulation,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { Session } from '@service/session';
+import { session, Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { ChangesDetector } from '@ui/env/extentions/changes';
-
+import { popup, Vertical, Horizontal } from '@ui/service/popup';
+import { SetupObserve } from '@tabs/setup/component';
 import { SessionOrigin } from '@service/session/origin';
 
 @Component({
@@ -27,9 +28,27 @@ export class AttachSourceMenu extends ChangesDetector {
     public actions: Array<{ icon: string; title: string; handler: () => void } | null> = [
         {
             icon: 'note_add',
-            title: 'Attach Files',
+            title: 'Attach new',
             handler: () => {
-                throw new Error(`Not implemented!`);
+                session.initialize().attach(this.session);
+                // const instance = popup.open({
+                //     component: {
+                //         factory: SetupObserve,
+                //         inputs: {
+                //             attachment: this.attachment,
+                //             embedded: false,
+                //             close: () => {
+                //                 instance.close();
+                //             },
+                //         },
+                //     },
+                //     position: {
+                //         vertical: Vertical.center,
+                //         horizontal: Horizontal.center,
+                //     },
+                //     closeOnKey: 'Escape',
+                //     uuid: this.attachment.uuid,
+                // });
             },
         },
         null,
@@ -37,27 +56,27 @@ export class AttachSourceMenu extends ChangesDetector {
             icon: 'input',
             title: 'Connect TCP',
             handler: () => {
-                this.ilc()
-                    .services.system.session.initialize()
-                    .configure(SessionOrigin.source(), this.session);
+                // this.ilc()
+                //     .services.system.session.initialize()
+                //     .configure(SessionOrigin.source(), this.session);
             },
         },
         {
             icon: 'input',
             title: 'Connect UDP',
             handler: () => {
-                this.ilc()
-                    .services.system.session.initialize()
-                    .configure(SessionOrigin.source(), this.session);
+                // this.ilc()
+                //     .services.system.session.initialize()
+                //     .configure(SessionOrigin.source(), this.session);
             },
         },
         {
             icon: 'settings_input_composite',
             title: 'Connect Serial',
             handler: () => {
-                this.ilc()
-                    .services.system.session.initialize()
-                    .configure(SessionOrigin.source(), this.session);
+                // this.ilc()
+                //     .services.system.session.initialize()
+                //     .configure(SessionOrigin.source(), this.session);
             },
         },
         null,
@@ -65,9 +84,9 @@ export class AttachSourceMenu extends ChangesDetector {
             icon: 'minimize',
             title: 'Command',
             handler: () => {
-                this.ilc()
-                    .services.system.session.initialize()
-                    .configure(SessionOrigin.source(), this.session);
+                // this.ilc()
+                //     .services.system.session.initialize()
+                //     .configure(SessionOrigin.source(), this.session);
             },
         },
     ];
@@ -84,7 +103,7 @@ export class AttachSourceMenu extends ChangesDetector {
             disabled: (): boolean => {
                 // return this.session.observed.getNewSourceError() instanceof Error;
                 console.error(`Not implemented`);
-                return true;
+                return false;
             },
             error: (): string | undefined => {
                 // const error = this.session.observed.getNewSourceError();
