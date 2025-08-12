@@ -22,6 +22,7 @@ import { exists } from '@env/fs';
 import { Update } from '@loader/exitcases/update';
 import { electron } from '@service/electron';
 import { CancelablePromise } from 'platform/env/promise';
+import { getCustomPlatform } from './updater/metadata';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -238,9 +239,12 @@ export class Service extends Implementation {
                 if (candidate === undefined) {
                     return Promise.resolve(this.log().debug(`No updates has been found.`));
                 }
+                const customPlatform = await getCustomPlatform();
+
                 const release: ReleaseFile = new ReleaseFile(
                     getCleanVersion(candidate.release.name),
                     getVersionPrefix(candidate.release.name),
+                    customPlatform,
                 );
                 this.log().debug(`Looking for: ${release.filename}`);
                 let compressed: string | undefined;
@@ -272,9 +276,12 @@ export class Service extends Implementation {
             this.log().debug(`No updates has been found.`);
             return Promise.resolve();
         }
+
+        const customPlatform = await getCustomPlatform();
         const release: ReleaseFile = new ReleaseFile(
             getCleanVersion(candidate.release.name),
             getVersionPrefix(candidate.release.name),
+            customPlatform,
         );
         const filename: string = path.resolve(paths.getDownloads(), candidate.compressed);
         if (fs.existsSync(filename)) {
