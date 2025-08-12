@@ -11,7 +11,7 @@ import { Ilc, IlcInterface } from '@env/decorators/component';
 import { Initial } from '@env/decorators/initial';
 import { ChangesDetector } from '@ui/env/extentions/changes';
 import { State, IApi } from './state';
-import { SessionComponents, SessionOrigin } from '@service/session/origin';
+import { SessionOrigin } from '@service/session/origin';
 import { session } from '@service/session';
 
 @Component({
@@ -29,6 +29,8 @@ export class SetupObserve
 {
     @Input() api!: IApi;
     @Input() origin!: SessionOrigin;
+    /// Preselected parser
+    @Input() parser: string | undefined;
 
     public state!: State;
 
@@ -41,7 +43,7 @@ export class SetupObserve
     }
 
     public ngAfterContentInit(): void {
-        this.state = new State(this.origin);
+        this.state = new State(this.origin, this.parser);
         this.state.load();
     }
 
@@ -68,15 +70,18 @@ export class SetupObserve
             this.log().debug(`Cannot start session, because: ${error.message}`);
             return;
         }
-        session
-            .initialize()
-            .observe(this.origin)
+        this.api
+            .finish(this.origin)
             .then((uuid: string) => {
-                console.log(`Session has been created: ${uuid}`);
+                this.log().debug(`Session has been created: ${uuid}`);
             })
             .catch((err: Error) => {
-                console.error(err.message);
+                this.log().error(`Fail to create session: ${err.message}`);
             });
+    }
+
+    public onCancel() {
+        this.api.cancel();
     }
 }
 export interface SetupObserve extends IlcInterface {}

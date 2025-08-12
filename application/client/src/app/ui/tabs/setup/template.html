@@ -19,12 +19,14 @@
             <mat-select
                 [(ngModel)]="state.selected.parser"
                 (ngModelChange)="state.change().parser()"
-                [disabled]="state.parsers.length <= 1"
+                [disabled]="state.parsers.length <= 1 || state.preselected.parser !== undefined"
             >
                 <mat-option
                     *ngFor="let parser of state.parsers"
                     [value]="parser.uuid"
-                    [disabled]="!state.isParserIOCompatible(parser.uuid)"
+                    [disabled]="
+                        !state.isParserIOCompatible(parser.uuid) || 
+                        (state.preselected.parser !== undefined && state.preselected.parser !== parser.uuid)"
                 >
                     {{parser.name}}
                 </mat-option>
@@ -40,7 +42,7 @@
         >
             Start
         </button>
-        <button mat-stroked-button>Cancel</button>
+        <button mat-stroked-button (click)="onCancel()">Cancel</button>
     </div>
 </div>
 <div class="preset-container">

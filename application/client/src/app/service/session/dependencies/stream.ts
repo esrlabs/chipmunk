@@ -49,6 +49,8 @@ export class Stream extends Subscriber {
     private _info!: Info;
 
     public readonly operations: Map<string, ObserveOperation> = new Map();
+    // Original (initial) session origin
+    public origin: SessionOrigin | undefined;
     public readonly rank: Rank = new Rank();
     public sde!: Sde;
 
@@ -121,6 +123,10 @@ export class Stream extends Subscriber {
             });
             operation.destroy();
         });
+    }
+
+    public getOrigin(): SessionOrigin | undefined {
+        return this.origin;
     }
 
     public len(): number {
@@ -206,6 +212,9 @@ export class Stream extends Subscriber {
                         if (this.operations.size === 1) {
                             // Only if it's the first operation, save as recent
                             recent.add(operation);
+                        }
+                        if (!this.origin) {
+                            this.origin = origin;
                         }
                         return response.session;
                     })
