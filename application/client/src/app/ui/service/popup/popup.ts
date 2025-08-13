@@ -21,7 +21,12 @@ export interface Position {
 
 export interface PopupOptions {
     closable?: boolean;
-    width?: number;
+    size?: {
+        // If >=1 consider as %; if 1< consider as px.
+        width?: number;
+        // If >=1 consider as %; if 1< consider as px.
+        height?: number;
+    };
     position?: Position;
     closeOnKey?: string;
     closeOnBGClick?: boolean;

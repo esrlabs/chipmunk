@@ -314,8 +314,9 @@ export class Service extends Implementation {
                         api: {
                             finish: (origin: SessionOrigin): Promise<string> => {
                                 return new Promise((success, failed) => {
-                                    this.initialize()
-                                        .observe(origin)
+                                    session.stream
+                                        .observe()
+                                        .start(origin)
                                         .then((session) => {
                                             success(session);
                                             instance.close();
@@ -340,6 +341,10 @@ export class Service extends Implementation {
                         position: {
                             vertical: Vertical.center,
                             horizontal: Horizontal.center,
+                        },
+                        size: {
+                            height: 0.8,
+                            width: 0.9,
                         },
                         closeOnKey: 'Escape',
                         uuid: session.uuid(),

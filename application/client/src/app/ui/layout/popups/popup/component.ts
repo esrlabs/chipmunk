@@ -24,6 +24,9 @@ export class LayoutPopup extends ChangesDetector implements AfterViewInit, After
     @Input() public popup!: Popup;
     @Input() public close!: () => void;
 
+    public width: string = 'auto';
+    public height: string = 'auto';
+
     @HostBinding('class') get cssClassEdited() {
         if (this.popup.options.position === undefined) {
             return `v-bottom h-center`;
@@ -55,6 +58,26 @@ export class LayoutPopup extends ChangesDetector implements AfterViewInit, After
                 : this.popup.options.component.inputs;
         this.popup.options.component.inputs.close = this.close;
         this.popup.options.component.inputs.popup = this.popup;
+        const options = this.popup.options;
+        if (!options) {
+            return;
+        }
+        if (options.size && options.size.width) {
+            const abs = options.size.width <= 1;
+            this.width = `${abs ? options.size.width * 100 : options.size.width}${
+                abs ? '%' : 'px'
+            }`;
+        } else {
+            this.width = 'auto';
+        }
+        if (options.size && options.size.height) {
+            const abs = options.size.height <= 1;
+            this.height = `${abs ? options.size.height * 100 : options.size.height}${
+                abs ? '%' : 'px'
+            }`;
+        } else {
+            this.height = 'auto';
+        }
     }
 
     public ngAfterViewInit(): void {
@@ -83,12 +106,21 @@ export class LayoutPopup extends ChangesDetector implements AfterViewInit, After
         );
     }
 
-    public ngStyle(): { width: string } {
-        if (this.popup.options === undefined || this.popup.options.width === undefined) {
-            return { width: 'auto' };
-        } else {
-            return { width: `${this.popup.options.width}px` };
-        }
+    public ngStyle(): {
+        width: string;
+        height: string;
+        maxWidth: string;
+        maxHeight: string;
+        position: string;
+    } {
+        return {
+            width: this.width,
+            height: this.height,
+            maxWidth: this.width.endsWith('%') ? 'none' : '70%',
+            maxHeight: this.height.endsWith('%') ? 'none' : '80%',
+            position:
+                this.width.endsWith('%') || this.height.endsWith('%') ? 'absolute' : 'relative',
+        };
     }
 }
 export interface LayoutPopup extends IlcInterface {}

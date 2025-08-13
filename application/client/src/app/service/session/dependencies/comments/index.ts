@@ -434,7 +434,7 @@ export class Comments extends Subscriber {
                 horizontal: Horizontal.center,
             },
             closeOnKey: 'Escape',
-            width: 450,
+            size: { width: 450 },
             uuid: 'add_new_comment',
         });
     }

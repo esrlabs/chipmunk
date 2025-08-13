@@ -55,7 +55,7 @@ export class TimezoneSelector extends ChangesDetector implements AfterContentIni
                     },
                 },
                 closeOnKey: 'Escape',
-                width: 350,
+                size: { width: 350 },
                 uuid: 'app-elements-timezone-selector',
             })
             .subjects.get()

@@ -124,7 +124,7 @@ export class Service extends Implementation {
                     },
                     closeOnKey: '*',
                     uuid: '?',
-                    width: 500,
+                    size: { width: 500 },
                 });
             }),
         );
@@ -143,7 +143,7 @@ export class Service extends Implementation {
                         horizontal: Horizontal.center,
                     },
                     closeOnKey: 'Escape',
-                    width: 350,
+                    size: { width: 350 },
                     uuid: 'Ctrl + G',
                     blur: false,
                 });
@@ -161,7 +161,7 @@ export class Service extends Implementation {
                         horizontal: Horizontal.center,
                     },
                     closeOnKey: 'Escape',
-                    width: 450,
+                    size: { width: 450 },
                     uuid: 'Ctrl + P',
                 });
             }),

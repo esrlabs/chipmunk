@@ -41,7 +41,7 @@ export class SessionOrigin {
     static fromSessionSetup(setup: SessionSetup, descriptor: SessionDescriptor): SessionOrigin {
         return new SessionOrigin(
             setup.origin,
-            new SessionComponents().setSource(descriptor.source).setParser(descriptor.source),
+            new SessionComponents().setSource(descriptor.source).setParser(descriptor.parser),
             new ComponentsOptions().setParser(setup.parser).setSource(setup.source),
         );
     }

@@ -31,7 +31,7 @@ export class Action extends Base {
                 horizontal: Horizontal.center,
             },
             closeOnKey: 'Escape',
-            width: 350,
+            size: { width: 350 },
             uuid: 'Ctrl + G',
             blur: false,
         });
