@@ -17,6 +17,7 @@ import {
     FieldDesc,
     FieldList,
     Ident,
+    IODataType,
     OutputRender,
     SessionAction,
 } from '@platform/types/bindings';
@@ -312,6 +313,7 @@ export class Service extends Implementation {
          * @returns A promise that resolves to an array of `Ident` objects representing parser components.
          */
         parsers(): Promise<Ident[]>;
+        sourcesForParser(uuid: string): Promise<Ident[]>;
     } {
         return {
             sources: (): Promise<Ident[]> => {
@@ -340,6 +342,32 @@ export class Service extends Implementation {
                             resolve(response.list);
                         })
                         .catch(reject);
+                });
+            },
+            sourcesForParser: (uuid: string): Promise<Ident[]> => {
+                return Promise.all([
+                    components
+                        .get(origin)
+                        .sources()
+                        .catch((err: Error) => {
+                            return Promise.reject(
+                                new Error(`Fail to get sources list: ${err.message}`),
+                            );
+                        }),
+                    components
+                        .get(origin)
+                        .parsers()
+                        .catch((err: Error) => {
+                            return Promise.reject(
+                                new Error(`Fail to get parsers list: ${err.message}`),
+                            );
+                        }),
+                ]).then(([sources, parsers]: [Ident[], Ident[]]) => {
+                    const parser = parsers.find((p) => p.uuid === uuid);
+                    if (!parser) {
+                        return Promise.reject(new Error(`Fail to find parser ${uuid}`));
+                    }
+                    return sources.filter((source) => isIOCompatible(source.io, parser.io));
                 });
             },
         };
@@ -371,5 +399,44 @@ export class Service extends Implementation {
         });
     }
 }
+
+export function isIOCompatible(a: IODataType, b: IODataType): boolean {
+    if (a === 'Any' || b === 'Any') {
+        return true;
+    }
+    if (typeof a === 'string' && typeof b === 'string') {
+        return a == b;
+    }
+    const aMtl:
+        | {
+              Multiple: Array<IODataType>;
+          }
+        | undefined =
+        typeof a === 'object'
+            ? (a as {
+                  Multiple: Array<IODataType>;
+              })
+            : undefined;
+    const bMtl:
+        | {
+              Multiple: Array<IODataType>;
+          }
+        | undefined =
+        typeof b === 'object'
+            ? (b as {
+                  Multiple: Array<IODataType>;
+              })
+            : undefined;
+    if (aMtl && bMtl) {
+        return aMtl.Multiple.find((a) => bMtl.Multiple.includes(a)) !== undefined;
+    } else if (aMtl) {
+        return aMtl.Multiple.includes(b);
+    } else if (bMtl) {
+        return bMtl.Multiple.includes(a);
+    } else {
+        return false;
+    }
+}
+
 export interface Service extends Interface {}
 export const components = register(new Service());

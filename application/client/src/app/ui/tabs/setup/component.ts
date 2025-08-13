@@ -31,6 +31,8 @@ export class SetupObserve
     @Input() origin!: SessionOrigin;
     /// Preselected parser
     @Input() parser: string | undefined;
+    /// Preselected source
+    @Input() source: string | undefined;
 
     public state!: State;
 
@@ -43,8 +45,7 @@ export class SetupObserve
     }
 
     public ngAfterContentInit(): void {
-        this.state = new State(this.origin, this.parser);
-        this.state.load();
+        this.state = new State(this.origin, this.parser, this.source);
     }
 
     public ngAfterViewInit(): void {
