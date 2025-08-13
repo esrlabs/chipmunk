@@ -1,8 +1,7 @@
 import { Ident, IODataType } from '@platform/types/bindings';
-import { components } from '@service/components';
+import { components, isIOCompatible } from '@service/components';
 import { Logger } from '@env/logs';
 import { Subscriber, Subject, Subjects } from '@platform/env/subscription';
-import { TabControls } from '@service/session';
 import { Proivder } from './provider';
 import { SessionOrigin } from '@service/session/origin';
 
@@ -55,16 +54,24 @@ export class State extends Subscriber {
     };
     public preselected: {
         parser: string | undefined;
+        source: string | undefined;
     } = {
         parser: undefined,
+        source: undefined,
     };
     public locked: boolean = false;
 
     protected readonly logger = new Logger(`Setup`);
 
-    constructor(protected readonly origin: SessionOrigin, parser: string | undefined) {
+    constructor(
+        protected readonly origin: SessionOrigin,
+        parser: string | undefined,
+        source: string | undefined,
+    ) {
         super();
         this.preselected.parser = parser;
+        this.preselected.source = source;
+        this.load();
     }
     public destroy() {
         this.unsubscribe();
@@ -87,43 +94,50 @@ export class State extends Subscriber {
         });
         return undefined;
     }
-    public load() {
-        components
-            .get(this.origin.getDef())
-            .sources()
-            .then((sources: Ident[]) => {
-                this.sources = sources;
-                if (this.sources.length > 0) {
-                    this.selected.source = this.sources[0].uuid;
-                }
-                this.subjects.get().sources.emit(this.sources);
-                this.change().source();
-            })
-            .catch((err: Error) => {
-                this.logger.error(`Fail to get sources list: ${err.message}`);
-                this.subjects.get().error.emit(err.message);
-            });
-        components
-            .get(this.origin.getDef())
-            .parsers()
-            .then((parsers: Ident[]) => {
-                this.parsers = parsers;
-                if (
-                    this.preselected.parser &&
-                    this.parsers.find((parser) => parser.uuid === this.preselected.parser)
-                ) {
-                    this.selected.parser = this.preselected.parser;
-                } else if (this.parsers.length > 0) {
-                    this.preselected.parser = undefined;
-                    this.selected.parser = this.parsers[0].uuid;
-                }
-                this.subjects.get().parsers.emit(this.parsers);
-                this.change().parser();
-            })
-            .catch((err: Error) => {
-                this.logger.error(`Fail to get parsers list: ${err.message}`);
-                this.subjects.get().error.emit(err.message);
-            });
+    private async load() {
+        const [sources, parsers]: [Ident[] | void, Ident[] | void] = await Promise.all([
+            components
+                .get(this.origin.getDef())
+                .sources()
+                .catch((err: Error) => {
+                    this.logger.error(`Fail to get sources list: ${err.message}`);
+                    this.subjects.get().error.emit(err.message);
+                }),
+            components
+                .get(this.origin.getDef())
+                .parsers()
+                .catch((err: Error) => {
+                    this.logger.error(`Fail to get parsers list: ${err.message}`);
+                    this.subjects.get().error.emit(err.message);
+                }),
+        ]);
+        if (!sources || !parsers) {
+            return;
+        }
+        this.sources = sources;
+        if (
+            this.preselected.source &&
+            this.sources.find((source) => source.uuid === this.preselected.source)
+        ) {
+            this.selected.source = this.preselected.source;
+        } else if (this.sources.length > 0) {
+            this.preselected.source = undefined;
+            this.selected.source = this.sources[0].uuid;
+        }
+        this.parsers = parsers;
+        if (
+            this.preselected.parser &&
+            this.parsers.find((parser) => parser.uuid === this.preselected.parser)
+        ) {
+            this.selected.parser = this.preselected.parser;
+        } else if (this.parsers.length > 0) {
+            this.preselected.parser = undefined;
+            this.selected.parser = this.parsers[0].uuid;
+        }
+        this.subjects.get().sources.emit(this.sources);
+        this.subjects.get().parsers.emit(this.parsers);
+        this.change().source();
+        this.change().parser();
     }
 
     public change(): {
@@ -233,43 +247,5 @@ export class State extends Subscriber {
         }
         this.selected.parser = compatible.length === 0 ? undefined : compatible[0];
         this.change().parser();
-    }
-}
-
-function isIOCompatible(a: IODataType, b: IODataType): boolean {
-    if (a === 'Any' || b === 'Any') {
-        return true;
-    }
-    if (typeof a === 'string' && typeof b === 'string') {
-        return a == b;
-    }
-    const aMtl:
-        | {
-              Multiple: Array<IODataType>;
-          }
-        | undefined =
-        typeof a === 'object'
-            ? (a as {
-                  Multiple: Array<IODataType>;
-              })
-            : undefined;
-    const bMtl:
-        | {
-              Multiple: Array<IODataType>;
-          }
-        | undefined =
-        typeof b === 'object'
-            ? (b as {
-                  Multiple: Array<IODataType>;
-              })
-            : undefined;
-    if (aMtl && bMtl) {
-        return aMtl.Multiple.find((a) => bMtl.Multiple.includes(a)) !== undefined;
-    } else if (aMtl) {
-        return aMtl.Multiple.includes(b);
-    } else if (bMtl) {
-        return bMtl.Multiple.includes(a);
-    } else {
-        return false;
     }
 }

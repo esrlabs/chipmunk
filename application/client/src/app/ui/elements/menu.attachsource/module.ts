@@ -4,8 +4,8 @@ import { ContainersModule } from '@elements/containers/module';
 import { MatButtonModule } from '@angular/material/button';
 import { AttachSourceMenu } from './component';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
     imports: [
@@ -13,8 +13,8 @@ import { MatDividerModule } from '@angular/material/divider';
         ContainersModule,
         MatButtonModule,
         MatMenuModule,
-        MatIconModule,
         MatDividerModule,
+        MatProgressSpinnerModule,
     ],
     declarations: [AttachSourceMenu],
     exports: [AttachSourceMenu],

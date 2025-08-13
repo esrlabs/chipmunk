@@ -5,7 +5,6 @@ import { CdkTreeModule } from '@angular/cdk/tree';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FilterInputModule } from '@elements/filter/module';
 
 import { ElementsTreeSelector } from './component';
@@ -21,7 +20,6 @@ import { InputListenerDirective } from '@ui/env/directives/input';
         MatButtonModule,
         MatIconModule,
         FilterInputModule,
-        MatProgressSpinnerModule,
     ],
     declarations: [ElementsTreeSelector, InputListenerDirective],
     exports: [ElementsTreeSelector],

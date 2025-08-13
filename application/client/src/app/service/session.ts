@@ -226,7 +226,7 @@ export class Service extends Implementation {
         suggest(filename: string, session?: Session): Promise<string | undefined>;
         auto(origin: SessionOrigin, session?: Session): Promise<string | undefined>;
         configure(origin: SessionOrigin): Promise<string | undefined>;
-        attach(session: Session): Promise<string | undefined>;
+        attach(session: Session, defSourceUuid: string | undefined): Promise<string | undefined>;
         observe(origin: SessionOrigin, session?: Session): Promise<string>;
         multiple(files: File[]): Promise<string | undefined>;
     } {
@@ -294,7 +294,10 @@ export class Service extends Implementation {
                     });
                 });
             },
-            attach: (session: Session): Promise<string | undefined> => {
+            attach: (
+                session: Session,
+                defSourceUuid: string | undefined,
+            ): Promise<string | undefined> => {
                 const origin = session.stream.getOrigin();
                 if (!origin) {
                     return Promise.reject(new Error(`No origin to attach new one`));
@@ -303,14 +306,20 @@ export class Service extends Implementation {
                 if (!parser) {
                     return Promise.reject(new Error(`No original parser to attach new one`));
                 }
+                const source = origin.components?.source?.uuid;
+                if (!source) {
+                    return Promise.reject(new Error(`No original source to attach new one`));
+                }
                 return new Promise((resolve) => {
                     const inputs: {
                         origin: SessionOrigin;
                         parser: string;
+                        source: string;
                         api: IApi;
                     } = {
                         origin,
                         parser,
+                        source: defSourceUuid ? defSourceUuid : source,
                         api: {
                             finish: (origin: SessionOrigin): Promise<string> => {
                                 return new Promise((success, failed) => {

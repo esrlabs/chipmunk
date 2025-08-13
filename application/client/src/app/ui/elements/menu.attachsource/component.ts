@@ -5,6 +5,7 @@ import {
     ElementRef,
     ViewEncapsulation,
     ChangeDetectionStrategy,
+    AfterContentInit,
 } from '@angular/core';
 import { session, Session } from '@service/session';
 import { Ilc, IlcInterface } from '@env/decorators/component';
@@ -12,6 +13,14 @@ import { ChangesDetector } from '@ui/env/extentions/changes';
 import { popup, Vertical, Horizontal } from '@ui/service/popup';
 import { SetupObserve } from '@tabs/setup/component';
 import { SessionOrigin } from '@service/session/origin';
+import { components } from '@service/components';
+import { Ident } from '@platform/types/bindings';
+
+interface Action {
+    icon: string;
+    title: string;
+    handler: () => void;
+}
 
 @Component({
     selector: 'app-attach-new-source-menu',
@@ -22,71 +31,23 @@ import { SessionOrigin } from '@service/session/origin';
     standalone: false,
 })
 @Ilc()
-export class AttachSourceMenu extends ChangesDetector {
+export class AttachSourceMenu extends ChangesDetector implements AfterContentInit {
     @Input() session!: Session;
 
-    public actions: Array<{ icon: string; title: string; handler: () => void } | null> = [
+    public loading: boolean = true;
+    public error: string | undefined;
+
+    protected logAndSetErr(msg: string) {
+        this.error = msg;
+        this.log().error(msg);
+    }
+
+    public actions: Array<Action | null> = [
         {
-            icon: 'note_add',
-            title: 'Attach new',
+            icon: '',
+            title: 'Attach New',
             handler: () => {
-                session.initialize().attach(this.session);
-                // const instance = popup.open({
-                //     component: {
-                //         factory: SetupObserve,
-                //         inputs: {
-                //             attachment: this.attachment,
-                //             embedded: false,
-                //             close: () => {
-                //                 instance.close();
-                //             },
-                //         },
-                //     },
-                //     position: {
-                //         vertical: Vertical.center,
-                //         horizontal: Horizontal.center,
-                //     },
-                //     closeOnKey: 'Escape',
-                //     uuid: this.attachment.uuid,
-                // });
-            },
-        },
-        null,
-        {
-            icon: 'input',
-            title: 'Connect TCP',
-            handler: () => {
-                // this.ilc()
-                //     .services.system.session.initialize()
-                //     .configure(SessionOrigin.source(), this.session);
-            },
-        },
-        {
-            icon: 'input',
-            title: 'Connect UDP',
-            handler: () => {
-                // this.ilc()
-                //     .services.system.session.initialize()
-                //     .configure(SessionOrigin.source(), this.session);
-            },
-        },
-        {
-            icon: 'settings_input_composite',
-            title: 'Connect Serial',
-            handler: () => {
-                // this.ilc()
-                //     .services.system.session.initialize()
-                //     .configure(SessionOrigin.source(), this.session);
-            },
-        },
-        null,
-        {
-            icon: 'minimize',
-            title: 'Command',
-            handler: () => {
-                // this.ilc()
-                //     .services.system.session.initialize()
-                //     .configure(SessionOrigin.source(), this.session);
+                session.initialize().attach(this.session, undefined);
             },
         },
     ];
@@ -95,23 +56,52 @@ export class AttachSourceMenu extends ChangesDetector {
         super(cdRef);
     }
 
-    public attach(): {
-        disabled(): boolean;
-        error(): string | undefined;
-    } {
-        return {
-            disabled: (): boolean => {
-                // return this.session.observed.getNewSourceError() instanceof Error;
-                console.error(`Not implemented`);
-                return false;
-            },
-            error: (): string | undefined => {
-                // const error = this.session.observed.getNewSourceError();
-                // return error instanceof Error ? error.message : undefined;
-                console.error(`Not implemented`);
-                return undefined;
-            },
-        };
+    public ngAfterContentInit(): void {
+        const origin = this.session.stream.getOrigin();
+        if (!origin) {
+            this.logAndSetErr(`No origin linked to the session`);
+            return;
+        }
+        const parser = origin.components?.parser?.uuid;
+        if (!parser) {
+            this.logAndSetErr(`No parser linked to the origin of the session`);
+            return;
+        }
+        const source = origin.components?.source?.uuid;
+        if (!source) {
+            this.logAndSetErr(`No source linked to the origin of the session`);
+            return;
+        }
+        components
+            .get(origin.origin)
+            .sourcesForParser(parser)
+            .then((sources: Ident[]) => {
+                if (sources.length <= 1) {
+                    return;
+                }
+                this.actions.push(null);
+                this.actions.push(
+                    ...sources
+                        .filter((src) => src.uuid !== source)
+                        .map((src) => {
+                            return {
+                                icon: '',
+                                title: src.name,
+                                handler: () => {
+                                    session.initialize().attach(this.session, src.uuid);
+                                },
+                            };
+                        }),
+                );
+                this.detectChanges();
+            })
+            .catch((err: Error) => {
+                this.logAndSetErr(err.message);
+            })
+            .finally(() => {
+                this.loading = false;
+                this.detectChanges();
+            });
     }
 }
 export interface AttachSourceMenu extends IlcInterface {}
