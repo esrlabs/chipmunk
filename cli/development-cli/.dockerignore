@@ -1,0 +1,14 @@
+# .gitignore content 
+/target
+**/*.rs.bk
+*.out
+lineMetadata.json
+vim-markdown-preview.html
+.DS_Store
+
+# Markdown files
+*.md
+
+# Python integration tests aren't needed since we are copying 
+# the content for building the tool in the docker image only.
+/integration_tests
