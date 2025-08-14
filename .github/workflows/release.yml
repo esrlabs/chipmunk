@@ -127,6 +127,35 @@ jobs:
           release-tag: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_release_ubuntu20:
+    name: Build release for Ubuntu 20.04
+    needs: create_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: build docker image
+        run: |
+          chmod +x ./docker/ubuntu-20.04/build.sh
+          ./docker/ubuntu-20.04/build.sh
+      - name: build chipmunk release
+        run: |
+          chmod +x ./docker/ubuntu-20.04/run.sh
+          ./docker/ubuntu-20.04/run.sh
+      - name: list release files
+        working-directory: ./application/holder/release
+        run: ls
+      - name: upload files
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: AButler/upload-release-assets@v2.0
+        with:
+          files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   invoke_package_distribution:
     name: Invoke chipmunk package creation and distribution for different package managers
     needs: build_release
