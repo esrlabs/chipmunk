@@ -1,8 +1,6 @@
 import { Platform, getPlatform } from '@env/os/platform';
-import { paths } from '@service/paths';
 
 import * as os from 'os';
-import * as path from 'path';
 
 const NAME = 'chipmunk';
 const HOOKS = {
