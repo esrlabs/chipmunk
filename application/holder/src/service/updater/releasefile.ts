@@ -16,7 +16,7 @@ const PATERN = `${HOOKS.name}${HOOKS.prefix}@${HOOKS.version}-${HOOKS.platform}-
 
 export class ReleaseFile {
     public readonly filename: string;
-    constructor(version: string, prefix = '', platform?: string) {
+    constructor(version: string, prefix: string, platform?: string) {
         if (platform === undefined) {
             const plat = getPlatform();
             if (plat === Platform.undefined) {
@@ -25,8 +25,10 @@ export class ReleaseFile {
             platform = plat.toString();
         }
 
+        const trimmedPrefix = prefix.trim();
+
         this.filename = PATERN.replace(HOOKS.name, NAME)
-            .replace(HOOKS.prefix, `${prefix === '' ? '' : `-${prefix}`}`)
+            .replace(HOOKS.prefix, `${trimmedPrefix === '' ? '' : `-${trimmedPrefix}`}`)
             .replace(HOOKS.version, version)
             .replace(HOOKS.platform, platform);
     }
