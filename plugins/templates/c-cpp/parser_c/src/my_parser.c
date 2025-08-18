@@ -1,7 +1,8 @@
-#include "../bindings/parse.h"
-#include "stdio.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "../bindings/parse.h"
 
 // This template demonstrates two modes for the parsed messages:
 // - Single column: For log messages which doesn't have structure.
@@ -92,33 +93,44 @@ void exports_chipmunk_parser_parser_get_render_options(
   ret->columns_options.val.max_width = 600;
   ret->columns_options.val.min_width = 30;
 
-  ret->columns_options.val.columns.ptr =
-      (chipmunk_parser_parse_types_column_info_t *)calloc(
-          2, sizeof(chipmunk_parser_parse_types_column_info_t));
+  chipmunk_parser_parse_types_list_column_info_t *columns =
+      &ret->columns_options.val.columns;
+  columns->ptr = (chipmunk_parser_parse_types_column_info_t *)calloc(
+      2, sizeof(chipmunk_parser_parse_types_column_info_t));
 
-  ret->columns_options.val.columns.len = 2;
-  parse_string_dup(&ret->columns_options.val.columns.ptr[0].caption,
-                   "First Column");
-  parse_string_dup(&ret->columns_options.val.columns.ptr[0].description,
-                   "First Column Description");
-  ret->columns_options.val.columns.ptr[0].width = 110;
+  columns->len = 2;
+  parse_string_dup(&columns->ptr[0].caption, "First Column");
+  parse_string_dup(&columns->ptr[0].description, "First Column Description");
+  columns->ptr[0].width = 110;
 
-  parse_string_dup(&ret->columns_options.val.columns.ptr[1].caption,
-                   "Second Column");
-  parse_string_dup(&ret->columns_options.val.columns.ptr[1].description,
-                   "Second Column Description ");
-  ret->columns_options.val.columns.ptr[1].width = -1;
+  parse_string_dup(&columns->ptr[1].caption, "Second Column");
+  parse_string_dup(&columns->ptr[1].description, "Second Column Description ");
+  columns->ptr[1].width = -1;
 
 #endif
 }
 
-/// Initializes the parser with the provided configurations.
-///
-/// This function is called when a parsing session starts. It receives the
-/// general parser configurations applicable to all parsing plugins, along
-/// with specific configuration values defined by the
-/// `exports_chipmunk_parser_parser_get_config_schemas()` function for this
-/// plugin.
+/**
+ * Initializes the parser with the provided configurations.
+ *
+ * This function is called when a parsing session starts. It receives the
+ * general parser configurations applicable to all parsing plugins, along
+ * with specific configuration values defined by the
+ * `exports_chipmunk_parser_parser_get_config_schemas()` function for this
+ * plugin.
+ *
+ * @return:
+ * - True on successful initialization.
+ * - False on error. The host will expect to get the error info via `err`
+ *   parameter.
+ *
+ * @Example for Error:
+ *
+ * err->tag = CHIPMUNK_SHARED_SHARED_TYPES_INIT_ERROR_CONFIG;
+ * parse_string_dup(&err->val.config, "Test error");
+ *
+ * return false;
+ */
 bool exports_chipmunk_parser_parser_init(
     exports_chipmunk_parser_parser_parser_config_t *general_configs,
     exports_chipmunk_parser_parser_list_config_item_t *plugin_configs,
@@ -127,13 +139,13 @@ bool exports_chipmunk_parser_parser_init(
   global_log_level = general_configs->log_level;
   if (global_log_level >= CHIPMUNK_SHARED_LOGGING_LEVEL_INFO) {
     parse_string_t log_msg;
-    parse_string_dup(&log_msg, "Initi message called");
+    parse_string_dup(&log_msg, "Init message called");
     chipmunk_shared_logging_log(CHIPMUNK_SHARED_LOGGING_LEVEL_INFO, &log_msg);
     parse_string_free(&log_msg);
   }
 
   // *** Demonstrate printing to stdout ***
-  printf("Inint function called with log level: %d\n",
+  printf("Init function called with log level: %d\n",
          general_configs->log_level);
 
   // *** Demonstrate printing to stderr ***
@@ -183,11 +195,24 @@ bool exports_chipmunk_parser_parser_init(
     }
   }
 
+  exports_chipmunk_parser_parser_list_config_item_free(plugin_configs);
+
+  // This example return successfully and doesn't use `err` pointer.
+  (void)err;
+
   return true;
 }
 
-/// Parse the given bytes providing a list of parsed items,
-/// or parse error if an error occurred and no item has been parsed.
+/**
+ * Parse the given bytes providing a list of parsed items,
+ * or parse error if an error occurred and no item has been parsed.
+ *
+ * @return:
+ * - True on successful parsing. The host will be expecting the result via `ret`
+ * parameter.
+ * - False on error. The host will expect to get the error info via `err`
+ * parameter.
+ */
 bool exports_chipmunk_parser_parser_parse(
     parse_list_u8_t *data, uint64_t *maybe_timestamp,
     exports_chipmunk_parser_parser_list_parse_return_t *ret,
@@ -203,6 +228,8 @@ bool exports_chipmunk_parser_parser_parse(
 
   // *** Return length of provided bytes ***
   ret->len = 1;
+  ret->ptr = (exports_chipmunk_parser_parser_parse_return_t *)calloc(
+      1, sizeof(exports_chipmunk_parser_parser_parse_return_t));
   ret->ptr[0].consumed = data->len;
   ret->ptr[0].value.is_some = true;
   ret->ptr[0].value.val.tag = CHIPMUNK_PARSER_PARSE_TYPES_PARSE_YIELD_MESSAGE;
@@ -214,14 +241,14 @@ bool exports_chipmunk_parser_parser_parse(
            data->len);
   parse_string_set(&ret->ptr[0].value.val.val.message.val.line, msg_buff);
 
-  return true;
-
 #elif defined(MULTI_COLUMN_MODE)
 
   // *** Returns two columns ***
   // - The first column contain a static text.
   // - The second columns contains the length of provided bytes.
   ret->len = 1;
+  ret->ptr = (exports_chipmunk_parser_parser_parse_return_t *)calloc(
+      1, sizeof(exports_chipmunk_parser_parser_parse_return_t));
   ret->ptr[0].consumed = data->len;
   ret->ptr[0].value.is_some = true;
 
@@ -229,19 +256,22 @@ bool exports_chipmunk_parser_parser_parse(
   ret->ptr[0].value.val.val.message.tag =
       CHIPMUNK_PARSER_PARSE_TYPES_PARSED_MESSAGE_COLUMNS;
 
-  ret->ptr[0].value.val.val.message.val.columns.ptr =
-      (parse_string_t *)calloc(2, sizeof(parse_string_t));
-  ret->ptr[0].value.val.val.message.val.columns.len = 2;
-  parse_string_dup(&ret->ptr[0].value.val.val.message.val.columns.ptr[0],
-                   "static message");
+  parse_list_string_t *columns = &ret->ptr[0].value.val.val.message.val.columns;
+  columns->ptr = (parse_string_t *)calloc(2, sizeof(parse_string_t));
+  columns->len = 2;
+  parse_string_dup(&columns->ptr[0], "static message");
 
   char msg_buff[100];
   snprintf(msg_buff, sizeof(msg_buff), "The length of provided bytes: %zu",
            data->len);
-  parse_string_dup(&ret->ptr[0].value.val.val.message.val.columns.ptr[1],
-                   msg_buff);
-
-  return true;
+  parse_string_dup(&columns->ptr[1], msg_buff);
 
 #endif
+
+  parse_list_u8_free(data);
+
+  // This example return successfully and doesn't use `err` pointer.
+  (void)err;
+
+  return true;
 }
