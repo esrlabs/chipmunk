@@ -1,6 +1,7 @@
-#include "../bindings/parse.h"
 #include <iostream>
 #include <string>
+
+#include "../bindings/parse.h"
 
 // This template demonstrates two modes for the parsed messages:
 // - Single column: For log messages which doesn't have structure.
@@ -108,28 +109,42 @@ void exports_chipmunk_parser_parser_get_render_options(
 #endif
 }
 
-/// Initializes the parser with the provided configurations.
-///
-/// This function is called when a parsing session starts. It receives the
-/// general parser configurations applicable to all parsing plugins, along
-/// with specific configuration values defined by the
-/// `exports_chipmunk_parser_parser_get_config_schemas()` function for this
-/// plugin.
+/**
+ * Initializes the parser with the provided configurations.
+ *
+ * This function is called when a parsing session starts. It receives the
+ * general parser configurations applicable to all parsing plugins, along
+ * with specific configuration values defined by the
+ * `exports_chipmunk_parser_parser_get_config_schemas()` function for this
+ * plugin.
+ *
+ * @return:
+ * - True on successful initialization.
+ * - False on error. The host will expect to get the error info via `err`
+ *   parameter.
+ *
+ * @Example for Error:
+ *
+ * err->tag = CHIPMUNK_SHARED_SHARED_TYPES_INIT_ERROR_CONFIG;
+ * parse_string_dup(&err->val.config, "Test error");
+ *
+ * return false;
+ */
 bool exports_chipmunk_parser_parser_init(
     exports_chipmunk_parser_parser_parser_config_t *general_configs,
     exports_chipmunk_parser_parser_list_config_item_t *plugin_configs,
-    exports_chipmunk_parser_parser_init_error_t *err) {
+    exports_chipmunk_parser_parser_init_error_t * /*err*/) {
   // *** Demonstrate basic logging ***
   global_log_level = general_configs->log_level;
   if (global_log_level >= CHIPMUNK_SHARED_LOGGING_LEVEL_INFO) {
     parse_string_t log_msg;
-    parse_string_dup(&log_msg, "Initi message called");
+    parse_string_dup(&log_msg, "Init message called");
     chipmunk_shared_logging_log(CHIPMUNK_SHARED_LOGGING_LEVEL_INFO, &log_msg);
     parse_string_free(&log_msg);
   }
 
   // *** Demonstrate printing to stdout ***
-  std::cout << "Inint function called with log level: "
+  std::cout << "Init function called with log level: "
             << std::to_string(general_configs->log_level) << std::endl;
 
   // *** Demonstrate printing to stderr ***
@@ -188,15 +203,25 @@ bool exports_chipmunk_parser_parser_init(
     }
   }
 
+  exports_chipmunk_parser_parser_list_config_item_free(plugin_configs);
+
   return true;
 }
 
-/// Parse the given bytes providing a list of parsed items,
-/// or parse error if an error occurred and no item has been parsed.
+/**
+ * Parse the given bytes providing a list of parsed items,
+ * or parse error if an error occurred and no item has been parsed.
+ *
+ * @return:
+ * - True on successful parsing. The host will be expecting the result via `ret`
+ * parameter.
+ * - False on error. The host will expect to get the error info via `err`
+ * parameter.
+ */
 bool exports_chipmunk_parser_parser_parse(
     parse_list_u8_t *data, uint64_t *maybe_timestamp,
     exports_chipmunk_parser_parser_list_parse_return_t *ret,
-    exports_chipmunk_parser_parser_parse_error_t *err) {
+    exports_chipmunk_parser_parser_parse_error_t * /*err*/) {
   // *** Demonstrate basic logging ***
   if (global_log_level >= CHIPMUNK_SHARED_LOGGING_LEVEL_DEBUG) {
     parse_string_t log_msg;
@@ -208,6 +233,7 @@ bool exports_chipmunk_parser_parser_parse(
 
   // *** Return length of provided bytes ***
   ret->len = 1;
+  ret->ptr = new exports_chipmunk_parser_parser_parse_return_t[1];
   auto &item = ret->ptr[0];
   item.consumed = data->len;
   item.value.is_some = true;
@@ -217,9 +243,7 @@ bool exports_chipmunk_parser_parser_parse(
 
   std::string log_line =
       "The length of provided bytes: " + std::to_string(data->len);
-  parse_string_set(&item.value.val.val.message.val.line, log_line.c_str());
-
-  return true;
+  parse_string_dup(&item.value.val.val.message.val.line, log_line.c_str());
 
 #elif defined(MULTI_COLUMN_MODE)
 
@@ -227,6 +251,7 @@ bool exports_chipmunk_parser_parser_parse(
   // - The first column contain a static text.
   // - The second columns contains the length of provided bytes.
   ret->len = 1;
+  ret->ptr = new exports_chipmunk_parser_parser_parse_return_t[1];
   auto &item = ret->ptr[0];
   item.consumed = data->len;
   item.value.is_some = true;
@@ -244,7 +269,9 @@ bool exports_chipmunk_parser_parser_parse(
       "The length of provided bytes: " + std::to_string(data->len);
   parse_string_dup(&columns.ptr[1], log_line.c_str());
 
-  return true;
-
 #endif
+
+  parse_list_u8_free(data);
+
+  return true;
 }
