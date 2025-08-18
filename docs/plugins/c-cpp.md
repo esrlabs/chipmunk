@@ -93,6 +93,14 @@ wasm-tools component new my_parser_intermediate.wasm -o my_parser.wasm --adapt=$
 ```
 This command generates the `my_parser.wasm` file, which is ready for integration with Chipmunk.
 
+## Memory Ownership
+
+Unfortunately, the generated bindings don't explicitly specify memory ownership. For details, refer to the [wit-bindgen documentation for C/C++](https://github.com/bytecodealliance/wit-bindgen/blob/main/crates/c/README.md).
+
+For convenience, here's a brief summary of the key rules:
+- **Incoming Data:** When a host calls a WASM function, the WASM module takes ownership of the memory passed as arguments. The module is responsible for freeing this memory using the `*_free` functions.
+- **Outgoing Data:** When a WASM function returns a value (like a string or a list), the host takes ownership of that memory and is responsible for freeing it.
+
 ## Plugin Integration
 
 For comprehensive information on integrating plugins with Chipmunk, refer to the following documents:
