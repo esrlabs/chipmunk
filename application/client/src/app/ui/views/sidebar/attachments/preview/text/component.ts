@@ -89,7 +89,7 @@ export class Preview extends ChangesDetector implements AfterContentInit {
     protected update() {
         this.reading = true;
         this.detectChanges();
-        new URLFileReader(`attachment://${this.attachment.filepath}`)
+        new URLFileReader(`attachment://${encodeURIComponent(this.attachment.filepath)}`)
             .read()
             .then((response) => {
                 if (typeof response !== 'string') {

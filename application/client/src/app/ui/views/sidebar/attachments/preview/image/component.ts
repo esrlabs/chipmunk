@@ -199,7 +199,7 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
                 closable: false,
             },
         );
-        new URLFileReader(`attachment://${this.attachment.filepath}`)
+        new URLFileReader(`attachment://${encodeURIComponent(this.attachment.filepath)}`)
             .read('blob')
             .then((response) => {
                 if (!(response instanceof Blob)) {
@@ -225,7 +225,7 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
     }
 
     protected update() {
-        this.url = `attachment://${this.attachment.filepath}`;
+        this.url = `attachment://${encodeURIComponent(this.attachment.filepath)}`;
     }
 }
 export interface Preview extends IlcInterface {}
