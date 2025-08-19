@@ -1,4 +1,4 @@
-# 3.18.2 (14.08.2025)
+# 3.18.2 (19.08.2025)
 
 ## Add
 - Support for `Ubuntu 20.04` in release and updater.
@@ -7,6 +7,7 @@
 ## Fixes
 - Include logs from all Rust core components by default.
 - Show correct filter name in file picker dialog (for Linux).
+- Fix preview attachments issue on Windows.  
 
 # 3.18.1 (02.06.2025)
 
