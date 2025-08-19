@@ -5,18 +5,19 @@ import * as fs from 'fs';
 
 export class Protocol {
     public register() {
-        protocol.registerFileProtocol('attachment', this.attachment.bind(this));
+        protocol.handle('attachment', this.attachment.bind(this));
     }
 
-    protected attachment(
-        request: Electron.ProtocolRequest,
-        callback: (response: string | Electron.ProtocolResponse) => void,
-    ): void {
-        const path = request.url.slice('attachment://'.length);
-        if (fs.existsSync(path)) {
-            callback(url.fileURLToPath(`file://${path}`));
-        } else {
-            callback('attachment://file_does_not_exist');
+    protected async attachment(request: Request): Promise<Response> {
+        const path = url.fileURLToPath(new URL(request.url.replace(/^attachment:/, 'file:')));
+        if (!fs.existsSync(path)) {
+            return Promise.reject(new Error(`File doesn't exist`));
+        }
+        try {
+            const buffer = await fs.promises.readFile(path);
+            return new Response(buffer);
+        } catch (_err) {
+            return new Response('File not found', { status: 404 });
         }
     }
 }
