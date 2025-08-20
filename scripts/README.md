@@ -1,3 +1,7 @@
+> [!NOTE]
+> This system is deprecated and is kept here for reference purposes.
+> Please use the [Chipmunk Development CLI Tool](../cli/development-cli) for all development tasks instead.
+
 ## Build System
 
 In order to build and run chipmunk, several steps have to be executed:

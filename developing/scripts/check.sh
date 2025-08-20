@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# This script isn't used anymore because the environment checks are 
+# included within Chipmunk Development CLI Tool in `{CHIPMUNK_ROOT}/cli/dev-cli`.
+
 ERRORS=0;
 if node -v &>/dev/null; then
     echo "NodeJS is OK"

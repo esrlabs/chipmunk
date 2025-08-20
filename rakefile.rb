@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+# NOTE: Rake isn't used in the development anymore and has been replaced
+# with Chipmunk Development CLI Tool in `{CHIPMUNK_ROOT}/cli/dev-cli`.
+# The implementation here kept for reference.
+
 require 'rake/clean'
 require 'fileutils'
 require 'set'
