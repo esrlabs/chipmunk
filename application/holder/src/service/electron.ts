@@ -14,6 +14,8 @@ import { Transport } from 'platform/ipc/transport';
 import { Subjects, Subject } from 'platform/env/subscription';
 import { Protocol } from './electron/protocol';
 
+import * as handles from './electron/handles';
+
 @DependOn(paths)
 @SetupService(services['electron'])
 export class Service extends Implementation {
@@ -42,9 +44,12 @@ export class Service extends Implementation {
     }
 
     public override async ready(): Promise<void> {
+        // Wait for ready
         await app.whenReady();
-        // Register protocol
+        // Register protocols
         this._protocol.register();
+        // Register custom handles
+        handles.register();
         // Setup minimal security requirements for angular app
         session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
             callback({
