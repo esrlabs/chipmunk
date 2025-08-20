@@ -2,55 +2,98 @@ import { protocol } from 'electron';
 
 import * as url from 'url';
 import * as fs from 'fs';
+import * as mime from 'mime-types';
+import * as path from 'path';
 
-/// The primary communication channel between the renderer and the backend is IPC.
-/// However, attachments are delivered via direct links. For security reasons these
-/// links are URL‑encoded, which is especially important to safely carry Windows
-/// paths with backslashes.
+const PROTOCOL: string = 'attachment';
+
+/**
+ * Provides a custom `attachment:` protocol for serving local files
+ * directly to the renderer process.
+ *
+ * @remarks
+ * The main communication channel between renderer and backend remains IPC,
+ * but attachments are delivered via direct links. For security reasons,
+ * file paths are URL-encoded — this is especially important on Windows,
+ * where backslashes must be preserved safely.
+ */
 export class Protocol {
     /**
-     * Registers the custom `attachment:` scheme handler in the Electron main process.
-     *
-     * The handler serves local files referenced by `attachment://` URLs.
-     * See {@link Protocol.attachment}.
+     * Creates a new instance of the protocol handler and registers the
+     * custom scheme as privileged.
      *
      * @remarks
-     * This uses `protocol.handle` (Electron 20+) and binds the instance method as the
-     * request handler.
+     * The scheme is marked with `corsEnabled` and `stream` privileges,
+     * allowing use with the Fetch API and streaming large files directly.
+     * This must be called before `app.whenReady()`.
      */
-    public register() {
-        protocol.handle('attachment', this.attachment.bind(this));
+    constructor() {
+        protocol.registerSchemesAsPrivileged([
+            {
+                scheme: PROTOCOL,
+                privileges: {
+                    corsEnabled: true,
+                    stream: true,
+                },
+            },
+        ]);
     }
 
     /**
-     * Attachment handler that resolves an `attachment:` URL to a local file and
-     * returns it as a `Response`.
+     * Registers the `attachment:` scheme handler with Electron.
+     *
+     * @remarks
+     * Uses `protocol.handle` (Electron 20+) to bind the {@link Protocol.attachment}
+     * method as the request handler.
+     */
+    public register() {
+        protocol.handle(PROTOCOL, this.attachment.bind(this));
+    }
+
+    /**
+     * Resolves an `attachment:` URL to a local file and returns it as a streamed response.
      *
      * @param request - Incoming request targeting the `attachment:` scheme.
      * @returns A promise that resolves to:
-     * - `200 OK` with the file content in the body when the file exists and can be read;
-     * - `404 Not Found` when the file cannot be read (e.g., missing or inaccessible).
+     * - `200 OK` with a streaming body if the file exists and is readable;
+     * - `404 Not Found` if the file does not exist or is inaccessible.
      *
      * @remarks
-     * - The URL is first decoded (with `decodeURIComponent`) and converted to a `file:`
-     *   URL, then to a filesystem path via `url.fileURLToPath`. This preserves Windows
-     *   paths that contain backslashes and disallows accidental scheme confusion.
-     * - If the path does not exist, the method rejects the promise with an Error.
-     *   Any read errors are converted into a `404` HTTP-like response.
-     * - Do not call `fetch(file://…)` in Node/Electron; Node’s `fetch` (undici)
-     *   does not implement the `file:` scheme. Read the file directly, as below.
+     * - The URL is decoded with `decodeURIComponent`, then converted into a `file:`
+     *   URL and resolved to a filesystem path using `url.fileURLToPath`. This preserves
+     *   Windows backslashes and prevents scheme confusion.
+     * - Files are streamed via `fs.createReadStream` to support large attachments
+     *   without buffering them entirely into memory.
+     * - The response includes `Content-Type`, `Content-Length`, and
+     *   `Content-Disposition` headers, as well as `Accept-Ranges` and
+     *   `Cache-Control: no-store` for predictable client behavior.
+     * - Fetching `file://` directly is not supported by Node’s `fetch` (undici),
+     *   hence files are read and streamed manually.
      */
     protected async attachment(request: Request): Promise<Response> {
-        const path = url.fileURLToPath(
+        const filePath = url.fileURLToPath(
             new URL(decodeURIComponent(request.url.replace(/^attachment:/, 'file:'))),
         );
-        if (!fs.existsSync(path)) {
-            return Promise.reject(new Error(`File doesn't exist`));
-        }
         try {
-            const buffer = await fs.promises.readFile(path);
-            return new Response(buffer);
-        } catch (_err) {
+            const stat = await fs.promises.stat(filePath);
+            if (!stat.isFile()) {
+                return new Response('File not found', { status: 404 });
+            }
+
+            const stream = fs.createReadStream(filePath);
+            const contentType =
+                mime.contentType(path.basename(filePath)) || 'application/octet-stream';
+
+            return new Response(stream, {
+                headers: {
+                    'Content-Type': contentType,
+                    'Content-Length': String(stat.size),
+                    'Content-Disposition': `attachment; filename="${path.basename(filePath)}"`,
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': 'no-store',
+                },
+            });
+        } catch {
             return new Response('File not found', { status: 404 });
         }
     }
