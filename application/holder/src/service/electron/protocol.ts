@@ -4,6 +4,7 @@ import * as url from 'url';
 import * as fs from 'fs';
 import * as mime from 'mime-types';
 import * as path from 'path';
+import * as net from 'platform/types/net';
 
 const PROTOCOL: string = 'attachment';
 
@@ -82,15 +83,15 @@ export class Protocol {
 
             const stream = fs.createReadStream(filePath);
             const contentType =
-                mime.contentType(path.basename(filePath)) || 'application/octet-stream';
+                mime.contentType(path.basename(filePath)) || net.CONTENT_TYPE_OCTET_STREAM;
 
             return new Response(stream, {
                 headers: {
                     'Content-Type': contentType,
                     'Content-Length': String(stat.size),
                     'Content-Disposition': `attachment; filename="${path.basename(filePath)}"`,
-                    'Accept-Ranges': 'bytes',
-                    'Cache-Control': 'no-store',
+                    'Accept-Ranges': net.ACCEPT_RANGES_BYTES,
+                    'Cache-Control': net.CACHE_CONTROL_NO_STORE,
                 },
             });
         } catch {
