@@ -1,3 +1,8 @@
+# 3.18.3 (21.08.2025)
+
+## Fixes
+- Switch to native clipboard API 
+
 # 3.18.2 (19.08.2025)
 
 ## Add
