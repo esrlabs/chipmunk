@@ -22,6 +22,8 @@ nav:
       - Plugins: development/core/plugins.md
   - Contributing: 
     - Welcome: contributing/welcome.md
-    - Preparing: contributing/preparing.md
+    - Getting Started: contributing/getting-started.md
+    - Development Guide: contributing/development-guide.md
+    - Debugging: contributing/debugging.md
     - Developer CLI Tool: contributing/dev-cli.md
 
