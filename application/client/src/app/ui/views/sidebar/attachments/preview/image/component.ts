@@ -206,13 +206,14 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
                     this.log().warn(`Fail to fetch image as Blob`);
                     return;
                 }
+                const contentType = response.type.trim();
                 response
                     .arrayBuffer()
                     .then((buffer) => {
                         // We are using native clipboard API, but not browser one (navigator.clipboard)
                         // to avoid possible issues with size of blob.
                         window.electron.clipboard
-                            .write(response.type || 'application/octet-stream', buffer)
+                            .write(contentType.length > 0 ? contentType : undefined, buffer)
                             .catch((err: Error) => {
                                 this.log().warn(
                                     `Fail to copy image into clipboard: ${err.message}`,
