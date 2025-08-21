@@ -94,5 +94,5 @@ export interface Clipboard {
      * @param mime - MIME type of the data (e.g. `text/plain`, `image/png`).
      * @param data - Content as an ArrayBuffer.
      */
-    write(mime: string, data: ArrayBuffer): Promise<void>;
+    write(mime: string | undefined, data: ArrayBuffer): Promise<void>;
 }
