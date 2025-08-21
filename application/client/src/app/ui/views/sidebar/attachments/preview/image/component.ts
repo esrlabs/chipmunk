@@ -211,13 +211,16 @@ export class Preview extends ChangesDetector implements AfterViewInit, AfterCont
                     .then((buffer) => {
                         // We are using native clipboard API, but not browser one (navigator.clipboard)
                         // to avoid possible issues with size of blob.
-                        window.electron.clipboard.write(
-                            response.type || 'application/octet-stream',
-                            buffer,
-                        );
+                        window.electron.clipboard
+                            .write(response.type || 'application/octet-stream', buffer)
+                            .catch((err: Error) => {
+                                this.log().warn(
+                                    `Fail to copy image into clipboard: ${err.message}`,
+                                );
+                            });
                     })
                     .catch((err: Error) => {
-                        this.log().warn(`Fail to copy image into clipboard: ${err.message}`);
+                        this.log().warn(`Fail to load image as bytes: ${err.message}`);
                     });
             })
             .catch((err: Error) => {

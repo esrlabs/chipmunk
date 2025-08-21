@@ -143,6 +143,7 @@
     "./types/github/filemetadata": "./dist/types/github/filemetadata.js",
     "./types/github/filter": "./dist/types/github/filter.js",
     "./types/bindings": "./dist/types/bindings/index.js",
+    "./types/net": "./dist/types/net.js",
     "./package.json": "./package.json"
   },
   "packageManager": "yarn@4.6.0"

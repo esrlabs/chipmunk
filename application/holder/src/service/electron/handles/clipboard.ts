@@ -1,5 +1,7 @@
 import { nativeImage, clipboard, ipcMain } from 'electron';
 
+import * as net from 'platform/types/net';
+
 /**
  * Registers an IPC handler for writing data into the system clipboard.
  *
@@ -9,18 +11,18 @@ import { nativeImage, clipboard, ipcMain } from 'electron';
  * from a renderer process via `ipcRenderer.invoke`.
  */
 export function register() {
-    ipcMain.handle('clipboard:write', (_e, { mime, data }) => {
-        const buf = Buffer.from(data);
-        if (mime.startsWith('image/')) {
-            const img = nativeImage.createFromBuffer(buf);
-            clipboard.writeImage(img);
-            return;
-        }
-        if (mime.startsWith('text/')) {
-            clipboard.writeText(buf.toString('utf8'));
-            return;
-        }
-        clipboard.writeBuffer(mime || 'application/octet-stream', buf);
-        return;
-    });
+    ipcMain.handle(
+        'clipboard:write',
+        (_e, { mime, data }: { mime: string | undefined; data: ArrayBuffer }) => {
+            const buffer = Buffer.from(data);
+            if (typeof mime !== 'string') {
+                clipboard.writeBuffer(net.CONTENT_TYPE_OCTET_STREAM, buffer);
+            } else if (mime.startsWith('image/')) {
+                const img = nativeImage.createFromBuffer(buffer);
+                clipboard.writeImage(img);
+            } else if (mime.startsWith('text/')) {
+                clipboard.writeText(buffer.toString('utf8'));
+            }
+        },
+    );
 }
