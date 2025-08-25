@@ -268,6 +268,10 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         return this.created > tm;
     }
 
+    public updateTimestamp() {
+        this.created = Date.now();
+    }
+
     public isSame(collections: Collections): boolean {
         return (
             this.collections.filters.isSame(collections.collections.filters) &&
