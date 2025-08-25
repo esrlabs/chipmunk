@@ -90,9 +90,9 @@ export class Provider implements EntryConvertable {
             });
             return col;
         });
-        const uuids: string[] = this.collections.map((collection) => collection.uuid);
+
         this.storage.definitions.add(this.definitions);
-        this.storage.collections.add(this.collections);
+        const uuids: string[] = this.storage.collections.add(this.collections);
         this.collections = [];
         this.definitions = [];
         return uuids;

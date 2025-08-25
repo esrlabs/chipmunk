@@ -64,27 +64,31 @@ export class StorageCollections {
         await this.save();
     }
 
-    public update(collections: Collections): string | undefined {
+    public update(collections: Collections): string {
         const existed = Array.from(this.collections.values()).find((c) => c.isSame(collections));
         if (this.collections.has(collections.uuid) || existed === undefined) {
             this.collections.set(collections.uuid, collections);
-            return undefined;
+            return collections.uuid;
+        } else {
+            existed.updateTimestamp();
         }
         return existed.uuid;
     }
 
-    public insert(collections: Collections): void {
+    public insert(collections: Collections): string[] {
         if (this.collections.has(collections.uuid)) {
             return this.add([collections]);
         } else {
             this.collections.set(collections.uuid, collections);
             this.save();
+            return [collections.uuid];
         }
     }
 
-    public add(collections: Collections[]): void {
-        collections.forEach((col) => this.update(col));
+    public add(collections: Collections[]): string[] {
+        const uuids = collections.map((col) => this.update(col));
         this.save();
+        return uuids;
     }
 
     public overwrite(collections: Collections[]): void {
