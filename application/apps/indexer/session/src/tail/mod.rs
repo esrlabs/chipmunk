@@ -41,6 +41,11 @@ pub async fn track(
                     .map(|md| md.len())
                     .map_err(|e| Error::Io(e.to_string()))?;
                 if updated != size {
+                    let truncated = size > updated;
+                    if truncated {
+                        log::info!("File has been truncated. Path: {}", path.display());
+                        return Err(Error::Io(String::from("File has been truncated")));
+                    }
                     size = updated;
                     if let Err(err) = tx_update.send(Ok(())).await {
                         return Err(Error::Channel(format!("Fail to send update signal: {err}")));

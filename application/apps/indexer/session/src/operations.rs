@@ -202,8 +202,8 @@ impl OperationAPI {
     }
 
     pub fn emit(&self, event: stypes::CallbackEvent) {
-        let event_log = format!("{event:?}");
         if let Err(err) = self.tx_callback_events.send(event) {
+            let event_log = format!("{:?}", err.0);
             error!("Fail to send event {event_log}; error: {err}")
         }
     }

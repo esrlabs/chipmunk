@@ -148,4 +148,3 @@ export async function getFileTypeByFilename(filename: string): Promise<FileType>
         return FileType.Text;
     }
 }
-
