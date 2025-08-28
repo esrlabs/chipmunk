@@ -14,6 +14,7 @@ pub fn stats(
 ) -> Result<stypes::CommandOutcome<stypes::DltStatisticInfo>, stypes::ComputationError> {
     let mut stat = StatisticInfo::new();
     let mut error: Option<String> = None;
+    let mut timer = crate::Timer::new("collect statistics");
     file_paths.iter().for_each(|file_path| {
         if error.is_some() {
             return;
@@ -37,6 +38,7 @@ pub fn stats(
             }
         }
     });
+    timer.done();
     if let Some(err) = error {
         return Err(stypes::ComputationError::IoOperation(err));
     }
