@@ -127,6 +127,9 @@ export class ViewSearchInput
         this.input.actions.accept.subscribe(() => {
             if (this.active === undefined || this.input.value.trim() !== '') {
                 const filter = this.input.asFilter();
+                if (filter.filter.trim() === '') {
+                    return;
+                }
                 this.recent.update(filter.filter);
                 this.session.search
                     .state()
