@@ -96,7 +96,8 @@ jobs:
             -s \
             -k "$KEYCHAIN_PWD" \
             "$KEYCHAIN_NAME"
-          security set-keychain-settings -lut 1200
+          security set-keychain-settings "$KEYCHAIN_NAME"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
       - name: build release macOS
         if: runner.os == 'macOS'
         run: |
