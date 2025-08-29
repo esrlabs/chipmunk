@@ -1,3 +1,10 @@
+# 3.18.4 (29.08.2025)
+
+## Changes
+- Fixes empty filters after opening files from a quick navigation prompt.
+- Tab "Presets/history" now automatically activates after importing filters.
+- "Recently added" filters now shows previous imports on duplicate imports.
+
 # 3.18.3 (21.08.2025)
 
 ## Fixes
