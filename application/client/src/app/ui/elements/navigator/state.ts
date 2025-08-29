@@ -8,6 +8,7 @@ import { unique } from '@platform/env/sequence';
 import { INoContentActions, IStatistics } from './providers/provider';
 import { IMenuItem } from '@ui/service/contextmenu';
 import { Observe } from '@platform/types/observe';
+import { stop } from '@ui/env/dom';
 
 const MOVE_SELECTION_DELAY = 150;
 
@@ -68,6 +69,7 @@ export class State extends Holder {
                         if (target === undefined) {
                             return true;
                         }
+                        stop(event);
                         this.action(target);
                         return true;
                     },
@@ -77,7 +79,7 @@ export class State extends Holder {
                 .services.ui.listener.listen<KeyboardEvent>(
                     'keyup',
                     window,
-                    (_event: KeyboardEvent) => {
+                    (event: KeyboardEvent) => {
                         clearTimeout(this.movement.timer);
                         return true;
                     },
