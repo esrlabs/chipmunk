@@ -1,6 +1,6 @@
 In addition to search, `chipmunk` provides tools for analyzing metrics and any kind of numerical data. Users can define regular expressions to extract specific values, which are then used to generate charts.
 
-A key advantage of `chipmunk` is its near insensitivity to data volume — it performs equally well when processing a few hundred values or several million.
+A key advantage of `chipmunk` is its near insensitivity to data volume - it performs equally well when processing a few hundred values or several million.
 
 ### Chart creating
 

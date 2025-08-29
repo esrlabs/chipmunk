@@ -63,7 +63,7 @@ export class MatDragDropFileFeatureDirective implements OnDestroy {
 
     constructor(protected readonly element: ElementRef<HTMLDivElement>) {
         // Note: The files property of DataTransfer objects can only be accessed from within
-        // the drop event. For all other events, the files property will be empty — because
+        // the drop event. For all other events, the files property will be empty - because
         // its underlying data store will be in a protected mode.
         // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/files
         //

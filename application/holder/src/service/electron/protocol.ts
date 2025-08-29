@@ -15,7 +15,7 @@ const PROTOCOL: string = 'attachment';
  * @remarks
  * The main communication channel between renderer and backend remains IPC,
  * but attachments are delivered via direct links. For security reasons,
- * file paths are URL-encoded — this is especially important on Windows,
+ * file paths are URL-encoded - this is especially important on Windows,
  * where backslashes must be preserved safely.
  */
 export class Protocol {

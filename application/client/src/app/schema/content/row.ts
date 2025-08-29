@@ -4,13 +4,57 @@ import { Nature } from '@platform/types/content';
 import { EAlias } from '@service/session/dependencies/search/highlights/modifier';
 import { GrabbedElement } from '@platform/types/bindings/miscellaneous';
 
+/**
+ * Declares the visual "owner" or container context in which a `Row` is rendered.
+ *
+ * @remarks
+ * The `Owner` enum is used to distinguish between multiple visual log consumers,
+ * such as the main output, search results, bookmarks, charts, and others.
+ *
+ * The concept of an "owner" is introduced to resolve event loop issues in UI logic:
+ * for instance, a click on a log row in the main output window should not trigger
+ * reactions within that same window. Instead, other views (like search results)
+ * can react to such events and adjust their own state accordingly.
+ *
+ * This enables synchronized behavior between components while avoiding unintended recursive updates.
+ *
+ * @enum {string}
+ * @public
+ */
 export enum Owner {
+    /**
+     * Main log output window.
+     */
     Output = 'Output',
+
+    /**
+     * Search results view.
+     */
     Search = 'Search',
+
+    /**
+     * Bookmark view containing marked rows.
+     */
     Bookmark = 'Bookmark',
+
+    /**
+     * Charting window or graph view.
+     */
     Chart = 'Chart',
+
+    /**
+     * Attachment container (e.g., linked file or artifact).
+     */
     Attachment = 'Attachment',
+
+    /**
+     * Comment container (e.g., user-annotated row or discussion thread).
+     */
     Comment = 'Comment',
+
+    /**
+     * Result of a nested search operation.
+     */
     NestedSearch = 'NestedSearch',
 }
 
@@ -39,26 +83,117 @@ export interface IRow {
     seporator: boolean;
 }
 
+/**
+ * Represents a single log entry (row) received from the backend and processed for rendering.
+ *
+ * @remarks
+ * Every log line from the backend is transformed into an instance of `Row`.
+ * This class acts as the fundamental unit for log rendering, encapsulating all required
+ * metadata and visual formatting attributes. It includes a reference to the owning session,
+ * original content, display state, highlighting, coloring, column values, and more.
+ *
+ * The renderer operates exclusively on instances of this class.
+ *
+ * @extends Subscriber
+ *
+ * @public
+ */
 export class Row extends Subscriber {
+    /**
+     * Removes special marker symbols (e.g., control characters) from the given string.
+     *
+     * @param str - A string potentially containing marker symbols.
+     * @returns A string without marker symbols.
+     */
     static removeMarkerSymbols(str: string): string {
         return str.replaceAll(/\u0004/gi, '').replaceAll(/\u0005/gi, '');
     }
+
+    /**
+     * Original raw log content.
+     */
     public content: string;
+
+    /**
+     * Absolute position of the row within the session's data stream.
+     */
     public position: number;
+
+    /**
+     * Identifies the visual container (e.g., output, search, chart) responsible for rendering this row.
+     */
     public owner: Owner;
+
+    /**
+     * Numeric ID of the log source (e.g., channel, stream, or plugin source).
+     */
     public source: number;
+
+    /**
+     * The session to which this row belongs.
+     */
     public session: Session;
+
+    /**
+     * Indicates whether the row's content was cropped during parsing or rendering.
+     */
     public cropped: boolean;
+
+    /**
+     * Emits when the row's rendering state is updated (e.g., bookmarked, highlighted).
+     * Note: content mutations are not supported and do not trigger this event.
+     */
     public change: Subject<void> = new Subject();
+
+    /**
+     * Parsed and HTML-ready version of the row content, used for direct insertion into DOM.
+     */
     public html!: string;
+
+    /**
+     * Optional text color assigned to this row.
+     */
     public color: string | undefined;
+
+    /**
+     * Optional background color assigned to this row.
+     */
     public background: string | undefined;
+
+    /**
+     * Optional columnar view of the row, if the session content supports tabular formatting.
+     */
     public columns: string[] = [];
+
+    /**
+     * Describes the nature or classification of the row:
+     * e.g., search result, bookmark, or breadcrumb (non-matching row in mixed search output).
+     */
     public nature: Nature;
+
+    /**
+     * When `true`, the row is rendered as a visual separator instead of a content line.
+     * Used primarily in breadcrumb display modes.
+     */
     public seporator: boolean = false;
+
+    /**
+     * Flags indicating various match states of the row in relation to active search or filters.
+     */
     public matches: {
+        /**
+         * `true` if the row matches the current active search query.
+         */
         active: boolean;
+
+        /**
+         * `true` if the row matches current non-search filters.
+         */
         filter: boolean;
+
+        /**
+         * `true` if the row matches filters relevant to chart or metrics views.
+         */
         chart: boolean;
     } = {
         active: false,

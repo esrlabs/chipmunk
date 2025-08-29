@@ -1,5 +1,5 @@
 
-`chipmunk` is distributed as a portable version and does not require any installation — just download and run. Additionally:
+`chipmunk` is distributed as a portable version and does not require any installation - just download and run. Additionally:
 
 - It does not install or depend on any external libraries or runtime environments (with a small exception for Windows).
 - It includes a built-in update mechanism (you will be notified when a new version is available).
