@@ -1,4 +1,4 @@
-`chipmunk` supports collaborative work on log file analysis. However, it remains a fully standalone application that requires no installation or server infrastructure. Staying true to this philosophy, we use GitHub repositories to enable shared access to data — providing both secure data exchange and access control.
+`chipmunk` supports collaborative work on log file analysis. However, it remains a fully standalone application that requires no installation or server infrastructure. Staying true to this philosophy, we use GitHub repositories to enable shared access to data - providing both secure data exchange and access control.
 
 ## Before start
 

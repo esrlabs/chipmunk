@@ -79,7 +79,7 @@ export class State extends Holder {
                 .services.ui.listener.listen<KeyboardEvent>(
                     'keyup',
                     window,
-                    (event: KeyboardEvent) => {
+                    (_event: KeyboardEvent) => {
                         clearTimeout(this.movement.timer);
                         return true;
                     },

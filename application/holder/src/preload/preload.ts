@@ -9,9 +9,9 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
  * direct access to Node.js or Electron internals.
  *
  * Namespaces:
- * - `ipc` — wrapper around `ipcRenderer` for sending and receiving messages.
- * - `webUtils` — exposes selected Electron utilities (e.g. file path resolution).
- * - `clipboard` — provides clipboard operations via IPC handled in the main process.
+ * - `ipc` - wrapper around `ipcRenderer` for sending and receiving messages.
+ * - `webUtils` - exposes selected Electron utilities (e.g. file path resolution).
+ * - `clipboard` - provides clipboard operations via IPC handled in the main process.
  */
 contextBridge.exposeInMainWorld('electron', {
     ipc: {

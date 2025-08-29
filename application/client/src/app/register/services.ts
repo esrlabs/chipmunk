@@ -1,6 +1,35 @@
 import { v4 } from 'uuid';
 import { Inputs } from '@platform/entity/service';
 
+/**
+ * Central service registration table for the entire system.
+ *
+ * @remarks
+ * Every service in the application **must** be registered in this table with a unique name and UUID.
+ * The UUID serves as a persistent identity used by the dependency resolver to manage initialization
+ * order and inter-service communication.
+ *
+ * This registry is **mandatory**: it ensures consistent identification of services across the
+ * application lifecycle and guarantees correct dependency resolution.
+ *
+ * Developers must:
+ * - Assign a **globally unique UUID** to each service (automatically generated here via `v4()`).
+ * - Use the same registration entry when applying decorators like `@SetupService(...)` or `@DependOn(...)`.
+ *
+ * @example Dependency declaration
+ * ```ts
+ * @DependOn(api) // Ensures `MyNewService` is initialized after the `api` service
+ * @SetupService(services['my_new_service'])
+ * class MyNewService { ... }
+ * ```
+ *
+ * @warning
+ * Avoid reusing UUIDs or manually copying them between services.
+ * UUIDs should remain stable for the life of the service type.
+ *
+ * @constant
+ * @public
+ */
 export const services: { [key: string]: Inputs } = {
     system: {
         name: 'System',
