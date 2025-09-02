@@ -3,19 +3,10 @@ This guide covers the one-time setup required to install all the tools and depen
 ## Prerequisites
 
 ### Installing Rust
-The recommended way to install Rust is by using **rustup**, the official Rust version manager. Run the following command in your terminal:
 
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
+To install Rust, follow the official instructions provided on the Rust programming language website. This ensures you are using the recommended method for your specific operating system.
 
-This command downloads and runs the `rustup` installer. After installation, you can verify the installed Rust version by running:
-
-```sh
-rustc --version
-```
-
-which should print the Rust version on terminal.
+You can find the installation guide at [Install Rust](https://www.rust-lang.org/tools/install)
 
 ### Installing NodeJS
 
@@ -67,7 +58,7 @@ This script will handle installing dependencies required for building and runnin
 
 This project uses a custom tool, `cargo chipmunk`, to manage development tasks. To install it, navigate to the repository root and run:
 ```sh 
-cargo install --path cli/development--cli
+cargo install --path cli/development-cli
 ```
 
 After installation, verify it was successful by checking the version:
