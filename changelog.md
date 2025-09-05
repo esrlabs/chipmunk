@@ -1,3 +1,8 @@
+# 3.18.5 (05.09.2025)
+
+## Fixes:
+- Stop file tailing on file truncate.
+
 # 3.18.4 (29.08.2025)
 
 ## Changes
