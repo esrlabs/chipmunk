@@ -49,14 +49,14 @@ function serial(settings: string): $.Origin.Stream.Stream.Serial.IConfiguration 
                 typeof p === 'boolean'
                     ? p
                     : typeof p === 'string'
-                    ? p === 'true'
-                        ? true
-                        : false
-                    : typeof p === 'number'
-                    ? p === 1
-                        ? true
-                        : false
-                    : true;
+                      ? p === 'true'
+                          ? true
+                          : false
+                      : typeof p === 'number'
+                        ? p === 1
+                            ? true
+                            : false
+                        : true;
         } else {
             const value = parseInt(p, 10);
             if (isNaN(value) || !isFinite(value)) {
