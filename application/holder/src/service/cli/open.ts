@@ -10,8 +10,6 @@ import * as path from 'path';
 import * as Requests from 'platform/ipc/request';
 import * as Factory from 'platform/types/observe/factory';
 import * as Parser from 'platform/types/observe/parser';
-import * as Origin from 'platform/types/observe/origin';
-import { session } from 'electron';
 
 export class Action extends CLIAction {
     protected files: string[] = [];
@@ -64,7 +62,7 @@ export class Action extends CLIAction {
         if (files.length === 0) {
             return;
         }
-        let factory =
+        const factory =
             files.length === 1
                 ? new Factory.File().file(files[0].filename)
                 : new Factory.Concat().files(files.map((f) => f.filename));
@@ -83,7 +81,7 @@ export class Action extends CLIAction {
                 throw new Error("Plugins aren't supperted in CLI yet.");
         }
 
-        let observe = factory.get();
+        const observe = factory.get();
 
         return new Promise((resolve, _reject) => {
             Requests.IpcRequest.send(

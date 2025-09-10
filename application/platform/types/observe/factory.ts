@@ -196,7 +196,7 @@ export class Concat extends Factory<Concat> {
         if (!(this.observe.origin.instance instanceof $.Origin.Concat.Configuration)) {
             throw new Error(`Given observe object doesn't have Concat origin`);
         }
-        this.observe.origin.instance.set().defaults(type);
+        this.observe.origin.instance.set().type(type);
         this.updated().origin();
         return this;
     }

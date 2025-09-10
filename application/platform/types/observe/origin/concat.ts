@@ -66,7 +66,7 @@ export class Configuration
 
     public set(): {
         files(files: string[]): Configuration;
-        defaults(type: Types.File.FileType): Configuration;
+        type(type: Types.File.FileType): Configuration;
         push(filename: string, type: Types.File.FileType): Configuration;
         remove(filename: string): Configuration;
         alias(alias?: string): Configuration;
@@ -80,8 +80,11 @@ export class Configuration
                 );
                 return this;
             },
-            defaults: (type: Types.File.FileType): Configuration => {
+            type: (type: Types.File.FileType): Configuration => {
                 this.defaultFileType = type;
+                this.configuration.forEach((conf) => {
+                    conf[1] = type;
+                });
                 return this;
             },
             push: (filename: string, type: Types.File.FileType): Configuration => {
