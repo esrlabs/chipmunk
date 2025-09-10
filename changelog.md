@@ -1,3 +1,9 @@
+# 3.18.6 (10.09.2025)
+
+## Fixes:
+- Consider Parser-type CLI argument for launching with file paths.
+- Fix starting file concatenation sessions via command-line arguments.
+
 # 3.18.5 (05.09.2025)
 
 ## Fixes:
