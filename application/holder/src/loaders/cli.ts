@@ -72,7 +72,7 @@ function setup() {
     cli.addOption(
         new Option(
             '-s, --search "<regexp>"',
-            'Collection of filters, which would be applied to each opened session (tab). Ex: cm files -o /path/file_name -s "error" -s "warning"',
+            'Collection of filters, which would be applied to each opened session (tab). Ex: chipmunk files -o /path/file_name -s "error" -s "warning"',
         ).argParser(parser(CLI_HANDLERS['search'], undefined)),
     );
     cli.addOption(new Option(RESTARTING_FLAG, 'Hidden option to manage CLI usage').hideHelp());
@@ -90,7 +90,7 @@ function setup() {
         });
     files.option(
         '-o, --open <filename | glob pattern...>',
-        'Opens file. Ex: cm -o /path/file_name_a. In case of multiple files, concat operation will be done. Ex: cm -o file_a -o file_b; cm -o "**/*.logs"; cm -o "**/*.{logs,txt}"',
+        'Opens file. Ex: chipmunk -o /path/file_name_a. In case of multiple files, concat operation will be done. Ex: chipmunk -o file_a -o file_b; chipmunk -o "**/*.logs"; chipmunk -o "**/*.{logs,txt}"',
         parser(CLI_HANDLERS['open'], undefined),
     );
     const streams = cli
@@ -99,25 +99,25 @@ function setup() {
     streams.addOption(
         new Option(
             '--tcp "<addr:port>"',
-            'Creates TCP connection with given address. Ex: cm --tcp "0.0.0.0:8888"',
+            'Creates TCP connection with given address. Ex: chipmunk --tcp "0.0.0.0:8888"',
         ).argParser(parser(CLI_HANDLERS['stream'], 'tcp')),
     );
     streams.addOption(
         new Option(
             '--udp "<addr:port|multicast,interface;>"',
-            'Creates UDP connection with given address and multicasts. Ex: cm --udp "0.0.0.0:8888|234.2.2.2,0.0.0.0"',
+            'Creates UDP connection with given address and multicasts. Ex: chipmunk --udp "0.0.0.0:8888|234.2.2.2,0.0.0.0"',
         ).argParser(parser(CLI_HANDLERS['stream'], 'udp')),
     );
     streams.addOption(
         new Option(
             '--serial "<path;baud_rate;data_bits;flow_control;parity;stop_bits>"',
-            'Creates serial port connection with given parameters. Ex: cm --serial "/dev/port_a;960000;8;1;0;1"',
+            'Creates serial port connection with given parameters. Ex: chipmunk --serial "/dev/port_a;960000;8;1;0;1"',
         ).argParser(parser(CLI_HANDLERS['stream'], 'serial')),
     );
     streams.addOption(
         new Option(
             '--stdout "<command...>"',
-            'Executes given commands in the scope of one session (tab) and shows mixed output. Ex: cm --stdout "journalctl -r" "adb logcat"',
+            'Executes given commands in the scope of one session (tab) and shows mixed output. Ex: chipmunk --stdout "journalctl -r" "adb logcat"',
         ).argParser(parser(CLI_HANDLERS['stream'], 'stdout')),
     );
     cli.parse();
