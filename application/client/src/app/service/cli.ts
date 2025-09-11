@@ -48,6 +48,17 @@ export class Service extends Implementation {
                         return handlers.search(this, request);
                     },
                 ),
+            api
+                .transport()
+                .respondent(
+                    this.getName(),
+                    Requests.Cli.MultiFiles.Request,
+                    (
+                        request: Requests.Cli.MultiFiles.Request,
+                    ): CancelablePromise<Requests.Cli.MultiFiles.Response> => {
+                        return handlers.multiFiles(request);
+                    },
+                ),
         );
         Events.IpcEvent.subscribe(Events.Cli.Done.Event, (_event: Events.Cli.Done.Event) => {
             // TODO: not clear now (after refactoring) - what we should to do now?

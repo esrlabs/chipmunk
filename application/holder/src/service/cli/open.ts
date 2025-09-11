@@ -63,42 +63,57 @@ export class Action extends CLIAction {
         if (files.length === 0) {
             return;
         }
-        const factory =
-            files.length === 1
-                ? new Factory.File().file(files[0].filename)
-                : new Factory.Concat().files(files.map((f) => f.filename));
 
-        switch (cli.state().parser()) {
-            case Parser.Protocol.Text:
-                factory.asText();
-                break;
-            case Parser.Protocol.Dlt:
-                factory.asDlt(Parser.Dlt.Configuration.initial()).type(FileType.Binary);
-                break;
-            case Parser.Protocol.SomeIp:
-                factory.asSomeip(Parser.SomeIp.Configuration.initial()).type(FileType.Binary);
-                break;
-            case Parser.Protocol.Plugin:
-                throw new Error("Plugins aren't supperted in CLI yet.");
+        // Single file
+        if (files.length === 1) {
+            const factory = new Factory.File().file(files[0].filename);
+
+            switch (cli.state().parser()) {
+                case Parser.Protocol.Text:
+                    factory.asText();
+                    break;
+                case Parser.Protocol.Dlt:
+                    factory.asDlt(Parser.Dlt.Configuration.initial()).type(FileType.Binary);
+                    break;
+                case Parser.Protocol.SomeIp:
+                    factory.asSomeip(Parser.SomeIp.Configuration.initial()).type(FileType.Binary);
+                    break;
+                case Parser.Protocol.Plugin:
+                    throw new Error("Plugins aren't supperted in CLI yet.");
+            }
+
+            const observe = factory.get();
+
+            return new Promise((resolve, _reject) => {
+                Requests.IpcRequest.send(
+                    Requests.Cli.Observe.Response,
+                    new Requests.Cli.Observe.Request({
+                        observe: [observe.sterilized()],
+                    }),
+                )
+                    .then((response) => {
+                        if (response.session === undefined) {
+                            return;
+                        }
+                        cli.state().sessions([response.session]);
+                    })
+                    .catch((err: Error) => {
+                        cli.log().error(`Fail apply open-action: ${err.message}`);
+                    })
+                    .finally(resolve);
+            });
         }
 
-        const observe = factory.get();
-
+        // Multiple files
         return new Promise((resolve, _reject) => {
             Requests.IpcRequest.send(
-                Requests.Cli.Observe.Response,
-                new Requests.Cli.Observe.Request({
-                    observe: [observe.sterilized()],
+                Requests.Cli.MultiFiles.Response,
+                new Requests.Cli.MultiFiles.Request({
+                    files,
                 }),
             )
-                .then((response) => {
-                    if (response.session === undefined) {
-                        return;
-                    }
-                    cli.state().sessions([response.session]);
-                })
                 .catch((err: Error) => {
-                    cli.log().error(`Fail apply open-action: ${err.message}`);
+                    cli.log().error(`Fail apply open mulitple file: ${err.message}`);
                 })
                 .finally(resolve);
         });

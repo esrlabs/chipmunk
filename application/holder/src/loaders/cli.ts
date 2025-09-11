@@ -78,7 +78,7 @@ function setup() {
     cli.addOption(new Option(RESTARTING_FLAG, 'Hidden option to manage CLI usage').hideHelp());
     const files = cli
         .command('files [filename...]', { isDefault: true })
-        .description('Opens file(s) or concat files')
+        .description('Opens file(s)')
         .action((args: string[]) => {
             if (args.length === 0) {
                 return;
@@ -90,7 +90,7 @@ function setup() {
         });
     files.option(
         '-o, --open <filename | glob pattern...>',
-        'Opens file. Ex: chipmunk -o /path/file_name_a. In case of multiple files, concat operation will be done. Ex: chipmunk -o file_a -o file_b; chipmunk -o "**/*.logs"; chipmunk -o "**/*.{logs,txt}"',
+        'Opens file. Ex: chipmunk -o /path/file_name_a. In case of multiple files, multiple files view will be opened. Ex: chipmunk -o file_a -o file_b; chipmunk -o "**/*.logs"; chipmunk -o "**/*.{logs,txt}"',
         parser(CLI_HANDLERS['open'], undefined),
     );
     const streams = cli
