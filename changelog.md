@@ -1,12 +1,19 @@
+# 3.18.7 (11.09.2025)
+
+## Changes
+- CLI arguments for multiple files now open a multi-file view instead of concatenating.
+- CLI: Glob matches are now sorted alphabetically.
+- CLI: Multiple glob patterns now append results instead of overwriting.
+
 # 3.18.6 (10.09.2025)
 
-## Fixes:
+## Fixes
 - Consider Parser-type CLI argument for launching with file paths.
 - Fix starting file concatenation sessions via command-line arguments.
 
 # 3.18.5 (05.09.2025)
 
-## Fixes:
+## Fixes
 - Stop file tailing on file truncate.
 
 # 3.18.4 (29.08.2025)
@@ -19,7 +26,7 @@
 # 3.18.3 (21.08.2025)
 
 ## Fixes
-- Switch to native clipboard API 
+- Switch to native clipboard API.
 
 # 3.18.2 (19.08.2025)
 
