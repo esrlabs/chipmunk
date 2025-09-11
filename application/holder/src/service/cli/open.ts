@@ -32,7 +32,8 @@ export class Action extends CLIAction {
                 );
                 return '';
             }
-            this.files = files;
+            files.sort();
+            this.files.push(...files);
             return arg;
         } catch (e) {
             this.error.push(new Error(`Fail to parse glob pattern: ${error(e)}`));
