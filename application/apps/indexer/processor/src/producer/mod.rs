@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-use crate::{ByteSource, ReloadInfo, SourceFilter};
 use log::warn;
 use parsers::{Error as ParserError, LogMessage, MessageStreamItem, Parser};
+use sources::{ByteSource, ReloadInfo, SourceFilter};
 use std::marker::PhantomData;
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
@@ -312,7 +312,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     pub async fn sde_income(
         &mut self,
         msg: stypes::SdeRequest,
-    ) -> Result<stypes::SdeResponse, super::Error> {
+    ) -> Result<stypes::SdeResponse, sources::Error> {
         self.byte_source.income(msg).await
     }
 }

@@ -13,9 +13,9 @@ use parsers::{
     text::StringTokenizer,
 };
 use plugins_host::PluginsParser;
+use processor::producer::MessageProducer;
 use sources::{
     ByteSource,
-    producer::MessageProducer,
     sde::{SdeMsg, SdeReceiver},
 };
 use tokio::{

@@ -14,7 +14,6 @@ mod tests;
 
 pub mod binary;
 pub mod command;
-pub mod producer;
 pub mod sde;
 pub mod serial;
 pub mod socket;

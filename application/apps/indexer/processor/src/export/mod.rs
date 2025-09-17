@@ -5,9 +5,11 @@ use std::{
 
 use indexer_base::config::IndexSection;
 use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
-use sources::{ByteSource, producer::MessageProducer};
+use sources::ByteSource;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
+
+use crate::producer::MessageProducer;
 
 #[derive(Error, Debug)]
 pub enum ExportError {

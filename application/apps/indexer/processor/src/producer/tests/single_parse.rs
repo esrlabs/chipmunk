@@ -7,8 +7,9 @@ use super::mock_parser::*;
 use super::*;
 
 use parsers::{Error as ParseError, ParseYield};
+use sources::Error;
 
-use crate::{Error, producer::MessageProducer};
+use crate::producer::MessageProducer;
 
 #[tokio::test]
 async fn empty_byte_source() {

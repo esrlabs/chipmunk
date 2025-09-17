@@ -4,10 +4,7 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 
-use crate::ByteSource;
-use crate::Error;
-use crate::ReloadInfo;
-use crate::SourceFilter;
+use sources::{ByteSource, Error, ReloadInfo, SourceFilter};
 
 pub type MockSeedRes = Result<Option<MockReloadSeed>, Error>;
 
