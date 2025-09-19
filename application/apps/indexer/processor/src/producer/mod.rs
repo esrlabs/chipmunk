@@ -306,6 +306,24 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
         }
     }
 
+    /// Total loaded bytes form byte source in this session.
+    #[inline]
+    pub fn total_loaded_bytes(&self) -> usize {
+        self.total_loaded
+    }
+    
+    /// Total skipped bytes by source and parser in this session.
+    #[inline]
+    pub fn total_skipped_bytes(&self) -> usize {
+        self.total_skipped
+    }
+
+    /// Total amount of parsed items produced in this session.
+    #[inline]
+    pub fn total_produced_items(&self) -> usize {
+        self.total_messages
+    }
+
     /// Append incoming (SDE) Source-Data-Exchange to the underline byte source data.
     pub async fn sde_income(
         &mut self,

@@ -1,3 +1,10 @@
+# 0.2.2
+
+## Changes:
+
+* Include bytes informations in session summary.
+* Internal performance improvements.
+
 # 0.2.1
 
 ## Changes:

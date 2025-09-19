@@ -123,27 +123,15 @@ where
 }
 
 /// Writes summary of the process session.
-fn write_summary(
-    msg_count: usize,
-    skipped_count: usize,
-    empty_count: usize,
-    incomplete_count: usize,
-) {
+fn write_summary(msg_count: usize, loaded_bytes: usize, skipped_bytes: usize) {
     const UNDERLINE_ANSI: &str = "\x1b[4m";
     const RESET_ANSI: &str = "\x1b[0m";
 
     println!("{UNDERLINE_ANSI}Process Summary{RESET_ANSI}:");
 
     println!("* {msg_count} messages has been written to file.");
-    if skipped_count > 0 {
-        println!("* {skipped_count} messages skipped");
-    }
-    if empty_count > 0 {
-        println!("* {empty_count} messages were empty");
-    }
-    if incomplete_count > 0 {
-        println!("* {incomplete_count} messages were incomplete");
-    }
+    println!("* {loaded_bytes} bytes has been loaded from source.");
+    println!("* {skipped_bytes} bytes has been skipped.");
 }
 
 /// Creates or append a file with the provided [`file_path`] returning its buffer writer.
