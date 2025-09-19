@@ -1,15 +1,16 @@
+mod bench_utls;
+
 use std::{io::Cursor, path::PathBuf};
 
 use bench_utls::{bench_standrad_config, get_config, read_binary, run_producer};
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use parsers::someip::SomeipParser;
-use sources::{binary::pcap::ng::PcapngByteSource, producer::MessageProducer};
+use processor::producer::MessageProducer;
+use sources::binary::pcap::legacy::PcapLegacyByteSource;
 
-mod bench_utls;
-
-/// This benchmark covers parsing from SomeIP file using [`PcapngByteSource`] byte source.
+/// This benchmark covers parsing from SomeIP file using [`PcapLegacyByteSource`] byte source.
 /// It supports providing the path for a fibex file as additional configuration.
-fn someip_producer(c: &mut Criterion) {
+fn someip_legacy_producer(c: &mut Criterion) {
     let data = read_binary();
 
     // Additional configuration are assumed to be one path for a fibex file.
@@ -25,13 +26,13 @@ fn someip_producer(c: &mut Criterion) {
         fibex_path
     });
 
-    c.bench_function("someip_producer", |bencher| {
+    c.bench_function("someip_legacy_producer", |bencher| {
         bencher
             .to_async(tokio::runtime::Runtime::new().unwrap())
             .iter_batched(
                 || {
                     let parser = create_someip_parser(fibex_path.as_ref());
-                    let source = PcapngByteSource::new(Cursor::new(data)).unwrap();
+                    let source = PcapLegacyByteSource::new(Cursor::new(data)).unwrap();
                     MessageProducer::new(parser, source)
                 },
                 run_producer,
@@ -50,7 +51,7 @@ fn create_someip_parser(config_path: Option<&PathBuf>) -> SomeipParser {
 criterion_group! {
     name = benches;
     config = bench_standrad_config();
-    targets = someip_producer
+    targets = someip_legacy_producer
 }
 
 criterion_main!(benches);

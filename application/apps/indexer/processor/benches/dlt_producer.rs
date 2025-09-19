@@ -5,7 +5,7 @@ use bench_utls::{
     bench_standrad_config, create_binary_bytesource, get_config, read_binary, run_producer,
 };
 use parsers::dlt::{self, DltParser};
-use sources::producer::MessageProducer;
+use processor::producer::MessageProducer;
 
 mod bench_utls;
 

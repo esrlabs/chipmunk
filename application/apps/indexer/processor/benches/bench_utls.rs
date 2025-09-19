@@ -3,6 +3,7 @@
 #![allow(unused)]
 
 use std::{
+    alloc::Layout,
     fs::File,
     io::{Cursor, Read},
     path::PathBuf,
@@ -10,8 +11,9 @@ use std::{
 };
 
 use criterion::Criterion;
-use parsers::{LogMessage, MessageStreamItem};
-use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
+use parsers::{LogMessage, ParseYield};
+use processor::producer::{GeneralLogCollector, MessageProducer};
+use sources::binary::raw::BinaryByteSource;
 
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
 pub const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";
@@ -63,12 +65,12 @@ pub fn get_config() -> Option<String> {
 /// The purpose of this struct is to convince the compiler that we are using all input
 /// possibilities of producer to avoid unwanted optimizations.
 pub struct ProducerCounter {
+    pub items: usize,
     pub msg: usize,
     pub txt: usize,
     pub att: usize,
-    pub skipped: usize,
-    pub incomplete: usize,
-    pub empty: usize,
+    pub loaded_bytes: usize,
+    pub skipped_bytes: usize,
 }
 
 /// Run producer until the end converting messages into strings too, while counting all the
@@ -80,28 +82,48 @@ where
     T: LogMessage,
 {
     let mut counter = ProducerCounter::default();
+    let mut collector = GeneralLogCollector::default();
 
-    while let Some(items) = producer.read_next_segment().await {
-        for (_, i) in items {
-            match i {
-                MessageStreamItem::Item(item) => match item {
-                    parsers::ParseYield::Message(msg) => {
-                        counter.msg += 1;
-                        counter.txt += msg.to_string().len();
-                    }
-                    parsers::ParseYield::Attachment(att) => counter.att += att.size,
-                    parsers::ParseYield::MessageAndAttachment((msg, att)) => {
-                        counter.msg += 1;
-                        counter.txt += msg.to_string().len();
-                        counter.att += att.size;
-                    }
-                },
-                MessageStreamItem::Skipped => {
-                    counter.skipped += 1;
+    loop {
+        collector.get_records().clear();
+        match producer.produce_next(&mut collector).await.unwrap() {
+            processor::producer::ProduceSummary::Processed {
+                bytes_consumed,
+                messages_count,
+                skipped_bytes,
+            } => {
+                counter.items += messages_count;
+                counter.loaded_bytes += bytes_consumed;
+                counter.skipped_bytes += skipped_bytes;
+            }
+            processor::producer::ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+                counter.skipped_bytes += skipped_bytes;
+                break;
+            }
+            processor::producer::ProduceSummary::Done {
+                loaded_bytes,
+                skipped_bytes,
+                produced_messages,
+            } => {
+                counter.loaded_bytes = loaded_bytes;
+                counter.skipped_bytes = skipped_bytes;
+                counter.items = produced_messages;
+                break;
+            }
+        }
+
+        for item in collector.get_records() {
+            match item {
+                ParseYield::Message(msg) => {
+                    counter.msg += 1;
+                    counter.txt += msg.to_string().len();
                 }
-                MessageStreamItem::Incomplete => counter.incomplete += 1,
-                MessageStreamItem::Empty => counter.empty += 1,
-                MessageStreamItem::Done => break,
+                ParseYield::Attachment(att) => counter.att += att.size,
+                ParseYield::MessageAndAttachment((msg, att)) => {
+                    counter.msg += 1;
+                    counter.txt += msg.to_string().len();
+                    counter.att += att.size;
+                }
             }
         }
     }

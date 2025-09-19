@@ -26,6 +26,7 @@ dir_checksum = { path = "../../../../cli/development-cli/dir_checksum" }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
+processor = { path = "../processor"}
 
 [[bench]]
 name = "plugin_parser_init"

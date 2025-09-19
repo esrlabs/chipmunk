@@ -9,7 +9,7 @@ use sources::ByteSource;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
-use crate::producer::{GeneralLogCollector, MessageProducer, ProduceSummary};
+use crate::producer::{GeneralLogCollector, MessageProducer, ProduceError, ProduceSummary};
 
 #[derive(Error, Debug)]
 pub enum ExportError {
@@ -19,6 +19,8 @@ pub enum ExportError {
     Io(#[from] std::io::Error),
     #[error("Cancelled")]
     Cancelled,
+    #[error("Producer error: {0}")]
+    Producer(ProduceError),
 }
 
 /// Exporting data as raw into a given destination. Would be exported only data
@@ -106,8 +108,7 @@ where
                 }
                 Err(err) => {
                     log::error!("Error while raw export: {err:?}");
-                    //TODO AAZ: Add error type to ExportError
-                    return Ok(exported);
+                    return Err(ExportError::Producer(err));
                 }
             }
         }
@@ -166,8 +167,8 @@ where
             }
             Err(err) => {
                 log::error!("Error while raw export: {err:?}");
-                //TODO AAZ: Add error type to ExportError
-                break 'outer;
+
+                return Err(ExportError::Producer(err));
             }
         }
     }
@@ -186,8 +187,7 @@ where
                 }
                 Err(err) => {
                     log::error!("Error while raw export: {err:?}");
-                    //TODO AAZ: Add error type to ExportError
-                    break 'outer;
+                    return Err(ExportError::Producer(err));
                 }
             }
         }
