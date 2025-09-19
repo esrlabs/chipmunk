@@ -1,19 +1,19 @@
 use std::path::PathBuf;
 
 use crate::{
+    handlers::observing::logs_writer::LogsWriter,
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
     tail,
 };
-use log::trace;
 use parsers::{
-    LogMessage, MessageStreamItem, ParseYield, Parser,
+    LogMessage, Parser,
     dlt::{DltParser, fmt::FormatOptions},
     someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
     text::StringTokenizer,
 };
 use plugins_host::PluginsParser;
-use processor::producer::MessageProducer;
+use processor::producer::{MessageProducer, ProduceError, ProduceSummary};
 use sources::{
     ByteSource,
     sde::{SdeMsg, SdeReceiver},
@@ -24,18 +24,28 @@ use tokio::{
     time::{Duration, timeout},
 };
 
-enum Next<'a, T: LogMessage> {
-    Items(&'a mut Vec<(usize, MessageStreamItem<T>)>),
-    Timeout,
-    Waiting,
-    Sde(SdeMsg),
-}
-
 pub mod concat;
 pub mod file;
+mod logs_writer;
 pub mod stream;
 
 pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;
+
+/// Represents the possible steps while running the processing loop for a source.
+/// This is for internal representation only.
+enum Next {
+    /// Items has been produced and needed to be sent.
+    ItemsProduced,
+    /// Producer is done. No loading or parsing is possible.
+    ProducerDone,
+    /// Flush timeout while waiting for next items has expired.
+    Timeout,
+    /// Wait for source to have more bytes as it doesn't have more bytes currently.
+    /// (Enter tail mode for files)
+    Waiting,
+    /// Source data exchange was sent and needed to be passed to byte-source.
+    Sde(SdeMsg),
+}
 
 pub async fn run_source<S: ByteSource>(
     operation_api: OperationAPI,
@@ -132,21 +142,67 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
     use log::debug;
     state.set_session_file(None).await?;
     operation_api.processing();
+    let mut logs_writer = LogsWriter::new(state.clone(), source_id);
     let cancel = operation_api.cancellation_token();
     let cancel_on_tail = cancel.clone();
+
+    // We need to show the users some logs quick as possible by starting of the session.
+    let mut first_run = true;
     while let Some(next) = select! {
         next_from_stream = async {
-            match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), producer.read_next_segment()).await {
-                Ok(items) => {
-                    if let Some(items) = items {
-                        Some(Next::Items(items))
-                    } else {
+            match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), producer.produce_next(&mut logs_writer)).await {
+                Ok(Ok(summary)) => {
+                match summary {
+                    ProduceSummary::Processed {
+                        bytes_consumed,
+                        messages_count,
+                        skipped_bytes,
+                    } => {
+                        log::trace!(
+                            "{bytes_consumed} Bytes consumed to produce {messages_count} items,\
+                            with {skipped_bytes} bytes skipped."
+                        );
+                        Some(Next::ItemsProduced)
+                    }
+                    ProduceSummary::Done {
+                        loaded_bytes,
+                        skipped_bytes,
+                        produced_messages,
+                    } => {
+                        log::debug!(
+                            "Producer done: Total Messages: {produced_messages}. Total bytes:\
+                            {loaded_bytes}. Total skipped bytes {skipped_bytes}."
+                        );
+
+                        Some(Next::ProducerDone)
+                    }
+                    ProduceSummary::NoBytesAvailable {skipped_bytes} => {
+                        log::trace!("No more bytes avaialbe with skipped {skipped_bytes} bytes. Going into tail");
+
                         Some(Next::Waiting)
                     }
+                }
                 },
+                Ok(Err(producer_err)) => {
+                    //TODO: Deliver errors to UI.
+                    log::error!("Producer Error: {producer_err}");
+                    match producer_err {
+                        // Break directly on unrecoverable and byte source errors.
+                        ProduceError::Unrecoverable(_) | ProduceError::SourceError(_)  => {
+                            // We need to print stopping errors for now as we don't have a solution
+                            // to show them to user.
+                            eprintln!("Unrecoverable error during producer session: {producer_err}");
+                            None
+                        },
+                        // Go into tailing mode on parse error since they are delivered only
+                        // where there is no more bytes in the source.
+                        ProduceError::Parse(_) => Some(Next::Waiting),
+                    }
+                }
                 Err(_) => Some(Next::Timeout),
             }
         } => next_from_stream,
+
         Some(sde_msg) = async {
             if let Some(rx_sde) = rx_sde.as_mut() {
                 rx_sde.recv().await
@@ -158,60 +214,36 @@ async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
         _ = cancel.cancelled() => None,
     } {
         match next {
-            Next::Items(items) => {
-                // Iterating over references is more efficient than using `drain(..)`, even though
-                // we clone the attachments below. With ownership, `mem_copy()` would still be called
-                // to move the item into the attachment vector. Cloning avoids the overhead of
-                // `drain(..)`, especially since `items` is cleared on each iteration anyway.
-                for (_, item) in items {
-                    match item {
-                        MessageStreamItem::Item(ParseYield::Message(item)) => {
-                            state
-                                .write_session_file(source_id, format!("{item}\n"))
-                                .await?;
-                        }
-                        MessageStreamItem::Item(ParseYield::MessageAndAttachment((
-                            item,
-                            attachment,
-                        ))) => {
-                            state
-                                .write_session_file(source_id, format!("{item}\n"))
-                                .await?;
-                            state.add_attachment(attachment.to_owned())?;
-                        }
-                        MessageStreamItem::Item(ParseYield::Attachment(attachment)) => {
-                            state.add_attachment(attachment.to_owned())?;
-                        }
-                        MessageStreamItem::Done => {
-                            trace!("observe, message stream is done");
-                            state.flush_session_file().await?;
-                            state.file_read().await?;
-                        }
-                        // MessageStreamItem::FileRead => {
-                        //     state.file_read().await?;
-                        // }
-                        MessageStreamItem::Skipped => {
-                            trace!("observe: skipped a message");
-                        }
-                        MessageStreamItem::Incomplete => {
-                            trace!("observe: incomplete message");
-                        }
-                        MessageStreamItem::Empty => {
-                            trace!("observe: empty message");
-                        }
-                    }
+            Next::ItemsProduced => {
+                logs_writer.write_to_session().await?;
+                if first_run {
+                    first_run = false;
+                    state.flush_session_file().await?;
                 }
             }
+            Next::ProducerDone => {
+                logs_writer.write_to_session().await?;
+
+                state.flush_session_file().await?;
+                state.file_read().await?;
+                break;
+            }
             Next::Timeout => {
+                logs_writer.write_to_session().await?;
                 if !state.is_closing() {
                     state.flush_session_file().await?;
                 }
             }
             Next::Waiting => {
-                if let Some(mut rx_tail) = rx_tail.take() {
+                logs_writer.write_to_session().await?;
+                if !state.is_closing() {
+                    state.flush_session_file().await?;
+                    state.file_read().await?;
+                }
+                if let Some(rx_tail) = rx_tail.as_mut() {
                     if select! {
                         next_from_stream = rx_tail.recv() => {
-                            if let Some(result) = next_from_stream {
+                           if let Some(result) = next_from_stream {
                                 result.is_err()
                             } else {
                                 true

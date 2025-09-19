@@ -59,51 +59,41 @@ async fn cancel_safe_no_errors() {
 
     let mut cancel_received = 0;
     let mut read_idx = 0;
+    let mut collector = GeneralLogCollector::default();
     loop {
+        collector.get_records().clear();
         tokio::select! {
             _ = cancel_rx.recv() => {
                 cancel_received += 1;
             }
-            items = producer.read_next_segment() => {
+            res = producer.produce_next(&mut collector) => {
                 match read_idx {
                     0 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            5,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 1 })));
                     },
                     1 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            4,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 2 })));
                     },
                     2 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            6,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 3 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 3 })));
                     },
                     3 => {
-                        let items = items.unwrap();
-                        assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            0,
-                            MessageStreamItem::Done
-                        )));
-                    },
-                    4 => {
-                        assert!(items.is_none());
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::NoBytesAvailable{..}));
+                        let items = collector.get_records();
+                        assert_eq!(items.len(), 0);
                         break;
                     },
                     _invalid => panic!("Unexpected read_next_segment() results. Idx: {_invalid}"),
@@ -177,51 +167,41 @@ async fn cancel_safe_incomplete() {
 
     let mut cancel_received = 0;
     let mut read_idx = 0;
+    let mut collector = GeneralLogCollector::default();
     loop {
+        collector.get_records().clear();
         tokio::select! {
             _ = cancel_rx.recv() => {
                 cancel_received += 1;
             }
-            items = producer.read_next_segment() => {
+            res = producer.produce_next(&mut collector) => {
                 match read_idx {
                     0 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            5,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 1 })));
                     },
                     1 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            4,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 2 })));
                     },
                     2 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            18,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 3 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 3 })));
                     },
                     3 => {
-                        let items = items.unwrap();
-                        assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            0,
-                            MessageStreamItem::Done
-                        )));
-                    },
-                    4 => {
-                        assert!(items.is_none());
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::NoBytesAvailable{..}));
+                        let items = collector.get_records();
+                        assert_eq!(items.len(), 0);
                         break;
                     },
                     _invalid => panic!("Unexpected read_next_segment() results. Idx: {_invalid}"),
@@ -288,51 +268,41 @@ async fn cancel_safe_eof() {
 
     let mut cancel_received = 0;
     let mut read_idx = 0;
+    let mut collector = GeneralLogCollector::default();
     loop {
+        collector.get_records().clear();
         tokio::select! {
             _ = cancel_rx.recv() => {
                 cancel_received += 1;
             }
-            items = producer.read_next_segment() => {
+            res = producer.produce_next(&mut collector) => {
                 match read_idx {
                     0 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            5,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 1 })));
                     },
                     1 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            4,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 2 })));
                     },
                     2 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            6,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 3 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 3 })));
                     },
                     3 => {
-                        let items = items.unwrap();
-                        assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            0,
-                            MessageStreamItem::Done
-                        )));
-                    },
-                    4 => {
-                        assert!(items.is_none());
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::NoBytesAvailable{..}));
+                        let items = collector.get_records();
+                        assert_eq!(items.len(), 0);
                         break;
                     },
                     _invalid => panic!("Unexpected read_next_segment() results. Idx: {_invalid}"),
@@ -401,51 +371,41 @@ async fn cancel_safe_parse_err_no_load() {
 
     let mut cancel_received = 0;
     let mut read_idx = 0;
+    let mut collector = GeneralLogCollector::default();
     loop {
+        collector.get_records().clear();
         tokio::select! {
             _ = cancel_rx.recv() => {
                 cancel_received += 1;
             }
-            items = producer.read_next_segment() => {
+            res = producer.produce_next(&mut collector) => {
                 match read_idx {
                     0 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            5,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 1 })));
                     },
                     1 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            4,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 2 })));
                     },
                     2 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            6,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 3 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 3 })));
                     },
                     3 => {
-                        let items = items.unwrap();
-                        assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            0,
-                            MessageStreamItem::Done
-                        )));
-                    },
-                    4 => {
-                        assert!(items.is_none());
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::NoBytesAvailable{..}));
+                        let items = collector.get_records();
+                        assert_eq!(items.len(), 0);
                         break;
                     },
                     _invalid => panic!("Unexpected read_next_segment() results. Idx: {_invalid}"),
@@ -522,51 +482,41 @@ async fn cancel_safe_parse_err_with_load() {
 
     let mut cancel_received = 0;
     let mut read_idx = 0;
+    let mut collector = GeneralLogCollector::default();
     loop {
+        collector.get_records().clear();
         tokio::select! {
             _ = cancel_rx.recv() => {
                 cancel_received += 1;
             }
-            items = producer.read_next_segment() => {
+            res = producer.produce_next(&mut collector) => {
                 match read_idx {
                     0 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            5,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 1 })));
                     },
                     1 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            4,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 2 })));
                     },
                     2 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed{..}));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            6,
-                            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 3 }))
-                        )));
+                        assert!(matches!(items[0], ParseYield::Message(MockMessage { content: 3 })));
                     },
                     3 => {
-                        let items = items.unwrap();
-                        assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0],
-                        (
-                            0,
-                            MessageStreamItem::Done
-                        )));
-                    },
-                    4 => {
-                        assert!(items.is_none());
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::NoBytesAvailable{..}));
+                        let items = collector.get_records();
+                        assert_eq!(items.len(), 0);
                         break;
                     },
                     _invalid => panic!("Unexpected read_next_segment() results. Idx: {_invalid}"),
@@ -622,56 +572,52 @@ async fn cancel_safe_timeout() {
 
     let mut timeout_received = 0;
     let mut read_idx = 0;
+    let mut collector = GeneralLogCollector::default();
     loop {
-        match timeout(Duration::from_millis(2), producer.read_next_segment()).await {
-            Ok(items) => {
+        collector.get_records().clear();
+        match timeout(
+            Duration::from_millis(2),
+            producer.produce_next(&mut collector),
+        )
+        .await
+        {
+            Ok(res) => {
                 match read_idx {
                     0 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed { .. }));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
                         assert!(matches!(
                             items[0],
-                            (
-                                5,
-                                MessageStreamItem::Item(ParseYield::Message(MockMessage {
-                                    content: 1
-                                }))
-                            )
+                            ParseYield::Message(MockMessage { content: 1 })
                         ));
                     }
                     1 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed { .. }));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
                         assert!(matches!(
                             items[0],
-                            (
-                                4,
-                                MessageStreamItem::Item(ParseYield::Message(MockMessage {
-                                    content: 2
-                                }))
-                            )
+                            ParseYield::Message(MockMessage { content: 2 })
                         ));
                     }
                     2 => {
-                        let items = items.unwrap();
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::Processed { .. }));
+                        let items = collector.get_records();
                         assert_eq!(items.len(), 1);
                         assert!(matches!(
                             items[0],
-                            (
-                                6,
-                                MessageStreamItem::Item(ParseYield::Message(MockMessage {
-                                    content: 3
-                                }))
-                            )
+                            ParseYield::Message(MockMessage { content: 3 })
                         ));
                     }
                     3 => {
-                        let items = items.unwrap();
-                        assert_eq!(items.len(), 1);
-                        assert!(matches!(items[0], (0, MessageStreamItem::Done)));
-                    }
-                    4 => {
-                        assert!(items.is_none());
+                        let res = res.unwrap();
+                        assert!(matches!(res, ProduceSummary::NoBytesAvailable { .. }));
+                        let items = collector.get_records();
+                        assert_eq!(items.len(), 0);
                         break;
                     }
                     _invalid => panic!("Unexpected read_next_segment() results. Idx: {_invalid}"),

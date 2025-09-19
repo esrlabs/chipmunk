@@ -17,13 +17,18 @@ async fn empty_byte_source() {
     let source = MockByteSource::new(0, [Ok(None)]);
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
-
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
 }
 
 #[tokio::test]
@@ -32,15 +37,13 @@ async fn byte_source_fail() {
     let source = MockByteSource::new(0, [Err(Error::NotSupported)]);
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
-    // Done message should be sent
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    // Source error should be sent and producer should close.
+    let res = producer.produce_next(&mut collector).await;
+    assert!(res.is_err_and(|err| matches!(err, ProduceError::SourceError(..))));
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    assert!(collector.get_records().is_empty());
 }
 
 #[tokio::test]
@@ -62,31 +65,64 @@ async fn parse_item_then_skip() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // First results should be one message with content
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 5);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            5,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
+    records.clear();
 
-    // Skipped message when Parser is returning None
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (5, MessageStreamItem::Skipped)));
+    // Skipped message from parser.
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 0);
+            assert_eq!(bytes_consumed, 5);
+            assert_eq!(skipped_bytes, 5);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
 
-    // Done message should be sent
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    assert_eq!(collector.get_records().len(), 0);
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
+
+    assert_eq!(collector.get_records().len(), 0);
 }
 
 #[tokio::test]
@@ -115,37 +151,71 @@ async fn parse_incomplete() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // First message should be message with content
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 5);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            5,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
+    records.clear();
 
     // Second message consumes all the remaining bytes.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 25);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            25,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
+    records.clear();
 
-    // Done message should be sent
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    assert_eq!(collector.get_records().len(), 0);
 }
 
 #[tokio::test]
@@ -160,10 +230,14 @@ async fn parse_incomplete_with_err_reload() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
-    // Stream should be closed directly if reload failed after parser returning Incomplete error
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    // Produce should return source error directly if reload failed after
+    // parser returning Incomplete error
+    let res = producer.produce_next(&mut collector).await;
+    assert!(res.is_err_and(|err| matches!(err, ProduceError::SourceError(..))));
+
+    assert!(collector.get_records().is_empty());
 }
 
 #[tokio::test]
@@ -172,10 +246,26 @@ async fn parse_err_eof() {
     let source = MockByteSource::new(0, [Ok(Some(MockReloadSeed::new(10, 0)))]);
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
-    // Stream should be closed directly if parse returns `Error::Eof`
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    // Producer should be closed directly if parse returns `Error::Eof`
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Done {
+            loaded_bytes,
+            skipped_bytes,
+            produced_messages,
+        } => {
+            assert_eq!(loaded_bytes, 10);
+            assert_eq!(skipped_bytes, 0);
+            assert_eq!(produced_messages, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Processed { .. } => {
+            panic!("Summary should be Done but got {summary:?}");
+        }
+    }
+
+    assert!(collector.get_records().is_empty());
 }
 
 #[tokio::test]
@@ -199,18 +289,24 @@ async fn initial_parsing_error() {
     let source = MockByteSource::new(0, source_seeds);
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // Initial error should abort the session.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(
-        next[0],
-        (FINAL_BYTES_COUNT, MessageStreamItem::Done)
-    ));
+    let res = producer.produce_next(&mut collector).await;
+    assert!(res.is_err_and(|err| matches!(err, ProduceError::Unrecoverable(..))));
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    assert!(collector.get_records().is_empty());
+
+    // Then the producer should be closed.
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::NoBytesAvailable { .. } => {
+            panic!("Summary should be Done but got {summary:?}");
+        }
+        ProduceSummary::Done { .. } => {}
+    }
+
+    assert!(collector.get_records().is_empty());
 }
 
 #[tokio::test]
@@ -240,43 +336,77 @@ async fn success_parse_err_success() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // Message with content should be yielded consuming all the bytes.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 10);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            10,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
+    records.clear();
 
     // Then three parse errors should happen internally with one byte dropped from source
     // then load will be called providing 10 bytes which will be consumed by next parser call.
 
     // Second Message with content should be yielded consuming 10 the bytes.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 10);
+            assert_eq!(skipped_bytes, 3);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            13, // 10 item + 3 skipped
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 2 })
     ));
+
+    records.clear();
 
     // Internal byte source must be empty
     assert_eq!(producer.byte_source.len(), 0);
 
-    // Done message should be sent
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    assert_eq!(collector.get_records().len(), 0);
 }
 
 #[tokio::test]
@@ -297,36 +427,58 @@ async fn success_parse_err_done() {
             Ok(Some(MockReloadSeed::new(10, 0))),
             Ok(Some(MockReloadSeed::new(3, 0))),
             Ok(None),
+            Ok(None),
         ],
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // Message with content should be yielded consuming all the bytes.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 10);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            10,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
 
+    records.clear();
+
     // Then three parse errors should happen internally with one byte dropped from source
-    // then load will be called providing no new bytes causing the session to end.
+    // then load will be called providing no new bytes causing the producer to return the last
+    // parse error.
 
-    // Done message should be sent
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (3, MessageStreamItem::Done)));
+    let res = producer.produce_next(&mut collector).await;
+    assert!(res.is_err_and(|err| matches!(err, ProduceError::Parse(..))));
 
-    // Internal byte source must be empty
-    assert_eq!(producer.byte_source.len(), 0);
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    assert_eq!(collector.get_records().len(), 0);
 }
 
 #[tokio::test]
@@ -351,32 +503,38 @@ async fn success_parsing_error_then_fail_reload() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // Message with content should be yielded consuming all the bytes.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 10);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            10,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
 
     // Then three parse errors should happen internally with one byte dropped from source
-    // then load will be called returning an error causing the session to end.
+    // then load will be called returning an error causing the producer to return it
+    // leading the session to end.
 
-    // Done message should be sent
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (3, MessageStreamItem::Done)));
-
-    // Internal byte source must be empty
-    assert_eq!(producer.byte_source.len(), 0);
-
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    let res = producer.produce_next(&mut collector).await;
+    assert!(res.is_err_and(|err| matches!(err, ProduceError::SourceError(..))));
 }
 
 #[tokio::test]
@@ -401,48 +559,83 @@ async fn parse_with_skipped_bytes() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // Message with content 1 should be yielded considering skipped bytes
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 3);
+            assert_eq!(skipped_bytes, 4);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            7, // 7: 3 consumed + 4 skipped
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
+    records.clear();
 
     // Skipped Message should be yielded considering skipped bytes
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(
-        next[0],
-        (
-            6, // 6: 2 consumed + 4 skipped
-            MessageStreamItem::Skipped
-        )
-    ));
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 0);
+            assert_eq!(bytes_consumed, 2);
+            assert_eq!(skipped_bytes, 6);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
 
-    // Consume the remaining bytes with successful parse.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(
-        next[0],
-        (
-            15, // 15 consumed + 0 skipped
-            MessageStreamItem::Skipped
-        )
-    ));
+    assert_eq!(collector.get_records().len(), 0);
 
-    // Done message should be sent.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    // Consume the remaining bytes with skipped parse.
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 0);
+            assert_eq!(bytes_consumed, 15);
+            assert_eq!(skipped_bytes, 15);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    assert_eq!(collector.get_records().len(), 0);
+
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
+
+    assert_eq!(collector.get_records().len(), 0);
 }
 
 #[tokio::test]
@@ -474,48 +667,96 @@ async fn success_parsi_err_success_drain_bytes() {
     );
 
     let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
 
     // First successful parse
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 5);
+            assert_eq!(skipped_bytes, 3);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            8, // 5 item + 3 source
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 1 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 1 })
     ));
+    records.clear();
 
     // One error then successful parse
     // Second successful parse
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 5);
+            assert_eq!(skipped_bytes, 4);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            9, // 5 item + 3 skipped from source + 1 skipped from parse error
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 2 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 2 })
     ));
+    records.clear();
 
     // Load doesn't have provide new bytes but it still have some available.
     // Third successful parse
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 9);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
     assert!(matches!(
-        next[0],
-        (
-            9,
-            MessageStreamItem::Item(ParseYield::Message(MockMessage { content: 3 }))
-        )
+        records[0],
+        ParseYield::Message(MockMessage { content: 3 })
     ));
 
-    // Done message should be sent with unused bytes, considering the skipped bytes.
-    let next = producer.read_next_segment().await.unwrap();
-    assert_eq!(next.len(), 1);
-    assert!(matches!(next[0], (0, MessageStreamItem::Done)));
+    records.clear();
 
-    // Then the stream should be closed
-    let next = producer.read_next_segment().await;
-    assert!(next.is_none());
+    // NoBytesAvailable message should be sent
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+        ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            assert_eq!(skipped_bytes, 0);
+        }
+    }
+
+    assert_eq!(collector.get_records().len(), 0);
 }

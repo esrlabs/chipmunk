@@ -4,12 +4,12 @@ use std::{
 };
 
 use indexer_base::config::IndexSection;
-use parsers::{LogMessage, MessageStreamItem, ParseYield, Parser};
+use parsers::{LogMessage, ParseYield, Parser};
 use sources::ByteSource;
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
-use crate::producer::MessageProducer;
+use crate::producer::{GeneralLogCollector, MessageProducer, ProduceSummary};
 
 #[derive(Error, Debug)]
 pub enum ExportError {
@@ -66,6 +66,7 @@ where
         std::fs::File::create(destination_path)?
     };
     let mut out_writer = BufWriter::new(out_file);
+    let mut collector = GeneralLogCollector::default();
     let mut section_index = 0usize;
     let mut current_index = 0usize;
     let mut inside = false;
@@ -73,99 +74,120 @@ where
     if sections.is_empty() {
         debug!("no sections configured");
         // export everything
-        'outer: while let Some(items) = producer.read_next_segment().await {
+        loop {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
-
-            for (_, item) in items {
-                let written = match item {
-                    MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                        msg.to_writer(&mut out_writer)?;
-                        true
+            match producer.produce_next(&mut collector).await {
+                Ok(ProduceSummary::Processed { .. }) => {
+                    for item in collector.get_records().drain(..) {
+                        let written = match item {
+                            ParseYield::Message(msg) => {
+                                msg.to_writer(&mut out_writer)?;
+                                true
+                            }
+                            ParseYield::MessageAndAttachment((msg, _)) => {
+                                msg.to_writer(&mut out_writer)?;
+                                true
+                            }
+                            _ => false,
+                        };
+                        if written && text_file {
+                            out_writer.write_all("\n".as_bytes())?;
+                        }
+                        if written {
+                            exported += 1;
+                        }
                     }
-                    MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
-                        msg.to_writer(&mut out_writer)?;
-                        true
-                    }
-                    MessageStreamItem::Done => break 'outer,
-                    _ => false,
-                };
-                if written && text_file {
-                    out_writer.write_all("\n".as_bytes())?;
                 }
-                if written {
-                    exported += 1;
+                Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => {
+                    debug!("No more messages to export");
+                    return Ok(exported);
+                }
+                Err(err) => {
+                    log::error!("Error while raw export: {err:?}");
+                    //TODO AAZ: Add error type to ExportError
+                    return Ok(exported);
                 }
             }
         }
-        return Ok(exported);
     }
 
-    'outer: while let Some(items) = producer.read_next_segment().await {
+    'outer: loop {
         if cancel.is_cancelled() {
             return Err(ExportError::Cancelled);
         }
-        for (_, item) in items {
-            if !inside {
-                if sections[section_index].first_line == current_index {
-                    inside = true;
-                }
-            } else if sections[section_index].last_line < current_index {
-                inside = false;
-                section_index += 1;
-                if sections.len() <= section_index {
-                    // no more sections
-                    if matches!(item, MessageStreamItem::Item(_)) {
-                        current_index += 1;
+
+        match producer.produce_next(&mut collector).await {
+            Ok(ProduceSummary::Processed { .. }) => {
+                for item in collector.get_records().drain(..) {
+                    if !inside {
+                        if sections[section_index].first_line == current_index {
+                            inside = true;
+                        }
+                    } else if sections[section_index].last_line < current_index {
+                        inside = false;
+                        section_index += 1;
+                        if sections.len() <= section_index {
+                            // no more sections
+                            current_index += 1;
+                            break 'outer;
+                        }
+                        // check if we are in next section again
+                        if sections[section_index].first_line == current_index {
+                            inside = true;
+                        }
                     }
-                    break 'outer;
-                }
-                // check if we are in next section again
-                if sections[section_index].first_line == current_index {
-                    inside = true;
+                    let written = match item {
+                        ParseYield::Message(msg) => {
+                            if inside {
+                                msg.to_writer(&mut out_writer)?;
+                            }
+                            current_index += 1;
+                            inside
+                        }
+                        ParseYield::MessageAndAttachment((msg, _)) => {
+                            if inside {
+                                msg.to_writer(&mut out_writer)?;
+                            }
+                            current_index += 1;
+                            inside
+                        }
+                        _ => false,
+                    };
+                    if written && text_file {
+                        out_writer.write_all("\n".as_bytes())?;
+                    }
                 }
             }
-            let written = match item {
-                MessageStreamItem::Item(ParseYield::Message(msg)) => {
-                    if inside {
-                        msg.to_writer(&mut out_writer)?;
-                    }
-                    current_index += 1;
-                    inside
-                }
-                MessageStreamItem::Item(ParseYield::MessageAndAttachment((msg, _))) => {
-                    if inside {
-                        msg.to_writer(&mut out_writer)?;
-                    }
-                    current_index += 1;
-                    inside
-                }
-                MessageStreamItem::Done => {
-                    debug!("No more messages to export");
-                    break 'outer;
-                }
-                _ => false,
-            };
-            if written && text_file {
-                out_writer.write_all("\n".as_bytes())?;
+            Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => {
+                debug!("No more messages to export");
+                break 'outer;
+            }
+            Err(err) => {
+                log::error!("Error while raw export: {err:?}");
+                //TODO AAZ: Add error type to ExportError
+                break 'outer;
             }
         }
     }
     if read_to_end {
-        'outer: while let Some(items) = producer.read_next_segment().await {
+        'outer: loop {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
-            for (_, item) in items {
-                match item {
-                    MessageStreamItem::Item(_) => {
-                        current_index += 1;
-                    }
-                    MessageStreamItem::Done => {
-                        break 'outer;
-                    }
-                    _ => {}
+
+            match producer.produce_next(&mut collector).await {
+                Ok(ProduceSummary::Processed { .. }) => {
+                    current_index += 1;
+                }
+                Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => {
+                    break 'outer;
+                }
+                Err(err) => {
+                    log::error!("Error while raw export: {err:?}");
+                    //TODO AAZ: Add error type to ExportError
+                    break 'outer;
                 }
             }
         }
