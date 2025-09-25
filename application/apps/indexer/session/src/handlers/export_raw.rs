@@ -8,14 +8,16 @@ use parsers::{
     text::StringTokenizer,
 };
 use plugins_host::PluginsParser;
-use processor::export::{ExportError, export_raw};
+use processor::{
+    export::{ExportError, export_raw},
+    producer::MessageProducer,
+};
 use sources::{
     ByteSource,
     binary::{
         pcap::{legacy::PcapLegacyByteSource, ng::PcapngByteSource},
         raw::BinaryByteSource,
     },
-    producer::MessageProducer,
 };
 use std::{
     fs::File,

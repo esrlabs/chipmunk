@@ -27,11 +27,50 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 stypes = { path = "../stypes", features=["rustcore"] }
 
 [dev-dependencies]
-criterion.workspace = true
+criterion = { workspace = true, features = ["async_tokio"] }
 pretty_assertions = "1.4"
 rand.workspace = true
 tempfile.workspace = true
+tokio.workspace = true
+plugins_host = {path = "../plugins_host/"}
+toml.workspace = true
 
 [[bench]]
 name = "map_benchmarks"
+harness = false
+
+[[bench]]
+name = "dlt_producer"
+harness = false
+
+[[bench]]
+name = "someip_producer"
+harness = false
+
+[[bench]]
+name = "someip_legacy_producer"
+harness = false
+
+[[bench]]
+name = "text_producer"
+harness = false
+
+[[bench]]
+name = "plugin_praser_producer"
+harness = false
+
+[[bench]]
+name = "mocks_once_producer"
+harness = false
+
+[[bench]]
+name = "mocks_once_parallel"
+harness = false
+
+[[bench]]
+name = "mocks_multi_producer"
+harness = false
+
+[[bench]]
+name = "mocks_multi_parallel"
 harness = false

@@ -9,6 +9,7 @@ indexer_base = { path = "../../indexer_base" }
 log.workspace = true
 parsers = { path = "../../parsers" }
 sources = { path = "../../sources" }
+processor = { path = "../../processor"}
 tokio = { workspace = true , features = ["full"] }
 tokio-util = { workspace = true, features = ["codec", "net"] }
 

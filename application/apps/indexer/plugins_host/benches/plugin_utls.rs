@@ -9,7 +9,7 @@ use stypes::{PluginConfigItem, PluginConfigValue};
 // Rust LSP may mark this as an error, but this is an issue with the LSP itself.
 // The code will compile without problems.
 
-#[path = "./../../sources/benches/bench_utls.rs"]
+#[path = "./../../processor/benches/bench_utls.rs"]
 mod bench_utls;
 
 /// Represents the needed configuration to run benchmarks on a plugin.

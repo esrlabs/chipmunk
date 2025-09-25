@@ -4,39 +4,39 @@ library = "processor"
 
 [[bench]]
 name = "dlt_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "someip_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "someip_legacy_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "text_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "plugin_praser_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "mocks_once_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "mocks_once_parallel"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "mocks_multi_producer"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "mocks_multi_parallel"
-library = "sources"
+library = "processor"
 
 [[bench]]
 name = "plugin_parser_init"

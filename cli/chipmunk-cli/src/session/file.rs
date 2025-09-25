@@ -4,8 +4,9 @@ use anyhow::Context;
 use std::{io::Write as _, path::PathBuf};
 use tokio_util::sync::CancellationToken;
 
-use parsers::{LogMessage, Parser};
-use sources::{ByteSource, producer::MessageProducer};
+use parsers::{LogMessage, ParseYield, Parser};
+use processor::producer::{GeneralLogCollector, MessageProducer, ProduceSummary};
+use sources::ByteSource;
 
 use crate::session::create_append_file_writer;
 
@@ -36,33 +37,38 @@ where
     W: MessageFormatter,
 {
     let mut producer = MessageProducer::new(parser, bytesource);
+    let mut collector = GeneralLogCollector::default();
 
     let mut file_writer = create_append_file_writer(&output_path)?;
 
+    let write_sum = |p: &mut MessageProducer<_, _, _>| {
+        super::write_summary(
+            p.total_produced_items(),
+            p.total_loaded_bytes(),
+            p.total_skipped_bytes(),
+        );
+    };
+
     let mut msg_count = 0;
-    let mut skipped_count = 0;
-    let mut empty_count = 0;
-    let mut incomplete_count = 0;
 
     loop {
+        collector.get_records().clear();
         tokio::select! {
             _ = cancel_token.cancelled() => {
                 file_writer.flush().context("Error writing data to file.")?;
-                super::write_summary(msg_count, skipped_count, empty_count, incomplete_count);
+                write_sum(&mut producer);
 
                 return Ok(());
             },
-            Some(items) = producer.read_next_segment() => {
-                for (_, item) in items {
-                    match item {
-                        parsers::MessageStreamItem::Item(parse_yield) => {
-                            let msg = match parse_yield {
-                                parsers::ParseYield::Message(msg) => msg,
-                                parsers::ParseYield::Attachment(_attachment) => {
-                                    // attachment are postponed for now.
-                                    continue;
-                                }
-                                parsers::ParseYield::MessageAndAttachment((msg, _attachment)) => msg,
+            res = producer.produce_next(&mut collector) => {
+                let summary = res?;
+                match summary {
+                    ProduceSummary::Processed {..} => {
+                        for record in collector.get_records() {
+                           let msg =  match record {
+                                ParseYield::Message(msg) => msg,
+                                ParseYield::Attachment(..) => continue,
+                                ParseYield::MessageAndAttachment((msg, _att)) => msg,
                             };
                             msg_formatter.write_msg(&mut file_writer, msg)?;
 
@@ -71,16 +77,12 @@ where
                                 println!("Processing... {msg_count} messages have been written to file.");
                             }
                         }
-                        parsers::MessageStreamItem::Skipped => skipped_count += 1,
-                        parsers::MessageStreamItem::Incomplete => incomplete_count += 1,
-                        parsers::MessageStreamItem::Empty => empty_count += 1,
-                        parsers::MessageStreamItem::Done => {
-                            println!("Parsing Done");
-                            super::write_summary(msg_count, skipped_count, empty_count, incomplete_count);
-
-                            return Ok(());
-                        }
-                    }
+                    },
+                    // We don't support file tailing in the CLI tool.
+                    ProduceSummary::NoBytesAvailable {..} | ProduceSummary::Done {..} => {
+                        write_sum(&mut producer);
+                        return Ok(());
+                    },
                 }
             }
 

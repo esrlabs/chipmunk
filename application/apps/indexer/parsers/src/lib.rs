@@ -97,15 +97,6 @@ pub trait LogMessage: Display + Serialize {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
 }
 
-#[derive(Debug)]
-pub enum MessageStreamItem<T: LogMessage> {
-    Item(ParseYield<T>),
-    Skipped,
-    Incomplete,
-    Empty,
-    Done,
-}
-
 /// A trait for parsers that extract one item at a time from a byte slice.
 ///
 /// Any type implementing this trait will automatically implement the [`Parser`] trait

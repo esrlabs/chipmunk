@@ -16,14 +16,19 @@ extern crate indexer_base;
 extern crate log;
 
 use dlt_core::filtering::DltFilterConfig;
-use parsers::{Attachment, MessageStreamItem, ParseYield, dlt::DltParser};
-use sources::{binary::raw::BinaryByteSource, producer::MessageProducer};
+use parsers::{Attachment, dlt::DltParser};
+use processor::producer::{MessageProducer, ProduceSummary};
+use sources::binary::raw::BinaryByteSource;
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
 };
 use tokio_util::sync::CancellationToken;
+
+use crate::attachments_collector::AttachmentsCollector;
+
+mod attachments_collector;
 
 pub async fn scan_dlt_ft(
     input: PathBuf,
@@ -47,7 +52,8 @@ pub async fn scan_dlt_ft(
 
             let mut canceled = false;
 
-            let mut attachments = vec![];
+            let mut collector = AttachmentsCollector::default();
+
             loop {
                 tokio::select! {
                     // Check on events in current order ensuring cancel will be checked at first
@@ -58,20 +64,18 @@ pub async fn scan_dlt_ft(
                         canceled = true;
                         break;
                     }
-                    items = producer.read_next_segment() => {
-                        match items {
-                            Some(items) => {
-                                for (_, item) in items {
-                                    if let MessageStreamItem::Item(ParseYield::MessageAndAttachment((_msg, attachment))) = item {
-                                        attachments.push(attachment.to_owned());
-                                    } else if let MessageStreamItem::Item(ParseYield::Attachment(attachment)) = item {
-                                        attachments.push(attachment.to_owned());
-                                    }
-                                }
-                            }
-                            _ => {
+                    prod_res = producer.produce_next(&mut collector) => {
+                        match prod_res {
+                            Ok(ProduceSummary::Processed {..}) => {
+                                // Attachments are appended.
+                            },
+                            Ok(ProduceSummary::Done {..} | ProduceSummary::NoBytesAvailable {..}) => {
+                                // Stop as tailing isn't needed here.
                                 break;
                             }
+                            Err(err) => {
+                                return Err(format!("Error while processing DLT file. {err}"));
+                            },
                         }
                     }
                 }
@@ -81,7 +85,7 @@ pub async fn scan_dlt_ft(
                 return Ok(Vec::new());
             }
 
-            Ok(attachments)
+            Ok(collector.attachments)
         }
         Err(error) => Err(format!("failed to open file: {error}")),
     }
