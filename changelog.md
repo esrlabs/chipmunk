@@ -1,3 +1,9 @@
+# 3.19.0 (26.09.2025)
+
+## Features
+- Significant performance improvements: Binary file processing is now up to **3X faster**.
+- Add Tailing support for binary files (now supports both text and binary).
+
 # 3.18.7 (11.09.2025)
 
 ## Changes
