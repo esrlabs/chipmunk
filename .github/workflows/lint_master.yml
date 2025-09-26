@@ -24,6 +24,7 @@ jobs:
         with:
           toolchain: stable
           override: true
+          components: clippy
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
       - name: set sccache env var
