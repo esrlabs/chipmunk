@@ -47,11 +47,7 @@ export class ColumnsSelector extends ChangesDetector implements AfterContentInit
                 indexes.push(parseInt(key, 10));
             }
         });
-        if (this.headers.length === indexes.length) {
-            this.accept([], this.delimiter);
-        } else {
-            this.accept(indexes, this.delimiter);
-        }
+        this.accept(indexes, this.delimiter);
         this.close();
     }
 

@@ -313,7 +313,7 @@ export class RowComponent
                                     },
                                 ]),
                           {
-                              caption: 'Export All Search Result as Raw',
+                              caption: 'Export All Search Result As Raw',
                               disabled: !isRawAvailable || this.row.session.indexed.len() === 0,
                               handler: () => {
                                   exportSearch(true);
