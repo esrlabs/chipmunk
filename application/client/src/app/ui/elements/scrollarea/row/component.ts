@@ -271,7 +271,7 @@ export class RowComponent
                           ...(this.render === 2
                               ? [
                                     {
-                                        caption: 'Export All Search Result As Table',
+                                        caption: 'Export All Search Result as Table',
                                         disabled: this.row.session.indexed.len() === 0,
                                         handler: () => {
                                             popup.open({
@@ -313,7 +313,7 @@ export class RowComponent
                                     },
                                 ]),
                           {
-                              caption: 'Export All Search Result As Raw',
+                              caption: 'Export All Search Result as Raw',
                               disabled: !isRawAvailable || this.row.session.indexed.len() === 0,
                               handler: () => {
                                   exportSearch(true);
