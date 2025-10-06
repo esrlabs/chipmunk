@@ -268,7 +268,7 @@ async fn test_load_cancel_safety() {
 
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-    let cancel_handel = tokio::spawn(async move {
+    let cancel_handle = tokio::spawn(async move {
         let mut count = 0;
         while cancel_tx.send(()).await.is_ok() {
             sleep(Duration::from_millis(2)).await;
@@ -305,5 +305,5 @@ async fn test_load_cancel_safety() {
 
     assert!(cancel_received > 20);
 
-    assert!(cancel_handel.await.is_ok());
+    assert!(cancel_handle.await.is_ok());
 }
