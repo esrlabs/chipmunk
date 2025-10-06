@@ -47,7 +47,7 @@ async fn cancel_safe_no_errors() {
     let mut producer = MessageProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-    let cancel_handel = tokio::spawn(async move {
+    let cancel_handle = tokio::spawn(async move {
         let mut count = 0;
         while cancel_tx.send(()).await.is_ok() {
             sleep(Duration::from_millis(2)).await;
@@ -107,7 +107,7 @@ async fn cancel_safe_no_errors() {
 
     assert!(cancel_received > 50);
 
-    assert!(cancel_handel.await.is_ok());
+    assert!(cancel_handle.await.is_ok());
 }
 
 /// Cancel safety test for producer session with parse incomplete errors.
@@ -155,7 +155,7 @@ async fn cancel_safe_incomplete() {
     let mut producer = MessageProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-    let cancel_handel = tokio::spawn(async move {
+    let cancel_handle = tokio::spawn(async move {
         let mut count = 0;
         while cancel_tx.send(()).await.is_ok() {
             sleep(Duration::from_millis(2)).await;
@@ -215,7 +215,7 @@ async fn cancel_safe_incomplete() {
 
     assert!(cancel_received > 50);
 
-    assert!(cancel_handel.await.is_ok());
+    assert!(cancel_handle.await.is_ok());
 }
 
 /// Cancel safety test for producer session with parse end of file error.
@@ -256,7 +256,7 @@ async fn cancel_safe_eof() {
     let mut producer = MessageProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-    let cancel_handel = tokio::spawn(async move {
+    let cancel_handle = tokio::spawn(async move {
         let mut count = 0;
         while cancel_tx.send(()).await.is_ok() {
             sleep(Duration::from_millis(2)).await;
@@ -316,7 +316,7 @@ async fn cancel_safe_eof() {
 
     assert!(cancel_received > 50);
 
-    assert!(cancel_handel.await.is_ok());
+    assert!(cancel_handle.await.is_ok());
 }
 
 /// Cancel safety test for producer session with parse errors, without calling load
@@ -359,7 +359,7 @@ async fn cancel_safe_parse_err_no_load() {
     let mut producer = MessageProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-    let cancel_handel = tokio::spawn(async move {
+    let cancel_handle = tokio::spawn(async move {
         let mut count = 0;
         while cancel_tx.send(()).await.is_ok() {
             sleep(Duration::from_millis(2)).await;
@@ -419,7 +419,7 @@ async fn cancel_safe_parse_err_no_load() {
 
     assert!(cancel_received > 50);
 
-    assert!(cancel_handel.await.is_ok());
+    assert!(cancel_handle.await.is_ok());
 }
 
 /// Cancel safety test for producer session with parse errors, causing to call load
@@ -470,7 +470,7 @@ async fn cancel_safe_parse_err_with_load() {
     let mut producer = MessageProducer::new(parser, source);
     let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
 
-    let cancel_handel = tokio::spawn(async move {
+    let cancel_handle = tokio::spawn(async move {
         let mut count = 0;
         while cancel_tx.send(()).await.is_ok() {
             sleep(Duration::from_millis(2)).await;
@@ -530,7 +530,7 @@ async fn cancel_safe_parse_err_with_load() {
 
     assert!(cancel_received > 50);
 
-    assert!(cancel_handel.await.is_ok());
+    assert!(cancel_handle.await.is_ok());
 }
 
 /// Cancel safety test use no errors using `timeout()` method instead of `select!{}` macro.
