@@ -10,6 +10,7 @@ nav:
   - Charts: charts.md
   - Navigation: navigation.md
   - Teamwork: teamwork.md
+  - Import/Export: exporting.md
   - Chipmunk CLI Tool: cli.md
   - Plugins:
     - Development Guide: plugins/development-guide.md
