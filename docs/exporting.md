@@ -3,15 +3,13 @@ allowing user to save filtered views or search results as standalone files
 for sharing, archiving, or further analysis, and later re-import them to
 quickly restore the same context.
 
-### Exporting Logs as Plain Text
-
 Once log files are imported into Chipmunk, user can easily export them as
 plain text logs.
 This is useful when user need to share logs with tools or colleagues that
 do not support the specific log format, or when user want a lightweight,
 human-readable version of the data.
 
-![Export plain text logs](assets/export/export_log.gif)
+![Export plain text logs](assets/export/export_logs.gif)
 
 ### Exporting Search Results
 
@@ -29,32 +27,32 @@ data analysis tools (Excel, pandas, etc.).
 
 **Raw**
 
-1. The filtered results are exported as a plain-text `.dlt_export` file.
-2. Each log entry is written line by line in a human-readable form, 
-similar to how Chipmunk displays it in the viewer.
-    
-    This format is best for lightweight sharing, quick inspection, or use with 
-text-based tools like grep or less.
-
+1. The filtered results are exported as a binary file.
+2. Useful when user wants to share only fitered logs from Chipmunk.
 
 ![Export Search Results](assets/export/export_search.gif)
 
-### Exporting Presets
+### Exporting Selected Log Lines
 
-In addition to applying presets while analyzing logs, Chipmunk also lets you
-export and import presets, so you can reuse them across sessions or share them 
-with your team.
-Chipmunk also allows user to export multiple presets at the same time.
+In addition to exporting filtered logs, Chipmunk also allows users to manually
+select specific lines from the log view and export only those entries.
+This feature is particularly useful when you need to share or analyze a small
+subset of log messages without exporting the entire file or applying complex
+filters.
 
-![Export Preset](assets/export/export_preset.gif)
+![Export Lines](assets/export/export_lines.gif)
 
+### Exporting filters and presets
 
-### Importing Presets
+Along with the logs user can also export the filters for later use and sharing,
+find out more how user can export the filters from Chipmunk
+[here](../search/#importing-exporting-presets)
 
-Chipmunk also supports importing presets back into the tool. Imported presets
-instantly recreate the same search conditions, so you don’t need to manually
-re-enter complex queries.
-Just like exproting multiple presets, Chipmunk allows user to import multiple
-presets.
+### Exporting Streams
 
-![Import Presets](assets/export/import_preset.gif)
+Chipmunk allows to render the streams of data from TCP or UDP.
+User can also search through these streams and also can select particular lines
+to export.
+
+Please not that, exporting binary from streamed data is not yet possible in
+Chipmunk.
