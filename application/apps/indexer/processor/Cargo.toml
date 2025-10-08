@@ -26,7 +26,6 @@ serde_json.workspace = true
 text_grep = { path = "../addons/text_grep" }
 thiserror.workspace = true
 tokio-util.workspace = true
-uuid = { workspace = true , features = ["serde", "v4"] }
 stypes = { path = "../stypes", features=["rustcore"] }
 
 [dev-dependencies]

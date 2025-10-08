@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, ops::RangeInclusive};
 
 use log::debug;
+use processor::search::searchers::values::ValueSearchMatch;
 use serde::{Serialize, Serializer, ser::SerializeTuple};
 
 pub type Point2D = (f64, f64);
@@ -40,9 +41,9 @@ impl Serialize for CandlePoint {
     }
 }
 
-impl From<(u64, f64)> for CandlePoint {
-    fn from(point: (u64, f64)) -> Self {
-        CandlePoint::new(point.0, point.1)
+impl From<ValueSearchMatch> for CandlePoint {
+    fn from(point: ValueSearchMatch) -> Self {
+        CandlePoint::new(point.line, point.value)
     }
 }
 

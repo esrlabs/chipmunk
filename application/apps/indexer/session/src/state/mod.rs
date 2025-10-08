@@ -6,7 +6,9 @@ use processor::{
     search::{
         filter::SearchFilter,
         searchers::{
-            linear::LineSearcher, regular::RegularSearchHolder, values::ValueSearchHolder,
+            linear::LineSearcher,
+            regular::RegularSearchHolder,
+            values::{ValueSearchHolder, ValueSearchOutput},
         },
     },
 };
@@ -345,7 +347,7 @@ impl SessionState {
             .values
             .search(rows, bytes, state_cancellation_token)
         {
-            Some(Ok((_processed, values))) => {
+            Some(Ok(ValueSearchOutput { values, .. })) => {
                 self.values.append_values(values);
             }
             Some(Err(err)) => error!("Fail to update search values: {err}"),
@@ -434,10 +436,7 @@ impl SessionState {
         Ok(true)
     }
 
-    fn handle_get_search_holder(
-        &mut self,
-        uuid: Uuid,
-    ) -> Result<RegularSearchHolder, stypes::NativeError> {
+    fn handle_get_search_holder(&mut self) -> Result<RegularSearchHolder, stypes::NativeError> {
         match self.searchers.regular {
             SearcherState::Available(_) => {
                 use std::mem;
@@ -457,14 +456,13 @@ impl SessionState {
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
                 self.searchers.regular.in_use();
-                Ok(RegularSearchHolder::new(&filename, uuid, 0, 0))
+                Ok(RegularSearchHolder::new(&filename, 0, 0))
             }
         }
     }
 
     fn handle_get_search_values_holder(
         &mut self,
-        uuid: Uuid,
     ) -> Result<ValueSearchHolder, stypes::NativeError> {
         match self.searchers.values {
             SearcherState::Available(_) => {
@@ -489,7 +487,7 @@ impl SessionState {
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
                 self.searchers.values.in_use();
-                Ok(ValueSearchHolder::new(&filename, uuid, 0, 0))
+                Ok(ValueSearchHolder::new(&filename, 0, 0))
             }
         }
     }
@@ -761,9 +759,9 @@ pub async fn run(
                     stypes::NativeError::channel("Failed to respond to Api::GetSearchResultLen")
                 })?;
             }
-            Api::GetSearchHolder((uuid, tx_response)) => {
+            Api::GetSearchHolder((_uuid, tx_response)) => {
                 tx_response
-                    .send(state.handle_get_search_holder(uuid))
+                    .send(state.handle_get_search_holder())
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::GetSearchHolder")
                     })?;
@@ -816,9 +814,9 @@ pub async fn run(
                     stypes::NativeError::channel("Failed to respond to Api::SetMatches")
                 })?;
             }
-            Api::GetSearchValuesHolder((uuid, tx_response)) => {
+            Api::GetSearchValuesHolder((_uuid, tx_response)) => {
                 tx_response
-                    .send(state.handle_get_search_values_holder(uuid))
+                    .send(state.handle_get_search_values_holder())
                     .map_err(|_| {
                         stypes::NativeError::channel(
                             "Failed to respond to Api::GetSearchValuesHolder",

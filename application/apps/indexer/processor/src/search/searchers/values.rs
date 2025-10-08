@@ -1,3 +1,5 @@
+//! Search related to extract numeric values form logs for charts.
+
 use crate::search::error::SearchError;
 use regex::Regex;
 use std::{
@@ -7,18 +9,42 @@ use std::{
     str::FromStr,
 };
 use tokio_util::sync::CancellationToken;
-use uuid::Uuid;
 
 use super::{BaseSearcher, SearchState};
 
-pub type OperationResults = Result<(Range<usize>, HashMap<u8, Vec<(u64, f64)>>), SearchError>;
+pub type OperationResults = Result<ValueSearchOutput, SearchError>;
 
-#[derive(Debug)]
-struct Results {
-    indexes: Option<HashMap<u8, Vec<(u64, f64)>>>,
+/// Contains the successful output of a value search operation.
+pub struct ValueSearchOutput {
+    /// The range of processed lines numbers in which new matches were found.
+    pub processed_range: Range<usize>,
+
+    /// Map between the index of each search term with the occurrences
+    pub values: HashMap<u8, Vec<ValueSearchMatch>>,
 }
 
-impl Results {
+/// Represents a single match from a numeric value search.
+#[derive(Debug, Clone, Copy)]
+pub struct ValueSearchMatch {
+    /// Line number where the value was found.
+    pub line: u64,
+    /// The actual numeric value that was matched.
+    pub value: f64,
+}
+
+impl ValueSearchMatch {
+    pub fn new(line: u64, value: f64) -> Self {
+        Self { line, value }
+    }
+}
+
+#[derive(Debug)]
+struct SearchResults {
+    /// Map between the index of each search term with the occurrences
+    indexes: Option<HashMap<u8, Vec<ValueSearchMatch>>>,
+}
+
+impl SearchResults {
     pub fn new() -> Self {
         Self {
             indexes: Some(HashMap::new()),
@@ -26,7 +52,7 @@ impl Results {
     }
 }
 
-pub fn as_regex(filter: &str) -> String {
+fn as_regex(filter: &str) -> String {
     format!("(?i){filter}(?-i)")
 }
 
@@ -48,10 +74,9 @@ fn is_valid(filter: &str) -> bool {
 #[derive(Debug)]
 pub struct ValueSearchState {
     pub file_path: PathBuf,
-    pub uuid: Uuid,
     terms: Vec<String>,
     matchers: Vec<Regex>,
-    results: Results,
+    results: SearchResults,
     errors: HashMap<u64, Vec<(u8, String)>>,
 }
 
@@ -82,13 +107,12 @@ impl ValueSearchHolder {
 
 impl SearchState for ValueSearchState {
     type SearchResultType = OperationResults;
-    fn new(path: &Path, uuid: Uuid) -> Self {
+    fn new(path: &Path) -> Self {
         Self {
             file_path: PathBuf::from(path),
-            uuid,
             terms: vec![],
             matchers: vec![],
-            results: Results::new(),
+            results: SearchResults::new(),
             errors: HashMap::new(),
         }
     }
@@ -105,11 +129,11 @@ fn collect(row: u64, line: &str, state: &mut ValueSearchState) {
             let value_str = value.as_str().to_owned();
             if let Ok(value_i64) = value_str.parse::<f64>() {
                 if let Some(indexes) = state.results.indexes.as_mut() {
-                    if let Some(matches) = indexes.get_mut(&(term_index as u8)) {
-                        matches.push((row, value_i64));
-                    } else {
-                        indexes.insert(term_index as u8, vec![(row, value_i64)]);
-                    }
+                    let val_match = ValueSearchMatch::new(row, value_i64);
+                    indexes
+                        .entry(term_index as u8)
+                        .or_insert_with(Vec::new)
+                        .push(val_match);
                 }
             } else if let Some(errors) = state.errors.get_mut(&row) {
                 errors.push((term_index as u8, value_str));
@@ -128,9 +152,9 @@ pub fn search(
     read_bytes: u64,
     cancallation: CancellationToken,
 ) -> OperationResults {
-    base_searcher.search_state.results = Results::new();
-    Ok((
-        base_searcher.search(rows_count, read_bytes, cancallation, collect)?,
+    base_searcher.search_state.results = SearchResults::new();
+    let processed_range = base_searcher.search(rows_count, read_bytes, cancallation, collect)?;
+    let values =
         base_searcher
             .search_state
             .results
@@ -138,6 +162,12 @@ pub fn search(
             .take()
             .ok_or(SearchError::IoOperation(String::from(
                 "Fail to get results: indexes not found",
-            )))?,
-    ))
+            )))?;
+
+    let output = ValueSearchOutput {
+        processed_range,
+        values,
+    };
+
+    Ok(output)
 }

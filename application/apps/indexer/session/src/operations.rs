@@ -376,7 +376,7 @@ impl OperationAPI {
                         return;
                     };
                     api.finish(
-                        handlers::extract::handle(&session_file, filters.iter())
+                        handlers::extract::handle(session_file, filters)
                             .map(|v| v.map(stypes::ResultExtractedMatchValues)),
                         operation_str,
                     )

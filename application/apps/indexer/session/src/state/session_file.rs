@@ -207,7 +207,7 @@ impl SessionFile {
             message: Some(String::from("Grabber isn't inited")),
         })?);
         let rows = grabber
-            .grab_content(range)
+            .get_entries(range)
             .map_err(|e| stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Grabber,

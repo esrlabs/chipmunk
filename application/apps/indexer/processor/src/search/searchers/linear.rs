@@ -1,3 +1,6 @@
+//! Includes utilities for searching matches in a string.
+//! Primarily used for nested searches, such as filtering results from a primary search.
+
 use crate::search::{error::SearchError, filter, filter::SearchFilter};
 use regex::Regex;
 use std::str::FromStr;

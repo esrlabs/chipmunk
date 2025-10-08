@@ -1,3 +1,6 @@
+//! Includes the functionality for mapping positions in file stream to the matching
+//! filter criteria in those positions.
+
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
@@ -21,8 +24,8 @@ impl FiltersStats {
         }
     }
 
-    pub fn inc(&mut self, alias: &str, value: Option<u64>) {
-        *self.stats.entry(alias.to_string()).or_insert(0) += value.map_or(1, |v| v);
+    pub fn increment(&mut self, alias: impl Into<String>, value: Option<u64>) {
+        *self.stats.entry(alias.into()).or_insert(0) += value.map_or(1, |v| v);
     }
 }
 
@@ -185,6 +188,7 @@ impl SearchMap {
         map
     }
 
+    /// Returns information about all matches in the search results occurring in the provided `range`.
     pub fn indexes(&self, range: &RangeInclusive<u64>) -> Result<&[stypes::FilterMatch], MapError> {
         if range.end() >= &(self.len() as u64) {
             return Err(MapError::OutOfRange(format!(
@@ -305,7 +309,7 @@ impl SearchMap {
 
     pub fn append_stats(&mut self, stats: FiltersStats) {
         for (key, val) in stats.stats.iter() {
-            self.stats.inc(key, Some(*val));
+            self.stats.increment(key, Some(*val));
         }
     }
 

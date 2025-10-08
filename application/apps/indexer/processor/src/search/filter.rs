@@ -2,6 +2,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+/// Represents the definitions of search filter.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SearchFilter {
     pub value: String,

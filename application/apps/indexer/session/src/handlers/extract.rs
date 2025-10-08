@@ -1,15 +1,12 @@
 use crate::operations::OperationResult;
 
 use processor::search::{extractor::MatchesExtractor, filter::SearchFilter};
-use std::path::Path;
+use std::path::PathBuf;
 
-pub fn handle<'a, I>(
-    target_file_path: &Path,
-    filters: I,
-) -> OperationResult<Vec<stypes::ExtractedMatchValue>>
-where
-    I: Iterator<Item = &'a SearchFilter>,
-{
+pub fn handle(
+    target_file_path: PathBuf,
+    filters: Vec<SearchFilter>,
+) -> OperationResult<Vec<stypes::ExtractedMatchValue>> {
     let extractor = MatchesExtractor::new(target_file_path, filters);
     extractor
         .extract_matches()
