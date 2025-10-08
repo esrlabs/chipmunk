@@ -1,3 +1,5 @@
+//! Includes the functions to export logs from files in ray binary format.
+
 use std::{
     io::{BufWriter, Write},
     path::Path,

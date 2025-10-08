@@ -9,7 +9,6 @@ use std::{
 };
 use text_grep::buffer::CancellableBufReader;
 use tokio_util::sync::CancellationToken;
-use uuid::Uuid;
 
 pub mod linear;
 pub mod regular;
@@ -24,46 +23,39 @@ pub mod values;
 #[derive(Debug)]
 pub struct BaseSearcher<State: SearchState> {
     pub file_path: PathBuf,
-    pub uuid: Uuid,
     bytes_read: u64,
     lines_read: u64,
     search_state: State,
 }
 pub trait SearchState {
     type SearchResultType;
-    fn new(path: &Path, uuid: Uuid) -> Self;
+    fn new(path: &Path) -> Self;
     fn get_terms(&self) -> Vec<String>;
 }
 
 impl<State: SearchState> BaseSearcher<State> {
-    pub fn new(path: &Path, uuid: Uuid, rows_count: u64, read_bytes: u64) -> Self {
-        let search_state = State::new(path, uuid);
+    pub fn new(path: &Path, rows_count: u64, read_bytes: u64) -> Self {
+        let search_state = State::new(path);
         Self {
             file_path: PathBuf::from(path),
-            uuid,
             bytes_read: read_bytes,
             lines_read: rows_count,
             search_state,
         }
     }
-    /// execute a search for the given input path and filters
-    /// return the file that contains the search results along with the
-    /// map of found matches. Format of map is an array of matches:
-    /// [
-    ///     (index in stream, [index of matching filter]),
-    ///     ...
-    ///     (index in stream, [index of matching filter]),
-    /// ]
+
+    /// Execute a search for the given file and filters collecting the findings
+    /// with the provided collect function.
     ///
-    /// stat information shows how many times a filter matched:
-    /// [(index_of_filter, count_of_matches), ...]
-    ///
+    /// # Returns
+    /// Returns a range containing the absolute line numbers of all matches found
+    /// during this specific call.
     fn search<F>(
         &mut self,
         rows_count: u64,
         read_bytes: u64,
         cancel_token: CancellationToken,
-        mut f: F,
+        mut collect_fn: F,
     ) -> Result<Range<usize>, SearchError>
     where
         F: FnMut(u64, &str, &mut State),
@@ -116,7 +108,7 @@ impl<State: SearchState> BaseSearcher<State> {
                 &mut reader_handler,
                 UTF8(|row, line| {
                     // self.matching(row + lines_read - 1, line);
-                    f(row + lines_read - 1, line, &mut self.search_state);
+                    collect_fn(row + lines_read - 1, line, &mut self.search_state);
                     processed += 1;
                     Ok(true)
                 }),

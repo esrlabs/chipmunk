@@ -1,3 +1,6 @@
+//! Includes utilities for general searches across logs.
+//! This is the main functionality used in searches in Chipmunk.
+
 use crate::{
     map::FiltersStats,
     search::{error::SearchError, filter, filter::SearchFilter},
@@ -10,7 +13,6 @@ use std::{
     str::FromStr,
 };
 use tokio_util::sync::CancellationToken;
-use uuid::Uuid;
 
 use super::{BaseSearcher, SearchState};
 
@@ -35,7 +37,6 @@ impl Results {
 #[derive(Debug)]
 pub struct RegularSearchState {
     pub file_path: PathBuf,
-    pub uuid: Uuid,
     filters: Vec<SearchFilter>,
     matchers: Vec<Regex>,
     aliases: HashMap<usize, String>,
@@ -74,10 +75,9 @@ impl RegularSearchHolder {
 
 impl SearchState for RegularSearchState {
     type SearchResultType = SearchResults;
-    fn new(path: &Path, uuid: Uuid) -> Self {
+    fn new(path: &Path) -> Self {
         Self {
             file_path: PathBuf::from(path),
-            uuid,
             filters: vec![],
             matchers: vec![],
             aliases: HashMap::new(),
@@ -99,7 +99,7 @@ fn collect(row: u64, line: &str, state: &mut RegularSearchState) {
             if let Some(alias) = state.aliases.get(&index)
                 && let Some(stats) = state.results.stats.as_mut()
             {
-                stats.inc(alias, None);
+                stats.increment(alias, None);
             }
         }
     }

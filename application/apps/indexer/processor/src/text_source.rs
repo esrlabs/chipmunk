@@ -1,3 +1,5 @@
+//! Includes grab functionalities and operations related to text files.
+
 use crate::grabber::{
     ByteRange, ComputationResult, FilePart, GrabError, GrabMetadata, LineRange, Slot,
     identify_byte_range,
@@ -29,6 +31,7 @@ impl TextFileSource {
 }
 
 impl TextFileSource {
+    /// Check if the provided file is a text file containing text.
     pub fn contains_text(path: &Path) -> Result<bool, GrabError> {
         let chunk_size = 100 * 1024usize;
         let mut f = fs::File::open(path)
@@ -213,7 +216,9 @@ impl TextFileSource {
         ))
     }
 
-    pub fn read_file_segment(
+    /// Reads file segment defined by the provided `line_range` returning the bytes
+    /// from that segment alongside with the metadata if that [`FilePart`]
+    fn read_file_segment(
         &self,
         metadata: &GrabMetadata,
         line_range: &LineRange,
@@ -251,11 +256,7 @@ impl TextFileSource {
     /// Current gen of chipmunk doesn't include support of none UTF-8 coding.
     /// Before sending data to client we should make sure, data will include
     /// only valid UTF8 or/and Unicode.
-    pub fn clear_lines(
-        &self,
-        read_buf: &[u8],
-        file_part: &FilePart,
-    ) -> Result<Vec<String>, GrabError> {
+    fn valid_lines(&self, read_buf: &[u8], file_part: &FilePart) -> Result<Vec<String>, GrabError> {
         Ok(String::from_utf8_lossy(read_buf)
             .lines()
             .take(file_part.total_lines - file_part.lines_to_drop)
@@ -277,7 +278,7 @@ impl TextFileSource {
         line_range: &LineRange,
     ) -> Result<Vec<String>, GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
-        self.clear_lines(&read_buf, &file_part)
+        self.valid_lines(&read_buf, &file_part)
     }
 
     /// Takes line range to read it from source file and writes into destination
@@ -309,7 +310,7 @@ impl TextFileSource {
         modifier: Option<impl Fn(String) -> String>,
     ) -> Result<(), GrabError> {
         let (read_buf, file_part) = self.read_file_segment(metadata, line_range)?;
-        let lines = self.clear_lines(&read_buf, &file_part)?;
+        let lines = self.valid_lines(&read_buf, &file_part)?;
         writer
             .write(
                 if let Some(modifier) = modifier {

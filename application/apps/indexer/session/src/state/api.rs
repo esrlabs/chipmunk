@@ -13,7 +13,10 @@ use processor::{
     map::{FiltersStats, ScaledDistribution},
     search::{
         filter::SearchFilter,
-        searchers::{regular::RegularSearchHolder, values::ValueSearchHolder},
+        searchers::{
+            regular::RegularSearchHolder,
+            values::{ValueSearchHolder, ValueSearchMatch},
+        },
     },
 };
 use std::{collections::HashMap, fmt::Display, ops::RangeInclusive, path::PathBuf};
@@ -178,7 +181,7 @@ pub enum Api {
             oneshot::Sender<Result<(), stypes::NativeError>>,
         ),
     ),
-    SetSearchValues(HashMap<u8, Vec<(u64, f64)>>, oneshot::Sender<()>),
+    SetSearchValues(HashMap<u8, Vec<ValueSearchMatch>>, oneshot::Sender<()>),
     #[allow(clippy::type_complexity)]
     GetSearchValues(
         (
@@ -629,7 +632,7 @@ impl SessionStateAPI {
 
     pub async fn set_search_values(
         &self,
-        values: HashMap<u8, Vec<(u64, f64)>>,
+        values: HashMap<u8, Vec<ValueSearchMatch>>,
     ) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::SetSearchValues(values, tx), rx)

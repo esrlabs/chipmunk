@@ -4,7 +4,6 @@ use crate::search::{
 };
 use std::io::{Error, Write};
 use tokio_util::sync::CancellationToken;
-use uuid::Uuid;
 
 use super::regular;
 
@@ -27,8 +26,7 @@ fn filtered(
     let input_file = tmp_file.as_file_mut();
     input_file.write_all(content.as_bytes())?;
     let file_size = input_file.metadata()?.len();
-    let mut searcher: BaseSearcher<RegularSearchState> =
-        BaseSearcher::new(tmp_file.path(), Uuid::new_v4(), 0, 0);
+    let mut searcher: BaseSearcher<RegularSearchState> = BaseSearcher::new(tmp_file.path(), 0, 0);
     searcher
         .setup(filters)
         .map_err(|e| Error::other(format!("Fail to setup search: {e}")))?;

@@ -3,8 +3,11 @@ use crate::{
     state::SessionStateAPI,
 };
 use log::debug;
-use processor::search::searchers::{self, values::ValueSearchHolder};
-use std::{collections::HashMap, ops::Range};
+use processor::search::searchers::{
+    self,
+    values::{ValueSearchHolder, ValueSearchMatch, ValueSearchOutput},
+};
+use std::collections::HashMap;
 use tokio::{
     select,
     sync::mpsc::{Receiver, Sender, channel},
@@ -19,7 +22,14 @@ type SearchResultChannel = (
     Receiver<(ValueSearchHolder, searchers::values::OperationResults)>,
 );
 
-#[allow(clippy::type_complexity)]
+type ValueSearchResult =
+    Result<ValueSearchResults, (Option<ValueSearchHolder>, stypes::NativeError)>;
+
+struct ValueSearchResults {
+    values: HashMap<u8, Vec<ValueSearchMatch>>,
+    holder: ValueSearchHolder,
+}
+
 pub async fn execute_value_search(
     operation_api: &OperationAPI,
     filters: Vec<String>,
@@ -59,16 +69,7 @@ pub async fn execute_value_search(
                 && tx_result.send((holder, search_results)).await.is_ok()
             {}
         });
-        let search_results: Option<
-            Result<
-                (
-                    Range<usize>,
-                    HashMap<u8, Vec<(u64, f64)>>,
-                    ValueSearchHolder,
-                ),
-                (Option<ValueSearchHolder>, stypes::NativeError),
-            >,
-        > = select! {
+        let search_results: Option<ValueSearchResult> = select! {
             res = async {
                 loop {
                     match timeout(
@@ -86,7 +87,7 @@ pub async fn execute_value_search(
                                 })),
                                 |(holder, search_results)| {
                                     match search_results {
-                                        Ok((processed, values)) => Ok((processed, values, holder)),
+                                        Ok(ValueSearchOutput{values, ..}) => Ok(ValueSearchResults {values, holder}),
                                         Err(err) => Err((Some(holder), stypes::NativeError {
                                             severity: stypes::Severity::ERROR,
                                             kind: stypes::NativeErrorKind::OperationSearch,
@@ -113,7 +114,7 @@ pub async fn execute_value_search(
         };
         if let Some(search_results) = search_results {
             match search_results {
-                Ok((_processed, values, holder)) => {
+                Ok(ValueSearchResults { values, holder }) => {
                     state
                         .set_search_values_holder(Some(holder), operation_api.id())
                         .await?;

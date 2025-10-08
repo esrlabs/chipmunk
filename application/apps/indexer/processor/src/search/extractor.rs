@@ -1,12 +1,11 @@
+//! Extractor operations used in chart functionalities.
+
 use crate::search::{error::SearchError, filter, filter::SearchFilter};
 use grep_regex::RegexMatcher;
 use grep_searcher::{Searcher, sinks::UTF8};
 use itertools::Itertools;
 use regex::Regex;
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{path::PathBuf, str::FromStr};
 
 fn get_extracted_value(index: u64, input: &str, filters: &[Regex]) -> stypes::ExtractedMatchValue {
     let mut values: Vec<(usize, Vec<String>)> = vec![];
@@ -34,18 +33,8 @@ pub struct MatchesExtractor {
 }
 
 impl MatchesExtractor {
-    pub fn new<'a, I>(path: &Path, filters: I) -> Self
-    where
-        I: Iterator<Item = &'a SearchFilter>,
-    {
-        let mut search_filters = vec![];
-        for filter in filters {
-            search_filters.push(filter.clone());
-        }
-        Self {
-            file_path: PathBuf::from(path),
-            filters: search_filters,
-        }
+    pub fn new(file_path: PathBuf, filters: Vec<SearchFilter>) -> Self {
+        Self { file_path, filters }
     }
 
     pub fn extract_matches(&self) -> Result<Vec<stypes::ExtractedMatchValue>, SearchError> {

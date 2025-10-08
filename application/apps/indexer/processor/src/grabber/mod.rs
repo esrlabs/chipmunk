@@ -175,16 +175,6 @@ impl Slot {
     }
 }
 
-pub trait LogItem {
-    fn id(&self) -> String;
-}
-
-impl LogItem for String {
-    fn id(&self) -> String {
-        self.clone()
-    }
-}
-
 #[derive(Debug)]
 pub struct Grabber {
     source: TextFileSource,
@@ -233,10 +223,6 @@ impl Grabber {
         }
     }
 
-    pub fn grab_content(&self, line_range: &LineRange) -> Result<Vec<String>, GrabError> {
-        self.get_entries(line_range)
-    }
-
     pub fn inject_metadata(&mut self, metadata: GrabMetadata) -> Result<(), GrabError> {
         self.metadata = Some(metadata);
         Ok(())
@@ -275,8 +261,7 @@ impl Grabber {
 }
 
 impl Grabber {
-    /// Create a new Grabber without creating the metadata
-    /// ...
+    /// Create a new Grabber without creating the metadata.
     pub fn lazy(source: TextFileSource) -> Result<Self, GrabError> {
         let input_file_size = source.input_size()?;
         Ok(Self {
@@ -288,7 +273,7 @@ impl Grabber {
 
     /// If a grabber was created lazily, the metadata can be created with this
     /// function.
-    /// Returning a range of recently detected lines if metadata has been inited.
+    /// Returning a range of recently detected lines if metadata has been initialized.
     pub fn create_metadata(
         &mut self,
         shutdown_token: Option<CancellationToken>,
@@ -304,7 +289,7 @@ impl Grabber {
         }
     }
 
-    /// Create a new Grabber by deviding the file content into slots
+    /// Create a new Grabber by dividing the file content into slots
     /// [0-1023] => line 0 - 23
     /// [1024-2047] => line 24 - 38
     /// ...
@@ -343,6 +328,9 @@ impl Grabber {
         Ok(self)
     }
 
+    /// Get all lines in a file within the supplied line-range
+    /// naive implementation that just reads all slots that are involved and drops
+    /// everything that is not needed
     pub fn get_entries(&self, line_range: &LineRange) -> Result<Vec<String>, GrabError> {
         match &self.metadata {
             None => Err(GrabError::NotInitialize),

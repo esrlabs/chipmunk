@@ -1,4 +1,5 @@
 use log::{debug, error};
+use processor::search::searchers::values::ValueSearchMatch;
 use std::{collections::HashMap, ops::RangeInclusive};
 use thiserror::Error;
 use tokio::sync::mpsc::UnboundedSender;
@@ -49,7 +50,7 @@ impl Values {
     }
 
     /// Overwrite set of data
-    pub(crate) fn set_values(&mut self, values: HashMap<u8, Vec<(u64, f64)>>) {
+    pub(crate) fn set_values(&mut self, values: HashMap<u8, Vec<ValueSearchMatch>>) {
         for (value_set_id, vs) in values {
             let min = Values::min(&vs);
             let max = Values::max(&vs);
@@ -64,7 +65,7 @@ impl Values {
     }
 
     /// Append new chunk of data to existed
-    pub(crate) fn append_values(&mut self, values: HashMap<u8, Vec<(u64, f64)>>) {
+    pub(crate) fn append_values(&mut self, values: HashMap<u8, Vec<ValueSearchMatch>>) {
         for (value_set_id, vs) in values {
             let upd_min = Values::min(&vs);
             let upd_max = Values::max(&vs);
@@ -187,15 +188,15 @@ impl Values {
         }
     }
 
-    fn min<T>(values: &[(T, f64)]) -> f64 {
-        let iter = values.iter().map(|p| &p.1);
+    fn min(values: &[ValueSearchMatch]) -> f64 {
+        let iter = values.iter().map(|p| &p.value);
         *iter
             .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(&0f64)
     }
 
-    fn max<T>(values: &[(T, f64)]) -> f64 {
-        let iter = values.iter().map(|p| &p.1);
+    fn max(values: &[ValueSearchMatch]) -> f64 {
+        let iter = values.iter().map(|p| &p.value);
         *iter
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(&0f64)
