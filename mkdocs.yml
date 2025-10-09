@@ -3,10 +3,15 @@ site_url: https://esrlabs.github.io/chipmunk/
 docs_dir: docs
 theme:
   name: material
+  icon:
+    admonition:
+      note: material/note
+      alert: material/alert
 nav:
   - Overview: index.md
   - Installation: installation.md
   - Search: search.md
+  - Expor Logs: exporting.md
   - Charts: charts.md
   - Navigation: navigation.md
   - Teamwork: teamwork.md
