@@ -1,13 +1,7 @@
-Chipmunk supports flexible import and export of log searches and filters,
-allowing user to save filtered views or search results as standalone files
-for sharing, archiving, or further analysis, and later re-import them to
-quickly restore the same context.
-
-Once log files are imported into Chipmunk, user can easily export them as
-plain text logs.
-This is useful when user need to share logs with tools or colleagues that
-do not support the specific log format, or when user want a lightweight,
-human-readable version of the data.
+Chipmunk supports flexible import and export of log files, allowing users
+to save, share, archive, or analyze logs with ease.
+Once log files are imported into Chipmunk, users can export them as plain
+text logs or binary files.
 
 ![Export plain text logs](assets/export/export_logs.gif)
 
@@ -28,7 +22,7 @@ data analysis tools (Excel, pandas, etc.).
 **Raw**
 
 1. The filtered results are exported as a binary file.
-2. Useful when user wants to share only fitered logs from Chipmunk.
+2. Useful when user wants to share only filtered logs from Chipmunk.
 
 ![Export Search Results](assets/export/export_search.gif)
 
