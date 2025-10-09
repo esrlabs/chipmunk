@@ -10,7 +10,7 @@ use crate::{
         signal::Signal,
     },
 };
-use cleanup::cleanup_temp_dir;
+use cleanup::cleanup_temp_files;
 use log::{debug, error, warn};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
@@ -138,10 +138,12 @@ impl UnboundSession {
 
         // Call cleanup here because this function should be called once when chipmunk starts.
         // Run cleaning up on a separate thread to avoid latency in startup in case temporary
-        // directory has a lot of entries to cleanup.
+        // files are too large.
         tokio::task::spawn_blocking(|| {
-            if let Err(err) = cleanup_temp_dir() {
-                log::error!("Error while cleaning up temporary directory. Error: {err:?}");
+            if let Err(errs) = cleanup_temp_files() {
+                errs.iter().for_each(|err| {
+                    log::error!("Error while cleaning up temporary files. Error: {err:?}")
+                });
             }
         });
 

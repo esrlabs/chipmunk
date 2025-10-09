@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 const CHIPMUNK_HOME: &str = ".chipmunk";
 const CHIPMUNK_TMP: &str = "tmp";
+const CHIPMUNK_DOWNLOADS: &str = "downloads";
 
 pub fn get_home_dir() -> Result<PathBuf, stypes::NativeError> {
     if let Some(home) = dirs::home_dir() {
@@ -16,6 +17,8 @@ pub fn get_home_dir() -> Result<PathBuf, stypes::NativeError> {
     }
 }
 
+/// Gets streams directory path within Chipmunk home directory
+/// creating it if it doesn't exit.
 pub fn get_streams_dir() -> Result<PathBuf, stypes::NativeError> {
     let streams = get_home_dir()?.join(CHIPMUNK_TMP);
     if !streams.exists() {
@@ -30,4 +33,11 @@ pub fn get_streams_dir() -> Result<PathBuf, stypes::NativeError> {
         })?;
     }
     Ok(streams)
+}
+
+/// Gets downloads directory path within Chipmunk home directory.
+pub fn get_chipmunk_downloads_dir() -> Result<PathBuf, stypes::NativeError> {
+    let downloads = get_home_dir()?.join(CHIPMUNK_DOWNLOADS);
+
+    Ok(downloads)
 }
