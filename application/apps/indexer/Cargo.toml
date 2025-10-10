@@ -49,6 +49,9 @@ criterion = { version = "0.5", features = ["html_reports"] }
 insta = { version = "1.41", features = ["yaml"] }
 proptest = "1.6"
 
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+
 # `insta` crate and its dependency `similar` will be compiled once and run many times, 
 # therefore it's suggested to compile them with more optimizations for faster runs.
 [profile.dev.package]

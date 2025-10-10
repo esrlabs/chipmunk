@@ -3,6 +3,9 @@ name = "someip-tools"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true 
+
 [dependencies]
 nom = "7.1"
 thiserror.workspace = true
