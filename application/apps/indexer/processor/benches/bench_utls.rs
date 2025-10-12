@@ -75,11 +75,10 @@ pub struct ProducerCounter {
 
 /// Run producer until the end converting messages into strings too, while counting all the
 /// different types of producer outputs to avoid unwanted compiler optimizations.
-pub async fn run_producer<P, B, T>(mut producer: MessageProducer<T, P, B>) -> ProducerCounter
+pub async fn run_producer<P, B>(mut producer: MessageProducer<P, B>) -> ProducerCounter
 where
-    P: parsers::Parser<T>,
+    P: parsers::Parser,
     B: sources::ByteSource,
-    T: LogMessage,
 {
     let mut counter = ProducerCounter::default();
     let mut collector = GeneralLogCollector::default();

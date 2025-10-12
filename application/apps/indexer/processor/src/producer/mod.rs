@@ -2,9 +2,8 @@
 mod tests;
 
 use log::warn;
-use parsers::{Error as ParserError, LogMessage, Parser};
+use parsers::{Error as ParserError, ParseOutput, Parser};
 use sources::{ByteSource, ReloadInfo, SourceFilter};
-use std::marker::PhantomData;
 
 mod logs_collector;
 
@@ -57,24 +56,22 @@ pub enum ProduceError {
 }
 
 #[derive(Debug)]
-pub struct MessageProducer<T, P, D>
+pub struct MessageProducer<P, D>
 where
-    T: LogMessage,
-    P: Parser<T>,
+    P: Parser,
     D: ByteSource,
 {
     byte_source: D,
     parser: P,
     filter: Option<SourceFilter>,
     last_seen_ts: Option<u64>,
-    _phantom_data: Option<PhantomData<T>>,
     total_loaded: usize,
     total_skipped: usize,
     total_messages: usize,
     done: bool,
 }
 
-impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
+impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     /// create a new producer by plugging into a byte source
     pub fn new(parser: P, source: D) -> Self {
         MessageProducer {
@@ -82,7 +79,6 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
             parser,
             filter: None,
             last_seen_ts: None,
-            _phantom_data: None,
             total_loaded: 0,
             total_skipped: 0,
             total_messages: 0,
@@ -100,7 +96,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
     /// # Return:
     /// Summary of producer state with infos about consumed, skipped bytes and produced log 
     /// messages, otherwise it'll return a producer error.
-    pub async fn produce_next<C: LogRecordsCollector<T>>(
+    pub async fn produce_next<C: LogRecordsCollector<P::Output>>(
         &mut self,
         collector: &mut C,
     ) -> Result<ProduceSummary, ProduceError> {
@@ -140,7 +136,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                 .parse(self.byte_source.current_slice(), self.last_seen_ts)
                 .map(|iter| {
                     iter.for_each(|item| match item {
-                        (consumed, Some(m)) => {
+                        ParseOutput{consumed, message: Some(m)} => {
                             let total_used_bytes = consumed + skipped_bytes;
                             debug!(
                             "Extracted a valid message, consumed {consumed} bytes (total used {total_used_bytes} bytes)"
@@ -149,7 +145,7 @@ impl<T: LogMessage, P: Parser<T>, D: ByteSource> MessageProducer<T, P, D> {
                             messages_count += 1;
                             collector.append(m);
                         }
-                        (skipped, None) => {
+                        ParseOutput{consumed: skipped, message: None} => {
                             bytes_consumed += skipped;
                             skipped_bytes += skipped;
                             trace!("None, consumed {skipped} bytes");

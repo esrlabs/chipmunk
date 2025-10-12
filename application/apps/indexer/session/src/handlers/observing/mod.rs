@@ -7,7 +7,7 @@ use crate::{
     tail,
 };
 use parsers::{
-    LogMessage, Parser,
+    Parser,
     dlt::{DltParser, fmt::FormatOptions},
     someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
     text::StringTokenizer,
@@ -131,11 +131,11 @@ async fn run_source_intern<S: ByteSource>(
     }
 }
 
-async fn run_producer<T: LogMessage, P: Parser<T>, S: ByteSource>(
+async fn run_producer<P: Parser, S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
     source_id: u16,
-    mut producer: MessageProducer<T, P, S>,
+    mut producer: MessageProducer<P, S>,
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {

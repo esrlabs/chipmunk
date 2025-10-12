@@ -45,8 +45,8 @@ pub enum ExportError {
 ///
 /// # Errors
 /// In case of cancellation will return ExportError::Cancelled
-pub async fn export_raw<T, P, D>(
-    mut producer: MessageProducer<T, P, D>,
+pub async fn export_raw<P, D>(
+    mut producer: MessageProducer<P, D>,
     destination_path: &Path,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
@@ -54,8 +54,7 @@ pub async fn export_raw<T, P, D>(
     cancel: &CancellationToken,
 ) -> Result<usize, ExportError>
 where
-    T: LogMessage + Sized,
-    P: Parser<T>,
+    P: Parser,
     D: ByteSource,
 {
     trace!("export_raw, sections: {sections:?}");
@@ -70,7 +69,7 @@ where
         std::fs::File::create(destination_path)?
     };
     let mut out_writer = BufWriter::new(out_file);
-    let mut collector = GeneralLogCollector::default();
+    let mut collector: GeneralLogCollector<P::Output> = GeneralLogCollector::default();
     let mut section_index = 0usize;
     let mut current_index = 0usize;
     let mut inside = false;

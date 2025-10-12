@@ -131,13 +131,13 @@ impl PluginParser {
 }
 
 use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginParser {
+impl p::Parser for PluginParser {
+    type Output = PluginParseMessage;
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<impl Iterator<Item = p::ParseOutput<PluginParseMessage>>, p::Error> {
         // Calls on plugins must be async. To solve that we got the following solutions:
         // - `futures::executor::block_on(plugin_call)`: Blocks the current Tokio worker with a local
         //   executor. Risks are with blocking the whole runtime as Tokio isn't notified.
@@ -165,7 +165,7 @@ impl p::Parser<PluginParseMessage> for PluginParser {
 
         let res = parse_results
             .into_iter()
-            .map(|item| (item.consumed as usize, item.value.map(|v| v.into())));
+            .map(|item| p::ParseOutput::new(item.consumed as usize, item.value.map(|v| v.into())));
         Ok(res)
     }
 }

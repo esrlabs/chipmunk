@@ -5,7 +5,7 @@ use std::{io::Write as _, ops::Deref, path::PathBuf, time::Duration};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
-use parsers::{LogMessage, ParseYield, Parser};
+use parsers::{ParseYield, Parser};
 use processor::producer::{GeneralLogCollector, MessageProducer, ProduceSummary};
 use sources::{ByteSource, socket::tcp::reconnect::ReconnectStateMsg};
 
@@ -23,7 +23,7 @@ use super::format::MessageFormatter;
 /// * `state_rc`: Receiver for status of reconnecting process in case connection is lost.
 /// * `update_interval`: The interval to print the state to stdout.
 /// * `cancel_token`: CancellationToken.
-pub async fn run_session<T, P, D, W>(
+pub async fn run_session<P, D, W>(
     parser: P,
     bytesource: D,
     output_path: PathBuf,
@@ -33,8 +33,7 @@ pub async fn run_session<T, P, D, W>(
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
-    T: LogMessage,
-    P: Parser<T>,
+    P: Parser,
     D: ByteSource,
     W: MessageFormatter,
 {
@@ -56,7 +55,7 @@ where
     // Keep track how many message has been received since the last flush.
     let mut msg_since_last_flush = 0;
 
-    let write_sum = |p: &mut MessageProducer<_, _, _>| {
+    let write_sum = |p: &mut MessageProducer<_, _>| {
         super::write_summary(
             p.total_produced_items(),
             p.total_loaded_bytes(),

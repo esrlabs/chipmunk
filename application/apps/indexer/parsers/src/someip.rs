@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseYield, SingleParser};
+use crate::{Error, LogMessage, ParseOutput, ParseYield, SingleParser};
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -295,16 +295,17 @@ impl SomeipParser {
     }
 }
 
-impl SingleParser<SomeipLogMessage> for SomeipParser {
+impl SingleParser for SomeipParser {
+    type Output = SomeipLogMessage;
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
     fn parse_item(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<SomeipLogMessage>>), Error> {
+    ) -> Result<ParseOutput<SomeipLogMessage>, Error> {
         SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
-            .map(|(rest, message)| (rest, Some(ParseYield::from(message))))
+            .map(|(rest, message)| ParseOutput::new(rest, Some(ParseYield::from(message))))
     }
 }
 
@@ -637,7 +638,7 @@ mod test {
 
         let mut parser = SomeipParser::new();
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -659,7 +660,7 @@ mod test {
 
         let mut parser = SomeipParser::new();
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -681,7 +682,7 @@ mod test {
 
         let mut parser = SomeipParser::new();
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -712,7 +713,7 @@ mod test {
             fibex_metadata: Some(fibex_metadata),
         };
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -741,7 +742,7 @@ mod test {
 
         let mut parser = SomeipParser::new();
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -773,7 +774,7 @@ mod test {
             fibex_metadata: Some(fibex_metadata),
         };
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -805,7 +806,7 @@ mod test {
             fibex_metadata: Some(fibex_metadata),
         };
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -837,7 +838,7 @@ mod test {
             fibex_metadata: Some(fibex_metadata),
         };
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -869,7 +870,7 @@ mod test {
             fibex_metadata: Some(fibex_metadata),
         };
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -901,7 +902,7 @@ mod test {
             fibex_metadata: Some(fibex_metadata),
         };
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -931,7 +932,7 @@ mod test {
         ];
 
         let mut parser = SomeipParser::new();
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
@@ -978,7 +979,7 @@ mod test {
 
         let mut parser = SomeipParser::new();
 
-        let (consumed, message) = parser.parse_item(input, None).unwrap();
+        let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
         if let ParseYield::Message(item) = message.unwrap() {
