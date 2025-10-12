@@ -9,7 +9,6 @@ use anyhow::Context;
 use format::MessageFormatter;
 use tokio_util::sync::CancellationToken;
 
-use parsers::LogMessage;
 use sources::{
     binary::raw::BinaryByteSource,
     socket::{
@@ -36,7 +35,7 @@ mod socket;
 /// * `msg_formatter`: The formatter and writer for messages in the session.
 /// * `output_path`: The path for the output file path.
 /// * `cancel_token`: CancellationToken.
-pub async fn start_session<T, P, W>(
+pub async fn start_session<P, W>(
     parser: P,
     input_source: InputSource,
     msg_formatter: W,
@@ -44,8 +43,7 @@ pub async fn start_session<T, P, W>(
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
-    T: LogMessage,
-    P: parsers::Parser<T>,
+    P: parsers::Parser,
     W: MessageFormatter,
 {
     match input_source {

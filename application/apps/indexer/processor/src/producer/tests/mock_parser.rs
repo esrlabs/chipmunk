@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, fmt, io::Write, mem};
 
 use parsers::Error;
+use parsers::LogMessage;
 use parsers::ParseYield;
 use serde::Serialize;
 
@@ -65,15 +66,14 @@ impl MockParseSeed {
     }
 }
 
-impl Parser<MockMessage> for MockParser
-where
-    MockMessage: LogMessage,
-{
+impl Parser for MockParser {
+    type Output = MockMessage;
+
     fn parse(
         &mut self,
         _input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<MockMessage>>)>, Error> {
+    ) -> Result<impl Iterator<Item = ParseOutput<MockMessage>>, Error> {
         let seed_res = self
             .seeds
             .pop_front()
@@ -83,7 +83,7 @@ where
 
         Ok(seeds
             .into_iter()
-            .map(|seed| (seed.cosumed, seed.parse_yeild)))
+            .map(|seed| ParseOutput::new(seed.cosumed, seed.parse_yeild)))
     }
 }
 
@@ -99,12 +99,14 @@ fn test_mock_parser() {
     ]);
 
     let parse_result_ok_none = parser.parse(b"ab", None).unwrap().next().unwrap();
-    assert!(matches!(parse_result_ok_none, (1, None)));
+    assert_eq!(parse_result_ok_none.consumed, 1);
+    assert!(matches!(parse_result_ok_none.message, None));
 
     let parse_result_ok_val = parser.parse(b"ab", None).unwrap().next().unwrap();
+    assert_eq!(parse_result_ok_val.consumed, 2);
     assert!(matches!(
-        parse_result_ok_val,
-        (2, Some(ParseYield::Message(MockMessage { content: 1 })))
+        parse_result_ok_val.message,
+        Some(ParseYield::Message(MockMessage { content: 1 }))
     ));
 
     let parse_result_err = parser.parse(b"ab", None);

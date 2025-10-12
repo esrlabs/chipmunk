@@ -136,14 +136,14 @@ impl PluginErrorLimits {
     const INCOMPLETE_ERROR_LIMIT: usize = 50;
 }
 
-use parsers as p;
-impl p::Parser<PluginParseMessage> for PluginsParser {
+use parsers::{self as p, ParseOutput};
+impl p::Parser for PluginsParser {
+    type Output = PluginParseMessage;
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<p::ParseYield<PluginParseMessage>>)>, p::Error>
-    {
+    ) -> Result<impl Iterator<Item = ParseOutput<PluginParseMessage>>, p::Error> {
         let res = match &mut self.parser {
             PlugVerParser::Ver010(parser) => parser.parse(input, timestamp),
         };

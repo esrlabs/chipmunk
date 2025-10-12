@@ -24,6 +24,23 @@ pub enum Error {
     Eof,
 }
 
+/// The result of a single parsing step, returned by [`Parser::parse`]
+/// or [`SingleParser::parse_item`] calls.
+#[derive(Debug)]
+pub struct ParseOutput<T> {
+    /// The number of bytes consumed from the input for this item.
+    pub consumed: usize,
+
+    /// The parsed data, or `None` if the item was filtered out.
+    pub message: Option<ParseYield<T>>,
+}
+
+impl<T> ParseOutput<T> {
+    pub fn new(consumed: usize, message: Option<ParseYield<T>>) -> Self {
+        Self { consumed, message }
+    }
+}
+
 #[derive(Debug)]
 pub enum ParseYield<T> {
     Message(T),
@@ -37,27 +54,35 @@ impl<T> From<T> for ParseYield<T> {
     }
 }
 
-/// Parser trait that needs to be implemented for any parser we support
-/// in chipmunk
-pub trait Parser<T> {
-    /// Takes a slice of bytes and try to apply a parser. If it can parse any item of them,
-    /// it will return iterator of items each with the consumed bytes count along with `Some(log_message)`
+/// A trait for parsing structured messages from a byte slice.
+///
+/// Implementations of this trait define a stateful parser that can be fed
+/// byte slices incrementally to produce an iterator of log messages.
+///
+/// # Notes
+///
+/// For parsers that produce at most one item per call, consider implementing
+/// the [`SingleParser`] trait instead for a simpler interface.
+pub trait Parser {
+    /// The type of the successfully parsed message.
+    type Output: LogMessage;
+
+    /// Attempts to parse messages from the provided byte slice.
     ///
-    /// if the slice does not have enough bytes to parse any item, an [`Error`] is returned.
+    /// On a successful parse, this returns an iterator of [`ParseOutput`] items.
+    /// If a message is parsed but filtered out, the `message` field of the
+    /// corresponding [`ParseOutput`] will be `None`.
     ///
-    /// in case we could parse a message but the message was filtered out, `None` is returned on
-    /// that item.
+    /// # Notes
     ///
-    /// # Note:
-    ///
-    /// If the parsers encounter any error while it already has parsed any items, then it must
-    /// return those items without the error, then on the next call it can return the errors in
-    /// case it was provided with the same slice of bytes.
+    /// If an error is encountered after some items have already been parsed,
+    /// the implementation must return the valid items. The error should be
+    /// returned on the next call when the problematic slice is provided again.
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<T>>)>, Error>;
+    ) -> Result<impl Iterator<Item = ParseOutput<Self::Output>>, Error>;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -97,22 +122,22 @@ pub trait LogMessage: Display + Serialize {
     fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error>;
 }
 
-/// A trait for parsers that extract one item at a time from a byte slice.
+/// A trait for parsers that extract at most one item per call.
 ///
-/// Any type implementing this trait will automatically implement the [`Parser`] trait
-/// due to a blanket implementation. This means that such types will support extracting
-/// all available items from an input slice by repeatedly calling [`SingleParser::parse_item()`]
-/// until no more items can be parsed.
+/// This trait provides a simpler interface for parsers that do not need to
+/// yield an iterator of items from a single input slice. Any type that
+/// implements `SingleParser` automatically gets an implementation of [`Parser`]
+/// via a blanket implementation.
 ///
-/// # Behavior
-///
-/// - The blanket implementation of [`Parser`] will repeatedly invoke `parse_item()`,
-///   extracting as many items as possible.
-/// - If `parse_item()` fails on the first call, an error is returned immediately.
-/// - If `parse_item()` succeeds, parsing continues until:
-///   - The remaining input is too short to parse another item.
-///   - `parse_item()` returns an error, which is ignored after the first successful parse.
-pub trait SingleParser<T> {
+/// The blanket implementation of [`Parser::parse`] will repeatedly call
+/// [`SingleParser::parse_item`] on the input, collecting all successfully
+/// parsed items into an iterator. If the first call to `parse_item` fails,
+/// the error is returned immediately. Any subsequent errors are ignored,
+/// terminating the iteration.
+pub trait SingleParser {
+    /// The type of the successfully parsed message.
+    type Output: LogMessage;
+
     /// The minimum number of bytes required to parse an item.
     ///
     /// # Notes:
@@ -121,36 +146,43 @@ pub trait SingleParser<T> {
     /// - The default value (`1`) indicates that the parser has no minimum length requirement.
     const MIN_MSG_LEN: usize = 1;
 
-    /// Parses a single item from the given byte slice.
+    /// Parses a single item from the start of the given byte slice.
     ///
-    /// in case we could parse a message but the message was filtered out, `None` is returned on
-    /// that item.
+    /// # Returns
+    ///
+    /// On success, returns [`ParseOutput`] containing the parsed item and the number of bytes consumed.
+    /// If a message is parsed but filtered out, the `message` field of the [`ParseOutput`] will be `None`.
     fn parse_item(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<T>>), Error>;
+    ) -> Result<ParseOutput<Self::Output>, Error>;
 }
 
-/// This blanket implementation repeatedly applies [`SingleParser::parse_item()`] function,
-/// extracting as many items as possible from the provided input until no more can be parsed.
-impl<P, T> Parser<T> for P
+/// A blanket implementation of [`Parser`] for any type that implements [`SingleParser`].
+///
+/// This implementation repeatedly calls [`SingleParser::parse_item`], extracting
+/// as many items as possible from the input slice until it is exhausted or
+/// a parse error occurs after the first item.
+impl<P> Parser for P
 where
-    P: SingleParser<T>,
+    P: SingleParser,
 {
+    type Output = P::Output;
+
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<impl Iterator<Item = (usize, Option<ParseYield<T>>)>, Error> {
+    ) -> Result<impl Iterator<Item = ParseOutput<Self::Output>>, Error> {
         let mut slice = input;
 
         // return early if function errors on first parse call.
         let first_res = self.parse_item(slice, timestamp)?;
 
         // Otherwise keep parsing and stop on first error, returning the parsed items at the end.
-        let iter = iter::successors(Some(first_res), move |(consumed, _res)| {
-            slice = &slice[*consumed..];
+        let iter = iter::successors(Some(first_res), move |out| {
+            slice = &slice[out.consumed..];
 
             if slice.len() < P::MIN_MSG_LEN {
                 return None;

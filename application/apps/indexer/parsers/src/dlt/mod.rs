@@ -2,7 +2,7 @@ pub mod attachment;
 pub mod fmt;
 
 use crate::{
-    Error, LogMessage, ParseYield, SingleParser, dlt::fmt::FormattableMessage,
+    Error, LogMessage, ParseOutput, ParseYield, SingleParser, dlt::fmt::FormattableMessage,
     someip::FibexMetadata as FibexSomeipMetadata,
 };
 use byteorder::{BigEndian, WriteBytesExt};
@@ -135,19 +135,21 @@ impl From<DltParseError> for Error {
     }
 }
 
-impl<'m> SingleParser<FormattableMessage<'m>> for DltParser<'m> {
+impl<'m> SingleParser for DltParser<'m> {
+    type Output = FormattableMessage<'m>;
+
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
     fn parse_item(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<FormattableMessage<'m>>>), Error> {
+    ) -> Result<ParseOutput<FormattableMessage<'m>>, Error> {
         match dlt_message(input, self.filter_config.as_ref(), self.with_storage_header)? {
             (rest, dlt_core::parse::ParsedMessage::FilteredOut(_n)) => {
                 let consumed = input.len() - rest.len();
                 self.offset += consumed;
-                Ok((consumed, None))
+                Ok(ParseOutput::new(consumed, None))
             }
             (_, dlt_core::parse::ParsedMessage::Invalid) => {
                 Err(Error::Parse("Invalid parse".to_owned()))
@@ -168,7 +170,7 @@ impl<'m> SingleParser<FormattableMessage<'m>> for DltParser<'m> {
                 };
                 let consumed = input.len() - rest.len();
                 self.offset += consumed;
-                let item = (
+                let item = ParseOutput::new(
                     consumed,
                     if let Some(attachment) = attachment {
                         Some(ParseYield::MessageAndAttachment((msg, attachment)))
@@ -183,14 +185,16 @@ impl<'m> SingleParser<FormattableMessage<'m>> for DltParser<'m> {
     }
 }
 
-impl SingleParser<RangeMessage> for DltRangeParser {
+impl SingleParser for DltRangeParser {
+    type Output = RangeMessage;
+
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
     fn parse_item(
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<RangeMessage>>), Error> {
+    ) -> Result<ParseOutput<RangeMessage>, Error> {
         let (rest, consumed) = dlt_consume_msg(input)?;
         let msg = consumed.map(|c| {
             self.offset += c as usize;
@@ -202,26 +206,28 @@ impl SingleParser<RangeMessage> for DltRangeParser {
             }
         });
         let total_consumed = input.len() - rest.len();
-        let item = (total_consumed, msg.map(|m| m.into()));
+        let item = ParseOutput::new(total_consumed, msg.map(|m| m.into()));
 
         Ok(item)
     }
 }
 
-impl SingleParser<RawMessage> for DltRawParser {
+impl SingleParser for DltRawParser {
+    type Output = RawMessage;
+
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;
 
     fn parse_item(
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<ParseYield<RawMessage>>), Error> {
+    ) -> Result<ParseOutput<RawMessage>, Error> {
         let (rest, consumed) = dlt_consume_msg(input)?;
         let msg = consumed.map(|c| RawMessage {
             content: Vec::from(&input[0..c as usize]),
         });
         let total_consumed = input.len() - rest.len();
-        let item = (total_consumed, msg.map(|m| m.into()));
+        let item = ParseOutput::new(total_consumed, msg.map(|m| m.into()));
 
         Ok(item)
     }

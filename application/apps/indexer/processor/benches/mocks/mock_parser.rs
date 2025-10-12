@@ -1,6 +1,6 @@
 use std::{fmt::Display, iter, marker::PhantomData};
 
-use parsers::{Attachment, LogMessage, Parser};
+use parsers::{Attachment, LogMessage, ParseOutput, Parser};
 use serde::Serialize;
 use std::hint::black_box;
 
@@ -88,7 +88,7 @@ impl<T> MockParser<T> {
         max_count: usize,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<(usize, Option<parsers::ParseYield<MockMessage>>), parsers::Error> {
+    ) -> Result<ParseOutput<MockMessage>, parsers::Error> {
         // Return `Eof` Once the counter reaches max_count.
         if counter >= max_count {
             const ERR: parsers::Error = parsers::Error::Eof;
@@ -109,14 +109,14 @@ impl<T> MockParser<T> {
         } else if black_box(50) > black_box(0) {
             // Only this value will be always returned if the calls counter still smaller than
             // the max value.
-            Ok((
+            Ok(ParseOutput::new(
                 black_box(input.len()),
                 Some(parsers::ParseYield::Message(MockMessage {
                     content: black_box(MSG).into(),
                 })),
             ))
         } else if black_box(20) > black_box(30) {
-            Ok((
+            Ok(ParseOutput::new(
                 black_box(input.len()),
                 Some(parsers::ParseYield::Attachment(Attachment {
                     size: black_box(10),
@@ -128,7 +128,7 @@ impl<T> MockParser<T> {
                 })),
             ))
         } else {
-            Ok((
+            Ok(ParseOutput::new(
                 black_box(input.len()),
                 Some(parsers::ParseYield::MessageAndAttachment((
                     MockMessage {
@@ -150,17 +150,15 @@ impl<T> MockParser<T> {
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
 // inline and the trait method should be always inline. This reduces the noise in the benchmarks.
-impl Parser<MockMessage> for MockParser<IterOnce> {
+impl Parser for MockParser<IterOnce> {
+    type Output = MockMessage;
     /// This will keep returning a valid item result withing an [`iter::once`] until the counter
     /// reaches max count then it will be return [`parsers::Error::Eof`]
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<
-        impl Iterator<Item = (usize, Option<parsers::ParseYield<MockMessage>>)>,
-        parsers::Error,
-    > {
+    ) -> Result<impl Iterator<Item = ParseOutput<MockMessage>>, parsers::Error> {
         self.counter += 1;
 
         let item = Self::inner_parse(self.counter, self.max_count, input, timestamp)?;
@@ -171,17 +169,15 @@ impl Parser<MockMessage> for MockParser<IterOnce> {
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
 // inline and the trait method should be always inline. This reduces the noise in the benchmarks.
-impl Parser<MockMessage> for MockParser<IterMany> {
+impl Parser for MockParser<IterMany> {
+    type Output = MockMessage;
     /// This will keep returning an iterator of multiple valid items until the counter reaches max
     /// count then it will be return [`parsers::Error::Eof`]
     fn parse(
         &mut self,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<
-        impl Iterator<Item = (usize, Option<parsers::ParseYield<MockMessage>>)>,
-        parsers::Error,
-    > {
+    ) -> Result<impl Iterator<Item = ParseOutput<MockMessage>>, parsers::Error> {
         self.counter += 1;
 
         if self.counter >= self.max_count {
