@@ -1,3 +1,5 @@
+//! Definitions of all commands related to unbound (general) session.
+
 mod cancel_test;
 mod checksum;
 mod dlt;

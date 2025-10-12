@@ -1,3 +1,6 @@
+//! Definitions for Operations that forms the public API that will be called
+//! from Electron front-end.
+
 use processor::search::filter::SearchFilter;
 use serde::{Serialize, de::DeserializeOwned};
 use tokio::sync::{mpsc::UnboundedSender, oneshot};

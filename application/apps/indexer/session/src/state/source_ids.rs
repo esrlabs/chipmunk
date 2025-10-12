@@ -1,3 +1,6 @@
+//! Module to handle Source IDs which are their indexes when they are combined
+//! in the same session.
+
 use std::{collections::HashMap, ops::RangeInclusive};
 
 pub struct MappedRanges<'a> {

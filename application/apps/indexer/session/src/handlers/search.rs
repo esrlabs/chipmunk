@@ -1,3 +1,6 @@
+//! Includes the implementation of spawning search task, handling getting the results and
+//! cancelling the task when requested.
+
 use crate::{
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
@@ -10,7 +13,6 @@ use processor::{
         searchers::{self, regular::RegularSearchHolder},
     },
 };
-use std::ops::Range;
 use tokio::{
     select,
     sync::mpsc::{Receiver, Sender, channel},
@@ -25,7 +27,13 @@ type SearchResultChannel = (
     Receiver<(RegularSearchHolder, searchers::regular::SearchResults)>,
 );
 
-#[allow(clippy::type_complexity)]
+#[derive(Debug)]
+struct SearchOutput {
+    matches: Vec<stypes::FilterMatch>,
+    stats: FiltersStats,
+    holder: RegularSearchHolder,
+}
+
 pub async fn execute_search(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
@@ -67,16 +75,7 @@ pub async fn execute_search(
             {}
         });
         let search_results: Option<
-            Result<
-                (
-                    Range<usize>,
-                    usize,
-                    Vec<stypes::FilterMatch>,
-                    FiltersStats,
-                    RegularSearchHolder,
-                ),
-                (Option<RegularSearchHolder>, stypes::NativeError),
-            >,
+            Result<SearchOutput, (Option<RegularSearchHolder>, stypes::NativeError)>,
         > = select! {
             res = async {
                 loop {
@@ -95,7 +94,7 @@ pub async fn execute_search(
                                 })),
                                 |(holder, search_results)| {
                                     match search_results {
-                                        Ok((processed, matches, stats)) => Ok((processed, matches.len(), matches, stats, holder)),
+                                        Ok((_processed, matches, stats)) => Ok(SearchOutput {matches, stats, holder}),
                                         Err(err) => Err((Some(holder), stypes::NativeError {
                                             severity: stypes::Severity::ERROR,
                                             kind: stypes::NativeErrorKind::OperationSearch,
@@ -122,7 +121,13 @@ pub async fn execute_search(
         };
         if let Some(search_results) = search_results {
             match search_results {
-                Ok((_processed, found, matches, stats, holder)) => {
+                Ok(res) => {
+                    let SearchOutput {
+                        matches,
+                        stats,
+                        holder,
+                    } = res;
+                    let found = matches.len();
                     state
                         .set_search_holder(Some(holder), operation_api.id())
                         .await?;

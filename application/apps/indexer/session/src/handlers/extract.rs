@@ -1,3 +1,5 @@
+//! Includes Extractor functions which are used in charts.
+
 use crate::operations::OperationResult;
 
 use processor::search::{extractor::MatchesExtractor, filter::SearchFilter};

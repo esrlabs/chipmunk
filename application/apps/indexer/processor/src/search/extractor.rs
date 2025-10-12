@@ -1,4 +1,4 @@
-//! Extractor operations used in chart functionalities.
+//! Includes Extractor operations which are used in charts.
 
 use crate::search::{error::SearchError, filter, filter::SearchFilter};
 use grep_regex::RegexMatcher;

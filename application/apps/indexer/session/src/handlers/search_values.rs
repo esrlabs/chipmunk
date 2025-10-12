@@ -1,3 +1,6 @@
+//! Includes the implementation of spawning search task for charts, handling getting the results
+//! and cancelling the task when requested.
+
 use crate::{
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,

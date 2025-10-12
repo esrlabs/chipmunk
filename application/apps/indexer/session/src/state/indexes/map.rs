@@ -125,8 +125,7 @@ impl Map {
     }
 
     fn insert_range(&mut self, range: RangeInclusive<u64>, nature: Nature) {
-        let positions = range.collect::<Vec<u64>>();
-        self.insert(&positions, nature);
+        self.insert(range, nature);
     }
 
     fn remove_from(&mut self, position: &u64) -> Result<(), stypes::NativeError> {
@@ -145,12 +144,12 @@ impl Map {
         }
     }
 
-    pub fn insert(&mut self, positions: &[u64], nature: Nature) {
-        positions.iter().for_each(|position| {
-            if let Some(index) = self.indexes.get_mut(position) {
+    pub fn insert(&mut self, positions: impl IntoIterator<Item = u64>, nature: Nature) {
+        positions.into_iter().for_each(|position| {
+            if let Some(index) = self.indexes.get_mut(&position) {
                 index.include(nature);
             } else {
-                self.index_add(*position, nature);
+                self.index_add(position, nature);
             }
         });
     }
@@ -206,10 +205,10 @@ impl Map {
         let distance = end_pos - start_pos;
         if distance <= 1 {
             if !self.indexes.contains_key(&start_pos) {
-                self.insert(&[start_pos], Nature::BREADCRUMB);
+                self.insert([start_pos], Nature::BREADCRUMB);
             }
             if !self.indexes.contains_key(&end_pos) {
-                self.insert(&[end_pos], Nature::BREADCRUMB);
+                self.insert([end_pos], Nature::BREADCRUMB);
             }
             return Ok(());
         }
@@ -234,7 +233,7 @@ impl Map {
                 RangeInclusive::new(moved_start_pos, start_pos + corrected_offset_start),
                 Nature::BREADCRUMB,
             );
-            self.insert(&[middle], Nature::BREADCRUMB_SEPORATOR);
+            self.insert([middle], Nature::BREADCRUMB_SEPORATOR);
             self.insert_range(
                 RangeInclusive::new(end_pos - corrected_offset_end, moved_end_pos),
                 Nature::BREADCRUMB,
@@ -515,7 +514,7 @@ impl Map {
             } else if update_after - update_before > 1 {
                 // Seporator is still needed
                 let middle = (update_after - update_before) / 2 + update_before;
-                self.insert(&[middle], Nature::BREADCRUMB_SEPORATOR);
+                self.insert([middle], Nature::BREADCRUMB_SEPORATOR);
             }
         } else if before.is_some() && after.is_none() {
             let before_pos = Option::unwrap(before);
@@ -535,7 +534,7 @@ impl Map {
                 });
             } else if seporator - updated > 1 {
                 // Seporator is still needed
-                self.insert(&[seporator], Nature::BREADCRUMB_SEPORATOR);
+                self.insert([seporator], Nature::BREADCRUMB_SEPORATOR);
             }
         } else {
             // before.is_none() && after.is_some()
@@ -556,7 +555,7 @@ impl Map {
                 });
             } else if seporator - updated > 1 {
                 // Seporator is still needed
-                self.insert(&[seporator], Nature::BREADCRUMB_SEPORATOR);
+                self.insert([seporator], Nature::BREADCRUMB_SEPORATOR);
             }
         }
         Ok(())

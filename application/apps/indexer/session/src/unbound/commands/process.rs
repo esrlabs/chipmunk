@@ -1,3 +1,6 @@
+//! Module to spawn process commands with configurations for different
+//! operation systems.
+
 use crate::unbound::signal::Signal;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;

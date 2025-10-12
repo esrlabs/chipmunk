@@ -1,3 +1,6 @@
+//! Includes functionalities needed for handling one logs session, from starting it
+//! to listening to incoming operations and updating the state, to destroying it at the end.
+
 use crate::{
     operations,
     operations::Operation,
@@ -41,7 +44,7 @@ impl Session {
     /// use `uuid` as the handle to refer to this session
     /// This method will spawn a new task that runs the operations loop and
     /// the state loop.
-    /// The operations loop is the entry point to pass opartion requests from an outside thread.
+    /// The operations loop is the entry point to pass operations requests from an outside thread.
     /// The state loop is responsible for all state manipulations of the session.
     ///
     pub async fn new(
@@ -127,6 +130,7 @@ impl Session {
         }
     }
 
+    /// Runs the provided future until it's finished, sending stop signal on errors.
     async fn run(
         tx_operations: &UnboundedSender<Operation>,
         destroying: &CancellationToken,

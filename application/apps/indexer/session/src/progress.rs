@@ -1,3 +1,5 @@
+//! Includes functionality to keep track on the current progress of the on-going tasks.
+
 use crate::TRACKER_CHANNEL;
 use log::{error, info};
 use std::collections::HashMap;

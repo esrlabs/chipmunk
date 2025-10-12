@@ -1,3 +1,5 @@
+//! Module to deal with parsed numeric values to be used with graphs.
+
 use log::{debug, error};
 use processor::search::searchers::values::ValueSearchMatch;
 use std::{collections::HashMap, ops::RangeInclusive};
@@ -24,11 +26,28 @@ impl From<ValuesError> for stypes::NativeError {
     }
 }
 
+#[derive(Debug, Clone)]
+struct GraphSegment {
+    min: f64,
+    max: f64,
+    data_points: Vec<CandlePoint>,
+}
+
+impl GraphSegment {
+    fn new(min: f64, max: f64, data_points: Vec<CandlePoint>) -> Self {
+        Self {
+            min,
+            max,
+            data_points,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Values {
     #[allow(clippy::type_complexity)]
     /// maps the dataset id to (min_y, max_y, list of data-points)
-    values: HashMap<u8, (f64, f64, Vec<CandlePoint>)>,
+    values: HashMap<u8, GraphSegment>,
     errors: HashMap<u64, Vec<(u8, String)>>,
     tx_callback_events: Option<UnboundedSender<stypes::CallbackEvent>>,
 }
@@ -59,7 +78,8 @@ impl Values {
                 acc.push((*p).into());
                 acc
             });
-            self.values.insert(value_set_id, (min, max, candle_points));
+            self.values
+                .insert(value_set_id, GraphSegment::new(min, max, candle_points));
         }
         self.notify(false);
     }
@@ -69,22 +89,32 @@ impl Values {
         for (value_set_id, vs) in values {
             let upd_min = Values::min(&vs);
             let upd_max = Values::max(&vs);
-            if let Some((min, max, values)) = self.values.get_mut(&value_set_id) {
+            if let Some(graph_segment) = self.values.get_mut(&value_set_id) {
+                let GraphSegment {
+                    min,
+                    max,
+                    data_points,
+                } = graph_segment;
+
                 for v in vs {
-                    values.push(v.into())
+                    data_points.push(v.into())
                 }
                 *min = if &upd_min < min { upd_min } else { *min };
                 *max = if &upd_max > max { upd_max } else { *max };
             } else {
                 self.values.insert(
                     value_set_id,
-                    (upd_min, upd_max, vs.into_iter().map(|v| v.into()).collect()),
+                    GraphSegment::new(upd_min, upd_max, vs.into_iter().map(|v| v.into()).collect()),
                 );
             }
         }
         self.notify(false);
     }
 
+    /// Gets the candle points for each filter.
+    ///
+    /// # Returns
+    /// Map between the dataset id and its corresponding candle points on success.
     pub(crate) fn get(
         &self,
         frame: Option<RangeInclusive<u64>>,
@@ -101,7 +131,12 @@ impl Values {
             &self.values
         };
         let mut datasets: HashMap<u8, Vec<CandlePoint>> = HashMap::new();
-        excerpt.iter().for_each(|(k, (min, max, fragment))| {
+        excerpt.iter().for_each(|(k, graph_segment)| {
+                let GraphSegment {
+                    min,
+                    max,
+                    data_points: fragment,
+                } = graph_segment;
             let delta_y = max - min;
             let epsilon = delta_y / 10.0;
             let now_reduce = Instant::now();
@@ -132,11 +167,10 @@ impl Values {
         Ok(datasets)
     }
 
-    #[allow(clippy::type_complexity)]
     fn get_fragment(
         &self,
         frame: Option<RangeInclusive<u64>>,
-    ) -> Result<Option<HashMap<u8, (f64, f64, Vec<CandlePoint>)>>, ValuesError> {
+    ) -> Result<Option<HashMap<u8, GraphSegment>>, ValuesError> {
         match frame {
             None => Ok(None),
             Some(frame) => {
@@ -147,11 +181,16 @@ impl Values {
                         frame.end()
                     )));
                 }
-                let mut excerpt: HashMap<u8, (f64, f64, Vec<CandlePoint>)> = HashMap::new();
-                self.values.iter().for_each(|(k, (min, max, v))| {
+                let mut excerpt: HashMap<u8, GraphSegment> = HashMap::new();
+                self.values.iter().for_each(|(k, graph_segment)| {
+                    let GraphSegment {
+                        min,
+                        max,
+                        data_points,
+                    } = graph_segment;
                     let mut included: Vec<CandlePoint> = vec![];
                     let mut borders: (Option<&CandlePoint>, Option<&CandlePoint>) = (None, None);
-                    for point in v {
+                    for point in data_points {
                         if point.row_inside(&frame) {
                             included.push(Clone::clone(point));
                         } else if point.row_before(&frame) {
@@ -181,7 +220,7 @@ impl Values {
                         included.push(CandlePoint::between(left, right, frame.start()));
                         included.push(CandlePoint::between(left, right, frame.end()));
                     }
-                    excerpt.insert(*k, (*min, *max, included));
+                    excerpt.insert(*k, GraphSegment::new(*min, *max, included));
                 });
                 Ok(Some(excerpt))
             }
@@ -209,7 +248,9 @@ impl Values {
                 None
             } else {
                 let mut map: HashMap<u8, Point2D> = HashMap::new();
-                self.values.iter().for_each(|(k, (min, max, _v))| {
+                self.values.iter().for_each(|(k, graph_segment)| {
+                    let GraphSegment { min, max, .. } = graph_segment;
+
                     map.insert(*k, (*min, *max));
                 });
                 Some(map)
