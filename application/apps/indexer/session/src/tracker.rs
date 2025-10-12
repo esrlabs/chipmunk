@@ -1,3 +1,6 @@
+//! Contains the functionality for adding and tracking all operations running in core
+//! including cancelling them as well.
+
 use crate::{operations::OperationStat, progress::ProgressProviderAPI, state::SessionStateAPI};
 use log::{debug, error};
 use sources::sde::SdeSender;

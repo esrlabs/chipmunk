@@ -1,3 +1,5 @@
+//! Includes Definitions for searchers in sessions with their current state.
+
 use processor::search::searchers::{
     self, BaseSearcher, SearchState,
     regular::{self, RegularSearchState},
@@ -13,17 +15,17 @@ pub enum SearcherState<State: SearchState> {
 }
 
 impl<State: SearchState> SearcherState<State> {
-    pub fn is_using(&self) -> bool {
+    pub fn is_in_use(&self) -> bool {
         matches!(self, SearcherState::<_>::InUse)
     }
-    pub fn in_use(&mut self) {
+    pub fn set_in_use(&mut self) {
         *self = SearcherState::<_>::InUse;
     }
-    pub fn not_inited(&mut self) {
+    pub fn set_not_inited(&mut self) {
         *self = SearcherState::<_>::NotInited;
     }
 
-    pub fn set(&mut self, seacher: BaseSearcher<State>) {
+    pub fn set_searcher(&mut self, seacher: BaseSearcher<State>) {
         *self = SearcherState::<_>::Available(seacher);
     }
 }

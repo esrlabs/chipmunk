@@ -1,3 +1,7 @@
+//! Contains functions to start an observe session.
+//! Observe session is the main session where logs are parsed if needed and displayed
+//! to users so they can analyze them.
+
 use crate::{
     handlers::observing,
     operations::{OperationAPI, OperationResult},

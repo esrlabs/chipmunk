@@ -1,6 +1,8 @@
 use super::nature::Nature;
 use std::ops::RangeInclusive;
 
+/// Represents a (vertical) frame search results view containing the indices
+/// of the lines and their nature (kind).
 #[derive(Debug, Default)]
 pub struct Frame {
     pub indexes: Vec<(u64, Nature)>,
@@ -23,7 +25,6 @@ impl Frame {
         self.indexes.len()
     }
 
-    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -49,7 +50,11 @@ impl Frame {
         ranges
     }
 
-    pub fn naturalize(
+    /// Sets the nature of each element of the provided elements to the nature
+    /// of their matching indices.
+    /// This function will error if the length of the provided elements and doesn't
+    /// match the length of the indices.
+    pub fn set_elements_nature(
         &self,
         elements: &mut [stypes::GrabbedElement],
     ) -> Result<(), stypes::NativeError> {

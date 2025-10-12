@@ -1,3 +1,6 @@
+//! Function to cleanup temp files and directories created by Chipmunk and haven't
+//! gotten cleaned up properly.
+
 use std::{
     fs, io,
     path::Path,

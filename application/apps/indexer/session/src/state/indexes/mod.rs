@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 pub mod controller;
 pub mod frame;
 pub mod keys;

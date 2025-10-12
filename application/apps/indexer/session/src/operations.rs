@@ -1,3 +1,6 @@
+//! Operations definitions and their main functionalities, additionally it includes
+//! Management of listening to incoming sessions then invoking them.
+
 use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
@@ -495,6 +498,8 @@ pub fn uuid_from_str(operation_id: &str) -> Result<Uuid, stypes::ComputationErro
     }
 }
 
+/// Listen to incoming operations requests in the session and execute them,
+/// closing the state and trackers once operations are done.
 pub async fn run(
     mut rx_operations: UnboundedReceiver<Operation>,
     state_api: SessionStateAPI,

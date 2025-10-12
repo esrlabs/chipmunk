@@ -8,12 +8,8 @@ use sources::binary::{
     raw::BinaryByteSource,
 };
 use std::{fs::File, path::Path};
-use tokio::{
-    join, select,
-    sync::mpsc::{Receiver, Sender, channel},
-};
+use tokio::{join, select, sync::mpsc::channel};
 
-#[allow(clippy::type_complexity)]
 pub async fn observe_file(
     operation_api: OperationAPI,
     state: SessionStateAPI,
@@ -23,10 +19,7 @@ pub async fn observe_file(
     parser: &stypes::ParserType,
 ) -> OperationResult<()> {
     let source_id = state.add_source(uuid).await?;
-    let (tx_tail, mut rx_tail): (
-        Sender<Result<(), tail::Error>>,
-        Receiver<Result<(), tail::Error>>,
-    ) = channel(1);
+    let (tx_tail, mut rx_tail) = channel(1);
     match file_format {
         stypes::FileFormat::Binary => {
             let source = BinaryByteSource::new(input_file(filename)?);

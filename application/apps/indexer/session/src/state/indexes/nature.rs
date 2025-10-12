@@ -1,3 +1,6 @@
+//! Module for the definitions of the nature (kind) of the searches.
+
+/// Represents the nature (kind) of the search.
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Nature(u8);
 impl Nature {

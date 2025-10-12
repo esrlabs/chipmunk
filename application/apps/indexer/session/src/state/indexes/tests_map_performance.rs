@@ -18,8 +18,9 @@ fn test_build() {
             matches.push(p)
         }
     }
+    let matches_cloned = matches.clone();
     let start = Instant::now();
-    map.insert(&matches, Nature::SEARCH);
+    map.insert(matches_cloned, Nature::SEARCH);
     let duration = start.elapsed();
     println!(
         "[UI: click]....................... 1. set initial search matches (count of matches = {}) for stream {len} rows: {} ms; map len = {}",

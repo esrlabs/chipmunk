@@ -1,5 +1,10 @@
 use std::ops::RangeInclusive;
 
+/// A struct to collect the line keys (indices) to match the keys in map
+/// in search controller.
+///
+/// This struct sort the items if needed to perform binary searches on getting
+/// and removing operations to do them more efficiently especially on ranges.
 #[derive(Debug)]
 pub struct Keys {
     keys: Vec<u64>,
@@ -86,7 +91,7 @@ impl Keys {
 
     pub fn sort(&mut self) {
         if !self.sorted {
-            self.keys.sort();
+            self.keys.sort_unstable();
             self.sorted = true;
         }
     }
@@ -115,6 +120,7 @@ impl Keys {
         })
     }
 
+    /// Gets positions before and after the provided position if exist.
     pub fn get_positions_around(
         &mut self,
         position: &u64,

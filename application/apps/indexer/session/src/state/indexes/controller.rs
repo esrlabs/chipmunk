@@ -1,3 +1,5 @@
+//! Includes the definitions and implementation of controller of search results view.
+
 use super::{frame::Frame, map::Map, nature::Nature};
 use log::error;
 use std::ops::RangeInclusive;
@@ -6,6 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 const MIN_BREADCRUMBS_DISTANCE: u64 = 4;
 const MIN_BREADCRUMBS_OFFSET: u64 = 2;
 
+/// Represent the modes of  search results view.
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -13,6 +16,7 @@ pub enum Mode {
     Breadcrumbs = 1u8,
 }
 
+/// The controller of search results view.
 #[derive(Debug)]
 pub struct Controller {
     map: Map,
@@ -53,26 +57,32 @@ impl Controller {
     }
 
     pub(crate) fn add_bookmark(&mut self, row: u64) -> Result<(), stypes::NativeError> {
-        if matches!(self.mode, Mode::Breadcrumbs) {
-            self.map.breadcrumbs_insert_and_update(
-                &[row],
-                Nature::BOOKMARK,
-                MIN_BREADCRUMBS_DISTANCE,
-                MIN_BREADCRUMBS_OFFSET,
-            )?;
-        } else {
-            self.map.insert(&[row], Nature::BOOKMARK);
+        match self.mode {
+            Mode::Regular => {
+                self.map.insert([row], Nature::BOOKMARK);
+            }
+            Mode::Breadcrumbs => {
+                self.map.breadcrumbs_insert_and_update(
+                    &[row],
+                    Nature::BOOKMARK,
+                    MIN_BREADCRUMBS_DISTANCE,
+                    MIN_BREADCRUMBS_OFFSET,
+                )?;
+            }
         }
         self.notify();
         Ok(())
     }
 
     pub(crate) fn remove_bookmark(&mut self, row: u64) -> Result<(), stypes::NativeError> {
-        if matches!(self.mode, Mode::Breadcrumbs) {
-            self.map
-                .breadcrumbs_drop_and_update(&[row], Nature::BOOKMARK)?;
-        } else {
-            self.map.remove(&[row], Nature::BOOKMARK);
+        match self.mode {
+            Mode::Regular => {
+                self.map.remove(&[row], Nature::BOOKMARK);
+            }
+            Mode::Breadcrumbs => {
+                self.map
+                    .breadcrumbs_drop_and_update(&[row], Nature::BOOKMARK)?;
+            }
         }
 
         self.notify();
@@ -80,18 +90,21 @@ impl Controller {
     }
 
     pub(crate) fn set_bookmarks(&mut self, rows: Vec<u64>) -> Result<(), stypes::NativeError> {
-        if matches!(self.mode, Mode::Breadcrumbs) {
-            self.map
-                .breadcrumbs_drop_and_update(&rows, Nature::BOOKMARK)?;
-            self.map.breadcrumbs_insert_and_update(
-                &rows,
-                Nature::BOOKMARK,
-                MIN_BREADCRUMBS_DISTANCE,
-                MIN_BREADCRUMBS_OFFSET,
-            )?;
-        } else {
-            self.map.remove(&rows, Nature::BOOKMARK);
-            self.map.insert(&rows, Nature::BOOKMARK);
+        match self.mode {
+            Mode::Regular => {
+                self.map.remove(&rows, Nature::BOOKMARK);
+                self.map.insert(rows, Nature::BOOKMARK);
+            }
+            Mode::Breadcrumbs => {
+                self.map
+                    .breadcrumbs_drop_and_update(&rows, Nature::BOOKMARK)?;
+                self.map.breadcrumbs_insert_and_update(
+                    &rows,
+                    Nature::BOOKMARK,
+                    MIN_BREADCRUMBS_DISTANCE,
+                    MIN_BREADCRUMBS_OFFSET,
+                )?;
+            }
         }
         self.notify();
         Ok(())
@@ -131,8 +144,8 @@ impl Controller {
                 .union(Nature::BREADCRUMB)
                 .union(Nature::BREADCRUMB_SEPORATOR),
         );
-        let collected = matches.iter().map(|f| f.index).collect::<Vec<u64>>();
-        self.map.insert(&collected, Nature::SEARCH);
+        let collected = matches.iter().map(|f| f.index);
+        self.map.insert(collected, Nature::SEARCH);
         if matches!(self.mode, Mode::Breadcrumbs) {
             self.map
                 .breadcrumbs_build(MIN_BREADCRUMBS_DISTANCE, MIN_BREADCRUMBS_OFFSET)?;
@@ -153,10 +166,8 @@ impl Controller {
                 2,
             )?
         } else {
-            self.map.insert(
-                &matches.iter().map(|f| f.index).collect::<Vec<u64>>(),
-                Nature::SEARCH,
-            );
+            self.map
+                .insert(matches.iter().map(|f| f.index), Nature::SEARCH);
         }
         self.notify();
         Ok(())
@@ -199,7 +210,7 @@ impl Controller {
         self.map.len()
     }
 
-    #[must_use]
+    #[allow(dead_code)]
     pub(crate) fn is_empty(&self) -> bool {
         self.len() == 0
     }

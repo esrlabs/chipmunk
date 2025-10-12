@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+/// Collection of executed observe (source + parser) operations.
 #[derive(Debug, Clone)]
 pub struct Observed {
     pub executed: Vec<stypes::ObserveOptions>,
@@ -14,6 +15,7 @@ impl Observed {
         self.executed.push(options);
     }
 
+    /// Check any of the executed observe operations supports file (raw) export function.
     pub fn is_file_based_export_possible(&self) -> bool {
         !self.executed.iter().any(|opt| {
             matches!(opt.origin, stypes::ObserveOrigin::Stream(..))
@@ -21,6 +23,7 @@ impl Observed {
         })
     }
 
+    /// Get sources of type file form the already executed observe operations.
     pub fn get_files(&self) -> Vec<(stypes::ParserType, stypes::FileFormat, PathBuf)> {
         let mut files: Vec<(stypes::ParserType, stypes::FileFormat, PathBuf)> = vec![];
         self.executed.iter().for_each(|opt| match &opt.origin {

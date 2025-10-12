@@ -1,3 +1,7 @@
+//! Includes the definitions and functionalities around session file, which is
+//! the file where the parsed logs in their text format will be stored temporally
+//! during the session.
+
 use super::source_ids::SourceIDs;
 use crate::paths;
 use log::debug;
@@ -65,9 +69,9 @@ impl SessionFile {
         }
     }
 
-    pub fn init(&mut self, mut filename: Option<PathBuf>) -> Result<(), stypes::NativeError> {
+    pub fn init(&mut self, filename: Option<PathBuf>) -> Result<(), stypes::NativeError> {
         if self.grabber.is_none() {
-            let filename = if let Some(filename) = filename.take() {
+            let filename = if let Some(filename) = filename {
                 self.filename = Some(SessionFileOrigin::Linked(filename.clone()));
                 filename
             } else {
@@ -96,33 +100,22 @@ impl SessionFile {
     }
 
     #[allow(clippy::len_without_is_empty)]
-    pub fn len(&mut self) -> u64 {
-        if let Some(ref grabber) = self.grabber {
-            if let Some(md) = grabber.get_metadata() {
-                md.line_count as u64
-            } else {
-                0
-            }
-        } else {
-            0
-        }
+    pub fn len(&self) -> u64 {
+        self.grabber
+            .as_ref()
+            .and_then(|grapper| grapper.get_metadata())
+            .map(|md| md.line_count as u64)
+            .unwrap_or_default()
     }
 
     /// Returns amount of bytes, which was processed by grabber
     pub fn read_bytes(&mut self) -> u64 {
-        if let Some(ref grabber) = self.grabber {
-            if let Some(md) = grabber.get_metadata() {
-                if let Some(slot) = md.slots.last() {
-                    slot.bytes.end()
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        } else {
-            0
-        }
+        self.grabber
+            .as_ref()
+            .and_then(|grabber| grabber.get_metadata())
+            .and_then(|md| md.slots.last())
+            .map(|slot| slot.bytes.end())
+            .unwrap_or_default()
     }
 
     pub fn write(
@@ -134,22 +127,20 @@ impl SessionFile {
         if !self.sources.is_source_same(source_id) {
             self.flush(state_cancellation_token.clone(), false)?;
         }
-        if let Some(writer) = &mut self.writer {
-            writer.write_all(msg.as_bytes())?;
-            self.sources.source_update(source_id);
-            if self.last_message_timestamp.elapsed().as_millis() > FLUSH_DATA_IN_MS {
-                self.flush(state_cancellation_token, true)
-            } else {
-                Ok(SessionFileState::MaybeChanged)
-            }
+        let writer = self.writer.as_mut().ok_or_else(|| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::Grabber,
+            message: Some(String::from(
+                "Session file isn't assigned yet, cannot flush",
+            )),
+        })?;
+        writer.write_all(msg.as_bytes())?;
+
+        self.sources.source_update(source_id);
+        if self.last_message_timestamp.elapsed().as_millis() > FLUSH_DATA_IN_MS {
+            self.flush(state_cancellation_token, true)
         } else {
-            Err(stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Grabber,
-                message: Some(String::from(
-                    "Session file isn't assigned yet, cannot flush",
-                )),
-            })
+            Ok(SessionFileState::MaybeChanged)
         }
     }
 

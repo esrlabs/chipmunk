@@ -1,3 +1,5 @@
+//! Module for handling exporting part or full content of files in raw format.
+
 use crate::{operations::OperationResult, state::SessionStateAPI};
 use indexer_base::config::IndexSection;
 use log::debug;
@@ -25,6 +27,7 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
+/// Export part of the full content of the session source files in raw format.
 pub async fn execute_export(
     cancel: &CancellationToken,
     state: SessionStateAPI,
@@ -67,10 +70,7 @@ pub async fn execute_export(
             return Ok(Some(false));
         };
         indexes.iter_mut().for_each(|index| index.left(read));
-        indexes = indexes
-            .into_iter()
-            .filter(|index| !index.is_empty())
-            .collect::<Vec<IndexSection>>();
+        indexes.retain(|index| !index.is_empty());
     }
     Ok(Some(true))
 }
@@ -173,7 +173,7 @@ async fn export<S: ByteSource>(
     }
 }
 
-pub async fn export_runner<P, D, T>(
+async fn export_runner<P, D, T>(
     producer: MessageProducer<T, P, D>,
     dest: &Path,
     sections: &Vec<IndexSection>,

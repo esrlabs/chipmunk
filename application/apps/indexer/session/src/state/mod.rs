@@ -46,6 +46,7 @@ pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 use stypes::{FilterMatch, GrabbedElement};
 pub use values::{Values, ValuesError};
 
+/// Status of session state.
 #[derive(Debug)]
 pub enum Status {
     Open,
@@ -54,7 +55,11 @@ pub enum Status {
 
 #[derive(Debug)]
 pub struct SessionState {
+    /// The file containing the logs of the current session in text format.
+    /// It will be the intermediate parsed log file or the direct text log files
+    /// in case of text files.
     pub session_file: SessionFile,
+    /// Collection of executed observe operations.
     pub observed: Observed,
     pub search_map: SearchMap,
     pub indexes: Indexes,
@@ -104,7 +109,7 @@ impl SessionState {
             let mut session_elements = self.session_file.grab(&LineRange::from(range.clone()))?;
             elements.append(&mut session_elements);
         }
-        frame.naturalize(&mut elements)?;
+        frame.set_elements_nature(&mut elements)?;
         Ok(elements)
     }
 
@@ -455,7 +460,7 @@ impl SessionState {
             SearcherState::InUse => Err(stypes::NativeError::channel("Search holder is in use")),
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
-                self.searchers.regular.in_use();
+                self.searchers.regular.set_in_use();
                 Ok(RegularSearchHolder::new(&filename, 0, 0))
             }
         }
@@ -486,7 +491,7 @@ impl SessionState {
             )),
             SearcherState::NotInited => {
                 let filename = self.session_file.filename()?;
-                self.searchers.values.in_use();
+                self.searchers.values.set_in_use();
                 Ok(ValueSearchHolder::new(&filename, 0, 0))
             }
         }
@@ -767,11 +772,11 @@ pub async fn run(
                     })?;
             }
             Api::SetSearchHolder((mut holder, _uuid_for_debug, tx_response)) => {
-                let result = if state.searchers.regular.is_using() {
+                let result = if state.searchers.regular.is_in_use() {
                     if let Some(holder) = holder.take() {
-                        state.searchers.regular.set(holder);
+                        state.searchers.regular.set_searcher(holder);
                     } else {
-                        state.searchers.regular.not_inited();
+                        state.searchers.regular.set_not_inited();
                     }
                     Ok(())
                 } else {
@@ -784,10 +789,10 @@ pub async fn run(
                 })?;
             }
             Api::DropSearch(tx_response) => {
-                let result = if state.searchers.regular.is_using() {
+                let result = if state.searchers.regular.is_in_use() {
                     false
                 } else {
-                    state.searchers.regular.not_inited();
+                    state.searchers.regular.set_not_inited();
                     state.search_map.set(None, None);
                     state.indexes.drop_search()?;
                     true
@@ -824,11 +829,11 @@ pub async fn run(
                     })?;
             }
             Api::SetSearchValuesHolder((mut holder, _uuid_for_debug, tx_response)) => {
-                let result = if state.searchers.values.is_using() {
+                let result = if state.searchers.values.is_in_use() {
                     if let Some(holder) = holder.take() {
-                        state.searchers.values.set(holder);
+                        state.searchers.values.set_searcher(holder);
                     } else {
-                        state.searchers.values.not_inited();
+                        state.searchers.values.set_not_inited();
                     }
                     Ok(())
                 } else {
@@ -856,10 +861,10 @@ pub async fn run(
                 })?;
             }
             Api::DropSearchValues(tx_response) => {
-                let result = if state.searchers.values.is_using() {
+                let result = if state.searchers.values.is_in_use() {
                     false
                 } else {
-                    state.searchers.values.not_inited();
+                    state.searchers.values.set_not_inited();
                     true
                 };
                 state.values.drop();

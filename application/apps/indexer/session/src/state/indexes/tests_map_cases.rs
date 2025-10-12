@@ -57,7 +57,7 @@ impl MapTest {
                 self.map.breadcrumbs_expand(sep, offset, above).unwrap();
             }
             Action::Search(matches) => {
-                self.map.insert(&matches, Nature::SEARCH);
+                self.map.insert(matches, Nature::SEARCH);
             }
             Action::AppendSearch(matches) => {
                 self.map
@@ -75,7 +75,7 @@ impl MapTest {
                     .unwrap();
             }
             Action::Insert((pos, nature)) => {
-                self.map.insert(&[pos], nature);
+                self.map.insert([pos], nature);
             }
             Action::Frame((range, control)) => {
                 let mut range = if let Some(range) = range {

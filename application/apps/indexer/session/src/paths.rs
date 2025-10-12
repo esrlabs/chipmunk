@@ -1,3 +1,5 @@
+//! Contains the paths for chipmunk home directory and it's sub-directories.
+
 use dirs;
 use std::path::PathBuf;
 

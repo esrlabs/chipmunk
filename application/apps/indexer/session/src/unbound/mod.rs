@@ -1,3 +1,9 @@
+//! Contains implementation for general functionalities in Chipmunk that are not related to logs
+//! processing and analyzing sessions.
+//!
+//! It includes starting up of chipmunk with its needed components, alongside with the definitions
+//! of the available parsers and sources, and plugins management.
+
 pub mod api;
 mod cleanup;
 pub mod commands;
