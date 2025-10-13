@@ -1,3 +1,13 @@
+# 3.19.1 (13.10.2025)
+
+## Fixes
+- Fixed issue where export as table for binary sources (DLT, SomeIP, etc.) was exporting empty content.
+- Prevented duplicating filter presets when applying them.
+
+## Changes
+- Remove all remaining automatic update artifacts on startup.
+- Dropdown texts changed to Title Case.
+
 # 3.19.0 (26.09.2025)
 
 ## Features
