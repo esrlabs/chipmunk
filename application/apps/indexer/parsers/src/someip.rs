@@ -36,6 +36,20 @@ pub struct FibexMetadata {
     types: Mutex<FibexTypeCache>,
 }
 
+// SAFETY:
+// The `FibexModel` field contains `std::rc::Rc` pointers, which makes
+// `FibexMetadata` not implicitly `Send + Sync`.
+//
+// This implementation is sound as long as the initialization of the `FibexModel`
+// is a single, BLOCKING function that runs entirely on one thread. After this
+// point, the `model` field MUST be treated as immutable to prevent data races
+// on the `Rc` reference counts.
+//
+// All other fields are thread-safe as they are protected by a `Mutex`.
+unsafe impl Send for FibexMetadata {}
+// SAFETY: Same as above
+unsafe impl Sync for FibexMetadata {}
+
 impl FibexMetadata {
     /// Returns a new meta-data from the given fibex-files.
     pub fn from_fibex_files(paths: Vec<PathBuf>) -> Option<Self> {
@@ -110,9 +124,6 @@ impl FibexMetadata {
         None
     }
 }
-
-unsafe impl Send for FibexMetadata {}
-unsafe impl Sync for FibexMetadata {}
 
 /// A cache for service indexes within a model.
 #[derive(Default)]
@@ -283,9 +294,6 @@ impl SomeipParser {
         }
     }
 }
-
-unsafe impl Send for SomeipParser {}
-unsafe impl Sync for SomeipParser {}
 
 impl SingleParser<SomeipLogMessage> for SomeipParser {
     const MIN_MSG_LEN: usize = MIN_MSG_LEN;

@@ -3,6 +3,9 @@ name = "dlt-tools"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true 
+
 [dependencies]
 dlt-core.workspace = true
 indexer_base = { path = "../../indexer_base" }

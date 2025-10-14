@@ -216,12 +216,6 @@ impl ByteSource for SerialSource {
     }
 }
 
-#[cfg(target_os = "windows")]
-unsafe impl Send for SerialSource {}
-
-#[cfg(target_os = "windows")]
-unsafe impl Sync for SerialSource {}
-
 /*
 #[tokio::test]
 async fn test_serial() {
