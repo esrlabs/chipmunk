@@ -27,6 +27,25 @@ version = "4.0.0"
 authors = ["esrlabs.com"]
 
 [workspace.dependencies]
+
+# Internal crates
+app = { path = "gui/app" }
+dlt-tools = { path = "addons/dlt-tools"}
+someip-tools = { path = "addons/someip-tools"}
+file-tools = { path = "addons/file-tools"}
+shell-tools = { path = "addons/shell-tools"}
+text_grep = { path = "addons/text_grep"}
+bufread = { path = "addons/bufread"}
+indexer_base = { path = "indexer_base"}
+merging = { path = "merging"}
+parsers = { path = "parsers"}
+plugins_host = { path = "plugins_host"}
+processor = { path = "processor"}
+session = { path = "session"}
+sources = { path = "sources"}
+stypes = { path = "stypes"}
+
+# External dependencies
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
