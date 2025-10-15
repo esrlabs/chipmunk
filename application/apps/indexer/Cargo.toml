@@ -4,7 +4,7 @@
 resolver = "3"
 
 members = [
-    "gui/app",
+    "gui/application",
     "addons/dlt-tools",
     "addons/someip-tools",
     "addons/file-tools",
@@ -28,7 +28,7 @@ authors = ["esrlabs.com"]
 [workspace.dependencies]
 
 # Internal crates
-app = { path = "gui/app" }
+application = { path = "gui/application" }
 dlt-tools = { path = "addons/dlt-tools"}
 someip-tools = { path = "addons/someip-tools"}
 file-tools = { path = "addons/file-tools"}
