@@ -14,7 +14,7 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 tokio = { workspace = true, features = ["full"] }
-bufread = { path = "../bufread" }
+bufread.workspace = true
 tokio-util.workspace = true
 grep-searcher.workspace = true
 grep-regex.workspace = true
