@@ -1,7 +1,10 @@
+# TODO AAZ: Resolve all TODOs in this file before final merge.
+
 [workspace]
 resolver = "3"
 
 members = [
+    "gui/app",
     "addons/dlt-tools",
     "addons/someip-tools",
     "addons/file-tools",
@@ -16,6 +19,11 @@ members = [
     "sources",
     "stypes"
 ]
+
+[workspace.package]
+edition = "2024"
+version = "4.0.0"
+authors = ["esrlabs.com"]
 
 [workspace.dependencies]
 log = "0.4"
@@ -43,6 +51,11 @@ anyhow = "1.0"
 toml = "0.8"
 blake3 = "1.8"
 
+clap = { version = "4", features = ["derive"] }
+
+egui = "0.33"
+eframe = { version = "0.33", default-features = false }
+
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -52,19 +65,28 @@ proptest = "1.6"
 [workspace.lints.clippy]
 undocumented_unsafe_blocks = "deny"
 
+# Optimize all dependencies even in debug builds (does not affect workspace packages):
+# This makes initial clean build slower, but doesn't affect tests.
+# TODO: Decide if upgrading all packages compared to egui ones only.
+# [profile.dev.package."*"]
+# opt-level = 2
+
 # `insta` crate and its dependency `similar` will be compiled once and run many times, 
 # therefore it's suggested to compile them with more optimizations for faster runs.
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
+# NOTE: For now I'm keeping the optimizations for egui only.
+egui.opt-level = 2
+eframe.opt-level = 2
 
+[profile.test.package]
 # Proptest and its random number generator can be CPU intensive, therefore setting their optimizations level 
 # to max will have significant performance improvement for the tests.
-[profile.test.package.proptest]
-opt-level = 3
-
-[profile.test.package.rand_chacha]
-opt-level = 3
+proptest.opt-level = 3
+rand_chacha.opt-level = 3
+insta.opt-level = 3
+similar.opt-level = 3
 
 # only uncomment when profiling
 # [profile.release]

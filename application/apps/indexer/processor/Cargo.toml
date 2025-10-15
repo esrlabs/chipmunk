@@ -1,8 +1,8 @@
 [package]
 name = "processor"
-version = "0.2.0"
 authors = ["esrlabs.com"]
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [lints]
 workspace = true 
