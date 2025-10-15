@@ -381,7 +381,7 @@ dependencies = [
 
 [[package]]
 name = "bufread"
-version = "0.1.1"
+version = "4.0.0"
 
 [[package]]
 name = "bumpalo"
@@ -1140,7 +1140,7 @@ dependencies = [
 
 [[package]]
 name = "file-tools"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "anyhow",
 ]
@@ -1646,7 +1646,7 @@ dependencies = [
 
 [[package]]
 name = "indexer_base"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "log",
  "serde",
@@ -1983,7 +1983,7 @@ dependencies = [
 
 [[package]]
 name = "merging"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "log",
  "serde",
@@ -2347,7 +2347,7 @@ dependencies = [
 
 [[package]]
 name = "parsers"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "byteorder",
  "chrono",
@@ -2451,7 +2451,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "plugins_host"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -2527,7 +2527,7 @@ dependencies = [
 
 [[package]]
 name = "processor"
-version = "0.2.0"
+version = "4.0.0"
 dependencies = [
  "bincode",
  "bufread",
@@ -2981,7 +2981,7 @@ dependencies = [
 
 [[package]]
 name = "session"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "blake3",
  "crossbeam-channel",
@@ -3125,7 +3125,7 @@ dependencies = [
 
 [[package]]
 name = "someip-tools"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "nom",
  "thiserror 2.0.12",
@@ -3133,7 +3133,7 @@ dependencies = [
 
 [[package]]
 name = "sources"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "async-stream",
  "bufread",
@@ -3184,7 +3184,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stypes"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -3278,7 +3278,7 @@ dependencies = [
 
 [[package]]
 name = "text_grep"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "bufread",
  "grep-regex",
