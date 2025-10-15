@@ -45,7 +45,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     name: '-',
                     last: Date.now(),
                     created: Date.now(),
-                    used: 1,
+                    used: 0,
                     uuid: smth.uuid(),
                     preset: false,
                     relations: [],
@@ -59,9 +59,15 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             );
         } else {
             const def = Collections.fromMinifiedStr(JSON.parse(smth.content));
+            // For older filters saved on the user machine we have the used value
+            // set as a 1 by default. To fix the counter we need to reset it to 0
+            // because user didn't use it yet.
+            if (def.used >= 1) {
+                def.used = 0;
+            }
             return new Collections(
                 `Collections:${def.uuid}`,
-                Collections.fromMinifiedStr(JSON.parse(smth.content)),
+                def,
                 storage,
             );
         }
