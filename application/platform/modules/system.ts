@@ -38,7 +38,7 @@ export class Service extends Implementation {
         const inited = this._inited;
         const register = this._register;
         const logger = this._logger;
-        logger.debug(`initing services...`);
+        logger.debug(`Initializing Services...`);
         async function initialize(
             service: Interface & Implementation,
             uuids: string[],

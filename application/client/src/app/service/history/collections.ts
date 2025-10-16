@@ -45,7 +45,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     name: '-',
                     last: Date.now(),
                     created: Date.now(),
-                    used: 0,
+                    used: 1,
                     uuid: smth.uuid(),
                     preset: false,
                     relations: [],

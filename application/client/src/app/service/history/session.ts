@@ -115,6 +115,9 @@ export class HistorySession extends Subscriber {
             related: (): boolean => {
                 const related = this.find().related();
                 if (related !== undefined) {
+                    if (related.used === 0) {
+                        this.storage.collections.used(related.uuid);
+                    }
                     this.setCollection(related);
                     this.collections
                         .applyTo(this.session, this.definitions.list())
