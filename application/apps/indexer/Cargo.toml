@@ -75,6 +75,7 @@ clap = { version = "4", features = ["derive"] }
 
 egui = "0.33"
 eframe = { version = "0.33", default-features = false }
+rfd = "0.17"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
