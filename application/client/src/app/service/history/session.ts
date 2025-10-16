@@ -200,7 +200,7 @@ export class HistorySession extends Subscriber {
     }
 
     public apply(collection: Collections) {
-        let storage_collection = this.storage.collections.get(collection.uuid);
+        const storage_collection = this.storage.collections.get(collection.uuid);
 
         if (storage_collection === undefined) {
             this.storage.collections.insert(collection);
