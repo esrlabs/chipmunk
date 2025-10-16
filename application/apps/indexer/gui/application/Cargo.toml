@@ -19,6 +19,7 @@ clap.workspace = true
 serde.workspace = true
 log.workspace = true
 tokio.workspace = true
+rfd.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true
