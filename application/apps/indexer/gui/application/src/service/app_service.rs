@@ -27,7 +27,9 @@ impl AppService {
 
     async fn handle_command(&mut self, cmd: AppCommand) -> Result<(), CoreError> {
         match cmd {
-            AppCommand::OpenFile => todo!(),
+            AppCommand::OpenFiles(files) => {
+                println!("Got files: {files:?}");
+            }
             AppCommand::Close => {
                 // Do any preparation before closing.
                 self.communication
