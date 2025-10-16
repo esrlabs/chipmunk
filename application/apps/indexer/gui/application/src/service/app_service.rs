@@ -28,7 +28,18 @@ impl AppService {
     async fn handle_command(&mut self, cmd: AppCommand) -> Result<(), CoreError> {
         match cmd {
             AppCommand::OpenFiles(files) => {
-                println!("Got files: {files:?}");
+                log::trace!("Got open files request. Files: {files:?}");
+                for file in files {
+                    let title = file
+                        .file_name()
+                        .map(|name| name.to_string_lossy().to_string())
+                        .unwrap_or_else(|| String::from("Unknown"));
+                    self.communication
+                        .event_tx
+                        .send(AppEvent::CreateSession { title })
+                        .await
+                        .map_err(|err| CoreError::SendEvent(err.0))?;
+                }
             }
             AppCommand::Close => {
                 // Do any preparation before closing.
