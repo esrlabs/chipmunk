@@ -162,8 +162,14 @@ export class StorageCollections {
         if (collection === undefined) {
             return;
         }
-        collection.used += 1;
+        if (collection.used === 0) {
+            collection.used = 1;
+        }
         collection.last = Date.now();
+    }
+
+    public ignoreAll() {
+        this.collections.forEach((c) => (c.used = 0));
     }
 }
 export interface StorageCollections extends LoggerInterface {}

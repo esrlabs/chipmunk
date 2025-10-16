@@ -62,7 +62,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             // For older filters saved on the user machine we have the used value
             // set as a 1 by default. To fix the counter we need to reset it to 0
             // because user didn't use it yet.
-            if (def.used >= 1) {
+            if (def.used > 0) {
                 def.used = 0;
             }
             return new Collections(
@@ -200,6 +200,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         );
     }
 
+    // TODO: Remove this function as this is not used anywhere
     public copy(): Collections {
         const uuid = unique();
         return new Collections(

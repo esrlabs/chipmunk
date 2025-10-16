@@ -200,14 +200,12 @@ export class HistorySession extends Subscriber {
     }
 
     public apply(collection: Collections) {
+        this.storage.collections.ignoreAll();
         const storage_collection = this.storage.collections.get(collection.uuid);
 
         if (storage_collection === undefined) {
             this.storage.collections.insert(collection);
         } 
-        if (storage_collection !== undefined && storage_collection.used > 0) {
-            return;
-        }
         this.storage.collections.used(collection.uuid);
         this.setCollection(collection);
         this.definitions.list().forEach((def) => {

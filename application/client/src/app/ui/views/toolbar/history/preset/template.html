@@ -1,4 +1,4 @@
-<mat-card class="small-title">
+<mat-card class="small-title" [ngClass]="isUsed() ? 'used' : ''">
     <mat-card-title>
         <app-editable-field
             (changed)="onRename($event)"

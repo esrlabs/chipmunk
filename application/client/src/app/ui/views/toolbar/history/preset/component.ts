@@ -84,8 +84,12 @@ export class Preset extends ChangesDetector implements AfterContentInit {
                 this.collections.used
             })`;
         } else {
-            return `${this.collections.name}(${this.collections.used})`;
+            return `${this.collections.name}`;
         }
+    }
+
+    public isUsed(): boolean {
+        return this.collections.used > 0;
     }
 
     public getValue(): string {
