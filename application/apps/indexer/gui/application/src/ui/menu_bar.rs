@@ -1,7 +1,6 @@
-use std::{path::PathBuf, pin::Pin};
+use std::path::PathBuf;
 
 use egui::{MenuBar, Ui};
-use rfd::FileHandle;
 use tokio::sync::mpsc::Sender;
 
 use crate::core::commands::AppCommand;

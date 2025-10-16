@@ -8,7 +8,7 @@ use crate::{
         events::AppEvent,
     },
     state::AppState,
-    ui::UiComponents,
+    ui::{SessionInfo, UiComponents},
 };
 
 const APP_TITLE: &str = "Chipmunk";
@@ -46,20 +46,18 @@ impl ChipmunkApp {
 
     fn spawn_repaint_listner(ctx: egui::Context, mut repaint_rx: watch::Receiver<AppState>) {
         tokio::spawn(async move {
-            loop {
-                match repaint_rx.changed().await {
-                    Ok(()) => ctx.request_repaint(),
-                    Err(err) => {
-                        eprintln!("Communication error with app state channels: {err}");
-                        std::process::exit(1);
-                    }
-                }
+            while let Ok(()) = repaint_rx.changed().await {
+                ctx.request_repaint();
             }
         });
     }
 
     fn handle_event(&mut self, event: AppEvent, ctx: &Context) {
         match event {
+            AppEvent::CreateSession { title } => {
+                let info = SessionInfo { title };
+                self.ui.add_session(info);
+            }
             AppEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
