@@ -4,8 +4,9 @@ use crate::host::{command::HostCommand, data::HostState, event::HostEvent};
 
 const CHANNELS_CAPACITY: usize = 32;
 
+/// Contains host communication channels for the UI to communicate with services.
 #[derive(Debug)]
-pub struct UiCommunication {
+pub struct UiHandle {
     pub senders: UiSenders,
     pub receivers: UiReceivers,
 }
@@ -18,35 +19,37 @@ pub struct UiSenders {
 #[derive(Debug)]
 pub struct UiReceivers {
     pub event_rx: mpsc::Receiver<HostEvent>,
-    pub app_state_rx: watch::Receiver<HostState>,
+    pub host_state_rx: watch::Receiver<HostState>,
 }
 
+/// Contains communication channels for the services to communicate with UI.
 #[derive(Debug)]
-pub struct CoreCommunication {
+pub struct ServiceHandle {
     pub cmd_rx: mpsc::Receiver<HostCommand>,
     pub event_tx: mpsc::Sender<HostEvent>,
-    pub app_state_tx: watch::Sender<HostState>,
+    pub host_state_tx: watch::Sender<HostState>,
 }
 
-pub fn init() -> (UiCommunication, CoreCommunication) {
+/// Initialize communication channels for host application.
+pub fn init(state: HostState) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (event_tx, event_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (app_state_tx, app_state_rx) = watch::channel(HostState::default());
+    let (host_state_tx, host_state_rx) = watch::channel(state);
 
     let senders = UiSenders { cmd_tx };
 
     let receivers = UiReceivers {
         event_rx,
-        app_state_rx,
+        host_state_rx,
     };
 
-    let ui_comm = UiCommunication { senders, receivers };
+    let ui_handle = UiHandle { senders, receivers };
 
-    let state_comm = CoreCommunication {
+    let service_handle = ServiceHandle {
         cmd_rx,
         event_tx,
-        app_state_tx,
+        host_state_tx,
     };
 
-    (ui_comm, state_comm)
+    (ui_handle, service_handle)
 }
