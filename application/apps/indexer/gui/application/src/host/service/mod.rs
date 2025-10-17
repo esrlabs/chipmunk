@@ -1,13 +1,13 @@
-use crate::core::{
-    CoreError, commands::AppCommand, communication::CoreCommunication, events::AppEvent,
+use crate::host::{
+    command::HostCommand, communication::CoreCommunication, error::HostError, event::HostEvent,
 };
 
 #[derive(Debug)]
-pub struct AppService {
+pub struct HostService {
     communication: CoreCommunication,
 }
 
-impl AppService {
+impl HostService {
     pub fn spawn(communication: CoreCommunication) {
         let mut state = Self { communication };
 
@@ -25,9 +25,9 @@ impl AppService {
         }
     }
 
-    async fn handle_command(&mut self, cmd: AppCommand) -> Result<(), CoreError> {
+    async fn handle_command(&mut self, cmd: HostCommand) -> Result<(), HostError> {
         match cmd {
-            AppCommand::OpenFiles(files) => {
+            HostCommand::OpenFiles(files) => {
                 log::trace!("Got open files request. Files: {files:?}");
                 for file in files {
                     let title = file
@@ -36,18 +36,18 @@ impl AppService {
                         .unwrap_or_else(|| String::from("Unknown"));
                     self.communication
                         .event_tx
-                        .send(AppEvent::CreateSession { title })
+                        .send(HostEvent::CreateSession { title })
                         .await
-                        .map_err(|err| CoreError::SendEvent(err.0))?;
+                        .map_err(|err| HostError::SendEvent(err.0))?;
                 }
             }
-            AppCommand::Close => {
+            HostCommand::Close => {
                 // Do any preparation before closing.
                 self.communication
                     .event_tx
-                    .send(AppEvent::Close)
+                    .send(HostEvent::Close)
                     .await
-                    .map_err(|err| CoreError::SendEvent(err.0))?;
+                    .map_err(|err| HostError::SendEvent(err.0))?;
             }
         }
 
