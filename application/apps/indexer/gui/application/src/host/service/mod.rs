@@ -1,26 +1,29 @@
-use crate::host::{
-    command::HostCommand, communication::CoreCommunication, error::HostError, event::HostEvent,
+use crate::{
+    host::{
+        command::HostCommand, communication::ServiceHandle, error::HostError, event::HostEvent,
+    },
+    session::init_session,
 };
 
 #[derive(Debug)]
 pub struct HostService {
-    communication: CoreCommunication,
+    communication: ServiceHandle,
 }
 
 impl HostService {
-    pub fn spawn(communication: CoreCommunication) {
-        let mut state = Self { communication };
+    pub fn spawn(communication: ServiceHandle) {
+        let host = Self { communication };
 
         tokio::spawn(async move {
-            state.run().await;
+            host.run().await;
         });
     }
 
-    async fn run(&mut self) {
+    async fn run(mut self) {
         while let Some(cmd) = self.communication.cmd_rx.recv().await {
             if let Err(err) = self.handle_command(cmd).await {
                 //TODO AAZ: Better error handling.
-                log::error!("Error while handling app commands: {err:?}");
+                log::error!("Error while handling host commands: {err:?}");
             }
         }
     }
@@ -30,13 +33,11 @@ impl HostService {
             HostCommand::OpenFiles(files) => {
                 log::trace!("Got open files request. Files: {files:?}");
                 for file in files {
-                    let title = file
-                        .file_name()
-                        .map(|name| name.to_string_lossy().to_string())
-                        .unwrap_or_else(|| String::from("Unknown"));
+                    let session_info = init_session(file)?;
+
                     self.communication
                         .event_tx
-                        .send(HostEvent::CreateSession { title })
+                        .send(HostEvent::CreateSession(session_info))
                         .await
                         .map_err(|err| HostError::SendEvent(err.0))?;
                 }
