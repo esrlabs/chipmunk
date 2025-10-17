@@ -2,12 +2,10 @@ use eframe::NativeOptions;
 use egui::{Context, vec2};
 use tokio::sync::{mpsc::error::TryRecvError, watch};
 
-use crate::{
-    core::{
-        communication::{UiCommunication, UiReceivers},
-        events::AppEvent,
-    },
-    state::AppState,
+use crate::host::{
+    communication::{UiCommunication, UiReceivers},
+    data::HostState,
+    event::HostEvent,
     ui::{SessionInfo, UiComponents},
 };
 
@@ -44,7 +42,7 @@ impl ChipmunkApp {
         )
     }
 
-    fn spawn_repaint_listner(ctx: egui::Context, mut repaint_rx: watch::Receiver<AppState>) {
+    fn spawn_repaint_listner(ctx: egui::Context, mut repaint_rx: watch::Receiver<HostState>) {
         tokio::spawn(async move {
             while let Ok(()) = repaint_rx.changed().await {
                 ctx.request_repaint();
@@ -52,13 +50,13 @@ impl ChipmunkApp {
         });
     }
 
-    fn handle_event(&mut self, event: AppEvent, ctx: &Context) {
+    fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
         match event {
-            AppEvent::CreateSession { title } => {
+            HostEvent::CreateSession { title } => {
                 let info = SessionInfo { title };
                 self.ui.add_session(info);
             }
-            AppEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
 }
