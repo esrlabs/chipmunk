@@ -1,12 +1,11 @@
 use eframe::NativeOptions;
 use egui::{Context, vec2};
-use tokio::sync::{mpsc::error::TryRecvError, watch};
+use tokio::sync::watch;
 
 use crate::host::{
-    communication::{UiCommunication, UiReceivers},
-    data::HostState,
+    communication::{UiHandle, UiReceivers},
     event::HostEvent,
-    ui::{SessionInfo, UiComponents},
+    ui::UiComponents,
 };
 
 const APP_TITLE: &str = "Chipmunk";
@@ -18,8 +17,8 @@ pub struct ChipmunkApp {
 }
 
 impl ChipmunkApp {
-    pub fn run(comm: UiCommunication) -> eframe::Result<()> {
-        let UiCommunication { senders, receivers } = comm;
+    pub fn run(comm: UiHandle) -> eframe::Result<()> {
+        let UiHandle { senders, receivers } = comm;
 
         let native_options = NativeOptions {
             viewport: egui::ViewportBuilder::default()
@@ -32,7 +31,7 @@ impl ChipmunkApp {
             APP_TITLE,
             native_options,
             Box::new(|ctx| {
-                Self::spawn_repaint_listner(ctx.egui_ctx.clone(), receivers.app_state_rx.clone());
+                Self::spawn_repaint_listner(ctx.egui_ctx.clone(), receivers.host_state_rx.clone());
 
                 let ui = UiComponents::new(senders);
                 let app = Self { ui, receivers };
@@ -42,7 +41,10 @@ impl ChipmunkApp {
         )
     }
 
-    fn spawn_repaint_listner(ctx: egui::Context, mut repaint_rx: watch::Receiver<HostState>) {
+    fn spawn_repaint_listner<T>(ctx: egui::Context, mut repaint_rx: watch::Receiver<T>)
+    where
+        T: Send + Sync + 'static,
+    {
         tokio::spawn(async move {
             while let Ok(()) = repaint_rx.changed().await {
                 ctx.request_repaint();
@@ -52,8 +54,14 @@ impl ChipmunkApp {
 
     fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
         match event {
-            HostEvent::CreateSession { title } => {
-                let info = SessionInfo { title };
+            HostEvent::CreateSession(info) => {
+                // TODO AAZ: Check if using tokio_stream::WatchStream is better than
+                // spawning a task on each tab.
+                Self::spawn_repaint_listner(
+                    ctx.to_owned(),
+                    info.communication.receivers.session_state_rx.clone(),
+                );
+
                 self.ui.add_session(info);
             }
             HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
@@ -63,16 +71,9 @@ impl ChipmunkApp {
 
 impl eframe::App for ChipmunkApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        loop {
-            match self.receivers.event_rx.try_recv() {
-                Ok(event) => self.handle_event(event, ctx),
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => {
-                    //TODO AAZ: better error handling.
-                    eprintln!("Communication error: State sender dropped");
-                    std::process::exit(1);
-                }
-            }
+        //TODO AAZ: We need to check for events outside of the update call.
+        while let Ok(event) = self.receivers.event_rx.try_recv() {
+            self.handle_event(event, ctx);
         }
 
         self.ui.update(ctx, frame);
