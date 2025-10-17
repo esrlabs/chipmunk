@@ -1,9 +1,6 @@
 use tokio::sync::{mpsc, watch};
 
-use crate::{
-    core::{commands::AppCommand, events::AppEvent},
-    state::AppState,
-};
+use crate::host::{command::HostCommand, data::HostState, event::HostEvent};
 
 const CHANNELS_CAPACITY: usize = 32;
 
@@ -15,26 +12,26 @@ pub struct UiCommunication {
 
 #[derive(Debug)]
 pub struct UiSenders {
-    pub cmd_tx: mpsc::Sender<AppCommand>,
+    pub cmd_tx: mpsc::Sender<HostCommand>,
 }
 
 #[derive(Debug)]
 pub struct UiReceivers {
-    pub event_rx: mpsc::Receiver<AppEvent>,
-    pub app_state_rx: watch::Receiver<AppState>,
+    pub event_rx: mpsc::Receiver<HostEvent>,
+    pub app_state_rx: watch::Receiver<HostState>,
 }
 
 #[derive(Debug)]
 pub struct CoreCommunication {
-    pub cmd_rx: mpsc::Receiver<AppCommand>,
-    pub event_tx: mpsc::Sender<AppEvent>,
-    pub app_state_tx: watch::Sender<AppState>,
+    pub cmd_rx: mpsc::Receiver<HostCommand>,
+    pub event_tx: mpsc::Sender<HostEvent>,
+    pub app_state_tx: watch::Sender<HostState>,
 }
 
 pub fn init() -> (UiCommunication, CoreCommunication) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (event_tx, event_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (app_state_tx, app_state_rx) = watch::channel(AppState::default());
+    let (app_state_tx, app_state_rx) = watch::channel(HostState::default());
 
     let senders = UiSenders { cmd_tx };
 
