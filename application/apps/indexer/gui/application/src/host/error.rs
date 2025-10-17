@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-use crate::core::events::AppEvent;
+use crate::host::event::HostEvent;
 
 #[derive(Debug, Error)]
-pub enum CoreError {
+pub enum HostError {
     #[error("Error while sending app event to UI")]
-    SendEvent(AppEvent),
+    SendEvent(HostEvent),
 }
