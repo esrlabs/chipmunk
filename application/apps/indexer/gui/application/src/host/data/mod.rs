@@ -1,4 +1,4 @@
 #[derive(Debug, Clone, Default)]
-pub struct AppState {
+pub struct HostState {
     //
 }
