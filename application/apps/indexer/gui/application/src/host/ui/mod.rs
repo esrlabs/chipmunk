@@ -1,35 +1,17 @@
 use egui::{CentralPanel, Context, Frame, TopBottomPanel};
 
-use crate::{core::communication::UiSenders, ui::menu_bar::AppMenuBar};
+use crate::host::communication::UiSenders;
+use menu::MainMenuBar;
+use state::{TabType, UiState};
 
-mod menu_bar;
+mod menu;
+mod state;
 
 #[derive(Debug)]
 pub struct UiComponents {
     senders: UiSenders,
-    menu: AppMenuBar,
+    menu: MainMenuBar,
     state: UiState,
-}
-
-#[derive(Debug)]
-struct UiState {
-    active_tab: TabType,
-    sessions: Vec<SessionInfo>,
-}
-
-impl Default for UiState {
-    fn default() -> Self {
-        Self {
-            active_tab: TabType::Home,
-            sessions: Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum TabType {
-    Home,
-    Session(usize),
 }
 
 #[derive(Debug)]
@@ -39,7 +21,7 @@ pub struct SessionInfo {
 
 impl UiComponents {
     pub fn new(senders: UiSenders) -> Self {
-        let menu = AppMenuBar::new();
+        let menu = MainMenuBar::new();
 
         Self {
             menu,
