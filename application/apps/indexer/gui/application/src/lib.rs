@@ -1,9 +1,6 @@
 use clap::Parser;
 
 use app::ChipmunkApp;
-use host::service::HostService;
-
-use crate::host::data::HostState;
 
 mod app;
 mod cli;
@@ -17,9 +14,5 @@ pub async fn run_app() -> anyhow::Result<()> {
 
     logging::setup()?;
 
-    let (ui_comm, service_comm) = host::communication::init(HostState::default());
-
-    HostService::spawn(service_comm);
-
-    ChipmunkApp::run(ui_comm).map_err(|err| anyhow::anyhow!("{err:?}"))
+    ChipmunkApp::run().map_err(|err| anyhow::anyhow!("{err:?}"))
 }
