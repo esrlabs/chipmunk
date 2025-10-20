@@ -4,9 +4,9 @@ use app::ChipmunkApp;
 
 mod app;
 mod cli;
-mod logging;
-
+mod fixed_queue;
 mod host;
+mod logging;
 mod session;
 
 pub async fn run_app() -> anyhow::Result<()> {
