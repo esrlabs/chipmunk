@@ -13,10 +13,10 @@ mod state;
 
 #[derive(Debug)]
 pub struct UiComponents {
+    pub sessions: Vec<SessionUI>,
     senders: UiSenders,
     menu: MainMenuBar,
     state: UiState,
-    sessions: Vec<SessionUI>,
 }
 
 impl UiComponents {
@@ -24,10 +24,10 @@ impl UiComponents {
         let menu = MainMenuBar::new();
 
         Self {
+            sessions: Vec::new(),
             menu,
             senders,
             state: UiState::default(),
-            sessions: Vec::new(),
         }
     }
 

@@ -56,10 +56,14 @@ impl ChipmunkApp {
 
 impl eframe::App for ChipmunkApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        //TODO AAZ: We need to check for events outside of the update call.
         while let Ok(event) = self.receivers.event_rx.try_recv() {
             self.handle_event(event, ctx);
         }
+
+        self.ui
+            .sessions
+            .iter_mut()
+            .for_each(|session| session.handle_events());
 
         self.ui.update(ctx, frame);
     }
