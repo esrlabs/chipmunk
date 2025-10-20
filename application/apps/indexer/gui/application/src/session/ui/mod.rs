@@ -4,7 +4,6 @@ use state::SessionUiState;
 use crate::session::{
     InitSessionParams,
     communication::{UiHandle, UiReceivers, UiSenders},
-    event::SessionEvent,
 };
 
 mod state;
@@ -47,12 +46,6 @@ impl SessionUI {
     }
 
     pub fn render_content(&mut self, ui: &mut Ui) {
-        // TODO AAZ: Catching events in rendering loop is wrong
-        // We need to catch them outside the UI render loop in some way.
-        while let Ok(event) = self.receivers.event_rx.try_recv() {
-            self.handle_events(event);
-        }
-
         let data = self.receivers.session_state_rx.borrow_and_update();
         egui::ScrollArea::vertical().show(ui, |ui| {
             for (idx, line) in data.content_lines.iter().enumerate() {
@@ -61,7 +54,10 @@ impl SessionUI {
         });
     }
 
-    fn handle_events(&mut self, event: SessionEvent) {
-        match event {}
+    /// Check incoming events and handle them.
+    pub fn handle_events(&mut self) {
+        while let Ok(event) = self.receivers.event_rx.try_recv() {
+            match event {}
+        }
     }
 }
