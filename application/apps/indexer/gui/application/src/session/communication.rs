@@ -1,8 +1,37 @@
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{
+    mpsc::{self, error::SendError},
+    watch,
+};
 
-use crate::session::{command::SessionCommand, data::SessionState, event::SessionEvent};
+use crate::{
+    host::{event::HostEvent, notification::AppNotification},
+    session::{command::SessionCommand, data::SessionState, event::SessionEvent},
+};
 
 const CHANNELS_CAPACITY: usize = 32;
+
+/// Represents the shared channels senders among host and session
+/// communication members.
+#[derive(Debug)]
+pub struct SharedSenders {
+    host_event_tx: mpsc::Sender<HostEvent>,
+    notification_tx: mpsc::Sender<AppNotification>,
+    egui_ctx: egui::Context,
+}
+
+impl SharedSenders {
+    pub fn new(
+        host_event_tx: mpsc::Sender<HostEvent>,
+        notification_tx: mpsc::Sender<AppNotification>,
+        egui_ctx: egui::Context,
+    ) -> Self {
+        Self {
+            host_event_tx,
+            notification_tx,
+            egui_ctx,
+        }
+    }
+}
 
 /// Contains session communication channels for the UI to communicate with services.
 #[derive(Debug)]
@@ -33,18 +62,39 @@ pub struct ServiceHandle {
 /// the UI on each change
 #[derive(Debug)]
 pub struct ServiceSenders {
-    event_tx: mpsc::Sender<SessionEvent>,
+    session_event_tx: mpsc::Sender<SessionEvent>,
+    host_event_tx: mpsc::Sender<HostEvent>,
+    notification_tx: mpsc::Sender<AppNotification>,
     session_state_tx: watch::Sender<SessionState>,
     egui_ctx: egui::Context,
 }
 
 impl ServiceSenders {
-    /// Send an event to the session UI waking it up.
-    pub async fn send_event(
+    /// Send session event to the session UI and wake it up.
+    pub async fn send_session_event(
         &self,
         event: SessionEvent,
-    ) -> Result<(), mpsc::error::SendError<SessionEvent>> {
-        self.event_tx.send(event).await?;
+    ) -> Result<(), SendError<SessionEvent>> {
+        self.session_event_tx.send(event).await?;
+        self.egui_ctx.request_repaint();
+
+        Ok(())
+    }
+
+    /// Send host event to the host UI and wake it up.
+    pub async fn send_host_event(&self, event: HostEvent) -> Result<(), SendError<HostEvent>> {
+        self.host_event_tx.send(event).await?;
+        self.egui_ctx.request_repaint();
+
+        Ok(())
+    }
+
+    /// Send notification to host and waking up UI.
+    pub async fn send_notification(
+        &self,
+        notifi: AppNotification,
+    ) -> Result<(), SendError<AppNotification>> {
+        self.notification_tx.send(notifi).await?;
         self.egui_ctx.request_repaint();
 
         Ok(())
@@ -65,16 +115,22 @@ impl ServiceSenders {
     }
 }
 
+#[derive(Debug)]
+pub struct SessionCommunication {
+    pub ui_handle: UiHandle,
+    pub service_handle: ServiceHandle,
+}
+
 /// Initialize communication channels for session application.
-pub fn init(egui_ctx: egui::Context, state: SessionState) -> (UiHandle, ServiceHandle) {
+pub fn init(shared_senders: SharedSenders, state: SessionState) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (event_tx, event_rx) = mpsc::channel(CHANNELS_CAPACITY);
+    let (session_event_tx, session_event_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_state_tx, session_state_rx) = watch::channel(state);
 
     let ui_senders = UiSenders { cmd_tx };
 
     let ui_receivers = UiReceivers {
-        event_rx,
+        event_rx: session_event_rx,
         session_state_rx,
     };
 
@@ -83,8 +139,16 @@ pub fn init(egui_ctx: egui::Context, state: SessionState) -> (UiHandle, ServiceH
         receivers: ui_receivers,
     };
 
+    let SharedSenders {
+        host_event_tx,
+        notification_tx,
+        egui_ctx,
+    } = shared_senders;
+
     let service_senders = ServiceSenders {
-        event_tx,
+        session_event_tx,
+        host_event_tx,
+        notification_tx,
         session_state_tx,
         egui_ctx,
     };
