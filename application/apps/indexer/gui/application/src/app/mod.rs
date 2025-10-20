@@ -34,7 +34,7 @@ impl ChipmunkApp {
                 let (ui_comm, service_comm) =
                     host::communication::init(ctx.egui_ctx.clone(), HostState::default());
 
-                HostService::spawn(ctx.egui_ctx.clone(), service_comm);
+                HostService::spawn(service_comm);
 
                 let UiHandle { senders, receivers } = ui_comm;
 
@@ -58,6 +58,10 @@ impl eframe::App for ChipmunkApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         while let Ok(event) = self.receivers.event_rx.try_recv() {
             self.handle_event(event, ctx);
+        }
+
+        while let Ok(notification) = self.receivers.notification_rx.try_recv() {
+            self.ui.add_notification(notification);
         }
 
         self.ui
