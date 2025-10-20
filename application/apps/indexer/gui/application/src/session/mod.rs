@@ -24,10 +24,13 @@ pub struct InitSessionParams {
     pub communication: UiHandle,
 }
 
-pub fn init_session(path: PathBuf) -> Result<InitSessionParams, InitSessionError> {
+pub fn init_session(
+    egui_ctx: egui::Context,
+    path: PathBuf,
+) -> Result<InitSessionParams, InitSessionError> {
     let state = SessionState::create(path.clone())?;
 
-    let (ui_handle, service_handle) = communication::init(state);
+    let (ui_handle, service_handle) = communication::init(egui_ctx, state);
 
     SessionService::spwan(service_handle);
 
