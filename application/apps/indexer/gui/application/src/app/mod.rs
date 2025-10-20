@@ -1,10 +1,12 @@
 use eframe::NativeOptions;
 use egui::{Context, vec2};
-use tokio::sync::watch;
 
 use crate::host::{
+    self,
     communication::{UiHandle, UiReceivers},
+    data::HostState,
     event::HostEvent,
+    service::HostService,
     ui::UiComponents,
 };
 
@@ -17,9 +19,7 @@ pub struct ChipmunkApp {
 }
 
 impl ChipmunkApp {
-    pub fn run(comm: UiHandle) -> eframe::Result<()> {
-        let UiHandle { senders, receivers } = comm;
-
+    pub fn run() -> eframe::Result<()> {
         let native_options = NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_title(APP_TITLE)
@@ -31,7 +31,12 @@ impl ChipmunkApp {
             APP_TITLE,
             native_options,
             Box::new(|ctx| {
-                Self::spawn_repaint_listner(ctx.egui_ctx.clone(), receivers.host_state_rx.clone());
+                let (ui_comm, service_comm) =
+                    host::communication::init(ctx.egui_ctx.clone(), HostState::default());
+
+                HostService::spawn(ctx.egui_ctx.clone(), service_comm);
+
+                let UiHandle { senders, receivers } = ui_comm;
 
                 let ui = UiComponents::new(senders);
                 let app = Self { ui, receivers };
@@ -41,29 +46,9 @@ impl ChipmunkApp {
         )
     }
 
-    fn spawn_repaint_listner<T>(ctx: egui::Context, mut repaint_rx: watch::Receiver<T>)
-    where
-        T: Send + Sync + 'static,
-    {
-        tokio::spawn(async move {
-            while let Ok(()) = repaint_rx.changed().await {
-                ctx.request_repaint();
-            }
-        });
-    }
-
     fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
         match event {
-            HostEvent::CreateSession(info) => {
-                // TODO AAZ: Check if using tokio_stream::WatchStream is better than
-                // spawning a task on each tab.
-                Self::spawn_repaint_listner(
-                    ctx.to_owned(),
-                    info.communication.receivers.session_state_rx.clone(),
-                );
-
-                self.ui.add_session(info);
-            }
+            HostEvent::CreateSession(info) => self.ui.add_session(info),
             HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
