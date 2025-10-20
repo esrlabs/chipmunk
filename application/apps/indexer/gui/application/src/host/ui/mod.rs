@@ -1,7 +1,11 @@
-use egui::{CentralPanel, Context, Frame, TopBottomPanel, Ui};
+use egui::{CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui};
 
 use crate::{
-    host::{communication::UiSenders, ui::home::HomeView},
+    host::{
+        communication::UiSenders,
+        notification::AppNotification,
+        ui::{home::HomeView, notification_ui::NotificationUi},
+    },
     session::{InitSessionParams, ui::SessionUI},
 };
 use menu::MainMenuBar;
@@ -9,6 +13,7 @@ use state::{TabType, UiState};
 
 mod home;
 mod menu;
+mod notification_ui;
 mod state;
 
 #[derive(Debug)]
@@ -16,6 +21,7 @@ pub struct UiComponents {
     pub sessions: Vec<SessionUI>,
     senders: UiSenders,
     menu: MainMenuBar,
+    notifications: NotificationUi,
     state: UiState,
 }
 
@@ -27,6 +33,7 @@ impl UiComponents {
             sessions: Vec::new(),
             menu,
             senders,
+            notifications: NotificationUi::default(),
             state: UiState::default(),
         }
     }
@@ -35,6 +42,10 @@ impl UiComponents {
         let session = SessionUI::new(session);
         self.sessions.push(session);
         self.state.active_tab = TabType::Session(self.sessions.len() - 1);
+    }
+
+    pub fn add_notification(&mut self, notification: AppNotification) {
+        self.notifications.add(notification);
     }
 
     pub fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
@@ -64,10 +75,16 @@ impl UiComponents {
 
     fn render_tabs(&mut self, ui: &mut Ui) {
         let Self {
-            state, sessions, ..
+            state,
+            sessions,
+            notifications,
+            ..
         } = self;
         ui.horizontal_wrapped(|ui| {
+            // Home
             ui.selectable_value(&mut state.active_tab, TabType::Home, "Home");
+
+            // Sessions
             for (idx, session) in sessions.iter().enumerate() {
                 ui.selectable_value(
                     &mut state.active_tab,
@@ -75,6 +92,12 @@ impl UiComponents {
                     format!("Session {}", session.get_info().title),
                 );
             }
+
+            // Notifications
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add_space(3.);
+                notifications.render_content(ui);
+            });
         });
     }
 
