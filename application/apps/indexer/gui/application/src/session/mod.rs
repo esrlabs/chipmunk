@@ -2,7 +2,11 @@
 
 use std::path::PathBuf;
 
-use crate::session::{communication::UiHandle, data::SessionState, service::SessionService};
+use crate::session::{
+    communication::{SharedSenders, UiHandle},
+    data::SessionState,
+    service::SessionService,
+};
 
 pub mod command;
 pub mod communication;
@@ -25,12 +29,12 @@ pub struct InitSessionParams {
 }
 
 pub fn init_session(
-    egui_ctx: egui::Context,
+    shared_senders: SharedSenders,
     path: PathBuf,
 ) -> Result<InitSessionParams, InitSessionError> {
     let state = SessionState::create(path.clone())?;
 
-    let (ui_handle, service_handle) = communication::init(egui_ctx, state);
+    let (ui_handle, service_handle) = communication::init(shared_senders, state);
 
     SessionService::spwan(service_handle);
 
