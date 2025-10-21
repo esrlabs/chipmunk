@@ -1,9 +1,7 @@
-use tokio::sync::{
-    mpsc::{self, error::SendError},
-    watch,
-};
+use tokio::sync::{mpsc, watch};
 
 use crate::{
+    comm_utls::evaluate_send_res,
     host::{
         command::HostCommand, data::HostState, event::HostEvent, notification::AppNotification,
     },
@@ -50,11 +48,14 @@ pub struct ServiceSenders {
 
 impl ServiceSenders {
     /// Send an event to the host UI and waking it up.
-    pub async fn send_event(&self, event: HostEvent) -> Result<(), SendError<HostEvent>> {
-        self.event_tx.send(event).await?;
-        self.egui_ctx.request_repaint();
+    ///
+    /// # Return
+    /// Returns `true` if the event is sent successfully. On send errors
+    /// it will log the error and return `false`.
+    pub async fn send_event(&self, event: HostEvent) -> bool {
+        let res = self.event_tx.send(event).await;
 
-        Ok(())
+        evaluate_send_res(&self.egui_ctx, res)
     }
 
     /// Modify host state with the provided `modify` function and notify
@@ -72,14 +73,13 @@ impl ServiceSenders {
     }
 
     /// Send notification to host and waking up UI.
-    pub async fn send_notification(
-        &self,
-        notifi: AppNotification,
-    ) -> Result<(), SendError<AppNotification>> {
-        self.notification_tx.send(notifi).await?;
-        self.egui_ctx.request_repaint();
-
-        Ok(())
+    ///
+    /// # Return
+    /// Returns `true` if the notification is sent successfully. On send errors
+    /// it will log the error and return `false`.
+    pub async fn send_notification(&self, notifi: AppNotification) -> bool {
+        let res = self.notification_tx.send(notifi).await;
+        evaluate_send_res(&self.egui_ctx, res)
     }
 
     /// Create [`SharedSenders`] by cloning the needed internal channels.

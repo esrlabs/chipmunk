@@ -4,6 +4,7 @@ use tokio::sync::{
 };
 
 use crate::{
+    comm_utls::evaluate_send_res,
     host::{event::HostEvent, notification::AppNotification},
     session::{command::SessionCommand, data::SessionState, event::SessionEvent},
 };
@@ -71,33 +72,36 @@ pub struct ServiceSenders {
 
 impl ServiceSenders {
     /// Send session event to the session UI and wake it up.
-    pub async fn send_session_event(
-        &self,
-        event: SessionEvent,
-    ) -> Result<(), SendError<SessionEvent>> {
-        self.session_event_tx.send(event).await?;
-        self.egui_ctx.request_repaint();
+    ///
+    /// # Return
+    /// Returns `true` if the event is sent successfully. On send errors
+    /// it will log the error and return `false`.
+    pub async fn send_session_event(&self, event: SessionEvent) -> bool {
+        let res = self.session_event_tx.send(event).await;
 
-        Ok(())
+        evaluate_send_res(&self.egui_ctx, res)
     }
 
     /// Send host event to the host UI and wake it up.
-    pub async fn send_host_event(&self, event: HostEvent) -> Result<(), SendError<HostEvent>> {
-        self.host_event_tx.send(event).await?;
-        self.egui_ctx.request_repaint();
+    ///
+    /// # Return
+    /// Returns `true` if the event is sent successfully. On send errors
+    /// it will log the error and return `false`.
+    pub async fn send_host_event(&self, event: HostEvent) -> bool {
+        let res = self.host_event_tx.send(event).await;
 
-        Ok(())
+        evaluate_send_res(&self.egui_ctx, res)
     }
 
     /// Send notification to host and waking up UI.
-    pub async fn send_notification(
-        &self,
-        notifi: AppNotification,
-    ) -> Result<(), SendError<AppNotification>> {
-        self.notification_tx.send(notifi).await?;
-        self.egui_ctx.request_repaint();
+    ///
+    /// # Return
+    /// Returns `true` if the notification is sent successfully. On send errors
+    /// it will log the error and return `false`.
+    pub async fn send_notification(&self, notifi: AppNotification) -> bool {
+        let res = self.notification_tx.send(notifi).await;
 
-        Ok(())
+        evaluate_send_res(&self.egui_ctx, res)
     }
 
     /// Modify session state with the provided `modify` function and notify

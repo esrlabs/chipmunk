@@ -4,6 +4,7 @@ use app::ChipmunkApp;
 
 mod app;
 mod cli;
+mod comm_utls;
 mod fixed_queue;
 mod host;
 mod logging;
