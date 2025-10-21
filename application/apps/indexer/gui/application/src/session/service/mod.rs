@@ -41,14 +41,7 @@ impl SessionService {
                     error,
                 };
 
-                self.communication
-                    .senders
-                    .send_notification(notifi)
-                    .await
-                    .inspect_err(|err| {
-                        log::error!("Communication Error. {err}");
-                    })
-                    .ok();
+                self.communication.senders.send_notification(notifi).await;
             }
         }
 
@@ -63,9 +56,7 @@ impl SessionService {
                     .send_host_event(HostEvent::CloseSession {
                         session_id: self.session_id,
                     })
-                    .await
-                    .inspect_err(|err| log::error!("Communication Error: {err}"))
-                    .ok();
+                    .await;
             }
         }
 
