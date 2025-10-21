@@ -49,6 +49,7 @@ impl ChipmunkApp {
     fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
         match event {
             HostEvent::CreateSession(info) => self.ui.add_session(info),
+            HostEvent::CloseSession { session_id } => self.ui.close_session(session_id),
             HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }

@@ -2,6 +2,8 @@
 
 use std::path::PathBuf;
 
+use uuid::Uuid;
+
 use crate::session::{
     communication::{SharedSenders, UiHandle},
     data::SessionState,
@@ -24,6 +26,7 @@ pub enum InitSessionError {
 
 #[derive(Debug)]
 pub struct InitSessionParams {
+    pub session_id: Uuid,
     pub file_path: PathBuf,
     pub communication: UiHandle,
 }
@@ -36,9 +39,10 @@ pub fn init_session(
 
     let (ui_handle, service_handle) = communication::init(shared_senders, state);
 
-    SessionService::spwan(service_handle);
+    let session_id = SessionService::spwan(service_handle);
 
     let info = InitSessionParams {
+        session_id,
         file_path: path,
         communication: ui_handle,
     };
