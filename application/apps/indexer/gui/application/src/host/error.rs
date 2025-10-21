@@ -11,8 +11,6 @@ pub enum HostError {
     //have another struct to be sent to UI.
     #[error("Error while sending app event to UI")]
     SendEvent(HostEvent),
-    //TODO AAZ: Debug print the error for now
-    #[error("Core Error: severity {:?}, kind {:?}, msg {}", 
-        .0.severity, .0.kind, .0.message.as_deref().unwrap_or_default())]
+    #[error("Core Error: {0}")]
     NativeError(NativeError),
 }

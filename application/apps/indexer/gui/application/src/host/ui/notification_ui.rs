@@ -6,6 +6,7 @@ use egui::{
 use crate::{
     fixed_queue::FixedQueue,
     host::{error::HostError, notification::AppNotification},
+    session::error::SessionError,
 };
 
 /// The maximum amount of notifications to store.
@@ -19,6 +20,16 @@ enum NotificationLevel {
     Error,
 }
 
+impl NotificationLevel {
+    pub const fn get_color(self) -> Color32 {
+        match self {
+            NotificationLevel::Info => Color32::CYAN,
+            NotificationLevel::Warning => Color32::YELLOW,
+            NotificationLevel::Error => Color32::RED,
+        }
+    }
+}
+
 impl From<&AppNotification> for NotificationLevel {
     fn from(value: &AppNotification) -> Self {
         use AppNotification as Not;
@@ -27,10 +38,16 @@ impl From<&AppNotification> for NotificationLevel {
         match value {
             Not::HostError(HostError::InitSessionError(..)) => Level::Error,
             Not::HostError(HostError::SendEvent(..)) => Level::Error,
-            Not::HostError(HostError::NativeError(err)) => match err.severity {
+            Not::HostError(HostError::NativeError(err))
+            | Not::SessionError {
+                error: SessionError::NativeError(err),
+                ..
+            } => match err.severity {
                 stypes::Severity::WARNING => Level::Warning,
                 stypes::Severity::ERROR => Level::Error,
             },
+            Not::Error(..) => Level::Error,
+            Not::Warning(..) => Level::Warning,
             Not::Info(..) => Level::Info,
         }
     }
@@ -112,11 +129,7 @@ impl NotificationUi {
         if let Some(unseen) = self.unseen_top_level {
             let pos = button_res.rect.right_top() + vec2(-2.0, 2.0);
             let radius = 3.;
-            let color = match unseen {
-                NotificationLevel::Info => Color32::CYAN,
-                NotificationLevel::Warning => Color32::YELLOW,
-                NotificationLevel::Error => Color32::RED,
-            };
+            let color = unseen.get_color();
 
             ui.painter().circle_filled(pos, radius, color);
         }
@@ -176,22 +189,35 @@ impl NotificationUi {
 
                     ui.add_space(ITEMS_MARGIN);
 
-                    let (color, notification_msg) = match item {
+                    use NotificationLevel as L;
+                    let (level, notification_msg) = match item {
                         AppNotification::HostError(err) => match err {
-                            HostError::InitSessionError(..) => (Color32::RED, err.to_string()),
-                            HostError::SendEvent(..) => (Color32::RED, err.to_string()),
+                            HostError::InitSessionError(..) => (L::Error, err.to_string()),
+                            HostError::SendEvent(..) => (L::Error, err.to_string()),
                             HostError::NativeError(native_error) => match native_error.severity {
-                                stypes::Severity::WARNING => (Color32::YELLOW, err.to_string()),
-                                stypes::Severity::ERROR => (Color32::RED, err.to_string()),
+                                stypes::Severity::WARNING => (L::Warning, err.to_string()),
+                                stypes::Severity::ERROR => (L::Error, err.to_string()),
                             },
                         },
-                        AppNotification::Info(msg) => (Color32::CYAN, msg.clone()),
+                        AppNotification::SessionError { error, .. } => match error {
+                            SessionError::NativeError(native_error) => {
+                                match native_error.severity {
+                                    stypes::Severity::WARNING => (L::Warning, error.to_string()),
+                                    stypes::Severity::ERROR => (L::Error, error.to_string()),
+                                }
+                            }
+                        },
+
+                        AppNotification::Error(msg) => (L::Error, msg.clone()),
+                        AppNotification::Warning(msg) => (L::Warning, msg.clone()),
+                        AppNotification::Info(msg) => (L::Info, msg.clone()),
                     };
 
                     ui.horizontal(|ui| {
                         let (respond, painter) = ui.allocate_painter(symbol_size, Sense::empty());
                         let center = respond.rect.center();
                         let radius = respond.rect.width() / 2.0;
+                        let color = level.get_color();
 
                         painter.circle_filled(center, radius, color);
 
