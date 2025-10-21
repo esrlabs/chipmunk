@@ -1,8 +1,10 @@
 use egui::Ui;
 use state::SessionUiState;
+use uuid::Uuid;
 
 use crate::session::{
     InitSessionParams,
+    command::SessionCommand,
     communication::{UiHandle, UiReceivers, UiSenders},
 };
 
@@ -10,6 +12,7 @@ mod state;
 
 #[derive(Debug)]
 pub struct SessionInfo {
+    pub id: Uuid,
     pub title: String,
 }
 
@@ -31,7 +34,10 @@ impl SessionUI {
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or_else(|| String::from("Unknown"));
 
-        let session_info = SessionInfo { title };
+        let session_info = SessionInfo {
+            id: init.session_id,
+            title,
+        };
 
         Self {
             session_info,
@@ -43,6 +49,17 @@ impl SessionUI {
 
     pub fn get_info(&self) -> &SessionInfo {
         &self.session_info
+    }
+
+    pub fn close_session(&self) {
+        self.senders
+            .cmd_tx
+            .try_send(SessionCommand::CloseSession)
+            .inspect_err(|err| {
+                //TODO AAZ: Better error handling.
+                log::error!("Error while sending clsoe message. {err}");
+            })
+            .ok();
     }
 
     pub fn render_content(&mut self, ui: &mut Ui) {
