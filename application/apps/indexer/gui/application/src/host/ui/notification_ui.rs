@@ -37,7 +37,6 @@ impl From<&AppNotification> for NotificationLevel {
 
         match value {
             Not::HostError(HostError::InitSessionError(..)) => Level::Error,
-            Not::HostError(HostError::SendEvent(..)) => Level::Error,
             Not::HostError(HostError::NativeError(err))
             | Not::SessionError {
                 error: SessionError::NativeError(err),
@@ -193,7 +192,6 @@ impl NotificationUi {
                     let (level, notification_msg) = match item {
                         AppNotification::HostError(err) => match err {
                             HostError::InitSessionError(..) => (L::Error, err.to_string()),
-                            HostError::SendEvent(..) => (L::Error, err.to_string()),
                             HostError::NativeError(native_error) => match native_error.severity {
                                 stypes::Severity::WARNING => (L::Warning, err.to_string()),
                                 stypes::Severity::ERROR => (L::Error, err.to_string()),
