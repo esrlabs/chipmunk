@@ -1,4 +1,5 @@
 use egui::{CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui};
+use uuid::Uuid;
 
 use crate::{
     host::{
@@ -48,6 +49,37 @@ impl UiComponents {
         self.notifications.add(notification);
     }
 
+    pub fn close_session(&mut self, session_id: Uuid) {
+        let session_idx = self
+            .sessions
+            .iter()
+            .position(|s| s.get_info().id == session_id);
+
+        let session_idx = match session_idx {
+            Some(idx) => idx,
+            None => {
+                log::error!(
+                    "Close Session Event: Session with ID {session_id}\
+                    doesn't exist in host UI struct"
+                );
+                panic!("Recieved close session for unknown session ID");
+            }
+        };
+
+        // Handle current tab
+        if let TabType::Session(current_idx) = self.state.active_tab {
+            if current_idx == session_idx {
+                self.state.active_tab = TabType::Home;
+            }
+            // Tabs after the deleted one will be shifted one place to the left.
+            if current_idx > session_idx {
+                self.state.active_tab = TabType::Session(current_idx.saturating_sub(1));
+            }
+        }
+
+        self.sessions.remove(session_idx);
+    }
+
     pub fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         TopBottomPanel::top("menu_bar")
             .frame(Frame::side_top_panel(&ctx.style()))
@@ -86,11 +118,16 @@ impl UiComponents {
 
             // Sessions
             for (idx, session) in sessions.iter().enumerate() {
-                ui.selectable_value(
+                let res = ui.selectable_value(
                     &mut state.active_tab,
                     TabType::Session(idx),
                     format!("Session {}", session.get_info().title),
                 );
+                egui::Popup::context_menu(&res).show(|ui| {
+                    if ui.button("Close").clicked() {
+                        sessions[idx].close_session();
+                    }
+                });
             }
 
             // Notifications
