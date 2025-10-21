@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::*;
 
 impl NativeError {
@@ -31,5 +33,12 @@ impl Severity {
             Severity::WARNING => "WARNING",
             Severity::ERROR => "ERROR",
         }
+    }
+}
+
+impl Display for NativeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // TODO AAZ: Debug printing for now.
+        write!(f, "{:?}", self)
     }
 }
