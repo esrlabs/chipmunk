@@ -26,9 +26,7 @@ impl HostService {
                 self.communication
                     .senders
                     .send_notification(AppNotification::HostError(err))
-                    .await
-                    .inspect_err(|err| log::error!("Communication Error {err}"))
-                    .ok();
+                    .await;
             }
         }
     }
@@ -45,17 +43,14 @@ impl HostService {
                     self.communication
                         .senders
                         .send_event(HostEvent::CreateSession(session_info))
-                        .await
-                        .map_err(|err| HostError::SendEvent(err.0))?;
+                        .await;
 
                     self.communication
                         .senders
                         .send_notification(AppNotification::Info(format!(
                             "Session created for file {file_display}"
                         )))
-                        .await
-                        .inspect_err(|err| log::error!("Communication Error. {err}"))
-                        .ok();
+                        .await;
                 }
             }
             HostCommand::Close => {
@@ -63,8 +58,7 @@ impl HostService {
                 self.communication
                     .senders
                     .send_event(HostEvent::Close)
-                    .await
-                    .map_err(|err| HostError::SendEvent(err.0))?;
+                    .await;
             }
         }
 
