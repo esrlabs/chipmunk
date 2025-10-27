@@ -8,9 +8,11 @@ use crate::{
         InitSessionParams,
         command::SessionCommand,
         communication::{UiHandle, UiReceivers, UiSenders},
+        ui::logs_table::LogsTable,
     },
 };
 
+mod logs_table;
 mod state;
 
 #[derive(Debug)]
@@ -60,11 +62,7 @@ impl SessionUI {
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
         let data = self.receivers.session_state_rx.borrow_and_update();
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            for (idx, line) in data.content_lines.iter().enumerate() {
-                ui.label(format!("{idx}: {line}"));
-            }
-        });
+        LogsTable::render_content(&data, ui, actions);
     }
 
     /// Check incoming events and handle them.
