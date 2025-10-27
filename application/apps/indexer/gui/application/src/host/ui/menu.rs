@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use egui::{MenuBar, Ui};
 use tokio::sync::mpsc::Sender;
 
-use crate::host::command::HostCommand;
+use crate::host::{command::HostCommand, ui::ui_actions::UiActions};
 
 #[derive(Debug)]
 pub struct MainMenuBar {}
@@ -13,14 +13,11 @@ impl MainMenuBar {
         Self {}
     }
 
-    pub fn render(&mut self, ui: &mut Ui, cmd_tx: &Sender<HostCommand>) {
+    pub fn render(&mut self, ui: &mut Ui, cmd_tx: &Sender<HostCommand>, actions: &mut UiActions) {
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("Chipmunk", |ui| {
                 if ui.button("Close").clicked() {
-                    if let Err(err) = cmd_tx.try_send(HostCommand::Close) {
-                        // TODO AAZ: Better error handling.
-                        log::error!("Send app command failed: {err:?}");
-                    }
+                    actions.try_send_command(cmd_tx, HostCommand::Close);
                 }
             });
 
