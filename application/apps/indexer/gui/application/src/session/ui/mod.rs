@@ -2,10 +2,13 @@ use egui::Ui;
 use state::SessionUiState;
 use uuid::Uuid;
 
-use crate::session::{
-    InitSessionParams,
-    command::SessionCommand,
-    communication::{UiHandle, UiReceivers, UiSenders},
+use crate::{
+    host::ui::UiActions,
+    session::{
+        InitSessionParams,
+        command::SessionCommand,
+        communication::{UiHandle, UiReceivers, UiSenders},
+    },
 };
 
 mod state;
@@ -51,18 +54,11 @@ impl SessionUI {
         &self.session_info
     }
 
-    pub fn close_session(&self) {
-        self.senders
-            .cmd_tx
-            .try_send(SessionCommand::CloseSession)
-            .inspect_err(|err| {
-                //TODO AAZ: Better error handling.
-                log::error!("Error while sending clsoe message. {err}");
-            })
-            .ok();
+    pub fn close_session(&self, actions: &mut UiActions) {
+        actions.try_send_command(&self.senders.cmd_tx, SessionCommand::CloseSession);
     }
 
-    pub fn render_content(&mut self, ui: &mut Ui) {
+    pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
         let data = self.receivers.session_state_rx.borrow_and_update();
         egui::ScrollArea::vertical().show(ui, |ui| {
             for (idx, line) in data.content_lines.iter().enumerate() {
