@@ -8,10 +8,9 @@ pub struct LogsTable;
 impl LogsTable {
     pub fn render_content(data: &SessionState, ui: &mut Ui, _actions: &mut UiActions) {
         let id_salt = Id::new("logs_table");
-        let state_id = egui_table::Table::new().id_salt(id_salt).get_id(ui); // Note: must be here (in the correct outer `ui` scope) to be correct.
 
         let table = egui_table::Table::new()
-            .id_salt(state_id)
+            .id_salt(id_salt)
             .num_rows(data.content_lines.len() as u64)
             .columns(Self::text_columns())
             .num_sticky_cols(1);
