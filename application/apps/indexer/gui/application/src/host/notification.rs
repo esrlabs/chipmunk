@@ -9,6 +9,7 @@ pub enum AppNotification {
         session_id: Uuid,
         error: SessionError,
     },
+    UiError(String),
     /// General error notification.
     Error(String),
     /// General warning notification.
