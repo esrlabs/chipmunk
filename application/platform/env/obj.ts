@@ -416,3 +416,13 @@ export function objToStringMap(obj: {
     });
     return output;
 }
+
+export function getAsArrayOfStringsOrEmpty(src: any, key: string): string[] {
+    if (src[key] === undefined) {
+        return [];
+    } else if (!(src[key] instanceof Array)) {
+        throw new Error(`Parameter "${key}" should be valid array`);
+    }
+
+    return src[key] as string[];
+}

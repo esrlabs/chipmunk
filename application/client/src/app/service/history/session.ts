@@ -153,6 +153,9 @@ export class HistorySession extends Subscriber {
         this.unsubscribe();
         this.collections = collections;
         this.collections.subscribe(this, this.session);
+        if (!this.collections.applied_sessions.includes(this.session.uuid())) {
+            this.collections.applied_sessions.push(this.session.uuid());
+        }
         this.register(
             this.collections.updated.subscribe(() => {
                 this.collections.updateUuid(this.storage.collections.update(this.collections));
@@ -163,6 +166,7 @@ export class HistorySession extends Subscriber {
     }
 
     public destroy() {
+        this.collections.applied_sessions = this.collections.applied_sessions.filter(session_id => session_id !== this.session.uuid());
         this.unsubscribe();
         this.globals.unsubscribe();
         this.subjects.destroy();

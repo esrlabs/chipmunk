@@ -26,6 +26,7 @@ export interface ICollection {
     last: number;
     used: number;
     uuid: string;
+    applied_sessions: string[];
     preset: boolean;
     relations: string[];
     entries: JsonSet;
@@ -47,6 +48,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     created: Date.now(),
                     used: 1,
                     uuid: smth.uuid(),
+                    applied_sessions: [smth.uuid()],
                     preset: false,
                     relations: [],
                     origin: undefined,
@@ -98,6 +100,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 created: Date.now(),
                 used: 1,
                 uuid: uuid,
+                applied_sessions: [],
                 preset: false,
                 relations: [],
                 origin: undefined,
@@ -117,6 +120,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             last: obj.getAsValidNumber(src, 'l'),
             preset: obj.getAsBool(src, 'p'),
             uuid: obj.getAsNotEmptyString(src, 'uu'),
+            applied_sessions: obj.getAsArrayOfStringsOrEmpty(src, 'as'),
             relations: obj.getAsArray(src, 'r'),
             origin: obj.getAsNotEmptyStringOrAsUndefined(src, 'o'),
             entries: obj.getAsObj(src, 'e'),
@@ -130,6 +134,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public used: number;
     public last: number;
     public uuid: string;
+    public applied_sessions: string[];
     public preset: boolean;
     public relations: string[];
     public origin: string | undefined;
@@ -156,6 +161,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.last = definition.last;
         this.created = definition.created;
         this.uuid = definition.uuid;
+        this.applied_sessions = definition.applied_sessions;
         this.relations = definition.relations;
         this.origin = definition.origin;
         this.preset = definition.preset;
@@ -182,31 +188,11 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 used: this.used,
                 created: this.created,
                 uuid: this.uuid,
+                applied_sessions: this.applied_sessions,
                 relations: this.relations,
                 preset: this.preset,
                 last: this.last,
                 origin: this.origin,
-                entries: this.asCollectionsArray()
-                    .map((c) => c.as().jsonSet())
-                    .flat(),
-            },
-            this.storage,
-        );
-    }
-
-    public copy(): Collections {
-        const uuid = unique();
-        return new Collections(
-            `Collections:${uuid}`,
-            {
-                name: this.name,
-                last: Date.now(),
-                created: Date.now(),
-                used: 1,
-                uuid,
-                preset: false,
-                relations: [],
-                origin: undefined,
                 entries: this.asCollectionsArray()
                     .map((c) => c.as().jsonSet())
                     .flat(),
@@ -290,6 +276,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
         this.last = definition.last;
         this.created = definition.created;
         this.uuid = definition.uuid;
+        this.applied_sessions = definition.applied_sessions;
         this.relations = definition.relations;
         this.origin = definition.origin;
         this.preset = definition.preset;
