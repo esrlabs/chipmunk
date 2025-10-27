@@ -3,7 +3,8 @@ use uuid::Uuid;
 
 use crate::{
     host::{
-        communication::UiSenders,
+        communication::{UiHandle, UiReceivers, UiSenders},
+        event::HostEvent,
         notification::AppNotification,
         ui::{home::HomeView, notification_ui::NotificationUi},
     },
@@ -21,8 +22,9 @@ mod state;
 mod ui_actions;
 
 #[derive(Debug)]
-pub struct UiComponents {
-    pub sessions: Vec<SessionUI>,
+pub struct HostUI {
+    sessions: Vec<SessionUI>,
+    receivers: UiReceivers,
     senders: UiSenders,
     menu: MainMenuBar,
     notifications: NotificationUi,
@@ -30,17 +32,26 @@ pub struct UiComponents {
     ui_actions: UiActions,
 }
 
-impl UiComponents {
-    pub fn new(senders: UiSenders) -> Self {
+impl HostUI {
+    pub fn new(ui_comm: UiHandle) -> Self {
         let menu = MainMenuBar::new();
 
         Self {
             sessions: Vec::new(),
             menu,
-            senders,
+            receivers: ui_comm.receivers,
+            senders: ui_comm.senders,
             notifications: NotificationUi::default(),
             state: UiState::default(),
             ui_actions: UiActions::default(),
+        }
+    }
+
+    fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
+        match event {
+            HostEvent::CreateSession(info) => self.add_session(info),
+            HostEvent::CloseSession { session_id } => self.close_session(session_id),
+            HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
 
@@ -85,7 +96,28 @@ impl UiComponents {
         self.sessions.remove(session_idx);
     }
 
-    pub fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    pub fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+        // Handle events & notifications
+        while let Ok(event) = self.receivers.event_rx.try_recv() {
+            self.handle_event(event, ctx);
+        }
+
+        while let Ok(notification) = self.receivers.notification_rx.try_recv() {
+            self.add_notification(notification);
+        }
+
+        self.sessions
+            .iter_mut()
+            .for_each(|session| session.handle_events());
+
+        // Render all UI components
+        self.render_ui(ctx, frame);
+
+        // Handle actions sent from UI components after rendering.
+        self.handle_ui_actions(ctx);
+    }
+
+    fn render_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         TopBottomPanel::top("menu_bar")
             .frame(Frame::side_top_panel(&ctx.style()))
             .show(ctx, |ui| {
@@ -103,8 +135,6 @@ impl UiComponents {
             .show(ctx, |ui| {
                 self.render_main(ui);
             });
-
-        self.handle_ui_actions(ctx);
     }
 
     fn render_menu(&mut self, ui: &mut Ui) {
