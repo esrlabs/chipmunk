@@ -45,7 +45,7 @@ impl From<&AppNotification> for NotificationLevel {
                 stypes::Severity::WARNING => Level::Warning,
                 stypes::Severity::ERROR => Level::Error,
             },
-            Not::Error(..) => Level::Error,
+            Not::Error(..) | Not::UiError(..) => Level::Error,
             Not::Warning(..) => Level::Warning,
             Not::Info(..) => Level::Info,
         }
@@ -206,7 +206,9 @@ impl NotificationUi {
                             }
                         },
 
-                        AppNotification::Error(msg) => (L::Error, msg.clone()),
+                        AppNotification::Error(msg) | AppNotification::UiError(msg) => {
+                            (L::Error, msg.clone())
+                        }
                         AppNotification::Warning(msg) => (L::Warning, msg.clone()),
                         AppNotification::Info(msg) => (L::Info, msg.clone()),
                     };
