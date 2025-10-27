@@ -12,10 +12,13 @@ use crate::{
 use menu::MainMenuBar;
 use state::{TabType, UiState};
 
+pub use ui_actions::UiActions;
+
 mod home;
 mod menu;
 mod notification_ui;
 mod state;
+mod ui_actions;
 
 #[derive(Debug)]
 pub struct UiComponents {
@@ -24,6 +27,7 @@ pub struct UiComponents {
     menu: MainMenuBar,
     notifications: NotificationUi,
     state: UiState,
+    ui_actions: UiActions,
 }
 
 impl UiComponents {
@@ -36,6 +40,7 @@ impl UiComponents {
             senders,
             notifications: NotificationUi::default(),
             state: UiState::default(),
+            ui_actions: UiActions::default(),
         }
     }
 
@@ -98,11 +103,18 @@ impl UiComponents {
             .show(ctx, |ui| {
                 self.render_main(ui);
             });
+
+        self.handle_ui_actions(ctx);
     }
 
     fn render_menu(&mut self, ui: &mut Ui) {
-        let Self { senders, menu, .. } = self;
-        menu.render(ui, &senders.cmd_tx);
+        let Self {
+            senders,
+            menu,
+            ui_actions,
+            ..
+        } = self;
+        menu.render(ui, &senders.cmd_tx, ui_actions);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
@@ -110,6 +122,7 @@ impl UiComponents {
             state,
             sessions,
             notifications,
+            ui_actions,
             ..
         } = self;
         ui.horizontal_wrapped(|ui| {
@@ -125,7 +138,7 @@ impl UiComponents {
                 );
                 egui::Popup::context_menu(&res).show(|ui| {
                     if ui.button("Close").clicked() {
-                        sessions[idx].close_session();
+                        sessions[idx].close_session(ui_actions);
                     }
                 });
             }
@@ -139,9 +152,22 @@ impl UiComponents {
     }
 
     fn render_main(&mut self, ui: &mut Ui) {
+        let Self { ui_actions, .. } = self;
         match self.state.active_tab {
             TabType::Home => HomeView::render_content(ui),
-            TabType::Session(idx) => self.sessions[idx].render_content(ui),
+            TabType::Session(idx) => self.sessions[idx].render_content(ui_actions, ui),
+        }
+    }
+
+    fn handle_ui_actions(&mut self, ctx: &Context) {
+        let mut changed = false;
+        for notifi in self.ui_actions.drain_notifications() {
+            changed = true;
+            self.notifications.add(notifi);
+        }
+
+        if changed {
+            ctx.request_repaint();
         }
     }
 }
