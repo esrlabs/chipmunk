@@ -1,21 +1,13 @@
 use eframe::NativeOptions;
-use egui::{Context, vec2};
+use egui::vec2;
 
-use crate::host::{
-    self,
-    communication::{UiHandle, UiReceivers},
-    data::HostState,
-    event::HostEvent,
-    service::HostService,
-    ui::UiComponents,
-};
+use crate::host::{self, data::HostState, service::HostService, ui::HostUI};
 
 const APP_TITLE: &str = "Chipmunk";
 
 #[derive(Debug)]
 pub struct ChipmunkApp {
-    receivers: UiReceivers,
-    ui: UiComponents,
+    host: HostUI,
 }
 
 impl ChipmunkApp {
@@ -36,40 +28,17 @@ impl ChipmunkApp {
 
                 HostService::spawn(service_comm);
 
-                let UiHandle { senders, receivers } = ui_comm;
-
-                let ui = UiComponents::new(senders);
-                let app = Self { ui, receivers };
+                let host = HostUI::new(ui_comm);
+                let app = Self { host };
 
                 Ok(Box::new(app))
             }),
         )
     }
-
-    fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
-        match event {
-            HostEvent::CreateSession(info) => self.ui.add_session(info),
-            HostEvent::CloseSession { session_id } => self.ui.close_session(session_id),
-            HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
-        }
-    }
 }
 
 impl eframe::App for ChipmunkApp {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        while let Ok(event) = self.receivers.event_rx.try_recv() {
-            self.handle_event(event, ctx);
-        }
-
-        while let Ok(notification) = self.receivers.notification_rx.try_recv() {
-            self.ui.add_notification(notification);
-        }
-
-        self.ui
-            .sessions
-            .iter_mut()
-            .for_each(|session| session.handle_events());
-
-        self.ui.update(ctx, frame);
+        self.host.update(ctx, frame);
     }
 }
