@@ -63,6 +63,7 @@ impl OperationStat {
 #[derive(Debug)]
 pub struct Operation {
     kind: OperationKind,
+    //TODO AAZ: Remove not needed IDs.
     id: Uuid,
 }
 
