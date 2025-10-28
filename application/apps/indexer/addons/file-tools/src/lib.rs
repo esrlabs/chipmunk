@@ -1,15 +1,14 @@
-use anyhow::Result;
 use std::{
     fs::{File, metadata},
-    io::Read,
+    io::{Read, Result},
     path::Path,
     str::from_utf8,
 };
 
 const BYTES_TO_READ: u64 = 10240;
 
-pub fn is_binary(file_path: String) -> Result<bool> {
-    let buffer = fetch_starting_chunk(Path::new(&file_path))?;
+pub fn is_binary(file_path: impl AsRef<Path>) -> Result<bool> {
+    let buffer = fetch_starting_chunk(file_path.as_ref())?;
     Ok(from_utf8(&buffer).map_or(true, |_file_content| false))
 }
 
