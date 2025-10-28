@@ -1,22 +1,12 @@
-use std::path::PathBuf;
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SessionState {
-    pub file_path: PathBuf,
-    pub content_lines: Vec<String>,
+    pub main_table: MainTable,
+    pub logs_count: u64,
 }
 
-impl SessionState {
-    pub fn create(file_path: PathBuf) -> std::io::Result<Self> {
-        let file_content = std::fs::read_to_string(&file_path)?;
-
-        let content_lines = file_content.lines().map(|line| line.to_owned()).collect();
-
-        let state = Self {
-            file_path,
-            content_lines,
-        };
-
-        Ok(state)
-    }
+#[derive(Debug, Default)]
+pub struct MainTable {
+    /// The index of first line in logs window
+    pub idx_offset: usize,
+    pub logs_window: Vec<String>,
 }

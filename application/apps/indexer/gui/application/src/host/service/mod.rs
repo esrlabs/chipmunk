@@ -1,9 +1,13 @@
+use std::path::PathBuf;
+
+use stypes::{FileFormat, ObserveOptions, ParserType};
+
 use crate::{
     host::{
         command::HostCommand, communication::ServiceHandle, error::HostError, event::HostEvent,
         notification::AppNotification,
     },
-    session::init_session,
+    session::{InitSessionError, init_session},
 };
 
 #[derive(Debug)]
@@ -35,22 +39,9 @@ impl HostService {
         match cmd {
             HostCommand::OpenFiles(files) => {
                 log::trace!("Got open files request. Files: {files:?}");
+
                 for file in files {
-                    let file_display = file.display().to_string();
-                    let session_info =
-                        init_session(self.communication.senders.get_shared_senders(), file)?;
-
-                    self.communication
-                        .senders
-                        .send_event(HostEvent::CreateSession(session_info))
-                        .await;
-
-                    self.communication
-                        .senders
-                        .send_notification(AppNotification::Info(format!(
-                            "Session created for file {file_display}"
-                        )))
-                        .await;
+                    self.open_file(file).await?;
                 }
             }
             HostCommand::Close => {
@@ -62,6 +53,38 @@ impl HostService {
             }
         }
 
+        Ok(())
+    }
+
+    async fn open_file(&mut self, file_path: PathBuf) -> Result<(), HostError> {
+        log::trace!("Opening file: {}", file_path.display());
+
+        let is_binary =
+            file_tools::is_binary(&file_path).map_err(|err| InitSessionError::IO(err))?;
+
+        if is_binary {
+            return Err(HostError::InitSessionError(InitSessionError::Other(
+                "Binary files aren't supported yet".into(),
+            )));
+        }
+
+        let origin = ObserveOptions::file(file_path, FileFormat::Text, ParserType::Text(()));
+
+        let session_info =
+            init_session(self.communication.senders.get_shared_senders(), origin).await?;
+
+        self.communication
+            .senders
+            .send_event(HostEvent::CreateSession(session_info))
+            .await;
+
+        //TODO AAZ: Remove after prototyping.
+        self.communication
+            .senders
+            .send_notification(AppNotification::Info(String::from(
+                "TODO DEBUG: Session created for file",
+            )))
+            .await;
         Ok(())
     }
 }
