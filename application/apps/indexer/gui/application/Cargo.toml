@@ -15,6 +15,12 @@ path = "src/main.rs"
 [dependencies]
 # *** Internal ***
 stypes = { workspace = true, features=["rustcore"] }
+merging.workspace = true
+processor.workspace = true
+sources.workspace = true
+file-tools.workspace = true
+#TODO: We need to avoid clashing with module `session` in Workaround to avoid potential merge conflic  
+session_core = { package = "session",  path = "../../session" }
 
 # *** External ***
 anyhow.workspace = true

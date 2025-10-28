@@ -11,7 +11,7 @@ impl LogsTable {
 
         let table = egui_table::Table::new()
             .id_salt(id_salt)
-            .num_rows(data.content_lines.len() as u64)
+            .num_rows(data.main_table.logs_window.len() as u64)
             .columns(Self::text_columns())
             .num_sticky_cols(1);
 
@@ -54,7 +54,7 @@ impl TableDelegate for LogsDelegate<'_> {
                 if col_nr == 0 {
                     ui.label(format!("{}", row_nr + 1));
                 } else {
-                    ui.label(self.session_data.content_lines[row_nr as usize].as_str());
+                    ui.label(self.session_data.main_table.logs_window[row_nr as usize].as_str());
                 }
             });
     }

@@ -29,6 +29,7 @@ pub type OperationsChannel = (UnboundedSender<Operation>, UnboundedReceiver<Oper
 
 pub const SHUTDOWN_TIMEOUT_IN_MS: u64 = 2000;
 
+#[derive(Debug)]
 pub struct Session {
     uuid: Uuid,
     tx_operations: UnboundedSender<Operation>,
