@@ -1,12 +1,10 @@
 //! This is the main module for session parts
 
-use std::path::PathBuf;
-
-use uuid::Uuid;
+use stypes::{ComputationError, ObserveOptions};
 
 use crate::session::{
     communication::{SharedSenders, UiHandle},
-    data::SessionState,
+    info::SessionInfo,
     service::SessionService,
 };
 
@@ -15,6 +13,7 @@ pub mod communication;
 pub mod data;
 pub mod error;
 pub mod event;
+pub mod info;
 pub mod service;
 pub mod ui;
 
@@ -22,28 +21,28 @@ pub mod ui;
 pub enum InitSessionError {
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
+    #[error("Computation Error: {0}")]
+    Computation(#[from] ComputationError),
+    #[error("{0}")]
+    Other(String),
 }
 
 #[derive(Debug)]
 pub struct InitSessionParams {
-    pub session_id: Uuid,
-    pub file_path: PathBuf,
+    pub session_info: SessionInfo,
     pub communication: UiHandle,
 }
 
-pub fn init_session(
+pub async fn init_session(
     shared_senders: SharedSenders,
-    path: PathBuf,
+    options: ObserveOptions,
 ) -> Result<InitSessionParams, InitSessionError> {
-    let state = SessionState::create(path.clone())?;
+    let (ui_handle, service_handle) = communication::init(shared_senders);
 
-    let (ui_handle, service_handle) = communication::init(shared_senders, state);
-
-    let session_id = SessionService::spwan(service_handle);
+    let session_info = SessionService::spwan(service_handle, options).await?;
 
     let info = InitSessionParams {
-        session_id,
-        file_path: path,
+        session_info,
         communication: ui_handle,
     };
 
