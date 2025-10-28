@@ -126,10 +126,10 @@ pub struct SessionCommunication {
 }
 
 /// Initialize communication channels for session application.
-pub fn init(shared_senders: SharedSenders, state: SessionState) -> (UiHandle, ServiceHandle) {
+pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_event_tx, session_event_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (session_state_tx, session_state_rx) = watch::channel(state);
+    let (session_state_tx, session_state_rx) = watch::channel(SessionState::default());
 
     let ui_senders = UiSenders { cmd_tx };
 
