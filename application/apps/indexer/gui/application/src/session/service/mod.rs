@@ -91,6 +91,13 @@ impl SessionService {
 
     async fn handle_command(&mut self, cmd: SessionCommand) -> Result<(), SessionError> {
         match cmd {
+            SessionCommand::GrabLines(grab_range) => {
+                let elements = self.session.grab(grab_range).await?;
+                self.communication.senders.modify_state(|data| {
+                    data.main_table.append(elements.0);
+                    true
+                });
+            }
             SessionCommand::CloseSession => {
                 self.communication
                     .senders
