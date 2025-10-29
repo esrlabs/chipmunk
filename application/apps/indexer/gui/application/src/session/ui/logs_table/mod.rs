@@ -27,24 +27,20 @@ impl LogsTable {
 
         let mut delegate = LogsDelegate {
             session_data: data,
-            min_line: u64::MAX,
-            max_line: u64::MIN,
+            to_fetch: None,
         };
 
         table.show(ui, &mut delegate);
 
-        let last_line = data.main_table.idx_offset + data.main_table.logs_window.len() as u64;
-
-        let max = (delegate.max_line + 200).min(data.logs_count.saturating_sub(1));
-        if data.logs_count != 0 && max >= last_line {
-            let rng = last_line..=max;
-            let cmd = SessionCommand::GrabLines(LineRange::from(rng));
+        if let Some(to_fetch) = delegate.to_fetch {
+            let cmd = SessionCommand::GrabLines(to_fetch);
             //TODO AAZ: Handle errors.
             if senders.cmd_tx.try_send(cmd).is_err() {
                 println!("*** Sending grab commands too fast ***");
             };
+
+            //TODO AAZ: Add UI action to wait until state is changed.
         }
-        //TODO: Add UI action to wait until state is changed.
     }
 
     fn text_columns() -> Vec<Column> {
@@ -57,14 +53,16 @@ impl LogsTable {
 
 struct LogsDelegate<'a> {
     session_data: &'a SessionState,
-    min_line: u64,
-    max_line: u64,
+    to_fetch: Option<LineRange>,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
-    fn prepare(&mut self, _info: &egui_table::PrefetchInfo) {
-        //TODO: I need to check here if the data is already available
-        //TODO AAZ: Deal with max and min here.
+    fn prepare(&mut self, info: &egui_table::PrefetchInfo) {
+        self.to_fetch = self
+            .session_data
+            .main_table
+            .check_fetch(&info.visible_rows, self.session_data.logs_count)
+            .map(LineRange::from);
     }
 
     fn header_cell_ui(&mut self, ui: &mut Ui, cell: &HeaderCellInfo) {
@@ -82,8 +80,6 @@ impl TableDelegate for LogsDelegate<'_> {
 
     fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
         let &CellInfo { col_nr, row_nr, .. } = cell;
-        self.min_line = self.min_line.min(row_nr);
-        self.max_line = self.max_line.max(row_nr);
 
         if row_nr % 2 == 1 {
             ui.painter()
@@ -96,16 +92,13 @@ impl TableDelegate for LogsDelegate<'_> {
                 if col_nr == 0 {
                     ui.label(format!("{}", row_nr));
                 } else {
-                    let main_table = &self.session_data.main_table;
-                    let rows_rng = main_table.idx_offset
-                        ..(main_table.idx_offset + main_table.logs_window.len() as u64);
-                    if rows_rng.contains(&row_nr) {
-                        ui.label(
-                            self.session_data.main_table.logs_window[row_nr as usize].as_str(),
-                        );
-                    } else {
-                        ui.label("Loading...");
-                    };
+                    let content = self
+                        .session_data
+                        .main_table
+                        .get_log(row_nr)
+                        .unwrap_or("Loading...");
+
+                    ui.label(content);
                 }
             });
     }
