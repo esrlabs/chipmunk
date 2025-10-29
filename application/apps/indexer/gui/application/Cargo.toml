@@ -47,7 +47,7 @@ eframe = { workspace = true, features = [
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 
-egui_table = "0.5"
+egui_table.workspace = true
 
 [lints]
 workspace = true

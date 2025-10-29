@@ -49,14 +49,17 @@ impl SessionUI {
     }
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
-        let data = self.receivers.session_state_rx.borrow_and_update();
+        let Self {
+            senders, receivers, ..
+        } = self;
+        let data = receivers.session_state_rx.borrow_and_update();
 
         TopBottomPanel::bottom("status_bar").show(ui.ctx(), |ui| {
             status_bar::render_content(&data, ui);
         });
 
         CentralPanel::default().show(ui.ctx(), |ui| {
-            LogsTable::render_content(&data, ui, actions);
+            LogsTable::render_content(&data, senders, ui, actions);
         });
     }
 

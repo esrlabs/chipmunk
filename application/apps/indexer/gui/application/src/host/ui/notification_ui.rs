@@ -45,6 +45,7 @@ impl From<&AppNotification> for NotificationLevel {
                 stypes::Severity::WARNING => Level::Warning,
                 stypes::Severity::ERROR => Level::Error,
             },
+            Not::SessionError { .. } => Level::Error,
             Not::Error(..) | Not::UiError(..) => Level::Error,
             Not::Warning(..) => Level::Warning,
             Not::Info(..) => Level::Info,
@@ -204,6 +205,7 @@ impl NotificationUi {
                                     stypes::Severity::ERROR => (L::Error, error.to_string()),
                                 }
                             }
+                            SessionError::CompuationError(..) => (L::Error, error.to_string()),
                         },
 
                         AppNotification::Error(msg) | AppNotification::UiError(msg) => {
