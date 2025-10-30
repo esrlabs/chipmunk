@@ -153,6 +153,7 @@ export class HistorySession extends Subscriber {
         this.unsubscribe();
         this.collections = collections;
         this.collections.subscribe(this, this.session);
+        this.storage.collections.clearSession(this.session.uuid());
         this.collections.applied_sessions.add(this.session.uuid());
         this.register(
             this.collections.updated.subscribe(() => {
