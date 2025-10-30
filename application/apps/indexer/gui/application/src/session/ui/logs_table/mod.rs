@@ -4,10 +4,7 @@ use egui::{Frame, Id, Margin, Ui};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 
-use crate::{
-    host::ui::UiActions,
-    session::{command::SessionCommand, communication::UiSenders, data::SessionState},
-};
+use crate::session::{command::SessionCommand, communication::UiSenders, data::SessionState};
 
 const LOGS_WINDOW_OFFSET: u64 = 5;
 
@@ -17,13 +14,7 @@ pub struct LogsTable {
 }
 
 impl LogsTable {
-    pub fn render_content(
-        &mut self,
-        data: &SessionState,
-        senders: &UiSenders,
-        ui: &mut Ui,
-        _actions: &mut UiActions,
-    ) {
+    pub fn render_content(&mut self, data: &SessionState, senders: &UiSenders, ui: &mut Ui) {
         let id_salt = Id::new("logs_table");
 
         let table = egui_table::Table::new()
