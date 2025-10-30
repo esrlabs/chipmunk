@@ -31,6 +31,7 @@ log.workspace = true
 tokio.workspace = true
 rfd.workspace = true
 uuid = { workspace = true, features = ["v4"] }
+itertools.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true

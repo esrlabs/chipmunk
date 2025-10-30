@@ -68,6 +68,7 @@ envvars = "0.1"
 anyhow = "1.0"
 toml = "0.8"
 blake3 = "1.8"
+itertools = "0.14"
 
 clap = { version = "4", features = ["derive"] }
 
