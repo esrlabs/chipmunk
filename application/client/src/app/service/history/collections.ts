@@ -26,7 +26,7 @@ export interface ICollection {
     last: number;
     used: number;
     uuid: string;
-    applied_sessions: string[];
+    applied_sessions: Set<string>;
     preset: boolean;
     relations: string[];
     entries: JsonSet;
@@ -48,7 +48,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                     created: Date.now(),
                     used: 1,
                     uuid: smth.uuid(),
-                    applied_sessions: [smth.uuid()],
+                    applied_sessions: new Set([smth.uuid()]),
                     preset: false,
                     relations: [],
                     origin: undefined,
@@ -100,7 +100,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
                 created: Date.now(),
                 used: 1,
                 uuid: uuid,
-                applied_sessions: [],
+                applied_sessions: new Set(),
                 preset: false,
                 relations: [],
                 origin: undefined,
@@ -134,7 +134,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
     public used: number;
     public last: number;
     public uuid: string;
-    public applied_sessions: string[];
+    public applied_sessions: Set<string>;
     public preset: boolean;
     public relations: string[];
     public origin: string | undefined;

@@ -81,10 +81,10 @@ export class Preset extends ChangesDetector implements AfterContentInit {
     public getName(): string {
         if (this.collections.name === '-') {
             return `${new Date(this.collections.last).toLocaleDateString('en-US')} (${
-                this.collections.applied_sessions.length
+                this.collections.applied_sessions.size
             })`;
         } else {
-            return `${this.collections.name}(${this.collections.applied_sessions.length})`;
+            return `${this.collections.name}(${this.collections.applied_sessions.size})`;
         }
     }
 

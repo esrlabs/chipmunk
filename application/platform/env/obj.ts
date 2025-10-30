@@ -417,12 +417,13 @@ export function objToStringMap(obj: {
     return output;
 }
 
-export function getAsArrayOfStringsOrEmpty(src: any, key: string): string[] {
+export function getAsArrayOfStringsOrEmpty(src: any, key: string): Set<string> {
     if (src[key] === undefined) {
-        return [];
-    } else if (!(src[key] instanceof Array)) {
-        throw new Error(`Parameter "${key}" should be valid array`);
+        return new Set();
+    } else if (!(src[key] instanceof Set)) {
+        throw new Error(`Parameter "${key}" should be valid Set`);
     }
 
-    return src[key] as string[];
+    let applied_session_ids: string[] = Array.from(src[key]).map(x => x as string);
+    return new Set(applied_session_ids);
 }
