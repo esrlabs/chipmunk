@@ -1,7 +1,4 @@
-use tokio::sync::{
-    mpsc::{self, error::SendError},
-    watch,
-};
+use tokio::sync::{mpsc, watch};
 
 use crate::{
     comm_utls::evaluate_send_res,
