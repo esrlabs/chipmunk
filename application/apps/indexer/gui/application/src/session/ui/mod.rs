@@ -64,7 +64,12 @@ impl SessionUI {
         });
 
         CentralPanel::default().show(ui.ctx(), |ui| {
-            logs_table.render_content(&data, senders, ui, actions);
+            // We need to give a unique id for the direct parent of each table because
+            // they will be used as identifiers for table state to avoid ID clashes between
+            // tables from different tabs (different sessions).
+            ui.push_id(self.session_info.id, |ui| {
+                logs_table.render_content(&data, senders, ui, actions);
+            })
         });
     }
 

@@ -185,14 +185,7 @@ impl HostUI {
         let Self { ui_actions, .. } = self;
         match self.state.active_tab {
             TabType::Home => HomeView::render_content(ui),
-            TabType::Session(idx) => {
-                let session = &self.sessions[idx];
-                // We need to give a unique id for each session since they will be using
-                // the same controls to avoid any ID clashing between them.
-                ui.push_id(session.get_info().id, |ui| {
-                    self.sessions[idx].render_content(ui_actions, ui)
-                });
-            }
+            TabType::Session(idx) => self.sessions[idx].render_content(ui_actions, ui),
         }
     }
 
