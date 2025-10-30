@@ -1,13 +1,14 @@
 //! Implementation for sliding window for display logs in table.
 
 //TODO AAZ: Compare this approach to simple one with maps before finalize solution.
+#![allow(unused)]
 
 use std::ops::{Range, RangeInclusive};
 
 use stypes::GrabbedElement;
 
 const LOGS_WINDOW_OFFSET: usize = 50;
-const MAX_WINDOW_CAPCITY: usize = 200;
+const MAX_WINDOW_CAPACITY: usize = 200;
 
 /// Implementation for displaying a window of the logs to be used
 /// inside the logs viewer.
@@ -60,7 +61,7 @@ impl LogsSlidingWindow {
                     //              |----------------  first line is here.
                     .skip((max + 1).saturating_sub(self.first_line))
                     // Keep the window at maximum capacity.
-                    .take(MAX_WINDOW_CAPCITY.saturating_sub(incoming.len())),
+                    .take(MAX_WINDOW_CAPACITY.saturating_sub(incoming.len())),
             );
 
             self.first_line = min;
@@ -71,10 +72,10 @@ impl LogsSlidingWindow {
             let skip_count = (self.last_line() + 1).saturating_sub(min);
 
             // Drain amount before extending the window.
-            let incomming_len = items.len();
+            let incoming_len = items.len();
             let current_len = self.logs_window.len();
             let drain_amount =
-                (current_len + incomming_len - skip_count).saturating_sub(MAX_WINDOW_CAPCITY);
+                (current_len + incoming_len - skip_count).saturating_sub(MAX_WINDOW_CAPACITY);
             if drain_amount > 0 {
                 self.logs_window.drain(..drain_amount);
             }
@@ -90,7 +91,7 @@ impl LogsSlidingWindow {
             //
             // let duplicates = self.logs_window.iter().duplicates().collect_vec();
             // assert!(duplicates.is_empty(), "{duplicates:?}");
-            assert!(self.logs_window.len() <= MAX_WINDOW_CAPCITY);
+            assert!(self.logs_window.len() <= MAX_WINDOW_CAPACITY);
         }
     }
 
@@ -136,7 +137,7 @@ impl LogsSlidingWindow {
 
     #[inline]
     /// The index of the last line in logs window.
-    pub fn last_line(&self) -> usize {
+    fn last_line(&self) -> usize {
         self.first_line + self.logs_window.len()
     }
 }

@@ -21,6 +21,7 @@ pub struct SessionUI {
     senders: UiSenders,
     receivers: UiReceivers,
     state: SessionUiState,
+    logs_table: LogsTable,
 }
 
 impl SessionUI {
@@ -37,6 +38,7 @@ impl SessionUI {
             senders,
             receivers,
             state: SessionUiState::default(),
+            logs_table: LogsTable::default(),
         }
     }
 
@@ -50,7 +52,10 @@ impl SessionUI {
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
         let Self {
-            senders, receivers, ..
+            senders,
+            receivers,
+            logs_table,
+            ..
         } = self;
         let data = receivers.session_state_rx.borrow_and_update();
 
@@ -59,7 +64,7 @@ impl SessionUI {
         });
 
         CentralPanel::default().show(ui.ctx(), |ui| {
-            LogsTable::render_content(&data, senders, ui, actions);
+            logs_table.render_content(&data, senders, ui, actions);
         });
     }
 
