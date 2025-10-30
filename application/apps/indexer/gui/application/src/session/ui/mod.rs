@@ -7,10 +7,12 @@ use crate::{
         InitSessionParams, SessionInfo,
         command::SessionCommand,
         communication::{UiHandle, UiReceivers, UiSenders},
-        ui::logs_table::LogsTable,
     },
 };
+use bottom_panel::BottomPanelUI;
+use logs_table::LogsTable;
 
+mod bottom_panel;
 mod logs_table;
 mod state;
 mod status_bar;
@@ -22,6 +24,7 @@ pub struct SessionUI {
     receivers: UiReceivers,
     state: SessionUiState,
     logs_table: LogsTable,
+    bottom_panel: BottomPanelUI,
 }
 
 impl SessionUI {
@@ -39,6 +42,7 @@ impl SessionUI {
             receivers,
             state: SessionUiState::default(),
             logs_table: LogsTable::default(),
+            bottom_panel: BottomPanelUI::default(),
         }
     }
 
@@ -55,6 +59,7 @@ impl SessionUI {
             senders,
             receivers,
             logs_table,
+            bottom_panel,
             ..
         } = self;
         let data = receivers.session_state_rx.borrow_and_update();
@@ -63,13 +68,21 @@ impl SessionUI {
             status_bar::render_content(&data, ui);
         });
 
+        TopBottomPanel::bottom("bottom_panel")
+            .height_range(100.0..=500.0)
+            .default_height(200.)
+            .resizable(true)
+            .show(ui.ctx(), |ui| {
+                bottom_panel.render_content(&data, senders, ui);
+            });
+
         CentralPanel::default().show(ui.ctx(), |ui| {
             // We need to give a unique id for the direct parent of each table because
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(self.session_info.id, |ui| {
-                logs_table.render_content(&data, senders, ui, actions);
-            })
+                logs_table.render_content(&data, senders, ui);
+            });
         });
     }
 
