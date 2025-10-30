@@ -61,7 +61,7 @@ impl TableDelegate for LogsDelegate<'_> {
         self.to_fetch = self
             .session_data
             .main_table
-            .check_fetch(&info.visible_rows, self.session_data.logs_count)
+            .check_fetch(&info.visible_rows, self.session_data.logs_count as usize)
             .map(LineRange::from);
     }
 
