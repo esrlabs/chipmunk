@@ -424,6 +424,6 @@ export function getAsArrayOfStringsOrEmpty(src: any, key: string): Set<string> {
         throw new Error(`Parameter "${key}" should be valid Set`);
     }
 
-    let applied_session_ids: string[] = Array.from(src[key]).map(x => x as string);
+    const applied_session_ids: string[] = Array.from(src[key]).map(x => x as string);
     return new Set(applied_session_ids);
 }
