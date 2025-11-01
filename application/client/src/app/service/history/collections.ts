@@ -120,7 +120,7 @@ export class Collections implements EntryConvertable, Equal<Collections>, Empty 
             last: obj.getAsValidNumber(src, 'l'),
             preset: obj.getAsBool(src, 'p'),
             uuid: obj.getAsNotEmptyString(src, 'uu'),
-            applied_sessions: obj.getAsArrayOfStringsOrEmpty(src, 'as'),
+            applied_sessions: obj.getAsSetOfStringsOrEmpty(src, 'as'),
             relations: obj.getAsArray(src, 'r'),
             origin: obj.getAsNotEmptyStringOrAsUndefined(src, 'o'),
             entries: obj.getAsObj(src, 'e'),

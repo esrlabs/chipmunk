@@ -417,7 +417,7 @@ export function objToStringMap(obj: {
     return output;
 }
 
-export function getAsArrayOfStringsOrEmpty(src: any, key: string): Set<string> {
+export function getAsSetOfStringsOrEmpty(src: any, key: string): Set<string> {
     if (src[key] === undefined) {
         return new Set();
     } else if (!(src[key] instanceof Set)) {
