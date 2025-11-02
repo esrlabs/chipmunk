@@ -1,7 +1,10 @@
 use egui::{Frame, Margin, Ui};
 use state::{BottomTabType, BottomUiState};
 
-use crate::session::{communication::UiSenders, data::SessionState};
+use crate::{
+    host::ui::UiActions,
+    session::{communication::UiSenders, data::SessionState},
+};
 use chart::ChartUI;
 use details::DetailsUI;
 use presets::PresetsUI;
@@ -24,11 +27,17 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
-    pub fn render_content(&mut self, data: &SessionState, senders: &UiSenders, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        data: &SessionState,
+        actions: &mut UiActions,
+        senders: &UiSenders,
+        ui: &mut Ui,
+    ) {
         self.render_tabs(ui);
 
         match self.state.active_tab {
-            BottomTabType::Search => self.search.render_content(data, senders, ui),
+            BottomTabType::Search => self.search.render_content(data, actions, senders, ui),
             BottomTabType::Details => self.details.render_content(data, senders, ui),
             BottomTabType::Presets => self.presets.render_content(data, senders, ui),
             BottomTabType::Chart => self.chart.render_content(data, senders, ui),
