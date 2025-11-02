@@ -73,7 +73,7 @@ impl SessionUI {
             .default_height(200.)
             .resizable(true)
             .show(ui.ctx(), |ui| {
-                bottom_panel.render_content(&data, senders, ui);
+                bottom_panel.render_content(&data, actions, senders, ui);
             });
 
         CentralPanel::default().show(ui.ctx(), |ui| {
