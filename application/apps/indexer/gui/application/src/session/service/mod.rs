@@ -98,6 +98,13 @@ impl SessionService {
                     true
                 });
             }
+            SessionCommand::ApplySearchFilter(search_filters) => {
+                self.session
+                    .apply_search_filters(Uuid::new_v4(), search_filters)?;
+            }
+            SessionCommand::DropSearch => {
+                self.session.drop_search().await?;
+            }
             SessionCommand::CloseSession => {
                 self.communication
                     .senders
@@ -112,7 +119,7 @@ impl SessionService {
     }
 
     async fn handle_callbacks(&mut self, event: CallbackEvent) -> Result<(), SessionError> {
-        println!("-------------- DEBUG: Received callback: {event}");
+        println!("************** DEBUG: Received callback: {event}");
 
         log::trace!(
             "Received callback. Session: {}. Event: {}",

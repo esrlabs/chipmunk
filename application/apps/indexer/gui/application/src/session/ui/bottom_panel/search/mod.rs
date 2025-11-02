@@ -1,6 +1,9 @@
 use egui::Ui;
 
-use crate::session::{communication::UiSenders, data::SessionState};
+use crate::{
+    host::ui::UiActions,
+    session::{communication::UiSenders, data::SessionState},
+};
 
 use search_bar::SearchBar;
 
@@ -12,8 +15,14 @@ pub struct SearchUI {
 }
 
 impl SearchUI {
-    pub fn render_content(&mut self, data: &SessionState, senders: &UiSenders, ui: &mut Ui) {
-        self.bar.render_content(senders, ui);
+    pub fn render_content(
+        &mut self,
+        data: &SessionState,
+        actions: &mut UiActions,
+        senders: &UiSenders,
+        ui: &mut Ui,
+    ) {
+        self.bar.render_content(senders, actions, ui);
         ui.centered_and_justified(|ui| {
             ui.heading("Search UI");
         });

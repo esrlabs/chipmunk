@@ -3,7 +3,10 @@ use egui::{
 };
 use processor::search::filter::SearchFilter;
 
-use crate::session::communication::UiSenders;
+use crate::{
+    host::ui::UiActions,
+    session::{command::SessionCommand, communication::UiSenders},
+};
 
 #[derive(Debug, Clone)]
 pub struct SearchBar {
@@ -27,7 +30,7 @@ impl Default for SearchBar {
 }
 
 impl SearchBar {
-    pub fn render_content(&mut self, senders: &UiSenders, ui: &mut Ui) {
+    pub fn render_content(&mut self, senders: &UiSenders, actions: &mut UiActions, ui: &mut Ui) {
         // - Capture enter before creating text edit to prevent it from stealing it.
         // - Check if backspace is pressed for handling temp filter without consuming it.
         let (enter_pressed, backspace_pressed, command_modifier) = ui.input_mut(|i| {
@@ -44,7 +47,7 @@ impl SearchBar {
             && self.query.is_empty()
             && let Some(mut filter) = self.temp_filter.take()
         {
-            //TODO AAZ: Remove filter from core.
+            actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
             if command_modifier {
                 false
             } else {
@@ -58,7 +61,10 @@ impl SearchBar {
 
         // Apply temp filter on pressing enter.
         if enter_pressed && !self.query.is_empty() {
-            //TODO: Send filter request.
+            if self.temp_filter.is_some() {
+                actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+            }
+
             let filter = SearchFilter::new(
                 std::mem::take(&mut self.query),
                 self.is_regex,
@@ -66,7 +72,10 @@ impl SearchBar {
                 self.is_word,
             );
 
-            self.temp_filter = Some(filter);
+            let cmd = SessionCommand::ApplySearchFilter(vec![filter.clone()]);
+            if actions.try_send_command(&senders.cmd_tx, cmd) {
+                self.temp_filter = Some(filter);
+            }
         }
 
         // Text id is needed to keep track if the text control is focused.
@@ -95,7 +104,7 @@ impl SearchBar {
                             .fill(ui.visuals().extreme_bg_color)
                             .stroke(Self::text_frame_stroke(ui, text_id))
                             .show(ui, |ui| {
-                                self.render_temp_filter(senders, ui);
+                                self.render_temp_filter(senders, actions, ui);
 
                                 let mut text_output = TextEdit::singleline(&mut self.query)
                                     .id(text_id)
@@ -119,7 +128,7 @@ impl SearchBar {
     }
 
     /// Renders temp filter if exists inside input frame.
-    fn render_temp_filter(&mut self, senders: &UiSenders, ui: &mut Ui) {
+    fn render_temp_filter(&mut self, senders: &UiSenders, actions: &mut UiActions, ui: &mut Ui) {
         if let Some(filter) = self.temp_filter.take() {
             ui.add_space(1.);
 
@@ -151,12 +160,14 @@ impl SearchBar {
                             //TODO: Add to charts
                         }
 
-                        // Close button
-                        if !Button::new("❌")
+                        // Remove filter button
+                        if Button::new("❌")
                             .ui(ui)
                             .on_hover_text("Remove filter")
                             .clicked()
                         {
+                            actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+                        } else {
                             self.temp_filter = Some(filter);
                         }
                     })
