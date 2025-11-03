@@ -22,7 +22,7 @@ impl SearchUI {
         senders: &UiSenders,
         ui: &mut Ui,
     ) {
-        self.bar.render_content(senders, actions, ui);
+        self.bar.render_content(data, senders, actions, ui);
         ui.centered_and_justified(|ui| {
             ui.heading("Search UI");
         });
