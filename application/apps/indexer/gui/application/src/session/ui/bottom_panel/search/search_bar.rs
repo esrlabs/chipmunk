@@ -1,11 +1,12 @@
 use egui::{
-    Align, Button, Frame, Id, Key, Layout, Margin, Modifiers, Stroke, TextEdit, Ui, Widget, vec2,
+    Align, Button, Frame, Id, Key, Label, Layout, Margin, Modifiers, Stroke, TextEdit, Ui, Widget,
+    vec2,
 };
 use processor::search::filter::SearchFilter;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, communication::UiSenders},
+    session::{command::SessionCommand, communication::UiSenders, data::SessionState},
 };
 
 #[derive(Debug, Clone)]
@@ -30,7 +31,13 @@ impl Default for SearchBar {
 }
 
 impl SearchBar {
-    pub fn render_content(&mut self, senders: &UiSenders, actions: &mut UiActions, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        data: &SessionState,
+        senders: &UiSenders,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) {
         // - Capture enter before creating text edit to prevent it from stealing it.
         // - Check if backspace is pressed for handling temp filter without consuming it.
         let (enter_pressed, backspace_pressed, command_modifier) = ui.input_mut(|i| {
@@ -68,7 +75,7 @@ impl SearchBar {
             let filter = SearchFilter::new(
                 std::mem::take(&mut self.query),
                 self.is_regex,
-                self.match_case,
+                !self.match_case,
                 self.is_word,
             );
 
@@ -85,6 +92,8 @@ impl SearchBar {
             vec2(ui.available_width(), 25.),
             Layout::right_to_left(Align::Center),
             |ui| {
+                self.render_filter_status(data, ui);
+
                 ui.toggle_value(&mut self.is_regex, "Regex")
                     .on_hover_text("Use Regex Expression");
                 ui.toggle_value(&mut self.is_word, "Word")
@@ -187,5 +196,27 @@ impl SearchBar {
         } else {
             noninteractive.bg_stroke
         }
+    }
+
+    fn render_filter_status(&mut self, data: &SessionState, ui: &mut Ui) {
+        if !data.search.is_search_active() || data.logs_count == 0 {
+            return;
+        }
+
+        ui.horizontal_centered(|ui| {
+            let percentage = data.search.search_count as f32 / data.logs_count as f32 * 100.;
+
+            let state_txt = format!(
+                "{}/{} ({percentage:.2}%)",
+                data.search.search_count, data.logs_count,
+            );
+            Label::new(state_txt).selectable(false).ui(ui);
+
+            if data.search.matches_map.is_none() {
+                ui.spinner();
+            }
+        });
+
+        ui.separator();
     }
 }
