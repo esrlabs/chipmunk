@@ -299,6 +299,7 @@ impl Session {
     }
 
     pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), stypes::ComputationError> {
+        println!("--------------- DEBUG AAZ: Abort. operations: {operation_id}. target:{target}");
         self.tx_operations
             .send(Operation::new(
                 operation_id,
@@ -356,6 +357,7 @@ impl Session {
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), stypes::ComputationError> {
+        println!("--------------- DEBUG AAZ: Stop. operations: {operation_id}");
         Session::send_stop_signal(
             operation_id,
             &self.tx_operations,
