@@ -18,6 +18,7 @@ pub use ui_actions::UiActions;
 mod home;
 mod menu;
 mod notification_ui;
+mod sessions_tabs;
 mod state;
 mod ui_actions;
 
@@ -157,21 +158,14 @@ impl HostUI {
         } = self;
         ui.horizontal_wrapped(|ui| {
             // Home
-            ui.selectable_value(&mut state.active_tab, TabType::Home, "Home");
+            ui.selectable_value(
+                &mut state.active_tab,
+                TabType::Home,
+                egui::RichText::new("🏠").size(17.),
+            )
+            .on_hover_text("Home");
 
-            // Sessions
-            for (idx, session) in sessions.iter().enumerate() {
-                let res = ui.selectable_value(
-                    &mut state.active_tab,
-                    TabType::Session(idx),
-                    format!("Session {}", session.get_info().title),
-                );
-                egui::Popup::context_menu(&res).show(|ui| {
-                    if ui.button("Close").clicked() {
-                        sessions[idx].close_session(ui_actions);
-                    }
-                });
-            }
+            sessions_tabs::render(state, &sessions, ui_actions, ui);
 
             // Notifications
             ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
