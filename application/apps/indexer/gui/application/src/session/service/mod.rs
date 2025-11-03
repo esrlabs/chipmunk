@@ -132,6 +132,8 @@ impl SessionService {
                     self.session.abort(Uuid::new_v4(), op_id)?;
                 }
 
+                self.session.stop(Uuid::new_v4()).await?;
+
                 self.communication
                     .senders
                     .send_host_event(HostEvent::CloseSession {
