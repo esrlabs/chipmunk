@@ -19,7 +19,7 @@ impl LogsTable {
 
         let table = egui_table::Table::new()
             .id_salt(id_salt)
-            .num_rows(data.logs_count as u64)
+            .num_rows(data.logs_count)
             .columns(Self::text_columns())
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);

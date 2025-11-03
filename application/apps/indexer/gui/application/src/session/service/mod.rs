@@ -10,15 +10,19 @@ use crate::host::notification::AppNotification;
 use crate::session::InitSessionError;
 use crate::session::info::SessionInfo;
 
+use super::communication::ServiceHandle;
 use super::{command::SessionCommand, error::SessionError};
 
-use super::communication::ServiceHandle;
+use operation_track::OperationTracker;
+
+mod operation_track;
 
 #[derive(Debug)]
 pub struct SessionService {
     session_id: Uuid,
     communication: ServiceHandle,
     session: Session,
+    ops_tracker: OperationTracker,
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
 }
 
@@ -39,6 +43,7 @@ impl SessionService {
             session_id,
             communication,
             session,
+            ops_tracker: OperationTracker::default(),
             callback_rx,
         };
 
@@ -99,13 +104,34 @@ impl SessionService {
                 });
             }
             SessionCommand::ApplySearchFilter(search_filters) => {
-                self.session
-                    .apply_search_filters(Uuid::new_v4(), search_filters)?;
+                let op_id = Uuid::new_v4();
+                debug_assert!(
+                    self.ops_tracker.filter_op.is_none(),
+                    "filter must be dropped before applying new one"
+                );
+                self.ops_tracker.filter_op = Some(op_id);
+                self.session.apply_search_filters(op_id, search_filters)?;
+
+                self.communication.senders.modify_state(|data| {
+                    data.search.activate();
+                    true
+                });
             }
             SessionCommand::DropSearch => {
+                if let Some(filter_op) = self.ops_tracker.filter_op.take() {
+                    self.session.abort(Uuid::new_v4(), filter_op)?;
+                }
                 self.session.drop_search().await?;
+                self.communication.senders.modify_state(|data| {
+                    data.search.drop_search();
+                    true
+                });
             }
             SessionCommand::CloseSession => {
+                for op_id in self.ops_tracker.get_all() {
+                    self.session.abort(Uuid::new_v4(), op_id)?;
+                }
+
                 self.communication
                     .senders
                     .send_host_event(HostEvent::CloseSession {
@@ -119,7 +145,7 @@ impl SessionService {
     }
 
     async fn handle_callbacks(&mut self, event: CallbackEvent) -> Result<(), SessionError> {
-        println!("************** DEBUG: Received callback: {event}");
+        println!("************** DEBUG: Received callback: {event:?}");
 
         log::trace!(
             "Received callback. Session: {}. Event: {}",
@@ -132,6 +158,28 @@ impl SessionService {
                     state.logs_count = logs_count;
                     true
                 });
+            }
+            // TODO AAZ: Search callbacks seem to have duplications. Check
+            // how they're used in master.
+            //
+            // CallbackEvent::SearchUpdated { found, stat } => {
+            // }
+            CallbackEvent::IndexedMapUpdated { len } => {
+                self.communication.senders.modify_state(|data| {
+                    data.search.search_count = len;
+                    true
+                });
+            }
+            CallbackEvent::SearchMapUpdated(filter_matches) => {
+                if let Some(list) = filter_matches {
+                    // Long process ends when it deliver its initial results.
+                    self.ops_tracker.filter_op = None;
+
+                    self.communication.senders.modify_state(|data| {
+                        data.search.append_matches(list.0);
+                        true
+                    });
+                }
             }
             event => {
                 log::warn!("Unhandled callback: {event}");
