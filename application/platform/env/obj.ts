@@ -418,12 +418,17 @@ export function objToStringMap(obj: {
 }
 
 export function getAsSetOfStringsOrEmpty(src: any, key: string): Set<string> {
-    if (src[key] === undefined) {
-        return new Set();
-    } else if (!(src[key] instanceof Set)) {
-        throw new Error(`Parameter "${key}" should be valid Set`);
+    const target = src[key];
+
+    if (!(target instanceof Set)) {
+         return new Set();
     }
 
-    const applied_session_ids: string[] = Array.from(src[key]).map(x => x as string);
-    return new Set(applied_session_ids);
+    target.forEach((el: any) => {
+        if (typeof el !== 'string') {
+            throw new Error(`Parameter "${key}" must be a Set of strings. Found a non-string value.`);
+        }
+    });
+
+    return target as Set<string>;
 }
