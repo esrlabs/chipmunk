@@ -1,11 +1,14 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use stypes::FilterMatch;
 
 use crate::session::data::indexed_mapped::IndexedMapped;
-#[derive(Debug, Clone, Copy)]
 
+#[derive(Debug, Clone, Copy)]
 pub struct FilterIndex(pub u8);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LogMainIndex(pub u64);
 
 #[derive(Debug, Default)]
 pub struct SearchData {
@@ -13,7 +16,7 @@ pub struct SearchData {
     //TODO AAZ: This should be equal to `results_map.len()`.
     //Make sure we need to keep both
     pub search_count: u64,
-    pub matches_map: Option<BTreeMap<u64, Vec<FilterIndex>>>,
+    matches_map: Option<HashMap<LogMainIndex, Vec<FilterIndex>>>,
     pub search_table: IndexedMapped,
 }
 
@@ -52,7 +55,7 @@ impl SearchData {
             // Filter indexes get combined in chipmunk core.
             // We don't need to extend the indices vector and check for duplications here.
             matches_map.insert(
-                mat.index,
+                LogMainIndex(mat.index),
                 mat.filters.into_iter().map(FilterIndex).collect(),
             );
         });
@@ -62,5 +65,9 @@ impl SearchData {
             self.search_count,
             "Search count and matches length can't go out of sync"
         );
+    }
+
+    pub fn current_matches_map(&self) -> Option<&HashMap<LogMainIndex, Vec<FilterIndex>>> {
+        self.matches_map.as_ref()
     }
 }
