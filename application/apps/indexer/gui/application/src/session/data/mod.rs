@@ -1,9 +1,11 @@
 use crate::session::data::logs_mapped::LogsMapped;
 
+mod indexed_mapped;
 mod logs_mapped;
 mod logs_sliding_window;
 mod search;
 
+pub use indexed_mapped::SearchTableIndex;
 pub use search::{FilterIndex, SearchData};
 
 #[derive(Debug, Default)]
