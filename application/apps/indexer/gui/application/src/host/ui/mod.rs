@@ -132,7 +132,7 @@ impl HostUI {
             });
 
         CentralPanel::default()
-            .frame(Frame::central_panel(&ctx.style()))
+            .frame(Frame::central_panel(&ctx.style()).inner_margin(0))
             .show(ctx, |ui| {
                 self.render_main(ui);
             });

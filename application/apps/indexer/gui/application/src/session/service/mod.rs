@@ -156,7 +156,7 @@ impl SessionService {
     }
 
     async fn handle_callbacks(&mut self, event: CallbackEvent) -> Result<(), SessionError> {
-        println!("************** DEBUG: Received callback: {event:?}");
+        println!("************** DEBUG SIMPLE: Received callback: {event}");
 
         log::trace!(
             "Received callback. Session: {}. Event: {}",
@@ -193,6 +193,7 @@ impl SessionService {
                 }
             }
             event => {
+                println!("************** DEBUG: Received callback: {event:?}");
                 log::warn!("Unhandled callback: {event}");
             }
         }
