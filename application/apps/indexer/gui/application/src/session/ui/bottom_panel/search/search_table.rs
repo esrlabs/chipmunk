@@ -14,6 +14,8 @@ use crate::session::{
     data::{SearchTableIndex, SessionState},
 };
 
+const LOGS_WINDOW_OFFSET: u64 = 5;
+
 #[derive(Debug, Default)]
 pub struct SearchTable {
     last_visible_rows: Range<u64>,
@@ -81,10 +83,14 @@ impl TableDelegate for LogsDelegate<'_> {
         self.to_fetch = if self.last_visible_rows == visible_rows {
             None
         } else {
-            // TODO AAZ: I didn't use and offset here.
-            // Make sure this is working as intended.
             *self.last_visible_rows = info.visible_rows.to_owned();
-            let rng = visible_rows.start..=visible_rows.end.saturating_sub(1);
+
+            let start = visible_rows.start.saturating_sub(LOGS_WINDOW_OFFSET);
+            let end =
+                (visible_rows.end + LOGS_WINDOW_OFFSET).min(self.session_data.search.search_count);
+
+            let rng = start..=end.saturating_sub(1);
+
             Some(rng)
         }
     }
