@@ -6,7 +6,7 @@ mod logs_sliding_window;
 mod search;
 
 pub use indexed_mapped::SearchTableIndex;
-pub use search::{FilterIndex, SearchData};
+pub use search::{FilterIndex, LogMainIndex, SearchData};
 
 #[derive(Debug, Default)]
 pub struct SessionState {
