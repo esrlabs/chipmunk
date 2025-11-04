@@ -1,10 +1,14 @@
 use std::ops::Range;
 
-use egui::{Frame, Id, Margin, Ui};
+use egui::{Color32, Frame, Id, Margin, RichText, Ui};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 
-use crate::session::{command::SessionCommand, communication::UiSenders, data::SessionState};
+use crate::session::{
+    command::SessionCommand,
+    communication::UiSenders,
+    data::{LogMainIndex, SessionState},
+};
 
 const LOGS_WINDOW_OFFSET: u64 = 5;
 
@@ -100,11 +104,23 @@ impl TableDelegate for LogsDelegate<'_> {
     fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
+        let highlight_match = col_nr != 0
+            && self
+                .session_data
+                .search
+                .current_matches_map()
+                .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
+
+        if highlight_match {
+            ui.painter()
+                .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GRAY);
+        }
+
         Frame::NONE
             .inner_margin(Margin::symmetric(4, 0))
             .show(ui, |ui| match col_nr {
                 0 => {
-                    ui.label(format!("{}", row_nr));
+                    ui.label(row_nr.to_string());
                 }
                 1 => {
                     let content = self
@@ -121,7 +137,12 @@ impl TableDelegate for LogsDelegate<'_> {
                             }
                         });
 
-                    ui.label(content);
+                    if highlight_match {
+                        let content = RichText::new(content).color(Color32::WHITE).strong();
+                        ui.label(content);
+                    } else {
+                        ui.label(content);
+                    }
                 }
                 invalid => panic!("Invalid column number. {invalid}"),
             });
