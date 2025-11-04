@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use stypes::FilterMatch;
 
+use crate::session::data::indexed_mapped::IndexedMapped;
 #[derive(Debug, Clone, Copy)]
+
 pub struct FilterIndex(pub u8);
 
 #[derive(Debug, Default)]
@@ -12,6 +14,7 @@ pub struct SearchData {
     //Make sure we need to keep both
     pub search_count: u64,
     pub matches_map: Option<BTreeMap<u64, Vec<FilterIndex>>>,
+    pub search_table: IndexedMapped,
 }
 
 impl SearchData {
@@ -27,12 +30,14 @@ impl SearchData {
         let Self {
             is_active,
             search_count,
-            matches_map: results_map,
+            matches_map,
+            search_table,
         } = self;
 
         *is_active = false;
         *search_count = 0;
-        *results_map = None;
+        *matches_map = None;
+        search_table.clear();
     }
 
     pub fn append_matches(&mut self, filter_matches: Vec<FilterMatch>) {
