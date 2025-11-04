@@ -107,19 +107,19 @@ impl TableDelegate for LogsDelegate<'_> {
                     ui.label(format!("{}", row_nr));
                 }
                 1 => {
-                    let content =
-                        self.session_data
-                            .main_table
-                            .get_log(row_nr)
-                            .unwrap_or_else(|| {
-                                // Avoid showing place holder text in this frame since it will be
-                                // discarded to fetch new data.
-                                if self.to_fetch.is_some() {
-                                    ""
-                                } else {
-                                    "Loading..."
-                                }
-                            });
+                    let content = self
+                        .session_data
+                        .main_table
+                        .get_log(&row_nr)
+                        .unwrap_or_else(|| {
+                            // Avoid showing place holder text in this frame since it will be
+                            // discarded to fetch new data.
+                            if self.to_fetch.is_some() {
+                                ""
+                            } else {
+                                "Loading..."
+                            }
+                        });
 
                     ui.label(content);
                 }
