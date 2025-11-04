@@ -212,7 +212,7 @@ impl SearchBar {
             );
             Label::new(state_txt).selectable(false).ui(ui);
 
-            if data.search.matches_map.is_none() {
+            if data.search.current_matches_map().is_none() {
                 ui.spinner();
             }
         });
