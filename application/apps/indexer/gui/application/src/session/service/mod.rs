@@ -8,6 +8,7 @@ use stypes::{CallbackEvent, ObserveOptions};
 use crate::host::event::HostEvent;
 use crate::host::notification::AppNotification;
 use crate::session::InitSessionError;
+use crate::session::data::SearchTableIndex;
 use crate::session::info::SessionInfo;
 
 use super::communication::ServiceHandle;
@@ -100,6 +101,14 @@ impl SessionService {
                 let elements = self.session.grab(grab_range).await?;
                 self.communication.senders.modify_state(|data| {
                     data.main_table.append(elements.0);
+                    true
+                });
+            }
+            SessionCommand::GrabIndexedLines(grab_range) => {
+                let elements = self.session.grab_indexed(grab_range.clone()).await?;
+                self.communication.senders.modify_state(|data| {
+                    let iter = grab_range.map(SearchTableIndex).zip(elements.0.into_iter());
+                    data.search.search_table.append(iter);
                     true
                 });
             }

@@ -1,4 +1,4 @@
-use egui::{CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui};
+use egui::{Align, CentralPanel, Context, Frame, Layout, RichText, TopBottomPanel, Ui};
 use uuid::Uuid;
 
 use crate::{
@@ -161,14 +161,14 @@ impl HostUI {
             ui.selectable_value(
                 &mut state.active_tab,
                 TabType::Home,
-                egui::RichText::new("🏠").size(17.),
+                RichText::new("🏠").size(17.),
             )
             .on_hover_text("Home");
 
             sessions_tabs::render(state, &sessions, ui_actions, ui);
 
             // Notifications
-            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.add_space(3.);
                 notifications.render_content(ui);
             });
