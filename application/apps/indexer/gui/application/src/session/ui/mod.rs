@@ -35,6 +35,7 @@ impl SessionUI {
         } = init;
 
         let UiHandle { senders, receivers } = communication;
+        let session_id = session_info.id;
 
         Self {
             session_info,
@@ -42,7 +43,7 @@ impl SessionUI {
             receivers,
             state: SessionUiState::default(),
             logs_table: LogsTable::default(),
-            bottom_panel: BottomPanelUI::default(),
+            bottom_panel: BottomPanelUI::new(session_id),
         }
     }
 
@@ -64,7 +65,7 @@ impl SessionUI {
         } = self;
         let data = receivers.session_state_rx.borrow_and_update();
 
-        TopBottomPanel::bottom("status_bar").show(ui.ctx(), |ui| {
+        TopBottomPanel::bottom("status_bar").show_inside(ui, |ui| {
             status_bar::render_content(&data, ui);
         });
 
@@ -72,11 +73,12 @@ impl SessionUI {
             .height_range(100.0..=500.0)
             .default_height(200.)
             .resizable(true)
-            .show(ui.ctx(), |ui| {
+            .show_inside(ui, |ui| {
+                ui.set_min_size(ui.available_size());
                 bottom_panel.render_content(&data, actions, senders, ui);
             });
 
-        CentralPanel::default().show(ui.ctx(), |ui| {
+        CentralPanel::default().show_inside(ui, |ui| {
             // We need to give a unique id for the direct parent of each table because
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
