@@ -1,5 +1,6 @@
 use egui::{Frame, Margin, Ui};
 use state::{BottomTabType, BottomUiState};
+use uuid::Uuid;
 
 use crate::{
     host::ui::UiActions,
@@ -17,7 +18,7 @@ mod details;
 mod presets;
 mod search;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct BottomPanelUI {
     state: BottomUiState,
     search: SearchUI,
@@ -27,6 +28,16 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
+    pub fn new(session_id: Uuid) -> Self {
+        Self {
+            state: BottomUiState::default(),
+            search: SearchUI::new(session_id),
+            details: DetailsUI::default(),
+            presets: PresetsUI::default(),
+            chart: ChartUI::default(),
+        }
+    }
+
     pub fn render_content(
         &mut self,
         data: &SessionState,
