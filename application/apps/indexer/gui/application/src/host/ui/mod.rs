@@ -165,7 +165,7 @@ impl HostUI {
             )
             .on_hover_text("Home");
 
-            sessions_tabs::render(state, &sessions, ui_actions, ui);
+            sessions_tabs::render(state, sessions, ui_actions, ui);
 
             // Notifications
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
