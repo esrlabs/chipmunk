@@ -45,12 +45,12 @@ impl LogsTable {
             // Request discard this frame and start a new one with the fetched data.
             //
             // NOTE: We need to request discard when users are dragging the scrollbar.
-            // Avoiding this extra checks cause errors while resizing the application
-            // main window.
-            //
-            // TODO AAZ: This is an extra check that should be not needed.
-            // && (ui.ctx().is_pointer_over_area() || ui.ctx().is_using_pointer())
-            if !ui.ctx().will_discard() && ui.ctx().is_using_pointer() {
+            // And we must not apply it if previous pass was already discarded to avoid
+            // glitches in UI.
+            if !ui.ctx().will_discard()
+                && ui.ctx().is_using_pointer()
+                && ui.ctx().viewport(|v| v.num_multipass_in_row == 0)
+            {
                 ui.ctx().request_discard("Fetching new rows");
             }
         }
