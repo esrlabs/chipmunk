@@ -70,7 +70,7 @@ impl SessionUI {
         });
 
         TopBottomPanel::bottom("bottom_panel")
-            .height_range(100.0..=500.0)
+            .height_range(100.0..=700.0)
             .default_height(200.)
             .resizable(true)
             .show_inside(ui, |ui| {
