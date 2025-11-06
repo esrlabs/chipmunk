@@ -11,9 +11,16 @@ mod logging;
 mod session;
 
 pub async fn run_app() -> anyhow::Result<()> {
-    let _cli = cli::Cli::parse();
+    let mut cli = cli::Cli::parse();
+
+    let mut cli_cmds = Vec::new();
+
+    if let Some(path) = cli.file_path.take() {
+        let cmd = cli::CliCommand::OpenFile { path };
+        cli_cmds.push(cmd);
+    }
 
     logging::setup()?;
 
-    ChipmunkApp::run().map_err(|err| anyhow::anyhow!("{err:?}"))
+    ChipmunkApp::run(cli_cmds).map_err(|err| anyhow::anyhow!("{err:?}"))
 }
