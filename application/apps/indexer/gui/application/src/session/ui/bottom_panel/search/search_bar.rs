@@ -16,6 +16,7 @@ pub struct SearchBar {
     pub match_case: bool,
     pub is_word: bool,
     pub temp_filter: Option<SearchFilter>,
+    search_event: Option<SearchEvent>,
 }
 
 impl Default for SearchBar {
@@ -26,18 +27,25 @@ impl Default for SearchBar {
             match_case: false,
             is_word: false,
             temp_filter: None,
+            search_event: None,
         }
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum SearchEvent {
+    SearchDropped,
+}
+
 impl SearchBar {
+    #[must_use]
     pub fn render_content(
         &mut self,
         data: &SessionState,
         senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
-    ) {
+    ) -> Option<SearchEvent> {
         // - Capture enter before creating text edit to prevent it from stealing it.
         // - Check if backspace is pressed for handling temp filter without consuming it.
         let (enter_pressed, backspace_pressed, command_modifier) = ui.input_mut(|i| {
@@ -55,6 +63,7 @@ impl SearchBar {
             && let Some(mut filter) = self.temp_filter.take()
         {
             actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+            self.search_event = Some(SearchEvent::SearchDropped);
             if command_modifier {
                 false
             } else {
@@ -70,6 +79,7 @@ impl SearchBar {
         if enter_pressed && !self.query.is_empty() {
             if self.temp_filter.is_some() {
                 actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+                self.search_event = Some(SearchEvent::SearchDropped);
             }
 
             let filter = SearchFilter::new(
@@ -134,6 +144,8 @@ impl SearchBar {
                 );
             },
         );
+
+        self.search_event.take()
     }
 
     /// Renders temp filter if exists inside input frame.
@@ -176,6 +188,7 @@ impl SearchBar {
                             .clicked()
                         {
                             actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+                            self.search_event = Some(SearchEvent::SearchDropped);
                         } else {
                             self.temp_filter = Some(filter);
                         }
