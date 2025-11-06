@@ -1,7 +1,10 @@
 use eframe::NativeOptions;
 use egui::vec2;
 
-use crate::host::{self, data::HostState, service::HostService, ui::HostUI};
+use crate::{
+    cli::CliCommand,
+    host::{self, data::HostState, service::HostService, ui::HostUI},
+};
 
 const APP_TITLE: &str = "Chipmunk";
 
@@ -11,7 +14,7 @@ pub struct ChipmunkApp {
 }
 
 impl ChipmunkApp {
-    pub fn run() -> eframe::Result<()> {
+    pub fn run(cli_cmds: Vec<CliCommand>) -> eframe::Result<()> {
         let native_options = NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_title(APP_TITLE)
@@ -29,7 +32,9 @@ impl ChipmunkApp {
                 HostService::spawn(service_comm);
 
                 let host = HostUI::new(ui_comm);
-                let app = Self { host };
+                let mut app = Self { host };
+
+                app.host.handle_cli(cli_cmds);
 
                 Ok(Box::new(app))
             }),
