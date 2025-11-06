@@ -39,7 +39,7 @@ pub async fn init_session(
 ) -> Result<InitSessionParams, InitSessionError> {
     let (ui_handle, service_handle) = communication::init(shared_senders);
 
-    let session_info = SessionService::spwan(service_handle, options).await?;
+    let session_info = SessionService::spawn(service_handle, options).await?;
 
     let info = InitSessionParams {
         session_info,

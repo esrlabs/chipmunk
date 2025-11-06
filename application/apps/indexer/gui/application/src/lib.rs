@@ -22,5 +22,12 @@ pub async fn run_app() -> anyhow::Result<()> {
 
     logging::setup()?;
 
-    ChipmunkApp::run(cli_cmds).map_err(|err| anyhow::anyhow!("{err:?}"))
+    // Tell the runtime that the main thread can block to avoid scheduling any
+    // asynchronous work on the main thread, which is used and controlled by egui.
+    //
+    // TODO AAZ: Evaluate this in beta phase. The alternative is to call this function
+    // when we call blocking commands in main and search tables.
+    tokio::task::block_in_place(|| {
+        ChipmunkApp::run(cli_cmds).map_err(|err| anyhow::anyhow!("{err:?}"))
+    })
 }

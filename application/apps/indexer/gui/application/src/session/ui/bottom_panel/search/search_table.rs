@@ -1,24 +1,21 @@
 //TODO AAZ: This is duplicated from LogsTable.
 //We need to have it in one place and encapsulate the changes.
-use std::{
-    borrow::Cow,
-    ops::{Range, RangeInclusive},
-};
+use std::{borrow::Cow, ops::Range};
 
 use egui::{Frame, Id, Margin, Ui};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
+use tokio::sync::{mpsc, oneshot};
 
 use crate::session::{
-    command::SessionCommand,
-    communication::UiSenders,
-    data::{SearchTableIndex, SessionState},
+    command::SessionBlockingCommand, communication::UiSenders, data::SessionState,
 };
 
-const LOGS_WINDOW_OFFSET: u64 = 5;
+use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
 
 #[derive(Debug, Default)]
 pub struct SearchTable {
-    last_visible_rows: Range<u64>,
+    last_visible_rows: Option<Range<u64>>,
+    indexed_logs: IndexedMapped,
 }
 
 impl SearchTable {
@@ -35,32 +32,21 @@ impl SearchTable {
 
         let mut delegate = LogsDelegate {
             session_data: data,
-            to_fetch: None,
-            last_visible_rows: &mut self.last_visible_rows,
+            table: self,
+            block_cmd_rx: &senders.block_cmd_tx,
         };
 
         table.show(ui, &mut delegate);
+    }
 
-        if let Some(to_fetch) = delegate.to_fetch.take() {
-            let cmd = SessionCommand::GrabIndexedLines(to_fetch);
-            if senders.cmd_tx.try_send(cmd).is_err() {
-                log::warn!(
-                    "Search table viewer is sending grab commands too fast for channel capacity"
-                );
-            }
+    pub fn reset(&mut self) {
+        let Self {
+            last_visible_rows,
+            indexed_logs: search_table,
+        } = self;
 
-            // Request discard this frame and start a new one with the fetched data.
-            //
-            // NOTE: We need to request discard when users are dragging the scrollbar.
-            // And we must not apply it if previous pass was already discarded to avoid
-            // glitches in UI.
-            if !ui.ctx().will_discard()
-                && ui.ctx().is_using_pointer()
-                && ui.ctx().viewport(|v| v.num_multipass_in_row == 0)
-            {
-                ui.ctx().request_discard("Fetch search table new rows");
-            }
-        }
+        *last_visible_rows = None;
+        search_table.clear();
     }
 
     fn text_columns() -> Vec<Column> {
@@ -73,26 +59,45 @@ impl SearchTable {
 
 struct LogsDelegate<'a> {
     session_data: &'a SessionState,
-    to_fetch: Option<RangeInclusive<u64>>,
-    last_visible_rows: &'a mut Range<u64>,
+    table: &'a mut SearchTable,
+    block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
         let PrefetchInfo { visible_rows, .. } = info;
 
-        self.to_fetch = if self.last_visible_rows == visible_rows {
-            None
-        } else {
-            *self.last_visible_rows = info.visible_rows.to_owned();
+        if self
+            .table
+            .last_visible_rows
+            .as_ref()
+            .is_some_and(|v| v == visible_rows)
+        {
+            return;
+        }
 
-            let start = visible_rows.start.saturating_sub(LOGS_WINDOW_OFFSET);
-            let end =
-                (visible_rows.end + LOGS_WINDOW_OFFSET).min(self.session_data.search.search_count);
+        self.table.last_visible_rows = Some(info.visible_rows.to_owned());
 
-            let rng = start..=end.saturating_sub(1);
+        if self.session_data.search.search_count == 0 {
+            return;
+        }
 
-            Some(rng)
+        let rng = visible_rows.start..=visible_rows.end.saturating_sub(1);
+
+        let (elems_tx, elems_rx) = oneshot::channel();
+        let cmd = SessionBlockingCommand::GrabIndexedLines {
+            range: rng.clone(),
+            sender: elems_tx,
+        };
+
+        if self.block_cmd_rx.blocking_send(cmd).is_err() {
+            log::error!("Communication error while sending grab commmand.");
+            return;
+        }
+
+        if let Ok(elements) = elems_rx.blocking_recv() {
+            let combined = rng.map(SearchTableIndex).zip(elements);
+            self.table.indexed_logs.append(combined);
         }
     }
 
@@ -107,9 +112,8 @@ impl TableDelegate for LogsDelegate<'_> {
             .inner_margin(Margin::symmetric(4, 0))
             .show(ui, |ui| {
                 let content: Cow<'_, str> = if let Some(element) = self
-                    .session_data
-                    .search
-                    .search_table
+                    .table
+                    .indexed_logs
                     .get_element(&SearchTableIndex(row_nr))
                 {
                     match col_nr {
@@ -117,8 +121,6 @@ impl TableDelegate for LogsDelegate<'_> {
                         1 => element.content.as_str().into(),
                         invalid => panic!("Invalid column number. {invalid}"),
                     }
-                } else if self.to_fetch.is_some() {
-                    "".into()
                 } else {
                     "Loading...".into()
                 };
