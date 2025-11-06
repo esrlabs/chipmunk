@@ -3,18 +3,22 @@ use std::ops::Range;
 use egui::{Color32, Frame, Id, Margin, RichText, Ui};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
+use tokio::sync::{mpsc, oneshot};
 
 use crate::session::{
-    command::SessionCommand,
+    command::SessionBlockingCommand,
     communication::UiSenders,
     data::{LogMainIndex, SessionState},
 };
 
-const LOGS_WINDOW_OFFSET: u64 = 5;
+use logs_mapped::LogsMapped;
+
+mod logs_mapped;
 
 #[derive(Debug, Default)]
 pub struct LogsTable {
     last_visible_rows: Range<u64>,
+    logs: LogsMapped,
 }
 
 impl LogsTable {
@@ -30,30 +34,11 @@ impl LogsTable {
 
         let mut delegate = LogsDelegate {
             session_data: data,
-            to_fetch: None,
-            last_visible_rows: &mut self.last_visible_rows,
+            table: self,
+            block_cmd_rx: &senders.block_cmd_tx,
         };
 
         table.show(ui, &mut delegate);
-
-        if let Some(to_fetch) = delegate.to_fetch.take() {
-            let cmd = SessionCommand::GrabLines(to_fetch);
-            if senders.cmd_tx.try_send(cmd).is_err() {
-                log::warn!("Logs viewer is sending grab commands too fast for channel capacity");
-            };
-
-            // Request discard this frame and start a new one with the fetched data.
-            //
-            // NOTE: We need to request discard when users are dragging the scrollbar.
-            // And we must not apply it if previous pass was already discarded to avoid
-            // glitches in UI.
-            if !ui.ctx().will_discard()
-                && ui.ctx().is_using_pointer()
-                && ui.ctx().viewport(|v| v.num_multipass_in_row == 0)
-            {
-                ui.ctx().request_discard("Fetching new rows");
-            }
-        }
     }
 
     fn text_columns() -> Vec<Column> {
@@ -66,25 +51,35 @@ impl LogsTable {
 
 struct LogsDelegate<'a> {
     session_data: &'a SessionState,
-    to_fetch: Option<LineRange>,
-    last_visible_rows: &'a mut Range<u64>,
+    table: &'a mut LogsTable,
+    block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
-        // Check if we need the columns has changed from last frame
-        // and set the needed range to fetch if so.
         let PrefetchInfo { visible_rows, .. } = info;
-        self.to_fetch = if self.last_visible_rows == visible_rows {
-            None
-        } else {
-            *self.last_visible_rows = info.visible_rows.to_owned();
 
-            let start = visible_rows.start.saturating_sub(LOGS_WINDOW_OFFSET);
-            let end = (visible_rows.end + LOGS_WINDOW_OFFSET).min(self.session_data.logs_count);
+        if self.table.last_visible_rows == *visible_rows {
+            return;
+        }
 
-            let rng = LineRange::from(start..=end.saturating_sub(1));
-            Some(rng)
+        self.table.last_visible_rows = info.visible_rows.to_owned();
+
+        let range = LineRange::from(visible_rows.start..=visible_rows.end.saturating_sub(1));
+
+        let (elems_tx, elems_rx) = oneshot::channel();
+        let cmd = SessionBlockingCommand::GrabLines {
+            range,
+            sender: elems_tx,
+        };
+
+        if self.block_cmd_rx.blocking_send(cmd).is_err() {
+            log::warn!("Communication error while sending grab commmand.");
+            return;
+        };
+
+        if let Ok(elements) = elems_rx.blocking_recv() {
+            self.table.logs.append(elements);
         }
     }
 
@@ -123,19 +118,7 @@ impl TableDelegate for LogsDelegate<'_> {
                     ui.label(row_nr.to_string());
                 }
                 1 => {
-                    let content = self
-                        .session_data
-                        .main_table
-                        .get_log(&row_nr)
-                        .unwrap_or_else(|| {
-                            // Avoid showing place holder text in this frame since it will be
-                            // discarded to fetch new data.
-                            if self.to_fetch.is_some() {
-                                ""
-                            } else {
-                                "Loading..."
-                            }
-                        });
+                    let content = self.table.logs.get_log(&row_nr).unwrap_or("Loading...");
 
                     if highlight_match {
                         let content = RichText::new(content).color(Color32::WHITE).strong();

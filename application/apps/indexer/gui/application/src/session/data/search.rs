@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use stypes::FilterMatch;
 
-use crate::session::data::indexed_mapped::IndexedMapped;
-
 #[derive(Debug, Clone, Copy)]
 pub struct FilterIndex(pub u8);
 
@@ -17,7 +15,6 @@ pub struct SearchData {
     //Make sure we need to keep both
     pub search_count: u64,
     matches_map: Option<HashMap<LogMainIndex, Vec<FilterIndex>>>,
-    pub search_table: IndexedMapped,
 }
 
 impl SearchData {
@@ -34,13 +31,11 @@ impl SearchData {
             is_active,
             search_count,
             matches_map,
-            search_table,
         } = self;
 
         *is_active = false;
         *search_count = 0;
         *matches_map = None;
-        search_table.clear();
     }
 
     pub fn append_matches(&mut self, filter_matches: Vec<FilterMatch>) {
