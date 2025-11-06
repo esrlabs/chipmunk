@@ -2,7 +2,9 @@ use egui::{Align, CentralPanel, Context, Frame, Layout, RichText, TopBottomPanel
 use uuid::Uuid;
 
 use crate::{
+    cli::CliCommand,
     host::{
+        command::HostCommand,
         communication::{UiHandle, UiReceivers, UiSenders},
         event::HostEvent,
         notification::AppNotification,
@@ -48,6 +50,23 @@ impl HostUI {
         }
     }
 
+    pub fn handle_cli(&mut self, cli_cmds: Vec<CliCommand>) {
+        let Self {
+            ui_actions,
+            senders,
+            ..
+        } = self;
+
+        for cli_cmd in cli_cmds {
+            match cli_cmd {
+                CliCommand::OpenFile { path } => {
+                    let host_cmd = HostCommand::OpenFiles(vec![path]);
+                    ui_actions.try_send_command(&senders.cmd_tx, host_cmd);
+                }
+            }
+        }
+    }
+
     fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
         match event {
             HostEvent::CreateSession(info) => self.add_session(info),
@@ -56,7 +75,7 @@ impl HostUI {
         }
     }
 
-    pub fn add_session(&mut self, session: InitSessionParams) {
+    fn add_session(&mut self, session: InitSessionParams) {
         let session = SessionUI::new(session);
         self.sessions.push(session);
         self.state.active_tab = TabType::Session(self.sessions.len() - 1);
