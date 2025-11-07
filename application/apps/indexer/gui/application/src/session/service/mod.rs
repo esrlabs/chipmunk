@@ -13,6 +13,7 @@ use crate::{
         InitSessionError,
         command::SessionBlockingCommand,
         communication::{ServiceBlockCommuniaction, ServiceSenders},
+        event::SessionEvent,
         info::SessionInfo,
     },
 };
@@ -143,6 +144,25 @@ impl SessionService {
                     data.search.drop_search();
                     true
                 });
+            }
+            SessionCommand::GetNearestPosition(position) => {
+                let nearest = self
+                    .session
+                    .state
+                    .get_nearest_position(position)
+                    .await
+                    .map_err(SessionError::NativeError)?;
+
+                log::trace!(
+                    "Nearest session value for session: {}: {nearest:?}",
+                    self.session_id
+                );
+
+                if let Some(nearest) = nearest.0 {
+                    self.senders
+                        .send_session_event(SessionEvent::NearestPosition(nearest))
+                        .await;
+                }
             }
             SessionCommand::CloseSession => {
                 for op_id in self.ops_tracker.get_all() {
