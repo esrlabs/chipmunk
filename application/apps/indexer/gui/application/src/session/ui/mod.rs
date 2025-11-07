@@ -7,6 +7,7 @@ use crate::{
         InitSessionParams, SessionInfo,
         command::SessionCommand,
         communication::{UiHandle, UiReceivers, UiSenders},
+        event::SessionEvent,
     },
 };
 use bottom_panel::BottomPanelUI;
@@ -22,7 +23,7 @@ pub struct SessionUI {
     session_info: SessionInfo,
     senders: UiSenders,
     receivers: UiReceivers,
-    state: SessionUiState,
+    ui_state: SessionUiState,
     logs_table: LogsTable,
     bottom_panel: BottomPanelUI,
 }
@@ -41,7 +42,7 @@ impl SessionUI {
             session_info,
             senders,
             receivers,
-            state: SessionUiState::default(),
+            ui_state: SessionUiState::default(),
             logs_table: LogsTable::default(),
             bottom_panel: BottomPanelUI::new(session_id),
         }
@@ -61,6 +62,7 @@ impl SessionUI {
             receivers,
             logs_table,
             bottom_panel,
+            ui_state,
             ..
         } = self;
         let data = receivers.session_state_rx.borrow_and_update();
@@ -75,7 +77,7 @@ impl SessionUI {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.set_min_size(ui.available_size());
-                bottom_panel.render_content(&data, actions, senders, ui);
+                bottom_panel.render_content(&data, ui_state, actions, senders, ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
@@ -83,7 +85,7 @@ impl SessionUI {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(self.session_info.id, |ui| {
-                logs_table.render_content(&data, senders, ui);
+                logs_table.render_content(&data, ui_state, senders, actions, ui);
             });
         });
     }
@@ -91,7 +93,11 @@ impl SessionUI {
     /// Check incoming events and handle them.
     pub fn handle_events(&mut self) {
         while let Ok(event) = self.receivers.event_rx.try_recv() {
-            match event {}
+            match event {
+                SessionEvent::NearestPosition(nearest_position) => {
+                    self.ui_state.scroll_search_idx = Some(nearest_position.index);
+                }
+            }
         }
     }
 }

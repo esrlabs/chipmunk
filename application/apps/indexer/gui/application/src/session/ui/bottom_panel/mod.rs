@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     host::ui::UiActions,
-    session::{communication::UiSenders, data::SessionState},
+    session::{communication::UiSenders, data::SessionDataState, ui::state::SessionUiState},
 };
 use chart::ChartUI;
 use details::DetailsUI;
@@ -40,7 +40,8 @@ impl BottomPanelUI {
 
     pub fn render_content(
         &mut self,
-        data: &SessionState,
+        data: &SessionDataState,
+        ui_state: &mut SessionUiState,
         actions: &mut UiActions,
         senders: &UiSenders,
         ui: &mut Ui,
@@ -48,8 +49,10 @@ impl BottomPanelUI {
         self.render_tabs(ui);
 
         match self.state.active_tab {
-            BottomTabType::Search => self.search.render_content(data, actions, senders, ui),
-            BottomTabType::Details => self.details.render_content(data, senders, ui),
+            BottomTabType::Search => self
+                .search
+                .render_content(data, ui_state, actions, senders, ui),
+            BottomTabType::Details => self.details.render_content(data, ui_state, senders, ui),
             BottomTabType::Presets => self.presets.render_content(data, senders, ui),
             BottomTabType::Chart => self.chart.render_content(data, senders, ui),
         }
