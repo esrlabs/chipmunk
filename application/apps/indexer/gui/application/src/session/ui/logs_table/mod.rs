@@ -11,7 +11,7 @@ use crate::{
         command::{SessionBlockingCommand, SessionCommand},
         communication::UiSenders,
         data::{LogMainIndex, SessionDataState},
-        ui::state::SessionUiState,
+        ui::{bottom_panel::BottomTabType, state::SessionUiState},
     },
 };
 
@@ -50,7 +50,7 @@ impl LogsTable {
         let mut delegate = LogsDelegate {
             session_data: data,
             table: self,
-            block_cmd_rx: &senders.block_cmd_tx,
+            block_cmd_tx: &senders.block_cmd_tx,
             ui_state,
             senders,
             actions,
@@ -70,7 +70,7 @@ impl LogsTable {
 struct LogsDelegate<'a> {
     session_data: &'a SessionDataState,
     table: &'a mut LogsTable,
-    block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
+    block_cmd_tx: &'a mpsc::Sender<SessionBlockingCommand>,
     ui_state: &'a mut SessionUiState,
     senders: &'a UiSenders,
     actions: &'a mut UiActions,
@@ -94,7 +94,7 @@ impl TableDelegate for LogsDelegate<'_> {
             sender: elems_tx,
         };
 
-        if self.block_cmd_rx.blocking_send(cmd).is_err() {
+        if self.block_cmd_tx.blocking_send(cmd).is_err() {
             log::warn!("Communication error while sending grab commmand.");
             return;
         };
@@ -120,7 +120,11 @@ impl TableDelegate for LogsDelegate<'_> {
     fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
-        let is_selected = self.ui_state.selected_log_pos.is_some_and(|r| r == row_nr);
+        let is_selected = self
+            .session_data
+            .selected_log
+            .as_ref()
+            .is_some_and(|e| e.pos == row_nr as usize);
 
         let mut invert_fg = is_selected;
         if is_selected {
@@ -158,15 +162,22 @@ impl TableDelegate for LogsDelegate<'_> {
                     };
 
                     if label.ui(ui).clicked() {
-                        let selected_row = &mut self.ui_state.selected_log_pos;
-                        if is_selected {
-                            *selected_row = None;
+                        let selected_pos = if is_selected {
+                            None
                         } else {
-                            *selected_row = Some(row_nr);
-                            let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
-                            self.actions
-                                .try_send_command(&self.senders.cmd_tx, nearest_cmd);
-                        }
+                            // Scroll to log in search if it's active only.
+                            if self.ui_state.bottom_panel.active_tab == BottomTabType::Search {
+                                let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
+                                self.actions
+                                    .try_send_command(&self.senders.cmd_tx, nearest_cmd);
+                            }
+                            Some(row_nr)
+                        };
+
+                        self.actions.try_send_command(
+                            &self.senders.cmd_tx,
+                            SessionCommand::SetSelectedLog(selected_pos),
+                        );
                     }
                 }
                 invalid => panic!("Invalid column number. {invalid}"),
