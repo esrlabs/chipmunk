@@ -6,9 +6,14 @@ use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::session::{
-    command::SessionBlockingCommand, communication::UiSenders, data::SessionDataState,
-    ui::state::SessionUiState,
+use crate::{
+    host::ui::UiActions,
+    session::{
+        command::{SessionBlockingCommand, SessionCommand},
+        communication::UiSenders,
+        data::SessionDataState,
+        ui::state::SessionUiState,
+    },
 };
 
 use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
@@ -25,6 +30,7 @@ impl SearchTable {
         data: &SessionDataState,
         ui_state: &mut SessionUiState,
         senders: &UiSenders,
+        actions: &mut UiActions,
         ui: &mut Ui,
     ) {
         let id_salt = Id::new("search_table");
@@ -48,6 +54,8 @@ impl SearchTable {
             table: self,
             block_cmd_rx: &senders.block_cmd_tx,
             ui_state,
+            senders,
+            actions,
         };
 
         table.show(ui, &mut delegate);
@@ -76,6 +84,8 @@ struct LogsDelegate<'a> {
     table: &'a mut SearchTable,
     block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
     ui_state: &'a mut SessionUiState,
+    senders: &'a UiSenders,
+    actions: &'a mut UiActions,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
@@ -139,9 +149,10 @@ impl TableDelegate for LogsDelegate<'_> {
                 };
 
                 let is_selected = self
-                    .ui_state
-                    .selected_log_pos
-                    .is_some_and(|r| r == log_item.pos as u64);
+                    .session_data
+                    .selected_log
+                    .as_ref()
+                    .is_some_and(|e| e.pos == log_item.pos);
 
                 if is_selected {
                     ui.painter()
@@ -163,14 +174,18 @@ impl TableDelegate for LogsDelegate<'_> {
                         };
 
                         if label.ui(ui).clicked() {
-                            let selected_row = &mut self.ui_state.selected_log_pos;
-                            if is_selected {
-                                *selected_row = None;
+                            let selected_pos = if is_selected {
+                                None
                             } else {
-                                let pos = log_item.pos as u64;
-                                *selected_row = Some(pos);
-                                self.ui_state.scroll_main_row = Some(pos);
-                            }
+                                Some(log_item.pos as u64)
+                            };
+
+                            self.ui_state.scroll_main_row = selected_pos;
+
+                            self.actions.try_send_command(
+                                &self.senders.cmd_tx,
+                                SessionCommand::SetSelectedLog(selected_pos),
+                            );
                         }
                     }
                     invalid => panic!("Invalid column number. {invalid}"),
