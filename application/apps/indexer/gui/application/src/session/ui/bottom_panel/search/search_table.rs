@@ -1,13 +1,14 @@
 //TODO AAZ: This is duplicated from LogsTable.
 //We need to have it in one place and encapsulate the changes.
-use std::{borrow::Cow, ops::Range};
+use std::ops::Range;
 
-use egui::{Frame, Id, Margin, Ui};
+use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
 use tokio::sync::{mpsc, oneshot};
 
 use crate::session::{
-    command::SessionBlockingCommand, communication::UiSenders, data::SessionState,
+    command::SessionBlockingCommand, communication::UiSenders, data::SessionDataState,
+    ui::state::SessionUiState,
 };
 
 use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
@@ -19,10 +20,16 @@ pub struct SearchTable {
 }
 
 impl SearchTable {
-    pub fn render_content(&mut self, data: &SessionState, senders: &UiSenders, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        data: &SessionDataState,
+        ui_state: &mut SessionUiState,
+        senders: &UiSenders,
+        ui: &mut Ui,
+    ) {
         let id_salt = Id::new("search_table");
 
-        let table = egui_table::Table::new()
+        let mut table = egui_table::Table::new()
             .id_salt(id_salt)
             .num_rows(data.search.search_count)
             .headers(Vec::new())
@@ -30,10 +37,17 @@ impl SearchTable {
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
 
+        if let Some(row_nr) = ui_state.scroll_search_idx.take()
+            && row_nr < data.search.search_count
+        {
+            table = table.scroll_to_row(row_nr, None);
+        }
+
         let mut delegate = LogsDelegate {
             session_data: data,
             table: self,
             block_cmd_rx: &senders.block_cmd_tx,
+            ui_state,
         };
 
         table.show(ui, &mut delegate);
@@ -58,9 +72,10 @@ impl SearchTable {
 }
 
 struct LogsDelegate<'a> {
-    session_data: &'a SessionState,
+    session_data: &'a SessionDataState,
     table: &'a mut SearchTable,
     block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
+    ui_state: &'a mut SessionUiState,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
@@ -111,21 +126,55 @@ impl TableDelegate for LogsDelegate<'_> {
         Frame::NONE
             .inner_margin(Margin::symmetric(4, 0))
             .show(ui, |ui| {
-                let content: Cow<'_, str> = if let Some(element) = self
+                let log_item = match self
                     .table
                     .indexed_logs
                     .get_element(&SearchTableIndex(row_nr))
                 {
-                    match col_nr {
-                        0 => element.pos.to_string().into(),
-                        1 => element.content.as_str().into(),
-                        invalid => panic!("Invalid column number. {invalid}"),
+                    Some(log) => log,
+                    None => {
+                        ui.label("Loading...");
+                        return;
                     }
-                } else {
-                    "Loading...".into()
                 };
 
-                ui.label(content);
+                let is_selected = self
+                    .ui_state
+                    .selected_log_pos
+                    .is_some_and(|r| r == log_item.pos as u64);
+
+                if is_selected {
+                    ui.painter()
+                        .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GREEN);
+                }
+
+                match col_nr {
+                    0 => {
+                        ui.label(log_item.pos.to_string());
+                    }
+                    1 => {
+                        let label = if is_selected {
+                            let content = RichText::new(&log_item.content)
+                                .color(Color32::WHITE)
+                                .strong();
+                            Label::new(content)
+                        } else {
+                            Label::new(&log_item.content)
+                        };
+
+                        if label.ui(ui).clicked() {
+                            let selected_row = &mut self.ui_state.selected_log_pos;
+                            if is_selected {
+                                *selected_row = None;
+                            } else {
+                                let pos = log_item.pos as u64;
+                                *selected_row = Some(pos);
+                                self.ui_state.scroll_main_row = Some(pos);
+                            }
+                        }
+                    }
+                    invalid => panic!("Invalid column number. {invalid}"),
+                }
             });
     }
 }

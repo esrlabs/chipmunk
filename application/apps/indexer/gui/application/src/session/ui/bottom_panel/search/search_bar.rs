@@ -6,7 +6,7 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, communication::UiSenders, data::SessionState},
+    session::{command::SessionCommand, communication::UiSenders, data::SessionDataState},
 };
 
 #[derive(Debug, Clone)]
@@ -41,7 +41,7 @@ impl SearchBar {
     #[must_use]
     pub fn render_content(
         &mut self,
-        data: &SessionState,
+        data: &SessionDataState,
         senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
@@ -211,7 +211,7 @@ impl SearchBar {
         }
     }
 
-    fn render_filter_status(&mut self, data: &SessionState, ui: &mut Ui) {
+    fn render_filter_status(&mut self, data: &SessionDataState, ui: &mut Ui) {
         if !data.search.is_search_active() || data.logs_count == 0 {
             return;
         }
