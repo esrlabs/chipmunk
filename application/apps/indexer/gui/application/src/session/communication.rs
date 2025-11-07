@@ -5,7 +5,7 @@ use crate::{
     host::{event::HostEvent, notification::AppNotification},
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        data::SessionState,
+        data::SessionDataState,
         event::SessionEvent,
     },
 };
@@ -51,7 +51,7 @@ pub struct UiSenders {
 #[derive(Debug)]
 pub struct UiReceivers {
     pub event_rx: mpsc::Receiver<SessionEvent>,
-    pub session_state_rx: watch::Receiver<SessionState>,
+    pub session_state_rx: watch::Receiver<SessionDataState>,
 }
 
 /// Contains session communication channels for the services to communicate with UI.
@@ -69,7 +69,7 @@ pub struct ServiceSenders {
     session_event_tx: mpsc::Sender<SessionEvent>,
     host_event_tx: mpsc::Sender<HostEvent>,
     notification_tx: mpsc::Sender<AppNotification>,
-    session_state_tx: watch::Sender<SessionState>,
+    session_state_tx: watch::Sender<SessionDataState>,
     egui_ctx: egui::Context,
 }
 
@@ -111,7 +111,7 @@ impl ServiceSenders {
     /// the listeners waking up the UI only if modified.
     pub fn modify_state<F>(&self, modify: F) -> bool
     where
-        F: FnOnce(&mut SessionState) -> bool,
+        F: FnOnce(&mut SessionDataState) -> bool,
     {
         let modified = self.session_state_tx.send_if_modified(modify);
         if modified {
@@ -151,7 +151,7 @@ pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (block_cmd_tx, block_cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_event_tx, session_event_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (session_state_tx, session_state_rx) = watch::channel(SessionState::default());
+    let (session_state_tx, session_state_rx) = watch::channel(SessionDataState::default());
 
     let ui_senders = UiSenders {
         cmd_tx,
