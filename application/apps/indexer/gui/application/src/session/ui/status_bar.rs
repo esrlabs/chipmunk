@@ -1,8 +1,8 @@
 use egui::Ui;
 
-use crate::session::data::SessionState;
+use crate::session::data::SessionDataState;
 
-pub fn render_content(data: &SessionState, ui: &mut Ui) {
+pub fn render_content(data: &SessionDataState, ui: &mut Ui) {
     egui::Sides::new().show(
         ui,
         |ui| {

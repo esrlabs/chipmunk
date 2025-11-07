@@ -4,8 +4,9 @@ use uuid::Uuid;
 use crate::{
     host::ui::UiActions,
     session::{
-        communication::UiSenders, data::SessionState,
-        ui::bottom_panel::search::search_bar::SearchEvent,
+        communication::UiSenders,
+        data::SessionDataState,
+        ui::{bottom_panel::search::search_bar::SearchEvent, state::SessionUiState},
     },
 };
 
@@ -34,7 +35,8 @@ impl SearchUI {
 
     pub fn render_content(
         &mut self,
-        data: &SessionState,
+        data: &SessionDataState,
+        ui_state: &mut SessionUiState,
         actions: &mut UiActions,
         senders: &UiSenders,
         ui: &mut Ui,
@@ -56,7 +58,7 @@ impl SearchUI {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(self.session_id, |ui| {
-                self.table.render_content(data, senders, ui);
+                self.table.render_content(data, ui_state, senders, ui);
             });
         }
     }

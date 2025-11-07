@@ -14,6 +14,9 @@ use stypes::GrabbedElement;
 #[derive(Debug, Clone)]
 pub enum SessionCommand {
     ApplySearchFilter(Vec<SearchFilter>),
+    /// Gets the nearest position in filtered items to the provided log position
+    /// from the main tables view.
+    GetNearestPosition(u64),
     DropSearch,
     CloseSession,
 }
