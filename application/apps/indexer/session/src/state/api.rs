@@ -28,6 +28,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub enum Api {
     SetSessionFile(
         (
