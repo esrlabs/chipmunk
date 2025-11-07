@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use processor::grabber::LineRange;
 use tokio::{select, sync::mpsc};
 use uuid::Uuid;
 
@@ -162,6 +163,34 @@ impl SessionService {
                     self.senders
                         .send_session_event(SessionEvent::NearestPosition(nearest))
                         .await;
+                }
+            }
+            SessionCommand::SetSelectedLog(stearm_position) => {
+                if let Some(pos) = stearm_position {
+                    let rng = LineRange::from(pos..=pos);
+                    match self.session.grab(rng).await {
+                        Ok(elements) => {
+                            self.senders.modify_state(|state| {
+                                state.selected_log = elements.0.into_iter().next();
+                                true
+                            });
+                        }
+                        Err(err) => {
+                            self.senders.modify_state(|state| {
+                                if state.selected_log.is_some() {
+                                    state.selected_log = None;
+                                    return true;
+                                }
+                                false
+                            });
+                            return Err(err.into());
+                        }
+                    };
+                } else {
+                    self.senders.modify_state(|state| {
+                        state.selected_log = None;
+                        true
+                    });
                 }
             }
             SessionCommand::CloseSession => {
