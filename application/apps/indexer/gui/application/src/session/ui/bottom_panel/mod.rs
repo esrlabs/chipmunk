@@ -1,5 +1,4 @@
 use egui::{Frame, Margin, Ui};
-use state::{BottomTabType, BottomUiState};
 use uuid::Uuid;
 
 use crate::{
@@ -11,7 +10,9 @@ use details::DetailsUI;
 use presets::PresetsUI;
 use search::SearchUI;
 
-pub mod state;
+mod tab_types;
+
+pub use tab_types::BottomTabType;
 
 mod chart;
 mod details;
@@ -20,7 +21,6 @@ mod search;
 
 #[derive(Debug)]
 pub struct BottomPanelUI {
-    state: BottomUiState,
     search: SearchUI,
     details: DetailsUI,
     presets: PresetsUI,
@@ -30,7 +30,6 @@ pub struct BottomPanelUI {
 impl BottomPanelUI {
     pub fn new(session_id: Uuid) -> Self {
         Self {
-            state: BottomUiState::default(),
             search: SearchUI::new(session_id),
             details: DetailsUI::default(),
             presets: PresetsUI::default(),
@@ -46,25 +45,29 @@ impl BottomPanelUI {
         senders: &UiSenders,
         ui: &mut Ui,
     ) {
-        self.render_tabs(ui);
+        self.render_tabs(ui_state, ui);
 
-        match self.state.active_tab {
+        match ui_state.bottom_panel.active_tab {
             BottomTabType::Search => self
                 .search
                 .render_content(data, ui_state, actions, senders, ui),
-            BottomTabType::Details => self.details.render_content(data, ui_state, senders, ui),
+            BottomTabType::Details => self.details.render_content(data, ui),
             BottomTabType::Presets => self.presets.render_content(data, senders, ui),
             BottomTabType::Chart => self.chart.render_content(data, senders, ui),
         }
     }
 
-    fn render_tabs(&mut self, ui: &mut Ui) {
+    fn render_tabs(&mut self, ui_state: &mut SessionUiState, ui: &mut Ui) {
         Frame::NONE
             .inner_margin(Margin::symmetric(0, 2))
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     for tab in BottomTabType::all() {
-                        ui.selectable_value(&mut self.state.active_tab, *tab, tab.to_string());
+                        ui.selectable_value(
+                            &mut ui_state.bottom_panel.active_tab,
+                            *tab,
+                            tab.to_string(),
+                        );
                     }
                 });
             });
