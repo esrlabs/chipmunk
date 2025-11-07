@@ -1,14 +1,18 @@
 use std::ops::Range;
 
-use egui::{Color32, Frame, Id, Margin, RichText, Ui};
+use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::session::{
-    command::SessionBlockingCommand,
-    communication::UiSenders,
-    data::{LogMainIndex, SessionState},
+use crate::{
+    host::ui::UiActions,
+    session::{
+        command::{SessionBlockingCommand, SessionCommand},
+        communication::UiSenders,
+        data::{LogMainIndex, SessionDataState},
+        ui::state::SessionUiState,
+    },
 };
 
 use logs_mapped::LogsMapped;
@@ -22,20 +26,34 @@ pub struct LogsTable {
 }
 
 impl LogsTable {
-    pub fn render_content(&mut self, data: &SessionState, senders: &UiSenders, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        data: &SessionDataState,
+        ui_state: &mut SessionUiState,
+        senders: &UiSenders,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) {
         let id_salt = Id::new("logs_table");
 
-        let table = egui_table::Table::new()
+        let mut table = egui_table::Table::new()
             .id_salt(id_salt)
             .num_rows(data.logs_count)
             .columns(Self::text_columns())
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
 
+        if let Some(row) = ui_state.scroll_main_row.take() {
+            table = table.scroll_to_row(row, None);
+        }
+
         let mut delegate = LogsDelegate {
             session_data: data,
             table: self,
             block_cmd_rx: &senders.block_cmd_tx,
+            ui_state,
+            senders,
+            actions,
         };
 
         table.show(ui, &mut delegate);
@@ -50,9 +68,12 @@ impl LogsTable {
 }
 
 struct LogsDelegate<'a> {
-    session_data: &'a SessionState,
+    session_data: &'a SessionDataState,
     table: &'a mut LogsTable,
     block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
+    ui_state: &'a mut SessionUiState,
+    senders: &'a UiSenders,
+    actions: &'a mut UiActions,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
@@ -99,16 +120,25 @@ impl TableDelegate for LogsDelegate<'_> {
     fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
-        let highlight_match = col_nr != 0
-            && self
-                .session_data
-                .search
-                .current_matches_map()
-                .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
+        let is_selected = self.ui_state.selected_log_pos.is_some_and(|r| r == row_nr);
 
-        if highlight_match {
+        let mut invert_fg = is_selected;
+        if is_selected {
             ui.painter()
-                .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GRAY);
+                .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GREEN);
+        } else {
+            let highlight_match = col_nr != 0
+                && self
+                    .session_data
+                    .search
+                    .current_matches_map()
+                    .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
+
+            if highlight_match {
+                invert_fg = true;
+                ui.painter()
+                    .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GRAY);
+            }
         }
 
         Frame::NONE
@@ -120,11 +150,23 @@ impl TableDelegate for LogsDelegate<'_> {
                 1 => {
                     let content = self.table.logs.get_log(&row_nr).unwrap_or("Loading...");
 
-                    if highlight_match {
+                    let label = if invert_fg {
                         let content = RichText::new(content).color(Color32::WHITE).strong();
-                        ui.label(content);
+                        Label::new(content)
                     } else {
-                        ui.label(content);
+                        Label::new(content)
+                    };
+
+                    if label.ui(ui).clicked() {
+                        let selected_row = &mut self.ui_state.selected_log_pos;
+                        if is_selected {
+                            *selected_row = None;
+                        } else {
+                            *selected_row = Some(row_nr);
+                            let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
+                            self.actions
+                                .try_send_command(&self.senders.cmd_tx, nearest_cmd);
+                        }
                     }
                 }
                 invalid => panic!("Invalid column number. {invalid}"),
