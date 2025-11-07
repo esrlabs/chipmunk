@@ -59,8 +59,7 @@ impl HostService {
     async fn open_file(&mut self, file_path: PathBuf) -> Result<(), HostError> {
         log::trace!("Opening file: {}", file_path.display());
 
-        let is_binary =
-            file_tools::is_binary(&file_path).map_err(|err| InitSessionError::IO(err))?;
+        let is_binary = file_tools::is_binary(&file_path).map_err(InitSessionError::IO)?;
 
         if is_binary {
             return Err(HostError::InitSessionError(InitSessionError::Other(
