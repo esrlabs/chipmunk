@@ -13,7 +13,7 @@ rustcore = [
     "dep:tokio",
     "dep:walkdir",
     "dep:regex",
-    "dep:envvars",
+    # "dep:envvars",
     "dlt-core/fibex",
     "dlt-core/statistics",
     "dlt-core/serialization",
@@ -34,7 +34,7 @@ tokio = { workspace = true, optional = true }
 node-bindgen = { git = "https://github.com/infinyon/node-bindgen.git", branch="master", optional = true}
 thiserror.workspace = true
 walkdir = { workspace = true, optional = true }
-envvars = { workspace = true, optional = true }
+# envvars = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 
 [dev-dependencies]
