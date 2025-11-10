@@ -78,6 +78,12 @@ egui = "0.33"
 eframe = { version = "0.33", default-features = false }
 rfd = "0.17"
 egui_table = "0.5"
+# We don't have direct dependency to winit but we need to specify it here to activate 
+# its default features which won't be activated otherwise without activating egui default 
+# features.
+# TODO: This can be removed once egui default features are activated.
+winit = { version = "0.30"}
+
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
