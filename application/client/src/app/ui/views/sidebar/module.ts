@@ -5,6 +5,7 @@ import { ObservedModule } from './observe/module';
 import { AttachmentsModule } from './attachments/module';
 import { CommentsModule } from './comments/module';
 import { TeamWorkModule } from './teamwork/module';
+import { ChatModule } from './chat/module';
 
 @NgModule({
     imports: [
@@ -14,9 +15,10 @@ import { TeamWorkModule } from './teamwork/module';
         AttachmentsModule,
         CommentsModule,
         TeamWorkModule,
+        ChatModule,
     ],
     declarations: [],
-    exports: [FiltersModule, ObservedModule, AttachmentsModule, CommentsModule, TeamWorkModule],
+    exports: [FiltersModule, ObservedModule, AttachmentsModule, CommentsModule, TeamWorkModule, ChatModule],
     bootstrap: [],
 })
 export class SidebarModule {}

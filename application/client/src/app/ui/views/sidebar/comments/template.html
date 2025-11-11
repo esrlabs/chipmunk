@@ -1,97 +1,97 @@
-<div class="caption">
-    <span class="title">Comments</span>
-    <span class="subtitle">({{comments.length}})</span>
-    <span class="filler"></span>
-    <span
-        class="small-icon-button codicon codicon-list-filter"
-        [matMenuTriggerFor]="commentCategoryMenu"
-    >
-    </span>
-    <span class="small-icon-button codicon codicon-menu" [matMenuTriggerFor]="commentActionsMenu">
-    </span>
-</div>
-<div class="comments" *ngIf="session !== undefined">
-    <app-views-comments-item
-        [comment]="comment"
-        [session]="session"
-        [broadcastEditorUsage]="broadcastEditorUsage"
-        *ngFor="let comment of comments"
-    >
-    </app-views-comments-item>
-
-    <div class="hidden" *ngIf="hidden.length > 0">
-        <mat-card>
-            <div *ngFor="let hidden of hidden" class="hidden-comment-wrapper">
-                <div class="hidden-comment" (click)="ngOnSetFilter(hidden.color)">
-                    <button
-                        class="hidden-comment"
-                        mat-mini-fab
-                        color="primary"
-                        [ngStyle]="{'background': hidden.color}"
-                    ></button>
-                    <p class="t-small color-scheme-2">
-                        more {{hidden.count}} comment{{hidden.count > 1 ? 's' : ''}}
-                    </p>
-                </div>
-            </div>
-            <div class="hidden-comment-wrapper">
-                <div class="hidden-comment" (click)="ngOnSetFilter(undefined)">
-                    <button class="hidden-comment" mat-mini-fab color="primary"></button>
-                    <p class="t-small color-scheme-2">show all</p>
-                </div>
-            </div>
-        </mat-card>
-    </div>
-    <div class="hidden" *ngIf="comments.length === 0 && isAvailable()">
-        <p class="t-small color-scheme-1 info">
-            To create new comment: select some text; call context menu and select "Comment"
-        </p>
-    </div>
-    <div class="hidden" *ngIf="!isAvailable() && session !== undefined">
-        <p class="t-small color-scheme-1 info">
-            Creating comments is possible as soon as you are assigned to some GitHub repository. If
-            you want to use a comments feature, please associate the session with some GitHub
-            repository.
-        </p>
-        <app-views-teamwork-applet [session]="session"></app-views-teamwork-applet>
-    </div>
-</div>
-
-<mat-menu #commentActionsMenu="matMenu" xPosition="before">
-    <button mat-menu-item (click)="ngOnOrderingSwitch()">
-        <mat-icon>sort</mat-icon>
-        <span>{{ordring === 'position' ? 'Order by Colors' : 'Order by Positions'}}</span>
-    </button>
-    <mat-divider></mat-divider>
-    <button mat-menu-item (click)="ngOnRemoveAll()">
-        <mat-icon>delete_sweep</mat-icon>
-        <span>Remove All Own Comments</span>
-    </button>
-    <mat-divider></mat-divider>
-    <button mat-menu-item (click)="ngOnCheckUpdates()">
-        <mat-icon>cached</mat-icon>
-        <span>Check Remote Updates</span>
-    </button>
-</mat-menu>
-
-<mat-menu #commentCategoryMenu="matMenu" xPosition="before">
-    <div class="app-views-comments-colors-wrapper">
-        <button
-            class="comment-color-selector"
-            mat-mini-fab
-            color="primary"
-            aria-label="Category"
-            (click)="ngOnSetFilter(undefined)"
+    <div class="caption">
+        <span class="title">Comments</span>
+        <span class="subtitle">({{comments.length}})</span>
+        <span class="filler"></span>
+        <span
+            class="small-icon-button codicon codicon-list-filter"
+            [matMenuTriggerFor]="commentCategoryMenu"
         >
-            <mat-icon>remove</mat-icon>
-        </button>
-        <button
-            *ngFor="let color of colors"
-            class="comment-color-selector"
-            mat-mini-fab
-            color="primary"
-            (click)="ngOnSetFilter(color)"
-            [ngStyle]="{'background': color}"
-        ></button>
+        </span>
+        <span class="small-icon-button codicon codicon-menu" [matMenuTriggerFor]="commentActionsMenu">
+        </span>
     </div>
-</mat-menu>
+    <div class="comments" *ngIf="session !== undefined">
+        <app-views-comments-item
+            [comment]="comment"
+            [session]="session"
+            [broadcastEditorUsage]="broadcastEditorUsage"
+            *ngFor="let comment of comments"
+        >
+        </app-views-comments-item>
+
+        <div class="hidden" *ngIf="hidden.length > 0">
+            <mat-card>
+                <div *ngFor="let hidden of hidden" class="hidden-comment-wrapper">
+                    <div class="hidden-comment" (click)="ngOnSetFilter(hidden.color)">
+                        <button
+                            class="hidden-comment"
+                            mat-mini-fab
+                            color="primary"
+                            [ngStyle]="{'background': hidden.color}"
+                        ></button>
+                        <p class="t-small color-scheme-2">
+                            more {{hidden.count}} comment{{hidden.count > 1 ? 's' : ''}}
+                        </p>
+                    </div>
+                </div>
+                <div class="hidden-comment-wrapper">
+                    <div class="hidden-comment" (click)="ngOnSetFilter(undefined)">
+                        <button class="hidden-comment" mat-mini-fab color="primary"></button>
+                        <p class="t-small color-scheme-2">show all</p>
+                    </div>
+                </div>
+            </mat-card>
+        </div>
+        <div class="hidden" *ngIf="comments.length === 0 && isAvailable()">
+            <p class="t-small color-scheme-1 info">
+                To create new comment: select some text; call context menu and select "Comment"
+            </p>
+        </div>
+        <div class="hidden" *ngIf="!isAvailable() && session !== undefined">
+            <p class="t-small color-scheme-1 info">
+                Creating comments is possible as soon as you are assigned to some GitHub repository. If
+                you want to use a comments feature, please associate the session with some GitHub
+                repository.
+            </p>
+            <app-views-teamwork-applet [session]="session"></app-views-teamwork-applet>
+        </div>
+    </div>
+
+    <mat-menu #commentActionsMenu="matMenu" xPosition="before">
+        <button mat-menu-item (click)="ngOnOrderingSwitch()">
+            <mat-icon>sort</mat-icon>
+            <span>{{ordring === 'position' ? 'Order by Colors' : 'Order by Positions'}}</span>
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="ngOnRemoveAll()">
+            <mat-icon>delete_sweep</mat-icon>
+            <span>Remove All Own Comments</span>
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="ngOnCheckUpdates()">
+            <mat-icon>cached</mat-icon>
+            <span>Check Remote Updates</span>
+        </button>
+    </mat-menu>
+
+    <mat-menu #commentCategoryMenu="matMenu" xPosition="before">
+        <div class="app-views-comments-colors-wrapper">
+            <button
+                class="comment-color-selector"
+                mat-mini-fab
+                color="primary"
+                aria-label="Category"
+                (click)="ngOnSetFilter(undefined)"
+            >
+                <mat-icon>remove</mat-icon>
+            </button>
+            <button
+                *ngFor="let color of colors"
+                class="comment-color-selector"
+                mat-mini-fab
+                color="primary"
+                (click)="ngOnSetFilter(color)"
+                [ngStyle]="{'background': color}"
+            ></button>
+        </div>
+    </mat-menu>

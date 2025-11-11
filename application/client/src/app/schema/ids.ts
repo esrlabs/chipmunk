@@ -12,3 +12,4 @@ export const SIDEBAR_TAB_ATTACHMENTS = unique();
 export const SIDEBAR_TAB_FILTERS = unique();
 export const SIDEBAR_TAB_COMMENTS = unique();
 export const SIDEBAR_TAB_TEAMWORK = unique();
+export const SIDEBAR_TAB_CHAT = unique();
