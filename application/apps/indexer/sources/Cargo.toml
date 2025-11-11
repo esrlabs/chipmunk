@@ -25,7 +25,6 @@ tokio-util = { workspace = true , features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
 regex.workspace = true
-lazy_static.workspace = true
 shellexpand = "3.1"
 stypes = { path = "../stypes", features=["rustcore"] }
 socket2 = "0.5.8"
