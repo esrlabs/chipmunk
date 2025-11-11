@@ -3125,7 +3125,6 @@ dependencies = [
  "etherparse",
  "futures",
  "indexer_base",
- "lazy_static",
  "log",
  "parsers",
  "pcap-parser",
