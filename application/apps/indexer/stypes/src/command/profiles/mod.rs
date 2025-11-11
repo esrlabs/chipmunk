@@ -1,5 +1,3 @@
-#[cfg(feature = "rustcore")]
-mod converting;
 #[cfg(feature = "nodejs")]
 mod nodejs;
 #[cfg(test)]
