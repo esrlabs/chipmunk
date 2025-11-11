@@ -1,0 +1,327 @@
+@import '../../../styles/variables.less';
+
+:host {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow: hidden;
+    outline: none;
+
+    & > div.caption {
+        position: sticky !important;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        background: var(--scheme-color-5);
+        display: flex;
+        padding: 0 22px;
+        margin: 0;
+        text-align: left;
+        align-items: center;
+        white-space: nowrap;
+        font-size: 0.9rem;
+        font-weight: 400;
+        height: 32px;
+
+        span.title {
+            color: var(--scheme-color-2);
+        }
+
+        span.subtitle {
+            padding-left: 6px;
+            color: var(--scheme-color-3);
+        }
+
+        & span.filler {
+            flex: auto;
+        }
+
+        .small-icon-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            color: var(--scheme-color-2);
+            transition: color 0.2s;
+            margin-left: 4px;
+
+            &:hover {
+                color: var(--scheme-color-0);
+            }
+        }
+    }
+
+    & > div.chat-content {
+        position: absolute;
+        display: block;
+        top: 32px;
+        bottom: 0;
+        width: 100%;
+        left: 0;
+        overflow: hidden;
+    }
+
+    & .hidden {
+        margin-top: 8px;
+    }
+
+    & p.info {
+        font-size: 13px;
+        color: var(--scheme-color-2);
+        margin: 16px 24px;
+    }
+
+    & div.chat-panel {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        overflow: hidden;
+
+        & .message-window {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            padding: 12px 16px;
+            background-color: var(--scheme-color-5);
+            border-top: 1px solid var(--scheme-color-3);
+            flex-shrink: 0;
+
+            // Unified bubble look (textarea + button bar)
+            .input-wrapper,
+            .button-bar {
+                background-color: var(--scheme-color-4);
+                border-left: 1px solid var(--scheme-color-3);
+                border-right: 1px solid var(--scheme-color-3);
+            }
+
+            .input-wrapper {
+                border-top: 1px solid var(--scheme-color-3);
+                border-radius: 6px 6px 0 0;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .message-input {
+                box-sizing: border-box;
+                width: 100%;
+                padding: 8px 12px 10px 12px;
+                border: none;
+                outline: none;
+                background: transparent;
+                color: var(--scheme-color-1);
+                font-size: 13px;
+                line-height: 1.4;
+                resize: none;
+                overflow-y: auto;
+                max-height: 200px;
+                min-height: 32px;
+                transition: height 0.15s ease;
+                word-break: break-word;
+                white-space: pre-wrap;
+
+                // &::placeholder {
+                //     color: var(--scheme-color-3);
+                // }
+
+            }
+
+            .button-bar {
+                border-bottom: 1px solid var(--scheme-color-3);
+                border-top: none; // remove visible divider between sections
+                border-radius: 0 0 6px 6px;
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                padding: 5px 5px 5px 5px;
+                cursor: text; // indicates click will focus input
+
+                // Ensures perfect seam
+                margin-top: -1px; // overlap 1px border to hide seam
+            }
+
+            .send-button {
+                width: 32px;
+                height: 32px;
+                padding: 0 12px;
+                border: 1px solid var(--scheme-color-4);
+                border-radius: 4px;
+                background-color: var(--scheme-color-accent);
+                color: var(--scheme-color-1);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                cursor: pointer;
+                transition: background-color 0.15s ease, transform 0.08s ease;
+
+                mat-icon {
+                    font-size: 20px;
+                    width: 20px;
+                    height: 20px;
+                    line-height: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    overflow: visible;
+                }
+
+                &:hover {
+                    background-color: var(--scheme-color-accent-lighten-20);
+                    color: var(--scheme-color-0);
+                }
+
+                &:active {
+                    transform: scale(0.98);
+                }
+
+                &.mat-mini-fab {
+                    border-radius: 4px !important;
+                    box-shadow: none !important;
+                    min-width: 96px !important;
+                    height: 32px !important;
+                    padding: 0 12px !important;
+                }
+            }
+        }
+    }
+}
+
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+
+    &.user-message {
+        align-self: flex-end;
+        align-items: flex-end;
+    }
+
+    &.ai-message,
+    &.system-message {
+        align-self: flex-start;
+        align-items: flex-start;
+    }
+}
+
+.message-header {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: var(--scheme-color-3);
+
+    .sender {
+        font-weight: 500;
+    }
+
+    .timestamp {
+        font-weight: 300;
+    }
+}
+
+.message-bubble {
+    padding: 8px 12px;
+    word-wrap: break-word;
+    overflow-wrap: anywhere; 
+    white-space: pre-wrap;
+    font-size: 13px;
+    border-radius: 12px;
+    line-height: 1.4;
+
+    .user-message & {
+        background-color: var(--scheme-color-5);
+        border-radius: 12px 2px 12px 12px;
+        color: var(--scheme-color-1);
+        border: 1px solid var(--scheme-color-3);
+    }
+
+    .ai-message & {
+        background-color: var(--scheme-color-accent);
+        border-radius: 2px 12px 12px 12px;
+        color: var(--scheme-color-0);
+    }
+
+    .system-message & {
+        background-color: var(--scheme-color-accent);
+        border-radius: 12px 12px 12px 2px;
+        color: var(--scheme-color-0);
+    }
+
+    .pending-indicator {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        padding: 0.25rem 0;
+
+        .dot {
+            width: 4px;
+            height: 4px;
+            background-color: currentColor;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: message-pending 1.4s infinite;
+
+            &:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+
+            &:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+        }
+    }
+}
+
+// Scrollbar styling
+:host ::-webkit-scrollbar,
+.message-window::-webkit-scrollbar {
+    width: 8px;
+}
+
+:host ::-webkit-scrollbar-track,
+.message-window::-webkit-scrollbar-track {
+    background: var(--scheme-color-4);
+}
+
+:host ::-webkit-scrollbar-thumb,
+.message-window::-webkit-scrollbar-thumb {
+    background: var(--scheme-color-3);
+    border-radius: 4px;
+
+    &:hover {
+        background: var(--scheme-color-3);
+    }
+}
+
+// Pending animation for messages
+@keyframes message-pending {
+    0%, 60%, 100% {
+        opacity: 0.6;
+        transform: translateY(0);
+    }
+    30% {
+        opacity: 1;
+        transform: translateY(-8px);
+    }
+}

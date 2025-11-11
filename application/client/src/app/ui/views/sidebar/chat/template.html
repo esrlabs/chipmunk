@@ -1,0 +1,89 @@
+<div class="caption">
+    <span class="title">Chat</span>
+    <span class="filler"></span>
+    <!-- Single unified menu icon (always visible) -->
+    <span
+        class="small-icon-button codicon codicon-menu"
+        [matMenuTriggerFor]="chatMenu"
+    ></span>
+</div>
+
+<div class="chat-content" *ngIf="session !== undefined">
+    <!-- Empty state -->
+    <div class="hidden" *ngIf="!config.enabled">
+        <p class="t-small color-scheme-1 info">
+            No chat has been configured. Use the menu to enable and configure the chat assistant.
+        </p>
+    </div>
+
+    <!-- Chat panel -->
+    <div class="chat-panel" *ngIf="config.enabled">
+        <div class="message-window">
+            <div
+                *ngFor="let message of messages; let i = index"
+                class="message"
+                [class.user-message]="message.type === 'prompt'"
+                [class.ai-message]="message.type === 'response'"
+                [class.system-message]="message.type === 'system'"
+            >
+                <div class="message-header">
+                    <span class="sender">{{ message.sender }}</span>
+                    <span class="timestamp">{{ message.timestamp | date:'short' }}</span>
+                </div>
+                <div class="message-bubble">
+                    <div *ngIf="message.pending" class="pending-indicator">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
+                    <span *ngIf="!message.pending">{{ message.text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea
+                    [(ngModel)]="userInput"
+                    (keydown)="onKeyPress($event)"
+                    placeholder="Type your message..."
+                    class="message-input"
+                    rows="1"
+                    #chatInput
+                    (input)="autoResizeInputArea(chatInput)"
+                ></textarea>
+            </div>
+
+            <div class="button-bar" (click)="focusInputArea(chatInput)">
+                <button
+                    (click)="onUserInput()"
+                    class="send-button"
+                    [disabled]="!config.enabled"
+                >
+                    <mat-icon>send</mat-icon>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<mat-menu #chatMenu="matMenu" xPosition="before">
+    <button mat-menu-item (click)="onToggleChat()">
+        <mat-icon>{{ config.enabled ? 'stop_circle' : 'play_circle' }}</mat-icon>
+        <span>{{ config.enabled ? 'Disable Chat' : 'Enable Chat' }}</span>
+    </button>
+
+    <mat-divider></mat-divider>
+
+    <button mat-menu-item (click)="onConfigureChat()" [disabled]="!config.enabled">
+        <mat-icon>settings</mat-icon>
+        <span>Configure Chat</span>
+    </button>
+
+    <mat-divider></mat-divider>
+
+    <button mat-menu-item (click)="onClearHistory()" [disabled]="!config.enabled">
+        <mat-icon>delete_sweep</mat-icon>
+        <span>Clear Chat</span>
+    </button>
+</mat-menu>
