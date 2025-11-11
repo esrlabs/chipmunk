@@ -416,3 +416,19 @@ export function objToStringMap(obj: {
     });
     return output;
 }
+
+export function getAsSetOfStringsOrEmpty(src: any, key: string): Set<string> {
+    const target = src[key];
+
+    if (!(target instanceof Set)) {
+         return new Set();
+    }
+
+    target.forEach((el: any) => {
+        if (typeof el !== 'string') {
+            throw new Error(`Parameter "${key}" must be a Set of strings. Found a non-string value.`);
+        }
+    });
+
+    return target as Set<string>;
+}

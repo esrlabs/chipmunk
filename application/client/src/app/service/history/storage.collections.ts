@@ -64,6 +64,12 @@ export class StorageCollections {
         await this.save();
     }
 
+    public clearSession(session_id: string): void {
+        this.collections.forEach((collection, _key, _map) => {
+            collection.applied_sessions.delete(session_id);
+        });
+    }
+
     public update(collections: Collections): string {
         const existed = Array.from(this.collections.values()).find((c) => c.isSame(collections));
         if (this.collections.has(collections.uuid) || existed === undefined) {
