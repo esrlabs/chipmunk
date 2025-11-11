@@ -126,31 +126,6 @@ export class Service extends Implementation {
                     },
                 ),
         );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
-                    Requests.Env.Set.Request,
-                    (
-                        request: Requests.Env.Set.Request,
-                    ): CancelablePromise<Requests.Env.Set.Response> => {
-                        return new CancelablePromise(async (resolve, _reject) => {
-                            await this.storage
-                                .set()
-                                .envvars(request.env)
-                                .catch((err: Error) => {
-                                    this.log().error(`Error to write storage: ${err.message}`);
-                                });
-                            resolve(
-                                new Requests.Env.Set.Response({
-                                    error: undefined,
-                                }),
-                            );
-                        });
-                    },
-                ),
-        );
         return Promise.resolve();
     }
 
