@@ -619,27 +619,9 @@ export class Service extends Implementation {
     }
 
     public env(): {
-        inject(envs: { [key: string]: string }): Promise<void>;
         get(): Promise<{ [key: string]: string }>;
     } {
         return {
-            inject: (env: { [key: string]: string }): Promise<void> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Env.Set.Response,
-                        new Requests.Env.Set.Request({
-                            env,
-                        }),
-                    )
-                        .then((response) => {
-                            if (response.error !== undefined) {
-                                return reject(new Error(response.error));
-                            }
-                            resolve(undefined);
-                        })
-                        .catch(reject);
-                });
-            },
             get: (): Promise<{ [key: string]: string }> => {
                 return new Promise((resolve, reject) => {
                     Requests.IpcRequest.send(
