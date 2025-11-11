@@ -6,7 +6,6 @@ mod dlt;
 mod file;
 mod folder;
 pub mod plugins;
-mod process;
 mod regex;
 mod serial;
 mod shells;
@@ -37,11 +36,6 @@ pub enum Command {
         oneshot::Sender<
             Result<stypes::CommandOutcome<stypes::FoldersScanningResult>, stypes::ComputationError>,
         >,
-    ),
-    SpawnProcess(
-        String,
-        Vec<String>,
-        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
     ),
     GetRegexError(
         SearchFilter,
@@ -156,7 +150,6 @@ impl std::fmt::Display for Command {
             match self {
                 Command::Sleep(_, _) => "Sleep",
                 Command::CancelTest(_, _, _) => "CancelTest",
-                Command::SpawnProcess(_, _, _) => "Spawning process",
                 Command::FolderContent(_, _, _, _, _, _) => "Getting folder's content",
                 Command::GetShellProfiles(_) => "Getting shell profiles",
                 Command::GetContextEnvvars(_) => "Getting context envvars",
@@ -196,9 +189,6 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
                 signal,
             ))
             .is_err(),
-        Command::SpawnProcess(path, args, tx) => {
-            tx.send(process::execute(path, args, signal)).is_err()
-        }
         Command::GetRegexError(filter, tx) => {
             tx.send(regex::get_filter_error(filter, signal)).is_err()
         }
@@ -254,7 +244,6 @@ pub fn err(command: Command, err: stypes::ComputationError) {
     if match command {
         Command::Sleep(_, tx) => tx.send(Err(err)).is_err(),
         Command::FolderContent(_path, _depth, _max_len, _, _, tx) => tx.send(Err(err)).is_err(),
-        Command::SpawnProcess(_path, _args, tx) => tx.send(Err(err)).is_err(),
         Command::GetRegexError(_filter, tx) => tx.send(Err(err)).is_err(),
         Command::Checksum(_file, tx) => tx.send(Err(err)).is_err(),
         Command::GetDltStats(_files, tx) => tx.send(Err(err)).is_err(),

@@ -94,19 +94,6 @@ export class Jobs extends Base {
         return job;
     }
 
-    public spawnProcess(path: string, args: string[]): CancelablePromise<void> {
-        const sequence = this.sequence();
-        const job: CancelablePromise<void> = this.execute(
-            (buf: Uint8Array): void | Error => {
-                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
-            },
-            this.native.spawnProcess(sequence, path, args),
-            sequence,
-            'spawnProcess',
-        );
-        return job;
-    }
-
     public getFileChecksum(path: string): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(

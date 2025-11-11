@@ -29,11 +29,6 @@ export abstract class JobsNative {
         includeFolders: boolean,
     ): Promise<Uint8Array>;
 
-    public abstract spawnProcess(
-        sequence: number,
-        path: string,
-        args: string[],
-    ): Promise<Uint8Array>;
     public abstract getFileChecksum(sequence: number, path: string): Promise<Uint8Array>;
     public abstract getDltStats(sequence: number, files: string[]): Promise<Uint8Array>;
     public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<Uint8Array>;
