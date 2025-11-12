@@ -1,3 +1,4 @@
+use anyhow::Result;
 use log::info;
 use rmcp::{
     ErrorData as McpError,
@@ -5,19 +6,29 @@ use rmcp::{
     model::{CallToolResult, Content},
     tool, tool_router,
 };
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use super::{
+    ChipmunkAI, ClientCommunication, ServerCommunication,
     ai_config::AiConfig,
-    ai_manager::ChipmunkAI,
-    parameters::{FilterParameter, SearchFilter},
+    parameters::{SearchFilter, SearchFilterParameter},
+    tasks::Task,
 };
 
 #[tool_router]
 impl ChipmunkAI {
     #[allow(dead_code)]
-    pub fn new(config: AiConfig) -> Self {
+    pub fn new(
+        config: AiConfig,
+        prompt_rx: Receiver<String>,
+        task_tx: Sender<Task>,
+        ui_tx: Sender<String>,
+    ) -> Self {
         Self {
             config,
+            prompt_rx,
+            ui_tx,
+            task_tx,
             tool_router: Self::tool_router(),
         }
     }
@@ -29,7 +40,7 @@ Each filter can be customized with flags for regex matching, case sensitivity, a
 
 **Input Parameters:**
 - `filters`: An array of filter objects, where each object contains:
-  - `filter` (string): The text or pattern to search for
+  - `value` (string): The text or pattern to search for
   - `is_regex` (boolean): true if the filter is a regular expression pattern
   - `ignore_case` (boolean): true for case-insensitive matching
   - `is_word` (boolean): true to match whole words only (word boundary matching)
@@ -37,20 +48,20 @@ Each filter can be customized with flags for regex matching, case sensitivity, a
 **Usage Examples:**
 
 Single filter:
-- Input: [{"filter": "error", "is_regex": false, "ignore_case": false, "is_word": false}]
+- Input: [{"value": "error", "is_regex": false, "ignore_case": false, "is_word": false}]
 - Use case: Find exact matches of "error"
 
 Multiple filters:
 - Input: [
-    {"filter": "ERROR", "is_regex": false, "ignore_case": true, "is_word": false},
-    {"filter": "\\d{4}-\\d{2}-\\d{2}", "is_regex": true, "ignore_case": false, "is_word": false}
+    {"value": "ERROR", "is_regex": false, "ignore_case": true, "is_word": false},
+    {"value": "\\d{4}-\\d{2}-\\d{2}", "is_regex": true, "ignore_case": false, "is_word": false}
   ]
 - Use case: Find "ERROR" (any case) OR date patterns
 
 Common patterns:
-- Case-insensitive word: {"filter": "warning", "is_regex": false, "ignore_case": true, "is_word": true}
-- Regex pattern: {"filter": "\\b(error|fail|exception)\\b", "is_regex": true, "ignore_case": false, "is_word": false}
-- Exact match: {"filter": "timeout", "is_regex": false, "ignore_case": false, "is_word": false}
+- Case-insensitive word: {"value": "warning", "is_regex": false, "ignore_case": true, "is_word": true}
+- Regex pattern: {"value": "\\b(error|fail|exception)\\b", "is_regex": true, "ignore_case": false, "is_word": false}
+- Exact match: {"value": "timeout", "is_regex": false, "ignore_case": false, "is_word": false}
 
 **Natural Language Interpretation:**
 When the user provides natural language instructions, interpret them as follows:
@@ -61,10 +72,11 @@ When the user provides natural language instructions, interpret them as follows:
 - "regex pattern \\d+" → set is_regex: true
 - "find ERROR, WARNING, and CRITICAL" → three separate filters
 "#)]
-    async fn apply_filters(
+    async fn apply_search_filters(
         &self,
-        Parameters(param): Parameters<FilterParameter>,
+        Parameters(param): Parameters<SearchFilterParameter>,
     ) -> Result<CallToolResult, McpError> {
+        tracing::debug!("MCP: Apply search filter call received");
         let filters = param
             .filters
             .iter()
@@ -75,8 +87,12 @@ When the user provides natural language instructions, interpret them as follows:
                 ignore_case: f.ignore_case,
             })
             .collect::<Vec<SearchFilter>>();
-        info!("Received Filters from the LLM Agent: {filters:?}");
-        // TODO: Apply filter via channel
+        tracing::debug!("MCP: Received Filters from the LLM Agent: {filters:?}");
+        self.task_tx
+            .send(Task::ApplyFilter { filters: filters })
+            .await
+            .map_err(|e| McpError::internal_error(format!("Failed to send task: {}", e), None))?;
+        tracing::debug!("MCP: Sent ApplyFilter task to the task processor");
         Ok(CallToolResult::success(vec![Content::json(
             "Applied filters to the logs",
         )?]))

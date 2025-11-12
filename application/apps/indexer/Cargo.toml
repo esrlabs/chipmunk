@@ -9,13 +9,13 @@ members = [
   "addons/bufread",
   "indexer_base",
   "merging",
+  "mcp",
   "parsers",
   "plugins_host",
   "processor",
   "session",
   "sources",
   "stypes",
-  "mcp",
 ]
 
 [workspace.dependencies]

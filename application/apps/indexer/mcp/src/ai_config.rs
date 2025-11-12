@@ -20,6 +20,15 @@ impl AiConfig {
             .unwrap_or_default()
     }
 
+    pub fn new(model: String, api_key: String, endpoint: String, timeout_secs: u64) -> Self {
+        AiConfig {
+            model,
+            api_key,
+            endpoint,
+            timeout_secs,
+        }
+    }
+
     pub fn is_valid(&self) -> bool {
         !self.model.is_empty() && !self.api_key.is_empty() && !self.endpoint.is_empty()
     }

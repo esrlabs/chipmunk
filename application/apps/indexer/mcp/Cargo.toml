@@ -11,6 +11,9 @@ schemars = "1.0"
 dirs.workspace = true
 anyhow.workspace = true
 log.workspace = true
+tokio.workspace = true
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "std"] }
+tracing = "0.1"
 
 [dev-dependencies]
 tempfile.workspace = true
