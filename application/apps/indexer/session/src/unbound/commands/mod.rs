@@ -60,11 +60,6 @@ pub enum Command {
             Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError>,
         >,
     ),
-    GetContextEnvvars(
-        oneshot::Sender<
-            Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError>,
-        >,
-    ),
     SerialPortsList(
         oneshot::Sender<
             Result<stypes::CommandOutcome<stypes::SerialPortsList>, stypes::ComputationError>,
@@ -152,7 +147,6 @@ impl std::fmt::Display for Command {
                 Command::CancelTest(_, _, _) => "CancelTest",
                 Command::FolderContent(_, _, _, _, _, _) => "Getting folder's content",
                 Command::GetShellProfiles(_) => "Getting shell profiles",
-                Command::GetContextEnvvars(_) => "Getting context envvars",
                 Command::SerialPortsList(_) => "Getting serial ports list",
                 Command::Checksum(_, _) => "Calculating file's checksum",
                 Command::GetDltStats(_, _) => "Getting dlt stats",
@@ -198,7 +192,6 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
             tx.send(get_someip_statistic(files, signal)).is_err()
         }
         Command::GetShellProfiles(tx) => tx.send(shells::get_valid_profiles(signal)).is_err(),
-        Command::GetContextEnvvars(tx) => tx.send(shells::get_context_envvars(signal)).is_err(),
         Command::SerialPortsList(tx) => tx.send(serial::available_ports(signal)).is_err(),
         Command::IsFileBinary(file_path, tx) => tx.send(file::is_file_binary(file_path)).is_err(),
         Command::CancelTest(a, b, tx) => tx
@@ -249,7 +242,6 @@ pub fn err(command: Command, err: stypes::ComputationError) {
         Command::GetDltStats(_files, tx) => tx.send(Err(err)).is_err(),
         Command::GetSomeipStatistic(_files, tx) => tx.send(Err(err)).is_err(),
         Command::GetShellProfiles(tx) => tx.send(Err(err)).is_err(),
-        Command::GetContextEnvvars(tx) => tx.send(Err(err)).is_err(),
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
         Command::IsFileBinary(_filepath, tx) => tx.send(Err(err)).is_err(),
         Command::CancelTest(_a, _b, tx) => tx.send(Err(err)).is_err(),

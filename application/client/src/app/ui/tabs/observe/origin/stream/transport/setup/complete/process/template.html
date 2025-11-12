@@ -9,7 +9,7 @@
     <button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
         <ng-container *ngIf="state.isProfilesLoaded()">
             <span class="codicon codicon-terminal"></span>
-            {{(state.current === undefined ? 'Default environment' : state.current.name)}}
+            {{(state.current === undefined ? 'Default shell' : state.current.name)}}
         </ng-container>
         <ng-container *ngIf="!state.isProfilesLoaded()">
             <span>Loading profiles...</span>
@@ -25,21 +25,19 @@
     (panel)="panel()"
 ></app-folderinput-input>
 <mat-menu #menu="matMenu" class="app-transport-process-menu">
-    <button mat-menu-item (click)="importEnvVars(undefined)">Use default environment</button>
+    <!-- TODO AAZ: Check click events here -->
+    <button mat-menu-item (click)="setCurrentProfile(undefined)">Use default shell</button>
     <mat-divider></mat-divider>
     <ng-container *ngIf="state.isProfilesLoaded()">
-        <p class="material-menu-label">Import variables from:</p>
+        <p class="material-menu-label">Available shells:</p>
         <button
             *ngFor="let profile of state.profiles.valid"
             [attr.data-selected]="state.isShellSelected(profile)"
             mat-menu-item
-            (click)="importEnvVars(profile)"
+            (click)="setCurrentProfile(profile)"
         >
             <div class="shell-profile">
                 <span class="shell-name">{{profile.name}}</span>
-                <span class="envvars-count"
-                    >{{(' (has ' + getEnvvarsCount(profile) + ' vars)')}}</span
-                >
                 <span class="shell-path">{{profile.path}}</span>
             </div>
         </button>

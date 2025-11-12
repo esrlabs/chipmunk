@@ -11,7 +11,6 @@ import { Options as FoldersOptions } from '@elements/folderinput/component';
 import { Subject } from '@platform/env/subscription';
 import { CmdErrorState } from '../../bases/process/error';
 import { SetupBase } from '../../bases/process/component';
-import { Profile } from '@platform/types/bindings';
 
 @Component({
     selector: 'app-process-quicksetup',
@@ -46,10 +45,6 @@ export class QuickSetup extends SetupBase implements AfterContentInit, OnDestroy
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
         this.setInputs(this.inputs);
-    }
-
-    public getEnvvarsCount(profile: Profile) {
-        return profile.envvars ? profile.envvars.size : 0;
     }
 
     public destroy(): Promise<void> {

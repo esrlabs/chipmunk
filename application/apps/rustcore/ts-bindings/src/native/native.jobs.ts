@@ -33,7 +33,6 @@ export abstract class JobsNative {
     public abstract getDltStats(sequence: number, files: string[]): Promise<Uint8Array>;
     public abstract getSomeipStatistic(sequence: number, files: string[]): Promise<Uint8Array>;
     public abstract getShellProfiles(sequence: number): Promise<Uint8Array>;
-    public abstract getContextEnvvars(sequence: number): Promise<Uint8Array>;
     public abstract getSerialPortsList(sequence: number): Promise<Uint8Array>;
     public abstract sleep(sequence: number, ms: number): Promise<Uint8Array>;
     public abstract getRegexError(

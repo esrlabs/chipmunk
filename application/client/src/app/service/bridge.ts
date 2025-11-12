@@ -562,7 +562,6 @@ export class Service extends Implementation {
     public os(): {
         homedir(): Promise<string>;
         shells(): Promise<Profile[]>;
-        envvars(): Promise<Map<string, string>>;
     } {
         return {
             homedir: (): Promise<string> => {
@@ -601,18 +600,6 @@ export class Service extends Implementation {
                                     this.queue.shells = [];
                                 });
                     }
-                });
-            },
-            envvars: (): Promise<Map<string, string>> => {
-                return new Promise((resolve, reject) => {
-                    Requests.IpcRequest.send(
-                        Requests.Os.EnvVars.Response,
-                        new Requests.Os.EnvVars.Request(),
-                    )
-                        .then((response) => {
-                            resolve(response.envvars);
-                        })
-                        .catch(reject);
                 });
             },
         };
