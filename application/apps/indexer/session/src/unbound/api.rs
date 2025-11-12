@@ -160,15 +160,6 @@ impl UnboundSessionAPI {
             .await
     }
 
-    pub async fn get_context_envvars(
-        &self,
-        id: u64,
-    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
-        let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(id, rx_results, Command::GetContextEnvvars(tx_results))
-            .await
-    }
-
     pub async fn get_serial_ports_list(
         &self,
         id: u64,

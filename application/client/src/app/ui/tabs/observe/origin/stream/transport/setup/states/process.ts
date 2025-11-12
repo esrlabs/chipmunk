@@ -17,8 +17,6 @@ export class State implements Destroy {
         all: undefined,
         valid: undefined,
     };
-    // No context envvars
-    public envvars: Map<string, string> = new Map();
     public current: Profile | undefined;
 
     constructor(
@@ -43,9 +41,6 @@ export class State implements Destroy {
             .get()
             .then((path: string | undefined) => {
                 this.current = this.profiles.all?.find((p) => p.path === path);
-                if (this.current !== undefined && this.current.envvars !== undefined) {
-                    this.configuration.configuration.envs = obj.mapToObj(this.current.envvars);
-                }
             });
     }
 
@@ -53,16 +48,11 @@ export class State implements Destroy {
         return this.profiles.all !== undefined;
     }
 
-    public importEnvvarsFromShell(profile: Profile | undefined): Promise<void> {
+    public setCurrentProfile(profile: Profile | undefined): Promise<void> {
         if (profile === undefined) {
             this.current = undefined;
-            this.configuration.configuration.envs = obj.mapToObj(this.envvars);
             return this.storage().set(undefined);
         } else {
-            if (profile.envvars === undefined) {
-                return Promise.resolve();
-            }
-            this.configuration.configuration.envs = obj.mapToObj(profile.envvars);
             this.current = profile;
             return this.storage().set(profile.path);
         }

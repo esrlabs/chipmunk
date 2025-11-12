@@ -101,18 +101,6 @@ export class SetupBase
             });
         this.ilc()
             .services.system.bridge.os()
-            .envvars()
-            .then((envvars) => {
-                this.state.envvars = envvars;
-            })
-            .catch((err: Error) => {
-                this.log().warn(`Fail to get no context envvars: ${err.message}`);
-            })
-            .finally(() => {
-                this.detectChanges();
-            });
-        this.ilc()
-            .services.system.bridge.os()
             .shells()
             .then((profiles) => {
                 this.state
@@ -197,10 +185,8 @@ export class SetupBase
         });
     }
 
-    public importEnvVars(profile: Profile | undefined) {
-        this.state.importEnvvarsFromShell(profile).catch((err: Error) => {
-            this.log().error(`Fail to save selected profile: ${err.message}`);
-        });
+    public setCurrentProfile(profile: Profile | undefined) {
+        this.state.setCurrentProfile(profile);
         this.detectChanges();
     }
 }

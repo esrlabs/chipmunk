@@ -8,7 +8,6 @@ import {
     DltStatisticInfo,
     Profile,
     ProfileList,
-    MapKeyValue,
 } from 'platform/types/bindings';
 import {
     InvalidPluginEntity,
@@ -161,23 +160,6 @@ export class Jobs extends Base {
             this.native.getShellProfiles(sequence),
             sequence,
             'getShellProfiles',
-        );
-        return job;
-    }
-
-    public getContextEnvvars(): CancelablePromise<Map<string, string>> {
-        const sequence = this.sequence();
-        const job: CancelablePromise<Map<string, string>> = this.execute(
-            (buf: Uint8Array): Map<string, string> | Error => {
-                const decoded = decode<MapKeyValue>(
-                    buf,
-                    protocol.decodeCommandOutcomeWithMapKeyValue,
-                );
-                return decoded;
-            },
-            this.native.getContextEnvvars(sequence),
-            sequence,
-            'getContextEnvvars',
         );
         return job;
     }

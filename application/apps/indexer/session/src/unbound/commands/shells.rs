@@ -8,11 +8,3 @@ pub fn get_valid_profiles(
         Vec::new(),
     )))
 }
-
-pub fn get_context_envvars(
-    _signal: Signal,
-) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
-    Ok(stypes::CommandOutcome::Finished(
-        std::collections::HashMap::new().into(),
-    ))
-}

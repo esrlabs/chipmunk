@@ -170,18 +170,6 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
-    async fn get_context_envvars(
-        &self,
-        id: i64,
-    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
-        self.api
-            .as_ref()
-            .ok_or(stypes::ComputationError::SessionUnavailable)?
-            .get_context_envvars(u64_from_i64(id)?)
-            .await
-    }
-
-    #[node_bindgen]
     async fn get_serial_ports_list(
         &self,
         id: i64,
