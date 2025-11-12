@@ -4,12 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rmcp = { version = "0.3", features = ["server", "transport-io"] }
+rmcp = { version = "0.8", features = ["server", "transport-io"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 schemars = "1.0"
 dirs.workspace = true
 anyhow.workspace = true
+log.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
