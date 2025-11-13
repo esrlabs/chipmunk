@@ -13,6 +13,7 @@ crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serialization"] }
 file-tools = { path = "../addons/file-tools" }
+shell-tools = {path = "../addons/shell-tools"}
 futures.workspace = true
 indexer_base = { path = "../indexer_base" }
 lazy_static.workspace = true

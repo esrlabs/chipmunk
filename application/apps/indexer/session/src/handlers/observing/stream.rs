@@ -77,13 +77,17 @@ pub async fn observe_stream(
             .await
         }
         stypes::Transport::Process(settings) => {
-            let process_source = ProcessSource::new(settings.command.clone(), settings.cwd.clone())
-                .await
-                .map_err(|e| stypes::NativeError {
-                    severity: stypes::Severity::ERROR,
-                    kind: stypes::NativeErrorKind::Interrupted,
-                    message: Some(format!("{e}")),
-                })?;
+            let process_source = ProcessSource::new(
+                settings.command.clone(),
+                settings.cwd.clone(),
+                settings.shell.clone(),
+            )
+            .await
+            .map_err(|e| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Interrupted,
+                message: Some(format!("{e}")),
+            })?;
             observing::run_source(
                 operation_api,
                 state,

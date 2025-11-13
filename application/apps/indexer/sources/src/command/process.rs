@@ -1,6 +1,7 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
 use std::{ffi::OsString, path::PathBuf, process::Stdio};
+use stypes::ShellProfile;
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -39,12 +40,20 @@ impl Drop for ProcessSource {
 
 impl ProcessSource {
     #[cfg(windows)]
-    fn spawn(command: &str, cwd: PathBuf) -> Result<Child, ProcessError> {
+    fn spawn(
+        command: &str,
+        cwd: PathBuf,
+        shell: Option<ShellProfile>,
+    ) -> Result<Child, ProcessError> {
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        //TODO AAZ: Consider allowing users to specify their own shell.
-        Command::new("cmd")
-            .arg("/C")
-            .args(command)
+
+        let (bin, cmd_arg) = shell
+            .map(|sh| (sh.path.as_os_str().to_os_string(), sh.shell.command_arg()))
+            .unwrap_or_else(|| (OsString::from("cmd"), "/C"));
+
+        Command::new(bin)
+            .arg(cmd_arg)
+            .arg(command)
             .current_dir(OsString::from(cwd))
             .creation_flags(CREATE_NO_WINDOW)
             .stdout(Stdio::piped())
@@ -56,10 +65,16 @@ impl ProcessSource {
     }
 
     #[cfg(not(windows))]
-    fn spawn(command: &str, cwd: PathBuf) -> Result<Child, ProcessError> {
-        //TODO AAZ: Consider allowing users to specify their own shell.
-        Command::new("sh")
-            .arg("-c")
+    fn spawn(
+        command: &str,
+        cwd: PathBuf,
+        shell: Option<ShellProfile>,
+    ) -> Result<Child, ProcessError> {
+        let (bin, cmd_arg) = shell
+            .map(|sh| (sh.path.as_os_str().to_os_string(), sh.shell.command_arg()))
+            .unwrap_or_else(|| (OsString::from("sh"), "-c"));
+        Command::new(bin)
+            .arg(cmd_arg)
             .arg(command)
             .current_dir(OsString::from(cwd))
             .stdout(Stdio::piped())
@@ -70,8 +85,12 @@ impl ProcessSource {
             .map_err(|e| ProcessError::Setup(format!("{e}")))
     }
 
-    pub async fn new(command: String, cwd: PathBuf) -> Result<Self, ProcessError> {
-        let mut process = ProcessSource::spawn(&command, cwd)?;
+    pub async fn new(
+        command: String,
+        cwd: PathBuf,
+        shell: Option<ShellProfile>,
+    ) -> Result<Self, ProcessError> {
+        let mut process = ProcessSource::spawn(&command, cwd, shell)?;
         let stdout = codec::FramedRead::new(
             process
                 .stdout
@@ -185,7 +204,7 @@ mod tests {
         } else if cfg!(unix) {
             command = "ls -lsa";
         }
-        match ProcessSource::new(command.to_string(), env::current_dir().unwrap()).await {
+        match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), None).await {
             Ok(mut process_source) => {
                 while process_source
                     .load(None)
@@ -214,7 +233,7 @@ mod tests {
             command = "ls -lsa";
         }
         let mut process_source =
-            ProcessSource::new(command.to_string(), env::current_dir().unwrap())
+            ProcessSource::new(command.to_string(), env::current_dir().unwrap(), None)
                 .await
                 .unwrap();
 

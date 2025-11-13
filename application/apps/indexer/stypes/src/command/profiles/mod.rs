@@ -1,9 +1,29 @@
+#[cfg(feature = "rustcore")]
+mod extending;
 #[cfg(feature = "nodejs")]
 mod nodejs;
 #[cfg(test)]
 mod proptest;
 
 use crate::*;
+
+/// Represents most well known shells that are not used by default on OS.
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[extend::encode_decode]
+#[cfg_attr(
+    all(test, feature = "test_and_gen"),
+    derive(TS),
+    ts(export, export_to = "command.ts")
+)]
+pub enum ShellType {
+    Bash,
+    Zsh,
+    Fish,
+    NuShell,
+    Elvish,
+    /// PowerShell +7
+    Pwsh,
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[extend::encode_decode]
@@ -12,20 +32,10 @@ use crate::*;
     derive(TS),
     ts(export, export_to = "command.ts")
 )]
-pub struct Profile {
-    /// Suggested name of shell. For unix based systems it will be name of executable file,
-    /// like "bash", "fish" etc. For windows it will be names like "GitBash", "PowerShell"
-    /// etc.
-    pub name: String,
+pub struct ShellProfile {
+    pub shell: ShellType,
     /// Path to executable file of shell
     pub path: PathBuf,
-    /// List of environment variables. Because extracting operation could take some time
-    /// by default `envvars = None`. To load data should be used method `load`, which will
-    /// make attempt to detect environment variables.
-    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, string>"))]
-    pub envvars: Option<HashMap<String, String>>,
-    /// true - if path to executable file of shell is symlink to another location.
-    pub symlink: bool,
 }
 
 /// Represents a list of serial ports.
@@ -39,4 +49,4 @@ pub struct Profile {
     derive(TS),
     ts(export, export_to = "command.ts")
 )]
-pub struct ProfileList(pub Vec<Profile>);
+pub struct ProfileList(pub Vec<ShellProfile>);

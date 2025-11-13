@@ -6,7 +6,7 @@ import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import {
     FoldersScanningResult,
     DltStatisticInfo,
-    Profile,
+    ShellProfile,
     ProfileList,
 } from 'platform/types/bindings';
 import {
@@ -147,9 +147,9 @@ export class Jobs extends Base {
         return job;
     }
 
-    public getShellProfiles(): CancelablePromise<Profile[]> {
+    public getShellProfiles(): CancelablePromise<ShellProfile[]> {
         const sequence = this.sequence();
-        const job: CancelablePromise<Profile[]> = this.execute(
+        const job: CancelablePromise<ShellProfile[]> = this.execute(
             (buf: Uint8Array): any | Error => {
                 const decoded = decode<ProfileList>(
                     buf,

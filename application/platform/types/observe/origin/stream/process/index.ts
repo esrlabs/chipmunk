@@ -3,6 +3,7 @@ import { Source } from '../index';
 import { Configuration as Base, ConfigurationStaticDesc } from '../../../configuration';
 import { OriginDetails, IOriginDetails, IList, Job, IJob, OriginType } from '../../../description';
 import { Statics } from '../../../../../env/decorators';
+import { ShellProfile } from '../../../../../types/bindings';
 
 import * as obj from '../../../../../env/obj';
 import * as Parser from '../../../parser';
@@ -12,7 +13,7 @@ import * as str from '../../../../../env/str';
 export interface IConfiguration {
     command: string;
     cwd: string;
-    envs: { [key: string]: string };
+    shell: ShellProfile | undefined;
 }
 
 @Statics<ConfigurationStaticDesc<IConfiguration, Source>>()
@@ -52,7 +53,6 @@ export class Configuration
         try {
             obj.getAsNotEmptyString(configuration, 'command');
             obj.getAsString(configuration, 'cwd');
-            obj.getAsObjWithPrimitives(configuration, 'envs');
             return configuration;
         } catch (e) {
             return new Error(error(e));
@@ -68,7 +68,7 @@ export class Configuration
         return {
             command: '',
             cwd: '',
-            envs: {},
+            shell: undefined,
         };
     }
 

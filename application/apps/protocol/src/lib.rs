@@ -126,7 +126,9 @@ gen_encode_decode_fns!(FileFormat);
 gen_encode_decode_fns!(ObserveOrigin);
 gen_encode_decode_fns!(FoldersScanningResult);
 gen_encode_decode_fns!(DltStatisticInfo);
-gen_encode_decode_fns!(Profile);
+//TODO AAZ: Adjust TS-Bindings tests with the type changes then run proptests
+gen_encode_decode_fns!(ShellType);
+gen_encode_decode_fns!(ShellProfile);
 gen_encode_decode_fns!(ProfileList);
 gen_encode_decode_fns!(PluginParserSettings);
 gen_encode_decode_fns!(PluginParserGeneralSettings);
