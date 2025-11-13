@@ -98,7 +98,8 @@ const MAP: { [key: string]: (buf: Uint8Array) => any } = {
     UdpConnectionInfo: protocol.decodeUdpConnectionInfo,
     UDPTransportConfig: protocol.decodeUDPTransportConfig,
     DltStatisticInfo: protocol.decodeDltStatisticInfo,
-    Profile: protocol.decodeProfile,
+    ShellType: protocol.decodeShellType,
+    ShellProfile: protocol.decodeShellProfile,
     ProfileList: protocol.decodeProfileList,
     ExtractedMatchValue: protocol.decodeExtractedMatchValue,
     ResultExtractedMatchValues: protocol.decodeResultExtractedMatchValues,
@@ -171,7 +172,7 @@ describe('Protocol', function () {
                             Process: {
                                 command: 'command',
                                 cwd: 'cwd',
-                                envs: { one: 'one' },
+                                shell: undefined,
                             },
                         },
                     ],

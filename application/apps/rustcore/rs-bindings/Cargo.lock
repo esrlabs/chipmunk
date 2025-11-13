@@ -1049,22 +1049,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "envvars"
-version = "0.1.10"
+name = "env_home"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e09f83a3152f7c37f9dd3d423c0c96cbe8fc6f671731bcd60cf09e57370d4ec"
-dependencies = [
- "blake3",
- "fs_extra",
- "home",
- "is-terminal",
- "lazy_static",
- "log",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "uuid",
-]
+checksum = "c7f84e12ccf0a7ddc17a6c41c93326024c42920d7ee630d04950e6926645c0fe"
 
 [[package]]
 name = "equivalent"
@@ -1217,12 +1205,6 @@ dependencies = [
  "rustix 1.0.7",
  "windows-sys 0.59.0",
 ]
-
-[[package]]
-name = "fs_extra"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
 name = "futures"
@@ -1488,15 +1470,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f154ce46856750ed433c8649605bf7ed2de3bc35fd9d2a9f30cddd873c80cb08"
 
 [[package]]
-name = "home"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "589533453244b0995c858700322199b2becb13b627df2851f64a2775d024abcf"
-dependencies = [
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "http_req"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1744,17 +1717,6 @@ name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
-
-[[package]]
-name = "is-terminal"
-version = "0.4.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
-dependencies = [
- "hermit-abi",
- "libc",
- "windows-sys 0.59.0",
-]
 
 [[package]]
 name = "itertools"
@@ -3025,7 +2987,6 @@ dependencies = [
  "crossbeam-channel",
  "dirs",
  "dlt-core",
- "envvars",
  "file-tools",
  "futures",
  "indexer_base",
@@ -3040,6 +3001,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serialport",
+ "shell-tools",
  "sources",
  "stypes",
  "thiserror 2.0.12",
@@ -3068,6 +3030,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "shell-tools"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "stypes",
+ "which",
 ]
 
 [[package]]
@@ -3170,7 +3141,6 @@ dependencies = [
  "etherparse",
  "futures",
  "indexer_base",
- "lazy_static",
  "log",
  "parsers",
  "pcap-parser",
@@ -3218,7 +3188,6 @@ dependencies = [
  "anyhow",
  "bincode",
  "dlt-core",
- "envvars",
  "extend",
  "node-bindgen",
  "regex",
@@ -4224,6 +4193,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "which"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3fabb953106c3c8eea8306e4393700d7657561cb43122571b172bbfb7c7ba1d"
+dependencies = [
+ "env_home",
+ "rustix 1.0.7",
+ "winsafe",
+]
+
+[[package]]
 name = "wiggle"
 version = "33.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4463,6 +4443,12 @@ checksum = "c06928c8748d81b05c9be96aad92e1b6ff01833332f281e8cfca3be4b35fc9ec"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "winsafe"
+version = "0.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d135d17ab770252ad95e9a872d365cf3090e3be864a34ab46f48555993efc904"
 
 [[package]]
 name = "winx"

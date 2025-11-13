@@ -43,15 +43,6 @@ export class Service extends Implementation {
                 .ipc()
                 .respondent(
                     this.getName(),
-                    Requests.Os.EnvVars.Request,
-                    RequestHandlers.Os.EnvVars.handler,
-                ),
-        );
-        this.register(
-            electron
-                .ipc()
-                .respondent(
-                    this.getName(),
                     Requests.Os.List.Request,
                     RequestHandlers.Os.List.handler,
                 ),

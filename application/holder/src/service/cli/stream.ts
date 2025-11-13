@@ -142,7 +142,7 @@ function getObserveFactory(
             return new Factory.Stream().process({
                 command: arg,
                 cwd,
-                envs: {},
+                shell: undefined,
             });
         } else {
             return new Error(`Command to spawn cannot be empty`);

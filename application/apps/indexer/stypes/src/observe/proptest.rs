@@ -134,9 +134,13 @@ impl Arbitrary for ProcessTransportConfig {
         (
             any::<PathBuf>(),
             any::<String>(),
-            any::<HashMap<String, String>>(),
+            any::<Option<ShellProfile>>(),
         )
-            .prop_map(|(cwd, command, envs)| ProcessTransportConfig { cwd, command, envs })
+            .prop_map(|(cwd, command, shell)| ProcessTransportConfig {
+                cwd,
+                command,
+                shell,
+            })
             .boxed()
     }
 }

@@ -6,7 +6,6 @@ mod dlt;
 mod file;
 mod folder;
 pub mod plugins;
-mod process;
 mod regex;
 mod serial;
 mod shells;
@@ -38,11 +37,6 @@ pub enum Command {
             Result<stypes::CommandOutcome<stypes::FoldersScanningResult>, stypes::ComputationError>,
         >,
     ),
-    SpawnProcess(
-        String,
-        Vec<String>,
-        oneshot::Sender<Result<stypes::CommandOutcome<()>, stypes::ComputationError>>,
-    ),
     GetRegexError(
         SearchFilter,
         oneshot::Sender<Result<stypes::CommandOutcome<Option<String>>, stypes::ComputationError>>,
@@ -64,11 +58,6 @@ pub enum Command {
     GetShellProfiles(
         oneshot::Sender<
             Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError>,
-        >,
-    ),
-    GetContextEnvvars(
-        oneshot::Sender<
-            Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError>,
         >,
     ),
     SerialPortsList(
@@ -156,10 +145,8 @@ impl std::fmt::Display for Command {
             match self {
                 Command::Sleep(_, _) => "Sleep",
                 Command::CancelTest(_, _, _) => "CancelTest",
-                Command::SpawnProcess(_, _, _) => "Spawning process",
                 Command::FolderContent(_, _, _, _, _, _) => "Getting folder's content",
                 Command::GetShellProfiles(_) => "Getting shell profiles",
-                Command::GetContextEnvvars(_) => "Getting context envvars",
                 Command::SerialPortsList(_) => "Getting serial ports list",
                 Command::Checksum(_, _) => "Calculating file's checksum",
                 Command::GetDltStats(_, _) => "Getting dlt stats",
@@ -196,9 +183,6 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
                 signal,
             ))
             .is_err(),
-        Command::SpawnProcess(path, args, tx) => {
-            tx.send(process::execute(path, args, signal)).is_err()
-        }
         Command::GetRegexError(filter, tx) => {
             tx.send(regex::get_filter_error(filter, signal)).is_err()
         }
@@ -207,8 +191,7 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
         Command::GetSomeipStatistic(files, tx) => {
             tx.send(get_someip_statistic(files, signal)).is_err()
         }
-        Command::GetShellProfiles(tx) => tx.send(shells::get_valid_profiles(signal)).is_err(),
-        Command::GetContextEnvvars(tx) => tx.send(shells::get_context_envvars(signal)).is_err(),
+        Command::GetShellProfiles(tx) => tx.send(shells::get_available_shells(signal)).is_err(),
         Command::SerialPortsList(tx) => tx.send(serial::available_ports(signal)).is_err(),
         Command::IsFileBinary(file_path, tx) => tx.send(file::is_file_binary(file_path)).is_err(),
         Command::CancelTest(a, b, tx) => tx
@@ -254,13 +237,11 @@ pub fn err(command: Command, err: stypes::ComputationError) {
     if match command {
         Command::Sleep(_, tx) => tx.send(Err(err)).is_err(),
         Command::FolderContent(_path, _depth, _max_len, _, _, tx) => tx.send(Err(err)).is_err(),
-        Command::SpawnProcess(_path, _args, tx) => tx.send(Err(err)).is_err(),
         Command::GetRegexError(_filter, tx) => tx.send(Err(err)).is_err(),
         Command::Checksum(_file, tx) => tx.send(Err(err)).is_err(),
         Command::GetDltStats(_files, tx) => tx.send(Err(err)).is_err(),
         Command::GetSomeipStatistic(_files, tx) => tx.send(Err(err)).is_err(),
         Command::GetShellProfiles(tx) => tx.send(Err(err)).is_err(),
-        Command::GetContextEnvvars(tx) => tx.send(Err(err)).is_err(),
         Command::SerialPortsList(tx) => tx.send(Err(err)).is_err(),
         Command::IsFileBinary(_filepath, tx) => tx.send(Err(err)).is_err(),
         Command::CancelTest(_a, _b, tx) => tx.send(Err(err)).is_err(),

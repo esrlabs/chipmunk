@@ -117,21 +117,6 @@ impl UnboundSessionAPI {
             .await
     }
 
-    pub async fn spawn_process(
-        &self,
-        id: u64,
-        path: String,
-        args: Vec<String>,
-    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
-        let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(
-            id,
-            rx_results,
-            Command::SpawnProcess(path, args, tx_results),
-        )
-        .await
-    }
-
     pub async fn get_file_checksum(
         &self,
         id: u64,
@@ -172,15 +157,6 @@ impl UnboundSessionAPI {
     ) -> Result<stypes::CommandOutcome<stypes::ProfileList>, stypes::ComputationError> {
         let (tx_results, rx_results) = oneshot::channel();
         self.process_command(id, rx_results, Command::GetShellProfiles(tx_results))
-            .await
-    }
-
-    pub async fn get_context_envvars(
-        &self,
-        id: u64,
-    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
-        let (tx_results, rx_results) = oneshot::channel();
-        self.process_command(id, rx_results, Command::GetContextEnvvars(tx_results))
             .await
     }
 

@@ -1,5 +1,5 @@
 import { Define, Interface, SignatureRequirement } from '../declarations';
-import { Profile } from '../../../types/bindings';
+import { ShellProfile } from '../../../types/bindings';
 
 import * as validator from '../../../env/obj';
 
@@ -9,12 +9,12 @@ export interface Request extends Interface {}
 
 @Define({ name: 'ShellProfilesListResponse' })
 export class Response extends SignatureRequirement {
-    public profiles: Profile[];
+    public shells: ShellProfile[];
 
-    constructor(input: { profiles: Profile[] }) {
+    constructor(input: { shells: ShellProfile[] }) {
         super();
         validator.isObject(input);
-        this.profiles = validator.getAsArray(input, 'profiles');
+        this.shells = validator.getAsArray(input, 'shells');
     }
 }
 

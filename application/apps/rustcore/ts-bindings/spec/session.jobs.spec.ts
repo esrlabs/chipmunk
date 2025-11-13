@@ -79,8 +79,8 @@ describe('Jobs', function () {
                         res[0].status !== 'rejected'
                             ? res[0].value
                             : res[1].status !== 'rejected'
-                            ? res[1].value
-                            : undefined,
+                              ? res[1].value
+                              : undefined,
                     ).toBe(100);
                     finish(jobs, done);
                 })
@@ -140,16 +140,6 @@ describe('Jobs', function () {
     });
 
     it(config.regular.list[5], function () {
-        return runners.unbound(config.regular, 5, async (logger, done, collector) => {
-            const jobs = collector(await Jobs.create()) as Jobs;
-            const envvars = await jobs.getContextEnvvars();
-            expect(envvars.size > 0).toBe(true);
-            expect(envvars.has('PATH') || envvars.has('path') || envvars.has('Path')).toBe(true);
-            finish(jobs, done);
-        });
-    });
-
-    it(config.regular.list[6], function () {
         return runners.unbound(config.regular, 6, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = config.regular.files['someip-pcapng'];
@@ -240,7 +230,7 @@ describe('Jobs', function () {
         });
     });
 
-    it(config.regular.list[7], function () {
+    it(config.regular.list[6], function () {
         return runners.unbound(config.regular, 7, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             const path = config.regular.files['sample-txt'];
@@ -258,7 +248,7 @@ describe('Jobs', function () {
         });
     });
 
-    it(config.regular.list[8], function () {
+    it(config.regular.list[7], function () {
         return runners.unbound(config.regular, 8, async (logger, done, collector) => {
             const jobs = collector(await Jobs.create()) as Jobs;
             // Run sleeping, but do not wait for it

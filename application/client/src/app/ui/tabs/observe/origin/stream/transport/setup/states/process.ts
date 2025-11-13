@@ -1,4 +1,4 @@
-import { Profile } from '@platform/types/bindings';
+import { ShellProfile } from '@platform/types/bindings';
 import { bridge } from '@service/bridge';
 import { Destroy } from '@platform/types/env/types';
 import { Action } from '../../../../../action';
@@ -11,15 +11,15 @@ const ENTRY_KEY = 'selected_profile_path';
 
 export class State implements Destroy {
     public profiles: {
-        all: Profile[] | undefined;
-        valid: Profile[] | undefined;
+        all: ShellProfile[] | undefined;
+        valid: ShellProfile[] | undefined;
     } = {
         all: undefined,
         valid: undefined,
     };
-    // No context envvars
-    public envvars: Map<string, string> = new Map();
-    public current: Profile | undefined;
+    public current: ShellProfile | undefined;
+    /// Environment variables for in Chipmunk.
+    public envs: { [key: string]: string } = {};
 
     constructor(
         public readonly action: Action,
@@ -30,12 +30,12 @@ export class State implements Destroy {
         // Having method "destroy()" is requirement of session's storage
     }
 
-    public setProfiles(profiles: Profile[]): Promise<void> {
-        const valid: Profile[] = [];
+    public setProfiles(profiles: ShellProfile[]): Promise<void> {
+        const valid: ShellProfile[] = [];
         profiles.forEach((profile) => {
-            valid.find((p) => p.path === profile.path) === undefined &&
-                profile.envvars !== undefined &&
+            if (valid.find((p) => p.path === profile.path) === undefined) {
                 valid.push(profile);
+            }
         });
         this.profiles.all = profiles;
         this.profiles.valid = valid;
@@ -43,9 +43,7 @@ export class State implements Destroy {
             .get()
             .then((path: string | undefined) => {
                 this.current = this.profiles.all?.find((p) => p.path === path);
-                if (this.current !== undefined && this.current.envvars !== undefined) {
-                    this.configuration.configuration.envs = obj.mapToObj(this.current.envvars);
-                }
+                this.configuration.configuration.shell = this.current;
             });
     }
 
@@ -53,26 +51,23 @@ export class State implements Destroy {
         return this.profiles.all !== undefined;
     }
 
-    public importEnvvarsFromShell(profile: Profile | undefined): Promise<void> {
+    public setCurrentProfile(profile: ShellProfile | undefined): Promise<void> {
         if (profile === undefined) {
             this.current = undefined;
-            this.configuration.configuration.envs = obj.mapToObj(this.envvars);
+            this.configuration.configuration.shell = undefined;
             return this.storage().set(undefined);
         } else {
-            if (profile.envvars === undefined) {
-                return Promise.resolve();
-            }
-            this.configuration.configuration.envs = obj.mapToObj(profile.envvars);
             this.current = profile;
+            this.configuration.configuration.shell = this.current;
             return this.storage().set(profile.path);
         }
     }
 
     public getSelectedEnvs(): Map<string | number | symbol, string> {
-        return obj.objToStringMap(this.configuration.configuration.envs);
+        return obj.objToStringMap(this.envs);
     }
 
-    public isShellSelected(profile: Profile): boolean {
+    public isShellSelected(profile: ShellProfile): boolean {
         return this.current ? profile.path === this.current.path : false;
     }
 

@@ -15,7 +15,6 @@ export class Storage {
 
     public set(): {
         cwd(path: string): Promise<void>;
-        envvars(envs: { [key: string]: string }): Promise<void>;
     } {
         return {
             cwd: (path: string): Promise<void> => {
@@ -26,13 +25,6 @@ export class Storage {
                     path = os.homedir();
                 }
                 const entry = { uuid: KEYS.cwd, content: JSON.stringify({ value: path }) };
-                return storage.entries.update(Storage.KEY, [entry]);
-            },
-            envvars: (envs: { [key: string]: string }): Promise<void> => {
-                if (Object.keys(envs).length === 0) {
-                    return storage.entries.delete(Storage.KEY, [KEYS.envvars]);
-                }
-                const entry = { uuid: KEYS.envvars, content: JSON.stringify({ value: envs }) };
                 return storage.entries.update(Storage.KEY, [entry]);
             },
         };

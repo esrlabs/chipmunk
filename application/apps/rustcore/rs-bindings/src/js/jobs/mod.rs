@@ -119,20 +119,6 @@ impl UnboundJobs {
     }
 
     #[node_bindgen]
-    async fn spawn_process(
-        &self,
-        id: i64,
-        path: String,
-        args: Vec<String>,
-    ) -> Result<stypes::CommandOutcome<()>, stypes::ComputationError> {
-        self.api
-            .as_ref()
-            .ok_or(stypes::ComputationError::SessionUnavailable)?
-            .spawn_process(u64_from_i64(id)?, path, args)
-            .await
-    }
-
-    #[node_bindgen]
     async fn get_file_checksum(
         &self,
         id: i64,
@@ -180,18 +166,6 @@ impl UnboundJobs {
             .as_ref()
             .ok_or(stypes::ComputationError::SessionUnavailable)?
             .get_shell_profiles(u64_from_i64(id)?)
-            .await
-    }
-
-    #[node_bindgen]
-    async fn get_context_envvars(
-        &self,
-        id: i64,
-    ) -> Result<stypes::CommandOutcome<stypes::MapKeyValue>, stypes::ComputationError> {
-        self.api
-            .as_ref()
-            .ok_or(stypes::ComputationError::SessionUnavailable)?
-            .get_context_envvars(u64_from_i64(id)?)
             .await
     }
 

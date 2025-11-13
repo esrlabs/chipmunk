@@ -1,8 +1,7 @@
 use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 use bufread::DeqBuffer;
-use regex::{Captures, Regex};
-use shellexpand::tilde;
-use std::{collections::HashMap, ffi::OsString, path::PathBuf, process::Stdio};
+use std::{ffi::OsString, path::PathBuf, process::Stdio};
+use stypes::ShellProfile;
 use thiserror::Error;
 use tokio::{
     io::AsyncWriteExt,
@@ -11,14 +10,6 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 use tokio_util::codec::{self, FramedRead, LinesCodec};
-
-lazy_static! {
-    static ref GROUP_RE: Regex =
-        Regex::new(r#"".*?""#).expect("Regex must compile (fail with GROUP_RE)");
-    static ref QUOTE_RE: Regex =
-        Regex::new(r#"""#).expect("Regex must compile (fail with QUOTE_RE)");
-    static ref ESC_RE: Regex = Regex::new(r"\\\s").expect("Regex must compile (fail with ESC_RE)");
-}
 
 #[derive(Error, Debug)]
 pub enum ProcessError {
@@ -48,43 +39,22 @@ impl Drop for ProcessSource {
 }
 
 impl ProcessSource {
-    pub fn parse_command(command: &str) -> Result<Vec<OsString>, ProcessError> {
-        let mut groups: Vec<String> = vec![];
-        let parsed = ESC_RE.replace_all(command, "==esc_space==").to_string();
-        let parsed = GROUP_RE.replace_all(&parsed, |caps: &Captures| {
-            let index = groups.len();
-            if caps.len() != 0 {
-                let group = caps[0].to_string();
-                groups.push(QUOTE_RE.replace_all(&group, "").to_string());
-            }
-            format!("==extraction:({index})==")
-        });
-        Ok(parsed
-            .split(' ')
-            .map(|a| {
-                let mut str = a.to_string();
-                for (i, g) in groups.iter().enumerate() {
-                    let key = format!("==extraction:({i})==");
-                    str.replace(&key, g).clone_into(&mut str);
-                }
-                let restored = str.replace("==esc_space==", " ");
-                OsString::from(tilde(&restored).to_string())
-            })
-            .collect())
-    }
-
     #[cfg(windows)]
     fn spawn(
-        cmd: OsString,
-        args: Vec<OsString>,
+        command: &str,
         cwd: PathBuf,
-        envs: HashMap<String, String>,
+        shell: Option<ShellProfile>,
     ) -> Result<Child, ProcessError> {
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        Command::new(cmd)
-            .args(args)
+
+        let (bin, cmd_arg) = shell
+            .map(|sh| (sh.path.as_os_str().to_os_string(), sh.shell.command_arg()))
+            .unwrap_or_else(|| (OsString::from("cmd"), "/C"));
+
+        Command::new(bin)
+            .arg(cmd_arg)
+            .arg(command)
             .current_dir(OsString::from(cwd))
-            .envs(envs)
             .creation_flags(CREATE_NO_WINDOW)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -96,15 +66,17 @@ impl ProcessSource {
 
     #[cfg(not(windows))]
     fn spawn(
-        cmd: OsString,
-        args: Vec<OsString>,
+        command: &str,
         cwd: PathBuf,
-        envs: HashMap<String, String>,
+        shell: Option<ShellProfile>,
     ) -> Result<Child, ProcessError> {
-        Command::new(cmd)
-            .args(args)
+        let (bin, cmd_arg) = shell
+            .map(|sh| (sh.path.as_os_str().to_os_string(), sh.shell.command_arg()))
+            .unwrap_or_else(|| (OsString::from("sh"), "-c"));
+        Command::new(bin)
+            .arg(cmd_arg)
+            .arg(command)
             .current_dir(OsString::from(cwd))
-            .envs(envs)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .stdin(Stdio::piped())
@@ -116,17 +88,9 @@ impl ProcessSource {
     pub async fn new(
         command: String,
         cwd: PathBuf,
-        envs: HashMap<String, String>,
+        shell: Option<ShellProfile>,
     ) -> Result<Self, ProcessError> {
-        let mut args = ProcessSource::parse_command(&command)?;
-        let cmd = if args.is_empty() {
-            return Err(ProcessError::Setup(format!(
-                "Not command has been found in \"{command}\""
-            )));
-        } else {
-            args.remove(0)
-        };
-        let mut process = ProcessSource::spawn(cmd, args, cwd, envs)?;
+        let mut process = ProcessSource::spawn(&command, cwd, shell)?;
         let stdout = codec::FramedRead::new(
             process
                 .stdout
@@ -240,8 +204,7 @@ mod tests {
         } else if cfg!(unix) {
             command = "ls -lsa";
         }
-        let envs = HashMap::new();
-        match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs).await {
+        match ProcessSource::new(command.to_string(), env::current_dir().unwrap(), None).await {
             Ok(mut process_source) => {
                 while process_source
                     .load(None)
@@ -261,25 +224,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_parsing() -> Result<(), ProcessError> {
-        let parsed =
-            ProcessSource::parse_command(r#"cmd arg2 "some_path/with space or spaces" arg3"#)?;
-        assert_eq!(parsed.len(), 4);
-        assert_eq!(parsed[0], OsString::from("cmd"));
-        assert_eq!(parsed[1], OsString::from("arg2"));
-        assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
-        assert_eq!(parsed[3], OsString::from("arg3"));
-        let parsed =
-            ProcessSource::parse_command(r"cmd arg2 some_path/with\ space\ or\ spaces arg3")?;
-        assert_eq!(parsed.len(), 4);
-        assert_eq!(parsed[0], OsString::from("cmd"));
-        assert_eq!(parsed[1], OsString::from("arg2"));
-        assert_eq!(parsed[2], OsString::from("some_path/with space or spaces"));
-        assert_eq!(parsed[3], OsString::from("arg3"));
-        Ok(())
-    }
-
-    #[tokio::test]
     async fn test_source_reload() {
         use std::env;
         let mut command = "";
@@ -288,9 +232,8 @@ mod tests {
         } else if cfg!(unix) {
             command = "ls -lsa";
         }
-        let envs = HashMap::new();
         let mut process_source =
-            ProcessSource::new(command.to_string(), env::current_dir().unwrap(), envs)
+            ProcessSource::new(command.to_string(), env::current_dir().unwrap(), None)
                 .await
                 .unwrap();
 

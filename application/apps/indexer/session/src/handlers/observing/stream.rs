@@ -80,7 +80,7 @@ pub async fn observe_stream(
             let process_source = ProcessSource::new(
                 settings.command.clone(),
                 settings.cwd.clone(),
-                settings.envs.clone(),
+                settings.shell.clone(),
             )
             .await
             .map_err(|e| stypes::NativeError {

@@ -6,9 +6,8 @@ import { SomeipStatistic } from 'platform/types/observe/parser/someip';
 import {
     FoldersScanningResult,
     DltStatisticInfo,
-    Profile,
+    ShellProfile,
     ProfileList,
-    MapKeyValue,
 } from 'platform/types/bindings';
 import {
     InvalidPluginEntity,
@@ -94,19 +93,6 @@ export class Jobs extends Base {
         return job;
     }
 
-    public spawnProcess(path: string, args: string[]): CancelablePromise<void> {
-        const sequence = this.sequence();
-        const job: CancelablePromise<void> = this.execute(
-            (buf: Uint8Array): void | Error => {
-                return decode<void>(buf, protocol.decodeCommandOutcomeWithVoid);
-            },
-            this.native.spawnProcess(sequence, path, args),
-            sequence,
-            'spawnProcess',
-        );
-        return job;
-    }
-
     public getFileChecksum(path: string): CancelablePromise<string> {
         const sequence = this.sequence();
         const job: CancelablePromise<string> = this.execute(
@@ -161,9 +147,9 @@ export class Jobs extends Base {
         return job;
     }
 
-    public getShellProfiles(): CancelablePromise<Profile[]> {
+    public getShellProfiles(): CancelablePromise<ShellProfile[]> {
         const sequence = this.sequence();
-        const job: CancelablePromise<Profile[]> = this.execute(
+        const job: CancelablePromise<ShellProfile[]> = this.execute(
             (buf: Uint8Array): any | Error => {
                 const decoded = decode<ProfileList>(
                     buf,
@@ -174,23 +160,6 @@ export class Jobs extends Base {
             this.native.getShellProfiles(sequence),
             sequence,
             'getShellProfiles',
-        );
-        return job;
-    }
-
-    public getContextEnvvars(): CancelablePromise<Map<string, string>> {
-        const sequence = this.sequence();
-        const job: CancelablePromise<Map<string, string>> = this.execute(
-            (buf: Uint8Array): Map<string, string> | Error => {
-                const decoded = decode<MapKeyValue>(
-                    buf,
-                    protocol.decodeCommandOutcomeWithMapKeyValue,
-                );
-                return decoded;
-            },
-            this.native.getContextEnvvars(sequence),
-            sequence,
-            'getContextEnvvars',
         );
         return job;
     }

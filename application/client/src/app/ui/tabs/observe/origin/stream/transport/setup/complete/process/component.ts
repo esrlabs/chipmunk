@@ -13,7 +13,6 @@ import { Options as FoldersOptions } from '@elements/folderinput/component';
 import { Subject } from '@platform/env/subscription';
 import { CmdErrorState } from '../../bases/process/error';
 import { SetupBase } from '../../bases/process/component';
-import { Profile } from '@platform/types/bindings';
 
 @Component({
     selector: 'app-transport-process',
@@ -61,10 +60,6 @@ export class Setup extends SetupBase implements AfterContentInit, AfterViewInit,
                 }),
             );
         super.ngAfterContentInit();
-    }
-
-    public getEnvvarsCount(profile: Profile) {
-        return profile.envvars ? profile.envvars.size : 0;
     }
 }
 export interface Setup extends IlcInterface {}

@@ -46,7 +46,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `less ${tmpobj.name}`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -101,7 +101,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `less ${tmpobj.name}`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -133,7 +133,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `some_invalid_command`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -145,7 +145,10 @@ if (process.platform === 'win32') {
                         lifeCycleEvents.push('processing');
                     })
                     .then(() => {
-                        finish(comps.session, done, new Error(`Shound not be resolved`));
+                        // Session will still start with the invalid command because spawned shell
+                        // is the one responsible for evaluating command and not Chipmunk.
+                        // In this case session will open with the error message from shell.
+                        finish(comps.session, done);
                     })
                     .catch((err: Error) => {
                         // Event 'processing' should not come, because stream was created (confirmed), but
@@ -170,7 +173,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `tail --lines=5000 -f ${tmpobj.name}`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -266,7 +269,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `tail --lines=5000 -f ${tmpobj.name}`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -372,7 +375,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `tail --lines=5000 -f ${tmpobj.name}`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -419,7 +422,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `sed -u "w ${filename}"`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
@@ -436,7 +439,7 @@ if (process.platform === 'win32') {
                             .process({
                                 command: `tail -f ${filename}`,
                                 cwd: process.cwd(),
-                                envs: process.env as { [key: string]: string },
+                                shell: undefined,
                             })
                             .get()
                             .sterilized(),
