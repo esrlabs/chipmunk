@@ -105,7 +105,7 @@ describe('Benchmark Tests', function () {
                                     .process({
                                         command: `less ${tmpobj1.name}`,
                                         cwd: process.cwd(),
-                                        envs: process.env as { [key: string]: string },
+                                        shell: undefined,
                                     })
                                     .get()
                                     .sterilized(),
@@ -136,7 +136,7 @@ describe('Benchmark Tests', function () {
                                     .process({
                                         command: `less ${tmpobj2.name}`,
                                         cwd: process.cwd(),
-                                        envs: process.env as { [key: string]: string },
+                                        shell: undefined,
                                     })
                                     .get()
                                     .sterilized(),
@@ -178,7 +178,7 @@ describe('Benchmark Tests', function () {
                                             .process({
                                                 command: `less ${file.name}`,
                                                 cwd: process.cwd(),
-                                                envs: process.env as { [key: string]: string },
+                                                shell: undefined,
                                             })
                                             .get()
                                             .sterilized(),
