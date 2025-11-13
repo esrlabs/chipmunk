@@ -9,7 +9,7 @@
     <button tabindex="-1" class="flat-codicon-button" [matMenuTriggerFor]="menu">
         <ng-container *ngIf="state.isProfilesLoaded()">
             <span class="codicon codicon-terminal"></span>
-            {{(state.current === undefined ? 'Default shell' : state.current.name)}}
+            {{(state.current === undefined ? 'Default shell' : getShellName(state.current.shell))}}
         </ng-container>
         <ng-container *ngIf="!state.isProfilesLoaded()">
             <span>Loading profiles...</span>
@@ -25,7 +25,6 @@
     (panel)="panel()"
 ></app-folderinput-input>
 <mat-menu #menu="matMenu" class="app-transport-process-menu">
-    <!-- TODO AAZ: Check click events here -->
     <button mat-menu-item (click)="setCurrentProfile(undefined)">Use default shell</button>
     <mat-divider></mat-divider>
     <ng-container *ngIf="state.isProfilesLoaded()">
@@ -37,8 +36,8 @@
             (click)="setCurrentProfile(profile)"
         >
             <div class="shell-profile">
-                <span class="shell-name">{{profile.name}}</span>
-                <span class="shell-path">{{profile.path}}</span>
+                <span class="shell-name">{{getShellName(profile.shell)}}</span>
+                <span class="shell-path"> - {{profile.path}}</span>
             </div>
         </button>
     </ng-container>

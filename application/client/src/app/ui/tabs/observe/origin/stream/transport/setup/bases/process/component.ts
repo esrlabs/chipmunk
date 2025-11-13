@@ -16,7 +16,7 @@ import {
 import { Ilc, IlcInterface } from '@env/decorators/component';
 import { State } from '../../states/process';
 import { components } from '@env/decorators/initial';
-import { Profile } from '@platform/types/bindings';
+import { ShellProfile, ShellType } from '@platform/types/bindings';
 import { Action } from '@ui/tabs/observe/action';
 import { Session } from '@service/session';
 
@@ -56,6 +56,18 @@ export class SetupBase
             return;
         }
         this.ilc()
+            .services.system.bridge.env()
+            .get()
+            .then((envs) => {
+                this.state.envs = Stream.Process.Configuration.sterilizeEnvVars(envs);
+            })
+            .catch((err: Error) => {
+                this.log().error(`Fail to get envvars path: ${err.message}`);
+            })
+            .finally(() => {
+                this.detectChanges();
+            });
+        this.ilc()
             .services.system.bridge.cwd()
             .get(undefined)
             .then((cwd) => {
@@ -90,8 +102,7 @@ export class SetupBase
             .services.system.bridge.env()
             .get()
             .then((envs) => {
-                this.state.configuration.configuration.envs =
-                    Stream.Process.Configuration.sterilizeEnvVars(envs);
+                this.state.envs = Stream.Process.Configuration.sterilizeEnvVars(envs);
             })
             .catch((err: Error) => {
                 this.log().error(`Fail to get envvars path: ${err.message}`);
@@ -185,9 +196,32 @@ export class SetupBase
         });
     }
 
-    public setCurrentProfile(profile: Profile | undefined) {
+    public setCurrentProfile(profile: ShellProfile | undefined) {
         this.state.setCurrentProfile(profile);
         this.detectChanges();
+    }
+
+    public getShellName(shell: ShellType): string {
+        switch (shell) {
+            case 'Bash':
+                return 'Bash';
+            case 'Zsh':
+                return 'Zsh';
+            case 'Fish':
+                return 'Fish';
+            case 'NuShell':
+                return 'Nushell';
+            case 'Elvish':
+                return 'Elvish';
+            case 'Pwsh':
+                return 'PowerShell';
+            default: {
+                // This static check ensures all cases are handled.
+                // If you add to ShellType, TypeScript will error here.
+                const _exhaustiveCheck: never = shell;
+                return _exhaustiveCheck;
+            }
+        }
     }
 }
 export interface SetupBase extends IlcInterface {}

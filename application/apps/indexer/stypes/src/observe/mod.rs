@@ -128,10 +128,8 @@ pub struct ProcessTransportConfig {
     pub cwd: PathBuf,
     /// The command to execute.
     pub command: String,
-    /// Environment variables. If empty, the default environment variables are used.
-    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, string>"))]
-    //TODO AAZ: Remove
-    pub envs: HashMap<String, String>,
+    /// Optional shell infos if user selected one other than the default shells
+    pub shell: Option<ShellProfile>,
 }
 
 /// Configuration for serial port connections.

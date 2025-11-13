@@ -65,7 +65,7 @@ export class List extends ListBase<State, Provider> implements AfterContentInit 
                         this.initial.overwrite({
                             command: '',
                             cwd: cloned.cwd,
-                            envs: cloned.envs,
+                            shell: cloned.shell,
                         });
                     })
                     .catch((err: Error) => {

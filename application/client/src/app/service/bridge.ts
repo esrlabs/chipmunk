@@ -3,7 +3,7 @@ import { services } from '@register/services';
 import { File, Entity, ParsedPath } from '@platform/types/files';
 import { FolderEntity } from '@platform/types/bindings';
 import { FileType } from '@platform/types/observe/types/file';
-import { DltStatisticInfo, Profile } from '@platform/types/bindings';
+import { DltStatisticInfo, ShellProfile } from '@platform/types/bindings';
 import { Entry } from '@platform/types/storage/entry';
 import { error } from '@platform/log/utils';
 
@@ -12,7 +12,7 @@ import * as Requests from '@platform/ipc/request/index';
 @SetupService(services['bridge'])
 export class Service extends Implementation {
     protected cache: {
-        shells: Profile[] | undefined;
+        shells: ShellProfile[] | undefined;
         files: Map<string, File>;
         checksums: Map<string, string>;
     } = {
@@ -22,7 +22,7 @@ export class Service extends Implementation {
     };
     protected queue: {
         shells: Array<{
-            resolve: (profiles: Profile[]) => void;
+            resolve: (profiles: ShellProfile[]) => void;
             reject: (err: Error) => void;
         }>;
     } = {
@@ -561,7 +561,7 @@ export class Service extends Implementation {
 
     public os(): {
         homedir(): Promise<string>;
-        shells(): Promise<Profile[]>;
+        shells(): Promise<ShellProfile[]>;
     } {
         return {
             homedir: (): Promise<string> => {
@@ -576,7 +576,7 @@ export class Service extends Implementation {
                         .catch(reject);
                 });
             },
-            shells: (): Promise<Profile[]> => {
+            shells: (): Promise<ShellProfile[]> => {
                 return new Promise((resolve, reject) => {
                     if (this.cache.shells !== undefined) {
                         resolve(this.cache.shells);
@@ -588,10 +588,10 @@ export class Service extends Implementation {
                                 new Requests.Os.Shells.Request(),
                             )
                                 .then((response) => {
-                                    this.cache.shells = response.profiles;
+                                    this.cache.shells = response.shells;
                                     this.queue.shells
                                         .map((h) => h.resolve)
-                                        .forEach((r) => r(this.cache.shells as Profile[]));
+                                        .forEach((r) => r(this.cache.shells as ShellProfile[]));
                                 })
                                 .catch((err: Error) => {
                                     this.queue.shells.map((h) => h.reject).forEach((r) => r(err));

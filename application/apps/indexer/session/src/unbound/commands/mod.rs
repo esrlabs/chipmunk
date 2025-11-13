@@ -191,7 +191,7 @@ pub async fn process(command: Command, signal: Signal, plugins_manager: &RwLock<
         Command::GetSomeipStatistic(files, tx) => {
             tx.send(get_someip_statistic(files, signal)).is_err()
         }
-        Command::GetShellProfiles(tx) => tx.send(shells::get_valid_profiles(signal)).is_err(),
+        Command::GetShellProfiles(tx) => tx.send(shells::get_available_shells(signal)).is_err(),
         Command::SerialPortsList(tx) => tx.send(serial::available_ports(signal)).is_err(),
         Command::IsFileBinary(file_path, tx) => tx.send(file::is_file_binary(file_path)).is_err(),
         Command::CancelTest(a, b, tx) => tx

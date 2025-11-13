@@ -131,35 +131,13 @@ list: Array<FolderEntity>,
  */
 max_len_reached: boolean, };
 
-export type Profile = { 
-/**
- * Suggested name of shell. For unix based systems it will be name of executable file,
- * like "bash", "fish" etc. For windows it will be names like "GitBash", "PowerShell"
- * etc.
- */
-name: string, 
-/**
- * Path to executable file of shell
- */
-path: string, 
-/**
- * List of environment variables. Because extracting operation could take some time
- * by default `envvars = None`. To load data should be used method `load`, which will
- * make attempt to detect environment variables.
- */
-envvars: Map<string, string>, 
-/**
- * true - if path to executable file of shell is symlink to another location.
- */
-symlink: boolean, };
-
 /**
  * Represents a list of serial ports.
  *
  * This structure contains a vector of strings, where each string represents the name
  * or identifier of a serial port available on the system.
  */
-export type ProfileList = Array<Profile>;
+export type ProfileList = Array<ShellProfile>;
 
 /**
  * Represents a list of serial ports.
@@ -168,3 +146,14 @@ export type ProfileList = Array<Profile>;
  * or identifier of a serial port available on the system.
  */
 export type SerialPortsList = Array<string>;
+
+export type ShellProfile = { shell: ShellType, 
+/**
+ * Path to executable file of shell
+ */
+path: string, };
+
+/**
+ * Represents most well known shells that are not used by default on OS.
+ */
+export type ShellType = "Bash" | "Zsh" | "Fish" | "NuShell" | "Elvish" | "Pwsh";
