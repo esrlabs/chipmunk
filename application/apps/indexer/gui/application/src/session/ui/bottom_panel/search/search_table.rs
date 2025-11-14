@@ -61,14 +61,16 @@ impl SearchTable {
         table.show(ui, &mut delegate);
     }
 
-    pub fn reset(&mut self) {
+    pub fn clear(&mut self) {
         let Self {
             last_visible_rows,
-            indexed_logs: search_table,
+            indexed_logs,
         } = self;
 
-        *last_visible_rows = None;
-        search_table.clear();
+        if last_visible_rows.is_some() {
+            *last_visible_rows = None;
+            indexed_logs.clear();
+        }
     }
 
     fn text_columns() -> Vec<Column> {
