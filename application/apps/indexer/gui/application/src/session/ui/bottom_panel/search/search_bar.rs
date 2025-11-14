@@ -16,7 +16,6 @@ pub struct SearchBar {
     pub match_case: bool,
     pub is_word: bool,
     pub temp_filter: Option<SearchFilter>,
-    search_event: Option<SearchEvent>,
 }
 
 impl Default for SearchBar {
@@ -27,25 +26,18 @@ impl Default for SearchBar {
             match_case: false,
             is_word: false,
             temp_filter: None,
-            search_event: None,
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum SearchEvent {
-    SearchDropped,
-}
-
 impl SearchBar {
-    #[must_use]
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
         senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
-    ) -> Option<SearchEvent> {
+    ) {
         // - Capture enter before creating text edit to prevent it from stealing it.
         // - Check if backspace is pressed for handling temp filter without consuming it.
         let (enter_pressed, backspace_pressed, command_modifier) = ui.input_mut(|i| {
@@ -62,8 +54,7 @@ impl SearchBar {
             && self.query.is_empty()
             && let Some(mut filter) = self.temp_filter.take()
         {
-            actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
-            self.search_event = Some(SearchEvent::SearchDropped);
+            Self::drop_search(data, actions, senders);
             if command_modifier {
                 false
             } else {
@@ -78,8 +69,7 @@ impl SearchBar {
         // Apply temp filter on pressing enter.
         if enter_pressed && !self.query.is_empty() {
             if self.temp_filter.is_some() {
-                actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
-                self.search_event = Some(SearchEvent::SearchDropped);
+                Self::drop_search(data, actions, senders);
             }
 
             let filter = SearchFilter::new(
@@ -123,7 +113,7 @@ impl SearchBar {
                             .fill(ui.visuals().extreme_bg_color)
                             .stroke(Self::text_frame_stroke(ui, text_id))
                             .show(ui, |ui| {
-                                self.render_temp_filter(senders, actions, ui);
+                                self.render_temp_filter(data, senders, actions, ui);
 
                                 let mut text_output = TextEdit::singleline(&mut self.query)
                                     .id(text_id)
@@ -144,12 +134,16 @@ impl SearchBar {
                 );
             },
         );
-
-        self.search_event.take()
     }
 
     /// Renders temp filter if exists inside input frame.
-    fn render_temp_filter(&mut self, senders: &UiSenders, actions: &mut UiActions, ui: &mut Ui) {
+    fn render_temp_filter(
+        &mut self,
+        data: &SessionDataState,
+        senders: &UiSenders,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) {
         if let Some(filter) = self.temp_filter.take() {
             ui.add_space(1.);
 
@@ -187,8 +181,7 @@ impl SearchBar {
                             .on_hover_text("Remove filter")
                             .clicked()
                         {
-                            actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
-                            self.search_event = Some(SearchEvent::SearchDropped);
+                            Self::drop_search(data, actions, senders);
                         } else {
                             self.temp_filter = Some(filter);
                         }
@@ -231,5 +224,10 @@ impl SearchBar {
         });
 
         ui.separator();
+    }
+
+    fn drop_search(data: &SessionDataState, actions: &mut UiActions, senders: &UiSenders) {
+        actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+        data.search.deactivate();
     }
 }
