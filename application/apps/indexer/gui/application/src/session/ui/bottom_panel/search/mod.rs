@@ -3,11 +3,7 @@ use uuid::Uuid;
 
 use crate::{
     host::ui::UiActions,
-    session::{
-        communication::UiSenders,
-        data::SessionDataState,
-        ui::{bottom_panel::search::search_bar::SearchEvent, state::SessionUiState},
-    },
+    session::{communication::UiSenders, data::SessionDataState, ui::state::SessionUiState},
 };
 
 use search_bar::SearchBar;
@@ -41,17 +37,7 @@ impl SearchUI {
         senders: &UiSenders,
         ui: &mut Ui,
     ) {
-        match self.bar.render_content(data, senders, actions, ui) {
-            Some(SearchEvent::SearchDropped) => {
-                self.table.reset();
-                // Avoid rendering table if search is dropped in this frame
-                // to avoid it requesting data which doesn't exist in session
-                // but still exist in the session data state because we are still
-                // holding its reference in this frame.
-                return;
-            }
-            None => {}
-        };
+        self.bar.render_content(data, senders, actions, ui);
 
         if data.search.is_search_active() {
             // We need to give a unique id for the direct parent of each table because
@@ -61,6 +47,8 @@ impl SearchUI {
                 self.table
                     .render_content(data, ui_state, senders, actions, ui);
             });
+        } else {
+            self.table.clear();
         }
     }
 }
