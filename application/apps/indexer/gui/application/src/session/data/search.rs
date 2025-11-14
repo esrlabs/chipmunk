@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use stypes::FilterMatch;
 
@@ -10,7 +13,9 @@ pub struct LogMainIndex(pub u64);
 
 #[derive(Debug, Default)]
 pub struct SearchData {
-    is_active: bool,
+    /// Search state should be able to set directly from the UI immediately to avoid
+    /// the UI requesting for logs after the session is dropped.
+    is_active: AtomicBool,
     //TODO AAZ: This should be equal to `results_map.len()`.
     //Make sure we need to keep both
     pub search_count: u64,
@@ -18,28 +23,38 @@ pub struct SearchData {
 }
 
 impl SearchData {
+    #[inline]
     pub fn activate(&mut self) {
-        self.is_active = true;
+        // This function has mutable reference to self to prevent the UI from
+        // using it, because such change should come from the service only.
+        self.is_active.store(true, Ordering::Relaxed);
     }
 
+    #[inline]
     pub fn is_search_active(&self) -> bool {
-        self.is_active
+        self.is_active.load(Ordering::Relaxed)
+    }
+
+    #[inline]
+    pub fn deactivate(&self) {
+        self.is_active.store(false, Ordering::Release);
     }
 
     pub fn drop_search(&mut self) {
+        self.deactivate();
+
         let Self {
-            is_active,
+            is_active: _,
             search_count,
             matches_map,
         } = self;
 
-        *is_active = false;
         *search_count = 0;
         *matches_map = None;
     }
 
     pub fn append_matches(&mut self, filter_matches: Vec<FilterMatch>) {
-        if !self.is_active {
+        if !self.is_search_active() {
             return;
         }
 

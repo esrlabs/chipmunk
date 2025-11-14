@@ -140,11 +140,14 @@ impl SessionService {
                 if let Some(filter_op) = self.ops_tracker.filter_op.take() {
                     self.session.abort(Uuid::new_v4(), filter_op)?;
                 }
-                self.session.drop_search().await?;
+                let res = self.session.drop_search().await;
+                // Drop search from UI even if dropping the search in core has failed.
                 self.senders.modify_state(|data| {
                     data.search.drop_search();
                     true
                 });
+
+                res?;
             }
             SessionCommand::GetNearestPosition(position) => {
                 let nearest = self
