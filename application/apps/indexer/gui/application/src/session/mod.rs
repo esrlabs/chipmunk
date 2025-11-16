@@ -1,6 +1,7 @@
 //! This is the main module for session parts
 
 use stypes::{ComputationError, ObserveOptions};
+use uuid::Uuid;
 
 use crate::session::{
     communication::{SharedSenders, UiHandle},
@@ -37,9 +38,10 @@ pub async fn init_session(
     shared_senders: SharedSenders,
     options: ObserveOptions,
 ) -> Result<InitSessionParams, InitSessionError> {
-    let (ui_handle, service_handle) = communication::init(shared_senders);
+    let session_id = Uuid::new_v4();
 
-    let session_info = SessionService::spawn(service_handle, options).await?;
+    let (ui_handle, service_handle) = communication::init(session_id, shared_senders);
+    let session_info = SessionService::spawn(session_id, service_handle, options).await?;
 
     let info = InitSessionParams {
         session_info,
