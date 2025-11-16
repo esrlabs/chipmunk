@@ -50,6 +50,7 @@ eframe = { workspace = true, default_features = false, features = [
 ] }
 
 egui_table.workspace = true
+egui_plot.workspace = true
 
 [lints]
 workspace = true

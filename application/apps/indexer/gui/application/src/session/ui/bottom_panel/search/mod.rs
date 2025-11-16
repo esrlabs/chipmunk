@@ -1,5 +1,4 @@
 use egui::Ui;
-use uuid::Uuid;
 
 use crate::{
     host::ui::UiActions,
@@ -13,22 +12,13 @@ mod indexed_mapped;
 mod search_bar;
 mod search_table;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SearchUI {
-    session_id: Uuid,
     bar: SearchBar,
     table: SearchTable,
 }
 
 impl SearchUI {
-    pub fn new(session_id: Uuid) -> Self {
-        Self {
-            session_id,
-            bar: SearchBar::default(),
-            table: SearchTable::default(),
-        }
-    }
-
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
@@ -43,7 +33,7 @@ impl SearchUI {
             // We need to give a unique id for the direct parent of each table because
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
-            ui.push_id(self.session_id, |ui| {
+            ui.push_id(data.session_id, |ui| {
                 self.table
                     .render_content(data, ui_state, senders, actions, ui);
             });

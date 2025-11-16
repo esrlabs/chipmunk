@@ -1,5 +1,4 @@
 use egui::{Frame, Margin, Ui};
-use uuid::Uuid;
 
 use crate::{
     host::ui::UiActions,
@@ -28,9 +27,9 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
-    pub fn new(session_id: Uuid) -> Self {
+    pub fn new() -> Self {
         Self {
-            search: SearchUI::new(session_id),
+            search: SearchUI::default(),
             details: DetailsUI::default(),
             presets: PresetsUI::default(),
             chart: ChartUI::default(),
@@ -53,7 +52,7 @@ impl BottomPanelUI {
                 .render_content(data, ui_state, actions, senders, ui),
             BottomTabType::Details => self.details.render_content(data, ui),
             BottomTabType::Presets => self.presets.render_content(data, senders, ui),
-            BottomTabType::Chart => self.chart.render_content(data, senders, ui),
+            BottomTabType::Chart => self.chart.render_content(data, senders, actions, ui),
         }
     }
 
