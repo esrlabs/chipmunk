@@ -148,6 +148,7 @@ impl Session {
         }
     }
 
+    #[inline]
     pub fn get_uuid(&self) -> Uuid {
         self.uuid
     }
