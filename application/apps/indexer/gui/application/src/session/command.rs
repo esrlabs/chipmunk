@@ -19,6 +19,15 @@ pub enum SessionCommand {
     /// from the main tables view.
     GetNearestPosition(u64),
     SetSelectedLog(Option<u64>),
+
+    GetChartMap {
+        dataset_len: u16,
+        range: Option<RangeInclusive<u64>>,
+    },
+    GetChartValues {
+        dataset_len: u16,
+        range: Option<RangeInclusive<u64>>,
+    },
     CloseSession,
 }
 

@@ -14,6 +14,7 @@ use crate::{
         InitSessionError,
         command::SessionBlockingCommand,
         communication::{ServiceBlockCommuniaction, ServiceSenders},
+        data::ChartBar,
         event::SessionEvent,
         info::SessionInfo,
     },
@@ -24,7 +25,6 @@ mod operation_track;
 
 #[derive(Debug)]
 pub struct SessionService {
-    session_id: Uuid,
     cmd_rx: mpsc::Receiver<SessionCommand>,
     senders: ServiceSenders,
     session: Arc<Session>,
@@ -35,10 +35,10 @@ pub struct SessionService {
 impl SessionService {
     /// Spawn session service returning the session ID.
     pub async fn spawn(
+        session_id: Uuid,
         communication: ServiceHandle,
         options: ObserveOptions,
     ) -> Result<SessionInfo, InitSessionError> {
-        let session_id = Uuid::new_v4();
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
@@ -54,7 +54,6 @@ impl SessionService {
         let session = Arc::new(session);
 
         let service = Self {
-            session_id,
             cmd_rx,
             senders,
             session: Arc::clone(&session),
@@ -80,8 +79,13 @@ impl SessionService {
         Ok(session_info)
     }
 
+    #[inline]
+    pub fn session_id(&self) -> Uuid {
+        self.session.get_uuid()
+    }
+
     async fn run(mut self) {
-        log::trace!("Start Session Service {}", self.session_id);
+        log::trace!("Start Session Service {}", self.session_id());
 
         loop {
             select! {
@@ -102,18 +106,18 @@ impl SessionService {
             }
         }
 
-        log::trace!("Session Service {} has been dropped", self.session_id);
+        log::trace!("Session Service {} has been dropped", self.session_id());
 
         //TODO AAZ: Keep this to make sure that session are dropped.
         println!(
             "****** DEBUG: Session Service {} has been dropped from async task",
-            self.session_id
+            self.session_id()
         );
     }
 
     async fn send_error(&self, error: SessionError) {
         let notifi = AppNotification::SessionError {
-            session_id: self.session_id,
+            session_id: self.session_id(),
             error,
         };
 
@@ -159,7 +163,7 @@ impl SessionService {
 
                 log::trace!(
                     "Nearest session value for session: {}: {nearest:?}",
-                    self.session_id
+                    self.session_id()
                 );
 
                 if let Some(nearest) = nearest.0 {
@@ -196,6 +200,48 @@ impl SessionService {
                     });
                 }
             }
+            SessionCommand::GetChartMap { dataset_len, range } => {
+                let map = self
+                    .session
+                    .state
+                    .get_scaled_map(dataset_len, range.map(|rng| (*rng.start(), *rng.end())))
+                    .await
+                    .map_err(SessionError::NativeError)?;
+
+                self.senders.modify_state(|state| {
+                    //NOTE: Current implementation for temporal filter case.
+                    let bars = &mut state.charts.bars;
+                    bars.clear();
+                    bars.extend(map.into_iter().map(|vec| {
+                        vec.into_iter()
+                            .map(|(idx, count)| ChartBar::new(idx, count))
+                            .collect()
+                    }));
+
+                    true
+                });
+            }
+            SessionCommand::GetChartValues { dataset_len, range } => {
+                let values = self
+                    .session
+                    .state
+                    .get_search_values(range, dataset_len)
+                    .await
+                    .map_err(SessionError::NativeError)?;
+
+                self.senders.modify_state(|state| {
+                    let map = &mut state.charts.values_map;
+                    map.clear();
+                    for item in values {
+                        map.insert(
+                            item.0,
+                            item.1.into_iter().map(stypes::Point::from).collect(),
+                        );
+                    }
+
+                    true
+                });
+            }
             SessionCommand::CloseSession => {
                 for op_id in self.ops_tracker.get_all() {
                     self.session.abort(Uuid::new_v4(), op_id)?;
@@ -205,7 +251,7 @@ impl SessionService {
 
                 self.senders
                     .send_host_event(HostEvent::CloseSession {
-                        session_id: self.session_id,
+                        session_id: self.session_id(),
                     })
                     .await;
             }
@@ -219,7 +265,7 @@ impl SessionService {
 
         log::trace!(
             "Received callback. Session: {}. Event: {}",
-            self.session_id,
+            self.session_id(),
             event
         );
         match event {
