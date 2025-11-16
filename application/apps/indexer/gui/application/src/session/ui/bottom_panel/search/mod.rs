@@ -20,7 +20,7 @@ mod indexed_mapped;
 mod search_bar;
 mod search_table;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SearchUI {
     pub bar: SearchBar,
     pub table: SearchTable,
