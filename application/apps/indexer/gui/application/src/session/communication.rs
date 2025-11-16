@@ -1,4 +1,5 @@
 use tokio::sync::{mpsc, watch};
+use uuid::Uuid;
 
 use crate::{
     comm_utls::evaluate_send_res,
@@ -147,11 +148,11 @@ pub struct SessionCommunication {
 }
 
 /// Initialize communication channels for session application.
-pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
+pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (block_cmd_tx, block_cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_event_tx, session_event_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (session_state_tx, session_state_rx) = watch::channel(SessionDataState::default());
+    let (session_state_tx, session_state_rx) = watch::channel(SessionDataState::new(session_id));
 
     let ui_senders = UiSenders {
         cmd_tx,
