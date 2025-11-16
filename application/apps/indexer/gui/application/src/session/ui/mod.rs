@@ -36,7 +36,6 @@ impl SessionUI {
         } = init;
 
         let UiHandle { senders, receivers } = communication;
-        let session_id = session_info.id;
 
         Self {
             session_info,
@@ -44,7 +43,7 @@ impl SessionUI {
             receivers,
             ui_state: SessionUiState::default(),
             logs_table: LogsTable::default(),
-            bottom_panel: BottomPanelUI::new(session_id),
+            bottom_panel: BottomPanelUI::new(),
         }
     }
 
