@@ -1,9 +1,12 @@
-use egui::{Color32, Direction, Label, Layout, Ui, Widget};
+use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, communication::UiSenders, data::SessionDataState},
+    session::{
+        command::SessionCommand, communication::UiSenders, data::SessionDataState,
+        ui::state::SessionUiState,
+    },
 };
 
 #[derive(Debug, Default)]
@@ -15,12 +18,13 @@ impl ChartUI {
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
+        ui_state: &mut SessionUiState,
         senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
         if data.search.is_search_active() {
-            self.chart(data, senders, actions, ui);
+            self.chart(data, ui_state, senders, actions, ui);
         } else {
             self.clear();
             Self::place_holder(ui);
@@ -30,6 +34,7 @@ impl ChartUI {
     fn chart(
         &mut self,
         data: &SessionDataState,
+        ui_state: &mut SessionUiState,
         senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
@@ -71,16 +76,61 @@ impl ChartUI {
                         idx as f64 * ratio,
                         bar.first().map(|a| a.matches_count).unwrap_or_default() as f64,
                     )
-                    .width(ratio)
                 })
                 .collect(),
         )
+        .highlight(true)
+        .allow_hover(false)
+        .width(ratio)
         .color(Color32::LIGHT_BLUE);
 
-        Plot::new(data.session_id)
+        let safe_x = |x: f64| (x as u64).min(data.logs_count.saturating_sub(1));
+
+        let plot_res = Plot::new(data.session_id)
             .legend(Legend::default())
             .clamp_grid(false)
-            .show(ui, |plot_ui| plot_ui.bar_chart(chart));
+            .show_y(false)
+            .set_margin_fraction(Vec2::ZERO)
+            .label_formatter(|_name, point| {
+                // Show log number on hover only.
+                safe_x(point.x).to_string()
+            })
+            .y_axis_formatter(|mark, _rng| {
+                // Show positive numbers only and don't break alignment when when
+                // scrolling from 99 to 100
+                if mark.value.is_sign_positive() {
+                    format!("{:03}", mark.value as u64)
+                } else {
+                    String::new()
+                }
+            })
+            .x_axis_formatter(|mark, _rng| {
+                // Show positive log numbers only.
+                if mark.value.is_sign_positive() {
+                    format!("{}", mark.value as u64)
+                } else {
+                    String::new()
+                }
+            })
+            .show(ui, |plot_ui| {
+                plot_ui.bar_chart(chart);
+
+                plot_ui
+                    .response()
+                    .clicked()
+                    .then(|| plot_ui.pointer_coordinate())
+                    .flatten()
+            });
+
+        if let Some(pos) = plot_res.inner {
+            let log_pos = safe_x(pos.x);
+
+            ui_state.scroll_main_row = Some(log_pos);
+            actions.try_send_command(
+                &senders.cmd_tx,
+                SessionCommand::SetSelectedLog(Some(log_pos)),
+            );
+        }
     }
 
     fn place_holder(ui: &mut Ui) {
