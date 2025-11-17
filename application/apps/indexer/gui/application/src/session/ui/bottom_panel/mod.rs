@@ -52,7 +52,9 @@ impl BottomPanelUI {
                 .render_content(data, ui_state, actions, senders, ui),
             BottomTabType::Details => self.details.render_content(data, ui),
             BottomTabType::Presets => self.presets.render_content(data, senders, ui),
-            BottomTabType::Chart => self.chart.render_content(data, senders, actions, ui),
+            BottomTabType::Chart => self
+                .chart
+                .render_content(data, ui_state, senders, actions, ui),
         }
     }
 
