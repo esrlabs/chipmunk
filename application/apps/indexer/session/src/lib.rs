@@ -1,4 +1,5 @@
 mod handlers;
+pub mod mcp_api;
 pub mod operations;
 pub mod paths;
 pub mod progress;

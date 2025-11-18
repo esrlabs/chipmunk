@@ -2,6 +2,7 @@
 //! Management of listening to incoming sessions then invoking them.
 
 use crate::{handlers, state::SessionStateAPI, tracker::OperationTrackerAPI};
+use futures::select;
 use log::{debug, error, warn};
 use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;

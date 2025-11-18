@@ -19,7 +19,8 @@ use std::{
     ops::RangeInclusive,
     path::PathBuf,
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{Sender, UnboundedReceiver, UnboundedSender};
+use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -46,6 +47,9 @@ pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 use stypes::{FilterMatch, GrabbedElement};
 pub use values::{Values, ValuesError};
 
+use crate::mcp_api::McpApi;
+use mcp::messages::{McpClientRequest, McpServerRequest, SendPromptResult};
+
 /// Status of session state.
 #[derive(Debug)]
 pub enum Status {
@@ -69,10 +73,14 @@ pub struct SessionState {
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     pub debug: bool,
+    pub mcp_api: Option<McpApi>,
 }
 
 impl SessionState {
-    fn new(tx_callback_events: UnboundedSender<stypes::CallbackEvent>) -> Self {
+    fn new(
+        tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
+        mcp_api: Option<McpApi>,
+    ) -> Self {
         Self {
             session_file: SessionFile::new(),
             observed: Observed::new(),
@@ -87,7 +95,27 @@ impl SessionState {
             status: Status::Open,
             cancelling_operations: HashMap::new(),
             debug: false,
+            mcp_api,
         }
+    }
+
+    // TODO: Connect UI events to the respective MCP channels
+    // mcp_server_tx needs to be added to SessionState
+    // mcp_client_tx needs to be added to SessionState
+    async fn send_prompt(&mut self, prompt: String) {
+        let (response_tx, response_rx): Sender<SendPromptResult> = oneshot::channel();
+        self.mcp_api
+            // TODO: Handle error
+            .expect(stypes::NativeError::channel(
+                "MCP API is not initialized in SessionState",
+            ))
+            // Do we need another mpsc channel to receive responsehere or can we use a oneshot?
+            // If we
+            .send_prompt(McpClientRequest::SendPrompt {
+                prompt,
+                response_tx,
+            })
+            .await
     }
 
     fn handle_grab(
@@ -514,8 +542,9 @@ impl SessionState {
 pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
+    mcp_client_tx: Option<Sender<McpClientRequest>>,
 ) -> Result<(), stypes::NativeError> {
-    let mut state = SessionState::new(tx_callback_events.clone());
+    let mut state = SessionState::new(tx_callback_events.clone(), mcp_client_tx.clone());
     let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
@@ -531,6 +560,7 @@ pub async fn run(
                     stypes::NativeError::channel("Failed to response to Api::SetSessionFile")
                 })?;
             }
+            Api::PromptIncome(msg) => state.send_prompt(msg).await,
             Api::GetSessionFile(tx_response) => {
                 tx_response
                     .send(state.session_file.filename())
