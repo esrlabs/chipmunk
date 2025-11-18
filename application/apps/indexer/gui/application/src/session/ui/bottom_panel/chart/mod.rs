@@ -1,3 +1,5 @@
+use std::ops::RangeInclusive;
+
 use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 
@@ -9,9 +11,20 @@ use crate::{
     },
 };
 
+const CHART_OFFSET: f64 = 0.05;
+
 #[derive(Debug, Default)]
 pub struct ChartUI {
-    requested_data: bool,
+    /// Zoom factor (In X axis) from last frame.
+    last_zoom_factor: Option<u64>,
+    /// Last requested logs range.
+    requested_logs_rng: Option<RangeInclusive<u64>>,
+}
+
+#[derive(Debug)]
+struct InnerResponse {
+    jump_log: Option<u64>,
+    bound_x: Option<RangeInclusive<u64>>,
 }
 
 impl ChartUI {
@@ -39,31 +52,37 @@ impl ChartUI {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        if !self.requested_data {
+        //TODO AAZ: This should be handled in better way. Charts infos should be triggered
+        //directly after finishing the search.
+        if self.last_zoom_factor.is_none() {
             // Taken from current Chipmunk: Matches are divided by 2
             let dataset_len = (ui.available_width() / 2.0) as u16;
-            //TODO AAZ: Check if range is needed.
-            // let rng = Some(0..=data.logs_count);
             let rng = None;
             let chart_cmd = SessionCommand::GetChartMap {
                 dataset_len,
                 range: rng.clone(),
             };
 
-            let chart_sent = actions.try_send_command(&senders.cmd_tx, chart_cmd);
+            actions.try_send_command(&senders.cmd_tx, chart_cmd);
 
             let values_cmd = SessionCommand::GetChartValues {
                 dataset_len,
                 range: rng,
             };
-            let values_sent = actions.try_send_command(&senders.cmd_tx, values_cmd);
-
-            self.requested_data = chart_sent && values_sent;
+            actions.try_send_command(&senders.cmd_tx, values_cmd);
         }
 
         // Ratio describes how many logs will be represented in one unit of
         // axe x on charts.
-        let ratio = data.logs_count as f64 / data.charts.bars.len() as f64;
+        let (ratio, offset) = if let Some(logs_rng) = &self.requested_logs_rng {
+            let ratio =
+                ((logs_rng.end() - logs_rng.start()) as f64) / data.charts.bars.len() as f64;
+            let offset = *logs_rng.start() as f64;
+            (ratio, offset)
+        } else {
+            let ratio = data.logs_count as f64 / data.charts.bars.len() as f64;
+            (ratio, 0.)
+        };
 
         let chart = BarChart::new(
             "TODO: Search Name",
@@ -73,27 +92,34 @@ impl ChartUI {
                 .enumerate()
                 .map(|(idx, bar)| {
                     Bar::new(
-                        idx as f64 * ratio,
+                        idx as f64 * ratio + offset,
                         bar.first().map(|a| a.matches_count).unwrap_or_default() as f64,
                     )
                 })
                 .collect(),
         )
-        .highlight(true)
         .allow_hover(false)
         .width(ratio)
         .color(Color32::LIGHT_BLUE);
 
-        let safe_x = |x: f64| (x as u64).min(data.logs_count.saturating_sub(1));
+        // Function to convert value from x axis while ensuring it's in logs valid bound.
+        let convert_bounded = |x: f64| (x as u64).min(data.logs_count.saturating_sub(1));
 
         let plot_res = Plot::new(data.session_id)
             .legend(Legend::default())
             .clamp_grid(false)
+            .allow_double_click_reset(false) // We are handling reset manually.
             .show_y(false)
-            .set_margin_fraction(Vec2::ZERO)
-            .label_formatter(|_name, point| {
-                // Show log number on hover only.
-                safe_x(point.x).to_string()
+            .set_margin_fraction(Vec2::splat(CHART_OFFSET as f32))
+            .label_formatter(|name, point| {
+                // Show log number on hover only unless user hovers over
+                // a line chart then show the name of it too.
+                let log_nr = convert_bounded(point.x);
+                if name.is_empty() {
+                    log_nr.to_string()
+                } else {
+                    format!("{name}\n{log_nr}")
+                }
             })
             .y_axis_formatter(|mark, _rng| {
                 // Show positive numbers only and don't break alignment when when
@@ -115,22 +141,101 @@ impl ChartUI {
             .show(ui, |plot_ui| {
                 plot_ui.bar_chart(chart);
 
-                plot_ui
+                // Reset chart on secondary double click.
+                if plot_ui
+                    .response()
+                    .double_clicked_by(egui::PointerButton::Secondary)
+                {
+                    // We need to reset X axis manually to show all logs span.
+                    // Y axis can be reset manually since we are not modifying it manually.
+                    let logs_count = data.logs_count as f64;
+                    let offset = logs_count * CHART_OFFSET;
+                    plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
+
+                    plot_ui.set_auto_bounds([false, true]);
+                }
+
+                let jump_log = plot_ui
                     .response()
                     .clicked()
                     .then(|| plot_ui.pointer_coordinate())
                     .flatten()
+                    .map(|point| convert_bounded(point.x));
+
+                let bounds = plot_ui.plot_bounds();
+                // We consider the diff on x axis as the zoom factor
+                let zoom_factor = (bounds.max()[0] - bounds.min()[0]) as u64;
+
+                let bound_x = match self.last_zoom_factor {
+                    Some(last_diff) => {
+                        // Don't change logs for zoom change which is less than 2000 logs.
+                        // TODO AAZ: Test this with multiple file sizes, and different machines.
+                        if last_diff.abs_diff(zoom_factor) > 2000 {
+                            self.last_zoom_factor = Some(zoom_factor);
+                            let min_x = bounds.min()[0] as u64;
+                            let max_x = convert_bounded(bounds.max()[0]);
+                            Some(min_x..=max_x)
+                        } else {
+                            None
+                        }
+                    }
+                    None => {
+                        // We are calling for load when we don't have last diff at the beginning
+                        // of the method. We need here to just assign it to the latest diff.
+                        // TODO AAZ: Change this to handle loading in place. Also keep in mind
+                        // filling out chart bars once a search is done automatically.
+                        if !data.charts.bars.is_empty() {
+                            self.last_zoom_factor = Some(zoom_factor);
+                        }
+                        None
+                    }
+                };
+
+                InnerResponse { jump_log, bound_x }
             });
 
-        if let Some(pos) = plot_res.inner {
-            let log_pos = safe_x(pos.x);
-
-            ui_state.scroll_main_row = Some(log_pos);
+        if let Some(log_nr) = plot_res.inner.jump_log {
+            ui_state.scroll_main_row = Some(log_nr);
             actions.try_send_command(
                 &senders.cmd_tx,
-                SessionCommand::SetSelectedLog(Some(log_pos)),
+                SessionCommand::SetSelectedLog(Some(log_nr)),
             );
         }
+
+        if let Some(bound_x) = plot_res.inner.bound_x
+            && self
+                .requested_logs_rng
+                .as_ref()
+                .is_none_or(|b| &bound_x != b)
+        {
+            self.requested_logs_rng = Some(bound_x.clone());
+
+            // Taken from current Chipmunk: Matches are divided by 2
+            let dataset_len = (ui.available_width() / 2.0) as u16;
+            let chart_cmd = SessionCommand::GetChartMap {
+                dataset_len,
+                range: Some(bound_x.clone()),
+            };
+
+            actions.try_send_command(&senders.cmd_tx, chart_cmd);
+
+            let values_cmd = SessionCommand::GetChartValues {
+                dataset_len,
+                range: Some(bound_x),
+            };
+
+            actions.try_send_command(&senders.cmd_tx, values_cmd);
+        }
+    }
+
+    fn clear(&mut self) {
+        let Self {
+            last_zoom_factor,
+            requested_logs_rng,
+        } = self;
+
+        *last_zoom_factor = None;
+        *requested_logs_rng = None;
     }
 
     fn place_holder(ui: &mut Ui) {
@@ -150,9 +255,5 @@ impl ChartUI {
                 .ui(ui);
             },
         );
-    }
-
-    fn clear(&mut self) {
-        self.requested_data = false;
     }
 }
