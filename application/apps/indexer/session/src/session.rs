@@ -2,12 +2,10 @@
 //! to listening to incoming operations and updating the state, to destroying it at the end.
 
 use crate::{
-    operations,
-    operations::Operation,
-    state,
-    state::{IndexesMode, SessionStateAPI},
-    tracker,
-    tracker::OperationTrackerAPI,
+    mcp_api::{self, McpApi},
+    operations::{self, Operation},
+    state::{self, IndexesMode, SessionStateAPI},
+    tracker::{self, OperationTrackerAPI},
 };
 use futures::Future;
 use log::{debug, error, warn};
@@ -16,7 +14,7 @@ use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
     sync::{
-        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+        mpsc::{self, UnboundedReceiver, UnboundedSender, unbounded_channel},
         oneshot,
     },
     task::{self, JoinHandle},
@@ -57,6 +55,14 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
+        let (mcp_server, mcp_client, mcp_api_endpoints) = mcp::new();
+
+        let (mcp_api, mcp_client_to_chipmunk_rx, mcp_server_to_chipmunk_rx) =
+            McpApi::new(mcp_api_endpoints);
+
+        mcp_server.start();
+        mcp_client.start();
+
         let session = Self {
             uuid,
             tx_operations: tx_operations.clone(),
@@ -98,6 +104,15 @@ impl Session {
                 },
                 async {
                     join!(
+                        mcp_api::run(
+                            uuid,
+                            mcp_server_to_chipmunk_rx,
+                            mcp_client_to_chipmunk_rx,
+                            tx_operations.clone(),
+                            state_api.clone(),
+                            tracker_api.clone(),
+                            tx_callback_events.clone(),
+                        ),
                         operations::run(
                             rx_operations,
                             state_api.clone(),
@@ -108,7 +123,7 @@ impl Session {
                             &tx_operations,
                             &destroying,
                             "state",
-                            state::run(rx_state_api, tx_callback_events_state)
+                            state::run(rx_state_api, tx_callback_events_state, Some(mcp_api))
                         ),
                         Self::run(
                             &tx_operations,

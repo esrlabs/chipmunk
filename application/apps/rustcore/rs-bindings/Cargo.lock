@@ -1958,6 +1958,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4facc753ae494aeb6e3c22f839b158aebd4f9270f55cd3c79906c45476c47ab4"
 
 [[package]]
+name = "mcp"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2992,6 +3001,7 @@ dependencies = [
  "indexer_base",
  "lazy_static",
  "log",
+ "mcp",
  "merging",
  "mime_guess",
  "parsers",

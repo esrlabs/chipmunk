@@ -7,7 +7,7 @@ use sources::{ByteSource, ReloadInfo, SourceFilter};
 
 mod logs_collector;
 
-pub use logs_collector::{LogRecordsCollector, GeneralLogCollector};
+pub use logs_collector::{GeneralLogCollector, LogRecordsCollector};
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
@@ -26,10 +26,10 @@ pub enum ProduceSummary {
         skipped_bytes: usize,
     },
     /// No more bytes are available in the byte-source currently.
-    NoBytesAvailable{
+    NoBytesAvailable {
         /// The amount of skipped bytes in the last `produce_next()` call
         skipped_bytes: usize,
-    }, 
+    },
     /// Producer is done. No more bytes will be loaded nor new items will be parsed.
     Done {
         /// Total bytes count which has been loaded during the session.
@@ -38,7 +38,7 @@ pub enum ProduceSummary {
         skipped_bytes: usize,
         /// Total amount of messages that have been produced during the session.
         produced_messages: usize,
-    }
+    },
 }
 
 /// Represents Error types which could occur during `produce_next()` call.
@@ -94,7 +94,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     /// safe as well.
     ///
     /// # Return:
-    /// Summary of producer state with infos about consumed, skipped bytes and produced log 
+    /// Summary of producer state with infos about consumed, skipped bytes and produced log
     /// messages, otherwise it'll return a producer error.
     pub async fn produce_next<C: LogRecordsCollector<P::Output>>(
         &mut self,
@@ -106,7 +106,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
         //   buffer and returning it.
         // * Byte source will keep the loaded data in its internal buffer ensuring there
         //   is no data loss when cancelling happen between load calls.
-        
+
         if self.done {
             debug!("done...no next segment");
             return Ok(self.final_report());
@@ -223,7 +223,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     }
 
     /// Calls load on the underline byte source filling it with more bytes.
-    /// Returning information about the state of the byte counts on success, or the 
+    /// Returning information about the state of the byte counts on success, or the
     /// corresponding source error on fail.
     ///
     /// # Return:
@@ -265,7 +265,11 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     /// # Return:
     /// `true` when there are available bytes to be parsed, otherwise it'll return `false`
     /// indicating that the session should be terminated.
-    async fn drop_and_load(&mut self, available: &mut usize, skipped_bytes: &mut usize) -> Result<bool, sources::Error> {
+    async fn drop_and_load(
+        &mut self,
+        available: &mut usize,
+        skipped_bytes: &mut usize,
+    ) -> Result<bool, sources::Error> {
         if *available > 0 {
             trace!("Dropping one byte from loaded ones.");
             const DROP_STEP: usize = 1;
@@ -281,9 +285,9 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
 
         // Load more bytes.
         trace!("No more bytes are available. Loading more bytes");
-        let (newly_loaded, skipped) = self.load().await?; 
-                *available = self.byte_source.len();
-                *skipped_bytes += skipped;
+        let (newly_loaded, skipped) = self.load().await?;
+        *available = self.byte_source.len();
+        *skipped_bytes += skipped;
         Ok(newly_loaded > 0)
     }
 
@@ -307,7 +311,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     pub fn total_loaded_bytes(&self) -> usize {
         self.total_loaded
     }
-    
+
     /// Total skipped bytes by source and parser in this session.
     #[inline]
     pub fn total_skipped_bytes(&self) -> usize {
