@@ -29,6 +29,8 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub enum Api {
+    // TODO: Can this be removed? Do we need to keep track of context. E.g. store a promptID?
+    SendChatPrompt(String),
     SetSessionFile(
         (
             Option<PathBuf>,
@@ -257,6 +259,7 @@ impl Display for Api {
                 Self::GetAttachments(_) => "GetAttachments",
                 Self::Shutdown => "Shutdown",
                 Self::ShutdownWithError => "ShutdownWithError",
+                Self::SendChatPrompt(_) => "SendChatPrompt",
             }
         )
     }

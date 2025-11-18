@@ -15,7 +15,8 @@ members = [
     "processor",
     "session",
     "sources",
-    "stypes"
+    "stypes",
+    "mcp",
 ]
 
 [workspace.dependencies]

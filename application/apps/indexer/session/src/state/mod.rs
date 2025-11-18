@@ -46,6 +46,8 @@ pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 use stypes::{FilterMatch, GrabbedElement};
 pub use values::{Values, ValuesError};
 
+use crate::mcp_api::McpApi;
+
 /// Status of session state.
 #[derive(Debug)]
 pub enum Status {
@@ -69,10 +71,14 @@ pub struct SessionState {
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     pub debug: bool,
+    pub mcp_api: Option<McpApi>,
 }
 
 impl SessionState {
-    fn new(tx_callback_events: UnboundedSender<stypes::CallbackEvent>) -> Self {
+    fn new(
+        tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
+        mcp_api: Option<McpApi>,
+    ) -> Self {
         Self {
             session_file: SessionFile::new(),
             observed: Observed::new(),
@@ -87,6 +93,7 @@ impl SessionState {
             status: Status::Open,
             cancelling_operations: HashMap::new(),
             debug: false,
+            mcp_api,
         }
     }
 
@@ -514,8 +521,9 @@ impl SessionState {
 pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
+    mcp_api: Option<McpApi>,
 ) -> Result<(), stypes::NativeError> {
-    let mut state = SessionState::new(tx_callback_events.clone());
+    let mut state = SessionState::new(tx_callback_events.clone(), mcp_api.clone());
     let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
@@ -530,6 +538,14 @@ pub async fn run(
                 tx_response.send(set_session_file_res).map_err(|_| {
                     stypes::NativeError::channel("Failed to response to Api::SetSessionFile")
                 })?;
+            }
+            // TODO:
+            Api::SendChatPrompt(prompt) => {
+                if let Some(mcp_api) = &mcp_api {
+                    mcp_api.handle_send_prompt(prompt).await?;
+                } else {
+                    return Err(stypes::NativeError::channel("TODO"));
+                }
             }
             Api::GetSessionFile(tx_response) => {
                 tx_response
