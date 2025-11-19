@@ -1,3 +1,5 @@
+use tokio::sync::mpsc::Sender;
+
 use egui::{
     Align, Button, Frame, Id, Key, Label, Layout, Margin, Modifiers, Stroke, TextEdit, Ui, Widget,
     vec2,
@@ -6,11 +8,12 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, communication::UiSenders, data::SessionDataState},
+    session::{command::SessionCommand, data::SessionDataState},
 };
 
 #[derive(Debug, Clone)]
 pub struct SearchBar {
+    cmd_tx: Sender<SessionCommand>,
     pub query: String,
     pub is_regex: bool,
     pub match_case: bool,
@@ -18,9 +21,10 @@ pub struct SearchBar {
     pub temp_filter: Option<SearchFilter>,
 }
 
-impl Default for SearchBar {
-    fn default() -> Self {
+impl SearchBar {
+    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
+            cmd_tx,
             query: String::default(),
             is_regex: true,
             match_case: false,
@@ -28,13 +32,9 @@ impl Default for SearchBar {
             temp_filter: None,
         }
     }
-}
-
-impl SearchBar {
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
-        senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -54,7 +54,7 @@ impl SearchBar {
             && self.query.is_empty()
             && let Some(mut filter) = self.temp_filter.take()
         {
-            Self::drop_search(data, actions, senders);
+            self.drop_search(data, actions);
             if command_modifier {
                 false
             } else {
@@ -69,7 +69,7 @@ impl SearchBar {
         // Apply temp filter on pressing enter.
         if enter_pressed && !self.query.is_empty() {
             if self.temp_filter.is_some() {
-                Self::drop_search(data, actions, senders);
+                self.drop_search(data, actions);
             }
 
             let filter = SearchFilter::new(
@@ -80,7 +80,7 @@ impl SearchBar {
             );
 
             let cmd = SessionCommand::ApplySearchFilter(vec![filter.clone()]);
-            if actions.try_send_command(&senders.cmd_tx, cmd) {
+            if actions.try_send_command(&self.cmd_tx, cmd) {
                 self.temp_filter = Some(filter);
             }
         }
@@ -113,7 +113,7 @@ impl SearchBar {
                             .fill(ui.visuals().extreme_bg_color)
                             .stroke(Self::text_frame_stroke(ui, text_id))
                             .show(ui, |ui| {
-                                self.render_temp_filter(data, senders, actions, ui);
+                                self.render_temp_filter(data, actions, ui);
 
                                 let mut text_output = TextEdit::singleline(&mut self.query)
                                     .id(text_id)
@@ -140,7 +140,6 @@ impl SearchBar {
     fn render_temp_filter(
         &mut self,
         data: &SessionDataState,
-        senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -181,7 +180,7 @@ impl SearchBar {
                             .on_hover_text("Remove filter")
                             .clicked()
                         {
-                            Self::drop_search(data, actions, senders);
+                            self.drop_search(data, actions);
                         } else {
                             self.temp_filter = Some(filter);
                         }
@@ -226,8 +225,8 @@ impl SearchBar {
         ui.separator();
     }
 
-    fn drop_search(data: &SessionDataState, actions: &mut UiActions, senders: &UiSenders) {
-        actions.try_send_command(&senders.cmd_tx, SessionCommand::DropSearch);
+    fn drop_search(&self, data: &SessionDataState, actions: &mut UiActions) {
+        actions.try_send_command(&self.cmd_tx, SessionCommand::DropSearch);
         data.search.deactivate();
     }
 }

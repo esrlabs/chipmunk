@@ -4,13 +4,12 @@ use std::ops::Range;
 
 use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     host::ui::UiActions,
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        communication::UiSenders,
         data::SessionDataState,
         ui::state::SessionUiState,
     },
@@ -18,18 +17,31 @@ use crate::{
 
 use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SearchTable {
+    cmd_tx: Sender<SessionCommand>,
+    block_cmd_tx: Sender<SessionBlockingCommand>,
     last_visible_rows: Option<Range<u64>>,
     indexed_logs: IndexedMapped,
 }
 
 impl SearchTable {
+    pub fn new(
+        cmd_tx: Sender<SessionCommand>,
+        block_cmd_tx: Sender<SessionBlockingCommand>,
+    ) -> Self {
+        Self {
+            cmd_tx,
+            block_cmd_tx,
+            last_visible_rows: None,
+            indexed_logs: IndexedMapped::default(),
+        }
+    }
+
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
         ui_state: &mut SessionUiState,
-        senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -52,9 +64,7 @@ impl SearchTable {
         let mut delegate = LogsDelegate {
             session_data: data,
             table: self,
-            block_cmd_rx: &senders.block_cmd_tx,
             ui_state,
-            senders,
             actions,
         };
 
@@ -63,6 +73,8 @@ impl SearchTable {
 
     pub fn clear(&mut self) {
         let Self {
+            cmd_tx: _,
+            block_cmd_tx: _,
             last_visible_rows,
             indexed_logs,
         } = self;
@@ -84,9 +96,7 @@ impl SearchTable {
 struct LogsDelegate<'a> {
     session_data: &'a SessionDataState,
     table: &'a mut SearchTable,
-    block_cmd_rx: &'a mpsc::Sender<SessionBlockingCommand>,
     ui_state: &'a mut SessionUiState,
-    senders: &'a UiSenders,
     actions: &'a mut UiActions,
 }
 
@@ -117,7 +127,7 @@ impl TableDelegate for LogsDelegate<'_> {
             sender: elems_tx,
         };
 
-        if self.block_cmd_rx.blocking_send(cmd).is_err() {
+        if self.table.block_cmd_tx.blocking_send(cmd).is_err() {
             log::error!("Communication error while sending grab commmand.");
             return;
         }
@@ -185,7 +195,7 @@ impl TableDelegate for LogsDelegate<'_> {
                             self.ui_state.scroll_main_row = selected_pos;
 
                             self.actions.try_send_command(
-                                &self.senders.cmd_tx,
+                                &self.table.cmd_tx,
                                 SessionCommand::SetSelectedLog(selected_pos),
                             );
                         }
