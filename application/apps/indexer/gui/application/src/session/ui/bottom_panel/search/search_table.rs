@@ -58,7 +58,8 @@ impl SearchTable {
         if let Some(row_nr) = ui_state.scroll_search_idx.take()
             && row_nr < data.search.search_count
         {
-            table = table.scroll_to_row(row_nr, None);
+            const OFFSET: u64 = 2;
+            table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
 
         let mut delegate = LogsDelegate {

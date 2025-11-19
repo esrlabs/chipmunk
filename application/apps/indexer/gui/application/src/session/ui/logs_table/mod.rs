@@ -56,7 +56,8 @@ impl LogsTable {
             .num_sticky_cols(1);
 
         if let Some(row) = ui_state.scroll_main_row.take() {
-            table = table.scroll_to_row(row, None);
+            const OFFSET: u64 = 3;
+            table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
         }
 
         let mut delegate = LogsDelegate {
