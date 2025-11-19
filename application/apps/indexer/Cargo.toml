@@ -2,19 +2,20 @@
 resolver = "3"
 
 members = [
-    "addons/dlt-tools",
-    "addons/someip-tools",
-    "addons/file-tools",
-    "addons/text_grep",
-    "addons/bufread",
-    "indexer_base",
-    "merging",
-    "parsers",
-    "plugins_host",
-    "processor",
-    "session",
-    "sources",
-    "stypes"
+  "addons/dlt-tools",
+  "addons/someip-tools",
+  "addons/file-tools",
+  "addons/text_grep",
+  "addons/bufread",
+  "indexer_base",
+  "merging",
+  "mcp",
+  "parsers",
+  "plugins_host",
+  "processor",
+  "session",
+  "sources",
+  "stypes",
 ]
 
 [workspace.dependencies]
