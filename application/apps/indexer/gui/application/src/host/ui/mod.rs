@@ -1,4 +1,7 @@
-use egui::{Align, CentralPanel, Context, Frame, Layout, RichText, TopBottomPanel, Ui};
+use egui::{
+    Align, CentralPanel, Context, Frame, Id, Layout, NumExt as _, RichText, TopBottomPanel, Ui,
+    Widget,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -138,6 +141,10 @@ impl HostUI {
     }
 
     fn render_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        if self.ui_actions.check_has_file_dialog() {
+            self.file_dialog_overlay(ctx);
+        }
+
         TopBottomPanel::top("menu_bar")
             .frame(Frame::side_top_panel(&ctx.style()))
             .show(ctx, |ui| {
@@ -154,6 +161,35 @@ impl HostUI {
             .frame(Frame::central_panel(&ctx.style()).inner_margin(0))
             .show(ctx, |ui| {
                 self.render_main(ui);
+            });
+    }
+
+    /// Renders a blocking modal to inform the user that a system file dialog
+    /// is currently active.
+    ///
+    /// This overlay prevents interaction with the main app and provides hints to
+    /// locate the external dialog window.
+    fn file_dialog_overlay(&mut self, ctx: &Context) {
+        egui::Modal::new(Id::new("file dialog overlay"))
+            .frame(Frame::window(&ctx.style()).inner_margin(egui::Margin::same(8)))
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    let modal_width = (ctx.content_rect().width() - 20.)
+                        .at_least(20.)
+                        .at_most(350.);
+
+                    ui.set_width(modal_width);
+                    ui.heading("File Dialog Open");
+
+                    ui.add_space(6.);
+
+                    egui::Label::new(
+                        "A file picker is currently open.\
+                    If you don't see it, please check your taskbar or move this window",
+                    )
+                    .selectable(false)
+                    .ui(ui);
+                })
             });
     }
 
