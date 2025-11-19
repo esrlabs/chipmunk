@@ -1,11 +1,14 @@
+use std::path::PathBuf;
+
 use crate::host::notification::AppNotification;
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, task::JoinHandle};
 
 /// A handle to be passed between UI components to get access to
 /// shared UI functions like notifications.
 #[derive(Debug, Default)]
 pub struct UiActions {
     pending_notifications: Vec<AppNotification>,
+    file_dialog_handle: Option<JoinHandle<()>>,
 }
 
 impl UiActions {
@@ -48,6 +51,56 @@ impl UiActions {
                         Please consider submitting a bug report regarding this issue.";
                 self.add_notification(AppNotification::UiError(err.into()));
             }
+        }
+
+        false
+    }
+
+    /// Spawns an asynchronous file picker dialog.
+    ///
+    /// If a file is selected, the provided closure `callback` is
+    /// executed with the selected paths.
+    pub fn spawn_file_dialog<F, Fut>(&mut self, callback: F)
+    where
+        F: FnOnce(Vec<PathBuf>) -> Fut + Send + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
+        assert!(
+            self.file_dialog_handle.is_none(),
+            "Dialog Join handle can't exist when new dialog is requested"
+        );
+
+        // From rfd docs: We need to start the file picker from the main thread
+        // which is a requirement on some operating systems and only then move
+        // its handle to another thread to avoid blocking the UI.
+        let handle = rfd::AsyncFileDialog::new().pick_files();
+
+        let join_handle = tokio::spawn(async move {
+            if let Some(files) = handle.await {
+                log::trace!("Open file dialog return with {files:?}");
+
+                if files.is_empty() {
+                    return;
+                }
+
+                let files: Vec<PathBuf> = files.into_iter().map(|file| file.into()).collect();
+
+                callback(files).await
+            }
+        });
+
+        self.file_dialog_handle = Some(join_handle);
+    }
+
+    /// Checks if a file dialog is currently open and handles cleanup.
+    pub fn check_has_file_dialog(&mut self) -> bool {
+        if let Some(handle) = &self.file_dialog_handle {
+            if handle.is_finished() {
+                self.file_dialog_handle = None;
+                return false;
+            }
+
+            return true;
         }
 
         false
