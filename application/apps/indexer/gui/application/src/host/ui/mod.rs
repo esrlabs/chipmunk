@@ -37,7 +37,7 @@ pub struct HostUI {
 
 impl HostUI {
     pub fn new(ui_comm: UiHandle) -> Self {
-        let menu = MainMenuBar::new();
+        let menu = MainMenuBar::new(ui_comm.senders.cmd_tx.clone());
 
         Self {
             sessions: Vec::new(),
@@ -159,12 +159,9 @@ impl HostUI {
 
     fn render_menu(&mut self, ui: &mut Ui) {
         let Self {
-            senders,
-            menu,
-            ui_actions,
-            ..
+            menu, ui_actions, ..
         } = self;
-        menu.render(ui, &senders.cmd_tx, ui_actions);
+        menu.render(ui, ui_actions);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
