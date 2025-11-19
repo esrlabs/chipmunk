@@ -1,8 +1,14 @@
+use tokio::sync::mpsc::Sender;
+
 use egui::{Frame, Margin, Ui};
 
 use crate::{
     host::ui::UiActions,
-    session::{communication::UiSenders, data::SessionDataState, ui::state::SessionUiState},
+    session::{
+        command::{SessionBlockingCommand, SessionCommand},
+        data::SessionDataState,
+        ui::state::SessionUiState,
+    },
 };
 use chart::ChartUI;
 use details::DetailsUI;
@@ -27,12 +33,15 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
-    pub fn new() -> Self {
+    pub fn new(
+        cmd_tx: Sender<SessionCommand>,
+        block_cmd_tx: Sender<SessionBlockingCommand>,
+    ) -> Self {
         Self {
-            search: SearchUI::default(),
+            search: SearchUI::new(cmd_tx.clone(), block_cmd_tx),
             details: DetailsUI::default(),
             presets: PresetsUI::default(),
-            chart: ChartUI::default(),
+            chart: ChartUI::new(cmd_tx),
         }
     }
 
@@ -41,20 +50,15 @@ impl BottomPanelUI {
         data: &SessionDataState,
         ui_state: &mut SessionUiState,
         actions: &mut UiActions,
-        senders: &UiSenders,
         ui: &mut Ui,
     ) {
         self.render_tabs(ui_state, ui);
 
         match ui_state.bottom_panel.active_tab {
-            BottomTabType::Search => self
-                .search
-                .render_content(data, ui_state, actions, senders, ui),
+            BottomTabType::Search => self.search.render_content(data, ui_state, actions, ui),
             BottomTabType::Details => self.details.render_content(data, ui),
-            BottomTabType::Presets => self.presets.render_content(data, senders, ui),
-            BottomTabType::Chart => self
-                .chart
-                .render_content(data, ui_state, senders, actions, ui),
+            BottomTabType::Presets => self.presets.render_content(ui),
+            BottomTabType::Chart => self.chart.render_content(data, ui_state, actions, ui),
         }
     }
 
