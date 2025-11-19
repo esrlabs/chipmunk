@@ -2,19 +2,18 @@ use std::ops::RangeInclusive;
 
 use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     host::ui::UiActions,
-    session::{
-        command::SessionCommand, communication::UiSenders, data::SessionDataState,
-        ui::state::SessionUiState,
-    },
+    session::{command::SessionCommand, data::SessionDataState, ui::state::SessionUiState},
 };
 
 const CHART_OFFSET: f64 = 0.05;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ChartUI {
+    cmd_tx: Sender<SessionCommand>,
     /// Zoom factor (In X axis) from last frame.
     last_zoom_factor: Option<u64>,
     /// Last requested logs range.
@@ -28,16 +27,23 @@ struct InnerResponse {
 }
 
 impl ChartUI {
+    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
+        Self {
+            cmd_tx,
+            last_zoom_factor: None,
+            requested_logs_rng: None,
+        }
+    }
+
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
         ui_state: &mut SessionUiState,
-        senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
         if data.search.is_search_active() {
-            self.chart(data, ui_state, senders, actions, ui);
+            self.chart(data, ui_state, actions, ui);
         } else {
             self.clear();
             Self::place_holder(ui);
@@ -48,7 +54,6 @@ impl ChartUI {
         &mut self,
         data: &SessionDataState,
         ui_state: &mut SessionUiState,
-        senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -63,13 +68,13 @@ impl ChartUI {
                 range: rng.clone(),
             };
 
-            actions.try_send_command(&senders.cmd_tx, chart_cmd);
+            actions.try_send_command(&self.cmd_tx, chart_cmd);
 
             let values_cmd = SessionCommand::GetChartValues {
                 dataset_len,
                 range: rng,
             };
-            actions.try_send_command(&senders.cmd_tx, values_cmd);
+            actions.try_send_command(&self.cmd_tx, values_cmd);
         }
 
         // Ratio describes how many logs will be represented in one unit of
@@ -196,10 +201,7 @@ impl ChartUI {
 
         if let Some(log_nr) = plot_res.inner.jump_log {
             ui_state.scroll_main_row = Some(log_nr);
-            actions.try_send_command(
-                &senders.cmd_tx,
-                SessionCommand::SetSelectedLog(Some(log_nr)),
-            );
+            actions.try_send_command(&self.cmd_tx, SessionCommand::SetSelectedLog(Some(log_nr)));
         }
 
         if let Some(bound_x) = plot_res.inner.bound_x
@@ -217,19 +219,20 @@ impl ChartUI {
                 range: Some(bound_x.clone()),
             };
 
-            actions.try_send_command(&senders.cmd_tx, chart_cmd);
+            actions.try_send_command(&self.cmd_tx, chart_cmd);
 
             let values_cmd = SessionCommand::GetChartValues {
                 dataset_len,
                 range: Some(bound_x),
             };
 
-            actions.try_send_command(&senders.cmd_tx, values_cmd);
+            actions.try_send_command(&self.cmd_tx, values_cmd);
         }
     }
 
     fn clear(&mut self) {
         let Self {
+            cmd_tx: _,
             last_zoom_factor,
             requested_logs_rng,
         } = self;

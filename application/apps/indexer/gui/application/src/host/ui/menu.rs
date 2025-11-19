@@ -6,18 +6,20 @@ use tokio::sync::mpsc::Sender;
 use crate::host::{command::HostCommand, ui::ui_actions::UiActions};
 
 #[derive(Debug)]
-pub struct MainMenuBar {}
+pub struct MainMenuBar {
+    cmd_tx: Sender<HostCommand>,
+}
 
 impl MainMenuBar {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
+        Self { cmd_tx }
     }
 
-    pub fn render(&mut self, ui: &mut Ui, cmd_tx: &Sender<HostCommand>, actions: &mut UiActions) {
+    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions) {
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("Chipmunk", |ui| {
                 if ui.button("Close").clicked() {
-                    actions.try_send_command(cmd_tx, HostCommand::Close);
+                    actions.try_send_command(&self.cmd_tx, HostCommand::Close);
                 }
             });
 
@@ -27,7 +29,7 @@ impl MainMenuBar {
 
                     let handle = rfd::AsyncFileDialog::new().pick_files();
 
-                    let cmd_tx = cmd_tx.to_owned();
+                    let cmd_tx = self.cmd_tx.clone();
                     tokio::spawn(async move {
                         if let Some(files) = handle.await {
                             log::trace!("Open file dialog return with {files:?}");

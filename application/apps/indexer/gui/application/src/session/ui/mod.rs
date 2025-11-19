@@ -1,12 +1,13 @@
 use egui::{CentralPanel, TopBottomPanel, Ui};
 use state::SessionUiState;
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     host::ui::UiActions,
     session::{
         InitSessionParams, SessionInfo,
         command::SessionCommand,
-        communication::{UiHandle, UiReceivers, UiSenders},
+        communication::{UiHandle, UiReceivers},
         event::SessionEvent,
     },
 };
@@ -20,8 +21,8 @@ mod status_bar;
 
 #[derive(Debug)]
 pub struct SessionUI {
+    cmd_tx: Sender<SessionCommand>,
     session_info: SessionInfo,
-    senders: UiSenders,
     receivers: UiReceivers,
     ui_state: SessionUiState,
     logs_table: LogsTable,
@@ -39,11 +40,11 @@ impl SessionUI {
 
         Self {
             session_info,
-            senders,
             receivers,
             ui_state: SessionUiState::default(),
-            logs_table: LogsTable::default(),
-            bottom_panel: BottomPanelUI::new(),
+            logs_table: LogsTable::new(senders.cmd_tx.clone(), senders.block_cmd_tx.clone()),
+            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), senders.block_cmd_tx),
+            cmd_tx: senders.cmd_tx,
         }
     }
 
@@ -52,12 +53,11 @@ impl SessionUI {
     }
 
     pub fn close_session(&self, actions: &mut UiActions) {
-        actions.try_send_command(&self.senders.cmd_tx, SessionCommand::CloseSession);
+        actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
     }
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
         let Self {
-            senders,
             receivers,
             logs_table,
             bottom_panel,
@@ -76,7 +76,7 @@ impl SessionUI {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.set_min_size(ui.available_size());
-                bottom_panel.render_content(&data, ui_state, actions, senders, ui);
+                bottom_panel.render_content(&data, ui_state, actions, ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
@@ -84,7 +84,7 @@ impl SessionUI {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(self.session_info.id, |ui| {
-                logs_table.render_content(&data, ui_state, senders, actions, ui);
+                logs_table.render_content(&data, ui_state, actions, ui);
             });
         });
     }
