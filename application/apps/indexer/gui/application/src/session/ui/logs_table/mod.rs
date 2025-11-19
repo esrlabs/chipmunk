@@ -3,13 +3,12 @@ use std::ops::Range;
 use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     host::ui::UiActions,
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        communication::UiSenders,
         data::{LogMainIndex, SessionDataState},
         ui::{bottom_panel::BottomTabType, state::SessionUiState},
     },
@@ -19,18 +18,31 @@ use logs_mapped::LogsMapped;
 
 mod logs_mapped;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct LogsTable {
-    last_visible_rows: Range<u64>,
     logs: LogsMapped,
+    last_visible_rows: Option<Range<u64>>,
+    block_cmd_tx: Sender<SessionBlockingCommand>,
+    cmd_tx: Sender<SessionCommand>,
 }
 
 impl LogsTable {
+    pub fn new(
+        cmd_tx: Sender<SessionCommand>,
+        block_cmd_tx: Sender<SessionBlockingCommand>,
+    ) -> Self {
+        Self {
+            cmd_tx,
+            block_cmd_tx,
+            last_visible_rows: Default::default(),
+            logs: LogsMapped::default(),
+        }
+    }
+
     pub fn render_content(
         &mut self,
         data: &SessionDataState,
         ui_state: &mut SessionUiState,
-        senders: &UiSenders,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -50,9 +62,7 @@ impl LogsTable {
         let mut delegate = LogsDelegate {
             session_data: data,
             table: self,
-            block_cmd_tx: &senders.block_cmd_tx,
             ui_state,
-            senders,
             actions,
         };
 
@@ -70,9 +80,7 @@ impl LogsTable {
 struct LogsDelegate<'a> {
     session_data: &'a SessionDataState,
     table: &'a mut LogsTable,
-    block_cmd_tx: &'a mpsc::Sender<SessionBlockingCommand>,
     ui_state: &'a mut SessionUiState,
-    senders: &'a UiSenders,
     actions: &'a mut UiActions,
 }
 
@@ -80,11 +88,16 @@ impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
         let PrefetchInfo { visible_rows, .. } = info;
 
-        if self.table.last_visible_rows == *visible_rows {
+        if self
+            .table
+            .last_visible_rows
+            .as_ref()
+            .is_some_and(|row| row == visible_rows)
+        {
             return;
         }
 
-        self.table.last_visible_rows = info.visible_rows.to_owned();
+        self.table.last_visible_rows = Some(info.visible_rows.to_owned());
 
         let range = LineRange::from(visible_rows.start..=visible_rows.end.saturating_sub(1));
 
@@ -94,7 +107,7 @@ impl TableDelegate for LogsDelegate<'_> {
             sender: elems_tx,
         };
 
-        if self.block_cmd_tx.blocking_send(cmd).is_err() {
+        if self.table.block_cmd_tx.blocking_send(cmd).is_err() {
             log::warn!("Communication error while sending grab commmand.");
             return;
         };
@@ -169,13 +182,13 @@ impl TableDelegate for LogsDelegate<'_> {
                             if self.ui_state.bottom_panel.active_tab == BottomTabType::Search {
                                 let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
                                 self.actions
-                                    .try_send_command(&self.senders.cmd_tx, nearest_cmd);
+                                    .try_send_command(&self.table.cmd_tx, nearest_cmd);
                             }
                             Some(row_nr)
                         };
 
                         self.actions.try_send_command(
-                            &self.senders.cmd_tx,
+                            &self.table.cmd_tx,
                             SessionCommand::SetSelectedLog(selected_pos),
                         );
                     }
