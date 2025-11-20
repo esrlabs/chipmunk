@@ -6,8 +6,7 @@ use crate::{
     host::ui::UiActions,
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        data::SessionDataState,
-        ui::state::SessionUiState,
+        ui::shared::SessionShared,
     },
 };
 
@@ -20,8 +19,8 @@ mod search_table;
 
 #[derive(Debug)]
 pub struct SearchUI {
-    bar: SearchBar,
-    table: SearchTable,
+    pub bar: SearchBar,
+    pub table: SearchTable,
 }
 
 impl SearchUI {
@@ -36,19 +35,18 @@ impl SearchUI {
     }
     pub fn render_content(
         &mut self,
-        data: &SessionDataState,
-        ui_state: &mut SessionUiState,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        self.bar.render_content(data, actions, ui);
+        self.bar.render_content(shared, actions, ui);
 
-        if data.search.is_search_active() {
+        if shared.search.is_search_active() {
             // We need to give a unique id for the direct parent of each table because
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
-            ui.push_id(data.session_id, |ui| {
-                self.table.render_content(data, ui_state, actions, ui);
+            ui.push_id(shared.get_id(), |ui| {
+                self.table.render_content(shared, actions, ui);
             });
         } else {
             self.table.clear();

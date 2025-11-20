@@ -132,7 +132,7 @@ impl HostUI {
 
         self.sessions
             .iter_mut()
-            .for_each(|session| session.handle_messages());
+            .for_each(|session| session.handle_messages(&mut self.ui_actions));
 
         // Render all UI components
         self.render_ui(ctx, frame);
