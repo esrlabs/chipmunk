@@ -10,7 +10,7 @@ use crate::{
     host::{
         command::HostCommand,
         communication::{UiHandle, UiReceivers, UiSenders},
-        event::HostEvent,
+        message::HostMessage,
         notification::AppNotification,
         ui::{home::HomeView, notification_ui::NotificationUi},
     },
@@ -71,11 +71,11 @@ impl HostUI {
         }
     }
 
-    fn handle_event(&mut self, event: HostEvent, ctx: &Context) {
-        match event {
-            HostEvent::CreateSession(info) => self.add_session(info),
-            HostEvent::CloseSession { session_id } => self.close_session(session_id),
-            HostEvent::Close => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+    fn handle_message(&mut self, message: HostMessage, ctx: &Context) {
+        match message {
+            HostMessage::SessionCreated(info) => self.add_session(info),
+            HostMessage::SessionClosed { session_id } => self.close_session(session_id),
+            HostMessage::Shutdown => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
 
@@ -99,7 +99,7 @@ impl HostUI {
             Some(idx) => idx,
             None => {
                 log::error!(
-                    "Close Session Event: Session with ID {session_id}\
+                    "Close Session Message: Session with ID {session_id}\
                     doesn't exist in host UI struct"
                 );
                 panic!("Recieved close session for unknown session ID");
@@ -121,9 +121,9 @@ impl HostUI {
     }
 
     pub fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
-        // Handle events & notifications
-        while let Ok(event) = self.receivers.event_rx.try_recv() {
-            self.handle_event(event, ctx);
+        // Handle incoming messages & notifications
+        while let Ok(msg) = self.receivers.message_rx.try_recv() {
+            self.handle_message(msg, ctx);
         }
 
         while let Ok(notification) = self.receivers.notification_rx.try_recv() {
@@ -132,7 +132,7 @@ impl HostUI {
 
         self.sessions
             .iter_mut()
-            .for_each(|session| session.handle_events());
+            .for_each(|session| session.handle_messages());
 
         // Render all UI components
         self.render_ui(ctx, frame);
