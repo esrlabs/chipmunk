@@ -5,15 +5,13 @@ use uuid::Uuid;
 
 use crate::session::{
     communication::{SharedSenders, UiHandle},
-    info::SessionInfo,
     service::SessionService,
+    ui::SessionInfo,
 };
 
 pub mod command;
 pub mod communication;
-pub mod data;
 pub mod error;
-pub mod info;
 pub mod message;
 pub mod service;
 pub mod ui;
@@ -40,7 +38,7 @@ pub async fn init_session(
 ) -> Result<InitSessionParams, InitSessionError> {
     let session_id = Uuid::new_v4();
 
-    let (ui_handle, service_handle) = communication::init(session_id, shared_senders);
+    let (ui_handle, service_handle) = communication::init(shared_senders);
     let session_info = SessionService::spawn(session_id, service_handle, options).await?;
 
     let info = InitSessionParams {
