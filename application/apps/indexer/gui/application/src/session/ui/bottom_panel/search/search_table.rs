@@ -4,14 +4,14 @@ use std::ops::Range;
 
 use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
+use stypes::NearestPosition;
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     host::ui::UiActions,
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        data::SessionDataState,
-        ui::state::SessionUiState,
+        ui::shared::SessionShared,
     },
 };
 
@@ -23,6 +23,9 @@ pub struct SearchTable {
     block_cmd_tx: Sender<SessionBlockingCommand>,
     last_visible_rows: Option<Range<u64>>,
     indexed_logs: IndexedMapped,
+    /// The index of the log in search table to make the table scroll
+    /// toward this index.
+    scroll_nearest_pos: Option<NearestPosition>,
 }
 
 impl SearchTable {
@@ -35,13 +38,17 @@ impl SearchTable {
             block_cmd_tx,
             last_visible_rows: None,
             indexed_logs: IndexedMapped::default(),
+            scroll_nearest_pos: None,
         }
+    }
+
+    pub fn set_nearest_pos(&mut self, nearest_pos: Option<NearestPosition>) {
+        self.scroll_nearest_pos = nearest_pos;
     }
 
     pub fn render_content(
         &mut self,
-        data: &SessionDataState,
-        ui_state: &mut SessionUiState,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -49,40 +56,43 @@ impl SearchTable {
 
         let mut table = egui_table::Table::new()
             .id_salt(id_salt)
-            .num_rows(data.search.search_count)
+            .num_rows(shared.search.total_count)
             .headers(Vec::new())
             .columns(Self::text_columns())
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
 
-        if let Some(row_nr) = ui_state.scroll_search_idx.take()
-            && row_nr < data.search.search_count
+        if let Some(row_nr) = self.scroll_nearest_pos.take().map(|pos| pos.index)
+            && row_nr < shared.search.total_count
         {
             const OFFSET: u64 = 2;
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
 
         let mut delegate = LogsDelegate {
-            session_data: data,
+            shared,
             table: self,
-            ui_state,
             actions,
         };
 
         table.show(ui, &mut delegate);
     }
 
+    //TODO AAZ: Check if calling the function like this still make sense
+    //after having the whole data state in UI part.
     pub fn clear(&mut self) {
         let Self {
             cmd_tx: _,
             block_cmd_tx: _,
             last_visible_rows,
             indexed_logs,
+            scroll_nearest_pos,
         } = self;
 
         if last_visible_rows.is_some() {
             *last_visible_rows = None;
             indexed_logs.clear();
+            *scroll_nearest_pos = None;
         }
     }
 
@@ -95,9 +105,8 @@ impl SearchTable {
 }
 
 struct LogsDelegate<'a> {
-    session_data: &'a SessionDataState,
     table: &'a mut SearchTable,
-    ui_state: &'a mut SessionUiState,
+    shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
 }
 
@@ -116,7 +125,7 @@ impl TableDelegate for LogsDelegate<'_> {
 
         self.table.last_visible_rows = Some(info.visible_rows.to_owned());
 
-        if self.session_data.search.search_count == 0 {
+        if self.shared.search.total_count == 0 {
             return;
         }
 
@@ -162,7 +171,8 @@ impl TableDelegate for LogsDelegate<'_> {
                 };
 
                 let is_selected = self
-                    .session_data
+                    .shared
+                    .logs
                     .selected_log
                     .as_ref()
                     .is_some_and(|e| e.pos == log_item.pos);
@@ -187,18 +197,18 @@ impl TableDelegate for LogsDelegate<'_> {
                         };
 
                         if label.ui(ui).clicked() {
-                            let selected_pos = if is_selected {
-                                None
+                            if is_selected {
+                                self.shared.logs.selected_log = None;
                             } else {
-                                Some(log_item.pos as u64)
+                                let pos = log_item.pos as u64;
+
+                                self.shared.logs.scroll_main_row = Some(pos);
+
+                                self.actions.try_send_command(
+                                    &self.table.cmd_tx,
+                                    SessionCommand::GetSelectedLog(pos),
+                                );
                             };
-
-                            self.ui_state.scroll_main_row = selected_pos;
-
-                            self.actions.try_send_command(
-                                &self.table.cmd_tx,
-                                SessionCommand::SetSelectedLog(selected_pos),
-                            );
                         }
                     }
                     invalid => panic!("Invalid column number. {invalid}"),

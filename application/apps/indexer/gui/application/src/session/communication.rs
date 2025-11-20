@@ -1,12 +1,10 @@
-use tokio::sync::{mpsc, watch};
-use uuid::Uuid;
+use tokio::sync::mpsc;
 
 use crate::{
     comm_utls::evaluate_send_res,
     host::{message::HostMessage, notification::AppNotification},
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        data::SessionDataState,
         message::SessionMessage,
     },
 };
@@ -52,7 +50,6 @@ pub struct UiSenders {
 #[derive(Debug)]
 pub struct UiReceivers {
     pub message_rx: mpsc::Receiver<SessionMessage>,
-    pub session_state_rx: watch::Receiver<SessionDataState>,
 }
 
 /// Contains session communication channels for the services to communicate with UI.
@@ -69,7 +66,6 @@ pub struct ServiceSenders {
     session_msg_tx: mpsc::Sender<SessionMessage>,
     host_message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,
-    session_state_tx: watch::Sender<SessionDataState>,
     egui_ctx: egui::Context,
 }
 
@@ -106,20 +102,6 @@ impl ServiceSenders {
 
         evaluate_send_res(&self.egui_ctx, res)
     }
-
-    /// Modify session state with the provided `modify` function and notify
-    /// the listeners waking up the UI only if modified.
-    pub fn modify_state<F>(&self, modify: F) -> bool
-    where
-        F: FnOnce(&mut SessionDataState) -> bool,
-    {
-        let modified = self.session_state_tx.send_if_modified(modify);
-        if modified {
-            self.egui_ctx.request_repaint();
-        }
-
-        modified
-    }
 }
 
 /// Communication elements to be used in session service in the task
@@ -139,19 +121,11 @@ impl ServiceBlockCommuniaction {
     }
 }
 
-/// Communication types and functions needed for sessions.
-#[derive(Debug)]
-pub struct SessionCommunication {
-    pub ui_handle: UiHandle,
-    pub service_handle: ServiceHandle,
-}
-
 /// Initialize communication channels for session application.
-pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
+pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (block_cmd_tx, block_cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_msg_tx, session_msg_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (session_state_tx, session_state_rx) = watch::channel(SessionDataState::new(session_id));
 
     let ui_senders = UiSenders {
         cmd_tx,
@@ -160,7 +134,6 @@ pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, Servi
 
     let ui_receivers = UiReceivers {
         message_rx: session_msg_rx,
-        session_state_rx,
     };
 
     let ui_comm = UiHandle {
@@ -178,7 +151,6 @@ pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, Servi
         session_msg_tx,
         host_message_tx,
         notification_tx: notification_tx.clone(),
-        session_state_tx,
         egui_ctx: egui_ctx.clone(),
     };
 
