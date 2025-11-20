@@ -1,13 +1,13 @@
 use egui::{Label, RichText, Ui, Widget};
 
-use crate::session::data::SessionDataState;
+use crate::session::ui::shared::SessionShared;
 
 #[derive(Debug, Default)]
 pub struct DetailsUI {}
 
 impl DetailsUI {
-    pub fn render_content(&mut self, data: &SessionDataState, ui: &mut Ui) {
-        let Some(log) = &data.selected_log else {
+    pub fn render_content(&mut self, shared: &SessionShared, ui: &mut Ui) {
+        let Some(log) = &shared.logs.selected_log else {
             return;
         };
 
