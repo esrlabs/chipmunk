@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::collections::HashMap;
 
 use stypes::FilterMatch;
 
@@ -12,40 +9,31 @@ pub struct FilterIndex(pub u8);
 pub struct LogMainIndex(pub u64);
 
 #[derive(Debug, Default)]
-pub struct SearchData {
-    /// Search state should be able to set directly from the UI immediately to avoid
-    /// the UI requesting for logs after the session is dropped.
-    is_active: AtomicBool,
+pub struct SearchState {
+    is_active: bool,
     //TODO AAZ: This should be equal to `results_map.len()`.
     //Make sure we need to keep both
-    pub search_count: u64,
+    pub total_count: u64,
     matches_map: Option<HashMap<LogMainIndex, Vec<FilterIndex>>>,
 }
 
-impl SearchData {
+impl SearchState {
     #[inline]
     pub fn activate(&mut self) {
-        // This function has mutable reference to self to prevent the UI from
-        // using it, because such change should come from the service only.
-        self.is_active.store(true, Ordering::Relaxed);
+        self.is_active = true;
     }
 
     #[inline]
     pub fn is_search_active(&self) -> bool {
-        self.is_active.load(Ordering::Relaxed)
-    }
-
-    #[inline]
-    pub fn deactivate(&self) {
-        self.is_active.store(false, Ordering::Release);
+        self.is_active
     }
 
     pub fn drop_search(&mut self) {
-        self.deactivate();
+        self.is_active = false;
 
         let Self {
             is_active: _,
-            search_count,
+            total_count: search_count,
             matches_map,
         } = self;
 
@@ -72,7 +60,7 @@ impl SearchData {
 
         debug_assert_eq!(
             matches_map.len() as u64,
-            self.search_count,
+            self.total_count,
             "Search count and matches length can't go out of sync"
         );
     }
