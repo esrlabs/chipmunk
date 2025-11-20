@@ -9,8 +9,10 @@ use crate::{
     host::ui::UiActions,
     session::{
         command::{SessionBlockingCommand, SessionCommand},
-        data::{LogMainIndex, SessionDataState},
-        ui::{bottom_panel::BottomTabType, state::SessionUiState},
+        ui::{
+            bottom_panel::BottomTabType,
+            shared::{LogMainIndex, SessionShared},
+        },
     },
 };
 
@@ -41,8 +43,7 @@ impl LogsTable {
 
     pub fn render_content(
         &mut self,
-        data: &SessionDataState,
-        ui_state: &mut SessionUiState,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -50,20 +51,19 @@ impl LogsTable {
 
         let mut table = egui_table::Table::new()
             .id_salt(id_salt)
-            .num_rows(data.logs_count)
+            .num_rows(shared.logs.logs_count)
             .columns(Self::text_columns())
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
 
-        if let Some(row) = ui_state.scroll_main_row.take() {
+        if let Some(row) = shared.logs.scroll_main_row.take() {
             const OFFSET: u64 = 3;
             table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
         }
 
         let mut delegate = LogsDelegate {
-            session_data: data,
             table: self,
-            ui_state,
+            shared,
             actions,
         };
 
@@ -79,9 +79,8 @@ impl LogsTable {
 }
 
 struct LogsDelegate<'a> {
-    session_data: &'a SessionDataState,
     table: &'a mut LogsTable,
-    ui_state: &'a mut SessionUiState,
+    shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
 }
 
@@ -135,7 +134,8 @@ impl TableDelegate for LogsDelegate<'_> {
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
         let is_selected = self
-            .session_data
+            .shared
+            .logs
             .selected_log
             .as_ref()
             .is_some_and(|e| e.pos == row_nr as usize);
@@ -147,7 +147,7 @@ impl TableDelegate for LogsDelegate<'_> {
         } else {
             let highlight_match = col_nr != 0
                 && self
-                    .session_data
+                    .shared
                     .search
                     .current_matches_map()
                     .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
@@ -176,22 +176,21 @@ impl TableDelegate for LogsDelegate<'_> {
                     };
 
                     if label.ui(ui).clicked() {
-                        let selected_pos = if is_selected {
-                            None
+                        if is_selected {
+                            self.shared.logs.selected_log = None;
                         } else {
                             // Scroll to log in search if it's active only.
-                            if self.ui_state.bottom_panel.active_tab == BottomTabType::Search {
+                            if self.shared.active_bottom_tab == BottomTabType::Search {
                                 let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
                                 self.actions
                                     .try_send_command(&self.table.cmd_tx, nearest_cmd);
                             }
-                            Some(row_nr)
-                        };
 
-                        self.actions.try_send_command(
-                            &self.table.cmd_tx,
-                            SessionCommand::SetSelectedLog(selected_pos),
-                        );
+                            self.actions.try_send_command(
+                                &self.table.cmd_tx,
+                                SessionCommand::GetSelectedLog(row_nr),
+                            );
+                        };
                     }
                 }
                 invalid => panic!("Invalid column number. {invalid}"),

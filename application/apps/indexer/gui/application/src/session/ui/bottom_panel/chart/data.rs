@@ -19,8 +19,16 @@ impl ChartBar {
 
 #[derive(Debug, Clone, Default)]
 pub struct ChartsData {
-    /// Spans of chart data representing the bars of charts.
+    /// Spans of chart data representing the bars of histogram.
     pub bars: Vec<Vec<ChartBar>>,
     /// Values data used in line plots.
-    pub values_map: HashMap<u8, Vec<stypes::Point>>,
+    pub line_plots: HashMap<u8, Vec<stypes::Point>>,
+}
+
+impl ChartsData {
+    pub fn clear(&mut self) {
+        let Self { bars, line_plots } = self;
+        bars.clear();
+        line_plots.clear();
+    }
 }

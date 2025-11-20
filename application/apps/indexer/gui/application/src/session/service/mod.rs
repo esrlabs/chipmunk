@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use processor::grabber::LineRange;
+use itertools::Itertools;
 use tokio::{select, sync::mpsc};
 use uuid::Uuid;
 
+use processor::grabber::LineRange;
 use session_core::session::Session;
-use stypes::{CallbackEvent, ObserveOptions};
+use stypes::{CallbackEvent, ComputationError, ObserveOptions};
 
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
@@ -14,9 +15,8 @@ use crate::{
         InitSessionError,
         command::SessionBlockingCommand,
         communication::{ServiceBlockCommuniaction, ServiceSenders},
-        data::ChartBar,
-        info::SessionInfo,
         message::SessionMessage,
+        ui::{SessionInfo, chart::ChartBar},
     },
 };
 use operation_track::OperationTracker;
@@ -66,12 +66,8 @@ impl SessionService {
         });
 
         // We need to spawn a separate task to handle blocking commands because
-        // those commands will be sent and should be handled in the same frame
-        // rendering routine where it still has access to session state data.
-        //
-        // Mixing the blocking and asynchronous commands will lead to dead-locks
-        // since the async command will request access to session state date while
-        // it's reference is hold in the UI thread.
+        // those commands will be sent and should be handled in same UI frame
+        // rendering routine.
         tokio::task::spawn(async {
             Self::handle_blocking_cmds(session, block_communication).await;
         });
@@ -134,24 +130,12 @@ impl SessionService {
                 );
                 self.ops_tracker.filter_op = Some(op_id);
                 self.session.apply_search_filters(op_id, search_filters)?;
-
-                self.senders.modify_state(|data| {
-                    data.search.activate();
-                    true
-                });
             }
             SessionCommand::DropSearch => {
                 if let Some(filter_op) = self.ops_tracker.filter_op.take() {
                     self.session.abort(Uuid::new_v4(), filter_op)?;
                 }
-                let res = self.session.drop_search().await;
-                // Drop search from UI even if dropping the search in core has failed.
-                self.senders.modify_state(|data| {
-                    data.search.drop_search();
-                    true
-                });
-
-                res?;
+                self.session.drop_search().await?;
             }
             SessionCommand::GetNearestPosition(position) => {
                 let nearest = self
@@ -159,88 +143,80 @@ impl SessionService {
                     .state
                     .get_nearest_position(position)
                     .await
-                    .map_err(SessionError::NativeError)?;
+                    .map_err(SessionError::NativeError)
+                    .map(|n| n.0);
 
                 log::trace!(
                     "Nearest session value for session: {}: {nearest:?}",
                     self.session_id()
                 );
 
-                if let Some(nearest) = nearest.0 {
-                    self.senders
-                        .send_session_msg(SessionMessage::NearestPosition(nearest))
-                        .await;
-                }
+                self.senders
+                    .send_session_msg(SessionMessage::NearestPosition(nearest))
+                    .await;
             }
-            SessionCommand::SetSelectedLog(stearm_position) => {
-                if let Some(pos) = stearm_position {
-                    let rng = LineRange::from(pos..=pos);
-                    match self.session.grab(rng).await {
-                        Ok(elements) => {
-                            self.senders.modify_state(|state| {
-                                state.selected_log = elements.0.into_iter().next();
-                                true
-                            });
-                        }
-                        Err(err) => {
-                            self.senders.modify_state(|state| {
-                                if state.selected_log.is_some() {
-                                    state.selected_log = None;
-                                    return true;
-                                }
-                                false
-                            });
-                            return Err(err.into());
-                        }
-                    };
-                } else {
-                    self.senders.modify_state(|state| {
-                        state.selected_log = None;
-                        true
-                    });
-                }
+            SessionCommand::GetSelectedLog(pos) => {
+                let rng = LineRange::from(pos..=pos);
+
+                let selected_log = self
+                    .session
+                    .grab(rng)
+                    .await
+                    .and_then(|items| {
+                        items.0.into_iter().next().ok_or_else(|| {
+                            ComputationError::Process(String::from(
+                                "Selected Item couldn't be fetched",
+                            ))
+                        })
+                    })
+                    .map_err(SessionError::from);
+
+                self.senders
+                    .send_session_msg(SessionMessage::SelectedLog(selected_log))
+                    .await;
             }
-            SessionCommand::GetChartMap { dataset_len, range } => {
+            SessionCommand::GetChartHistogram { dataset_len, range } => {
                 let map = self
                     .session
                     .state
                     .get_scaled_map(dataset_len, range.map(|rng| (*rng.start(), *rng.end())))
                     .await
-                    .map_err(SessionError::NativeError)?;
+                    .map(|m| {
+                        m.into_iter()
+                            .map(|bars| {
+                                bars.into_iter()
+                                    .map(|(idx, count)| ChartBar::new(idx, count))
+                                    .collect_vec()
+                            })
+                            .collect_vec()
+                    })
+                    .map_err(SessionError::NativeError);
 
-                self.senders.modify_state(|state| {
-                    //NOTE: Current implementation for temporal filter case.
-                    let bars = &mut state.charts.bars;
-                    bars.clear();
-                    bars.extend(map.into_iter().map(|vec| {
-                        vec.into_iter()
-                            .map(|(idx, count)| ChartBar::new(idx, count))
-                            .collect()
-                    }));
-
-                    true
-                });
+                self.senders
+                    .send_session_msg(SessionMessage::ChartHistogram(map))
+                    .await;
             }
-            SessionCommand::GetChartValues { dataset_len, range } => {
+            SessionCommand::GetChartLinePlots { dataset_len, range } => {
                 let values = self
                     .session
                     .state
                     .get_search_values(range, dataset_len)
                     .await
-                    .map_err(SessionError::NativeError)?;
+                    .map(|v| {
+                        v.into_iter()
+                            .map(|item| {
+                                (
+                                    item.0,
+                                    item.1.into_iter().map(stypes::Point::from).collect_vec(),
+                                )
+                            })
+                            .collect_vec()
+                    })
+                    .map_err(SessionError::NativeError);
 
-                self.senders.modify_state(|state| {
-                    let map = &mut state.charts.values_map;
-                    map.clear();
-                    for item in values {
-                        map.insert(
-                            item.0,
-                            item.1.into_iter().map(stypes::Point::from).collect(),
-                        );
-                    }
-
-                    true
-                });
+                self.senders
+                    .send_session_msg(SessionMessage::ChartLinePlots(values))
+                    .await;
             }
             SessionCommand::CloseSession => {
                 for op_id in self.ops_tracker.get_all() {
@@ -270,10 +246,9 @@ impl SessionService {
         );
         match event {
             CallbackEvent::StreamUpdated(logs_count) => {
-                self.senders.modify_state(|state| {
-                    state.logs_count = logs_count;
-                    true
-                });
+                self.senders
+                    .send_session_msg(SessionMessage::LogsCount(logs_count))
+                    .await;
             }
             // TODO AAZ: Search callbacks seem to have duplications. Check
             // how they're used in master.
@@ -281,20 +256,18 @@ impl SessionService {
             // CallbackEvent::SearchUpdated { found, stat } => {
             // }
             CallbackEvent::IndexedMapUpdated { len } => {
-                self.senders.modify_state(|data| {
-                    data.search.search_count = len;
-                    true
-                });
+                self.senders
+                    .send_session_msg(SessionMessage::SearchState { found_count: len })
+                    .await;
             }
             CallbackEvent::SearchMapUpdated(filter_matches) => {
                 if let Some(list) = filter_matches {
                     // Long process ends when it deliver its initial results.
                     self.ops_tracker.filter_op = None;
 
-                    self.senders.modify_state(|data| {
-                        data.search.append_matches(list.0);
-                        true
-                    });
+                    self.senders
+                        .send_session_msg(SessionMessage::SearchResults(list.0))
+                        .await;
                 }
             }
             event => {
