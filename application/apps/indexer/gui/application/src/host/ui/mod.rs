@@ -2,6 +2,7 @@ use egui::{
     Align, CentralPanel, Context, Frame, Id, Layout, NumExt as _, RichText, TopBottomPanel, Ui,
     Widget,
 };
+use tokio::runtime::Handle;
 use uuid::Uuid;
 
 use crate::{
@@ -39,7 +40,7 @@ pub struct HostUI {
 }
 
 impl HostUI {
-    pub fn new(ui_comm: UiHandle) -> Self {
+    pub fn new(ui_comm: UiHandle, tokio_handle: Handle) -> Self {
         let menu = MainMenuBar::new(ui_comm.senders.cmd_tx.clone());
 
         Self {
@@ -49,7 +50,7 @@ impl HostUI {
             senders: ui_comm.senders,
             notifications: NotificationUi::default(),
             state: UiState::default(),
-            ui_actions: UiActions::default(),
+            ui_actions: UiActions::new(tokio_handle),
         }
     }
 
