@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, thread};
 
 use stypes::{FileFormat, ObserveOptions, ParserType};
+use tokio::runtime::Handle;
 
 use crate::{
     host::{
@@ -16,12 +17,31 @@ pub struct HostService {
 }
 
 impl HostService {
-    pub fn spawn(communication: ServiceHandle) {
+    /// Spawns tokio runtime to run host services returning a handle of the runtime.
+    #[must_use]
+    pub fn spawn(communication: ServiceHandle) -> Handle {
         let host = Self { communication };
 
-        tokio::spawn(async move {
-            host.run().await;
+        let (handle_tx, handle_rx) = std::sync::mpsc::channel();
+
+        thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .expect("Spawning tokio runtime falied");
+
+            handle_tx
+                .send(rt.handle().clone())
+                .expect("Sending tokio handle should never fail");
+
+            rt.block_on(async {
+                host.run().await;
+            });
         });
+
+        handle_rx
+            .recv()
+            .expect("Receiving tokio handle should never fail")
     }
 
     async fn run(mut self) {
