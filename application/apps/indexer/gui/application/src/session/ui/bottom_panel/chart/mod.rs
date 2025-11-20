@@ -6,14 +6,19 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, data::SessionDataState, ui::state::SessionUiState},
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
+
+pub use data::{ChartBar, ChartsData};
+
+mod data;
 
 const CHART_OFFSET: f64 = 0.05;
 
 #[derive(Debug)]
 pub struct ChartUI {
     cmd_tx: Sender<SessionCommand>,
+    data: ChartsData,
     /// Zoom factor (In X axis) from last frame.
     last_zoom_factor: Option<u64>,
     /// Last requested logs range.
@@ -30,47 +35,52 @@ impl ChartUI {
     pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
             cmd_tx,
+            data: Default::default(),
             last_zoom_factor: None,
             requested_logs_rng: None,
         }
     }
 
+    pub fn update_histogram(&mut self, map: Vec<Vec<ChartBar>>) {
+        //NOTE: Current implementation for temporal filter case.
+        self.data.bars.clear();
+        self.data.bars.extend(map);
+    }
+
+    pub fn update_line_plots(&mut self, values: Vec<(u8, Vec<stypes::Point>)>) {
+        self.data.line_plots.clear();
+        self.data.line_plots.extend(values);
+    }
+
     pub fn render_content(
         &mut self,
-        data: &SessionDataState,
-        ui_state: &mut SessionUiState,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        if data.search.is_search_active() {
-            self.chart(data, ui_state, actions, ui);
+        if shared.search.is_search_active() {
+            self.chart(shared, actions, ui);
         } else {
             self.clear();
             Self::place_holder(ui);
         }
     }
 
-    fn chart(
-        &mut self,
-        data: &SessionDataState,
-        ui_state: &mut SessionUiState,
-        actions: &mut UiActions,
-        ui: &mut Ui,
-    ) {
+    fn chart(&mut self, shared: &mut SessionShared, actions: &mut UiActions, ui: &mut Ui) {
         //TODO AAZ: This should be handled in better way. Charts infos should be triggered
         //directly after finishing the search.
         if self.last_zoom_factor.is_none() {
             // Taken from current Chipmunk: Matches are divided by 2
             let dataset_len = (ui.available_width() / 2.0) as u16;
             let rng = None;
-            let chart_cmd = SessionCommand::GetChartMap {
+            let chart_cmd = SessionCommand::GetChartHistogram {
                 dataset_len,
                 range: rng.clone(),
             };
 
             actions.try_send_command(&self.cmd_tx, chart_cmd);
 
-            let values_cmd = SessionCommand::GetChartValues {
+            let values_cmd = SessionCommand::GetChartLinePlots {
                 dataset_len,
                 range: rng,
             };
@@ -80,18 +90,17 @@ impl ChartUI {
         // Ratio describes how many logs will be represented in one unit of
         // axe x on charts.
         let (ratio, offset) = if let Some(logs_rng) = &self.requested_logs_rng {
-            let ratio =
-                ((logs_rng.end() - logs_rng.start()) as f64) / data.charts.bars.len() as f64;
+            let ratio = ((logs_rng.end() - logs_rng.start()) as f64) / self.data.bars.len() as f64;
             let offset = *logs_rng.start() as f64;
             (ratio, offset)
         } else {
-            let ratio = data.logs_count as f64 / data.charts.bars.len() as f64;
+            let ratio = shared.logs.logs_count as f64 / self.data.bars.len() as f64;
             (ratio, 0.)
         };
 
         let chart = BarChart::new(
             "TODO: Search Name",
-            data.charts
+            self.data
                 .bars
                 .iter()
                 .enumerate()
@@ -108,9 +117,9 @@ impl ChartUI {
         .color(Color32::LIGHT_BLUE);
 
         // Function to convert value from x axis while ensuring it's in logs valid bound.
-        let convert_bounded = |x: f64| (x as u64).min(data.logs_count.saturating_sub(1));
+        let convert_bounded = |x: f64| (x as u64).min(shared.logs.logs_count.saturating_sub(1));
 
-        let plot_res = Plot::new(data.session_id)
+        let plot_res = Plot::new(shared.get_id())
             .legend(Legend::default())
             .clamp_grid(false)
             .allow_double_click_reset(false) // We are handling reset manually.
@@ -153,7 +162,7 @@ impl ChartUI {
                 {
                     // We need to reset X axis manually to show all logs span.
                     // Y axis can be reset manually since we are not modifying it manually.
-                    let logs_count = data.logs_count as f64;
+                    let logs_count = shared.logs.logs_count as f64;
                     let offset = logs_count * CHART_OFFSET;
                     plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
 
@@ -189,7 +198,7 @@ impl ChartUI {
                         // of the method. We need here to just assign it to the latest diff.
                         // TODO AAZ: Change this to handle loading in place. Also keep in mind
                         // filling out chart bars once a search is done automatically.
-                        if !data.charts.bars.is_empty() {
+                        if !self.data.bars.is_empty() {
                             self.last_zoom_factor = Some(zoom_factor);
                         }
                         None
@@ -200,8 +209,8 @@ impl ChartUI {
             });
 
         if let Some(log_nr) = plot_res.inner.jump_log {
-            ui_state.scroll_main_row = Some(log_nr);
-            actions.try_send_command(&self.cmd_tx, SessionCommand::SetSelectedLog(Some(log_nr)));
+            shared.logs.scroll_main_row = Some(log_nr);
+            actions.try_send_command(&self.cmd_tx, SessionCommand::GetSelectedLog(log_nr));
         }
 
         if let Some(bound_x) = plot_res.inner.bound_x
@@ -214,14 +223,14 @@ impl ChartUI {
 
             // Taken from current Chipmunk: Matches are divided by 2
             let dataset_len = (ui.available_width() / 2.0) as u16;
-            let chart_cmd = SessionCommand::GetChartMap {
+            let chart_cmd = SessionCommand::GetChartHistogram {
                 dataset_len,
                 range: Some(bound_x.clone()),
             };
 
             actions.try_send_command(&self.cmd_tx, chart_cmd);
 
-            let values_cmd = SessionCommand::GetChartValues {
+            let values_cmd = SessionCommand::GetChartLinePlots {
                 dataset_len,
                 range: Some(bound_x),
             };
@@ -235,10 +244,12 @@ impl ChartUI {
             cmd_tx: _,
             last_zoom_factor,
             requested_logs_rng,
+            data,
         } = self;
 
         *last_zoom_factor = None;
         *requested_logs_rng = None;
+        data.clear();
     }
 
     fn place_holder(ui: &mut Ui) {
