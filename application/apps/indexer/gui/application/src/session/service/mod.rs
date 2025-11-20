@@ -9,14 +9,14 @@ use stypes::{CallbackEvent, ObserveOptions};
 
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
-    host::{event::HostEvent, notification::AppNotification},
+    host::{message::HostMessage, notification::AppNotification},
     session::{
         InitSessionError,
         command::SessionBlockingCommand,
         communication::{ServiceBlockCommuniaction, ServiceSenders},
         data::ChartBar,
-        event::SessionEvent,
         info::SessionInfo,
+        message::SessionMessage,
     },
 };
 use operation_track::OperationTracker;
@@ -168,7 +168,7 @@ impl SessionService {
 
                 if let Some(nearest) = nearest.0 {
                     self.senders
-                        .send_session_event(SessionEvent::NearestPosition(nearest))
+                        .send_session_msg(SessionMessage::NearestPosition(nearest))
                         .await;
                 }
             }
@@ -250,7 +250,7 @@ impl SessionService {
                 self.session.stop(Uuid::new_v4()).await?;
 
                 self.senders
-                    .send_host_event(HostEvent::CloseSession {
+                    .send_host_message(HostMessage::SessionClosed {
                         session_id: self.session_id(),
                     })
                     .await;
