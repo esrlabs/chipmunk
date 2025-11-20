@@ -8,7 +8,7 @@ use crate::{
         InitSessionParams, SessionInfo,
         command::SessionCommand,
         communication::{UiHandle, UiReceivers},
-        event::SessionEvent,
+        message::SessionMessage,
     },
 };
 use bottom_panel::BottomPanelUI;
@@ -89,11 +89,11 @@ impl SessionUI {
         });
     }
 
-    /// Check incoming events and handle them.
-    pub fn handle_events(&mut self) {
-        while let Ok(event) = self.receivers.event_rx.try_recv() {
-            match event {
-                SessionEvent::NearestPosition(nearest_position) => {
+    /// Check incoming messages and handle them.
+    pub fn handle_messages(&mut self) {
+        while let Ok(msg) = self.receivers.message_rx.try_recv() {
+            match msg {
+                SessionMessage::NearestPosition(nearest_position) => {
                     self.ui_state.scroll_search_idx = Some(nearest_position.index);
                 }
             }
