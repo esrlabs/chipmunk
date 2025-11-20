@@ -29,9 +29,9 @@ impl ChipmunkApp {
                 let (ui_comm, service_comm) =
                     host::communication::init(ctx.egui_ctx.clone(), HostState::default());
 
-                HostService::spawn(service_comm);
+                let tokio_handle = HostService::spawn(service_comm);
 
-                let host = HostUI::new(ui_comm);
+                let host = HostUI::new(ui_comm, tokio_handle);
                 let mut app = Self { host };
 
                 app.host.handle_cli(cli_cmds);

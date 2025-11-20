@@ -1,17 +1,29 @@
 use std::path::PathBuf;
 
 use crate::host::notification::AppNotification;
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::{runtime::Handle, sync::mpsc, task::JoinHandle};
 
 /// A handle to be passed between UI components to get access to
 /// shared UI functions like notifications.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct UiActions {
+    /// Handle to the tokio runtime which is running on the services threads.
+    /// This is useful to bridge between the sync UI main thread and the async
+    /// services runtime
+    pub tokio_handle: Handle,
     pending_notifications: Vec<AppNotification>,
     file_dialog_handle: Option<JoinHandle<()>>,
 }
 
 impl UiActions {
+    pub fn new(tokio_handle: Handle) -> Self {
+        Self {
+            tokio_handle,
+            pending_notifications: Vec::new(),
+            file_dialog_handle: None,
+        }
+    }
+
     pub fn add_notification(&mut self, notifi: AppNotification) {
         self.pending_notifications.push(notifi);
     }
@@ -73,10 +85,10 @@ impl UiActions {
         // From rfd docs: We need to start the file picker from the main thread
         // which is a requirement on some operating systems and only then move
         // its handle to another thread to avoid blocking the UI.
-        let handle = rfd::AsyncFileDialog::new().pick_files();
+        let file_handle = rfd::AsyncFileDialog::new().pick_files();
 
-        let join_handle = tokio::spawn(async move {
-            if let Some(files) = handle.await {
+        let join_handle = self.tokio_handle.spawn(async move {
+            if let Some(files) = file_handle.await {
                 log::trace!("Open file dialog return with {files:?}");
 
                 if files.is_empty() {
