@@ -5,7 +5,7 @@ use tokio::runtime::Handle;
 
 use crate::{
     host::{
-        command::HostCommand, communication::ServiceHandle, error::HostError, event::HostEvent,
+        command::HostCommand, communication::ServiceHandle, error::HostError, message::HostMessage,
         notification::AppNotification,
     },
     session::{InitSessionError, init_session},
@@ -68,7 +68,7 @@ impl HostService {
                 // Do any preparation before closing.
                 self.communication
                     .senders
-                    .send_event(HostEvent::Close)
+                    .send_message(HostMessage::Shutdown)
                     .await;
             }
         }
@@ -94,7 +94,7 @@ impl HostService {
 
         self.communication
             .senders
-            .send_event(HostEvent::CreateSession(session_info))
+            .send_message(HostMessage::SessionCreated(session_info))
             .await;
 
         //TODO AAZ: Remove after prototyping.
