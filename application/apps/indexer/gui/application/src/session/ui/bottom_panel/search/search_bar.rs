@@ -8,7 +8,7 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, data::SessionDataState},
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
 
 #[derive(Debug, Clone)]
@@ -34,7 +34,7 @@ impl SearchBar {
     }
     pub fn render_content(
         &mut self,
-        data: &SessionDataState,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -54,7 +54,7 @@ impl SearchBar {
             && self.query.is_empty()
             && let Some(mut filter) = self.temp_filter.take()
         {
-            self.drop_search(data, actions);
+            self.drop_search(shared, actions);
             if command_modifier {
                 false
             } else {
@@ -69,7 +69,7 @@ impl SearchBar {
         // Apply temp filter on pressing enter.
         if enter_pressed && !self.query.is_empty() {
             if self.temp_filter.is_some() {
-                self.drop_search(data, actions);
+                self.drop_search(shared, actions);
             }
 
             let filter = SearchFilter::new(
@@ -81,6 +81,7 @@ impl SearchBar {
 
             let cmd = SessionCommand::ApplySearchFilter(vec![filter.clone()]);
             if actions.try_send_command(&self.cmd_tx, cmd) {
+                shared.search.activate();
                 self.temp_filter = Some(filter);
             }
         }
@@ -92,7 +93,7 @@ impl SearchBar {
             vec2(ui.available_width(), 25.),
             Layout::right_to_left(Align::Center),
             |ui| {
-                self.render_filter_status(data, ui);
+                self.render_filter_status(shared, ui);
 
                 ui.toggle_value(&mut self.is_regex, "Regex")
                     .on_hover_text("Use Regex Expression");
@@ -113,7 +114,7 @@ impl SearchBar {
                             .fill(ui.visuals().extreme_bg_color)
                             .stroke(Self::text_frame_stroke(ui, text_id))
                             .show(ui, |ui| {
-                                self.render_temp_filter(data, actions, ui);
+                                self.render_temp_filter(shared, actions, ui);
 
                                 let mut text_output = TextEdit::singleline(&mut self.query)
                                     .id(text_id)
@@ -139,7 +140,7 @@ impl SearchBar {
     /// Renders temp filter if exists inside input frame.
     fn render_temp_filter(
         &mut self,
-        data: &SessionDataState,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
@@ -180,7 +181,7 @@ impl SearchBar {
                             .on_hover_text("Remove filter")
                             .clicked()
                         {
-                            self.drop_search(data, actions);
+                            self.drop_search(shared, actions);
                         } else {
                             self.temp_filter = Some(filter);
                         }
@@ -203,21 +204,22 @@ impl SearchBar {
         }
     }
 
-    fn render_filter_status(&mut self, data: &SessionDataState, ui: &mut Ui) {
-        if !data.search.is_search_active() || data.logs_count == 0 {
+    fn render_filter_status(&mut self, shared: &SessionShared, ui: &mut Ui) {
+        let logs_count = shared.logs.logs_count;
+        if !shared.search.is_search_active() || logs_count == 0 {
             return;
         }
 
         ui.horizontal_centered(|ui| {
-            let percentage = data.search.search_count as f32 / data.logs_count as f32 * 100.;
+            let percentage = shared.search.total_count as f32 / logs_count as f32 * 100.;
 
             let state_txt = format!(
                 "{}/{} ({percentage:.2}%)",
-                data.search.search_count, data.logs_count,
+                shared.search.total_count, logs_count,
             );
             Label::new(state_txt).selectable(false).ui(ui);
 
-            if data.search.current_matches_map().is_none() {
+            if shared.search.current_matches_map().is_none() {
                 ui.spinner();
             }
         });
@@ -225,8 +227,8 @@ impl SearchBar {
         ui.separator();
     }
 
-    fn drop_search(&self, data: &SessionDataState, actions: &mut UiActions) {
+    fn drop_search(&self, shared: &mut SessionShared, actions: &mut UiActions) {
         actions.try_send_command(&self.cmd_tx, SessionCommand::DropSearch);
-        data.search.deactivate();
+        shared.search.drop_search();
     }
 }
