@@ -3,7 +3,7 @@ use egui::vec2;
 
 use crate::{
     cli::CliCommand,
-    host::{self, data::HostState, service::HostService, ui::HostUI},
+    host::{self, service::HostService, ui::HostUI},
 };
 
 const APP_TITLE: &str = "Chipmunk";
@@ -26,8 +26,7 @@ impl ChipmunkApp {
             APP_TITLE,
             native_options,
             Box::new(|ctx| {
-                let (ui_comm, service_comm) =
-                    host::communication::init(ctx.egui_ctx.clone(), HostState::default());
+                let (ui_comm, service_comm) = host::communication::init(ctx.egui_ctx.clone());
 
                 let tokio_handle = HostService::spawn(service_comm);
 

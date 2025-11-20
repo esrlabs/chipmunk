@@ -3,11 +3,11 @@ use uuid::Uuid;
 
 use crate::{
     comm_utls::evaluate_send_res,
-    host::{event::HostEvent, notification::AppNotification},
+    host::{message::HostMessage, notification::AppNotification},
     session::{
         command::{SessionBlockingCommand, SessionCommand},
         data::SessionDataState,
-        event::SessionEvent,
+        message::SessionMessage,
     },
 };
 
@@ -17,19 +17,19 @@ const CHANNELS_CAPACITY: usize = 32;
 /// communication members.
 #[derive(Debug)]
 pub struct SharedSenders {
-    host_event_tx: mpsc::Sender<HostEvent>,
+    host_message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,
     egui_ctx: egui::Context,
 }
 
 impl SharedSenders {
     pub fn new(
-        host_event_tx: mpsc::Sender<HostEvent>,
+        host_message_tx: mpsc::Sender<HostMessage>,
         notification_tx: mpsc::Sender<AppNotification>,
         egui_ctx: egui::Context,
     ) -> Self {
         Self {
-            host_event_tx,
+            host_message_tx,
             notification_tx,
             egui_ctx,
         }
@@ -51,7 +51,7 @@ pub struct UiSenders {
 
 #[derive(Debug)]
 pub struct UiReceivers {
-    pub event_rx: mpsc::Receiver<SessionEvent>,
+    pub message_rx: mpsc::Receiver<SessionMessage>,
     pub session_state_rx: watch::Receiver<SessionDataState>,
 }
 
@@ -63,36 +63,35 @@ pub struct ServiceHandle {
     pub block_communication: ServiceBlockCommuniaction,
 }
 
-/// Provide functions to send event and update session state and waking up
-/// the UI on each change
+/// Provide functions to send session messages and waking up the UI on them.
 #[derive(Debug)]
 pub struct ServiceSenders {
-    session_event_tx: mpsc::Sender<SessionEvent>,
-    host_event_tx: mpsc::Sender<HostEvent>,
+    session_msg_tx: mpsc::Sender<SessionMessage>,
+    host_message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,
     session_state_tx: watch::Sender<SessionDataState>,
     egui_ctx: egui::Context,
 }
 
 impl ServiceSenders {
-    /// Send session event to the session UI and wake it up.
+    /// Send session message to the session UI and wake it up.
     ///
     /// # Return
-    /// Returns `true` if the event is sent successfully. On send errors
+    /// Returns `true` if the message is sent successfully. On send errors
     /// it will log the error and return `false`.
-    pub async fn send_session_event(&self, event: SessionEvent) -> bool {
-        let res = self.session_event_tx.send(event).await;
+    pub async fn send_session_msg(&self, msg: SessionMessage) -> bool {
+        let res = self.session_msg_tx.send(msg).await;
 
         evaluate_send_res(&self.egui_ctx, res)
     }
 
-    /// Send host event to the host UI and wake it up.
+    /// Send host message to the host UI and wake it up.
     ///
     /// # Return
-    /// Returns `true` if the event is sent successfully. On send errors
+    /// Returns `true` if the message is sent successfully. On send errors
     /// it will log the error and return `false`.
-    pub async fn send_host_event(&self, event: HostEvent) -> bool {
-        let res = self.host_event_tx.send(event).await;
+    pub async fn send_host_message(&self, message: HostMessage) -> bool {
+        let res = self.host_message_tx.send(message).await;
 
         evaluate_send_res(&self.egui_ctx, res)
     }
@@ -151,7 +150,7 @@ pub struct SessionCommunication {
 pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (block_cmd_tx, block_cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (session_event_tx, session_event_rx) = mpsc::channel(CHANNELS_CAPACITY);
+    let (session_msg_tx, session_msg_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_state_tx, session_state_rx) = watch::channel(SessionDataState::new(session_id));
 
     let ui_senders = UiSenders {
@@ -160,7 +159,7 @@ pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, Servi
     };
 
     let ui_receivers = UiReceivers {
-        event_rx: session_event_rx,
+        message_rx: session_msg_rx,
         session_state_rx,
     };
 
@@ -170,14 +169,14 @@ pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, Servi
     };
 
     let SharedSenders {
-        host_event_tx,
+        host_message_tx,
         notification_tx,
         egui_ctx,
     } = shared_senders;
 
     let service_senders = ServiceSenders {
-        session_event_tx,
-        host_event_tx,
+        session_msg_tx,
+        host_message_tx,
         notification_tx: notification_tx.clone(),
         session_state_tx,
         egui_ctx: egui_ctx.clone(),
