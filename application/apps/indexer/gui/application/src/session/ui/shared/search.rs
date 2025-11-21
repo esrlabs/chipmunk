@@ -28,7 +28,7 @@ impl SearchState {
         self.is_active
     }
 
-    pub fn drop_search(&mut self) {
+    pub(super) fn drop_search(&mut self) {
         self.is_active = false;
 
         let Self {

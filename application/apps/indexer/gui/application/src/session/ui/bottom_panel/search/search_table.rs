@@ -70,8 +70,6 @@ impl SearchTable {
         table.show(ui, &mut delegate);
     }
 
-    //TODO AAZ: Check if calling the function like this still make sense
-    //after having the whole data state in UI part.
     pub fn clear(&mut self) {
         let Self {
             cmd_tx: _,
@@ -80,11 +78,9 @@ impl SearchTable {
             scroll_nearest_pos,
         } = self;
 
-        if last_visible_rows.is_some() {
-            *last_visible_rows = None;
-            indexed_logs.clear();
-            *scroll_nearest_pos = None;
-        }
+        *last_visible_rows = None;
+        indexed_logs.clear();
+        *scroll_nearest_pos = None;
     }
 
     fn text_columns() -> Vec<Column> {
