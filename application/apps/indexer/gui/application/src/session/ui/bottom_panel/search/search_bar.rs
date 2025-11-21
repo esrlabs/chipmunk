@@ -8,7 +8,10 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        ui::shared::{SessionShared, SessionSignal},
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -229,6 +232,6 @@ impl SearchBar {
 
     fn drop_search(&self, shared: &mut SessionShared, actions: &mut UiActions) {
         actions.try_send_command(&self.cmd_tx, SessionCommand::DropSearch);
-        shared.search.drop_search();
+        shared.drop_search();
     }
 }
