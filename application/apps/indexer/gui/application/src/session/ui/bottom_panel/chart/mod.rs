@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
+use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget, emath::Float};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 use tokio::sync::mpsc::Sender;
 
@@ -27,10 +27,11 @@ pub struct ChartUI {
     pending_reset: bool,
 }
 
-#[derive(Debug)]
-struct InnerResponse {
-    jump_log: Option<u64>,
-    bound_x: Option<RangeInclusive<u64>>,
+#[derive(Debug, Clone)]
+enum PlotResponse {
+    JumpToLog(u64),
+    RequestForRange(RangeInclusive<u64>),
+    None,
 }
 
 impl ChartUI {
@@ -121,7 +122,7 @@ impl ChartUI {
                 // Show positive numbers only and don't break alignment when when
                 // scrolling from 99 to 100
                 if mark.value.is_sign_positive() {
-                    format!("{:03}", mark.value as u64)
+                    format!("{:03}", mark.value.round() as u64)
                 } else {
                     String::new()
                 }
@@ -129,7 +130,7 @@ impl ChartUI {
             .x_axis_formatter(|mark, _rng| {
                 // Show positive log numbers only.
                 if mark.value.is_sign_positive() {
-                    format!("{}", mark.value as u64)
+                    format!("{}", mark.value.round() as u64)
                 } else {
                     String::new()
                 }
@@ -158,81 +159,96 @@ impl ChartUI {
             }
 
             if shared.search.total_count == 0 {
-                return InnerResponse {
-                    jump_log: None,
-                    bound_x: None,
-                };
+                return PlotResponse::None;
             }
 
-            let jump_log = plot_ui
-                .response()
-                .clicked()
-                .then(|| plot_ui.pointer_coordinate())
-                .flatten()
-                .map(|point| convert_bounded(point.x));
+            if plot_ui.response().clicked()
+                && let Some(point) = plot_ui.pointer_coordinate()
+            {
+                let log = convert_bounded(point.x.round());
+                return PlotResponse::JumpToLog(log);
+            }
 
             let bounds = plot_ui.plot_bounds();
+
+            let mut bounds_x = {
+                let min_x = bounds.min()[0] as u64;
+                let max_x = convert_bounded(bounds.max()[0]);
+                min_x..=max_x
+            };
+
+            if self
+                .requested_logs_rng
+                .as_ref()
+                .is_some_and(|b| &bounds_x == b)
+            {
+                return PlotResponse::None;
+            }
+
             // We consider the diff on x axis as the zoom factor
             let zoom_factor = (bounds.max()[0] - bounds.min()[0]) as u64;
 
-            let bound_x = match self.last_zoom_factor {
+            match self.last_zoom_factor {
                 Some(last_diff) => {
                     // Don't change logs for zoom change which is less than 2000 logs.
                     // TODO AAZ: Test this with multiple file sizes, and different machines.
                     if last_diff.abs_diff(zoom_factor) > 2000 {
                         self.last_zoom_factor = Some(zoom_factor);
-                        let min_x = bounds.min()[0] as u64;
-                        let max_x = convert_bounded(bounds.max()[0]);
-                        Some(min_x..=max_x)
-                    } else {
-                        None
+                        return PlotResponse::RequestForRange(bounds_x);
                     }
                 }
                 None => {
                     if !self.data.bars.is_empty() || !self.data.line_plots.is_empty() {
                         // This is the first frame after loading chart data => Assign only
                         self.last_zoom_factor = Some(zoom_factor);
-                        None
                     } else {
                         // This indicates that this is the first render frame after having
                         // search results => Request for all items.
-                        Some(0..=shared.logs.logs_count.saturating_sub(1))
+                        bounds_x = 0..=shared.logs.logs_count.saturating_sub(1);
+                        return PlotResponse::RequestForRange(bounds_x);
                     }
                 }
             };
 
-            InnerResponse { jump_log, bound_x }
+            // Check for scroll and drag changes.
+            const STEP: u64 = 50;
+
+            if self.requested_logs_rng.as_ref().is_some_and(|r| {
+                r.end().abs_diff(*bounds_x.end()) > STEP
+                    && r.start().abs_diff(*bounds_x.start()) > STEP
+            }) {
+                return PlotResponse::RequestForRange(bounds_x);
+            }
+
+            PlotResponse::None
         });
 
-        if let Some(log_nr) = plot_res.inner.jump_log {
-            shared.logs.scroll_main_row = Some(log_nr);
-            actions.try_send_command(&self.cmd_tx, SessionCommand::GetSelectedLog(log_nr));
-        }
+        match plot_res.inner {
+            PlotResponse::JumpToLog(log_nr) => {
+                shared.logs.scroll_main_row = Some(log_nr);
+                actions.try_send_command(&self.cmd_tx, SessionCommand::GetSelectedLog(log_nr));
+            }
+            PlotResponse::RequestForRange(bound_x) => {
+                self.requested_logs_rng = Some(bound_x.clone());
 
-        if let Some(bound_x) = plot_res.inner.bound_x
-            && self
-                .requested_logs_rng
-                .as_ref()
-                .is_none_or(|b| &bound_x != b)
-        {
-            self.requested_logs_rng = Some(bound_x.clone());
+                // Taken from current Chipmunk: Matches are divided by 2
+                let dataset_len = (ui.available_width() / 2.0) as u16;
+                let chart_cmd = SessionCommand::GetChartHistogram {
+                    dataset_len,
+                    range: Some(bound_x.clone()),
+                };
 
-            // Taken from current Chipmunk: Matches are divided by 2
-            let dataset_len = (ui.available_width() / 2.0) as u16;
-            let chart_cmd = SessionCommand::GetChartHistogram {
-                dataset_len,
-                range: Some(bound_x.clone()),
-            };
+                actions.try_send_command(&self.cmd_tx, chart_cmd);
 
-            actions.try_send_command(&self.cmd_tx, chart_cmd);
+                let dataset_len = ui.available_width() as u16;
+                let values_cmd = SessionCommand::GetChartLinePlots {
+                    dataset_len,
+                    range: Some(bound_x),
+                };
 
-            let dataset_len = ui.available_width() as u16;
-            let values_cmd = SessionCommand::GetChartLinePlots {
-                dataset_len,
-                range: Some(bound_x),
-            };
-
-            actions.try_send_command(&self.cmd_tx, values_cmd);
+                actions.try_send_command(&self.cmd_tx, values_cmd);
+            }
+            PlotResponse::None => {}
         }
     }
 
