@@ -8,11 +8,8 @@ use stypes::NearestPosition;
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
-    host::ui::UiActions,
-    session::{
-        command::{SessionBlockingCommand, SessionCommand},
-        ui::shared::SessionShared,
-    },
+    host::{notification::AppNotification, ui::UiActions},
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
 
 use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
@@ -20,7 +17,6 @@ use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
 #[derive(Debug)]
 pub struct SearchTable {
     cmd_tx: Sender<SessionCommand>,
-    block_cmd_tx: Sender<SessionBlockingCommand>,
     last_visible_rows: Option<Range<u64>>,
     indexed_logs: IndexedMapped,
     /// The index of the log in search table to make the table scroll
@@ -29,13 +25,9 @@ pub struct SearchTable {
 }
 
 impl SearchTable {
-    pub fn new(
-        cmd_tx: Sender<SessionCommand>,
-        block_cmd_tx: Sender<SessionBlockingCommand>,
-    ) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
             cmd_tx,
-            block_cmd_tx,
             last_visible_rows: None,
             indexed_logs: IndexedMapped::default(),
             scroll_nearest_pos: None,
@@ -83,7 +75,6 @@ impl SearchTable {
     pub fn clear(&mut self) {
         let Self {
             cmd_tx: _,
-            block_cmd_tx: _,
             last_visible_rows,
             indexed_logs,
             scroll_nearest_pos,
@@ -132,19 +123,31 @@ impl TableDelegate for LogsDelegate<'_> {
         let rng = visible_rows.start..=visible_rows.end.saturating_sub(1);
 
         let (elems_tx, elems_rx) = oneshot::channel();
-        let cmd = SessionBlockingCommand::GrabIndexedLines {
+        let cmd = SessionCommand::GrabIndexedLinesBlocking {
             range: rng.clone(),
             sender: elems_tx,
         };
 
-        if self.table.block_cmd_tx.blocking_send(cmd).is_err() {
+        if self.table.cmd_tx.blocking_send(cmd).is_err() {
             log::error!("Communication error while sending grab commmand.");
             return;
         }
 
         if let Ok(elements) = elems_rx.blocking_recv() {
-            let combined = rng.map(SearchTableIndex).zip(elements);
-            self.table.indexed_logs.append(combined);
+            match elements {
+                Ok(elements) => {
+                    let combined = rng.map(SearchTableIndex).zip(elements);
+                    self.table.indexed_logs.append(combined);
+                }
+                Err(error) => {
+                    let session_id = self.shared.get_id();
+                    log::error!("Session Error: Session ID: {session_id}, error: {error}");
+
+                    let notifi = AppNotification::SessionError { session_id, error };
+
+                    self.actions.add_notification(notifi);
+                }
+            }
         }
     }
 

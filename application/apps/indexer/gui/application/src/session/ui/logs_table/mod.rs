@@ -6,9 +6,9 @@ use processor::grabber::LineRange;
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
-    host::ui::UiActions,
+    host::{notification::AppNotification, ui::UiActions},
     session::{
-        command::{SessionBlockingCommand, SessionCommand},
+        command::SessionCommand,
         ui::{
             bottom_panel::BottomTabType,
             shared::{LogMainIndex, SessionShared},
@@ -24,18 +24,13 @@ mod logs_mapped;
 pub struct LogsTable {
     logs: LogsMapped,
     last_visible_rows: Option<Range<u64>>,
-    block_cmd_tx: Sender<SessionBlockingCommand>,
     cmd_tx: Sender<SessionCommand>,
 }
 
 impl LogsTable {
-    pub fn new(
-        cmd_tx: Sender<SessionCommand>,
-        block_cmd_tx: Sender<SessionBlockingCommand>,
-    ) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
             cmd_tx,
-            block_cmd_tx,
             last_visible_rows: Default::default(),
             logs: LogsMapped::default(),
         }
@@ -102,18 +97,28 @@ impl TableDelegate for LogsDelegate<'_> {
         let range = LineRange::from(visible_rows.start..=visible_rows.end.saturating_sub(1));
 
         let (elems_tx, elems_rx) = oneshot::channel();
-        let cmd = SessionBlockingCommand::GrabLines {
+        let cmd = SessionCommand::GrabLinesBlocking {
             range,
             sender: elems_tx,
         };
 
-        if self.table.block_cmd_tx.blocking_send(cmd).is_err() {
+        if self.table.cmd_tx.blocking_send(cmd).is_err() {
             log::warn!("Communication error while sending grab commmand.");
             return;
         };
 
         if let Ok(elements) = elems_rx.blocking_recv() {
-            self.table.logs.append(elements);
+            match elements {
+                Ok(elements) => self.table.logs.append(elements),
+                Err(error) => {
+                    let session_id = self.shared.get_id();
+                    log::error!("Session Error: Session ID: {session_id}, error: {error}");
+
+                    let notifi = AppNotification::SessionError { session_id, error };
+
+                    self.actions.add_notification(notifi);
+                }
+            }
         }
     }
 
