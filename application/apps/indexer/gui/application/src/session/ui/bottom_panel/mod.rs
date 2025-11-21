@@ -4,10 +4,7 @@ use egui::{Frame, Margin, Ui};
 
 use crate::{
     host::ui::UiActions,
-    session::{
-        command::{SessionBlockingCommand, SessionCommand},
-        ui::shared::SessionShared,
-    },
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
 use chart::ChartUI;
 use details::DetailsUI;
@@ -32,12 +29,9 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
-    pub fn new(
-        cmd_tx: Sender<SessionCommand>,
-        block_cmd_tx: Sender<SessionBlockingCommand>,
-    ) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
-            search: SearchUI::new(cmd_tx.clone(), block_cmd_tx),
+            search: SearchUI::new(cmd_tx.clone()),
             details: DetailsUI::default(),
             presets: PresetsUI::default(),
             chart: ChartUI::new(cmd_tx),
