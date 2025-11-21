@@ -102,7 +102,7 @@ impl SessionUI {
             match event {
                 SessionSignal::SearchDropped => {
                     self.bottom_panel.search.table.clear();
-                    self.bottom_panel.chart.clear();
+                    self.bottom_panel.chart.reset();
                 }
             }
         }
