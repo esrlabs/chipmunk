@@ -23,6 +23,8 @@ pub struct ChartUI {
     last_zoom_factor: Option<u64>,
     /// Last requested logs range.
     requested_logs_rng: Option<RangeInclusive<u64>>,
+    /// Indicate the plot should be reset on next frame.
+    pending_reset: bool,
 }
 
 #[derive(Debug)]
@@ -38,6 +40,7 @@ impl ChartUI {
             data: Default::default(),
             last_zoom_factor: None,
             requested_logs_rng: None,
+            pending_reset: false,
         }
     }
 
@@ -66,26 +69,6 @@ impl ChartUI {
     }
 
     fn chart(&mut self, shared: &mut SessionShared, actions: &mut UiActions, ui: &mut Ui) {
-        //TODO AAZ: This should be handled in better way. Charts infos should be triggered
-        //directly after finishing the search.
-        if self.last_zoom_factor.is_none() {
-            // Taken from current Chipmunk: Matches are divided by 2
-            let dataset_len = (ui.available_width() / 2.0) as u16;
-            let rng = None;
-            let chart_cmd = SessionCommand::GetChartHistogram {
-                dataset_len,
-                range: rng.clone(),
-            };
-
-            actions.try_send_command(&self.cmd_tx, chart_cmd);
-
-            let values_cmd = SessionCommand::GetChartLinePlots {
-                dataset_len,
-                range: rng,
-            };
-            actions.try_send_command(&self.cmd_tx, values_cmd);
-        }
-
         // Ratio describes how many logs will be represented in one unit of
         // axe x on charts.
         let (ratio, offset) = if let Some(logs_rng) = &self.requested_logs_rng {
@@ -118,7 +101,7 @@ impl ChartUI {
         // Function to convert value from x axis while ensuring it's in logs valid bound.
         let convert_bounded = |x: f64| (x as u64).min(shared.logs.logs_count.saturating_sub(1));
 
-        let plot_res = Plot::new(shared.get_id())
+        let mut plot = Plot::new(shared.get_id())
             .legend(Legend::default())
             .clamp_grid(false)
             .allow_double_click_reset(false) // We are handling reset manually.
@@ -150,62 +133,76 @@ impl ChartUI {
                 } else {
                     String::new()
                 }
-            })
-            .show(ui, |plot_ui| {
-                plot_ui.bar_chart(chart);
+            });
 
-                // Reset chart on secondary double click.
-                if plot_ui
-                    .response()
-                    .double_clicked_by(egui::PointerButton::Secondary)
-                {
-                    // We need to reset X axis manually to show all logs span.
-                    // Y axis can be reset manually since we are not modifying it manually.
-                    let logs_count = shared.logs.logs_count as f64;
-                    let offset = logs_count * CHART_OFFSET;
-                    plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
+        if self.pending_reset {
+            self.pending_reset = false;
+            plot = plot.reset();
+        }
 
-                    plot_ui.set_auto_bounds([false, true]);
-                }
+        let plot_res = plot.show(ui, |plot_ui| {
+            plot_ui.bar_chart(chart);
 
-                let jump_log = plot_ui
-                    .response()
-                    .clicked()
-                    .then(|| plot_ui.pointer_coordinate())
-                    .flatten()
-                    .map(|point| convert_bounded(point.x));
+            // Reset chart on secondary double click.
+            if plot_ui
+                .response()
+                .double_clicked_by(egui::PointerButton::Secondary)
+            {
+                // We need to reset X axis manually to show all logs span.
+                // Y axis can be reset manually since we are not modifying it manually.
+                let logs_count = shared.logs.logs_count as f64;
+                let offset = logs_count * CHART_OFFSET;
+                plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
 
-                let bounds = plot_ui.plot_bounds();
-                // We consider the diff on x axis as the zoom factor
-                let zoom_factor = (bounds.max()[0] - bounds.min()[0]) as u64;
+                plot_ui.set_auto_bounds([false, true]);
+            }
 
-                let bound_x = match self.last_zoom_factor {
-                    Some(last_diff) => {
-                        // Don't change logs for zoom change which is less than 2000 logs.
-                        // TODO AAZ: Test this with multiple file sizes, and different machines.
-                        if last_diff.abs_diff(zoom_factor) > 2000 {
-                            self.last_zoom_factor = Some(zoom_factor);
-                            let min_x = bounds.min()[0] as u64;
-                            let max_x = convert_bounded(bounds.max()[0]);
-                            Some(min_x..=max_x)
-                        } else {
-                            None
-                        }
-                    }
-                    None => {
-                        // We are calling for load when we don't have last diff at the beginning
-                        // of the method. We need here to just assign it to the latest diff.
-                        // TODO AAZ: Change this to handle loading in place. Also keep in mind
-                        // filling out chart bars once a search is done automatically.
-                        if !self.data.bars.is_empty() {
-                            self.last_zoom_factor = Some(zoom_factor);
-                        }
+            if shared.search.total_count == 0 {
+                return InnerResponse {
+                    jump_log: None,
+                    bound_x: None,
+                };
+            }
+
+            let jump_log = plot_ui
+                .response()
+                .clicked()
+                .then(|| plot_ui.pointer_coordinate())
+                .flatten()
+                .map(|point| convert_bounded(point.x));
+
+            let bounds = plot_ui.plot_bounds();
+            // We consider the diff on x axis as the zoom factor
+            let zoom_factor = (bounds.max()[0] - bounds.min()[0]) as u64;
+
+            let bound_x = match self.last_zoom_factor {
+                Some(last_diff) => {
+                    // Don't change logs for zoom change which is less than 2000 logs.
+                    // TODO AAZ: Test this with multiple file sizes, and different machines.
+                    if last_diff.abs_diff(zoom_factor) > 2000 {
+                        self.last_zoom_factor = Some(zoom_factor);
+                        let min_x = bounds.min()[0] as u64;
+                        let max_x = convert_bounded(bounds.max()[0]);
+                        Some(min_x..=max_x)
+                    } else {
                         None
                     }
-                };
+                }
+                None => {
+                    if !self.data.bars.is_empty() || !self.data.line_plots.is_empty() {
+                        // This is the first frame after loading chart data => Assign only
+                        self.last_zoom_factor = Some(zoom_factor);
+                        None
+                    } else {
+                        // This indicates that this is the first render frame after having
+                        // search results => Request for all items.
+                        Some(0..=shared.logs.logs_count.saturating_sub(1))
+                    }
+                }
+            };
 
-                InnerResponse { jump_log, bound_x }
-            });
+            InnerResponse { jump_log, bound_x }
+        });
 
         if let Some(log_nr) = plot_res.inner.jump_log {
             shared.logs.scroll_main_row = Some(log_nr);
@@ -229,6 +226,7 @@ impl ChartUI {
 
             actions.try_send_command(&self.cmd_tx, chart_cmd);
 
+            let dataset_len = ui.available_width() as u16;
             let values_cmd = SessionCommand::GetChartLinePlots {
                 dataset_len,
                 range: Some(bound_x),
@@ -238,16 +236,18 @@ impl ChartUI {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn reset(&mut self) {
         let Self {
             cmd_tx: _,
             last_zoom_factor,
             requested_logs_rng,
+            pending_reset,
             data,
         } = self;
 
         *last_zoom_factor = None;
         *requested_logs_rng = None;
+        *pending_reset = true;
         data.clear();
     }
 
