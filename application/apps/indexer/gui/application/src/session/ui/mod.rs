@@ -10,6 +10,7 @@ use crate::{
         communication::{UiHandle, UiReceivers},
         error::SessionError,
         message::SessionMessage,
+        ui::shared::SessionSignal,
     },
 };
 use bottom_panel::BottomPanelUI;
@@ -66,6 +67,11 @@ impl SessionUI {
             ..
         } = self;
 
+        debug_assert!(
+            shared.signals.is_empty(),
+            "Signals leaked from previous frame."
+        );
+
         TopBottomPanel::bottom("status_bar").show_inside(ui, |ui| {
             status_bar::render_content(shared, ui);
         });
@@ -87,6 +93,19 @@ impl SessionUI {
                 logs_table.render_content(shared, actions, ui);
             });
         });
+
+        self.handle_signals();
+    }
+
+    fn handle_signals(&mut self) {
+        for event in self.shared.signals.drain(..) {
+            match event {
+                SessionSignal::SearchDropped => {
+                    self.bottom_panel.search.table.clear();
+                    self.bottom_panel.chart.clear();
+                }
+            }
+        }
     }
 
     /// Check incoming messages and handle them.
