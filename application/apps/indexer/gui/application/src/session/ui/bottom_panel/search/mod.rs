@@ -42,8 +42,6 @@ impl SearchUI {
             ui.push_id(shared.get_id(), |ui| {
                 self.table.render_content(shared, actions, ui);
             });
-        } else {
-            self.table.clear();
         }
     }
 }
