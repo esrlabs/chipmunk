@@ -13,8 +13,7 @@ use crate::{
     host::{message::HostMessage, notification::AppNotification},
     session::{
         InitSessionError,
-        command::SessionBlockingCommand,
-        communication::{ServiceBlockCommuniaction, ServiceSenders},
+        communication::ServiceSenders,
         message::SessionMessage,
         ui::{SessionInfo, chart::ChartBar},
     },
@@ -45,11 +44,7 @@ impl SessionService {
 
         session.observe(Uuid::new_v4(), options)?;
 
-        let ServiceHandle {
-            cmd_rx,
-            block_communication,
-            senders,
-        } = communication;
+        let ServiceHandle { cmd_rx, senders } = communication;
 
         let session = Arc::new(session);
 
@@ -63,13 +58,6 @@ impl SessionService {
 
         tokio::spawn(async move {
             service.run().await;
-        });
-
-        // We need to spawn a separate task to handle blocking commands because
-        // those commands will be sent and should be handled in same UI frame
-        // rendering routine.
-        tokio::task::spawn(async {
-            Self::handle_blocking_cmds(session, block_communication).await;
         });
 
         Ok(session_info)
@@ -122,6 +110,44 @@ impl SessionService {
 
     async fn handle_command(&mut self, cmd: SessionCommand) -> Result<(), SessionError> {
         match cmd {
+            SessionCommand::GrabLinesBlocking { range, sender } => {
+                let elements = self
+                    .session
+                    .grab(range)
+                    .await
+                    .map(|e| e.0)
+                    .map_err(SessionError::from);
+
+                if sender.send(elements).is_err() {
+                    log::error!("Communication error while sending grabbed lines");
+
+                    let notifi = AppNotification::SessionError {
+                        session_id: self.session.get_uuid(),
+                        error: ComputationError::Communication("Sending log lines failed".into())
+                            .into(),
+                    };
+                    self.senders.send_notification(notifi).await;
+                }
+            }
+            SessionCommand::GrabIndexedLinesBlocking { range, sender } => {
+                let elements = self
+                    .session
+                    .grab_indexed(range.clone())
+                    .await
+                    .map(|e| e.0)
+                    .map_err(SessionError::from);
+
+                if sender.send(elements).is_err() {
+                    log::error!("Communication error while sending grabbed indexed lines");
+
+                    let notifi = AppNotification::SessionError {
+                        session_id: self.session.get_uuid(),
+                        error: ComputationError::Communication("Sending log lines failed".into())
+                            .into(),
+                    };
+                    self.senders.send_notification(notifi).await;
+                }
+            }
             SessionCommand::ApplySearchFilter(search_filters) => {
                 let op_id = Uuid::new_v4();
                 debug_assert!(
@@ -277,58 +303,5 @@ impl SessionService {
         }
 
         Ok(())
-    }
-
-    async fn handle_blocking_cmds(
-        session: Arc<Session>,
-        mut block_communication: ServiceBlockCommuniaction,
-    ) {
-        while let Some(cmd) = block_communication.block_cmd_rx.recv().await {
-            match cmd {
-                SessionBlockingCommand::GrabLines { range, sender } => {
-                    match session.grab(range).await {
-                        Ok(elements) => {
-                            if sender.send(elements.0).is_err() {
-                                log::error!("Communication error while sending grabbed lines");
-                            }
-                        }
-                        Err(err) => {
-                            log::error!("Grab error: {err:?}");
-
-                            let notifi = AppNotification::SessionError {
-                                session_id: session.get_uuid(),
-                                error: err.into(),
-                            };
-                            block_communication.send_notification(notifi).await;
-                        }
-                    };
-                }
-                SessionBlockingCommand::GrabIndexedLines { range, sender } => {
-                    match session.grab_indexed(range.clone()).await {
-                        Ok(elements) => {
-                            if sender.send(elements.0).is_err() {
-                                log::error!(
-                                    "Communication error while sending grabbed indexed lines"
-                                );
-                            }
-                        }
-                        Err(err) => {
-                            log::error!("Indexed Grab Error: {err}");
-                            let notifi = AppNotification::SessionError {
-                                session_id: session.get_uuid(),
-                                error: err.into(),
-                            };
-                            block_communication.send_notification(notifi).await;
-                        }
-                    }
-                }
-            }
-        }
-
-        //TODO AAZ: Keep this to make sure that session are dropped.
-        println!(
-            "****** DEBUG: Session Service {} has been dropped from blocking task",
-            session.get_uuid()
-        );
     }
 }

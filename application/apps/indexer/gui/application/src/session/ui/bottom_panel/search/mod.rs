@@ -4,10 +4,7 @@ use egui::Ui;
 
 use crate::{
     host::ui::UiActions,
-    session::{
-        command::{SessionBlockingCommand, SessionCommand},
-        ui::shared::SessionShared,
-    },
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
 
 use search_bar::SearchBar;
@@ -24,13 +21,10 @@ pub struct SearchUI {
 }
 
 impl SearchUI {
-    pub fn new(
-        cmd_tx: Sender<SessionCommand>,
-        block_cmd_tx: Sender<SessionBlockingCommand>,
-    ) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
             bar: SearchBar::new(cmd_tx.clone()),
-            table: SearchTable::new(cmd_tx, block_cmd_tx),
+            table: SearchTable::new(cmd_tx),
         }
     }
     pub fn render_content(
