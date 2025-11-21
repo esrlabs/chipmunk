@@ -3,10 +3,7 @@ use tokio::sync::mpsc;
 use crate::{
     comm_utls::evaluate_send_res,
     host::{message::HostMessage, notification::AppNotification},
-    session::{
-        command::{SessionBlockingCommand, SessionCommand},
-        message::SessionMessage,
-    },
+    session::{command::SessionCommand, message::SessionMessage},
 };
 
 const CHANNELS_CAPACITY: usize = 32;
@@ -44,7 +41,6 @@ pub struct UiHandle {
 #[derive(Debug)]
 pub struct UiSenders {
     pub cmd_tx: mpsc::Sender<SessionCommand>,
-    pub block_cmd_tx: mpsc::Sender<SessionBlockingCommand>,
 }
 
 #[derive(Debug)]
@@ -57,7 +53,6 @@ pub struct UiReceivers {
 pub struct ServiceHandle {
     pub cmd_rx: mpsc::Receiver<SessionCommand>,
     pub senders: ServiceSenders,
-    pub block_communication: ServiceBlockCommuniaction,
 }
 
 /// Provide functions to send session messages and waking up the UI on them.
@@ -104,33 +99,12 @@ impl ServiceSenders {
     }
 }
 
-/// Communication elements to be used in session service in the task
-/// which will handle blocking commands sent from UI.
-#[derive(Debug)]
-pub struct ServiceBlockCommuniaction {
-    pub block_cmd_rx: mpsc::Receiver<SessionBlockingCommand>,
-    notification_tx: mpsc::Sender<AppNotification>,
-    egui_ctx: egui::Context,
-}
-
-impl ServiceBlockCommuniaction {
-    pub async fn send_notification(&self, notifi: AppNotification) -> bool {
-        let res = self.notification_tx.send(notifi).await;
-
-        evaluate_send_res(&self.egui_ctx, res)
-    }
-}
-
 /// Initialize communication channels for session application.
 pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
-    let (block_cmd_tx, block_cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_msg_tx, session_msg_rx) = mpsc::channel(CHANNELS_CAPACITY);
 
-    let ui_senders = UiSenders {
-        cmd_tx,
-        block_cmd_tx,
-    };
+    let ui_senders = UiSenders { cmd_tx };
 
     let ui_receivers = UiReceivers {
         message_rx: session_msg_rx,
@@ -154,15 +128,8 @@ pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
         egui_ctx: egui_ctx.clone(),
     };
 
-    let block_communication = ServiceBlockCommuniaction {
-        block_cmd_rx,
-        notification_tx,
-        egui_ctx,
-    };
-
     let state_comm = ServiceHandle {
         cmd_rx,
-        block_communication,
         senders: service_senders,
     };
 

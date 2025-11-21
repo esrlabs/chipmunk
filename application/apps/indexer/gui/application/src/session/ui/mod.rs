@@ -44,8 +44,8 @@ impl SessionUI {
         Self {
             receivers,
             shared: SessionShared::new(session_info),
-            logs_table: LogsTable::new(senders.cmd_tx.clone(), senders.block_cmd_tx.clone()),
-            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), senders.block_cmd_tx),
+            logs_table: LogsTable::new(senders.cmd_tx.clone()),
+            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone()),
             cmd_tx: senders.cmd_tx,
         }
     }
