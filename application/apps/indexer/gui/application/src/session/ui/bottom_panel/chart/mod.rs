@@ -61,7 +61,6 @@ impl ChartUI {
         if shared.search.is_search_active() {
             self.chart(shared, actions, ui);
         } else {
-            self.clear();
             Self::place_holder(ui);
         }
     }
@@ -239,7 +238,7 @@ impl ChartUI {
         }
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         let Self {
             cmd_tx: _,
             last_zoom_factor,
