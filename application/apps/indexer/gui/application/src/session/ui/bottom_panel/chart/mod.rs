@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget, emath::Float};
+use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 use tokio::sync::mpsc::Sender;
 
@@ -23,8 +23,6 @@ pub struct ChartUI {
     last_zoom_factor: Option<u64>,
     /// Last requested logs range.
     requested_logs_rng: Option<RangeInclusive<u64>>,
-    /// Indicate the plot should be reset on next frame.
-    pending_reset: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -41,7 +39,6 @@ impl ChartUI {
             data: Default::default(),
             last_zoom_factor: None,
             requested_logs_rng: None,
-            pending_reset: false,
         }
     }
 
@@ -89,7 +86,7 @@ impl ChartUI {
                 .enumerate()
                 .map(|(idx, bar)| {
                     Bar::new(
-                        idx as f64 * ratio + offset,
+                        (idx + 1) as f64 * ratio + offset,
                         bar.first().map(|a| a.matches_count).unwrap_or_default() as f64,
                     )
                 })
@@ -111,7 +108,7 @@ impl ChartUI {
             .label_formatter(|name, point| {
                 // Show log number on hover only unless user hovers over
                 // a line chart then show the name of it too.
-                let log_nr = convert_bounded(point.x);
+                let log_nr = convert_bounded(point.x.round());
                 if name.is_empty() {
                     log_nr.to_string()
                 } else {
@@ -136,8 +133,7 @@ impl ChartUI {
                 }
             });
 
-        if self.pending_reset {
-            self.pending_reset = false;
+        if self.requested_logs_rng.is_none() {
             plot = plot.reset();
         }
 
@@ -171,19 +167,32 @@ impl ChartUI {
 
             let bounds = plot_ui.plot_bounds();
 
-            let mut bounds_x = {
+            let bounds_x = {
                 let min_x = bounds.min()[0] as u64;
                 let max_x = convert_bounded(bounds.max()[0]);
                 min_x..=max_x
             };
 
-            if self
-                .requested_logs_rng
-                .as_ref()
-                .is_some_and(|b| &bounds_x == b)
-            {
-                return PlotResponse::None;
-            }
+            match &self.requested_logs_rng {
+                Some(r) => {
+                    // Check for scroll and drag changes.
+                    const STEP: u64 = 50;
+                    if r.end().abs_diff(*bounds_x.end()) > STEP
+                        && r.start().abs_diff(*bounds_x.start()) > STEP
+                    {
+                        return PlotResponse::RequestForRange(bounds_x);
+                    }
+                }
+                None if shared.search.total_count > 0 => {
+                    // This indicates that this is the first render frame after having
+                    // search results => Request for all items.
+                    let bounds_x = 0..=shared.logs.logs_count.saturating_sub(1);
+                    return PlotResponse::RequestForRange(bounds_x);
+                }
+                None => {
+                    return PlotResponse::None;
+                }
+            };
 
             // We consider the diff on x axis as the zoom factor
             let zoom_factor = (bounds.max()[0] - bounds.min()[0]) as u64;
@@ -201,24 +210,9 @@ impl ChartUI {
                     if !self.data.bars.is_empty() || !self.data.line_plots.is_empty() {
                         // This is the first frame after loading chart data => Assign only
                         self.last_zoom_factor = Some(zoom_factor);
-                    } else {
-                        // This indicates that this is the first render frame after having
-                        // search results => Request for all items.
-                        bounds_x = 0..=shared.logs.logs_count.saturating_sub(1);
-                        return PlotResponse::RequestForRange(bounds_x);
                     }
                 }
             };
-
-            // Check for scroll and drag changes.
-            const STEP: u64 = 50;
-
-            if self.requested_logs_rng.as_ref().is_some_and(|r| {
-                r.end().abs_diff(*bounds_x.end()) > STEP
-                    && r.start().abs_diff(*bounds_x.start()) > STEP
-            }) {
-                return PlotResponse::RequestForRange(bounds_x);
-            }
 
             PlotResponse::None
         });
@@ -257,13 +251,11 @@ impl ChartUI {
             cmd_tx: _,
             last_zoom_factor,
             requested_logs_rng,
-            pending_reset,
             data,
         } = self;
 
         *last_zoom_factor = None;
         *requested_logs_rng = None;
-        *pending_reset = true;
         data.clear();
     }
 
