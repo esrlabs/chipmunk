@@ -1,10 +1,11 @@
-use std::ops::RangeInclusive;
+use std::{ops::RangeInclusive, time::Duration};
 
 use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
+    common::action_throttle::ActionThrottle,
     host::ui::UiActions,
     session::{command::SessionCommand, ui::shared::SessionShared},
 };
@@ -23,6 +24,9 @@ pub struct ChartUI {
     last_zoom_factor: Option<u64>,
     /// Last requested logs range.
     requested_logs_rng: Option<RangeInclusive<u64>>,
+    /// Throttle chart data requests to avoid overwhelming the backend
+    /// with too many request while zooming, scrolling or panning.
+    throttle: ActionThrottle,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +43,7 @@ impl ChartUI {
             data: Default::default(),
             last_zoom_factor: None,
             requested_logs_rng: None,
+            throttle: ActionThrottle::new(Duration::from_millis(100)),
         }
     }
 
@@ -176,22 +181,21 @@ impl ChartUI {
             match &self.requested_logs_rng {
                 Some(r) => {
                     // Check for scroll and drag changes.
-                    const STEP: u64 = 50;
-                    if r.end().abs_diff(*bounds_x.end()) > STEP
-                        && r.start().abs_diff(*bounds_x.start()) > STEP
-                    {
+                    if r.end() != bounds_x.end() && r.start() != bounds_x.start() {
                         return PlotResponse::RequestForRange(bounds_x);
                     }
                 }
                 None if shared.search.total_count > 0 => {
-                    // This indicates that this is the first render frame after having
-                    // search results => Request for all items.
+                    // This is the first render frame after having search results.
+
+                    //TODO AAZ: It would make sense to update this on logs_count changed.
+                    self.update_throttle_config(shared.logs.logs_count);
+
+                    // Request for all items.
                     let bounds_x = 0..=shared.logs.logs_count.saturating_sub(1);
                     return PlotResponse::RequestForRange(bounds_x);
                 }
-                None => {
-                    return PlotResponse::None;
-                }
+                None => {}
             };
 
             // We consider the diff on x axis as the zoom factor
@@ -199,9 +203,7 @@ impl ChartUI {
 
             match self.last_zoom_factor {
                 Some(last_diff) => {
-                    // Don't change logs for zoom change which is less than 2000 logs.
-                    // TODO AAZ: Test this with multiple file sizes, and different machines.
-                    if last_diff.abs_diff(zoom_factor) > 2000 {
+                    if last_diff != zoom_factor {
                         self.last_zoom_factor = Some(zoom_factor);
                         return PlotResponse::RequestForRange(bounds_x);
                     }
@@ -223,6 +225,9 @@ impl ChartUI {
                 actions.try_send_command(&self.cmd_tx, SessionCommand::GetSelectedLog(log_nr));
             }
             PlotResponse::RequestForRange(bound_x) => {
+                if !self.throttle.ready(Some(ui.ctx())) {
+                    return;
+                }
                 self.requested_logs_rng = Some(bound_x.clone());
 
                 // Taken from current Chipmunk: Matches are divided by 2
@@ -232,7 +237,9 @@ impl ChartUI {
                     range: Some(bound_x.clone()),
                 };
 
-                actions.try_send_command(&self.cmd_tx, chart_cmd);
+                // In case the UI is sending too many requests (indicating a bug) then
+                // block the UI until the backend is done processing previous requests.
+                actions.blocking_send_command(&self.cmd_tx, chart_cmd);
 
                 let dataset_len = ui.available_width() as u16;
                 let values_cmd = SessionCommand::GetChartLinePlots {
@@ -240,7 +247,8 @@ impl ChartUI {
                     range: Some(bound_x),
                 };
 
-                actions.try_send_command(&self.cmd_tx, values_cmd);
+                // Same as chart cmd.
+                actions.blocking_send_command(&self.cmd_tx, values_cmd);
             }
             PlotResponse::None => {}
         }
@@ -249,6 +257,7 @@ impl ChartUI {
     pub fn reset(&mut self) {
         let Self {
             cmd_tx: _,
+            throttle,
             last_zoom_factor,
             requested_logs_rng,
             data,
@@ -257,6 +266,20 @@ impl ChartUI {
         *last_zoom_factor = None;
         *requested_logs_rng = None;
         data.clear();
+        throttle.reset();
+    }
+
+    /// Adjusts the throttle interval based on the current dataset size.
+    pub fn update_throttle_config(&mut self, logs_count: u64) {
+        let new_interval = match logs_count {
+            0..=100_000 => Duration::from_millis(50),
+            100_001..=500_000 => Duration::from_millis(100),
+            500_001..=1_000_000 => Duration::from_millis(150),
+            1_000_001..=2_000_000 => Duration::from_millis(175),
+            _ => Duration::from_millis(225),
+        };
+
+        self.throttle = ActionThrottle::new(new_interval);
     }
 
     fn place_holder(ui: &mut Ui) {
