@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
 
 use crate::{
-    comm_utls::evaluate_send_res,
+    common::comm_utls::evaluate_send_res,
     host::{command::HostCommand, message::HostMessage, notification::AppNotification},
     session::communication::SharedSenders,
 };
