@@ -1,13 +1,10 @@
 use clap::Parser;
 
-use app::ChipmunkApp;
+use crate::host::ui::Host;
 
-mod app;
 mod cli;
-mod comm_utls;
-mod fixed_queue;
+mod common;
 mod host;
-mod logging;
 mod session;
 
 pub fn run_app() -> anyhow::Result<()> {
@@ -20,7 +17,7 @@ pub fn run_app() -> anyhow::Result<()> {
         cli_cmds.push(cmd);
     }
 
-    logging::setup()?;
+    common::logging::setup()?;
 
-    ChipmunkApp::run(cli_cmds).map_err(|err| anyhow::anyhow!("{err:?}"))
+    Host::run(cli_cmds).map_err(|err| anyhow::anyhow!("{err:?}"))
 }

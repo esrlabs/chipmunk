@@ -4,7 +4,7 @@ use egui::{
 };
 
 use crate::{
-    fixed_queue::FixedQueue,
+    common::fixed_queue::FixedQueue,
     host::{error::HostError, notification::AppNotification},
     session::error::SessionError,
 };
