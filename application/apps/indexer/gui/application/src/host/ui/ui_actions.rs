@@ -68,6 +68,31 @@ impl UiActions {
         false
     }
 
+    /// Sends the command with the provided sender using `blocking_send` method. In case it fails it will
+    /// log and notify the UI about the error with appropriate messages.
+    ///
+    /// # Return
+    ///
+    /// `true` if the command has been successfully sent.
+    pub fn blocking_send_command<T>(&mut self, sender: &mpsc::Sender<T>, command: T) -> bool
+    where
+        T: std::fmt::Debug,
+    {
+        if let Err(err) = sender.blocking_send(command) {
+            log::error!(
+                "Communication error while sending command from UI to core. Channel is Closed. Error: {err:?}"
+            );
+
+            let err = "Unrecoverable communication Error. Please restart the app.\n\
+                        Please consider submitting a bug report regarding this issue.";
+            self.add_notification(AppNotification::UiError(err.into()));
+
+            return false;
+        }
+
+        true
+    }
+
     /// Spawns an asynchronous file picker dialog.
     ///
     /// If a file is selected, the provided closure `callback` is
