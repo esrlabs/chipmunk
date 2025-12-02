@@ -8,10 +8,7 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     host::ui::UiActions,
-    session::{
-        command::SessionCommand,
-        ui::shared::{SessionShared, SessionSignal},
-    },
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
 
 #[derive(Debug, Clone)]
