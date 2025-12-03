@@ -1,7 +1,7 @@
 use egui::{MenuBar, Ui};
 use tokio::sync::mpsc::Sender;
 
-use crate::host::{command::HostCommand, ui::ui_actions::UiActions};
+use crate::host::{command::HostCommand, ui::actions::UiActions};
 
 #[derive(Debug)]
 pub struct MainMenuBar {
