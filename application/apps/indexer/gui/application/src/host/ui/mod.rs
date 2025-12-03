@@ -1,7 +1,6 @@
 use eframe::NativeOptions;
 use egui::{
-    Align, CentralPanel, Context, Frame, Id, Layout, NumExt as _, RichText, TopBottomPanel, Ui,
-    Widget, vec2,
+    Align, CentralPanel, Context, Frame, Id, Layout, NumExt as _, TopBottomPanel, Ui, Widget, vec2,
 };
 
 use crate::{
@@ -11,20 +10,21 @@ use crate::{
         communication::{UiReceivers, UiSenders},
         message::HostMessage,
         service::HostService,
-        ui::{home::HomeView, notification_ui::NotificationUi},
+        ui::{home::HomeView, notification::NotificationUi, tabs::TabType},
     },
 };
 use menu::MainMenuBar;
-use state::{HostState, TabType};
+use state::HostState;
 
-pub use ui_actions::UiActions;
+pub use actions::UiActions;
 
+mod actions;
 mod home;
 mod menu;
-mod notification_ui;
-mod sessions_tabs;
+mod notification;
+mod session_setup;
 mod state;
-mod ui_actions;
+mod tabs;
 
 const APP_TITLE: &str = "Chipmunk";
 
@@ -136,15 +136,8 @@ impl Host {
             ..
         } = self;
         ui.horizontal_wrapped(|ui| {
-            // Home
-            ui.selectable_value(
-                &mut state.active_tab,
-                TabType::Home,
-                RichText::new("🏠").size(17.),
-            )
-            .on_hover_text("Home");
-
-            sessions_tabs::render(state, ui_actions, ui);
+            // Tabs
+            tabs::render_tabs(state, ui_actions, ui);
 
             // Notifications
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -156,9 +149,14 @@ impl Host {
 
     fn render_main(&mut self, ui: &mut Ui) {
         let Self { ui_actions, .. } = self;
-        match self.state.active_tab {
+        match *self.state.active_tab() {
             TabType::Home => HomeView::render_content(ui),
-            TabType::Session(idx) => self.state.sessions[idx].render_content(ui_actions, ui),
+            TabType::Session(id) => self
+                .state
+                .sessions
+                .get_mut(&id)
+                .expect("Session with provieded ID from active tab must exist")
+                .render_content(ui_actions, ui),
         }
     }
 
@@ -218,7 +216,7 @@ impl eframe::App for Host {
         self.state
             .sessions
             .iter_mut()
-            .for_each(|session| session.handle_messages(&mut self.ui_actions));
+            .for_each(|(_id, session)| session.handle_messages(&mut self.ui_actions));
 
         // Render all UI components
         self.render_ui(ctx, frame);
