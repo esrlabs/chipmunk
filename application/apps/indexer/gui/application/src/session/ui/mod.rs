@@ -25,7 +25,7 @@ pub use bottom_panel::chart;
 pub use shared::SessionInfo;
 
 #[derive(Debug)]
-pub struct SessionUI {
+pub struct Session {
     cmd_tx: Sender<SessionCommand>,
     receivers: UiReceivers,
     shared: SessionShared,
@@ -33,7 +33,7 @@ pub struct SessionUI {
     bottom_panel: BottomPanelUI,
 }
 
-impl SessionUI {
+impl Session {
     pub fn new(init: InitSessionParams) -> Self {
         let InitSessionParams {
             session_info,
