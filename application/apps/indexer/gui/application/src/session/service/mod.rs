@@ -94,7 +94,7 @@ impl SessionService {
 
         //TODO AAZ: Keep this to make sure that session are dropped.
         println!(
-            "****** DEBUG: Session Service {} has been dropped from async task",
+            "****** DEBUG: Session Service {} has been dropped",
             self.session_id()
         );
     }
