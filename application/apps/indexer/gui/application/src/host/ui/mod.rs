@@ -22,7 +22,7 @@ mod actions;
 mod home;
 mod menu;
 mod notification;
-mod session_setup;
+pub mod session_setup;
 mod state;
 mod tabs;
 
@@ -91,8 +91,15 @@ impl Host {
 
     fn handle_message(&mut self, message: HostMessage, ctx: &Context) {
         match message {
-            HostMessage::SessionCreated(info) => self.state.add_session(info),
+            HostMessage::SessionSetupOpened(setup_state) => self
+                .state
+                .add_session_setup(setup_state, self.senders.cmd_tx.clone()),
+            HostMessage::SessionCreated {
+                session_info,
+                session_setup_id,
+            } => self.state.add_session(session_info, session_setup_id),
             HostMessage::SessionClosed { session_id } => self.state.close_session(session_id),
+            HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
             HostMessage::Shutdown => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
@@ -137,7 +144,7 @@ impl Host {
         } = self;
         ui.horizontal_wrapped(|ui| {
             // Tabs
-            tabs::render_tabs(state, ui_actions, ui);
+            tabs::render_all_tabs(state, ui_actions, ui);
 
             // Notifications
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -156,6 +163,12 @@ impl Host {
                 .sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")
+                .render_content(ui_actions, ui),
+            TabType::SessionSetup(id) => self
+                .state
+                .session_setups
+                .get_mut(&id)
+                .expect("Session Setup with provided ID form active tab must exist")
                 .render_content(ui_actions, ui),
         }
     }
