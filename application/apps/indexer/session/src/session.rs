@@ -171,7 +171,6 @@ impl Session {
         &self,
         range: RangeInclusive<u64>,
     ) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
-        println!("------------- DEBUG AAZ: Grab indexed requested. Range: {range:?}");
         self.state
             .grab_indexed(range)
             .await
@@ -291,7 +290,6 @@ impl Session {
         &self,
         ranges: Vec<RangeInclusive<u64>>,
     ) -> Result<stypes::GrabbedElementList, stypes::ComputationError> {
-        println!("------------- DEBUG AAZ: Grab ranges requested. Range: {ranges:?}");
         self.state
             .grab_ranges(ranges)
             .await
@@ -300,7 +298,6 @@ impl Session {
     }
 
     pub fn abort(&self, operation_id: Uuid, target: Uuid) -> Result<(), stypes::ComputationError> {
-        println!("--------------- DEBUG AAZ: Abort. operations: {operation_id}. target:{target}");
         self.tx_operations
             .send(Operation::new(
                 operation_id,
@@ -358,7 +355,6 @@ impl Session {
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), stypes::ComputationError> {
-        println!("--------------- DEBUG AAZ: Stop. operations: {operation_id}");
         Session::send_stop_signal(
             operation_id,
             &self.tx_operations,
@@ -471,7 +467,6 @@ impl Session {
         operation_id: Uuid,
         filters: Vec<SearchFilter>,
     ) -> Result<(), stypes::ComputationError> {
-        println!("------------- DEBUG AAZ: Apply search filter requested. Range: {filters:?}");
         self.tx_operations
             .send(Operation::new(
                 operation_id,
@@ -494,7 +489,6 @@ impl Session {
     }
 
     pub async fn drop_search(&self) -> Result<bool, stypes::ComputationError> {
-        println!("------------- DEBUG AAZ: Drop search requested");
         self.state
             .drop_search()
             .await
