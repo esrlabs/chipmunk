@@ -52,5 +52,10 @@ eframe = { workspace = true, default_features = false, features = [
 egui_table.workspace = true
 egui_plot.workspace = true
 
+# TODO
+chrono = "0.4"
+chrono-tz = "0.8"
+enum-iterator = "1.4"
+
 [lints]
 workspace = true

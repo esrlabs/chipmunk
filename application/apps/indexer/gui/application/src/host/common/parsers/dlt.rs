@@ -1,3 +1,4 @@
+use enum_iterator::Sequence;
 use std::{fmt::Display, path::PathBuf};
 
 /// DLT Configurations to be used in front-end
@@ -20,7 +21,7 @@ impl DltParserConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Sequence)]
 pub enum DltLogLevel {
     Fatal = 1,
     Error = 2,
