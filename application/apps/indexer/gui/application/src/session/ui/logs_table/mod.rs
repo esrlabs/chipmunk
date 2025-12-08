@@ -1,14 +1,17 @@
-use std::ops::Range;
+use std::{ops::Range, time::Duration};
 
 use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
-use tokio::sync::{mpsc::Sender, oneshot};
+use std::sync::mpsc::Receiver as StdReceiver;
+use stypes::GrabbedElement;
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     host::{notification::AppNotification, ui::UiActions},
     session::{
         command::SessionCommand,
+        error::SessionError,
         ui::{
             bottom_panel::BottomTabType,
             shared::{LogMainIndex, SessionShared},
@@ -20,11 +23,18 @@ use logs_mapped::LogsMapped;
 
 mod logs_mapped;
 
+const TIMEOUT_DURATION: Duration = Duration::from_millis(50);
+const SEND_INTERVAL: Duration = Duration::from_millis(5);
+const SEND_RETRY_MAX_COUNT: u8 = 10;
+
 #[derive(Debug)]
 pub struct LogsTable {
     logs: LogsMapped,
     last_visible_rows: Option<Range<u64>>,
     cmd_tx: Sender<SessionCommand>,
+    /// Logs receiver from previous frame if receive function timed out
+    /// on that frame.
+    pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
 }
 
 impl LogsTable {
@@ -33,6 +43,7 @@ impl LogsTable {
             cmd_tx,
             last_visible_rows: Default::default(),
             logs: LogsMapped::default(),
+            pending_logs_rx: None,
         }
     }
 
@@ -60,9 +71,14 @@ impl LogsTable {
             table: self,
             shared,
             actions,
+            request_repaint: false,
         };
 
         table.show(ui, &mut delegate);
+
+        if delegate.request_repaint {
+            ui.ctx().request_repaint();
+        }
     }
 
     fn text_columns() -> Vec<Column> {
@@ -77,37 +93,54 @@ struct LogsDelegate<'a> {
     table: &'a mut LogsTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
+    request_repaint: bool,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
+        if self.shared.logs.logs_count == 0 {
+            return;
+        }
+
         let PrefetchInfo { visible_rows, .. } = info;
 
-        if self
+        let logs_rx = if self
             .table
             .last_visible_rows
             .as_ref()
             .is_some_and(|row| row == visible_rows)
         {
-            return;
-        }
+            // Check if we still have pending receive calls which
+            // have timed out in previous frames.
+            match self.table.pending_logs_rx.take() {
+                Some(logs_rx) => logs_rx,
+                None => return,
+            }
+        } else {
+            // Request new data.
+            self.table.last_visible_rows = Some(info.visible_rows.to_owned());
 
-        self.table.last_visible_rows = Some(info.visible_rows.to_owned());
+            let range = LineRange::from(visible_rows.start..=visible_rows.end.saturating_sub(1));
 
-        let range = LineRange::from(visible_rows.start..=visible_rows.end.saturating_sub(1));
+            let (logs_tx, logs_rx) = std::sync::mpsc::channel();
+            let cmd = SessionCommand::GrabLinesBlocking {
+                range,
+                sender: logs_tx,
+            };
 
-        let (elems_tx, elems_rx) = oneshot::channel();
-        let cmd = SessionCommand::GrabLinesBlocking {
-            range,
-            sender: elems_tx,
+            if !self.actions.send_command_with_retry(
+                &self.table.cmd_tx,
+                cmd,
+                SEND_INTERVAL,
+                SEND_RETRY_MAX_COUNT,
+            ) {
+                return;
+            }
+
+            logs_rx
         };
 
-        if self.table.cmd_tx.blocking_send(cmd).is_err() {
-            log::warn!("Communication error while sending grab commmand.");
-            return;
-        };
-
-        if let Ok(elements) = elems_rx.blocking_recv() {
+        if let Ok(elements) = logs_rx.recv_timeout(TIMEOUT_DURATION) {
             match elements {
                 Ok(elements) => self.table.logs.append(elements),
                 Err(error) => {
@@ -119,6 +152,10 @@ impl TableDelegate for LogsDelegate<'_> {
                     self.actions.add_notification(notifi);
                 }
             }
+        } else {
+            log::debug!("Grabber request timed out. Frame is passed without updating data.");
+            self.table.pending_logs_rx = Some(logs_rx);
+            self.request_repaint = true;
         }
     }
 
@@ -171,7 +208,17 @@ impl TableDelegate for LogsDelegate<'_> {
                     ui.label(row_nr.to_string());
                 }
                 1 => {
-                    let content = self.table.logs.get_log(&row_nr).unwrap_or("Loading...");
+                    let content = match self.table.logs.get_log(&row_nr) {
+                        Some(c) => c,
+                        None => {
+                            // Ensure data will be requested on next frame.
+                            if self.table.pending_logs_rx.is_none() {
+                                self.table.last_visible_rows = None;
+                            }
+
+                            "Loading..."
+                        }
+                    };
 
                     let label = if invert_fg {
                         let content = RichText::new(content).color(Color32::WHITE).strong();
