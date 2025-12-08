@@ -14,6 +14,8 @@ use crate::host::{
     ui::UiActions,
 };
 
+mod side_config;
+
 #[derive(Debug)]
 pub struct SessionSetup {
     pub state: SessionSetupState,
@@ -57,19 +59,10 @@ impl SessionSetup {
             });
 
         SidePanel::right("side options")
-            .width_range(200.0..=500.0)
+            .width_range(150.0..=250.0)
             .resizable(true)
             .show_inside(ui, |ui| {
-                ui.centered_and_justified(|ui| {
-                    // TODO: Remove the showcase once we have implementation.
-                    // Showcase of updating parser on dropdown updates.
-                    let parser_name = ParserNames::from(&self.state.parser).to_string();
-
-                    ui.heading(format!(
-                        "Side Configurations\n\
-                        Parser {parser_name} is selected"
-                    ));
-                })
+                self.render_side_config(ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
