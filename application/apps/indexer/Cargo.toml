@@ -71,6 +71,8 @@ toml = "0.8"
 blake3 = "1.8"
 which = "8"
 itertools = "0.14"
+chrono = "0.4"
+chrono-tz = "0.8"
 
 clap = { version = "4", features = ["derive"] }
 
