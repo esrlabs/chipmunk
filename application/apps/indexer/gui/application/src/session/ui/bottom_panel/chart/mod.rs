@@ -16,6 +16,9 @@ mod data;
 
 const CHART_OFFSET: f64 = 0.05;
 
+const SEND_INTERVAL: Duration = Duration::from_millis(5);
+const SEND_RETRY_MAX_COUNT: u8 = 20;
+
 #[derive(Debug)]
 pub struct ChartUI {
     cmd_tx: Sender<SessionCommand>,
@@ -238,8 +241,18 @@ impl ChartUI {
                 };
 
                 // In case the UI is sending too many requests (indicating a bug) then
-                // block the UI until the backend is done processing previous requests.
-                actions.blocking_send_command(&self.cmd_tx, chart_cmd);
+                // we will block the UI up to until 100 milliseconds until the backend
+                // is done processing previous requests.
+                if !actions.send_command_with_retry(
+                    &self.cmd_tx,
+                    chart_cmd,
+                    SEND_INTERVAL,
+                    SEND_RETRY_MAX_COUNT,
+                ) {
+                    // Soft reset ensuring data will be requested the next frame.
+                    self.requested_logs_rng = None;
+                    return;
+                }
 
                 let dataset_len = ui.available_width() as u16;
                 let values_cmd = SessionCommand::GetChartLinePlots {
@@ -247,8 +260,17 @@ impl ChartUI {
                     range: Some(bound_x),
                 };
 
-                // Same as chart cmd.
-                actions.blocking_send_command(&self.cmd_tx, values_cmd);
+                // Same as chart cmd
+                if !actions.send_command_with_retry(
+                    &self.cmd_tx,
+                    values_cmd,
+                    SEND_INTERVAL,
+                    SEND_RETRY_MAX_COUNT,
+                ) {
+                    // Soft reset ensuring data will be requested the next frame.
+
+                    self.requested_logs_rng = None;
+                }
             }
             PlotResponse::None => {}
         }
