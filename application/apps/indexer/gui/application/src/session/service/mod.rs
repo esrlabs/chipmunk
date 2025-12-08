@@ -119,14 +119,7 @@ impl SessionService {
                     .map_err(SessionError::from);
 
                 if sender.send(elements).is_err() {
-                    log::error!("Communication error while sending grabbed lines");
-
-                    let notifi = AppNotification::SessionError {
-                        session_id: self.session.get_uuid(),
-                        error: ComputationError::Communication("Sending log lines failed".into())
-                            .into(),
-                    };
-                    self.senders.send_notification(notifi).await;
+                    log::debug!("Grabbed lines receiver dropped before receiving the results.");
                 }
             }
             SessionCommand::GrabIndexedLinesBlocking { range, sender } => {
@@ -138,14 +131,9 @@ impl SessionService {
                     .map_err(SessionError::from);
 
                 if sender.send(elements).is_err() {
-                    log::error!("Communication error while sending grabbed indexed lines");
-
-                    let notifi = AppNotification::SessionError {
-                        session_id: self.session.get_uuid(),
-                        error: ComputationError::Communication("Sending log lines failed".into())
-                            .into(),
-                    };
-                    self.senders.send_notification(notifi).await;
+                    log::debug!(
+                        "Grabbed indexed lines receiver dropped before receiving the results."
+                    );
                 }
             }
             SessionCommand::ApplySearchFilter(search_filters) => {
