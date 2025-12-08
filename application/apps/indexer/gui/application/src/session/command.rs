@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use tokio::sync::oneshot::Sender;
+use std::sync::mpsc::Sender;
 
 use processor::{grabber::LineRange, search::filter::SearchFilter};
 use stypes::GrabbedElement;

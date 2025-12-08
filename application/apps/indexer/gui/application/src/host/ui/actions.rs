@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use crate::host::notification::AppNotification;
 use tokio::{runtime::Handle, sync::mpsc, task::JoinHandle};
@@ -68,6 +68,77 @@ impl UiActions {
         false
     }
 
+    /// Attempts to send a command via the provided sender with a retry mechanism.
+    ///
+    /// # Note: Blocking Operation
+    /// This function uses `std::thread::sleep` to wait between attempts.
+    /// **Avoid high `interval` or `max_attempts` values on the main UI thread**,
+    /// as this will freeze the application interface.
+    ///
+    /// # Behavior
+    /// * **Success:** Returns `true` immediately.
+    /// * **Channel Full:** Retries up to `max_attempts`, waiting `interval` between tries.
+    /// * **Channel Closed:** Fails immediately (no retry), as the receiver is unreachable.
+    ///
+    /// # Return
+    /// * `true` if the command was successfully sent.
+    /// * `false` if the channel was closed or remained full after all attempts.
+    pub fn send_command_with_retry<T>(
+        &mut self,
+        sender: &mpsc::Sender<T>,
+        command: T,
+        interval: Duration,
+        max_attempts: u8,
+    ) -> bool
+    where
+        T: std::fmt::Debug,
+    {
+        use mpsc::error::TrySendError;
+
+        let mut cmd = command;
+        let mut attempts = 0;
+
+        loop {
+            match sender.try_send(cmd) {
+                Ok(()) => return true,
+                Err(err) => {
+                    match err {
+                        TrySendError::Full(returned_cmd) => {
+                            if attempts >= max_attempts {
+                                log::error!(
+                                    "Communication error: Channel full after {} attempts. Dropping message: {:?}",
+                                    attempts,
+                                    returned_cmd
+                                );
+                                self.add_notification(AppNotification::UiError(
+                                    "System Busy: Request timed out. Please try again.".into(),
+                                ));
+                                return false;
+                            }
+
+                            std::thread::sleep(interval);
+                            cmd = returned_cmd;
+                            attempts += 1;
+                        }
+                        TrySendError::Closed(returned_cmd) => {
+                            // Do not retry on Disconnected/Closed. It will never succeed.
+                            log::error!(
+                                "Critical error: Core service disconnected. Dropping message: {:?}",
+                                returned_cmd
+                            );
+                            let err_msg = "Critical Error: Connection to core service lost.\n\
+                                           Please restart the application.";
+                            self.add_notification(AppNotification::UiError(err_msg.into()));
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: Remove function or warning suppressing before final merge.
+    #[allow(unused)]
     /// Sends the command with the provided sender using `blocking_send` method. In case it fails it will
     /// log and notify the UI about the error with appropriate messages.
     ///
