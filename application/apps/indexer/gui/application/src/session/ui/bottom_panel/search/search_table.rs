@@ -1,24 +1,31 @@
 //TODO AAZ: This is duplicated from LogsTable.
 //We need to have it in one place and encapsulate the changes.
-use std::ops::Range;
+use std::{ops::Range, sync::mpsc::Receiver as StdReceiver, time::Duration};
 
 use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
-use stypes::NearestPosition;
-use tokio::sync::{mpsc::Sender, oneshot};
+use stypes::{GrabbedElement, NearestPosition};
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     host::{notification::AppNotification, ui::UiActions},
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{command::SessionCommand, error::SessionError, ui::shared::SessionShared},
 };
 
 use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
+
+const TIMEOUT_DURATION: Duration = Duration::from_millis(50);
+const SEND_INTERVAL: Duration = Duration::from_millis(5);
+const SEND_RETRY_MAX_COUNT: u8 = 10;
 
 #[derive(Debug)]
 pub struct SearchTable {
     cmd_tx: Sender<SessionCommand>,
     last_visible_rows: Option<Range<u64>>,
     indexed_logs: IndexedMapped,
+    /// Logs receiver from previous frame if receive function timed out
+    /// on that frame.
+    pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
     /// The index of the log in search table to make the table scroll
     /// toward this index.
     scroll_nearest_pos: Option<NearestPosition>,
@@ -30,6 +37,7 @@ impl SearchTable {
             cmd_tx,
             last_visible_rows: None,
             indexed_logs: IndexedMapped::default(),
+            pending_logs_rx: None,
             scroll_nearest_pos: None,
         }
     }
@@ -65,9 +73,14 @@ impl SearchTable {
             shared,
             table: self,
             actions,
+            request_repaint: false,
         };
 
         table.show(ui, &mut delegate);
+
+        if delegate.request_repaint {
+            ui.ctx().request_repaint();
+        }
     }
 
     pub fn clear(&mut self) {
@@ -75,12 +88,14 @@ impl SearchTable {
             cmd_tx: _,
             last_visible_rows,
             indexed_logs,
+            pending_logs_rx,
             scroll_nearest_pos,
         } = self;
 
         *last_visible_rows = None;
         indexed_logs.clear();
         *scroll_nearest_pos = None;
+        *pending_logs_rx = None;
     }
 
     fn text_columns() -> Vec<Column> {
@@ -95,41 +110,58 @@ struct LogsDelegate<'a> {
     table: &'a mut SearchTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
+    request_repaint: bool,
 }
 
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
+        if self.shared.logs.logs_count == 0 {
+            return;
+        }
+
         let PrefetchInfo { visible_rows, .. } = info;
 
-        if self
+        let rng = visible_rows.start..=visible_rows.end.saturating_sub(1);
+
+        let logs_rx = if self
             .table
             .last_visible_rows
             .as_ref()
             .is_some_and(|v| v == visible_rows)
         {
-            return;
-        }
+            // Check if we still have pending receive calls which
+            // have timed out in previous frames.
+            match self.table.pending_logs_rx.take() {
+                Some(logs_rx) => logs_rx,
+                None => return,
+            }
+        } else {
+            // Request new data.
+            self.table.last_visible_rows = Some(info.visible_rows.to_owned());
 
-        self.table.last_visible_rows = Some(info.visible_rows.to_owned());
+            if self.shared.search.total_count == 0 {
+                return;
+            }
 
-        if self.shared.search.total_count == 0 {
-            return;
-        }
+            let (elems_tx, elems_rx) = std::sync::mpsc::channel();
+            let cmd = SessionCommand::GrabIndexedLinesBlocking {
+                range: rng.clone(),
+                sender: elems_tx,
+            };
 
-        let rng = visible_rows.start..=visible_rows.end.saturating_sub(1);
+            if !self.actions.send_command_with_retry(
+                &self.table.cmd_tx,
+                cmd,
+                SEND_INTERVAL,
+                SEND_RETRY_MAX_COUNT,
+            ) {
+                return;
+            }
 
-        let (elems_tx, elems_rx) = oneshot::channel();
-        let cmd = SessionCommand::GrabIndexedLinesBlocking {
-            range: rng.clone(),
-            sender: elems_tx,
+            elems_rx
         };
 
-        if self.table.cmd_tx.blocking_send(cmd).is_err() {
-            log::error!("Communication error while sending grab commmand.");
-            return;
-        }
-
-        if let Ok(elements) = elems_rx.blocking_recv() {
+        if let Ok(elements) = logs_rx.recv_timeout(TIMEOUT_DURATION) {
             match elements {
                 Ok(elements) => {
                     let combined = rng.map(SearchTableIndex).zip(elements);
@@ -144,6 +176,12 @@ impl TableDelegate for LogsDelegate<'_> {
                     self.actions.add_notification(notifi);
                 }
             }
+        } else {
+            log::debug!(
+                "Grabber Indexed request timed out. Frame is passed without updating data."
+            );
+            self.table.pending_logs_rx = Some(logs_rx);
+            self.request_repaint = true;
         }
     }
 
@@ -164,6 +202,11 @@ impl TableDelegate for LogsDelegate<'_> {
                 {
                     Some(log) => log,
                     None => {
+                        // Ensure data will be requested on next frame.
+                        if self.table.pending_logs_rx.is_none() {
+                            self.table.last_visible_rows = None;
+                        }
+
                         ui.label("Loading...");
                         return;
                     }
