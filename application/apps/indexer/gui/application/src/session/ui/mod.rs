@@ -1,22 +1,31 @@
+use std::rc::Rc;
+
 use egui::{CentralPanel, TopBottomPanel, Ui};
 use shared::SessionShared;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::{notification::AppNotification, ui::UiActions},
+    host::{common::parsers::ParserNames, notification::AppNotification, ui::UiActions},
     session::{
         InitSessionParams,
         command::SessionCommand,
         communication::{UiHandle, UiReceivers},
         error::SessionError,
         message::SessionMessage,
-        ui::shared::SessionSignal,
+        ui::{
+            definitions::schema::{
+                LogSchema, dlt::DltLogSchema, plugins::PluginsLogSchema, someip::SomeIpLogSchema,
+                text::TextLogSchema,
+            },
+            shared::SessionSignal,
+        },
     },
 };
 use bottom_panel::BottomPanelUI;
 use logs_table::LogsTable;
 
 mod bottom_panel;
+mod definitions;
 mod logs_table;
 mod shared;
 mod status_bar;
@@ -42,11 +51,18 @@ impl Session {
 
         let UiHandle { senders, receivers } = communication;
 
+        let schema: Rc<dyn LogSchema> = match &session_info.parser {
+            ParserNames::Dlt => Rc::new(DltLogSchema::default()),
+            ParserNames::SomeIP => Rc::new(SomeIpLogSchema::default()),
+            ParserNames::Text => Rc::new(TextLogSchema::default()),
+            ParserNames::Plugins => Rc::new(PluginsLogSchema),
+        };
+
         Self {
             receivers,
             shared: SessionShared::new(session_info),
-            logs_table: LogsTable::new(senders.cmd_tx.clone()),
-            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone()),
+            logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
+            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), schema),
             cmd_tx: senders.cmd_tx,
         }
     }

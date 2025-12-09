@@ -22,9 +22,9 @@ use regex::Regex;
 use serde::Serialize;
 
 /// Marker for a column separator in the output string.
-const COLUMN_SEP: &str = "\u{0004}"; // EOT
+pub const COLUMN_SEP: char = '\u{0004}'; // EOT
 /// Marker for a newline in the output string.
-const LINE_SEP: &str = "\u{0006}"; // ACK
+pub const LINE_SEP: &str = "\u{0006}"; // ACK
 
 /// The most likely minimal bytes count needed to parse a SomeIP message.
 const MIN_MSG_LEN: usize = 16;
