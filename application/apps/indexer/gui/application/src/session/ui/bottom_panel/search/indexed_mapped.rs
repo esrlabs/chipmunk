@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use stypes::GrabbedElement;
+
+use crate::session::ui::definitions::{LogTableItem, schema::LogSchema};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct SearchTableIndex(pub u64);
@@ -11,12 +13,20 @@ pub struct SearchTableIndex(pub u64);
 /// matching index according to search table view as the keys.
 /// Once new elements arrive it will replace all exiting logs with
 /// the new ones blindly.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct IndexedMapped {
-    logs: HashMap<SearchTableIndex, GrabbedElement>,
+    logs: HashMap<SearchTableIndex, LogTableItem>,
+    schema: Rc<dyn LogSchema>,
 }
 
 impl IndexedMapped {
+    pub fn new(schema: Rc<dyn LogSchema>) -> Self {
+        Self {
+            logs: HashMap::new(),
+            schema,
+        }
+    }
+
     /// Append expect to
     pub fn append(
         &mut self,
@@ -24,12 +34,17 @@ impl IndexedMapped {
     ) {
         self.logs.clear();
 
-        indexed_items.for_each(|(idx, item)| {
+        indexed_items.for_each(|(idx, element)| {
+            let column_ranges = self.schema.map_columns(&element.content);
+            let item = LogTableItem {
+                element,
+                column_ranges,
+            };
             self.logs.insert(idx, item);
         });
     }
 
-    pub fn get_element(&self, row_idx: &SearchTableIndex) -> Option<&GrabbedElement> {
+    pub fn get_log_item(&self, row_idx: &SearchTableIndex) -> Option<&LogTableItem> {
         self.logs.get(row_idx)
     }
 

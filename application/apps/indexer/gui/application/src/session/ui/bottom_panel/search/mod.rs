@@ -1,10 +1,15 @@
+use std::rc::Rc;
+
 use tokio::sync::mpsc::Sender;
 
 use egui::Ui;
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        ui::{definitions::schema::LogSchema, shared::SessionShared},
+    },
 };
 
 use search_bar::SearchBar;
@@ -21,10 +26,10 @@ pub struct SearchUI {
 }
 
 impl SearchUI {
-    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
         Self {
             bar: SearchBar::new(cmd_tx.clone()),
-            table: SearchTable::new(cmd_tx),
+            table: SearchTable::new(cmd_tx, schema),
         }
     }
     pub fn render_content(
