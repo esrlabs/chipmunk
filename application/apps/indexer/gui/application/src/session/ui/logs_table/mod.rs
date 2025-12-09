@@ -1,6 +1,6 @@
-use std::{ops::Range, time::Duration};
+use std::{ops::Range, rc::Rc, time::Duration};
 
-use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
+use egui::{Color32, Frame, Id, Label, Margin, RichText, TextBuffer, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 use std::sync::mpsc::Receiver as StdReceiver;
@@ -14,6 +14,7 @@ use crate::{
         error::SessionError,
         ui::{
             bottom_panel::BottomTabType,
+            definitions::schema::LogSchema,
             shared::{LogMainIndex, SessionShared},
         },
     },
@@ -35,15 +36,25 @@ pub struct LogsTable {
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
+    schema: Rc<dyn LogSchema>,
+    columns: Box<[Column]>,
 }
 
 impl LogsTable {
-    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
+        let mut columns = Vec::with_capacity(schema.columns().len() + 1);
+        let nums_col = Column::new(100.0).range(50.0..=500.0).resizable(true);
+
+        columns.push(nums_col);
+        columns.extend(schema.columns().iter().map(|col| col.column));
+
         Self {
             cmd_tx,
             last_visible_rows: Default::default(),
-            logs: LogsMapped::default(),
+            logs: LogsMapped::new(Rc::clone(&schema)),
             pending_logs_rx: None,
+            schema,
+            columns: columns.into_boxed_slice(),
         }
     }
 
@@ -58,9 +69,13 @@ impl LogsTable {
         let mut table = egui_table::Table::new()
             .id_salt(id_salt)
             .num_rows(shared.logs.logs_count)
-            .columns(Self::text_columns())
+            .columns(self.columns.as_ref())
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
+
+        if !self.schema.has_headers() {
+            table = table.headers(Vec::new());
+        }
 
         if let Some(row) = shared.logs.scroll_main_row.take() {
             const OFFSET: u64 = 3;
@@ -79,13 +94,6 @@ impl LogsTable {
         if delegate.request_repaint {
             ui.ctx().request_repaint();
         }
-    }
-
-    fn text_columns() -> Vec<Column> {
-        vec![
-            Column::new(100.0).range(50.0..=500.0).resizable(true),
-            Column::default(),
-        ]
     }
 }
 
@@ -163,12 +171,18 @@ impl TableDelegate for LogsDelegate<'_> {
         Frame::NONE
             .inner_margin(Margin::symmetric(4, 0))
             .show(ui, |ui| {
-                let header = match cell.group_index {
-                    0 => "Nr.",
-                    1 => "Log",
-                    invalid => panic!("Invalid header index {invalid}"),
+                let (header, tooltip) = match cell.group_index {
+                    0 => ("Nr.", "Log Position"),
+                    idx => self
+                        .table
+                        .schema
+                        .columns()
+                        .get(idx.saturating_sub(1))
+                        .map(|col| (col.header.as_str(), col.header_tooltip.as_str()))
+                        .unwrap_or_default(),
                 };
-                ui.label(header);
+
+                ui.label(header).on_hover_text(tooltip);
             });
     }
 
@@ -207,8 +221,12 @@ impl TableDelegate for LogsDelegate<'_> {
                 0 => {
                     ui.label(row_nr.to_string());
                 }
-                1 => {
-                    let content = match self.table.logs.get_log(&row_nr) {
+                _ => {
+                    let content = match self
+                        .table
+                        .logs
+                        .get_log_content(&row_nr, col_nr.saturating_sub(1))
+                    {
                         Some(c) => c,
                         None => {
                             // Ensure data will be requested on next frame.
@@ -245,7 +263,6 @@ impl TableDelegate for LogsDelegate<'_> {
                         };
                     }
                 }
-                invalid => panic!("Invalid column number. {invalid}"),
             });
     }
 }
