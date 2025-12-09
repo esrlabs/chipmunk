@@ -1,6 +1,6 @@
 //TODO AAZ: This is duplicated from LogsTable.
 //We need to have it in one place and encapsulate the changes.
-use std::{ops::Range, sync::mpsc::Receiver as StdReceiver, time::Duration};
+use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver, time::Duration};
 
 use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
@@ -9,7 +9,11 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     host::{notification::AppNotification, ui::UiActions},
-    session::{command::SessionCommand, error::SessionError, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        error::SessionError,
+        ui::{definitions::schema::LogSchema, shared::SessionShared},
+    },
 };
 
 use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
@@ -29,16 +33,24 @@ pub struct SearchTable {
     /// The index of the log in search table to make the table scroll
     /// toward this index.
     scroll_nearest_pos: Option<NearestPosition>,
+    columns: Box<[Column]>,
 }
 
 impl SearchTable {
-    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
+        let mut cols = Vec::with_capacity(schema.columns().len() + 1);
+        let nums_col = Column::new(100.0).range(50.0..=500.0).resizable(true);
+
+        cols.push(nums_col);
+        cols.extend(schema.columns().iter().map(|col| col.column.clone()));
+
         Self {
             cmd_tx,
             last_visible_rows: None,
-            indexed_logs: IndexedMapped::default(),
+            indexed_logs: IndexedMapped::new(schema),
             pending_logs_rx: None,
             scroll_nearest_pos: None,
+            columns: cols.into_boxed_slice(),
         }
     }
 
@@ -58,7 +70,7 @@ impl SearchTable {
             .id_salt(id_salt)
             .num_rows(shared.search.total_count)
             .headers(Vec::new())
-            .columns(Self::text_columns())
+            .columns(self.columns.as_ref())
             .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
 
@@ -90,19 +102,13 @@ impl SearchTable {
             indexed_logs,
             pending_logs_rx,
             scroll_nearest_pos,
+            columns: _,
         } = self;
 
         *last_visible_rows = None;
         indexed_logs.clear();
         *scroll_nearest_pos = None;
         *pending_logs_rx = None;
-    }
-
-    fn text_columns() -> Vec<Column> {
-        vec![
-            Column::new(100.0).range(50.0..=500.0).resizable(true),
-            Column::default(),
-        ]
     }
 }
 
@@ -198,7 +204,7 @@ impl TableDelegate for LogsDelegate<'_> {
                 let log_item = match self
                     .table
                     .indexed_logs
-                    .get_element(&SearchTableIndex(row_nr))
+                    .get_log_item(&SearchTableIndex(row_nr))
                 {
                     Some(log) => log,
                     None => {
@@ -217,7 +223,7 @@ impl TableDelegate for LogsDelegate<'_> {
                     .logs
                     .selected_log
                     .as_ref()
-                    .is_some_and(|e| e.pos == log_item.pos);
+                    .is_some_and(|e| e.pos == log_item.element.pos);
 
                 if is_selected {
                     ui.painter()
@@ -226,23 +232,26 @@ impl TableDelegate for LogsDelegate<'_> {
 
                 match col_nr {
                     0 => {
-                        ui.label(log_item.pos.to_string());
+                        ui.label(log_item.element.pos.to_string());
                     }
-                    1 => {
+                    _ => {
+                        let content = log_item
+                            .column_ranges
+                            .get(col_nr.saturating_sub(1))
+                            .and_then(|rng| log_item.element.content.get(rng.clone()))
+                            .unwrap_or_default();
                         let label = if is_selected {
-                            let content = RichText::new(&log_item.content)
-                                .color(Color32::WHITE)
-                                .strong();
+                            let content = RichText::new(content).color(Color32::WHITE).strong();
                             Label::new(content)
                         } else {
-                            Label::new(&log_item.content)
+                            Label::new(content)
                         };
 
                         if label.ui(ui).clicked() {
                             if is_selected {
                                 self.shared.logs.selected_log = None;
                             } else {
-                                let pos = log_item.pos as u64;
+                                let pos = log_item.element.pos as u64;
 
                                 self.shared.logs.scroll_main_row = Some(pos);
 
@@ -253,7 +262,6 @@ impl TableDelegate for LogsDelegate<'_> {
                             };
                         }
                     }
-                    invalid => panic!("Invalid column number. {invalid}"),
                 }
             });
     }
