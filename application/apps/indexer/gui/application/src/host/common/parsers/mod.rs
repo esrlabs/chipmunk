@@ -3,6 +3,7 @@ pub mod dlt;
 use std::fmt::Display;
 
 pub use dlt::{DltLogLevel, DltParserConfig};
+use stypes::ParserType;
 
 /// Parser Configurations to be used in the front-end.
 #[derive(Debug, Clone)]
@@ -83,6 +84,17 @@ impl From<&ParserConfig> for ParserNames {
             ParserConfig::SomeIP => ParserNames::SomeIP,
             ParserConfig::Text => ParserNames::Text,
             ParserConfig::Plugins => ParserNames::Plugins,
+        }
+    }
+}
+
+impl From<&ParserType> for ParserNames {
+    fn from(value: &ParserType) -> Self {
+        match value {
+            ParserType::Dlt(..) => ParserNames::Dlt,
+            ParserType::SomeIp(..) => ParserNames::SomeIP,
+            ParserType::Text(..) => ParserNames::Text,
+            ParserType::Plugin(..) => ParserNames::Plugins,
         }
     }
 }
