@@ -1,10 +1,15 @@
+use std::rc::Rc;
+
 use tokio::sync::mpsc::Sender;
 
 use egui::{Frame, Margin, Ui};
 
 use crate::{
     host::ui::UiActions,
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        ui::{definitions::schema::LogSchema, shared::SessionShared},
+    },
 };
 use chart::ChartUI;
 use details::DetailsUI;
@@ -29,9 +34,9 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
-    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
         Self {
-            search: SearchUI::new(cmd_tx.clone()),
+            search: SearchUI::new(cmd_tx.clone(), schema),
             details: DetailsUI::default(),
             presets: PresetsUI::default(),
             chart: ChartUI::new(cmd_tx),
