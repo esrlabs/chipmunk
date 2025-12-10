@@ -7,7 +7,7 @@ use anyhow::{Context, ensure};
 use console::style;
 use regex::Regex;
 use serde::Deserialize;
-use toml::Value;
+use toml::{Table, Value};
 
 use crate::target::Target;
 
@@ -165,7 +165,7 @@ fn version_in_repo() -> anyhow::Result<String> {
         )
     })?;
 
-    let cargo_toml: Value = cargo_content.parse().with_context(|| {
+    let cargo_toml: Table = cargo_content.parse().with_context(|| {
         format!(
             "Parsing the content of CLI cargo file failed. Path: {}",
             cargo_path.display()
