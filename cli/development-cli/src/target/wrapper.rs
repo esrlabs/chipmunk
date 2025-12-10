@@ -1,12 +1,13 @@
 use std::{fs, iter, path::PathBuf};
 
 use anyhow::Context;
+use futures::future::join_all;
 
 use crate::{
     JobsState, fstools,
     job_type::JobType,
     jobs_runner::JobDefinition,
-    spawner::{SpawnResult, spawn, spawn_blocking, spawn_skip},
+    spawner::{SpawnResult, spawn, spawn_skip},
 };
 
 use super::{ProcessCommand, Target};
@@ -14,19 +15,6 @@ use super::{ProcessCommand, Target};
 // Naming convention for test files is `session.**.spec.[j-t]s`.
 const TEST_FILES_PREFIX: &str = "session.";
 const TEST_FILES_SUFFIXES: &[&str] = &[".spec.js", ".spec.ts"];
-
-// NOTE:
-// Running "jobs" here causes the program to receive SIGTRAP from OS because of an
-// out-of-memory error in electron app, even if only this job was running (by
-// commenting out the other specs).
-//
-// This error happens while executing function `jobs.getShellProfiles()` in file `session.jobs.spec.ts`
-// which will call rust function `get_valid_profiles()` in `indexer/session/src/unbound/commands/shells.rs`
-// using the crate `envvars` which panics with piped shells.
-//
-// The current work-around is blocking the progress bars temporally and running the tests
-// sequentially using `Stdio::inherit` to keep using the main shell, printing the results
-// of the test directly to standard out, then the progress bars will be shown again.
 
 pub async fn run_test(production: bool, skip: bool) -> Result<SpawnResult, anyhow::Error> {
     let job_def = JobDefinition::new(Target::Wrapper, JobType::Test { production });
@@ -111,29 +99,28 @@ pub async fn run_test(production: bool, skip: bool) -> Result<SpawnResult, anyho
         custom_specs.to_vec()
     };
 
-    let cancel = jobs_state.cancellation_token();
+    let jobs = involved_specs.into_iter().map(|spec_file_path| {
+        let electron_cmd = electron_path.to_string();
+        let jasmine_arg = jasmine_path.to_string();
+        let cwd_path = cwd.clone();
 
-    for spec_file_path in involved_specs {
-        let command = ProcessCommand::new(
-            electron_path.to_string(),
-            vec![jasmine_path.to_string(), spec_file_path],
-        );
+        let command = ProcessCommand::new(electron_cmd, vec![jasmine_arg, spec_file_path]);
 
-        // Break the loop if cancel is invoked.
-        tokio::select! {
-            res = spawn_blocking(
-                job_def,
-                command,
-                Some(cwd.clone()),
-                vec![(String::from("ELECTRON_RUN_AS_NODE"), String::from("1"))],
-            ) => {
-                let res = res?;
-                final_result.append(res);
-            }
-            _ = cancel.cancelled() => {
-                break;
-            }
-        }
+        spawn(
+            job_def,
+            command,
+            Some(cwd_path),
+            vec![(String::from("ELECTRON_RUN_AS_NODE"), String::from("1"))],
+            None,
+        )
+    });
+
+    let spawn_results = join_all(jobs).await;
+
+    for result in spawn_results {
+        let spawn_res = result?;
+
+        final_result.append(spawn_res);
     }
 
     Ok(final_result)

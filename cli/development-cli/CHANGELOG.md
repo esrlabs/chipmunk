@@ -1,3 +1,9 @@
+# 0.5.4
+
+## Changed:
+
+* Run Typescript tests in parallel after removing shell tests
+
 # 0.5.3
 
 ## Added:
