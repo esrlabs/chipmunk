@@ -14,7 +14,6 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
-use console::style;
 use dir_checksum::calc_combined_checksum;
 use serde::{Deserialize, Serialize};
 
@@ -22,9 +21,6 @@ use crate::{
     JobsState, job_type::JobType, jobs_runner::additional_features::AdditionalFeatures,
     location::get_root, target::Target,
 };
-
-/// Deprecated filenames that were used previously.
-const DEPRECATED_FILE_NAMES: [&str; 2] = [".build_chksum_dev", ".build_chksum_prod"];
 
 /// Name of the file used to save the state of the last build run.
 const PERSIST_FILE_NAME: &str = ".build_last_state";
@@ -162,31 +158,8 @@ impl BuildStateRecords {
         get_root().join(PERSIST_FILE_NAME)
     }
 
-    /// Remove deprecated files which were used to persist hashes only.
-    /// TODO: Remove this function when enough time has passed.
-    fn cleanup_depr_files() {
-        let root = get_root();
-        DEPRECATED_FILE_NAMES
-            .iter()
-            .map(|name| root.join(name))
-            .filter(|path| path.exists())
-            .for_each(|path| {
-                if let Err(err) = std::fs::remove_file(&path) {
-                    let msg = format!(
-                        "Error while removing deprecated checksum files.\n\
-                            File paht: {}\nError: {err:#?}",
-                        path.display()
-                    );
-
-                    eprintln!("{}", style(msg).yellow());
-                }
-            })
-    }
-
     /// Removes the records file if exists
     pub fn remove_records_file() -> anyhow::Result<()> {
-        Self::cleanup_depr_files();
-
         let file_path = Self::persist_file_path();
         if file_path.exists() {
             std::fs::remove_file(&file_path).with_context(|| {
