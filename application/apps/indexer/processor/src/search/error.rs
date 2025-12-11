@@ -1,5 +1,4 @@
 use crate::grabber::GrabError;
-use log::error;
 use serde::Serialize;
 use thiserror::Error;
 

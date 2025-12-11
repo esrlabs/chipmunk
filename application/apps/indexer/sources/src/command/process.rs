@@ -49,6 +49,15 @@ impl ProcessSource {
 
         let (bin, cmd_arg) = shell
             .map(|sh| (sh.path.as_os_str().to_os_string(), sh.shell.command_arg()))
+            // Check if built-in PowerShell is installed in use it as default shell.
+            .or_else(|| {
+                shell_tools::get_win_powershell().map(|p| {
+                    (
+                        p.as_os_str().to_os_string(),
+                        stypes::ShellType::Pwsh.command_arg(),
+                    )
+                })
+            })
             .unwrap_or_else(|| (OsString::from("cmd"), "/C"));
 
         Command::new(bin)

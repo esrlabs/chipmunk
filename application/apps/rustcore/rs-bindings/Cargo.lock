@@ -3146,6 +3146,7 @@ dependencies = [
  "pcap-parser",
  "regex",
  "serde",
+ "shell-tools",
  "shellexpand",
  "socket2",
  "stypes",
