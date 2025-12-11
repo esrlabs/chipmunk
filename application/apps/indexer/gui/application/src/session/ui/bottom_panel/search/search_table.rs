@@ -198,14 +198,31 @@ impl TableDelegate for LogsDelegate<'_> {
     fn cell_ui(&mut self, ui: &mut Ui, cell: &CellInfo) {
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
+        let log_item = self
+            .table
+            .indexed_logs
+            .get_log_item(&SearchTableIndex(row_nr));
+
+        let is_selected = self
+            .shared
+            .logs
+            .selected_log
+            .as_ref()
+            .is_some_and(|selected| {
+                log_item
+                    .as_ref()
+                    .is_some_and(|i| selected.pos == i.element.pos)
+            });
+
+        if is_selected {
+            ui.painter()
+                .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GREEN);
+        }
+
         Frame::NONE
             .inner_margin(Margin::symmetric(4, 0))
             .show(ui, |ui| {
-                let log_item = match self
-                    .table
-                    .indexed_logs
-                    .get_log_item(&SearchTableIndex(row_nr))
-                {
+                let log_item = match log_item {
                     Some(log) => log,
                     None => {
                         // Ensure data will be requested on next frame.
@@ -217,18 +234,6 @@ impl TableDelegate for LogsDelegate<'_> {
                         return;
                     }
                 };
-
-                let is_selected = self
-                    .shared
-                    .logs
-                    .selected_log
-                    .as_ref()
-                    .is_some_and(|e| e.pos == log_item.element.pos);
-
-                if is_selected {
-                    ui.painter()
-                        .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GREEN);
-                }
 
                 match col_nr {
                     0 => {
