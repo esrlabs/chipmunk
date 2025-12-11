@@ -42,6 +42,16 @@ fn load_shells() -> Vec<ShellProfile> {
     shells
 }
 
+#[cfg(windows)]
+/// Provides the path of built-in PowerShell on Windows, calculating it
+/// only on the very first call.
+pub fn get_win_powershell() -> Option<&'static std::path::PathBuf> {
+    use std::{path::PathBuf, sync::OnceLock};
+    static PATH: OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+    PATH.get_or_init(|| which::which_global("powershell").ok())
+        .as_ref()
+}
+
 fn is_path_valid(shell: ShellType, path: &Path) -> bool {
     match shell {
         ShellType::Bash

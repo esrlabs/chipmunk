@@ -1,7 +1,6 @@
 //! Include functionalities for tailing files to send notifications once new
 //! data are written to the file.
 
-use log::error;
 use std::path::Path;
 use thiserror::Error as ThisError;
 use tokio::{
