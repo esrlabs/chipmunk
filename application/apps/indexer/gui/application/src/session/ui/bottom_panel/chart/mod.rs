@@ -50,6 +50,21 @@ impl ChartUI {
         }
     }
 
+    pub fn on_search_count_changes(&mut self, shared: &SessionShared) {
+        // Requesting full logs ranges means that users haven't interacted with
+        // the charts (No zoom)
+        if self.is_requsting_full_range(shared) {
+            self.last_zoom_factor = None;
+            self.requested_logs_rng = None;
+        }
+    }
+
+    fn is_requsting_full_range(&self, shared: &SessionShared) -> bool {
+        self.requested_logs_rng
+            .as_ref()
+            .is_some_and(|rng| *rng == (0u64..=shared.logs.logs_count.saturating_sub(1)))
+    }
+
     pub fn update_histogram(&mut self, map: Vec<Vec<ChartBar>>) {
         //NOTE: Current implementation for temporal filter case.
         self.data.bars.clear();
