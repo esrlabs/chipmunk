@@ -137,6 +137,9 @@ impl Session {
                 }
                 SessionMessage::SearchState { found_count } => {
                     self.shared.search.total_count = found_count;
+                    self.bottom_panel
+                        .chart
+                        .on_search_count_changes(&self.shared);
                 }
                 SessionMessage::SearchResults(filter_matches) => {
                     self.shared.search.append_matches(filter_matches);
