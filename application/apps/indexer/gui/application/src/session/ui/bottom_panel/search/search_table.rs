@@ -42,7 +42,7 @@ impl SearchTable {
         let nums_col = Column::new(100.0).range(50.0..=500.0).resizable(true);
 
         cols.push(nums_col);
-        cols.extend(schema.columns().iter().map(|col| col.column.clone()));
+        cols.extend(schema.columns().iter().map(|col| col.column));
 
         Self {
             cmd_tx,
