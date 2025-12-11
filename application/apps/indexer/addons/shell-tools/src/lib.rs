@@ -19,20 +19,22 @@ fn load_shells() -> Vec<ShellProfile> {
 
     let mut shells = Vec::new();
     for &shell in ShellType::all() {
-        match which::which_all_global(shell.binary_name()) {
-            Ok(paths) => {
-                for path in paths {
-                    if !is_path_valid(shell, &path) || is_path_duplicated(&path, &shells) {
-                        continue;
+        for bin_name in shell.binary_names() {
+            match which::which_all_global(bin_name) {
+                Ok(paths) => {
+                    for path in paths {
+                        if !is_path_valid(shell, &path) || is_path_duplicated(&path, &shells) {
+                            continue;
+                        }
+                        let profile = ShellProfile { shell, path };
+                        shells.push(profile);
                     }
-                    let profile = ShellProfile { shell, path };
-                    shells.push(profile);
                 }
-            }
-            Err(err) => {
-                log::trace!("No shell found for {shell}. Message: {err}");
-            }
-        };
+                Err(err) => {
+                    log::trace!("No shell found for {shell}. Message: {err}");
+                }
+            };
+        }
     }
 
     log::trace!("Finish loading shells. Found {} shells", shells.len());

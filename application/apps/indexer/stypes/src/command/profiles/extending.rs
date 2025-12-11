@@ -37,14 +37,14 @@ impl ShellType {
     }
 
     /// Binary name for the shell
-    pub fn binary_name(self) -> &'static str {
+    pub fn binary_names(self) -> &'static [&'static str] {
         match self {
-            ShellType::Bash => "bash",
-            ShellType::Zsh => "zsh",
-            ShellType::Fish => "fish",
-            ShellType::NuShell => "nu",
-            ShellType::Elvish => "elvish",
-            ShellType::Pwsh => "pwsh",
+            ShellType::Bash => &["bash"],
+            ShellType::Zsh => &["zsh"],
+            ShellType::Fish => &["fish"],
+            ShellType::NuShell => &["nu"],
+            ShellType::Elvish => &["elvish"],
+            ShellType::Pwsh => &["powershell", "pwsh"],
         }
     }
 }
