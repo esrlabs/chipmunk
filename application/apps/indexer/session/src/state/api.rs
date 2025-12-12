@@ -29,7 +29,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub enum Api {
-    // TODO: Can this be removed? Do we need to keep track of context. E.g. store a promptID?
+    // TODO:[MCP] This is the API structure for handling receiving a prompt from UI once the UI is implemented
     SendChatPrompt(String),
     SetSessionFile(
         (

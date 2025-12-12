@@ -1,7 +1,13 @@
+// MCP API for handling communication between the Chipmunk application and the MCP client/server.
+// Contains functinality to:
+// - create and manage MCP API instances
+// - run the MCP event loop to process incoming messages
+// - methods to send messages to the MCP client and server
+
 use crate::operations::{Operation, OperationKind};
 use crate::state::SessionStateAPI;
 use crate::tracker::OperationTrackerAPI;
-use log::error;
+use log::{error, warn};
 use mcp::McpChannelEndpoints;
 use mcp::client::messages::{McpChipmunkToClient, McpClientToChipmunk};
 use mcp::server::messages::McpServerToChipmunk;
@@ -34,8 +40,10 @@ impl McpApi {
         )
     }
 
-    pub async fn handle_send_prompt(&self, prompt: String) -> Result<(), stypes::NativeError> {
-        let message = McpChipmunkToClient::Prompt { prompt };
+    /// TODO:[MCP] Send a prompt to the Chipmunk MCP client. The prompt would typically come from the UI.
+    /// The arguments probably need to be tweaked to also include the session
+    pub async fn send_prompt(&self, prompt: String) -> Result<(), stypes::NativeError> {
+        let message = McpChipmunkToClient::UserPrompt { prompt };
 
         self.chipmunk_to_client_tx
             .send(message.clone())
@@ -59,10 +67,10 @@ pub async fn run(
         select! {
             Some(server_request) = server_to_chipmunk_rx.recv() => {
                 match server_request {
-                    McpServerToChipmunk::ApplyFilter {filters, response_tx} => {
+                    McpServerToChipmunk::ApplySearchFilter {filters, response_tx} => {
 
-                        error!(
-                            "[Chipmunk] received filters: {:?}", filters
+                        warn!(
+                            "🟢 Chipmunk core received tool invocation ApplySearchFilter: {:?}", filters
                         );
 
                         let filters = filters.iter().map(|f| SearchFilter::new(f.value.clone(), f.is_regex, f.ignore_case, f.is_word)).collect();
@@ -73,7 +81,7 @@ pub async fn run(
                         );
 
                         if let Err(err) = tx_operations.send(operation) {
-                            let _ = response_tx.send(Err(McpError::ApplyFilter {message: err.to_string(),}));
+                            let _ = response_tx.send(Err(McpError::ToolExecution {message: err.to_string(),}));
                         } else {
                             let _ = response_tx.send(Ok(()));
                         }
@@ -84,7 +92,7 @@ pub async fn run(
             Some(client_request) = client_to_chipmunk_rx.recv() => {
                 match client_request {
                     McpClientToChipmunk::Response {..} => {
-                        // TODO: Implement functionality
+                        // TODO:[MCP] Implement functionality
                     }
                 }
             }

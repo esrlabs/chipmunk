@@ -2,20 +2,15 @@ use anyhow::Result;
 use log::{error, warn};
 use rmcp::{
     ErrorData as RmcpError,
-    handler::server::wrapper::Parameters,
-    handler::server::{ServerHandler, tool::ToolRouter},
-    model::{CallToolResult, Content, ErrorCode},
-    model::{ServerCapabilities, ServerInfo},
+    handler::server::{ServerHandler, tool::ToolRouter, wrapper::Parameters},
+    model::{CallToolResult, Content, ErrorCode, ServerCapabilities, ServerInfo},
     tool, tool_handler, tool_router,
     transport::streamable_http_server::{
         session::local::LocalSessionManager,
         tower::{StreamableHttpServerConfig, StreamableHttpService},
     },
 };
-use tokio::{
-    sync::{mpsc, oneshot},
-    time::{self, sleep},
-};
+use tokio::sync::{mpsc, oneshot};
 
 pub mod messages;
 
@@ -23,7 +18,7 @@ pub const BIND_ADDRESS: &str = "127.0.0.1:8181";
 
 use messages::McpServerToChipmunk;
 
-use crate::server::messages::SearchFilter;
+use crate::types::SearchFilters;
 
 #[derive(Clone, Debug)]
 pub struct McpServer {
@@ -62,70 +57,30 @@ impl McpServer {
 
     pub async fn start(self) -> Result<()> {
         let ct = tokio_util::sync::CancellationToken::new();
-        let (mcp_server, _task_rx_inner) = McpServer::new();
 
         let service = StreamableHttpService::new(
-            move || Ok(mcp_server.clone()),
+            {
+                let server = self.clone();
+                move || Ok(server.clone())
+            },
             LocalSessionManager::default().into(),
             StreamableHttpServerConfig {
                 cancellation_token: ct.child_token(),
                 ..Default::default()
             },
         );
+
         let router = axum::Router::new().nest_service("/mcp", service);
         let tcp_listener = tokio::net::TcpListener::bind(BIND_ADDRESS).await?;
 
         tokio::spawn(async move {
-            if let Err(server_err) = axum::serve(tcp_listener, router).await {
-                eprintln!("MCP Server error: {:?}", server_err);
+            if let Err(err) = axum::serve(tcp_listener, router).await {
+                error!("🔴 MCP server error: {:?}", err);
             }
         });
+        warn!("🟢 MCP server started");
 
         Ok(())
-    }
-
-    #[allow(dead_code)]
-    async fn run(self) {
-        // TODO: Send a mock message after 1 seconds
-        warn!("🔅 MCP: sleep timer started");
-        let duration = time::Duration::from_secs(10);
-        sleep(duration).await;
-        warn!("🔅 MCP: {:?} seconds passed", duration);
-
-        let (response_tx, response_rx) = oneshot::channel();
-
-        let filters = vec![SearchFilter {
-            value: String::from("icmp_seq=13"),
-            is_regex: false,
-            ignore_case: true,
-            is_word: true,
-        }];
-
-        let message = McpServerToChipmunk::ApplyFilter {
-            filters,
-            response_tx,
-        };
-
-        if let Err(err) = self.server_to_chipmunk_tx.send(message).await {
-            error!(
-                "[Chipmunk] <-X- [MCP server]: server failed to send request: ApplyFilter: {err}"
-            );
-            return;
-        }
-
-        match response_rx.await {
-            Err(err) => {
-                error!(
-                    "[Chipmunk] -X-> [MCP server]: server failed to receive response: ApplyFilter: {err}"
-                );
-            }
-            Ok(result) => {
-                error!(
-                    "[Chipmunk] --> [MCP server]: ✅ Received response: {:?}",
-                    result
-                )
-            }
-        }
     }
 
     #[tool(description = r#"Generate SearchFilter objects for filtering logs.
@@ -134,7 +89,7 @@ This tool accepts one or more filter specifications and returns a list of Search
 Each filter can be customized with flags for regex matching, case sensitivity, and word boundaries.
 
 **Input Parameters:**
-- `filters`: An array of filter objects, where each object contains:
+- `filters`: An list of filter objects, where each object contains:
   - `filter` (string): The text or pattern to search for
   - `is_regex` (boolean): true if the filter is a regular expression pattern
   - `ignore_case` (boolean): true for case-insensitive matching
@@ -169,22 +124,22 @@ When the user provides natural language instructions, interpret them as follows:
 "#)]
     async fn apply_search_filter(
         &self,
-        Parameters(params): Parameters<Vec<SearchFilter>>,
+        Parameters(params): Parameters<SearchFilters>,
     ) -> Result<CallToolResult, RmcpError> {
-        log::info!(
-            "Received apply_search_filter tool call with params: {:?}",
+        warn!(
+            "🟢 MCP server received apply_search_filter tool call with params: {:?}",
             params
         );
-        let (response_tx, response_rx) = tokio::sync::oneshot::channel();
-        let task = McpServerToChipmunk::ApplyFilter {
-            filters: vec![],
+        let (response_tx, response_rx) = oneshot::channel();
+        let task = McpServerToChipmunk::ApplySearchFilter {
+            filters: params.filters.clone(),
             response_tx,
         };
         let task_tx_clone = self.server_to_chipmunk_tx.clone();
         // Send task over communication channel in a separate thread,
         // in future, we can skip match over task spawn
-        match tokio::spawn(async move { task_tx_clone.send(task).await }).await {
-            Ok(_) => log::info!("Sent Search task to MCP server"),
+        match task_tx_clone.send(task).await {
+            Ok(_) => log::warn!("🟢 MCP Server sent search task to MCP server"),
             Err(err) => log::error!(
                 "Failed to send Search task to MCP server: ApplyFilter: {}",
                 err
@@ -193,23 +148,22 @@ When the user provides natural language instructions, interpret them as follows:
 
         // Wait for the response from task over communication channel
         // based on the response send back the JSON response to client
-        response_rx
-            .await
-            .map(|task_response| match task_response {
-                Ok(()) => Ok(CallToolResult::success(vec![Content::json(
-                    "Server task finished successfully",
-                )?])),
+        match response_rx.await {
+            Ok(task_response) => match task_response {
+                Ok(()) => Ok(CallToolResult::success(vec![Content::json(format!(
+                    "Chipmunk finished task ApplySearchFilter sucessfully. Applied filter: {}",
+                    params
+                ))?])),
                 Err(err) => {
-                    let err_msg = format!("Error while applying the task: {err}");
+                    let err_msg = format!("Error while applying the search filter: {err}");
                     Ok(CallToolResult::error(vec![Content::json(err_msg)?]))
                 }
-            })
-            .map_err(|err| {
-                RmcpError::new(
-                    ErrorCode::INTERNAL_ERROR,
-                    format!("Did not receive the response from search filter task {err:?}"),
-                    None,
-                )
-            })?
+            },
+            Err(error) => Err(RmcpError::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Did not receive the response from apply_search_filter task: {error:?}"),
+                None,
+            )),
+        }
     }
 }
