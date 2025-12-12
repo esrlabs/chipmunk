@@ -19,7 +19,10 @@ use std::{
     ops::RangeInclusive,
     path::PathBuf,
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    oneshot,
+};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -41,7 +44,7 @@ pub use indexes::{
     nature::Nature,
 };
 use observed::Observed;
-use searchers::{SearcherState, Searchers};
+use searchers::{SearchRequest, SearchResponse};
 pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 use stypes::{FilterMatch, GrabbedElement};
 pub use values::{Values, ValuesError};
@@ -64,28 +67,28 @@ pub struct SessionState {
     pub search_map: SearchMap,
     pub indexes: Indexes,
     pub values: Values,
-    pub searchers: Searchers,
     pub attachments: Attachments,
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
+    searcher_tx: mpsc::Sender<SearchRequest>,
     pub debug: bool,
 }
 
 impl SessionState {
-    fn new(tx_callback_events: UnboundedSender<stypes::CallbackEvent>) -> Self {
+    fn new(
+        tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
+        searcher_tx: mpsc::Sender<SearchRequest>,
+    ) -> Self {
         Self {
             session_file: SessionFile::new(),
             observed: Observed::new(),
             search_map: SearchMap::new(),
-            searchers: Searchers {
-                regular: SearcherState::NotInited,
-                values: SearcherState::NotInited,
-            },
             attachments: Attachments::new(),
             indexes: Indexes::new(Some(tx_callback_events.clone())),
             values: Values::new(Some(tx_callback_events)),
             status: Status::Open,
             cancelling_operations: HashMap::new(),
+            searcher_tx,
             debug: false,
         }
     }
@@ -328,36 +331,26 @@ impl SessionState {
         self.search_map.set_stream_len(rows);
         self.indexes.set_stream_len(rows)?;
         tx_callback_events.send(stypes::CallbackEvent::StreamUpdated(rows))?;
-        match self
-            .searchers
-            .regular
-            .search(rows, bytes, state_cancellation_token.clone())
-        {
-            Some(Ok((_processed, mut matches, stats))) => {
-                self.indexes.append_search_results(&matches)?;
-                let updates: stypes::FilterMatchList = (&matches).into();
-                let found = self.search_map.append(&mut matches) as u64;
-                self.search_map.append_stats(stats);
-                tx_callback_events.send(stypes::CallbackEvent::search_results(
-                    found,
-                    self.search_map.get_stats(),
-                ))?;
-                tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(Some(updates)))?;
-            }
-            Some(Err(err)) => error!("Fail to append search: {err}"),
-            None => (),
-        }
-        match self
-            .searchers
-            .values
-            .search(rows, bytes, state_cancellation_token)
-        {
-            Some(Ok(ValueSearchOutput { values, .. })) => {
-                self.values.append_values(values);
-            }
-            Some(Err(err)) => error!("Fail to update search values: {err}"),
-            None => (),
-        }
+        self.searcher_tx
+            .send(SearchRequest::SearchRegular {
+                rows,
+                bytes,
+                cancel: state_cancellation_token.clone(),
+            })
+            .await
+            .map_err(|_| {
+                stypes::NativeError::channel("Failed to send search regular request to searchers")
+            })?;
+        self.searcher_tx
+            .send(SearchRequest::SearchValue {
+                rows,
+                bytes,
+                cancel: state_cancellation_token,
+            })
+            .await
+            .map_err(|_| {
+                stypes::NativeError::channel("Failed to send search values request to searchers")
+            })?;
         Ok(())
     }
 
@@ -441,60 +434,50 @@ impl SessionState {
         Ok(true)
     }
 
-    fn handle_get_search_holder(&mut self) -> Result<RegularSearchHolder, stypes::NativeError> {
-        match self.searchers.regular {
-            SearcherState::Available(_) => {
-                use std::mem;
-                if let SearcherState::Available(holder) =
-                    mem::replace(&mut self.searchers.regular, SearcherState::InUse)
-                {
-                    Ok(holder)
-                } else {
-                    Err(stypes::NativeError {
-                        severity: stypes::Severity::ERROR,
-                        kind: stypes::NativeErrorKind::Configuration,
-                        message: Some(String::from("Could not replace search holder in state")),
-                    })
-                }
-            }
-            SearcherState::InUse => Err(stypes::NativeError::channel("Search holder is in use")),
-            SearcherState::NotInited => {
-                let filename = self.session_file.filename()?;
-                self.searchers.regular.set_in_use();
-                Ok(RegularSearchHolder::new(&filename, 0, 0))
-            }
-        }
+    async fn handle_get_search_holder(
+        &mut self,
+    ) -> Result<RegularSearchHolder, stypes::NativeError> {
+        let filename = self.session_file.filename()?;
+        let (holder_rx, holder_tx) = oneshot::channel();
+        self.searcher_tx
+            .send(SearchRequest::GetSearchHolder {
+                filename,
+                sender: holder_rx,
+            })
+            .await
+            .map_err(|_| {
+                stypes::NativeError::channel(
+                    "Failed to send get search holder request to searchers",
+                )
+            })?;
+        holder_tx.await.map_err(|err| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::ChannelError,
+            message: Some(err.to_string()),
+        })?
     }
 
-    fn handle_get_search_values_holder(
+    async fn handle_get_search_values_holder(
         &mut self,
     ) -> Result<ValueSearchHolder, stypes::NativeError> {
-        match self.searchers.values {
-            SearcherState::Available(_) => {
-                use std::mem;
-                if let SearcherState::Available(holder) =
-                    mem::replace(&mut self.searchers.values, SearcherState::InUse)
-                {
-                    Ok(holder)
-                } else {
-                    Err(stypes::NativeError {
-                        severity: stypes::Severity::ERROR,
-                        kind: stypes::NativeErrorKind::Configuration,
-                        message: Some(String::from(
-                            "Could not replace search values holder in state",
-                        )),
-                    })
-                }
-            }
-            SearcherState::InUse => Err(stypes::NativeError::channel(
-                "Search values holder is in use",
-            )),
-            SearcherState::NotInited => {
-                let filename = self.session_file.filename()?;
-                self.searchers.values.set_in_use();
-                Ok(ValueSearchHolder::new(&filename, 0, 0))
-            }
-        }
+        let filename = self.session_file.filename()?;
+        let (holder_rx, holder_tx) = oneshot::channel();
+        self.searcher_tx
+            .send(SearchRequest::GetSearchValueHolder {
+                filename,
+                sender: holder_rx,
+            })
+            .await
+            .map_err(|_| {
+                stypes::NativeError::channel(
+                    "Failed to send get search values request to searchers",
+                )
+            })?;
+        holder_tx.await.map_err(|err| stypes::NativeError {
+            severity: stypes::Severity::ERROR,
+            kind: stypes::NativeErrorKind::ChannelError,
+            message: Some(err.to_string()),
+        })?
     }
 
     fn handle_add_attachment(
@@ -515,425 +498,488 @@ pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
 ) -> Result<(), stypes::NativeError> {
-    let mut state = SessionState::new(tx_callback_events.clone());
+    let (search_req_tx, mut search_res_rx) = searchers::spawn();
+    let mut state = SessionState::new(tx_callback_events.clone(), search_req_tx);
     let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
-    while let Some(msg) = rx_api.recv().await {
-        match msg {
-            Api::SetSessionFile((session_file, tx_response)) => {
-                let set_session_file_res = state.session_file.init(session_file);
-                if let (Ok(_), Ok(filename)) =
-                    (&set_session_file_res, state.session_file.filename())
+    loop {
+        tokio::select! {
+            Some(msg) = rx_api.recv() => {
+                match handle_api_msg(
+                    msg,
+                    &mut state,
+                    &tx_callback_events,
+                    &state_cancellation_token,
+                )
+                .await?
                 {
-                    state.attachments.set_dest_path(filename);
-                }
-                tx_response.send(set_session_file_res).map_err(|_| {
-                    stypes::NativeError::channel("Failed to response to Api::SetSessionFile")
-                })?;
-            }
-            Api::GetSessionFile(tx_response) => {
-                tx_response
-                    .send(state.session_file.filename())
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetSessionFile")
-                    })?;
-            }
-            Api::WriteSessionFile((source_id, msg, tx_response)) => {
-                tx_response
-                    .send(
-                        state
-                            .handle_write_session_file(
-                                source_id,
-                                state_cancellation_token.clone(),
-                                tx_callback_events.clone(),
-                                msg,
-                            )
-                            .await,
-                    )
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::WriteSessionFile")
-                    })?;
-            }
-            Api::FlushSessionFile(tx_response) => {
-                let res = state
-                    .handle_flush_session_file(
-                        state_cancellation_token.clone(),
-                        tx_callback_events.clone(),
-                    )
-                    .await;
-                tx_response.send(res).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::FlushSessionFile")
-                })?;
-            }
-            Api::GetSessionFileOrigin(tx_response) => {
-                tx_response
-                    .send(Ok(state.session_file.filename.clone()))
-                    .map_err(|_| {
-                        stypes::NativeError::channel(
-                            "Failed to respond to Api::GetSessionFileOrigin",
-                        )
-                    })?;
-            }
-            Api::UpdateSession((source_id, tx_response)) => {
-                let res = state
-                    .handle_update_session(
-                        source_id,
-                        state_cancellation_token.clone(),
-                        tx_callback_events.clone(),
-                    )
-                    .await;
-                tx_response.send(res).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::UpdateSession")
-                })?;
-            }
-            Api::AddSource((uuid, tx_response)) => {
-                tx_response
-                    .send(state.session_file.sources.add_source(uuid))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::AddSource")
-                    })?;
-            }
-            Api::GetSource((uuid, tx_response)) => {
-                tx_response
-                    .send(state.session_file.sources.get_source(uuid))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::AddSource")
-                    })?;
-            }
-            Api::GetSourcesDefinitions(tx_response) => {
-                tx_response
-                    .send(state.session_file.sources.get_sources_definitions())
-                    .map_err(|_| {
-                        stypes::NativeError::channel(
-                            "Failed to respond to Api::GetSourcesDefinitions",
-                        )
-                    })?;
-            }
-            Api::AddExecutedObserve((options, tx_response)) => {
-                state.observed.add(options);
-                tx_response.send(()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::AddExecutedObserve")
-                })?;
-            }
-            Api::GetExecutedHolder(tx_response) => {
-                tx_response.send(state.observed.clone()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetExecutedHolder")
-                })?;
-            }
-            Api::IsRawExportAvailable(tx_response) => {
-                tx_response
-                    .send(state.observed.is_file_based_export_possible())
-                    .map_err(|_| {
-                        stypes::NativeError::channel(
-                            "Failed to respond to Api::IsRawExportAvailable",
-                        )
-                    })?;
-            }
-            Api::ExportSession {
-                out_path,
-                ranges,
-                columns,
-                spliter,
-                delimiter,
-                cancel,
-                tx_response,
-            } => {
-                let res = state
-                    .handle_export_session(out_path, ranges, columns, spliter, delimiter, cancel)
-                    .await;
-                tx_response.send(res).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::ExportSession")
-                })?;
-            }
-            Api::Grab((range, tx_response)) => {
-                tx_response
-                    .send(state.handle_grab(&range))
-                    .map_err(|_| stypes::NativeError::channel("Failed to respond to Api::Grab"))?;
-            }
-            Api::GrabIndexed((range, tx_response)) => {
-                tx_response
-                    .send(state.handle_grab_indexed(range))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GrabIndexed")
-                    })?;
-            }
-            Api::SetIndexingMode((mode, tx_response)) => {
-                tx_response
-                    .send(state.indexes.set_mode(mode))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::SetIndexingMode")
-                    })?;
-            }
-            Api::GetIndexedMapLen(tx_response) => {
-                tx_response.send(state.indexes.len()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
-                })?;
-            }
-            Api::GetDistancesAroundIndex((position, tx_response)) => {
-                tx_response
-                    .send(state.indexes.get_around_indexes(&position))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
-                    })?;
-            }
-            Api::AddBookmark((row, tx_response)) => {
-                tx_response
-                    .send(state.indexes.add_bookmark(row))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::AddBookmark")
-                    })?;
-            }
-            Api::SetBookmarks((rows, tx_response)) => {
-                tx_response
-                    .send(state.indexes.set_bookmarks(rows))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::SetBookmarks")
-                    })?;
-            }
-            Api::RemoveBookmark((row, tx_response)) => {
-                tx_response
-                    .send(state.indexes.remove_bookmark(row))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::RemoveBookmark")
-                    })?;
-            }
-            Api::ExpandBreadcrumbs {
-                seporator,
-                offset,
-                above,
-                tx_response,
-            } => {
-                tx_response
-                    .send(state.indexes.breadcrumbs_expand(seporator, offset, above))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::ExpandBreadcrumbs")
-                    })?;
-            }
-            Api::GrabSearch((range, tx_response)) => {
-                tx_response
-                    .send(state.handle_grab_search(range))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
-                    })?;
-            }
-            Api::SearchNestedMatch((filter, from, rev, tx_response)) => {
-                tx_response
-                    .send(state.handle_search_nested_match(filter, from, rev))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
-                    })?;
-            }
-            Api::GrabRanges((ranges, tx_response)) => {
-                tx_response
-                    .send(state.handle_grab_ranges(ranges))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
-                    })?;
-            }
-            Api::GetNearestPosition((position, tx_response)) => {
-                tx_response
-                    .send(stypes::ResultNearestPosition(
-                        state.search_map.nearest_to(position),
-                    ))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetNearestPosition")
-                    })?;
-            }
-            Api::GetScaledMap((len, range, tx_response)) => {
-                tx_response
-                    .send(state.search_map.scaled(len, range))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetScaledMap")
-                    })?;
-            }
-            Api::FileRead(tx_response) => {
-                tx_callback_events.send(stypes::CallbackEvent::FileRead)?;
-                tx_response.send(()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::FileRead")
-                })?;
-            }
-            Api::GetStreamLen(tx_response) => {
-                tx_response
-                    .send((state.session_file.len(), state.session_file.read_bytes()))
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetStreamLen")
-                    })?;
-            }
-            Api::GetSearchResultLen(tx_response) => {
-                tx_response.send(state.search_map.len()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetSearchResultLen")
-                })?;
-            }
-            Api::GetSearchHolder((_uuid, tx_response)) => {
-                tx_response
-                    .send(state.handle_get_search_holder())
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetSearchHolder")
-                    })?;
-            }
-            Api::SetSearchHolder((mut holder, _uuid_for_debug, tx_response)) => {
-                let result = if state.searchers.regular.is_in_use() {
-                    if let Some(holder) = holder.take() {
-                        state.searchers.regular.set_searcher(holder);
-                    } else {
-                        state.searchers.regular.set_not_inited();
-                    }
-                    Ok(())
-                } else {
-                    Err(stypes::NativeError::channel(
-                        "Cannot set search holder - it wasn't in use",
-                    ))
-                };
-                tx_response.send(result).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SetSearchHolder")
-                })?;
-            }
-            Api::DropSearch(tx_response) => {
-                let result = if state.searchers.regular.is_in_use() {
-                    false
-                } else {
-                    state.searchers.regular.set_not_inited();
-                    state.search_map.set(None, None);
-                    state.indexes.drop_search()?;
-                    true
-                };
-                tx_callback_events.send(stypes::CallbackEvent::no_search_results())?;
-                tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(None))?;
-                tx_response.send(result).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::DropSearch")
-                })?;
-            }
-            Api::SetMatches((matches, stats, tx_response)) => {
-                let update: Option<stypes::FilterMatchList> =
-                    matches.as_ref().map(|matches| matches.into());
-                if let Some(matches) = matches.as_ref() {
-                    state.indexes.set_search_results(matches)?;
-                }
-                state.search_map.set(matches, stats);
-                tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(update))?;
-                tx_callback_events.send(stypes::CallbackEvent::search_results(
-                    state.search_map.len() as u64,
-                    state.search_map.get_stats(),
-                ))?;
-                tx_response.send(()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SetMatches")
-                })?;
-            }
-            Api::GetSearchValuesHolder((_uuid, tx_response)) => {
-                tx_response
-                    .send(state.handle_get_search_values_holder())
-                    .map_err(|_| {
-                        stypes::NativeError::channel(
-                            "Failed to respond to Api::GetSearchValuesHolder",
-                        )
-                    })?;
-            }
-            Api::SetSearchValuesHolder((mut holder, _uuid_for_debug, tx_response)) => {
-                let result = if state.searchers.values.is_in_use() {
-                    if let Some(holder) = holder.take() {
-                        state.searchers.values.set_searcher(holder);
-                    } else {
-                        state.searchers.values.set_not_inited();
-                    }
-                    Ok(())
-                } else {
-                    Err(stypes::NativeError::channel(
-                        "Cannot set search values holder - it wasn't in use",
-                    ))
-                };
-                tx_response.send(result).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SetSearchValuesHolder")
-                })?;
-            }
-            Api::GetSearchValues((frame, width, tx_response)) => {
-                tx_response
-                    .send(state.values.get(frame, width))
-                    .map_err(|_| {
-                        stypes::NativeError::channel(
-                            "Failed to respond to Api::SetSearchValuesHolder",
-                        )
-                    })?;
-            }
-            Api::SetSearchValues(values, tx_response) => {
-                state.values.set_values(values);
-                tx_response.send(()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SetSearchValues")
-                })?;
-            }
-            Api::DropSearchValues(tx_response) => {
-                let result = if state.searchers.values.is_in_use() {
-                    false
-                } else {
-                    state.searchers.values.set_not_inited();
-                    true
-                };
-                state.values.drop();
-                tx_response.send(result).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::DropSearchValues")
-                })?;
-            }
-            Api::GetIndexedRanges(tx_response) => {
-                tx_response
-                    .send(state.indexes.get_all_as_ranges())
-                    .map_err(|_| {
-                        stypes::NativeError::channel("Failed to respond to Api::GetIndexedRanges")
-                    })?;
-            }
-            Api::CloseSession(tx_response) => {
-                state_cancellation_token.cancel();
-                state.status = Status::Closed;
-                // Note: all operations would be canceled in close_session of API. We cannot do it here,
-                // because we would lock this loop if some operation needs access to state during cancellation.
-                if tx_response.send(()).is_err() {
-                    return Err(stypes::NativeError::channel(
-                        "fail to response to Api::CloseSession",
-                    ));
+                    HanldeOutpt::None => {}
+                    HanldeOutpt::Break => break,
                 }
             }
-            Api::SetDebugMode((debug, tx_response)) => {
-                state.debug = debug;
-                if tx_response.send(()).is_err() {
-                    return Err(stypes::NativeError::channel(
-                        "fail to response to Api::SetDebugMode",
-                    ));
-                }
-            }
-            Api::NotifyCancelingOperation(uuid) => {
-                state.cancelling_operations.insert(uuid, true);
-            }
-            Api::NotifyCanceledOperation(uuid) => {
-                state.cancelling_operations.remove(&uuid);
-            }
-            Api::AddAttachment(attachment) => {
-                let at_name = attachment.name.clone();
-                if let Err(err) =
-                    state.handle_add_attachment(attachment, tx_callback_events.clone())
+            Some(response) = search_res_rx.recv() => {
+                match handle_searchers(
+                    response,
+                    &mut state,
+                    &tx_callback_events,
+                ).await?
                 {
-                    error!("Fail to process attachment {at_name:?}; error: {err:?}");
+                    HanldeOutpt::None => {}
+                    HanldeOutpt::Break => break,
+
                 }
             }
-            Api::GetAttachments(tx_response) => {
-                tx_response.send(state.attachments.get()).map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetAttachments")
-                })?;
-            }
-            Api::Shutdown => {
-                state_cancellation_token.cancel();
-                debug!("shutdown has been requested");
+            else => {
                 break;
-            }
-            Api::ShutdownWithError => {
-                debug!("shutdown state loop with error for testing");
-                return Err(stypes::NativeError {
-                    severity: stypes::Severity::ERROR,
-                    kind: stypes::NativeErrorKind::Io,
-                    message: Some(String::from("Shutdown state loop with error for testing")),
-                });
             }
         }
     }
     debug!("task is finished");
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HanldeOutpt {
+    None,
+    Break,
+}
+
+async fn handle_api_msg(
+    msg: Api,
+    state: &mut SessionState,
+    tx_callback_events: &UnboundedSender<stypes::CallbackEvent>,
+    state_cancellation_token: &CancellationToken,
+) -> Result<HanldeOutpt, stypes::NativeError> {
+    match msg {
+        Api::SetSessionFile((session_file, tx_response)) => {
+            let set_session_file_res = state.session_file.init(session_file);
+            if let (Ok(_), Ok(filename)) = (&set_session_file_res, state.session_file.filename()) {
+                state.attachments.set_dest_path(filename);
+            }
+            tx_response.send(set_session_file_res).map_err(|_| {
+                stypes::NativeError::channel("Failed to response to Api::SetSessionFile")
+            })?;
+        }
+        Api::GetSessionFile(tx_response) => {
+            tx_response
+                .send(state.session_file.filename())
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetSessionFile")
+                })?;
+        }
+        Api::WriteSessionFile((source_id, msg, tx_response)) => {
+            tx_response
+                .send(
+                    state
+                        .handle_write_session_file(
+                            source_id,
+                            state_cancellation_token.clone(),
+                            tx_callback_events.clone(),
+                            msg,
+                        )
+                        .await,
+                )
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::WriteSessionFile")
+                })?;
+        }
+        Api::FlushSessionFile(tx_response) => {
+            let res = state
+                .handle_flush_session_file(
+                    state_cancellation_token.clone(),
+                    tx_callback_events.clone(),
+                )
+                .await;
+            tx_response.send(res).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::FlushSessionFile")
+            })?;
+        }
+        Api::GetSessionFileOrigin(tx_response) => {
+            tx_response
+                .send(Ok(state.session_file.filename.clone()))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetSessionFileOrigin")
+                })?;
+        }
+        Api::UpdateSession((source_id, tx_response)) => {
+            let res = state
+                .handle_update_session(
+                    source_id,
+                    state_cancellation_token.clone(),
+                    tx_callback_events.clone(),
+                )
+                .await;
+            tx_response.send(res).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::UpdateSession")
+            })?;
+        }
+        Api::AddSource((uuid, tx_response)) => {
+            tx_response
+                .send(state.session_file.sources.add_source(uuid))
+                .map_err(|_| stypes::NativeError::channel("Failed to respond to Api::AddSource"))?;
+        }
+        Api::GetSource((uuid, tx_response)) => {
+            tx_response
+                .send(state.session_file.sources.get_source(uuid))
+                .map_err(|_| stypes::NativeError::channel("Failed to respond to Api::AddSource"))?;
+        }
+        Api::GetSourcesDefinitions(tx_response) => {
+            tx_response
+                .send(state.session_file.sources.get_sources_definitions())
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetSourcesDefinitions")
+                })?;
+        }
+        Api::AddExecutedObserve((options, tx_response)) => {
+            state.observed.add(options);
+            tx_response.send(()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::AddExecutedObserve")
+            })?;
+        }
+        Api::GetExecutedHolder(tx_response) => {
+            tx_response.send(state.observed.clone()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::GetExecutedHolder")
+            })?;
+        }
+        Api::IsRawExportAvailable(tx_response) => {
+            tx_response
+                .send(state.observed.is_file_based_export_possible())
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::IsRawExportAvailable")
+                })?;
+        }
+        Api::ExportSession {
+            out_path,
+            ranges,
+            columns,
+            spliter,
+            delimiter,
+            cancel,
+            tx_response,
+        } => {
+            let res = state
+                .handle_export_session(out_path, ranges, columns, spliter, delimiter, cancel)
+                .await;
+            tx_response.send(res).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::ExportSession")
+            })?;
+        }
+        Api::Grab((range, tx_response)) => {
+            tx_response
+                .send(state.handle_grab(&range))
+                .map_err(|_| stypes::NativeError::channel("Failed to respond to Api::Grab"))?;
+        }
+        Api::GrabIndexed((range, tx_response)) => {
+            tx_response
+                .send(state.handle_grab_indexed(range))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GrabIndexed")
+                })?;
+        }
+        Api::SetIndexingMode((mode, tx_response)) => {
+            tx_response
+                .send(state.indexes.set_mode(mode))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::SetIndexingMode")
+                })?;
+        }
+        Api::GetIndexedMapLen(tx_response) => {
+            tx_response.send(state.indexes.len()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
+            })?;
+        }
+        Api::GetDistancesAroundIndex((position, tx_response)) => {
+            tx_response
+                .send(state.indexes.get_around_indexes(&position))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
+                })?;
+        }
+        Api::AddBookmark((row, tx_response)) => {
+            tx_response
+                .send(state.indexes.add_bookmark(row))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::AddBookmark")
+                })?;
+        }
+        Api::SetBookmarks((rows, tx_response)) => {
+            tx_response
+                .send(state.indexes.set_bookmarks(rows))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::SetBookmarks")
+                })?;
+        }
+        Api::RemoveBookmark((row, tx_response)) => {
+            tx_response
+                .send(state.indexes.remove_bookmark(row))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::RemoveBookmark")
+                })?;
+        }
+        Api::ExpandBreadcrumbs {
+            seporator,
+            offset,
+            above,
+            tx_response,
+        } => {
+            tx_response
+                .send(state.indexes.breadcrumbs_expand(seporator, offset, above))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::ExpandBreadcrumbs")
+                })?;
+        }
+        Api::GrabSearch((range, tx_response)) => {
+            tx_response
+                .send(state.handle_grab_search(range))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
+                })?;
+        }
+        Api::SearchNestedMatch((filter, from, rev, tx_response)) => {
+            tx_response
+                .send(state.handle_search_nested_match(filter, from, rev))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
+                })?;
+        }
+        Api::GrabRanges((ranges, tx_response)) => {
+            tx_response
+                .send(state.handle_grab_ranges(ranges))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
+                })?;
+        }
+        Api::GetNearestPosition((position, tx_response)) => {
+            tx_response
+                .send(stypes::ResultNearestPosition(
+                    state.search_map.nearest_to(position),
+                ))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetNearestPosition")
+                })?;
+        }
+        Api::GetScaledMap((len, range, tx_response)) => {
+            tx_response
+                .send(state.search_map.scaled(len, range))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetScaledMap")
+                })?;
+        }
+        Api::FileRead(tx_response) => {
+            tx_callback_events.send(stypes::CallbackEvent::FileRead)?;
+            tx_response
+                .send(())
+                .map_err(|_| stypes::NativeError::channel("Failed to respond to Api::FileRead"))?;
+        }
+        Api::GetStreamLen(tx_response) => {
+            tx_response
+                .send((state.session_file.len(), state.session_file.read_bytes()))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetStreamLen")
+                })?;
+        }
+        Api::GetSearchResultLen(tx_response) => {
+            tx_response.send(state.search_map.len()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::GetSearchResultLen")
+            })?;
+        }
+        Api::GetSearchHolder((_uuid, tx_response)) => {
+            tx_response
+                .send(state.handle_get_search_holder().await)
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetSearchHolder")
+                })?;
+        }
+        Api::SetSearchHolder((holder, _uuid_for_debug, tx_response)) => {
+            state
+                .searcher_tx
+                .send(SearchRequest::SetSearchHolder {
+                    holder,
+                    tx_response,
+                })
+                .await
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to send set to set search holder")
+                })?;
+        }
+        Api::DropSearch(tx_response) => {
+            let (tx_result, rx_result) = oneshot::channel();
+            state
+                .searcher_tx
+                .send(SearchRequest::DropSearch { tx_result })
+                .await
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to send drop search request to searchers")
+                })?;
+            let result = rx_result.await.map_err(|_| {
+                stypes::NativeError::channel("Failed to receive drop response from searchers")
+            })?;
+
+            if result {
+                state.search_map.set(None, None);
+                state.indexes.drop_search()?;
+            }
+            tx_callback_events.send(stypes::CallbackEvent::no_search_results())?;
+            tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(None))?;
+            tx_response.send(result).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::DropSearch")
+            })?;
+        }
+        Api::SetMatches((matches, stats, tx_response)) => {
+            let update: Option<stypes::FilterMatchList> =
+                matches.as_ref().map(|matches| matches.into());
+            if let Some(matches) = matches.as_ref() {
+                state.indexes.set_search_results(matches)?;
+            }
+            state.search_map.set(matches, stats);
+            tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(update))?;
+            tx_callback_events.send(stypes::CallbackEvent::search_results(
+                state.search_map.len() as u64,
+                state.search_map.get_stats(),
+            ))?;
+            tx_response.send(()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::SetMatches")
+            })?;
+        }
+        Api::GetSearchValuesHolder((_uuid, tx_response)) => {
+            tx_response
+                .send(state.handle_get_search_values_holder().await)
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetSearchValuesHolder")
+                })?;
+        }
+        Api::SetSearchValuesHolder((holder, _uuid_for_debug, tx_response)) => {
+            state
+                .searcher_tx
+                .send(SearchRequest::SetValueHolder {
+                    holder,
+                    tx_response,
+                })
+                .await
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to send set search values holder request")
+                })?;
+        }
+        Api::GetSearchValues((frame, width, tx_response)) => {
+            tx_response
+                .send(state.values.get(frame, width))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::SetSearchValuesHolder")
+                })?;
+        }
+        Api::SetSearchValues(values, tx_response) => {
+            state.values.set_values(values);
+            tx_response.send(()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::SetSearchValues")
+            })?;
+        }
+        Api::DropSearchValues(tx_response) => {
+            state
+                .searcher_tx
+                .send(SearchRequest::DropSearchValue {
+                    tx_result: tx_response,
+                })
+                .await
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to send drop search values request")
+                })?;
+
+            state.values.drop();
+        }
+        Api::GetIndexedRanges(tx_response) => {
+            tx_response
+                .send(state.indexes.get_all_as_ranges())
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetIndexedRanges")
+                })?;
+        }
+        Api::CloseSession(tx_response) => {
+            state_cancellation_token.cancel();
+            state.status = Status::Closed;
+            // Note: all operations would be canceled in close_session of API. We cannot do it here,
+            // because we would lock this loop if some operation needs access to state during cancellation.
+            if tx_response.send(()).is_err() {
+                return Err(stypes::NativeError::channel(
+                    "fail to response to Api::CloseSession",
+                ));
+            }
+        }
+        Api::SetDebugMode((debug, tx_response)) => {
+            state.debug = debug;
+            if tx_response.send(()).is_err() {
+                return Err(stypes::NativeError::channel(
+                    "fail to response to Api::SetDebugMode",
+                ));
+            }
+        }
+        Api::NotifyCancelingOperation(uuid) => {
+            state.cancelling_operations.insert(uuid, true);
+        }
+        Api::NotifyCanceledOperation(uuid) => {
+            state.cancelling_operations.remove(&uuid);
+        }
+        Api::AddAttachment(attachment) => {
+            let at_name = attachment.name.clone();
+            if let Err(err) = state.handle_add_attachment(attachment, tx_callback_events.clone()) {
+                error!("Fail to process attachment {at_name:?}; error: {err:?}");
+            }
+        }
+        Api::GetAttachments(tx_response) => {
+            tx_response.send(state.attachments.get()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::GetAttachments")
+            })?;
+        }
+        Api::Shutdown => {
+            state_cancellation_token.cancel();
+            debug!("shutdown has been requested");
+            return Ok(HanldeOutpt::Break);
+        }
+        Api::ShutdownWithError => {
+            debug!("shutdown state loop with error for testing");
+            return Err(stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(String::from("Shutdown state loop with error for testing")),
+            });
+        }
+    }
+
+    Ok(HanldeOutpt::None)
+}
+
+async fn handle_searchers(
+    response: SearchResponse,
+    state: &mut SessionState,
+    tx_callback_events: &UnboundedSender<stypes::CallbackEvent>,
+) -> Result<HanldeOutpt, stypes::NativeError> {
+    match response {
+        SearchResponse::SearchRegularResult(res) => {
+            match res {
+                Ok((_processed, mut matches, stats)) => {
+                    state.indexes.append_search_results(&matches)?;
+                    state.search_map.append_stats(stats);
+
+                    let updates: stypes::FilterMatchList = (&matches).into();
+                    let found = state.search_map.append(&mut matches) as u64;
+                    tx_callback_events.send(stypes::CallbackEvent::search_results(
+                        found,
+                        state.search_map.get_stats(),
+                    ))?;
+                    tx_callback_events
+                        .send(stypes::CallbackEvent::SearchMapUpdated(Some(updates)))?;
+                }
+                Err(err) => error!("Fail to append search: {err}"),
+            };
+        }
+        SearchResponse::SearchValueResult(value_search_output) => match value_search_output {
+            Ok(ValueSearchOutput { values, .. }) => {
+                state.values.append_values(values);
+            }
+            Err(err) => error!("Fail to update search values: {err}"),
+        },
+    }
+
+    Ok(HanldeOutpt::None)
 }
 
 impl Drop for SessionState {
