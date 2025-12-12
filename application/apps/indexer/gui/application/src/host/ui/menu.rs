@@ -24,7 +24,7 @@ impl MainMenuBar {
             ui.menu_button("File", |ui| {
                 if ui.button("Open File(s)").clicked() {
                     let cmd_tx = self.cmd_tx.clone();
-                    actions.spawn_file_dialog(|files| async move {
+                    actions.spawn_file_dialog(&[], |files| async move {
                         if let Err(err) = cmd_tx.send(HostCommand::OpenFiles(files)).await {
                             log::error!("Send app command failed: {err:?}");
                         }

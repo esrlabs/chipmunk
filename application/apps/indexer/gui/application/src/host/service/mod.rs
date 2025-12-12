@@ -190,11 +190,11 @@ impl HostService {
 
         let parser = match parser {
             ParserConfig::Dlt(config) => {
-                let fibex_file_paths = config.fibex_file_paths.is_empty().not().then(|| {
+                let fibex_file_paths = config.fibex_files.is_empty().not().then(|| {
                     config
-                        .fibex_file_paths
+                        .fibex_files
                         .into_iter()
-                        .map(|p| p.to_string_lossy().to_string())
+                        .map(|p| p.path.to_string_lossy().to_string())
                         .collect()
                 });
 
