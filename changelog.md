@@ -1,3 +1,9 @@
+# 3.19.3 (12.12.2025)
+
+## Changes
+- Use PowerShell as default shell on Windows when available.
+- List built-in PowerShell on Windows in the available shells.
+
 # 3.19.2 (10.12.2025)
 
 ## Features
