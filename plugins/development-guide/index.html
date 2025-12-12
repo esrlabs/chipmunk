@@ -1,0 +1,1895 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://esrlabs.github.io/chipmunk/plugins/development-guide/">
+      
+      
+        <link rel="prev" href="../../cli/">
+      
+      
+        <link rel="next" href="../integration-ui/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Development Guide - Chipmunk Log Analyzer & Viewer</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chipmunk-plugins-development-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chipmunk Log Analyzer &amp; Viewer" class="md-header__button md-logo" aria-label="Chipmunk Log Analyzer & Viewer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chipmunk Log Analyzer & Viewer
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chipmunk Log Analyzer &amp; Viewer" class="md-nav__button md-logo" aria-label="Chipmunk Log Analyzer & Viewer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Chipmunk Log Analyzer & Viewer
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Search
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../charts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Charts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../navigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../teamwork/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teamwork
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chipmunk CLI Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-plugins-with-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Developing Plugins with Rust
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Developing Plugins with Rust">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wasm-wasi-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WASM &amp; WASI Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cargo-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cargo Component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wasm-tools-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wasm-tools (Optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-and-integrating-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building and Integrating Plugins
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-plugins-with-cc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Developing Plugins with C/C++
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parser-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser Plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parser Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-in-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development in Rust:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#byte-source-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Byte-Source Plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Byte-Source Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#purpose_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-in-rust_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development in Rust:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-plugins-in-other-languages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Developing Plugins in Other Languages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Developing Plugins in Other Languages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#useful-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Useful Tools
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Useful Tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wit-bindgen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wit-bindgen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins-benchmarking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugins Benchmarking:
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugins Benchmarking:">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Initialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser Plugin:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integration-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration in Chipmunk UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugins-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins API Crate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../c-cpp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C/C++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_1" id="__nav_9_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chipmunk Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Chipmunk Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core/producer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/welcome/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/development-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/debugging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debugging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/dev-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer CLI Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-plugins-with-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Developing Plugins with Rust
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Developing Plugins with Rust">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wasm-wasi-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WASM &amp; WASI Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cargo-component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cargo Component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wasm-tools-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wasm-tools (Optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-and-integrating-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building and Integrating Plugins
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-plugins-with-cc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Developing Plugins with C/C++
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugin-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugin Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parser-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser Plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parser Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-in-rust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development in Rust:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#byte-source-plugins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Byte-Source Plugins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Byte-Source Plugins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#purpose_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#development-in-rust_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development in Rust:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#developing-plugins-in-other-languages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Developing Plugins in Other Languages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Developing Plugins in Other Languages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#useful-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Useful Tools
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Useful Tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wit-bindgen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wit-bindgen
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plugins-benchmarking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugins Benchmarking:
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plugins Benchmarking:">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#plugin-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin Initialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser Plugin:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chipmunk-plugins-development-guide">Chipmunk Plugins Development Guide</h1>
+<p>This guide provides an overview of how to develop plugins for Chipmunk applications. Chipmunk leverages WebAssembly (WASM) and the Component Model to enable a flexible plugin architecture. Whether you’re using Rust or another language that can compile to WASM, this document will help you get started.</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>Chipmunk supports plugins built as WebAssembly components. The plugins system uses <a href="https://component-model.bytecodealliance.org/design/wit.html">WASM Interface Format (WIT)</a> files to define plugin types and the API, allowing developers to write plugins in any language that supports the WASM component model.</p>
+<hr />
+<h2 id="plugin-architecture">Plugin Architecture</h2>
+<ul>
+<li><strong>WASM &amp; Component Model:</strong> Chipmunk plugins are compiled to WASM and follow the component model.  </li>
+<li><strong>WIT Files:</strong> These files define the plugin API and types, ensuring consistent contracts between plugins and the host application.  </li>
+<li><strong>Language Flexibility:</strong> Although Rust is fully supported (with the provided <a href="../plugins-api/"><code>plugins-api</code></a>), you can develop plugins in any language that compiles to WASM and adheres to the component model.</li>
+</ul>
+<hr />
+<h2 id="developing-plugins-with-rust">Developing Plugins with Rust</h2>
+<p>For Rust developers, we provide a dedicated crate <a href="../plugins-api/"><code>plugins-api</code></a> that abstracts the details of working directly with WIT files. This crate generates Rust types from WIT, converts WIT contracts into traits and functions, also providing macros to export your Rust types back to WIT, alongside with multiple helpful function.</p>
+<h3 id="prerequisites">Prerequisites</h3>
+<h4 id="wasm-wasi-targets">WASM &amp; WASI Targets</h4>
+<p>Ensure that your Rust development environment is set up with the required targets:</p>
+<ul>
+<li><strong>Targets Needed:</strong></li>
+<li><code>wasm32-unknown-unknown</code></li>
+<li><code>wasm32-wasip1</code></li>
+</ul>
+<p>You can check the installed targets with:</p>
+<pre><code class="language-sh">rustup target list --installed
+</code></pre>
+<p>To add the necessary targets, run:</p>
+<pre><code class="language-sh"># Add the wasm32-wasi target:
+rustup target add wasm32-wasi 
+
+# Add the wasm32-unknown-unknown target:
+rustup target add wasm32-unknown-unknown
+</code></pre>
+<h4 id="cargo-component">Cargo Component</h4>
+<p><a href="https://github.com/bytecodealliance/cargo-component">cargo component</a> is a Cargo subcommand that simplifies creating WebAssembly components with Rust. This tool is required for compiling the example plugins and is highly recommended when developing new plugins.</p>
+<h4 id="wasm-tools-optional">Wasm-tools (Optional)</h4>
+<p><a href="https://github.com/bytecodealliance/wasm-tools">wasm-tools</a> provide additional CLI and Rust libraries for low-level manipulation of WASM modules. While not required, these tools can be helpful for inspecting, merging, and manipulating WASM modules.</p>
+<h3 id="building-and-integrating-plugins">Building and Integrating Plugins</h3>
+<p>After developing your plugin, the next step is to build it into a WebAssembly component and integrate it with Chipmunk.</p>
+<p>To build your plugin:</p>
+<ul>
+<li><strong>Development Build:</strong><br />
+<code>sh
+  cargo component build</code></li>
+<li><strong>Release Build:</strong><br />
+<code>sh
+  cargo component build -r</code></li>
+</ul>
+<p>The build process will generate a <code>.wasm</code> file named after your plugin.</p>
+<p>To integrate this compiled plugin with Chipmunk, you have two primary methods:</p>
+<ol>
+<li>
+<p><strong>Manual Integration:</strong></p>
+<ul>
+<li><strong>Create the Plugin Directory:</strong> Create a dedicated directory for your plugin within the appropriate plugin type directory (for example, <code>&lt;HOME&gt;/.chipmunk/plugins/parsers/</code> for parser plugins or <code>&lt;HOME&gt;/.chipmunk/plugins/bytesources/</code> for byte-source plugins) using the plugin name.</li>
+<li><strong>Copy Artifacts:</strong> Place the compiled <code>.wasm</code> file inside this newly created plugin directory. Optionally, you can include a TOML file (e.g., <code>plugin_name.toml</code>) to provide metadata such as the plugin’s name and description. Ensure that both the <code>.wasm</code> binary and the optional <code>.toml</code> metadata file (if present) share the same base name as the plugin directory.</li>
+<li>Additionally, you can include a <code>README.md</code> file inside the plugin directory. If present, this file will be rendered directly in the Chipmunk UI, allowing you to provide documentation or usage instructions for your plugin.</li>
+</ul>
+</li>
+<li>
+<p><strong>Using the Chipmunk UI:</strong></p>
+<ul>
+<li>Within the Chipmunk application, navigate to the <code>Plugins Manager</code> view.</li>
+<li>Click the "Add" button. This will open a dialog where you can select the plugin's root directory. The name of this selected directory should be the plugin's name, and it should contain your compiled <code>.wasm</code> file (named to match the directory) and any optional <code>.toml</code> metadata file (also named to match) or <code>README.md</code>. Chipmunk will then automatically copy and register the plugin.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="developing-plugins-with-cc">Developing Plugins with C/C++</h2>
+<p>Please refer to <a href="../c-cpp/">C/C++ Plugins Development</a> for detailed info developing plugins in C/C++.</p>
+<hr />
+<h2 id="plugin-configuration">Plugin Configuration</h2>
+<p>Plugins can define their own configuration schemas. These schemas are presented to users so they can provide the necessary settings. The configuration is then delivered back to the plugin during the session initialization phase. For details on schema definitions, refer to:
+- The <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/wit">WIT definitions</a>.
+- The <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/"><code>plugins-api</code></a> crate documentation.
+- The provided examples.</p>
+<hr />
+<h2 id="plugin-types">Plugin Types</h2>
+<p>Chipmunk currently supports two main types of plugins:</p>
+<h3 id="parser-plugins">Parser Plugins</h3>
+<h4 id="purpose">Purpose:</h4>
+<p>Parser plugins receive an array of bytes, attempt to parse them, and return the parsed items. They can also define configuration schemas and specify rendering options if needed.</p>
+<h4 id="development-in-rust">Development in Rust:</h4>
+<ul>
+<li>Create a struct that implements to the <code>Parser</code> trait defined in the <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/"><code>plugins-api</code></a> crate.</li>
+<li>Use the <code>parser_export!()</code> macro to export your parser struct.</li>
+</ul>
+<p>The <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/"><code>plugins-api</code></a> crate also offers helper functions for logging, access to temp directory and configuration management.</p>
+<h4 id="integration">Integration:</h4>
+<ul>
+<li>Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the <a href="#building-and-integrating-plugins">Building and Integrating Plugins</a> section.</li>
+<li>Alternatively, you can manually create a directory at <code>&lt;HOME&gt;/.chipmunk/plugins/parsers/&lt;plugin-name&gt;/</code> and copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.</li>
+</ul>
+<p>To get started quickly, you can use the provided <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/templates/rust/parser">parser template</a>. Simply copy the <code>parser</code> directory and modify it to implement your custom parser.  </p>
+<p>For reference, see the <code>string_parser</code> and <code>dlt_parser</code> examples.</p>
+<h3 id="byte-source-plugins">Byte-Source Plugins</h3>
+<h4 id="purpose_1">Purpose:</h4>
+<p>Byte-source plugins deliver arrays of bytes of a specified length during each load call. These bytes are then processed by a selected parser. Like parser plugins, they can define configuration schemas that are provided during session initialization.</p>
+<h4 id="development-in-rust_1">Development in Rust:</h4>
+<ul>
+<li>Create a struct that implements to the <code>ByteSource</code> trait defined in the <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/"><code>plugins-api</code></a> crate.</li>
+<li>Use the <code>bytesource_export!()</code> macro to export your byte-source struct.</li>
+</ul>
+<p>The <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/"><code>plugins-api</code></a> crate again provides helper functions for logging, access to temp directory and configuration management.</p>
+<h4 id="integration_1">Integration:</h4>
+<ul>
+<li>Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the <a href="#building-and-integrating-plugins">Building and Integrating Plugins</a> section.</li>
+<li>Alternatively, you can manually create a directory at <code>&lt;HOME&gt;/.chipmunk/plugins/bytesources/&lt;plugin-name&gt;/</code> and copy the compiled WASM file (and optionally metadata TOML and README.md files) into this directory.</li>
+</ul>
+<p>For further details, refer to the <code>file_source</code> example.</p>
+<hr />
+<h2 id="developing-plugins-in-other-languages">Developing Plugins in Other Languages</h2>
+<p>Plugins can also be developed in any language that supports compiling to WASM with the component model. The API and plugin types are defined via the WIT files. Consult your language’s tooling or community resources for guidance on integrating with the WASM component model.</p>
+<h3 id="useful-tools">Useful Tools</h3>
+<h4 id="wit-bindgen">Wit-bindgen</h4>
+<p><a href="https://github.com/bytecodealliance/wit-bindgen">wit-bindgen</a> is a bindings generator for WIT and the WASM Component Model. It supports multiple languages, including Rust, C/C++, C#, and Java, and can help generate the necessary bindings from your WIT files.</p>
+<hr />
+<h2 id="plugins-benchmarking">Plugins Benchmarking:</h2>
+<p>Chipmunk includes several benchmarks designed to measure the performance of various tasks within your plugins. Each benchmark requires a TOML configuration file that specifies the plugin’s path and other relevant settings. You can refer to the provided templates and examples for more details on how to structure the configuration.  </p>
+<p>To run the benchmarks, you first need to install the <a href="../../contributing/dev-cli/">Chipmunk development tool</a>, which is required for managing and executing these benchmarks.  </p>
+<p>Once installed, you can explore the available benchmarking options with the following command to see detailed information about each benchmark:</p>
+<pre><code class="language-sh">cargo chipmunk bench core --help
+</code></pre>
+<h3 id="plugin-initialization">Plugin Initialization</h3>
+<p>This benchmark measures how much time it takes to initialize the plugin with the provided configuration. This is useful for gauging the overhead of loading and setting up the plugin before it begins processing actual data.  </p>
+<p>To run this benchmark within the Chipmunk repository, use the following command, substituting <code>{path_to_plugin_config_file}</code> with the path to your configuration file:  </p>
+<pre><code class="language-sh">cargo chipmunk bench core plugin_parser_init -c {path_to_plugin_conig_file}.toml
+</code></pre>
+<h3 id="parser-plugin">Parser Plugin:</h3>
+<p>This benchmark is designed to evaluate the performance of parser plugins when processing input files. It simulates the real-world scenario of parsing data and allows you to measure how well the plugin performs under various conditions.  </p>
+<p>Run the benchmark with the following command, replacing <code>{path_to_input_file}</code> with the path to the file you want to parse, and <code>{path_to_plugin_config_file}</code> with the path to the corresponding configuration file:  </p>
+<pre><code class="language-sh">cargo chipmunk bench core plugin_praser_producer -i {path_to_input_file} -c {path_to_plugin_conig_file}.toml 
+</code></pre>
+<p>For a working example of a parser plugin configuration, refer to the <a href="https://github.com/esrlabs/chipmunk/tree/master/plugins/examples/rust/dlt_parser/bench_config.toml">DLT parser config file</a>. This example will help you understand how to structure your configuration for the parser plugin.</p>
+<hr />
+<h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li><strong>WIT Specifications:</strong> <a href="https://component-model.bytecodealliance.org/design/wit.html">WIT References</a></li>
+<li><strong>Cargo Component:</strong> <a href="https://github.com/bytecodealliance/cargo-component">cargo component GitHub Repository</a></li>
+<li><strong>Wasm-tools:</strong> <a href="https://github.com/bytecodealliance/wasm-tools">Wasm-tools GitHub Repository</a></li>
+<li><strong>Plugins API Crate Documentation:</strong> <a href="../plugins-api/">Plugins API</a></li>
+<li><strong>Chipmiunk Contribution:</strong> <a href="../../contributing/welcome/">Contribution Page</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>

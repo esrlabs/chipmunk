@@ -1,0 +1,1535 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://esrlabs.github.io/chipmunk/contributing/dev-cli/">
+      
+      
+        <link rel="prev" href="../debugging/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>Developer CLI Tool - Chipmunk Log Analyzer & Viewer</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chipmunk-development-cli-tool" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Chipmunk Log Analyzer &amp; Viewer" class="md-header__button md-logo" aria-label="Chipmunk Log Analyzer & Viewer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Chipmunk Log Analyzer & Viewer
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Developer CLI Tool
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Chipmunk Log Analyzer &amp; Viewer" class="md-nav__button md-logo" aria-label="Chipmunk Log Analyzer & Viewer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Chipmunk Log Analyzer & Viewer
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Search
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../charts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Charts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../navigation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navigation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../teamwork/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teamwork
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chipmunk CLI Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Plugins
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/development-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/integration-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integration in Chipmunk UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/plugins-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins API Crate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plugins/c-cpp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C/C++
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_1" id="__nav_9_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chipmunk Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Chipmunk Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core/producer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core/plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../welcome/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../debugging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debugging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer CLI Tool
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer CLI Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#buildinstallation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build/Installation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build/Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-chipmunk-development-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install Chipmunk Development CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-commands-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Commands Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Command
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-configurations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Configurations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks-via-build-cli-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmarks via Build CLI Tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shell-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shell Completion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shell Completion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-bash-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Bash Shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changelogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changelogs:
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#buildinstallation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build/Installation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build/Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-chipmunk-development-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install Chipmunk Development CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-commands-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Commands Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Command
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-configurations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Configurations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks-via-build-cli-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Benchmarks via Build CLI Tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shell-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shell Completion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shell Completion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-bash-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Bash Shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changelogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changelogs:
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<p><a href="LICENSE.txt"><img alt="LICENSE" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" /></a></p>
+<h1 id="chipmunk-development-cli-tool">Chipmunk Development CLI Tool</h1>
+<p>This CLI Tool provides an easier way to manage various development tasks for Chipmunk.
+Chipmunk consists of multiple modules with complex dependencies on each other, and this tool helps streamline the development process by coordinating these tasks seamlessly.
+This tool acts as a cargo extension. Once installed, you can access it by running <code>cargo chipmunk &lt;COMMAND&gt; &lt;ARGS&gt;</code> from anywhere within the repository.</p>
+<h2 id="buildinstallation">Build/Installation</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>Before installing the Chipmunk CLI tool, ensure that Rust is installed on your system. If Rust is not yet installed, follow the official installation instructions for your platform:</p>
+<ul>
+<li><strong>Install Rust:</strong> Visit <a href="https://rustup.rs/">rustup.rs</a> and follow the instructions to install Rust.</li>
+</ul>
+<h3 id="install-chipmunk-development-cli">Install Chipmunk Development CLI</h3>
+<p>Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk Development CLI tool:</p>
+<pre><code class="language-bash">cargo install --path cli/development-cli
+</code></pre>
+<p>This command installs this tool as a cargo extension, allowing you to use <code>cargo chipmunk &lt;COMMAND&gt; &lt;ARGS&gt;</code> to execute various development tasks for Chipmunk.</p>
+<h2 id="usage">Usage</h2>
+<p>This CLI tool provides multiple sub-commands for different tasks, with each sub-command offering various arguments.</p>
+<h3 id="general-commands-overview">General Commands Overview</h3>
+<pre><code class="language-bash">CLI Tool for chipmunk application development
+
+Usage: cargo chipmunk &lt;COMMAND&gt;
+
+Commands:
+  environment       Provides commands for the needed tools for the development [aliases: env]
+  print-dot         Prints an overview of targets dependencies in print-dot format for `Graphviz` [aliases: dot]
+  configuration     Provides commands for the configuration of this tool on user level [aliases: config]
+  lint              Runs linting &amp; clippy for all or the specified targets
+  build             Build all or the specified targets
+  clean             Clean all or the specified targets
+  test              Run tests for all or the specified targets
+  run               Build and Run the application
+  release           Builds Chipmunk and generates a release (defaults to Release mode)
+  benchmark         Runs benchmarks for the given target, its input source and configuration [aliases: bench]
+  reset-records     Resets the build states records what is used to check if there were any changes for each target [aliases: reset]
+  shell-completion  Generate shell completion for the commands of this tool in the given shell, printing them to stdout [aliases: compl]
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+</code></pre>
+<h3 id="build-command">Build Command</h3>
+<pre><code class="language-bash">Usage: cargo chipmunk build [OPTIONS] [TARGET]...
+
+Arguments:
+  [TARGET]...
+          Target to build, by default whole application will be built
+
+          Possible values:
+          - core:         Represents the path `application/apps/indexer`
+          - shared:       Represents the path `application/platform`
+          - protocol:     Represents the path `application/apps/protocol`
+          - binding:      Represents the path `application/apps/rustcore/rs-bindings`
+          - wrapper:      Represents the path `application/apps/rustcore/ts-bindings`
+          - wasm:         Represents the path `application/apps/rustcore/wasm-bindings`
+          - client:       Represents the path `application/client`
+          - updater:      Represents the path `application/apps/precompiled/updater`
+          - app:          Represents the path `application/holder`
+          - cli-dev:      Represents the path `cli/development-cli`
+          - cli-chipmunk: Represents the path `cli/chipmunk-cli`
+
+Options:
+  -p, --production
+          Build release version
+
+  -f, --fail-fast
+          Stops execution immediately if any job fails.
+
+  -u, --ui-mode &lt;UI_MODE&gt;
+          Specifies the UI options for displaying command logs and progress in the terminal
+
+          Possible values:
+          - bars:      Displays progress bars, showing the current line of the output of each command. [aliases: 'b']
+          - report:    Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished. [aliases: 'r']
+          - print:     Outputs each job's result to stdout once the job finishes. No progress bars are displayed. [aliases: 'p']
+          - immediate: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed. [aliases: 'i']
+
+  -s, --skip-env-checks
+          Skip development environment checks.
+
+  -a, --additional-features &lt;ADDITIONAL_FEATURES&gt;
+          Specifies additional features to be enabled in the build process
+
+          Possible values:
+          - custom-alloc: Activate `custom-alloc` feature in rs-binding to use custom memory allocator instead of the default one.
+
+  -h, --help
+          Print help (see a summary with '-h')
+</code></pre>
+<h2 id="user-configurations">User Configurations</h2>
+<p>Users can configure their preferences for the shell used to run process commands and the default UI mode. The configuration file should be located in the Chipmunk home directory, within the <code>build_cli</code> directory, named <code>config.toml</code>.</p>
+<p>Configurations can be managed via the CLI using the <code>config</code> subcommands. These subcommands allow you to resolve the path to the configuration file and generate default configurations, with an option to write them directly to the file.</p>
+<p>Below is an example of the configuration file with the available settings:</p>
+<pre><code class="language-toml"># Defines the shell to be used for executing process commands.
+# Options:
+#   - `sh` (Unix-based systems only)
+#   - `cmd` (Windows only)
+#   - `bash`
+#   - `zsh`
+#   - `fish`
+#   - `nu-shell`
+#   - `elvish`
+#   - `power-shell`
+# If not specified, the system will default to:
+#   - The value of the `SHELL` environment variable on Unix-based systems.
+#   - `cmd` on Windows.
+shell = &quot;sh&quot;
+
+# Defines the preferred UI mode.
+# Options:
+#   - `bars`: Displays progress bars, showing the current line of the output of each command.
+#   - `report`: Displays progress bars and prints a summary of all command logs to stdout after all jobs have finished.
+#   - `print`: Outputs each job's result to stdout once the job finishes. No progress bars are displayed.
+#   - `immediate`: Outputs logs immediately as they are produced, which may cause overlapping logs for parallel jobs. No progress bars are displayed.
+ui_mode = &quot;bars&quot;
+
+# Skip environment checks before running development commands.
+skip_env_checks = false
+
+# Specifies additional features to enable during the build process.
+# Options:
+#  - &quot;custom-alloc&quot;: Activate `custom-alloc` feature in rs-binding to use custom memory allocator instead of the default one.
+additional_features = []
+</code></pre>
+<h2 id="benchmarks-via-build-cli-tool">Benchmarks via Build CLI Tool</h2>
+<p>You can run benchmarks of the Rust Core part directly using the Build CLI tool. Some benchmarks require input sources and additional configurations, which should be provided via environment variables.</p>
+<p>The CLI tool simplifies running these benchmarks from anywhere in the Chipmunk repository. You can provide the input sources and configurations as CLI arguments, and the tool will handle setting the environment variables for the benchmarks. For more details, use the help command: <code>cargo chipmunk bench --help</code>.</p>
+<p>The registered benchmarks are loaded from <code>chipmunk/cli/development-cli/config/bench_core.toml</code>. To add a new benchmark, please include it in this configuration file.</p>
+<h2 id="shell-completion">Shell Completion</h2>
+<p>The Chipmunk CLI tool supports shell completion for various shells. You can generate shell completions and print them to <code>stdout</code> using the following command:</p>
+<pre><code class="language-bash">cargo chipmunk shell-completion &lt;SHELL&gt;
+</code></pre>
+<p>Replace <code>&lt;SHELL&gt;</code> with the name of your shell (e.g., bash, zsh, fish, powershell).</p>
+<p>To use shell completion, you can redirect the output of the completion command to a file and save the file to the appropriate shell completion directory.</p>
+<p>After installing the completion script, restart your shell session or source the completion file to enable shell completion for the Chipmunk CLI tool.</p>
+<h3 id="example-bash-shell">Example: Bash Shell</h3>
+<p>To enable bash shell completion, run the following command to generate the completion script and save it to a file:</p>
+<pre><code class="language-bash">cargo chipmunk shell-completion bash &gt; chipmunk-completion.bash
+</code></pre>
+<p>Next, copy the chipmunk-completion.bash file to your bash completion directory (typically  ~/.bash_completion.d/ or /etc/bash_completion.d/).</p>
+<h2 id="changelogs">Changelogs:</h2>
+<p>Changelogs can be found <a href="https://github.com/esrlabs/chipmunk/blob/master/cli/development-cli/CHANGELOG.md">here</a></p>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions in any part of Chipmunk are very welcome!</p>
+<p>After making any changes to this build CLI tool, please run the integration tests to ensure that all the provided commands in this tool are still working as expected. Additionally, consider adding new tests when introducing new features and commands.</p>
+<p>To run all the tests, execute the Python file <code>chipmunk/cli/development-cli/integration_tests/run_all.py</code> from within the <code>chipmunk/cli/development</code> directory. For example:</p>
+<pre><code class="language-bash"># Move to cli directory
+cd cli
+# Run python file
+python ./integration_tests/run_all.py
+</code></pre>
+<p>Please be aware that these tests will run on your local copy of Chipmunk. This process will rebuild the project and run all linting and tests on the entire solution.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
