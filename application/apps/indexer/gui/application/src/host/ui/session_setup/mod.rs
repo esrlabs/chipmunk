@@ -62,7 +62,7 @@ impl SessionSetup {
             .width_range(150.0..=250.0)
             .resizable(true)
             .show_inside(ui, |ui| {
-                self.render_side_config(ui);
+                side_config::render_content(&mut self.state, actions, ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
