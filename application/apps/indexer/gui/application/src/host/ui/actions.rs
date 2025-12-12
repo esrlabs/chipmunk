@@ -15,6 +15,21 @@ pub struct UiActions {
     file_dialog_handle: Option<JoinHandle<()>>,
 }
 
+#[derive(Debug)]
+pub struct FileDialogFilter {
+    pub name: String,
+    pub extensions: Vec<String>,
+}
+
+impl FileDialogFilter {
+    pub fn new(name: impl Into<String>, extensions: Vec<String>) -> Self {
+        Self {
+            name: name.into(),
+            extensions,
+        }
+    }
+}
+
 impl UiActions {
     pub fn new(tokio_handle: Handle) -> Self {
         Self {
@@ -168,7 +183,7 @@ impl UiActions {
     ///
     /// If a file is selected, the provided closure `callback` is
     /// executed with the selected paths.
-    pub fn spawn_file_dialog<F, Fut>(&mut self, callback: F)
+    pub fn spawn_file_dialog<F, Fut>(&mut self, filters: &[FileDialogFilter], callback: F)
     where
         F: FnOnce(Vec<PathBuf>) -> Fut + Send + 'static,
         Fut: Future<Output = ()> + Send + 'static,
@@ -181,7 +196,12 @@ impl UiActions {
         // From rfd docs: We need to start the file picker from the main thread
         // which is a requirement on some operating systems and only then move
         // its handle to another thread to avoid blocking the UI.
-        let file_handle = rfd::AsyncFileDialog::new().pick_files();
+        let mut dialog = rfd::AsyncFileDialog::new();
+        for filter in filters {
+            dialog = dialog.add_filter(&filter.name, &filter.extensions);
+        }
+
+        let file_handle = dialog.pick_files();
 
         let join_handle = self.tokio_handle.spawn(async move {
             if let Some(files) = file_handle.await {
