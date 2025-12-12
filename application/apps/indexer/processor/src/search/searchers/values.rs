@@ -15,6 +15,7 @@ use super::{BaseSearcher, SearchState};
 pub type OperationResults = Result<ValueSearchOutput, SearchError>;
 
 /// Contains the successful output of a value search operation.
+#[derive(Debug)]
 pub struct ValueSearchOutput {
     /// The range of processed lines numbers in which new matches were found.
     pub processed_range: Range<usize>,
