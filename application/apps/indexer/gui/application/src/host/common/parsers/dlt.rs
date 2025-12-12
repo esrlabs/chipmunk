@@ -1,12 +1,24 @@
 use std::{fmt::Display, path::PathBuf};
 
+use chrono::{Offset, TimeZone, Utc};
+use chrono_tz::Tz;
+use itertools::Itertools;
+
 /// DLT Configurations to be used in front-end
 #[derive(Debug, Clone)]
 pub struct DltParserConfig {
     pub with_storage_header: bool,
     pub log_level: DltLogLevel,
-    pub fibex_file_paths: Vec<PathBuf>,
+    pub fibex_files: Vec<FibexFileInfo>,
     pub timezone: Option<String>,
+    pub timezone_filter: String,
+    pub timezone_list: Vec<(String, i32)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FibexFileInfo {
+    pub name: String,
+    pub path: PathBuf,
 }
 
 impl DltParserConfig {
@@ -14,9 +26,29 @@ impl DltParserConfig {
         Self {
             with_storage_header,
             log_level: DltLogLevel::Verbose,
-            fibex_file_paths: Vec::new(),
+            fibex_files: Vec::new(),
             timezone: None,
+            timezone_filter: String::new(),
+            timezone_list: Self::timezone_list(),
         }
+    }
+
+    fn timezone_list() -> Vec<(String, i32)> {
+        let now = Utc::now();
+
+        let mut timezones = chrono_tz::TZ_VARIANTS
+            .iter()
+            .map(|tz: &Tz| {
+                let local_time = tz.from_utc_datetime(&now.naive_utc());
+                let offset = local_time.offset().fix();
+
+                (tz.name().to_string(), offset.local_minus_utc())
+            })
+            .collect_vec();
+
+        timezones.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        timezones
     }
 }
 
