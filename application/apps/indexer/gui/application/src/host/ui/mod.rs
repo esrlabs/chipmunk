@@ -105,7 +105,7 @@ impl Host {
     }
 
     fn render_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        if self.ui_actions.check_has_file_dialog() {
+        if self.ui_actions.file_dialog.poll_dialog_task() {
             self.file_dialog_overlay(ctx);
         }
 
