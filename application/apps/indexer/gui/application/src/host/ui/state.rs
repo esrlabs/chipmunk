@@ -7,7 +7,7 @@ use crate::{
     host::{
         command::HostCommand,
         ui::{
-            session_setup::{SessionSetup, SessionSetupState},
+            session_setup::{SessionSetup, state::SessionSetupState},
             tabs::TabType,
         },
     },
