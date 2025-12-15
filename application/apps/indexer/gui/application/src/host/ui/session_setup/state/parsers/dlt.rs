@@ -1,8 +1,10 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
 use chrono::{Offset, TimeZone, Utc};
 use chrono_tz::Tz;
 use itertools::Itertools;
+
+use super::FibexFileInfo;
 
 /// DLT Configurations to be used in front-end
 #[derive(Debug, Clone)]
@@ -13,12 +15,6 @@ pub struct DltParserConfig {
     pub timezone: Option<String>,
     pub timezone_filter: String,
     pub timezone_list: Vec<(String, i32)>,
-}
-
-#[derive(Debug, Clone)]
-pub struct FibexFileInfo {
-    pub name: String,
-    pub path: PathBuf,
 }
 
 impl DltParserConfig {

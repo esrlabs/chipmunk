@@ -58,9 +58,11 @@ impl SessionSetup {
             });
 
         SidePanel::right("side options")
-            .width_range(150.0..=250.0)
+            .width_range(200.0..=350.0)
+            .default_width(250.)
             .resizable(true)
             .show_inside(ui, |ui| {
+                ui.set_min_size(ui.available_size());
                 side_config::render_content(&mut self.state, actions, ui);
             });
 
