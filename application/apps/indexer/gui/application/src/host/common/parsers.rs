@@ -1,35 +1,10 @@
-pub mod dlt;
-
 use std::fmt::Display;
 
-pub use dlt::{DltLogLevel, DltParserConfig};
 use stypes::ParserType;
 
-/// Parser Configurations to be used in the front-end.
-#[derive(Debug, Clone)]
-pub enum ParserConfig {
-    Dlt(DltParserConfig),
-    SomeIP,
-    Text,
-    Plugins,
-}
+use crate::host::ui::session_setup::state::parsers::ParserConfig;
 
-impl ParserConfig {
-    /// Checks if the parser with the configurations is valid
-    ///
-    /// # Note:
-    /// Function will be called in rendering loop and should be lightweight.
-    pub fn is_valid(&self) -> bool {
-        match self {
-            ParserConfig::Dlt(..) => true,
-            ParserConfig::SomeIP => false,
-            ParserConfig::Text => false,
-            ParserConfig::Plugins => false,
-        }
-    }
-}
-
-/// Slim variant of [`ParserConfig`] without their configurations.
+/// Slim variant of [`ParserType`] without their configurations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParserNames {
     Dlt,
@@ -77,17 +52,6 @@ impl Display for ParserNames {
     }
 }
 
-impl From<&ParserConfig> for ParserNames {
-    fn from(value: &ParserConfig) -> Self {
-        match value {
-            ParserConfig::Dlt(..) => ParserNames::Dlt,
-            ParserConfig::SomeIP => ParserNames::SomeIP,
-            ParserConfig::Text => ParserNames::Text,
-            ParserConfig::Plugins => ParserNames::Plugins,
-        }
-    }
-}
-
 impl From<&ParserType> for ParserNames {
     fn from(value: &ParserType) -> Self {
         match value {
@@ -95,6 +59,17 @@ impl From<&ParserType> for ParserNames {
             ParserType::SomeIp(..) => ParserNames::SomeIP,
             ParserType::Text(..) => ParserNames::Text,
             ParserType::Plugin(..) => ParserNames::Plugins,
+        }
+    }
+}
+
+impl From<&ParserConfig> for ParserNames {
+    fn from(value: &ParserConfig) -> Self {
+        match value {
+            ParserConfig::Dlt(..) => ParserNames::Dlt,
+            ParserConfig::SomeIP => ParserNames::SomeIP,
+            ParserConfig::Text => ParserNames::Text,
+            ParserConfig::Plugins => ParserNames::Plugins,
         }
     }
 }

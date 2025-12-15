@@ -1,8 +1,8 @@
 use egui::{RichText, Ui};
 
-use crate::host::{
-    common::parsers::{DltLogLevel, DltParserConfig, dlt::FibexFileInfo},
-    ui::UiActions,
+use crate::host::ui::{
+    UiActions,
+    session_setup::state::parsers::dlt::{DltLogLevel, DltParserConfig, FibexFileInfo},
 };
 
 pub fn render_content(config: &mut DltParserConfig, actions: &mut UiActions, ui: &mut Ui) {
