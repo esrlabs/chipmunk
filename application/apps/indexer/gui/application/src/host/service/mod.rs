@@ -8,14 +8,17 @@ use crate::{
     host::{
         command::HostCommand,
         common::{
-            parsers::{DltParserConfig, ParserConfig, ParserNames},
+            parsers::ParserNames,
             sources::{ByteSourceType, SourceFileInfo},
         },
         communication::ServiceHandle,
         error::HostError,
         message::HostMessage,
         notification::AppNotification,
-        ui::session_setup::SessionSetupState,
+        ui::session_setup::state::{
+            SessionSetupState,
+            parsers::{DltParserConfig, ParserConfig},
+        },
     },
     session::{InitSessionError, init_session},
 };
