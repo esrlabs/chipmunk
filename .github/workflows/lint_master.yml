@@ -8,6 +8,10 @@ on:
 jobs:
   rust_and_ts_lint:
     runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_SIZE: "5G"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -27,21 +31,16 @@ jobs:
           components: clippy
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
-      - name: set sccache env var
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
+        with:
+          cache-key: sccache-${{ runner.os }}-stable
       - name: Install nj-cli
         run: cargo binstall nj-cli
       - name: enable corepack for yarnpkg upgrade
         run: corepack enable
       - name: Install Build CLI tool
         run: cargo install --path=cli/development-cli --locked
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
       - name: install wasm-pack
         run: cargo binstall wasm-pack
       - name: JS/TS linting
@@ -59,6 +58,10 @@ jobs:
 
   integration_and_unit_tests:
     runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_SIZE: "8G"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -77,12 +80,10 @@ jobs:
           override: true
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
-      - name: set sccache env var
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
+        with:
+          cache-key: sccache-${{ runner.os }}-stable
       - name: Install nj-cli
         run: cargo binstall nj-cli
       - name: enable corepack for yarnpkg upgrade
@@ -91,9 +92,6 @@ jobs:
           corepack enable
       - name: Install Build CLI tool
         run: cargo install --path=cli/development-cli --locked
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
       - name: install wasm-pack
         run: cargo binstall wasm-pack
       - name: Execute tests
@@ -101,4 +99,8 @@ jobs:
         env:
           # Environment variable is needed for snapshot testing in Rust via `insta` crate
           CI: true
-        run: cargo chipmunk test -u immediate
+        run: cargo chipmunk test -u print
+      - name: Show sccache stats
+        run: sccache --show-stats || true
+      - name: Stop sccache
+        run: sccache --stop-server || true
