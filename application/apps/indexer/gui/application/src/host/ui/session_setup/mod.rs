@@ -1,10 +1,7 @@
-mod state;
-
 use egui::{
     Align, Button, CentralPanel, ComboBox, Label, Layout, RichText, SidePanel, TopBottomPanel, Ui,
     Widget,
 };
-pub use state::*;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -13,8 +10,10 @@ use crate::host::{
     common::{parsers::ParserNames, sources::ByteSourceType},
     ui::UiActions,
 };
+use state::SessionSetupState;
 
 mod side_config;
+pub mod state;
 
 #[derive(Debug)]
 pub struct SessionSetup {

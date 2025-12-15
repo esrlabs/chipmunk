@@ -3,12 +3,12 @@ use uuid::Uuid;
 
 use crate::host::{
     command::HostCommand,
-    common::{
-        parsers::{DltParserConfig, ParserConfig, ParserNames},
-        sources::ByteSourceType,
-    },
+    common::{parsers::ParserNames, sources::ByteSourceType},
     ui::UiActions,
 };
+use parsers::{DltParserConfig, ParserConfig};
+
+pub mod parsers;
 
 #[derive(Debug)]
 pub struct SessionSetupState {
