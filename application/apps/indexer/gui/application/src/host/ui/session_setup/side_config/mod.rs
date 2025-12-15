@@ -1,6 +1,6 @@
 use egui::Ui;
 
-use crate::host::{common::parsers::ParserConfig, ui::UiActions};
+use crate::host::ui::{UiActions, session_setup::state::parsers::ParserConfig};
 
 use super::SessionSetupState;
 
