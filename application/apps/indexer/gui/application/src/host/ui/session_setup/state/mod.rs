@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::host::{
     command::HostCommand,
     common::{parsers::ParserNames, sources::ByteSourceType},
-    ui::UiActions,
+    ui::{UiActions, session_setup::state::parsers::someip::SomeIpParserConfig},
 };
 use parsers::{DltParserConfig, ParserConfig};
 
@@ -41,7 +41,7 @@ impl SessionSetupState {
                 };
                 ParserConfig::Dlt(DltParserConfig::new(with_headers))
             }
-            ParserNames::SomeIP => ParserConfig::SomeIP,
+            ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::new()),
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => ParserConfig::Plugins,
         };
