@@ -48,7 +48,7 @@ pub enum StreamNames {
 }
 
 impl StreamNames {
-    pub const fn new() -> &'static [StreamNames] {
+    pub const fn all() -> &'static [StreamNames] {
         // Reminder to add on new types
         match StreamNames::Process {
             StreamNames::Process => {}
