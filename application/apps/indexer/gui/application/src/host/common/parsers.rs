@@ -67,7 +67,7 @@ impl From<&ParserConfig> for ParserNames {
     fn from(value: &ParserConfig) -> Self {
         match value {
             ParserConfig::Dlt(..) => ParserNames::Dlt,
-            ParserConfig::SomeIP => ParserNames::SomeIP,
+            ParserConfig::SomeIP(..) => ParserNames::SomeIP,
             ParserConfig::Text => ParserNames::Text,
             ParserConfig::Plugins => ParserNames::Plugins,
         }
