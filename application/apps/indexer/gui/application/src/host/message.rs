@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{host::ui::session_setup::SessionSetupState, session::InitSessionParams};
+use crate::{host::ui::session_setup::state::SessionSetupState, session::InitSessionParams};
 
 /// Messages sent from the host service to the UI.
 #[derive(Debug)]

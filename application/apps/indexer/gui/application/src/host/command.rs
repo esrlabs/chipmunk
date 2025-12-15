@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use uuid::Uuid;
 
-use crate::host::common::{parsers::ParserConfig, sources::ByteSourceType};
+use crate::host::{
+    common::sources::ByteSourceType, ui::session_setup::state::parsers::ParserConfig,
+};
 
 /// Host commands to be sent from UI to its service.
 #[derive(Debug, Clone)]
