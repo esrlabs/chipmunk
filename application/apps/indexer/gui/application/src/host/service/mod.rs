@@ -1,6 +1,8 @@
 use std::{ops::Not, os::unix::fs::MetadataExt, path::PathBuf, thread};
 
-use stypes::{DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType};
+use stypes::{
+    DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
+};
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
@@ -17,7 +19,7 @@ use crate::{
         notification::AppNotification,
         ui::session_setup::state::{
             SessionSetupState,
-            parsers::{DltParserConfig, ParserConfig},
+            parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
         },
     },
     session::{InitSessionError, init_session},
@@ -128,7 +130,9 @@ impl HostService {
             let size_txt = format_file_size(size_bytes);
 
             let parser = match format {
-                FileFormat::PcapNG | FileFormat::PcapLegacy => ParserConfig::SomeIP,
+                FileFormat::PcapNG | FileFormat::PcapLegacy => {
+                    ParserConfig::SomeIP(SomeIpParserConfig::new())
+                }
                 FileFormat::Text => ParserConfig::Text,
                 FileFormat::Binary => {
                     if extension.is_some_and(|ext| ext.eq_ignore_ascii_case("dlt")) {
@@ -211,7 +215,20 @@ impl HostService {
 
                 ParserType::Dlt(dlt_config)
             }
-            ParserConfig::SomeIP | ParserConfig::Text | ParserConfig::Plugins => {
+            ParserConfig::SomeIP(config) => {
+                let fibex_file_paths = config.fibex_files.is_empty().not().then(|| {
+                    config
+                        .fibex_files
+                        .into_iter()
+                        .map(|p| p.path.to_string_lossy().to_string())
+                        .collect()
+                });
+
+                let someip_settings = SomeIpParserSettings { fibex_file_paths };
+
+                ParserType::SomeIp(someip_settings)
+            }
+            ParserConfig::Text | ParserConfig::Plugins => {
                 let parser_name = ParserNames::from(&parser);
                 return Err(HostError::InitSessionError(InitSessionError::Other(
                     format!("Parser {parser_name:} isn't supported yet"),
