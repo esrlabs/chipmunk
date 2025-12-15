@@ -8,9 +8,23 @@ on:
 jobs:
   rust_and_ts_lint:
     runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_DIR: /mnt/sccache
+      SCCACHE_CACHE_SIZE: "8G"
+      CARGO_TARGET_DIR: /mnt/target
+      TMPDIR: /mnt/tmp
+      TEMP: /mnt/tmp
+      TMP: /mnt/tmp
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Prepare build directories
+        run: |
+          sudo mkdir -p /mnt/target /mnt/sccache /mnt/tmp
+          sudo chown -R runner:runner /mnt
+          df -h
       - name: libudev-dev
         run: |
           sudo apt-get update
@@ -27,10 +41,6 @@ jobs:
           components: clippy
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
-      - name: set sccache env var
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
       - name: Install nj-cli
@@ -39,9 +49,6 @@ jobs:
         run: corepack enable
       - name: Install Build CLI tool
         run: cargo install --path=cli/development-cli --locked
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
       - name: install wasm-pack
         run: cargo binstall wasm-pack
       - name: JS/TS linting
@@ -56,12 +63,30 @@ jobs:
       - name: TypeScript Check - Platform Application
         working-directory: application/platform
         run: yarn run check
+      - name: Show sccache stats
+        run: sccache --show-stats || true
+      - name: Stop sccache
+        run: sccache --stop-server || true
 
   integration_and_unit_tests:
     runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_DIR: /mnt/sccache
+      SCCACHE_CACHE_SIZE: "8G"
+      CARGO_TARGET_DIR: /mnt/target
+      TMPDIR: /mnt/tmp
+      TEMP: /mnt/tmp
+      TMP: /mnt/tmp
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Prepare build directories
+        run: |
+          sudo mkdir -p /mnt/target /mnt/sccache /mnt/tmp
+          sudo chown -R runner:runner /mnt
+          df -h
       - name: libudev-dev
         run: |
           sudo apt-get update
@@ -77,10 +102,6 @@ jobs:
           override: true
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@v1.9.0
-      - name: set sccache env var
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.9
       - name: Install nj-cli
@@ -91,9 +112,6 @@ jobs:
           corepack enable
       - name: Install Build CLI tool
         run: cargo install --path=cli/development-cli --locked
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
       - name: install wasm-pack
         run: cargo binstall wasm-pack
       - name: Execute tests
@@ -102,3 +120,7 @@ jobs:
           # Environment variable is needed for snapshot testing in Rust via `insta` crate
           CI: true
         run: cargo chipmunk test -u immediate
+      - name: Show sccache stats
+        run: sccache --show-stats || true
+      - name: Stop sccache
+        run: sccache --stop-server || true
