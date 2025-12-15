@@ -2,15 +2,16 @@ use egui::{RichText, Ui};
 
 use crate::host::ui::{
     UiActions,
-    actions::FileDialogFilter,
-    session_setup::state::parsers::dlt::{DltLogLevel, DltParserConfig, FibexFileInfo},
+    session_setup::state::parsers::dlt::{DltLogLevel, DltParserConfig},
 };
+
+use super::shared::fibex_file_selector;
 
 pub fn render_content(config: &mut DltParserConfig, actions: &mut UiActions, ui: &mut Ui) {
     log_level_selector(config, ui);
     ui.separator();
 
-    fibex_file_selector(config, actions, ui);
+    fibex_file_selector("dlt_fibex_dialog", &mut config.fibex_files, actions, ui);
     ui.separator();
 
     timezone_selector(config, ui);
@@ -28,53 +29,6 @@ fn log_level_selector(config: &mut DltParserConfig, ui: &mut Ui) {
                 ui.selectable_value(&mut config.log_level, *level, level.to_string());
             }
         });
-}
-
-fn fibex_file_selector(config: &mut DltParserConfig, actions: &mut UiActions, ui: &mut egui::Ui) {
-    const FIBEX_FILE_DIALOG_ID: &str = "dlt_fibex_dialog";
-
-    if let Some(files) = actions.file_dialog.take_output(FIBEX_FILE_DIALOG_ID) {
-        for file in files {
-            let name = file
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| file.to_string_lossy().to_string());
-
-            let file_info = FibexFileInfo { name, path: file };
-            config.fibex_files.push(file_info);
-        }
-    }
-
-    ui.label("Fibex Files");
-    ui.label(RichText::new("Attach fibex files (optional)").small());
-    ui.add_space(5.0);
-
-    if ui.button("📂 Add").clicked() {
-        actions.file_dialog.pick_files(
-            FIBEX_FILE_DIALOG_ID,
-            &[FileDialogFilter::new("FIBEX", vec![String::from("xml")])],
-        );
-    }
-
-    let mut to_remove = None;
-
-    for (idx, fibex) in config.fibex_files.iter().enumerate() {
-        ui.horizontal(|ui| {
-            ui.label(&fibex.name).on_hover_ui(|ui| {
-                ui.set_max_width(ui.spacing().tooltip_width);
-
-                ui.label(format!("{}", fibex.path.display()));
-            });
-
-            if ui.button("❌").on_hover_text("Remove File").clicked() {
-                to_remove = Some(idx);
-            }
-        });
-    }
-
-    if let Some(remove_idx) = to_remove.take() {
-        config.fibex_files.remove(remove_idx);
-    }
 }
 
 fn timezone_selector(config: &mut DltParserConfig, ui: &mut egui::Ui) {
