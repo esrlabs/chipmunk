@@ -1,7 +1,10 @@
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
 use crate::host::notification::AppNotification;
-use tokio::{runtime::Handle, sync::mpsc, task::JoinHandle};
+use tokio::{runtime::Handle, sync::mpsc};
+
+mod file_dialog;
+pub use file_dialog::{FileDialogFilter, FileDialogHandle};
 
 /// A handle to be passed between UI components to get access to
 /// shared UI functions like notifications.
@@ -10,32 +13,18 @@ pub struct UiActions {
     /// Handle to the tokio runtime which is running on the services threads.
     /// This is useful to bridge between the sync UI main thread and the async
     /// services runtime
+    #[allow(unused)]
     pub tokio_handle: Handle,
     pending_notifications: Vec<AppNotification>,
-    file_dialog_handle: Option<JoinHandle<()>>,
-}
-
-#[derive(Debug)]
-pub struct FileDialogFilter {
-    pub name: String,
-    pub extensions: Vec<String>,
-}
-
-impl FileDialogFilter {
-    pub fn new(name: impl Into<String>, extensions: Vec<String>) -> Self {
-        Self {
-            name: name.into(),
-            extensions,
-        }
-    }
+    pub file_dialog: FileDialogHandle,
 }
 
 impl UiActions {
     pub fn new(tokio_handle: Handle) -> Self {
         Self {
-            tokio_handle,
             pending_notifications: Vec::new(),
-            file_dialog_handle: None,
+            file_dialog: FileDialogHandle::new(tokio_handle.clone()),
+            tokio_handle,
         }
     }
 
@@ -177,60 +166,5 @@ impl UiActions {
         }
 
         true
-    }
-
-    /// Spawns an asynchronous file picker dialog.
-    ///
-    /// If a file is selected, the provided closure `callback` is
-    /// executed with the selected paths.
-    pub fn spawn_file_dialog<F, Fut>(&mut self, filters: &[FileDialogFilter], callback: F)
-    where
-        F: FnOnce(Vec<PathBuf>) -> Fut + Send + 'static,
-        Fut: Future<Output = ()> + Send + 'static,
-    {
-        assert!(
-            self.file_dialog_handle.is_none(),
-            "Dialog Join handle can't exist when new dialog is requested"
-        );
-
-        // From rfd docs: We need to start the file picker from the main thread
-        // which is a requirement on some operating systems and only then move
-        // its handle to another thread to avoid blocking the UI.
-        let mut dialog = rfd::AsyncFileDialog::new();
-        for filter in filters {
-            dialog = dialog.add_filter(&filter.name, &filter.extensions);
-        }
-
-        let file_handle = dialog.pick_files();
-
-        let join_handle = self.tokio_handle.spawn(async move {
-            if let Some(files) = file_handle.await {
-                log::trace!("Open file dialog return with {files:?}");
-
-                if files.is_empty() {
-                    return;
-                }
-
-                let files: Vec<PathBuf> = files.into_iter().map(|file| file.into()).collect();
-
-                callback(files).await
-            }
-        });
-
-        self.file_dialog_handle = Some(join_handle);
-    }
-
-    /// Checks if a file dialog is currently open and handles cleanup.
-    pub fn check_has_file_dialog(&mut self) -> bool {
-        if let Some(handle) = &self.file_dialog_handle {
-            if handle.is_finished() {
-                self.file_dialog_handle = None;
-                return false;
-            }
-
-            return true;
-        }
-
-        false
     }
 }

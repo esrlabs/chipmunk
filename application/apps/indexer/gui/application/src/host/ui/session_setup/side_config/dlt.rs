@@ -2,6 +2,7 @@ use egui::{RichText, Ui};
 
 use crate::host::ui::{
     UiActions,
+    actions::FileDialogFilter,
     session_setup::state::parsers::dlt::{DltLogLevel, DltParserConfig, FibexFileInfo},
 };
 
@@ -30,25 +31,29 @@ fn log_level_selector(config: &mut DltParserConfig, ui: &mut Ui) {
 }
 
 fn fibex_file_selector(config: &mut DltParserConfig, actions: &mut UiActions, ui: &mut egui::Ui) {
+    const FIBEX_FILE_DIALOG_ID: &str = "dlt_fibex_dialog";
+
+    if let Some(files) = actions.file_dialog.take_output(FIBEX_FILE_DIALOG_ID) {
+        for file in files {
+            let name = file
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| file.to_string_lossy().to_string());
+
+            let file_info = FibexFileInfo { name, path: file };
+            config.fibex_files.push(file_info);
+        }
+    }
+
     ui.label("Fibex Files");
     ui.label(RichText::new("Attach fibex files (optional)").small());
     ui.add_space(5.0);
 
     if ui.button("📂 Add").clicked() {
-        //TODO AAZ: Find solution for file dialog here.
-        let maybe_path = rfd::FileDialog::new()
-            .add_filter("FIBEX", &["xml"])
-            .pick_file();
-
-        if let Some(path) = maybe_path {
-            let name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| path.to_string_lossy().to_string());
-
-            let file_info = FibexFileInfo { name, path };
-            config.fibex_files.push(file_info);
-        }
+        actions.file_dialog.pick_files(
+            FIBEX_FILE_DIALOG_ID,
+            &[FileDialogFilter::new("FIBEX", vec![String::from("xml")])],
+        );
     }
 
     let mut to_remove = None;

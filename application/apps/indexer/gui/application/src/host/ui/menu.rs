@@ -14,6 +14,14 @@ impl MainMenuBar {
     }
 
     pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions) {
+        const OPEN_FILES_ID: &str = "menu_open_files";
+
+        if let Some(files) = actions.file_dialog.take_output(OPEN_FILES_ID)
+            && !files.is_empty()
+        {
+            actions.try_send_command(&self.cmd_tx, HostCommand::OpenFiles(files));
+        }
+
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("Chipmunk", |ui| {
                 if ui.button("Close").clicked() {
@@ -23,12 +31,7 @@ impl MainMenuBar {
 
             ui.menu_button("File", |ui| {
                 if ui.button("Open File(s)").clicked() {
-                    let cmd_tx = self.cmd_tx.clone();
-                    actions.spawn_file_dialog(&[], |files| async move {
-                        if let Err(err) = cmd_tx.send(HostCommand::OpenFiles(files)).await {
-                            log::error!("Send app command failed: {err:?}");
-                        }
-                    });
+                    actions.file_dialog.pick_files(OPEN_FILES_ID, &[]);
                 }
             })
         });
