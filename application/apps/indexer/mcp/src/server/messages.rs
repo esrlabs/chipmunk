@@ -1,3 +1,5 @@
+use rmcp::schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 
 use crate::types::McpError;
@@ -12,7 +14,7 @@ pub enum McpServerToChipmunk {
 }
 
 // TODO: MOCK
-#[derive(Debug)]
+#[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
 pub struct SearchFilter {
     pub value: String,
     pub is_regex: bool,
