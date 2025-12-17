@@ -19,6 +19,7 @@ merging.workspace = true
 processor.workspace = true
 sources.workspace = true
 file-tools.workspace = true
+shell-tools.workspace = true
 parsers.workspace = true
 #TODO: We need to avoid clashing with module `session` in Workaround to avoid potential merge conflic  
 session_core = { package = "session",  path = "../../session" }
@@ -35,6 +36,7 @@ uuid = { workspace = true, features = ["v4"] }
 itertools.workspace = true
 chrono.workspace = true
 chrono-tz.workspace = true
+dirs.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true
@@ -54,6 +56,7 @@ eframe = { workspace = true, default_features = false, features = [
 
 egui_table.workspace = true
 egui_plot.workspace = true
+egui-phosphor.workspace = true
 
 [lints]
 workspace = true

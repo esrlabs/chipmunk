@@ -1,4 +1,4 @@
-use stypes::{ObserveOptions, ObserveOrigin};
+use stypes::{ObserveOptions, ObserveOrigin, Transport};
 use uuid::Uuid;
 
 use crate::host::common::parsers::ParserNames;
@@ -19,7 +19,12 @@ impl SessionInfo {
                 .map(|name| name.to_string_lossy().to_string())
                 .unwrap_or_else(|| String::from("Unknown")),
             ObserveOrigin::Concat(..) => todo!("session info not implemented for concat"),
-            ObserveOrigin::Stream(..) => todo!("session info not implemented for stream"),
+            ObserveOrigin::Stream(_id, transport) => match transport {
+                Transport::Process(config) => config.command.to_owned(),
+                Transport::TCP(_config) => todo!(),
+                Transport::UDP(_config) => todo!(),
+                Transport::Serial(_config) => todo!(),
+            },
         };
 
         let parser = ParserNames::from(&options.parser);

@@ -25,7 +25,7 @@ pub enum ShellType {
     Pwsh,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[extend::encode_decode]
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
