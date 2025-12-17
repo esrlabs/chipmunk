@@ -25,7 +25,7 @@ impl ParserConfig {
         match self {
             ParserConfig::Dlt(..) => true,
             ParserConfig::SomeIP(..) => true,
-            ParserConfig::Text => false,
+            ParserConfig::Text => true,
             ParserConfig::Plugins => false,
         }
     }

@@ -188,7 +188,7 @@ pub struct UDPTransportConfig {
 }
 
 /// Supported file formats for observation.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 #[extend::encode_decode]
 #[cfg_attr(
     all(test, feature = "test_and_gen"),

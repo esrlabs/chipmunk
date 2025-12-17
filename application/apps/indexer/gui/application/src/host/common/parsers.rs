@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use stypes::ParserType;
 
-use crate::host::ui::session_setup::state::parsers::ParserConfig;
+use crate::host::{common::sources::StreamNames, ui::session_setup::state::parsers::ParserConfig};
 
 /// Slim variant of [`ParserType`] without their configurations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +37,26 @@ impl ParserNames {
             ParserNames::Text => false,
         }
     }
+
+    pub const fn support_text_files(self) -> bool {
+        match self {
+            ParserNames::Text | ParserNames::Plugins => true,
+            ParserNames::Dlt | ParserNames::SomeIP => false,
+        }
+    }
+
+    pub const fn is_compatible(self, stream: StreamNames) -> bool {
+        use ParserNames as Parser;
+        use StreamNames as Stream;
+
+        match (self, stream) {
+            (Parser::Text, Stream::Process | Stream::Serial) => true,
+            (Parser::Text, Stream::Tcp | Stream::Udp) => false,
+            (Parser::Dlt | Parser::SomeIP, Stream::Tcp | Stream::Udp | Stream::Serial) => true,
+            (Parser::Dlt | Parser::SomeIP, Stream::Process) => false,
+            (Parser::Plugins, _) => true,
+        }
+    }
 }
 
 impl Display for ParserNames {
@@ -44,7 +64,7 @@ impl Display for ParserNames {
         let name = match self {
             ParserNames::Dlt => "Dlt",
             ParserNames::SomeIP => "SomeIP",
-            ParserNames::Text => "Text",
+            ParserNames::Text => "Plain Text",
             ParserNames::Plugins => "Plugins",
         };
 

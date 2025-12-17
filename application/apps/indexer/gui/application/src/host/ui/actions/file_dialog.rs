@@ -92,6 +92,41 @@ impl FileDialogHandle {
         self.dialog_task_rx = Some(files_rx);
     }
 
+    /// Spawns a new asynchronous folder picker dialog.
+    ///
+    /// This method initializes the dialog builder on the current thread and spawns
+    /// the waiting task onto the configured Tokio runtime.
+    ///
+    /// To retrieve the results of the dialog, you must subsequently call [`Self::take_output`].
+    pub fn pick_folder(&mut self, id: impl Into<String>) {
+        debug_assert!(
+            self.dialog_task_rx.is_none(),
+            "Dialog Join handle can't exist when new dialog is requested"
+        );
+
+        let id = id.into();
+
+        // From rfd docs: We need to start the file picker from the main thread
+        // which is a requirement on some operating systems and only then move
+        // its handle to another thread to avoid blocking the UI.
+        let dir_handle = rfd::AsyncFileDialog::new().pick_folder();
+
+        let (files_tx, files_rx) = oneshot::channel();
+
+        self.tokio_handle.spawn(async move {
+            let path = dir_handle.await.map(PathBuf::from);
+            let files = match path {
+                Some(p) => vec![p],
+                None => Vec::new(),
+            };
+
+            let output = FileDialogOutput { files, id };
+            files_tx.send(output).ok();
+        });
+
+        self.dialog_task_rx = Some(files_rx);
+    }
+
     /// Polls the background task to check if the user has selected files.
     ///
     /// If the dialog has finished, this method moves the result from the receiver
