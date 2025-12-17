@@ -1,45 +1,9 @@
-use std::path::PathBuf;
+use std::fmt::Display;
 
-use stypes::FileFormat;
+use crate::host::{common::parsers::ParserNames, ui::session_setup::state::sources::StreamConfig};
 
-#[derive(Debug, Clone)]
-pub enum ByteSourceType {
-    File(SourceFileInfo),
-}
-
-impl ByteSourceType {
-    /// Checks if the source with the configurations is valid
-    ///
-    /// # Note:
-    /// Function will be called in rendering loop and should be lightweight.
-    pub fn is_valid(&self) -> bool {
-        match self {
-            ByteSourceType::File(..) => true,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SourceFileInfo {
-    pub path: PathBuf,
-    pub name: String,
-    pub size_txt: String,
-    pub format: FileFormat,
-}
-
-impl SourceFileInfo {
-    pub fn new(path: PathBuf, name: String, size_txt: String, format: FileFormat) -> Self {
-        Self {
-            path,
-            name,
-            size_txt,
-            format,
-        }
-    }
-}
-
-// Slim source stream transport names to be used with the drop down.
-#[derive(Debug, Clone, Copy)]
+/// Slim variant of [`stypes::Transport`] without their configurations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StreamNames {
     Process,
     Tcp,
@@ -63,5 +27,33 @@ impl StreamNames {
             StreamNames::Udp,
             StreamNames::Serial,
         ]
+    }
+
+    pub fn is_compatible(self, parser: ParserNames) -> bool {
+        parser.is_compatible(self)
+    }
+}
+
+impl Display for StreamNames {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            StreamNames::Process => "Terminal",
+            StreamNames::Tcp => "TCP",
+            StreamNames::Udp => "UDP",
+            StreamNames::Serial => "Serial Port",
+        };
+
+        f.write_str(name)
+    }
+}
+
+impl From<&StreamConfig> for StreamNames {
+    fn from(value: &StreamConfig) -> Self {
+        match value {
+            StreamConfig::Process(..) => Self::Process,
+            StreamConfig::Tcp => Self::Tcp,
+            StreamConfig::Udp => Self::Udp,
+            StreamConfig::Serial => Self::Serial,
+        }
     }
 }
