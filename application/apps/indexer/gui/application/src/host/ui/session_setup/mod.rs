@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use egui::{
     Align, Button, CentralPanel, ComboBox, Label, Layout, RichText, SidePanel, TopBottomPanel, Ui,
     Widget,
@@ -5,13 +7,16 @@ use egui::{
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+use stypes::FileFormat;
+
 use crate::host::{
     command::HostCommand,
-    common::{parsers::ParserNames, sources::ByteSourceType},
+    common::{parsers::ParserNames, sources::StreamNames},
     ui::UiActions,
 };
-use state::SessionSetupState;
+use state::{SessionSetupState, sources::ByteSourceConfig};
 
+mod main_config;
 mod side_config;
 pub mod state;
 
@@ -19,18 +24,18 @@ pub mod state;
 pub struct SessionSetup {
     pub state: SessionSetupState,
     cmd_tx: Sender<HostCommand>,
-    selected_parser: ParserNames,
+}
+
+/// The outcome of render routines in children components of this view.
+#[derive(Debug, Clone, Copy)]
+enum RenderOutcome {
+    StartSession,
+    None,
 }
 
 impl SessionSetup {
     pub fn new(state: SessionSetupState, cmd_tx: Sender<HostCommand>) -> Self {
-        let selected_parser = ParserNames::from(&state.parser);
-
-        Self {
-            state,
-            cmd_tx,
-            selected_parser,
-        }
+        Self { state, cmd_tx }
     }
 
     #[inline]
@@ -40,7 +45,8 @@ impl SessionSetup {
 
     pub fn title(&self) -> &str {
         match &self.state.source {
-            ByteSourceType::File(info) => info.name.as_str(),
+            ByteSourceConfig::File(info) => info.name.as_str(),
+            ByteSourceConfig::Stream(..) => "Stream",
         }
     }
 
@@ -68,7 +74,15 @@ impl SessionSetup {
 
         CentralPanel::default().show_inside(ui, |ui| {
             ui.centered_and_justified(|ui| {
-                ui.heading("Main Configurations");
+                let outcome = main_config::render_content(&mut self.state, actions, ui);
+                match outcome {
+                    RenderOutcome::StartSession => {
+                        if self.state.is_valid() {
+                            self.state.start_session(&self.cmd_tx, actions);
+                        }
+                    }
+                    RenderOutcome::None => {}
+                }
             });
         });
     }
@@ -87,27 +101,82 @@ impl SessionSetup {
 
         ui.add_space(10.);
 
-        let parser = self.selected_parser;
-        ComboBox::from_label("Parser")
-            .selected_text(self.selected_parser.to_string())
+        let mut selected_parser = ParserNames::from(&self.state.parser);
+        let original_parser = selected_parser;
+
+        ComboBox::from_id_salt("Parser")
+            .selected_text(selected_parser.to_string())
             .width(120.)
             .show_ui(ui, |ui| {
-                for parser in &self.state.supported_parsers {
-                    ui.selectable_value(&mut self.selected_parser, *parser, parser.to_string());
+                for parser in Self::supported_parsers(&self.state.source) {
+                    ui.selectable_value(&mut selected_parser, parser, parser.to_string());
                 }
             });
 
-        let changed = parser != self.selected_parser;
+        let changed = original_parser != selected_parser;
         if changed {
-            self.state.update_parser(self.selected_parser);
+            self.state.update_parser(selected_parser);
         }
+
+        Label::new("Used Parser:").selectable(false).ui(ui);
 
         ui.add_space(10.);
 
-        match &self.state.source {
-            ByteSourceType::File(source_file_info) => {
+        match &mut self.state.source {
+            ByteSourceConfig::File(source_file_info) => {
                 Label::new(format!("({})", source_file_info.size_txt)).ui(ui);
                 Label::new(RichText::new(source_file_info.name.as_str()).strong()).ui(ui);
+            }
+            ByteSourceConfig::Stream(stream_config) => {
+                let mut selected_stream = StreamNames::from(stream_config.deref());
+
+                let original_stream = selected_stream;
+
+                ComboBox::from_id_salt("stream")
+                    .selected_text(selected_stream.to_string())
+                    .width(120.)
+                    .show_ui(ui, |ui| {
+                        for stream in StreamNames::all()
+                            .iter()
+                            .filter(|s| s.is_compatible(selected_parser))
+                        {
+                            ui.selectable_value(&mut selected_stream, *stream, stream.to_string());
+                        }
+                    });
+
+                if original_stream != selected_stream {
+                    self.state.update_stream(selected_stream);
+                }
+
+                Label::new("Stream From:").selectable(false).ui(ui);
+            }
+        }
+    }
+
+    fn supported_parsers(source: &ByteSourceConfig) -> Vec<ParserNames> {
+        match source {
+            ByteSourceConfig::File(source_file_info) => {
+                if source_file_info.format != FileFormat::Text {
+                    ParserNames::all()
+                        .iter()
+                        .filter(|f| f.support_binary_files())
+                        .copied()
+                        .collect()
+                } else {
+                    ParserNames::all()
+                        .iter()
+                        .filter(|f| f.support_text_files())
+                        .copied()
+                        .collect()
+                }
+            }
+            ByteSourceConfig::Stream(stream_config) => {
+                let stream = StreamNames::from(stream_config);
+                ParserNames::all()
+                    .iter()
+                    .filter(|p| p.is_compatible(stream))
+                    .copied()
+                    .collect()
             }
         }
     }

@@ -55,6 +55,11 @@ impl Host {
 
                 let tokio_handle = HostService::spawn(service_comm);
 
+                // Add phosphor icons to app fonts.
+                let mut fonts = egui::FontDefinitions::default();
+                egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
+                ctx.egui_ctx.set_fonts(fonts);
+
                 let menu = MainMenuBar::new(ui_comm.senders.cmd_tx.clone());
                 let mut host = Self {
                     menu,
