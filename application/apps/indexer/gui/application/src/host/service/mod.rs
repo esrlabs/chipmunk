@@ -2,6 +2,7 @@ use std::{ops::Not, os::unix::fs::MetadataExt, path::PathBuf, thread};
 
 use stypes::{
     DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
+    Transport,
 };
 use tokio::runtime::Handle;
 use uuid::Uuid;
@@ -9,10 +10,7 @@ use uuid::Uuid;
 use crate::{
     host::{
         command::HostCommand,
-        common::{
-            parsers::ParserNames,
-            sources::{ByteSourceType, SourceFileInfo},
-        },
+        common::parsers::ParserNames,
         communication::ServiceHandle,
         error::HostError,
         message::HostMessage,
@@ -20,6 +18,7 @@ use crate::{
         ui::session_setup::state::{
             SessionSetupState,
             parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
+            sources::{ByteSourceConfig, ProcessConfig, SourceFileInfo, StreamConfig},
         },
     },
     session::{InitSessionError, init_session},
@@ -78,12 +77,14 @@ impl HostService {
                     self.open_file(file).await?;
                 }
             }
-            HostCommand::StartSession {
-                session_setup_id,
-                parser,
-                source,
-            } => {
-                self.start_session(session_setup_id, source, parser).await?;
+            HostCommand::OpenProcessCommand => self.open_process_cmd().await,
+            HostCommand::StartSession(start_params) => {
+                self.start_session(
+                    start_params.session_setup_id,
+                    start_params.source,
+                    start_params.parser,
+                )
+                .await?;
             }
             HostCommand::CloseSessionSetup(id) => {
                 // NOTE: We need to checks here for cleaning up session setups (Like cancelling
@@ -105,7 +106,7 @@ impl HostService {
         Ok(())
     }
 
-    async fn open_file(&mut self, file_path: PathBuf) -> Result<(), HostError> {
+    async fn open_file(&self, file_path: PathBuf) -> Result<(), HostError> {
         log::trace!("Opening file: {}", file_path.display());
 
         let is_binary = file_tools::is_binary(&file_path).map_err(InitSessionError::IO)?;
@@ -146,16 +147,9 @@ impl HostService {
             };
 
             let file_info = SourceFileInfo::new(file_path, name, size_txt, format);
-            let source_type = ByteSourceType::File(file_info);
+            let source_type = ByteSourceConfig::File(file_info);
 
-            let supported_parsers = ParserNames::all()
-                .iter()
-                .filter(|f| f.support_binary_files())
-                .copied()
-                .collect();
-
-            let session_setup =
-                SessionSetupState::new(Uuid::new_v4(), source_type, parser, supported_parsers);
+            let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
 
             self.communication
                 .senders
@@ -180,19 +174,36 @@ impl HostService {
         Ok(())
     }
 
+    async fn open_process_cmd(&self) {
+        let parser = ParserConfig::Text;
+        let source_type = ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new()));
+        let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
+
+        self.communication
+            .senders
+            .send_message(HostMessage::SessionSetupOpened(session_setup))
+            .await;
+    }
+
     async fn start_session(
         &self,
         session_setup_id: Uuid,
-        source: ByteSourceType,
+        source: ByteSourceConfig,
         parser: ParserConfig,
     ) -> Result<(), HostError> {
-        let session_id = Uuid::new_v4();
+        let source_id = Uuid::new_v4().to_string();
         let origin = match source {
-            ByteSourceType::File(source_file_info) => ObserveOrigin::File(
-                session_id.to_string(),
-                source_file_info.format,
-                source_file_info.path,
-            ),
+            ByteSourceConfig::File(source_file_info) => {
+                ObserveOrigin::File(source_id, source_file_info.format, source_file_info.path)
+            }
+            ByteSourceConfig::Stream(StreamConfig::Process(config)) => {
+                ObserveOrigin::Stream(source_id, Transport::Process(config.into()))
+            }
+            ByteSourceConfig::Stream(StreamConfig::Tcp) => todo!("TCP not supported yet"),
+            ByteSourceConfig::Stream(StreamConfig::Udp) => todo!("UDP not supported yet"),
+            ByteSourceConfig::Stream(StreamConfig::Serial) => {
+                todo!("Serial Port not supported yet")
+            }
         };
 
         let parser = match parser {
@@ -228,7 +239,8 @@ impl HostService {
 
                 ParserType::SomeIp(someip_settings)
             }
-            ParserConfig::Text | ParserConfig::Plugins => {
+            ParserConfig::Text => ParserType::Text(()),
+            ParserConfig::Plugins => {
                 let parser_name = ParserNames::from(&parser);
                 return Err(HostError::InitSessionError(InitSessionError::Other(
                     format!("Parser {parser_name:} isn't supported yet"),
