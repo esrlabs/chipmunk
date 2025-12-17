@@ -33,7 +33,13 @@ impl MainMenuBar {
                 if ui.button("Open File(s)").clicked() {
                     actions.file_dialog.pick_files(OPEN_FILES_ID, &[]);
                 }
-            })
+            });
+
+            ui.menu_button("Terminal", |ui| {
+                if ui.button("Execute Command").clicked() {
+                    actions.try_send_command(&self.cmd_tx, HostCommand::OpenProcessCommand);
+                }
+            });
         });
     }
 }
