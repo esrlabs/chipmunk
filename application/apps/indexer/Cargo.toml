@@ -86,6 +86,7 @@ egui_plot = "0.34"
 # features.
 # TODO: This can be removed once egui default features are activated.
 winit = { version = "0.30"}
+egui-phosphor = "0.11"
 
 
 ## Development Dependencies ##

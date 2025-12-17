@@ -2,42 +2,40 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::host::{
-    command::HostCommand,
-    common::{parsers::ParserNames, sources::ByteSourceType},
-    ui::{UiActions, session_setup::state::parsers::someip::SomeIpParserConfig},
+    command::{HostCommand, StartSessionParam},
+    common::{parsers::ParserNames, sources::StreamNames},
+    ui::{
+        UiActions,
+        session_setup::state::{
+            parsers::someip::SomeIpParserConfig,
+            sources::{ProcessConfig, StreamConfig},
+        },
+    },
 };
 use parsers::{DltParserConfig, ParserConfig};
+use sources::ByteSourceConfig;
 
 pub mod parsers;
+pub mod sources;
 
 #[derive(Debug)]
 pub struct SessionSetupState {
     pub id: Uuid,
-    pub source: ByteSourceType,
+    pub source: ByteSourceConfig,
     pub parser: ParserConfig,
-    pub supported_parsers: Vec<ParserNames>,
 }
 
 impl SessionSetupState {
-    pub fn new(
-        id: Uuid,
-        source: ByteSourceType,
-        parser: ParserConfig,
-        supported_parsers: Vec<ParserNames>,
-    ) -> Self {
-        Self {
-            id,
-            source,
-            parser,
-            supported_parsers,
-        }
+    pub fn new(id: Uuid, source: ByteSourceConfig, parser: ParserConfig) -> Self {
+        Self { id, source, parser }
     }
 
     pub fn update_parser(&mut self, parser: ParserNames) {
         self.parser = match parser {
             ParserNames::Dlt => {
                 let with_headers = match self.source {
-                    ByteSourceType::File(..) => true,
+                    ByteSourceConfig::File(..) => true,
+                    ByteSourceConfig::Stream(..) => false,
                 };
                 ParserConfig::Dlt(DltParserConfig::new(with_headers))
             }
@@ -45,6 +43,28 @@ impl SessionSetupState {
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => ParserConfig::Plugins,
         };
+    }
+
+    pub fn update_stream(&mut self, stream: StreamNames) {
+        self.source = match stream {
+            StreamNames::Process => {
+                ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new()))
+            }
+            StreamNames::Tcp => todo!(),
+            StreamNames::Udp => todo!(),
+            StreamNames::Serial => todo!(),
+        };
+
+        // Check if current parser is compatible with the new source
+        let parser = ParserNames::from(&self.parser);
+        if !parser.is_compatible(stream) {
+            let new_parser = ParserNames::all()
+                .iter()
+                .find(|p| p.is_compatible(stream))
+                .copied()
+                .unwrap_or(ParserNames::Text);
+            self.update_parser(new_parser);
+        }
     }
 
     pub fn is_valid(&self) -> bool {
@@ -58,11 +78,14 @@ impl SessionSetupState {
     ) {
         debug_assert!(self.is_valid());
 
-        let cmd = HostCommand::StartSession {
+        let session_params = StartSessionParam {
             session_setup_id: self.id,
             parser: self.parser.clone(),
             source: self.source.clone(),
         };
+
+        let cmd = HostCommand::StartSession(Box::new(session_params));
+
         actions.try_send_command(cmd_tx, cmd);
     }
 }
