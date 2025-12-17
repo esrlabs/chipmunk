@@ -7,6 +7,17 @@ edition = "2024"
 workspace = true 
 
 [dependencies]
+axum = { version = "0.7", features = ["macros"] }
+rmcp = { version = "0.11", features = [
+  "server",
+  "transport-io",
+  "schemars",
+  "transport-streamable-http-server-session",
+  "transport-streamable-http-server",
+] }
+schemars = "1.1"
 tokio.workspace = true
 tokio-util.workspace = true
 log.workspace = true
+serde.workspace = true
+anyhow.workspace = true
