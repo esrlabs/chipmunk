@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{Atom, Button, FontFamily, FontId, Popup, RichText, Ui};
+use egui::{Atom, Button, Popup, RichText, Ui};
 use uuid::Uuid;
 
 use crate::{
