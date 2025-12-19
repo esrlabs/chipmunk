@@ -1,12 +1,13 @@
 use tokio::sync::mpsc::Sender;
 
 use egui::{
-    Align, Button, Frame, Id, Key, Label, Layout, Margin, Modifiers, Stroke, TextEdit, Ui, Widget,
-    vec2,
+    Align, Button, Frame, Id, Key, Label, Layout, Margin, Modifiers, RichText, Stroke, TextEdit,
+    Ui, Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
 
 use crate::{
+    common::phosphor::{self, icons},
     host::ui::UiActions,
     session::{command::SessionCommand, ui::shared::SessionShared},
 };
@@ -158,7 +159,9 @@ impl SearchBar {
 
                         ui.style_mut().visuals.button_frame = false;
                         // Add to filters
-                        if Button::new("💾")
+                        let save_txt = RichText::new(icons::fill::FLOPPY_DISK_BACK)
+                            .family(phosphor::fill_font_family());
+                        if Button::new(save_txt)
                             .ui(ui)
                             .on_hover_text("Add to Filters")
                             .clicked()
@@ -167,7 +170,7 @@ impl SearchBar {
                         }
 
                         // Add to charts
-                        if Button::new("📈")
+                        if Button::new(icons::regular::CHART_LINE)
                             .ui(ui)
                             .on_hover_text("Add to Charts")
                             .clicked()
@@ -176,7 +179,7 @@ impl SearchBar {
                         }
 
                         // Remove filter button
-                        if Button::new("❌")
+                        if Button::new(icons::regular::X)
                             .ui(ui)
                             .on_hover_text("Remove filter")
                             .clicked()
