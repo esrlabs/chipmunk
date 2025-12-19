@@ -2,6 +2,7 @@ use uuid::Uuid;
 
 use crate::{host::error::HostError, session::error::SessionError};
 
+#[allow(unused)]
 #[derive(Debug)]
 pub enum AppNotification {
     HostError(HostError),
