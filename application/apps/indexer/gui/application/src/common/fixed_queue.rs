@@ -32,6 +32,7 @@ impl<T> FixedQueue<T> {
     /// Sets the max size of the queue.
     /// This will remove the oldest items from the queue until it fits
     /// the new size.
+    #[allow(unused)]
     pub fn set_max_size(&mut self, max_size: usize) {
         self.max_size = max_size;
         self.truncate_to_limit();

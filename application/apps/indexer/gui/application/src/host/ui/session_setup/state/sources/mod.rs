@@ -23,6 +23,7 @@ impl ByteSourceConfig {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum StreamConfig {
     Process(ProcessConfig),
