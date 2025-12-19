@@ -3,6 +3,7 @@ pub mod someip;
 
 use std::path::PathBuf;
 
+#[allow(unused)]
 pub use dlt::{DltLogLevel, DltParserConfig};
 
 use crate::host::ui::session_setup::state::parsers::someip::SomeIpParserConfig;
