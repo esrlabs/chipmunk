@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use egui::{Atom, Button, Popup, RichText, Ui};
+use egui::{Atom, Button, FontFamily, FontId, Popup, RichText, Ui};
 use uuid::Uuid;
 
 use crate::{
+    common::phosphor::{self, icons},
     host::ui::{session_setup::SessionSetup, state::HOME_TAB_IDX},
     session::ui::Session,
 };
@@ -37,8 +38,14 @@ pub fn render_all_tabs(state: &mut HostState, actions: &mut UiActions, ui: &mut 
 }
 
 fn home_tab(active_tab_idx: &mut usize, ui: &mut Ui) {
-    ui.selectable_value(active_tab_idx, HOME_TAB_IDX, RichText::new("🏠").size(17.))
-        .on_hover_text("Home");
+    ui.selectable_value(
+        active_tab_idx,
+        HOME_TAB_IDX,
+        RichText::new(icons::fill::HOUSE)
+            .family(phosphor::fill_font_family())
+            .size(18.),
+    )
+    .on_hover_text("Home");
 }
 
 fn session_tab(
@@ -96,7 +103,7 @@ fn render_single_tab<F>(
 
     if let Some(close_rec) = res.rect(close_id) {
         let close_btn_res = ui
-            .place(close_rec, Button::new("❌").frame(false))
+            .place(close_rec, Button::new(icons::regular::X).frame(false))
             .on_hover_text("Close Session");
 
         if close_btn_res.clicked() {

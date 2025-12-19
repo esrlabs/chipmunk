@@ -120,7 +120,7 @@ fn working_dir(config: &mut ProcessConfig, actions: &mut UiActions, ui: &mut Ui)
                 actions.file_dialog.pick_folder(CWD_DIALOG_ID);
             }
 
-            let home_txt = RichText::new(egui_phosphor::regular::HOUSE_LINE)
+            let home_txt = RichText::new(egui_phosphor::regular::HOUSE)
                 .size(16.)
                 .text_style(egui::TextStyle::Button);
             let home_btn = Button::new(home_txt)
