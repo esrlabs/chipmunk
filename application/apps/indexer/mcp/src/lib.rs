@@ -2,7 +2,10 @@
 
 use tokio::sync::mpsc;
 
-use crate::{client::McpClient, server::McpServer};
+use crate::{
+    client::{MCPClient, McpConfig, llm::LlmConfig},
+    server::McpServer,
+};
 use client::messages::{McpChipmunkToClient, McpClientToChipmunk};
 use server::messages::McpServerToChipmunk;
 
@@ -16,8 +19,13 @@ pub struct McpChannelEndpoints {
     pub server_to_chipmunk_rx: mpsc::Receiver<McpServerToChipmunk>,
 }
 
-pub fn new() -> (McpServer, McpClient, McpChannelEndpoints) {
-    let (mcp_client, chipmunk_to_client_tx, client_to_chipmunk_rx) = McpClient::new();
+pub fn new() -> (McpServer, MCPClient, McpChannelEndpoints) {
+    let llm_config = LlmConfig::Mock;
+    let mcp_config = McpConfig {
+        url: String::from("http//:localhost:8181"),
+    };
+    let (mcp_client, chipmunk_to_client_tx, client_to_chipmunk_rx) =
+        MCPClient::new(mcp_config, llm_config);
     let (mcp_server, server_to_chipmunk_rx) = McpServer::new();
 
     let mcp_channel_endpoints = McpChannelEndpoints {

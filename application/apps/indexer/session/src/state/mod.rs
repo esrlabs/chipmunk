@@ -539,10 +539,10 @@ pub async fn run(
                     stypes::NativeError::channel("Failed to response to Api::SetSessionFile")
                 })?;
             }
-            // TODO:
+            // TODO:[MCP] This will be used to handle prompts from the chat UI once it is implemented
             Api::SendChatPrompt(prompt) => {
                 if let Some(mcp_api) = &mcp_api {
-                    mcp_api.handle_send_prompt(prompt).await?;
+                    mcp_api.send_prompt(prompt).await?;
                 } else {
                     return Err(stypes::NativeError::channel("TODO"));
                 }

@@ -9,12 +9,15 @@ use crate::{
 };
 use futures::Future;
 use log::{debug, error, warn};
-use processor::{grabber::LineRange, search::filter::SearchFilter};
+use processor::{
+    grabber::LineRange,
+    search::{error, filter::SearchFilter},
+};
 use std::{ops::RangeInclusive, path::PathBuf};
 use tokio::{
     join,
     sync::{
-        mpsc::{self, UnboundedReceiver, UnboundedSender, unbounded_channel},
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
         oneshot,
     },
     task::{self, JoinHandle},
@@ -55,13 +58,10 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
-        let (mcp_server, mcp_client, mcp_api_endpoints) = mcp::new();
+        let (mcp_server, mut mcp_client, mcp_api_endpoints) = mcp::new();
 
         let (mcp_api, mcp_client_to_chipmunk_rx, mcp_server_to_chipmunk_rx) =
             McpApi::new(mcp_api_endpoints);
-
-        mcp_server.start();
-        mcp_client.start();
 
         let session = Self {
             uuid,
@@ -74,70 +74,96 @@ impl Session {
         let destroyed = session.destroyed.clone();
         let destroying = session.destroying.clone();
         let (tx, rx) = oneshot::channel();
-        let handle = task::spawn(async move {
-            let self_handle: JoinHandle<()> = match rx.await {
-                Ok(handle) => handle,
-                Err(_) => {
-                    error!("Fail to get handle of session task");
-                    return;
+        let handle =
+            task::spawn(async move {
+                let self_handle: JoinHandle<()> = match rx.await {
+                    Ok(handle) => handle,
+                    Err(_) => {
+                        error!("Fail to get handle of session task");
+                        return;
+                    }
+                };
+                debug!("Session is started");
+
+                if let Err(error) = mcp_server.start().await {
+                    error!("🔴 Error starting MCP server {}", error);
                 }
-            };
-            debug!("Session is started");
-            let tx_callback_events_state = tx_callback_events.clone();
-            join!(
-                async {
-                    destroying.cancelled().await;
-                    if time::timeout(
-                        time::Duration::from_millis(SHUTDOWN_TIMEOUT_IN_MS),
-                        destroyed.cancelled(),
-                    )
-                    .await
-                    .is_err()
-                    {
-                        warn!(
-                            "Session isn't shutdown in {}s; forcing termination.",
-                            SHUTDOWN_TIMEOUT_IN_MS / 1000
+
+                if let Err(error) = mcp_client.start().await {
+                    error!("🔴 Error starting MCP client {}", error);
+                }
+
+                // TODO:[MCP] MOCK: Instead of receiving a prompts via the UI, we send a test prompt here
+                if let Err(error) = mcp_api.send_prompt("require".into()).await.map_err(|e| {
+                    stypes::ComputationError::Communication(e.message.unwrap_or_default())
+                }) {
+                    error!("🔴 Failed to send test prompt to MCP client: {:?}", error);
+                }
+
+                // TODO:[MCP] MOCK: Optional second test prompt
+                // if let Err(error) = mcp_api
+                //     .handle_send_prompt("init".into())
+                //     .await
+                //     .map_err(|e| stypes::ComputationError::Communication(e.message.unwrap_or_default()))
+                // {
+                //     error!("🔴 Failed to send test prompt to MCP client: {:?}", error);
+                // }
+
+                let tx_callback_events_state = tx_callback_events.clone();
+                join!(
+                    async {
+                        destroying.cancelled().await;
+                        if time::timeout(
+                            time::Duration::from_millis(SHUTDOWN_TIMEOUT_IN_MS),
+                            destroyed.cancelled(),
+                        )
+                        .await
+                        .is_err()
+                        {
+                            warn!(
+                                "Session isn't shutdown in {}s; forcing termination.",
+                                SHUTDOWN_TIMEOUT_IN_MS / 1000
+                            );
+                            self_handle.abort();
+                            destroyed.cancel();
+                        };
+                    },
+                    async {
+                        join!(
+                            mcp_api::run(
+                                uuid,
+                                mcp_server_to_chipmunk_rx,
+                                mcp_client_to_chipmunk_rx,
+                                tx_operations.clone(),
+                                state_api.clone(),
+                                tracker_api.clone(),
+                                tx_callback_events.clone(),
+                            ),
+                            operations::run(
+                                rx_operations,
+                                state_api.clone(),
+                                tracker_api.clone(),
+                                tx_callback_events.clone(),
+                            ),
+                            Self::run(
+                                &tx_operations,
+                                &destroying,
+                                "state",
+                                state::run(rx_state_api, tx_callback_events_state, Some(mcp_api))
+                            ),
+                            Self::run(
+                                &tx_operations,
+                                &destroying,
+                                "tracker",
+                                tracker::run(state_api.clone(), rx_tracker_api)
+                            ),
                         );
-                        self_handle.abort();
                         destroyed.cancel();
-                    };
-                },
-                async {
-                    join!(
-                        mcp_api::run(
-                            uuid,
-                            mcp_server_to_chipmunk_rx,
-                            mcp_client_to_chipmunk_rx,
-                            tx_operations.clone(),
-                            state_api.clone(),
-                            tracker_api.clone(),
-                            tx_callback_events.clone(),
-                        ),
-                        operations::run(
-                            rx_operations,
-                            state_api.clone(),
-                            tracker_api.clone(),
-                            tx_callback_events.clone(),
-                        ),
-                        Self::run(
-                            &tx_operations,
-                            &destroying,
-                            "state",
-                            state::run(rx_state_api, tx_callback_events_state, Some(mcp_api))
-                        ),
-                        Self::run(
-                            &tx_operations,
-                            &destroying,
-                            "tracker",
-                            tracker::run(state_api.clone(), rx_tracker_api)
-                        ),
-                    );
-                    destroyed.cancel();
-                    debug!("Session is finished");
-                }
-            );
-            debug!("Session task is finished");
-        });
+                        debug!("Session is finished");
+                    }
+                );
+                debug!("Session task is finished");
+            });
         if tx.send(handle).is_err() {
             Err(stypes::ComputationError::SessionCreatingFail)
         } else {
