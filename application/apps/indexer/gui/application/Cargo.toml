@@ -56,7 +56,7 @@ eframe = { workspace = true, default_features = false, features = [
 
 egui_table.workspace = true
 egui_plot.workspace = true
-egui-phosphor.workspace = true
+egui-phosphor = { workspace = true, features = ["regular", "fill"] }
 
 [lints]
 workspace = true
