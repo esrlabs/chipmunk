@@ -4,7 +4,10 @@ use egui::{
 };
 
 use crate::{
-    common::fixed_queue::FixedQueue,
+    common::{
+        fixed_queue::FixedQueue,
+        phosphor::{self, icons},
+    },
     host::{error::HostError, notification::AppNotification},
     session::error::SessionError,
 };
@@ -94,7 +97,10 @@ impl NotificationUi {
     /// message in modal box when available.
     pub fn render_content(&mut self, ui: &mut Ui) {
         // Button.
-        let button = Button::new("🔔").frame(true).frame_when_inactive(false);
+        let bell_txt = RichText::new(icons::fill::BELL)
+            .family(phosphor::fill_font_family())
+            .size(16.);
+        let button = Button::new(bell_txt).frame(true).frame_when_inactive(false);
         let button_res = ui.add(button).on_hover_text("Notifications");
 
         // Check if modal window with notification message should show,
@@ -156,14 +162,16 @@ impl NotificationUi {
             }
 
             ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
-                let close_res = ui.button("❌").on_hover_text("Close");
+                let close_res = ui.button(icons::regular::X).on_hover_text("Close");
 
                 if close_res.clicked() {
                     ui.close();
                 }
 
                 if !self.queue.is_empty() {
-                    let clear_res = ui.button("🗑").on_hover_text("Clear Notifications.");
+                    let clear_res = ui
+                        .button(icons::regular::TRASH)
+                        .on_hover_text("Clear Notifications.");
 
                     if clear_res.clicked() {
                         self.queue.clear();

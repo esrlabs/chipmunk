@@ -1,7 +1,10 @@
 use egui::RichText;
 
-use crate::host::ui::{
-    UiActions, actions::FileDialogFilter, session_setup::state::parsers::FibexFileInfo,
+use crate::{
+    common::phosphor::{self, icons},
+    host::ui::{
+        UiActions, actions::FileDialogFilter, session_setup::state::parsers::FibexFileInfo,
+    },
 };
 
 pub fn fibex_file_selector(
@@ -26,7 +29,19 @@ pub fn fibex_file_selector(
     ui.label(RichText::new("Attach fibex files (optional)").small());
     ui.add_space(5.0);
 
-    if ui.button("📂 Add").clicked() {
+    let mut add_txt = egui::text::LayoutJob::default();
+    add_txt.append(
+        icons::fill::FILE_PLUS,
+        0.0,
+        egui::text::TextFormat {
+            font_id: egui::FontId::new(17.0, phosphor::fill_font_family()),
+            ..Default::default()
+        },
+    );
+
+    add_txt.append("Add", 3.0, egui::text::TextFormat::default());
+
+    if ui.button(add_txt).clicked() {
         actions.file_dialog.pick_files(
             file_dialog_id,
             &[FileDialogFilter::new("FIBEX", vec![String::from("xml")])],
