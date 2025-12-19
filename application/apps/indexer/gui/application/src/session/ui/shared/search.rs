@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use stypes::FilterMatch;
 
+#[allow(unused)]
 #[derive(Debug, Clone, Copy)]
 pub struct FilterIndex(pub u8);
 
