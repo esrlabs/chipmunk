@@ -1,4 +1,6 @@
-# TODO AAZ: Resolve all TODOs in this file before final merge.
+# TODO AAZ: 
+# * Resolve all TODOs in this file before final merge.
+# * Resolve all [allow(unused)] in gui/.. Crates.
 
 [workspace]
 resolver = "3"

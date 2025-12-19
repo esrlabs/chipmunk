@@ -1,7 +1,7 @@
 use egui::Ui;
 
 #[derive(Debug, Default)]
-pub struct PresetsUI;
+pub struct PresetsUI {}
 
 impl PresetsUI {
     pub fn render_content(&mut self, ui: &mut Ui) {
