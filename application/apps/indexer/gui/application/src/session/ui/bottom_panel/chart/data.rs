@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct ChartBar {
     /// The index of the currently applied filter.

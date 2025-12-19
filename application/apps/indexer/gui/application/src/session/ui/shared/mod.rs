@@ -9,6 +9,7 @@ mod signal;
 
 pub use info::SessionInfo;
 pub use logs::LogsState;
+#[allow(unused)]
 pub use search::{FilterIndex, LogMainIndex, SearchState};
 pub use signal::SessionSignal;
 
