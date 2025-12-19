@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::host::common::parsers::ParserNames;
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SessionInfo {
     pub id: Uuid,
