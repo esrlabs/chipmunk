@@ -22,4 +22,8 @@ impl SourceFileInfo {
     pub fn is_valid(&self) -> bool {
         true
     }
+
+    pub const fn validation_errors(&self) -> Vec<&str> {
+        Vec::new()
+    }
 }
