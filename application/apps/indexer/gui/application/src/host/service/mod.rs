@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     host::{
         command::HostCommand,
-        common::parsers::ParserNames,
+        common::{parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
         message::HostMessage,
@@ -18,7 +18,7 @@ use crate::{
         ui::session_setup::state::{
             SessionSetupState,
             parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
-            sources::{ByteSourceConfig, ProcessConfig, SourceFileInfo, StreamConfig},
+            sources::{ByteSourceConfig, ProcessConfig, SourceFileInfo, StreamConfig, TcpConfig},
         },
     },
     session::{InitSessionError, init_session},
@@ -77,7 +77,9 @@ impl HostService {
                     self.open_file(file).await?;
                 }
             }
-            HostCommand::OpenProcessCommand => self.open_process_cmd().await,
+            HostCommand::ConnectionSessionSetup { stream, parser } => {
+                self.connection_session_setup(stream, parser).await
+            }
             HostCommand::StartSession(start_params) => {
                 self.start_session(
                     start_params.session_setup_id,
@@ -174,9 +176,23 @@ impl HostService {
         Ok(())
     }
 
-    async fn open_process_cmd(&self) {
-        let parser = ParserConfig::Text;
-        let source_type = ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new()));
+    async fn connection_session_setup(&self, stream: StreamNames, parser: ParserNames) {
+        let source_type = match stream {
+            StreamNames::Process => {
+                ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new()))
+            }
+            StreamNames::Tcp => ByteSourceConfig::Stream(StreamConfig::Tcp(TcpConfig::new())),
+            StreamNames::Udp => ByteSourceConfig::Stream(StreamConfig::Udp),
+            StreamNames::Serial => ByteSourceConfig::Stream(StreamConfig::Serial),
+        };
+
+        let parser = match parser {
+            ParserNames::Dlt => ParserConfig::Dlt(DltParserConfig::new(false)),
+            ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::default()),
+            ParserNames::Text => ParserConfig::Text,
+            ParserNames::Plugins => todo!(),
+        };
+
         let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
 
         self.communication
@@ -199,7 +215,9 @@ impl HostService {
             ByteSourceConfig::Stream(StreamConfig::Process(config)) => {
                 ObserveOrigin::Stream(source_id, Transport::Process(config.into()))
             }
-            ByteSourceConfig::Stream(StreamConfig::Tcp) => todo!("TCP not supported yet"),
+            ByteSourceConfig::Stream(StreamConfig::Tcp(config)) => {
+                ObserveOrigin::Stream(source_id, Transport::TCP(config.into()))
+            }
             ByteSourceConfig::Stream(StreamConfig::Udp) => todo!("UDP not supported yet"),
             ByteSourceConfig::Stream(StreamConfig::Serial) => {
                 todo!("Serial Port not supported yet")
