@@ -1,7 +1,11 @@
 use egui::{MenuBar, Ui};
 use tokio::sync::mpsc::Sender;
 
-use crate::host::{command::HostCommand, ui::actions::UiActions};
+use crate::host::{
+    command::HostCommand,
+    common::{parsers::ParserNames, sources::StreamNames},
+    ui::actions::UiActions,
+};
 
 #[derive(Debug)]
 pub struct MainMenuBar {
@@ -35,9 +39,81 @@ impl MainMenuBar {
                 }
             });
 
+            ui.menu_button("Connections", |ui| {
+                if ui.button("DLT on UDP").clicked() {
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Udp,
+                            parser: ParserNames::Dlt,
+                        },
+                    );
+                }
+
+                if ui.button("DLT on TCP").clicked() {
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Tcp,
+                            parser: ParserNames::Dlt,
+                        },
+                    );
+                }
+
+                if ui.button("DLT on Serial Port").clicked() {
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Serial,
+                            parser: ParserNames::Dlt,
+                        },
+                    );
+                }
+
+                ui.separator();
+
+                if ui.button("Plain Text on Serial Port").clicked() {
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Serial,
+                            parser: ParserNames::Text,
+                        },
+                    );
+                }
+
+                ui.separator();
+
+                if ui.button("Select Source for Plain Text").clicked() {
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Process,
+                            parser: ParserNames::Text,
+                        },
+                    );
+                }
+
+                if ui.button("Select Source for DLT").clicked() {
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Udp,
+                            parser: ParserNames::Dlt,
+                        },
+                    );
+                }
+            });
+
             ui.menu_button("Terminal", |ui| {
                 if ui.button("Execute Command").clicked() {
-                    actions.try_send_command(&self.cmd_tx, HostCommand::OpenProcessCommand);
+                    actions.try_send_command(
+                        &self.cmd_tx,
+                        HostCommand::ConnectionSessionSetup {
+                            stream: StreamNames::Process,
+                            parser: ParserNames::Text,
+                        },
+                    );
                 }
             });
         });

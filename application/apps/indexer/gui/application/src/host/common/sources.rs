@@ -51,7 +51,7 @@ impl From<&StreamConfig> for StreamNames {
     fn from(value: &StreamConfig) -> Self {
         match value {
             StreamConfig::Process(..) => Self::Process,
-            StreamConfig::Tcp => Self::Tcp,
+            StreamConfig::Tcp(..) => Self::Tcp,
             StreamConfig::Udp => Self::Udp,
             StreamConfig::Serial => Self::Serial,
         }
