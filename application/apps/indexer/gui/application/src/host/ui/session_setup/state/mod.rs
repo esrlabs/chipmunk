@@ -67,6 +67,13 @@ impl SessionSetupState {
         }
     }
 
+    pub fn validatio_errors(&self) -> Vec<&str> {
+        let mut errs = self.source.validation_errors();
+        errs.extend(self.parser.validation_errors());
+
+        errs
+    }
+
     pub fn is_valid(&self) -> bool {
         self.source.is_valid() && self.parser.is_valid()
     }

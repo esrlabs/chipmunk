@@ -30,6 +30,10 @@ impl ParserConfig {
             ParserConfig::Plugins => false,
         }
     }
+
+    pub fn validation_errors(&self) -> Vec<&str> {
+        Vec::new()
+    }
 }
 
 #[derive(Debug, Clone)]
