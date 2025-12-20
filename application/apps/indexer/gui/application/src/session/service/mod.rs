@@ -284,6 +284,9 @@ impl SessionService {
                         .await;
                 }
             }
+            CallbackEvent::OperationError { uuid: _, error } => {
+                self.send_error(SessionError::NativeError(error)).await;
+            }
             event => {
                 println!("************** DEBUG: Received callback: {event:?}");
                 log::warn!("Unhandled callback: {event}");
