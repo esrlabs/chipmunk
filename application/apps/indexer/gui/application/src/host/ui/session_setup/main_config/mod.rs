@@ -57,7 +57,7 @@ fn render_stream(stream: &mut StreamConfig, actions: &mut UiActions, ui: &mut Ui
             ui.add_space(10.);
             output = match stream {
                 StreamConfig::Process(config) => process::render_connection(config, actions, ui),
-                StreamConfig::Tcp => tcp::render_connection(ui),
+                StreamConfig::Tcp(config) => tcp::render_connection(config, ui),
                 StreamConfig::Udp => udp::render_connection(ui),
                 StreamConfig::Serial => serial::render_connection(ui),
             };
