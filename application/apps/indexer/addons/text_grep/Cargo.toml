@@ -16,8 +16,10 @@ workspace = true
 tokio = { workspace = true, features = ["full"] }
 bufread = { path = "../bufread" }
 tokio-util.workspace = true
-tempfile.workspace = true
 grep-searcher.workspace = true
 grep-regex.workspace = true
 thiserror.workspace = true
 regex.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

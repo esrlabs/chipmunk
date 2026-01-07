@@ -8,14 +8,11 @@ edition = "2024"
 workspace = true 
 
 [dependencies]
-async-stream = "0.3"
 bufread = { path = "../addons/bufread" }
 bytes = "1.3"
 etherparse = "0.16"
 futures.workspace = true
-indexer_base = { path = "../indexer_base" }
 log.workspace = true
-parsers = { path = "../parsers" }
 pcap-parser = "0.16"
 thiserror.workspace = true
 tokio.workspace = true
@@ -24,11 +21,8 @@ tokio-stream.workspace = true
 tokio-util = { workspace = true , features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
-regex.workspace = true
-shellexpand = "3.1"
 stypes = { path = "../stypes", features=["rustcore"] }
 socket2 = "0.5.8"
-shell-tools = { path = "../addons/shell-tools" }
 
 [dev-dependencies]
 env_logger.workspace = true
