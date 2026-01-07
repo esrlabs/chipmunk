@@ -9,7 +9,6 @@ workspace = true
 
 [dependencies]
 blake3.workspace = true
-crossbeam-channel.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serialization"] }
 file-tools = { path = "../addons/file-tools" }
