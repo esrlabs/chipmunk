@@ -1,6 +1,6 @@
 use std::{ops::Range, rc::Rc, time::Duration};
 
-use egui::{Color32, Frame, Id, Label, Margin, RichText, TextBuffer, Ui, Widget};
+use egui::{Color32, Frame, Id, Label, Margin, Sense, TextBuffer, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 use std::sync::mpsc::Receiver as StdReceiver;
@@ -104,6 +104,39 @@ struct LogsDelegate<'a> {
     request_repaint: bool,
 }
 
+impl LogsDelegate<'_> {
+    #[inline(always)]
+    fn is_row_selected(&self, row_nr: u64) -> bool {
+        self.shared
+            .logs
+            .selected_log
+            .as_ref()
+            .is_some_and(|e| e.pos == row_nr as usize)
+    }
+
+    /// Toggle if row is selected sending the needed commands when row is selected.
+    ///
+    /// # Arguments
+    ///
+    /// * `row_nr`: Row number.
+    /// * `currently_selected`: Is raw currently selected before toggling.
+    fn toggle_row_selected(&mut self, row_nr: u64, currently_selected: bool) {
+        if currently_selected {
+            self.shared.logs.selected_log = None;
+        } else {
+            // Scroll to log in search if it's active only.
+            if self.shared.active_bottom_tab == BottomTabType::Search {
+                let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
+                self.actions
+                    .try_send_command(&self.table.cmd_tx, nearest_cmd);
+            }
+
+            self.actions
+                .try_send_command(&self.table.cmd_tx, SessionCommand::GetSelectedLog(row_nr));
+        };
+    }
+}
+
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
         if self.shared.logs.logs_count == 0 {
@@ -186,34 +219,39 @@ impl TableDelegate for LogsDelegate<'_> {
             });
     }
 
-    fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
-        let &CellInfo { col_nr, row_nr, .. } = cell;
-
-        let is_selected = self
-            .shared
-            .logs
-            .selected_log
-            .as_ref()
-            .is_some_and(|e| e.pos == row_nr as usize);
+    fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
+        let is_selected = self.is_row_selected(row_nr);
 
         let mut invert_fg = is_selected;
+
         if is_selected {
             ui.painter()
-                .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GREEN);
+                .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GREEN);
         } else {
-            let highlight_match = col_nr != 0
-                && self
-                    .shared
-                    .search
-                    .current_matches_map()
-                    .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
+            let highlight_match = self
+                .shared
+                .search
+                .current_matches_map()
+                .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
 
             if highlight_match {
                 invert_fg = true;
                 ui.painter()
-                    .rect_filled(ui.max_rect(), 0.0, egui::Color32::DARK_GRAY);
+                    .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GRAY);
             }
         }
+
+        if invert_fg {
+            ui.style_mut().visuals.override_text_color = Some(Color32::WHITE);
+        }
+
+        if ui.response().interact(Sense::click()).clicked() {
+            self.toggle_row_selected(row_nr, is_selected);
+        }
+    }
+
+    fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
+        let &CellInfo { col_nr, row_nr, .. } = cell;
 
         Frame::NONE
             .inner_margin(Margin::symmetric(4, 0))
@@ -238,29 +276,9 @@ impl TableDelegate for LogsDelegate<'_> {
                         }
                     };
 
-                    let label = if invert_fg {
-                        let content = RichText::new(content).color(Color32::WHITE).strong();
-                        Label::new(content)
-                    } else {
-                        Label::new(content)
-                    };
-
-                    if label.ui(ui).clicked() {
-                        if is_selected {
-                            self.shared.logs.selected_log = None;
-                        } else {
-                            // Scroll to log in search if it's active only.
-                            if self.shared.active_bottom_tab == BottomTabType::Search {
-                                let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
-                                self.actions
-                                    .try_send_command(&self.table.cmd_tx, nearest_cmd);
-                            }
-
-                            self.actions.try_send_command(
-                                &self.table.cmd_tx,
-                                SessionCommand::GetSelectedLog(row_nr),
-                            );
-                        };
+                    if Label::new(content).ui(ui).clicked() {
+                        let is_selected = self.is_row_selected(row_nr);
+                        self.toggle_row_selected(row_nr, is_selected);
                     }
                 }
             });

@@ -2,7 +2,7 @@
 //We need to have it in one place and encapsulate the changes.
 use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver, time::Duration};
 
-use egui::{Color32, Frame, Id, Label, Margin, RichText, Ui, Widget};
+use egui::{Color32, Frame, Id, Label, Margin, Sense, Ui, Widget};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
 use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
@@ -12,7 +12,10 @@ use crate::{
     session::{
         command::SessionCommand,
         error::SessionError,
-        ui::{definitions::schema::LogSchema, shared::SessionShared},
+        ui::{
+            definitions::{LogTableItem, schema::LogSchema},
+            shared::SessionShared,
+        },
     },
 };
 
@@ -119,6 +122,38 @@ struct LogsDelegate<'a> {
     request_repaint: bool,
 }
 
+impl LogsDelegate<'_> {
+    #[inline(always)]
+    fn is_row_selected(&self, log_item: Option<&LogTableItem>) -> bool {
+        self.shared
+            .logs
+            .selected_log
+            .as_ref()
+            .is_some_and(|selected| {
+                log_item
+                    .as_ref()
+                    .is_some_and(|i| selected.pos == i.element.pos)
+            })
+    }
+
+    /// Toggle if row is selected sending the needed commands when row is selected.
+    ///
+    /// # Arguments
+    ///
+    /// * `pos`: Row position in original stream.
+    /// * `currently_selected`: Is raw currently selected before toggling.
+    fn toggle_row_selected(&mut self, pos: u64, currently_selected: bool) {
+        if currently_selected {
+            self.shared.logs.selected_log = None;
+        } else {
+            self.shared.logs.scroll_main_row = Some(pos);
+
+            self.actions
+                .try_send_command(&self.table.cmd_tx, SessionCommand::GetSelectedLog(pos));
+        };
+    }
+}
+
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
         if self.shared.logs.logs_count == 0 {
@@ -195,33 +230,38 @@ impl TableDelegate for LogsDelegate<'_> {
         panic!("search table doesn't have headers");
     }
 
-    fn cell_ui(&mut self, ui: &mut Ui, cell: &CellInfo) {
-        let &CellInfo { col_nr, row_nr, .. } = cell;
-
+    fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
         let log_item = self
             .table
             .indexed_logs
             .get_log_item(&SearchTableIndex(row_nr));
 
-        let is_selected = self
-            .shared
-            .logs
-            .selected_log
-            .as_ref()
-            .is_some_and(|selected| {
-                log_item
-                    .as_ref()
-                    .is_some_and(|i| selected.pos == i.element.pos)
-            });
+        let is_selected = self.is_row_selected(log_item);
 
         if is_selected {
             ui.painter()
                 .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GREEN);
+            ui.style_mut().visuals.override_text_color = Some(Color32::WHITE);
         }
+
+        if ui.response().interact(Sense::click()).clicked()
+            && let Some(log_item) = log_item
+        {
+            self.toggle_row_selected(log_item.element.pos as u64, is_selected);
+        }
+    }
+
+    fn cell_ui(&mut self, ui: &mut Ui, cell: &CellInfo) {
+        let &CellInfo { col_nr, row_nr, .. } = cell;
 
         Frame::NONE
             .inner_margin(Margin::symmetric(4, 0))
             .show(ui, |ui| {
+                let log_item = self
+                    .table
+                    .indexed_logs
+                    .get_log_item(&SearchTableIndex(row_nr));
+
                 let log_item = match log_item {
                     Some(log) => log,
                     None => {
@@ -245,26 +285,10 @@ impl TableDelegate for LogsDelegate<'_> {
                             .get(col_nr.saturating_sub(1))
                             .and_then(|rng| log_item.element.content.get(rng.clone()))
                             .unwrap_or_default();
-                        let label = if is_selected {
-                            let content = RichText::new(content).color(Color32::WHITE).strong();
-                            Label::new(content)
-                        } else {
-                            Label::new(content)
-                        };
 
-                        if label.ui(ui).clicked() {
-                            if is_selected {
-                                self.shared.logs.selected_log = None;
-                            } else {
-                                let pos = log_item.element.pos as u64;
-
-                                self.shared.logs.scroll_main_row = Some(pos);
-
-                                self.actions.try_send_command(
-                                    &self.table.cmd_tx,
-                                    SessionCommand::GetSelectedLog(pos),
-                                );
-                            };
+                        if Label::new(content).ui(ui).clicked() {
+                            let is_selected = self.is_row_selected(Some(log_item));
+                            self.toggle_row_selected(log_item.element.pos as u64, is_selected);
                         }
                     }
                 }
