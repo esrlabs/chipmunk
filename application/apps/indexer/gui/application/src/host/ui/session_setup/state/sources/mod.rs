@@ -1,10 +1,12 @@
 pub mod file;
 pub mod process;
 pub mod tcp;
+mod udp;
 
 pub use file::SourceFileInfo;
 pub use process::ProcessConfig;
 pub use tcp::TcpConfig;
+pub use udp::{MulticastItem, UdpConfig};
 
 #[derive(Debug, Clone)]
 pub enum ByteSourceConfig {
@@ -37,7 +39,7 @@ impl ByteSourceConfig {
 pub enum StreamConfig {
     Process(ProcessConfig),
     Tcp(TcpConfig),
-    Udp,
+    Udp(UdpConfig),
     Serial,
 }
 
@@ -46,7 +48,7 @@ impl StreamConfig {
         match self {
             StreamConfig::Process(config) => config.is_valid(),
             StreamConfig::Tcp(config) => config.is_valid(),
-            StreamConfig::Udp => todo!(),
+            StreamConfig::Udp(config) => config.is_valid(),
             StreamConfig::Serial => todo!(),
         }
     }
@@ -55,7 +57,7 @@ impl StreamConfig {
         match self {
             StreamConfig::Process(config) => config.validation_errors(),
             StreamConfig::Tcp(config) => config.validation_errors(),
-            StreamConfig::Udp => todo!(),
+            StreamConfig::Udp(config) => config.validation_errors(),
             StreamConfig::Serial => todo!(),
         }
     }
