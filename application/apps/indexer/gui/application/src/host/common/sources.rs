@@ -52,7 +52,7 @@ impl From<&StreamConfig> for StreamNames {
         match value {
             StreamConfig::Process(..) => Self::Process,
             StreamConfig::Tcp(..) => Self::Tcp,
-            StreamConfig::Udp => Self::Udp,
+            StreamConfig::Udp(..) => Self::Udp,
             StreamConfig::Serial => Self::Serial,
         }
     }

@@ -8,7 +8,7 @@ use crate::host::{
         UiActions,
         session_setup::state::{
             parsers::someip::SomeIpParserConfig,
-            sources::{ProcessConfig, StreamConfig},
+            sources::{ProcessConfig, StreamConfig, TcpConfig, UdpConfig},
         },
     },
 };
@@ -50,8 +50,8 @@ impl SessionSetupState {
             StreamNames::Process => {
                 ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new()))
             }
-            StreamNames::Tcp => todo!(),
-            StreamNames::Udp => todo!(),
+            StreamNames::Tcp => ByteSourceConfig::Stream(StreamConfig::Tcp(TcpConfig::new())),
+            StreamNames::Udp => ByteSourceConfig::Stream(StreamConfig::Udp(UdpConfig::new())),
             StreamNames::Serial => todo!(),
         };
 
