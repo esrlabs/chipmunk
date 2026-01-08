@@ -2,12 +2,8 @@
 //! their output and status to the `Tracker`.
 
 use crate::{
-    JobsState,
-    jobs_runner::JobDefinition,
-    location::get_root,
-    shell::{shell_std_command, shell_tokio_command},
-    target::ProcessCommand,
-    tracker::get_tracker,
+    JobsState, jobs_runner::JobDefinition, location::get_root, shell::shell_tokio_command,
+    target::ProcessCommand, tracker::get_tracker,
 };
 use anyhow::Context;
 use core::panic;
@@ -171,43 +167,6 @@ pub async fn spawn(
 
     Ok(SpawnResult {
         report: report_lines,
-        status,
-        job: job_def.job_title(),
-        cmd: command.to_string(),
-        skipped: false,
-    })
-}
-
-/// Suspend the progress bars if enabled and run the giving blocking command using
-/// `Stdio::inherit()` This is used with commands that doesn't work with `Stdio::piped()`
-pub async fn spawn_blocking(
-    job_def: JobDefinition,
-    command: ProcessCommand,
-    cwd: Option<PathBuf>,
-    environment_vars: impl IntoIterator<Item = (String, String)>,
-) -> Result<SpawnResult, anyhow::Error> {
-    let cwd = cwd.unwrap_or_else(|| get_root().clone());
-
-    let mut combined_env_vars = vec![(String::from("TERM"), String::from("xterm-256color"))];
-    combined_env_vars.extend(environment_vars);
-
-    let tracker = get_tracker();
-
-    let cmd_combined = command.combine();
-    let cmd_msg = format!("Running command: {cmd_combined}");
-    tracker.msg(job_def, cmd_msg);
-    let cwd_msg = format!("Running in directory: {}", cwd.display());
-    tracker.msg(job_def, cwd_msg);
-
-    let mut cmd = shell_std_command();
-    cmd.arg(cmd_combined);
-    cmd.current_dir(&cwd);
-    cmd.envs(combined_env_vars);
-
-    let status = tracker.run_synchronously(job_def, cmd).await?;
-
-    Ok(SpawnResult {
-        report: Vec::new(),
         status,
         job: job_def.job_title(),
         cmd: command.to_string(),

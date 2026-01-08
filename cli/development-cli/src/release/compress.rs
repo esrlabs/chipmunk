@@ -220,7 +220,7 @@ fn chipmunk_cli_version() -> anyhow::Result<String> {
     let cargo_content =
         fs::read_to_string(&cargo_path).context("Error while reading `Cargo.toml` file")?;
 
-    let cargo_toml: toml::Value = cargo_content
+    let cargo_toml: toml::Table = cargo_content
         .parse()
         .context("Parsing content of `Cargo.toml` file failed")?;
 
