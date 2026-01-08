@@ -18,7 +18,9 @@ use crate::{
         ui::session_setup::state::{
             SessionSetupState,
             parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
-            sources::{ByteSourceConfig, ProcessConfig, SourceFileInfo, StreamConfig, TcpConfig},
+            sources::{
+                ByteSourceConfig, ProcessConfig, SourceFileInfo, StreamConfig, TcpConfig, UdpConfig,
+            },
         },
     },
     session::{InitSessionError, init_session},
@@ -182,7 +184,7 @@ impl HostService {
                 ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new()))
             }
             StreamNames::Tcp => ByteSourceConfig::Stream(StreamConfig::Tcp(TcpConfig::new())),
-            StreamNames::Udp => ByteSourceConfig::Stream(StreamConfig::Udp),
+            StreamNames::Udp => ByteSourceConfig::Stream(StreamConfig::Udp(UdpConfig::new())),
             StreamNames::Serial => ByteSourceConfig::Stream(StreamConfig::Serial),
         };
 
@@ -218,7 +220,9 @@ impl HostService {
             ByteSourceConfig::Stream(StreamConfig::Tcp(config)) => {
                 ObserveOrigin::Stream(source_id, Transport::TCP(config.into()))
             }
-            ByteSourceConfig::Stream(StreamConfig::Udp) => todo!("UDP not supported yet"),
+            ByteSourceConfig::Stream(StreamConfig::Udp(config)) => {
+                ObserveOrigin::Stream(source_id, Transport::UDP(config.into()))
+            }
             ByteSourceConfig::Stream(StreamConfig::Serial) => {
                 todo!("Serial Port not supported yet")
             }

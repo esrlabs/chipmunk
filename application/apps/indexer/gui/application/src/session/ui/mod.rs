@@ -97,7 +97,7 @@ impl Session {
             .default_height(200.)
             .resizable(true)
             .show_inside(ui, |ui| {
-                ui.set_min_size(ui.available_size());
+                ui.take_available_height();
                 bottom_panel.render_content(shared, actions, ui);
             });
 
