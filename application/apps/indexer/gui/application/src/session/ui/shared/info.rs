@@ -23,7 +23,7 @@ impl SessionInfo {
             ObserveOrigin::Stream(_id, transport) => match transport {
                 Transport::Process(config) => config.command.to_owned(),
                 Transport::TCP(config) => config.bind_addr.to_owned(),
-                Transport::UDP(_config) => todo!(),
+                Transport::UDP(config) => config.bind_addr.to_owned(),
                 Transport::Serial(_config) => todo!(),
             },
         };

@@ -34,12 +34,12 @@ impl TcpConfig {
     }
 
     pub fn validate(&mut self) {
-        if self.bind_addr.is_empty() {
-            self.err_msg = Some("Socket Address is required");
+        self.err_msg = if self.bind_addr.is_empty() {
+            Some("Socket Address is required")
         } else if self.bind_addr.parse::<SocketAddr>().is_err() {
-            self.err_msg = Some("Socket Address is invalid");
+            Some("Socket Address is invalid")
         } else {
-            self.err_msg = None;
+            None
         }
     }
 }
