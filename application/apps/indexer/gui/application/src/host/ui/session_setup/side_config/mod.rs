@@ -19,7 +19,6 @@ pub fn render_content(state: &mut SessionSetupState, actions: &mut UiActions, ui
     }
 
     group_frame(ui).show(ui, |ui| {
-        ui.set_min_width(ui.available_width());
         let title = format!("{} Parser", ParserNames::from(&state.parser));
         ui.heading(title);
         ui.add_space(6.);
@@ -42,8 +41,6 @@ fn validation_errors(state: &SessionSetupState, ui: &mut Ui) {
     }
 
     group_frame(ui).show(ui, |ui| {
-        ui.set_min_width(ui.available_width());
-
         ui.heading("Error(s)");
 
         for err in errors {
