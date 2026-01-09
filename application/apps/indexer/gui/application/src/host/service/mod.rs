@@ -19,7 +19,8 @@ use crate::{
             SessionSetupState,
             parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
             sources::{
-                ByteSourceConfig, ProcessConfig, SourceFileInfo, StreamConfig, TcpConfig, UdpConfig,
+                ByteSourceConfig, ProcessConfig, SerialConfig, SourceFileInfo, StreamConfig,
+                TcpConfig, UdpConfig,
             },
         },
     },
@@ -185,7 +186,9 @@ impl HostService {
             }
             StreamNames::Tcp => ByteSourceConfig::Stream(StreamConfig::Tcp(TcpConfig::new())),
             StreamNames::Udp => ByteSourceConfig::Stream(StreamConfig::Udp(UdpConfig::new())),
-            StreamNames::Serial => ByteSourceConfig::Stream(StreamConfig::Serial),
+            StreamNames::Serial => {
+                ByteSourceConfig::Stream(StreamConfig::Serial(SerialConfig::new()))
+            }
         };
 
         let parser = match parser {
@@ -223,8 +226,8 @@ impl HostService {
             ByteSourceConfig::Stream(StreamConfig::Udp(config)) => {
                 ObserveOrigin::Stream(source_id, Transport::UDP(config.into()))
             }
-            ByteSourceConfig::Stream(StreamConfig::Serial) => {
-                todo!("Serial Port not supported yet")
+            ByteSourceConfig::Stream(StreamConfig::Serial(config)) => {
+                ObserveOrigin::Stream(source_id, Transport::Serial(config.into()))
             }
         };
 
