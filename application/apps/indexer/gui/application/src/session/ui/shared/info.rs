@@ -24,7 +24,7 @@ impl SessionInfo {
                 Transport::Process(config) => config.command.to_owned(),
                 Transport::TCP(config) => config.bind_addr.to_owned(),
                 Transport::UDP(config) => config.bind_addr.to_owned(),
-                Transport::Serial(_config) => todo!(),
+                Transport::Serial(config) => config.path.to_owned(),
             },
         };
 

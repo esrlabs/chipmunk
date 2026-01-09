@@ -8,7 +8,7 @@ use crate::host::{
         UiActions,
         session_setup::state::{
             parsers::someip::SomeIpParserConfig,
-            sources::{ProcessConfig, StreamConfig, TcpConfig, UdpConfig},
+            sources::{ProcessConfig, SerialConfig, StreamConfig, TcpConfig, UdpConfig},
         },
     },
 };
@@ -52,7 +52,9 @@ impl SessionSetupState {
             }
             StreamNames::Tcp => ByteSourceConfig::Stream(StreamConfig::Tcp(TcpConfig::new())),
             StreamNames::Udp => ByteSourceConfig::Stream(StreamConfig::Udp(UdpConfig::new())),
-            StreamNames::Serial => todo!(),
+            StreamNames::Serial => {
+                ByteSourceConfig::Stream(StreamConfig::Serial(SerialConfig::new()))
+            }
         };
 
         // Check if current parser is compatible with the new source
