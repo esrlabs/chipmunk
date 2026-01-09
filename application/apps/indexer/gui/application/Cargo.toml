@@ -37,6 +37,7 @@ itertools.workspace = true
 chrono.workspace = true
 chrono-tz.workspace = true
 dirs.workspace = true
+serialport.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true

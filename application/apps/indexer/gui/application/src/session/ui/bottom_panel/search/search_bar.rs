@@ -125,7 +125,7 @@ impl SearchBar {
                                     .show(ui);
 
                                 if move_cursor_end {
-                                    // Removing last char position will move to end be default.
+                                    // Removing last char position will move the cursor to end.
                                     text_output.state.cursor.set_char_range(None);
                                     text_output.state.store(ui.ctx(), text_output.response.id);
                                 }
