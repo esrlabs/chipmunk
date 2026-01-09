@@ -23,7 +23,7 @@ fn log_level_selector(config: &mut DltParserConfig, ui: &mut Ui) {
     ui.add_space(5.0);
 
     egui::ComboBox::from_id_salt("log_level_combo")
-        .selected_text(format!("{:?}", config.log_level))
+        .selected_text(config.log_level.to_string())
         .show_ui(ui, |ui| {
             for level in DltLogLevel::all() {
                 ui.selectable_value(&mut config.log_level, *level, level.to_string());

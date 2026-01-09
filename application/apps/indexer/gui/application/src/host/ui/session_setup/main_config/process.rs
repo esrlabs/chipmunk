@@ -1,9 +1,10 @@
-use egui::{
-    Align, Button, Key, Label, Layout, Popup, RectAlign, RichText, TextEdit, Ui, Widget, vec2,
-};
+use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, TextEdit, Ui, Widget, vec2};
 
 use super::RenderOutcome;
-use crate::host::ui::{UiActions, session_setup::state::sources::ProcessConfig};
+use crate::host::ui::{
+    UiActions,
+    session_setup::{start_session_on_enter, state::sources::ProcessConfig},
+};
 
 const CWD_DIALOG_ID: &str = "cwd_for_shell";
 
@@ -13,7 +14,7 @@ pub fn render_connection(
     ui: &mut Ui,
 ) -> RenderOutcome {
     let mut outcome = RenderOutcome::None;
-    let row_height = 25.;
+    let row_height = 25.0;
     ui.allocate_ui_with_layout(
         vec2(ui.available_width(), row_height),
         Layout::right_to_left(Align::Center),
@@ -46,7 +47,7 @@ fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome, ui
     ))
     .text_style(egui::TextStyle::Button);
 
-    let button_res = Button::new(shell_txt).min_size(vec2(1., height)).ui(ui);
+    let button_res = Button::new(shell_txt).min_size(vec2(0., height)).ui(ui);
 
     let pop_id = egui::Id::new("shells");
 
@@ -76,15 +77,7 @@ fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome, ui
         config.validate();
     };
 
-    if text_res.lost_focus() && text_res.ctx.input(|ui| ui.key_pressed(Key::Enter)) {
-        if config.is_valid() {
-            *outcome = RenderOutcome::StartSession;
-        } else {
-            // Single line moves focus on enter. This is a quick fix
-            // in case command isn't valid.
-            text_res.request_focus();
-        }
-    }
+    start_session_on_enter(&text_res, || config.is_valid(), outcome);
 }
 
 /// Render the area to specify the working directory.

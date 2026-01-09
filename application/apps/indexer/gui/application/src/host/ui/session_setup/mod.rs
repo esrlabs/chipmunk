@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use egui::{
-    Align, Button, CentralPanel, ComboBox, Label, Layout, RichText, SidePanel, TopBottomPanel, Ui,
-    Widget,
+    Align, Button, CentralPanel, ComboBox, Key, Label, Layout, Response, RichText, SidePanel,
+    TopBottomPanel, Ui, Widget,
 };
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
@@ -179,6 +179,23 @@ impl SessionSetup {
                     .copied()
                     .collect()
             }
+        }
+    }
+}
+
+/// Handles the "Enter" key press on a text field to trigger session startup with
+/// consideration to if the configurations are valid.
+fn start_session_on_enter<F>(text_res: &Response, is_valid: F, outcome: &mut RenderOutcome)
+where
+    F: FnOnce() -> bool,
+{
+    if text_res.lost_focus() && text_res.ctx.input(|ui| ui.key_pressed(Key::Enter)) {
+        if is_valid() {
+            *outcome = RenderOutcome::StartSession;
+        } else {
+            // Single line moves focus on enter. This is a quick fix
+            // in case command isn't valid.
+            text_res.request_focus();
         }
     }
 }
