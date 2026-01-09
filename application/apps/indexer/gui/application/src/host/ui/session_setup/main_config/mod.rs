@@ -1,9 +1,9 @@
-use egui::{Align, Frame, Key, Label, Layout, Margin, RichText, TextEdit, Ui, Widget as _};
+use egui::{Align, Frame, Label, Layout, Margin, RichText, TextEdit, Ui, Widget as _};
 
 use crate::host::ui::{
     UiActions,
     session_setup::{
-        RenderOutcome,
+        RenderOutcome, start_session_on_enter,
         state::{
             SessionSetupState,
             parsers::ParserConfig,
@@ -58,7 +58,7 @@ fn render_stream(stream: &mut StreamConfig, actions: &mut UiActions, ui: &mut Ui
                 StreamConfig::Process(config) => process::render_connection(config, actions, ui),
                 StreamConfig::Tcp(config) => tcp::render_connection(config, ui),
                 StreamConfig::Udp(config) => udp::render_connection(config, ui),
-                StreamConfig::Serial => serial::render_connection(ui),
+                StreamConfig::Serial(config) => serial::render_connection(config, ui),
             };
         });
 
@@ -97,15 +97,7 @@ fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) -> R
             config.validate();
         }
 
-        if ip_txt_res.lost_focus() && ip_txt_res.ctx.input(|ui| ui.key_pressed(Key::Enter)) {
-            if config.is_valid() {
-                outcome = RenderOutcome::StartSession;
-            } else {
-                // Single line moves focus on enter. This is a quick fix
-                // in case command isn't valid.
-                ip_txt_res.request_focus();
-            }
-        }
+        start_session_on_enter(&ip_txt_res, || config.is_valid(), &mut outcome);
 
         ui.vertical(|ui| {
             ui.set_height(20.);

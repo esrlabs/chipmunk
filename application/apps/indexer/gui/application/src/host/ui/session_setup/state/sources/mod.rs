@@ -1,10 +1,12 @@
 pub mod file;
 pub mod process;
+pub mod serial;
 pub mod tcp;
-mod udp;
+pub mod udp;
 
 pub use file::SourceFileInfo;
 pub use process::ProcessConfig;
+pub use serial::{BaudRate, SerialConfig};
 pub use tcp::TcpConfig;
 pub use udp::{MulticastItem, UdpConfig};
 
@@ -40,7 +42,7 @@ pub enum StreamConfig {
     Process(ProcessConfig),
     Tcp(TcpConfig),
     Udp(UdpConfig),
-    Serial,
+    Serial(SerialConfig),
 }
 
 impl StreamConfig {
@@ -49,7 +51,7 @@ impl StreamConfig {
             StreamConfig::Process(config) => config.is_valid(),
             StreamConfig::Tcp(config) => config.is_valid(),
             StreamConfig::Udp(config) => config.is_valid(),
-            StreamConfig::Serial => todo!(),
+            StreamConfig::Serial(config) => config.is_valid(),
         }
     }
 
@@ -58,7 +60,7 @@ impl StreamConfig {
             StreamConfig::Process(config) => config.validation_errors(),
             StreamConfig::Tcp(config) => config.validation_errors(),
             StreamConfig::Udp(config) => config.validation_errors(),
-            StreamConfig::Serial => todo!(),
+            StreamConfig::Serial(config) => config.validation_errors(),
         }
     }
 }
