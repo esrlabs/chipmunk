@@ -21,7 +21,7 @@ sources.workspace = true
 file-tools.workspace = true
 shell-tools.workspace = true
 parsers.workspace = true
-#TODO: We need to avoid clashing with module `session` in Workaround to avoid potential merge conflic  
+#TODO: We need to avoid clashing with module `session` in Workaround to avoid potential merge conflict  
 session_core = { package = "session",  path = "../../session" }
 
 # *** External ***
