@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use egui::{CentralPanel, TopBottomPanel, Ui};
+use egui::{CentralPanel, Frame, Margin, SidePanel, TopBottomPanel, Ui};
 use shared::SessionShared;
 use tokio::sync::mpsc::Sender;
 
@@ -23,11 +23,13 @@ use crate::{
 };
 use bottom_panel::BottomPanelUI;
 use logs_table::LogsTable;
+use side_panel::SidePanelUi;
 
 mod bottom_panel;
 mod definitions;
 mod logs_table;
 mod shared;
+mod side_panel;
 mod status_bar;
 
 pub use bottom_panel::chart;
@@ -40,6 +42,7 @@ pub struct Session {
     shared: SessionShared,
     logs_table: LogsTable,
     bottom_panel: BottomPanelUI,
+    side_panel: SidePanelUi,
 }
 
 impl Session {
@@ -63,6 +66,7 @@ impl Session {
             shared: SessionShared::new(session_info),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), schema),
+            side_panel: SidePanelUi::new(senders.cmd_tx.clone()),
             cmd_tx: senders.cmd_tx,
         }
     }
@@ -79,6 +83,7 @@ impl Session {
         let Self {
             logs_table,
             bottom_panel,
+            side_panel,
             shared,
             ..
         } = self;
@@ -91,6 +96,16 @@ impl Session {
         TopBottomPanel::bottom("status_bar").show_inside(ui, |ui| {
             status_bar::render_content(shared, ui);
         });
+
+        SidePanel::right("side_panel")
+            .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::same(0)))
+            .width_range(200.0..=350.0)
+            .default_width(250.0)
+            .resizable(true)
+            .show_inside(ui, |ui| {
+                ui.take_available_width();
+                side_panel.render_content(shared, ui);
+            });
 
         TopBottomPanel::bottom("bottom_panel")
             .height_range(100.0..=700.0)
