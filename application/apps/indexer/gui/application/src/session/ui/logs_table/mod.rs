@@ -125,7 +125,7 @@ impl LogsDelegate<'_> {
             self.shared.logs.selected_log = None;
         } else {
             // Scroll to log in search if it's active only.
-            if self.shared.active_bottom_tab == BottomTabType::Search {
+            if self.shared.bottom_tab == BottomTabType::Search {
                 let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
                 self.actions
                     .try_send_command(&self.table.cmd_tx, nearest_cmd);
