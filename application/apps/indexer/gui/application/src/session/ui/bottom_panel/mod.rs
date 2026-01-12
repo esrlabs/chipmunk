@@ -51,7 +51,7 @@ impl BottomPanelUI {
     ) {
         self.render_tabs(shared, ui);
 
-        match shared.active_bottom_tab {
+        match shared.bottom_tab {
             BottomTabType::Search => self.search.render_content(shared, actions, ui),
             BottomTabType::Details => self.details.render_content(shared, ui),
             BottomTabType::Presets => self.presets.render_content(ui),
@@ -65,7 +65,7 @@ impl BottomPanelUI {
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     for tab in BottomTabType::all() {
-                        ui.selectable_value(&mut shared.active_bottom_tab, *tab, tab.to_string());
+                        ui.selectable_value(&mut shared.bottom_tab, *tab, tab.to_string());
                     }
                 });
             });
