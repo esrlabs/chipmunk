@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use super::bottom_panel::BottomTabType;
+use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
 mod info;
 mod logs;
@@ -20,7 +20,9 @@ pub struct SessionShared {
     pub signals: Vec<SessionSignal>,
 
     /// Active tab in bottom panel
-    pub active_bottom_tab: BottomTabType,
+    pub bottom_tab: BottomTabType,
+
+    pub side_tab: SideTabType,
 
     pub search: SearchState,
 
@@ -32,7 +34,8 @@ impl SessionShared {
         Self {
             session_info,
             signals: Vec::new(),
-            active_bottom_tab: BottomTabType::Search,
+            bottom_tab: BottomTabType::Search,
+            side_tab: SideTabType::Filters,
             search: SearchState::default(),
             logs: LogsState::default(),
         }
