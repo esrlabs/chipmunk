@@ -1,3 +1,8 @@
+# 3.19.4 (13.01.2026)
+
+## Changes
+- Performance improvements: Offloaded search to a separate task, reducing UI lag and making parsing with active filters up to **1.4X faster**.
+
 # 3.19.3 (12.12.2025)
 
 ## Changes
