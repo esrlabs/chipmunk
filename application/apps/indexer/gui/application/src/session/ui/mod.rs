@@ -5,6 +5,7 @@ use shared::SessionShared;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
+    common::modal::show_busy_indicator,
     host::{common::parsers::ParserNames, notification::AppNotification, ui::UiActions},
     session::{
         InitSessionParams,
@@ -93,6 +94,10 @@ impl Session {
             shared.signals.is_empty(),
             "Signals leaked from previous frame."
         );
+
+        if shared.observe.is_initial_loading() {
+            show_busy_indicator(ui.ctx(), Some("Initializing Session"));
+        }
 
         TopBottomPanel::bottom("status_bar").show_inside(ui, |ui| {
             status_bar::render_content(shared, ui);
