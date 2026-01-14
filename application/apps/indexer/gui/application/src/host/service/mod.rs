@@ -1,4 +1,4 @@
-use std::{ops::Not, os::unix::fs::MetadataExt, path::PathBuf, thread};
+use std::{ops::Not, path::PathBuf, thread};
 
 use stypes::{
     DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
@@ -132,7 +132,7 @@ impl HostService {
 
             let size_bytes = std::fs::metadata(&file_path)
                 .map_err(InitSessionError::IO)?
-                .size();
+                .len();
             let size_txt = format_file_size(size_bytes);
 
             let parser = match format {
