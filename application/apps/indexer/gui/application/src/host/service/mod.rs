@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     host::{
-        command::HostCommand,
+        command::{HostCommand, StartSessionParam},
         common::{parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
@@ -84,12 +84,13 @@ impl HostService {
                 self.connection_session_setup(stream, parser).await
             }
             HostCommand::StartSession(start_params) => {
-                self.start_session(
-                    start_params.session_setup_id,
-                    start_params.source,
-                    start_params.parser,
-                )
-                .await?;
+                let StartSessionParam {
+                    parser,
+                    source,
+                    session_setup_id,
+                } = *start_params;
+
+                self.start_session(source, parser, session_setup_id).await?;
             }
             HostCommand::CloseSessionSetup(id) => {
                 // NOTE: We need to checks here for cleaning up session setups (Like cancelling
@@ -209,9 +210,9 @@ impl HostService {
 
     async fn start_session(
         &self,
-        session_setup_id: Uuid,
         source: ByteSourceConfig,
         parser: ParserConfig,
+        session_setup_id: Option<Uuid>,
     ) -> Result<(), HostError> {
         let source_id = Uuid::new_v4().to_string();
         let origin = match source {
@@ -283,7 +284,7 @@ impl HostService {
             .senders
             .send_message(HostMessage::SessionCreated {
                 session_params,
-                session_setup_id: Some(session_setup_id),
+                session_setup_id,
             })
             .await;
 
