@@ -11,3 +11,18 @@ pub struct LogTableItem {
     pub element: GrabbedElement,
     pub column_ranges: Vec<Range<usize>>,
 }
+
+/// Represents the outcome of updating the operation by a state component.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UpdateOperationOutcome {
+    /// Operation update has been consumed by state component.
+    Consumed,
+    /// Operation isn't part of state component.
+    None,
+}
+
+impl UpdateOperationOutcome {
+    pub fn consumed(self) -> bool {
+        self == Self::Consumed
+    }
+}

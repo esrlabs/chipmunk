@@ -1,6 +1,7 @@
 use stypes::{FilterMatch, GrabbedElement, NearestPosition};
+use uuid::Uuid;
 
-use crate::session::{error::SessionError, ui::chart::ChartBar};
+use crate::session::{error::SessionError, types::OperationPhase, ui::chart::ChartBar};
 
 /// Messages sent to Session UI form services.
 #[derive(Debug)]
@@ -29,4 +30,10 @@ pub enum SessionMessage {
 
     /// Point data for line charts.
     ChartLinePlots(Result<Vec<(u8, Vec<stypes::Point>)>, SessionError>),
+
+    /// Updated the phase of an operation
+    OperationUpdated {
+        operation_id: Uuid,
+        phase: OperationPhase,
+    },
 }
