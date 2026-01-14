@@ -24,5 +24,8 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 stypes = { path = "../stypes", features=["rustcore"] }
 socket2 = "0.5.8"
 
+[target.'cfg(windows)'.dependencies]
+shell-tools = { path = "../addons/shell-tools" }
+
 [dev-dependencies]
 env_logger.workspace = true
