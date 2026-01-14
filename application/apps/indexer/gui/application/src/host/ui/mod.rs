@@ -1,11 +1,9 @@
 use eframe::NativeOptions;
-use egui::{
-    Align, CentralPanel, Context, Frame, Id, Layout, NumExt as _, TopBottomPanel, Ui, Widget, vec2,
-};
+use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, Widget, vec2};
 
 use crate::{
     cli::CliCommand,
-    common::phosphor,
+    common::{modal::show_modal, phosphor},
     host::{
         command::HostCommand,
         communication::{UiReceivers, UiSenders},
@@ -194,27 +192,20 @@ impl Host {
     /// This overlay prevents interaction with the main app and provides hints to
     /// locate the external dialog window.
     fn file_dialog_overlay(&mut self, ctx: &Context) {
-        egui::Modal::new(Id::new("file dialog overlay"))
-            .frame(Frame::window(&ctx.style()).inner_margin(egui::Margin::same(8)))
-            .show(ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    let modal_width = (ctx.content_rect().width() - 20.)
-                        .at_least(20.)
-                        .at_most(350.);
+        show_modal(ctx, "file dialog overlay", 350.0, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.heading("File Dialog Open");
 
-                    ui.set_width(modal_width);
-                    ui.heading("File Dialog Open");
+                ui.add_space(6.);
 
-                    ui.add_space(6.);
-
-                    egui::Label::new(
-                        "A file picker is currently open.\
+                egui::Label::new(
+                    "A file picker is currently open.\
                     If you don't see it, please check your taskbar or move this window",
-                    )
-                    .selectable(false)
-                    .ui(ui);
-                })
-            });
+                )
+                .selectable(false)
+                .ui(ui);
+            })
+        });
     }
 }
 
