@@ -1,4 +1,4 @@
-use egui::{MenuBar, Ui};
+use egui::{MenuBar, Theme, Ui};
 use tokio::sync::mpsc::Sender;
 
 use crate::host::{
@@ -114,6 +114,16 @@ impl MainMenuBar {
                             parser: ParserNames::Text,
                         },
                     );
+                }
+            });
+
+            ui.menu_button("View", |ui| {
+                if ui.button("Dark Theme").clicked() {
+                    ui.ctx().set_theme(Theme::Dark);
+                }
+
+                if ui.button("Light Theme").clicked() {
+                    ui.ctx().set_theme(Theme::Light);
                 }
             });
         });
