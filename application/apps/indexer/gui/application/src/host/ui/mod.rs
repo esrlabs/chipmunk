@@ -98,9 +98,9 @@ impl Host {
                 .state
                 .add_session_setup(setup_state, self.senders.cmd_tx.clone()),
             HostMessage::SessionCreated {
-                session_info,
+                session_params,
                 session_setup_id,
-            } => self.state.add_session(session_info, session_setup_id),
+            } => self.state.add_session(session_params, session_setup_id),
             HostMessage::SessionClosed { session_id } => self.state.close_session(session_id),
             HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
             HostMessage::Shutdown => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
