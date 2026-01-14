@@ -50,6 +50,7 @@ impl Session {
         let InitSessionParams {
             session_info,
             communication,
+            observe_op,
         } = init;
 
         let UiHandle { senders, receivers } = communication;
@@ -63,7 +64,7 @@ impl Session {
 
         Self {
             receivers,
-            shared: SessionShared::new(session_info),
+            shared: SessionShared::new(session_info, observe_op),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), schema),
             side_panel: SidePanelUi::new(senders.cmd_tx.clone()),
@@ -177,6 +178,15 @@ impl Session {
                     };
 
                     self.bottom_panel.chart.update_line_plots(values);
+                }
+                SessionMessage::OperationUpdated {
+                    operation_id,
+                    phase,
+                } => {
+                    if self.shared.observe.update(operation_id, phase).consumed() {
+                        return;
+                    }
+                    // Potential components which keep track for operations can go here.
                 }
             }
         }
