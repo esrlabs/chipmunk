@@ -12,7 +12,7 @@ pub enum HostMessage {
 
     /// A new session has been successfully created.
     SessionCreated {
-        session_info: InitSessionParams,
+        session_params: InitSessionParams,
         /// ID for session_setup used to create this session to replace its tab
         /// instead of creating a new tab for the session.
         session_setup_id: Option<Uuid>,

@@ -1,14 +1,18 @@
 use uuid::Uuid;
 
+use crate::session::types::ObserveOperation;
+
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
 mod info;
 mod logs;
+mod observe;
 mod search;
 mod signal;
 
 pub use info::SessionInfo;
 pub use logs::LogsState;
+pub use observe::ObserveState;
 #[allow(unused)]
 pub use search::{FilterIndex, LogMainIndex, SearchState};
 pub use signal::SessionSignal;
@@ -27,10 +31,12 @@ pub struct SessionShared {
     pub search: SearchState,
 
     pub logs: LogsState,
+
+    pub observe: ObserveState,
 }
 
 impl SessionShared {
-    pub fn new(session_info: SessionInfo) -> Self {
+    pub fn new(session_info: SessionInfo, observe_op: ObserveOperation) -> Self {
         Self {
             session_info,
             signals: Vec::new(),
@@ -38,6 +44,7 @@ impl SessionShared {
             side_tab: SideTabType::Filters,
             search: SearchState::default(),
             logs: LogsState::default(),
+            observe: ObserveState::new(observe_op),
         }
     }
 
