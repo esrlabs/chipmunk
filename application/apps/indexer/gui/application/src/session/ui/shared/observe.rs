@@ -22,12 +22,20 @@ impl ObserveState {
             observe.phase = phase;
             UpdateOperationOutcome::Consumed
         } else {
-            return UpdateOperationOutcome::None;
+            UpdateOperationOutcome::None
         }
     }
 
     /// Observe operations.
     pub fn operations(&self) -> &[ObserveOperation] {
         &self.operations
+    }
+
+    /// Check if the session is still in the initial loading state before
+    /// producing any logs.
+    pub fn is_initial_loading(&self) -> bool {
+        self.operations
+            .iter()
+            .all(|op| op.phase == OperationPhase::Started)
     }
 }
