@@ -22,7 +22,7 @@ pub enum HostCommand {
 
 #[derive(Debug, Clone)]
 pub struct StartSessionParam {
-    pub session_setup_id: Uuid,
     pub parser: ParserConfig,
     pub source: ByteSourceConfig,
+    pub session_setup_id: Option<Uuid>,
 }

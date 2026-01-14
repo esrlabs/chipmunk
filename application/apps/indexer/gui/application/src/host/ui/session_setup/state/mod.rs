@@ -88,9 +88,9 @@ impl SessionSetupState {
         debug_assert!(self.is_valid());
 
         let session_params = StartSessionParam {
-            session_setup_id: self.id,
             parser: self.parser.clone(),
             source: self.source.clone(),
+            session_setup_id: Some(self.id),
         };
 
         let cmd = HostCommand::StartSession(Box::new(session_params));

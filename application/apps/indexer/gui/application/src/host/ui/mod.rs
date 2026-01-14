@@ -1,3 +1,4 @@
+use anyhow::ensure;
 use eframe::NativeOptions;
 use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, Widget, vec2};
 
@@ -5,11 +6,19 @@ use crate::{
     cli::CliCommand,
     common::{modal::show_modal, phosphor},
     host::{
-        command::HostCommand,
+        command::{HostCommand, StartSessionParam},
         communication::{UiReceivers, UiSenders},
         message::HostMessage,
         service::HostService,
-        ui::{home::HomeView, notification::NotificationUi, tabs::TabType},
+        ui::{
+            home::HomeView,
+            notification::NotificationUi,
+            session_setup::state::{
+                parsers::ParserConfig,
+                sources::{ByteSourceConfig, ProcessConfig, StreamConfig},
+            },
+            tabs::TabType,
+        },
     },
 };
 use menu::MainMenuBar;
@@ -66,14 +75,14 @@ impl Host {
                     ui_actions: UiActions::new(tokio_handle),
                 };
 
-                host.handle_cli(cli_cmds);
+                host.handle_cli(cli_cmds)?;
 
                 Ok(Box::new(host))
             }),
         )
     }
 
-    pub fn handle_cli(&mut self, cli_cmds: Vec<CliCommand>) {
+    pub fn handle_cli(&mut self, cli_cmds: Vec<CliCommand>) -> anyhow::Result<()> {
         let Self {
             ui_actions,
             senders,
@@ -81,13 +90,34 @@ impl Host {
         } = self;
 
         for cli_cmd in cli_cmds {
-            match cli_cmd {
-                CliCommand::OpenFile { path } => {
-                    let host_cmd = HostCommand::OpenFiles(vec![path]);
-                    ui_actions.try_send_command(&senders.cmd_tx, host_cmd);
+            let host_cmd = match cli_cmd {
+                CliCommand::OpenFiles { paths } => HostCommand::OpenFiles(paths),
+                CliCommand::ProcessCommand { command, cwd } => {
+                    let mut config = ProcessConfig::new();
+                    config.command = command;
+                    if let Some(cwd) = cwd {
+                        config.cwd = cwd;
+                    }
+                    config.validate();
+
+                    let valid_errs = config.validation_errors();
+                    ensure!(
+                        valid_errs.is_empty(),
+                        "Process configurations are invalid. Errors: {}",
+                        valid_errs.join(", ")
+                    );
+
+                    HostCommand::StartSession(Box::new(StartSessionParam {
+                        parser: ParserConfig::Text,
+                        source: ByteSourceConfig::Stream(StreamConfig::Process(config)),
+                        session_setup_id: None,
+                    }))
                 }
-            }
+            };
+            ui_actions.try_send_command(&senders.cmd_tx, host_cmd);
         }
+
+        Ok(())
     }
 
     fn handle_message(&mut self, message: HostMessage, ctx: &Context) {
