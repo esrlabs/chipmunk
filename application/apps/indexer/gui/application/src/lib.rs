@@ -8,14 +8,7 @@ mod host;
 mod session;
 
 pub fn run_app() -> anyhow::Result<()> {
-    let mut cli = cli::Cli::parse();
-
-    let mut cli_cmds = Vec::new();
-
-    if let Some(path) = cli.file_path.take() {
-        let cmd = cli::CliCommand::OpenFile { path };
-        cli_cmds.push(cmd);
-    }
+    let cli_cmds = cli::Cli::parse().get_commands();
 
     common::logging::setup()?;
 
