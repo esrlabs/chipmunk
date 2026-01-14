@@ -12,9 +12,10 @@ use super::{command::SessionCommand, communication::ServiceHandle, error::Sessio
 use crate::{
     host::{message::HostMessage, notification::AppNotification},
     session::{
-        InitSessionError,
-        communication::ServiceSenders,
+        InitSessionError, InitSessionParams,
+        communication::{self, ServiceSenders, SharedSenders},
         message::SessionMessage,
+        types::{ObserveOperation, OperationPhase},
         ui::{SessionInfo, chart::ChartBar},
     },
 };
@@ -26,7 +27,7 @@ mod operation_track;
 pub struct SessionService {
     cmd_rx: mpsc::Receiver<SessionCommand>,
     senders: ServiceSenders,
-    session: Arc<Session>,
+    session: Session,
     ops_tracker: OperationTracker,
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
 }
@@ -34,24 +35,29 @@ pub struct SessionService {
 impl SessionService {
     /// Spawn session service returning the session ID.
     pub async fn spawn(
-        session_id: Uuid,
-        communication: ServiceHandle,
+        shared_senders: SharedSenders,
         options: ObserveOptions,
-    ) -> Result<SessionInfo, InitSessionError> {
+    ) -> Result<InitSessionParams, InitSessionError> {
+        let session_id = Uuid::new_v4();
+
+        let (ui_handle, service_handle) = communication::init(shared_senders);
+
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
 
-        session.observe(Uuid::new_v4(), options)?;
+        let observe_id = Uuid::new_v4();
 
-        let ServiceHandle { cmd_rx, senders } = communication;
+        let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
 
-        let session = Arc::new(session);
+        session.observe(observe_id, options)?;
+
+        let ServiceHandle { cmd_rx, senders } = service_handle;
 
         let service = Self {
             cmd_rx,
             senders,
-            session: Arc::clone(&session),
+            session,
             ops_tracker: OperationTracker::default(),
             callback_rx,
         };
@@ -60,7 +66,13 @@ impl SessionService {
             service.run().await;
         });
 
-        Ok(session_info)
+        let info = InitSessionParams {
+            session_info,
+            communication: ui_handle,
+            observe_op,
+        };
+
+        Ok(info)
     }
 
     #[inline]
@@ -251,8 +263,6 @@ impl SessionService {
     }
 
     async fn handle_callbacks(&mut self, event: CallbackEvent) -> Result<(), SessionError> {
-        println!("************** DEBUG SIMPLE: Received callback: {event}");
-
         log::trace!(
             "Received callback. Session: {}. Event: {}",
             self.session_id(),
@@ -287,8 +297,32 @@ impl SessionService {
             CallbackEvent::OperationError { uuid: _, error } => {
                 self.send_error(SessionError::NativeError(error)).await;
             }
+            CallbackEvent::OperationStarted(uuid) => {
+                self.senders
+                    .send_session_msg(SessionMessage::OperationUpdated {
+                        operation_id: uuid,
+                        phase: OperationPhase::Started,
+                    })
+                    .await;
+            }
+            CallbackEvent::OperationProcessing(uuid) => {
+                self.senders
+                    .send_session_msg(SessionMessage::OperationUpdated {
+                        operation_id: uuid,
+                        phase: OperationPhase::Processing,
+                    })
+                    .await;
+            }
+            CallbackEvent::OperationDone(done) => {
+                self.senders
+                    .send_session_msg(SessionMessage::OperationUpdated {
+                        operation_id: done.uuid,
+                        phase: OperationPhase::Done,
+                    })
+                    .await;
+            }
             event => {
-                println!("************** DEBUG: Received callback: {event:?}");
+                println!("************** DEBUG: Received unhandled callback: {event:?}");
                 log::warn!("Unhandled callback: {event}");
             }
         }

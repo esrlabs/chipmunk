@@ -24,7 +24,7 @@ use crate::{
             },
         },
     },
-    session::{InitSessionError, init_session},
+    session::{InitSessionError, service::SessionService},
 };
 
 #[derive(Debug)]
@@ -164,13 +164,14 @@ impl HostService {
             // Start sessions directly for text files.
             let origin = ObserveOptions::file(file_path, FileFormat::Text, ParserType::Text(()));
 
-            let session_info =
-                init_session(self.communication.senders.get_shared_senders(), origin).await?;
+            let session_params =
+                SessionService::spawn(self.communication.senders.get_shared_senders(), origin)
+                    .await?;
 
             self.communication
                 .senders
                 .send_message(HostMessage::SessionCreated {
-                    session_info,
+                    session_params,
                     session_setup_id: None,
                 })
                 .await;
@@ -275,13 +276,13 @@ impl HostService {
 
         let origin = ObserveOptions { origin, parser };
 
-        let session_info =
-            init_session(self.communication.senders.get_shared_senders(), origin).await?;
+        let session_params =
+            SessionService::spawn(self.communication.senders.get_shared_senders(), origin).await?;
 
         self.communication
             .senders
             .send_message(HostMessage::SessionCreated {
-                session_info,
+                session_params,
                 session_setup_id: Some(session_setup_id),
             })
             .await;
