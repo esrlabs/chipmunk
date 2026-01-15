@@ -17,8 +17,6 @@ pub enum HostMessage {
         /// instead of creating a new tab for the session.
         session_setup_id: Option<Uuid>,
     },
-    /// An existing session has been terminated.
-    SessionClosed { session_id: Uuid },
 
     /// Host service has finished shutting down; the UI should now exit.
     Shutdown,

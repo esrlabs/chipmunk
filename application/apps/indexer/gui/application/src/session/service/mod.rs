@@ -1,3 +1,5 @@
+use std::ops::ControlFlow;
+
 use itertools::Itertools;
 use tokio::{select, sync::mpsc};
 use uuid::Uuid;
@@ -8,7 +10,7 @@ use stypes::{CallbackEvent, ComputationError, ObserveOptions};
 
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
-    host::{message::HostMessage, notification::AppNotification},
+    host::notification::AppNotification,
     session::{
         InitSessionError, InitSessionParams,
         communication::{self, ServiceSenders, SharedSenders},
@@ -84,9 +86,13 @@ impl SessionService {
         loop {
             select! {
                 Some(cmd) = self.cmd_rx.recv() => {
-                    if let Err(error) = self.handle_command(cmd).await {
-                        log::error!("Error while handling session commands: {error:?}");
-                        self.send_error(error).await;
+                    match self.handle_command(cmd).await {
+                        Ok(ControlFlow::Break(())) => break,
+                        Ok(ControlFlow::Continue(())) => {},
+                        Err(error) => {
+                            log::error!("Error while handling session commands: {error:?}");
+                            self.send_error(error).await;
+                        }
                     }
                 },
                 // Callback receiver won't be dropped when session is dropped.
@@ -96,7 +102,7 @@ impl SessionService {
                         self.send_error(error).await;
                     }
                 }
-                 else => { break; }
+                else => { break; }
             }
         }
 
@@ -118,7 +124,10 @@ impl SessionService {
         self.senders.send_notification(notifi).await;
     }
 
-    async fn handle_command(&mut self, cmd: SessionCommand) -> Result<(), SessionError> {
+    async fn handle_command(
+        &mut self,
+        cmd: SessionCommand,
+    ) -> Result<ControlFlow<(), ()>, SessionError> {
         match cmd {
             SessionCommand::GrabLinesBlocking { range, sender } => {
                 let elements = self
@@ -243,21 +252,23 @@ impl SessionService {
                     .await;
             }
             SessionCommand::CloseSession => {
+                // Session UI can be already dropped at this point, therefore
+                // we don't need to send errors to UI in this case.
                 for op_id in self.ops_tracker.get_all() {
-                    self.session.abort(Uuid::new_v4(), op_id)?;
+                    if let Err(err) = self.session.abort(Uuid::new_v4(), op_id) {
+                        log::error!("Abort operation failed. {err:?}");
+                    }
                 }
 
-                self.session.stop(Uuid::new_v4()).await?;
+                if let Err(err) = self.session.stop(Uuid::new_v4()).await {
+                    log::error!("Stopping session failed. {err:?}");
+                }
 
-                self.senders
-                    .send_host_message(HostMessage::SessionClosed {
-                        session_id: self.session_id(),
-                    })
-                    .await;
+                return Ok(ControlFlow::Break(()));
             }
         }
 
-        Ok(())
+        Ok(ControlFlow::Continue(()))
     }
 
     async fn handle_callbacks(&mut self, event: CallbackEvent) -> Result<(), SessionError> {
