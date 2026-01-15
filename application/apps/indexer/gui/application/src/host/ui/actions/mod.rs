@@ -4,7 +4,10 @@ use crate::host::notification::AppNotification;
 use tokio::{runtime::Handle, sync::mpsc};
 
 mod file_dialog;
+mod host_action;
+
 pub use file_dialog::{FileDialogFilter, FileDialogHandle};
+pub use host_action::HostAction;
 
 /// A handle to be passed between UI components to get access to
 /// shared UI functions like notifications.
@@ -17,6 +20,8 @@ pub struct UiActions {
     pub tokio_handle: Handle,
     pending_notifications: Vec<AppNotification>,
     pub file_dialog: FileDialogHandle,
+    // Queue of actions for the Host to process next frame
+    host_actions: Vec<HostAction>,
 }
 
 impl UiActions {
@@ -25,6 +30,7 @@ impl UiActions {
             pending_notifications: Vec::new(),
             file_dialog: FileDialogHandle::new(tokio_handle.clone()),
             tokio_handle,
+            host_actions: Vec::new(),
         }
     }
 
@@ -32,8 +38,16 @@ impl UiActions {
         self.pending_notifications.push(notifi);
     }
 
-    pub(super) fn drain_notifications(&mut self) -> impl Iterator<Item = AppNotification> {
+    pub fn drain_notifications(&mut self) -> impl Iterator<Item = AppNotification> {
         self.pending_notifications.drain(..)
+    }
+
+    pub fn add_host_action(&mut self, action: HostAction) {
+        self.host_actions.push(action);
+    }
+
+    pub fn drain_host_actions(&mut self) -> impl Iterator<Item = HostAction> {
+        self.host_actions.drain(..)
     }
 
     /// Tries to send the command with the provided sender. In case it fails it will
