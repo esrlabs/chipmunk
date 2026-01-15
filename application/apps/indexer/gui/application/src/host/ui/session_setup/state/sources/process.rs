@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{ops::Not, path::PathBuf};
 
 use stypes::ShellProfile;
 
@@ -8,7 +8,8 @@ pub struct ProcessConfig {
     pub command: String,
     pub shell: Option<ShellProfile>,
     pub available_shells: Vec<ShellProfile>,
-    err_msg: Option<&'static str>,
+    command_error_msg: Option<&'static str>,
+    cwd_error_msg: Option<&'static str>,
 }
 
 impl ProcessConfig {
@@ -20,7 +21,8 @@ impl ProcessConfig {
             command: String::new(),
             shell: None,
             available_shells,
-            err_msg: None,
+            command_error_msg: None,
+            cwd_error_msg: None,
         };
 
         config.validate();
@@ -28,22 +30,49 @@ impl ProcessConfig {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.err_msg.is_none()
+        let Self {
+            cwd: _,
+            command: _,
+            shell: _,
+            available_shells: _,
+            command_error_msg,
+            cwd_error_msg,
+        } = self;
+        command_error_msg.is_none() && cwd_error_msg.is_none()
     }
 
     pub fn validate(&mut self) {
-        self.err_msg = self
-            .command
+        let Self {
+            cwd,
+            command,
+            shell: _,
+            available_shells: _,
+            command_error_msg,
+            cwd_error_msg,
+        } = self;
+        *command_error_msg = command
             .is_empty()
             .then_some("Terminal command can't be empty");
+        *cwd_error_msg = cwd
+            .exists()
+            .not()
+            .then_some("Working directory doesn't exist")
     }
 
     pub fn validation_errors(&self) -> Vec<&str> {
-        if let Some(msg) = self.err_msg {
-            vec![msg]
-        } else {
-            Vec::new()
-        }
+        let Self {
+            cwd: _,
+            command: _,
+            shell: _,
+            available_shells: _,
+            command_error_msg,
+            cwd_error_msg,
+        } = self;
+
+        [command_error_msg, cwd_error_msg]
+            .into_iter()
+            .filter_map(|err| *err)
+            .collect()
     }
 }
 
