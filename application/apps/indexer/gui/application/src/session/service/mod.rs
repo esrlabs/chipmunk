@@ -299,7 +299,7 @@ impl SessionService {
                 self.senders
                     .send_session_msg(SessionMessage::OperationUpdated {
                         operation_id: uuid,
-                        phase: OperationPhase::Started,
+                        phase: OperationPhase::Initializing,
                     })
                     .await;
             }
