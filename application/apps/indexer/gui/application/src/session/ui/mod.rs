@@ -99,9 +99,12 @@ impl Session {
             show_busy_indicator(ui.ctx(), Some("Initializing Session"));
         }
 
-        TopBottomPanel::bottom("status_bar").show_inside(ui, |ui| {
-            status_bar::render_content(shared, ui);
-        });
+        TopBottomPanel::bottom("status_bar")
+            .resizable(false)
+            .exact_height(25.0)
+            .show_inside(ui, |ui| {
+                status_bar::render_content(shared, ui);
+            });
 
         SidePanel::right("side_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::same(0)))
