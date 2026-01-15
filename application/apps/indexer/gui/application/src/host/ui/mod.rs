@@ -1,6 +1,7 @@
 use anyhow::ensure;
 use eframe::NativeOptions;
 use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, Widget, vec2};
+use itertools::Itertools;
 
 use crate::{
     cli::CliCommand,
@@ -24,7 +25,7 @@ use crate::{
 use menu::MainMenuBar;
 use state::HostState;
 
-pub use actions::UiActions;
+pub use actions::{HostAction, UiActions};
 
 mod actions;
 mod home;
@@ -129,7 +130,6 @@ impl Host {
                 session_params,
                 session_setup_id,
             } => self.state.add_session(session_params, session_setup_id),
-            HostMessage::SessionClosed { session_id } => self.state.close_session(session_id),
             HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
             HostMessage::Shutdown => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
@@ -209,6 +209,16 @@ impl Host {
         for notifi in self.ui_actions.drain_notifications() {
             changed = true;
             self.notifications.add(notifi);
+        }
+
+        for action in self.ui_actions.drain_host_actions().collect_vec() {
+            changed = true;
+            match action {
+                HostAction::CloseSession(session_id) => {
+                    self.state.sessions[&session_id].on_close_session(&mut self.ui_actions);
+                    self.state.close_session(session_id);
+                }
+            }
         }
 
         if changed {

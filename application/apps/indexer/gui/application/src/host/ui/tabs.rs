@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     common::phosphor::{self, icons},
-    host::ui::{session_setup::SessionSetup, state::HOME_TAB_IDX},
+    host::ui::{HostAction, session_setup::SessionSetup, state::HOME_TAB_IDX},
     session::ui::Session,
 };
 
@@ -58,7 +58,7 @@ fn session_tab(
 ) {
     let title = sessions[session_id].get_info().title.as_str();
     render_single_tab(title, tab_idx, active_tab_idx, ui, || {
-        sessions[session_id].close_session(actions)
+        actions.add_host_action(HostAction::CloseSession(*session_id));
     });
 }
 

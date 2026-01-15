@@ -59,6 +59,7 @@ pub struct ServiceHandle {
 #[derive(Debug)]
 pub struct ServiceSenders {
     session_msg_tx: mpsc::Sender<SessionMessage>,
+    #[allow(unused)]
     host_message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,
     egui_ctx: egui::Context,
@@ -81,6 +82,7 @@ impl ServiceSenders {
     /// # Return
     /// Returns `true` if the message is sent successfully. On send errors
     /// it will log the error and return `false`.
+    #[allow(unused)]
     pub async fn send_host_message(&self, message: HostMessage) -> bool {
         let res = self.host_message_tx.send(message).await;
 

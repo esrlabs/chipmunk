@@ -6,7 +6,11 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     common::modal::show_busy_indicator,
-    host::{common::parsers::ParserNames, notification::AppNotification, ui::UiActions},
+    host::{
+        common::parsers::ParserNames,
+        notification::AppNotification,
+        ui::{HostAction, UiActions},
+    },
     session::{
         InitSessionParams,
         command::SessionCommand,
@@ -77,7 +81,7 @@ impl Session {
         self.shared.get_info()
     }
 
-    pub fn close_session(&self, actions: &mut UiActions) {
+    pub fn on_close_session(&self, actions: &mut UiActions) {
         actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
     }
 
@@ -96,12 +100,16 @@ impl Session {
         );
 
         if shared.observe.is_initial_loading() {
-            show_busy_indicator(ui.ctx(), Some("Initializing Session"));
+            show_busy_indicator(
+                ui.ctx(),
+                Some("Initializing Session"),
+                Some(|| actions.add_host_action(HostAction::CloseSession(shared.get_id()))),
+            );
         }
 
         TopBottomPanel::bottom("status_bar")
             .resizable(false)
-            .exact_height(25.0)
+            .exact_height(23.0)
             .show_inside(ui, |ui| {
                 status_bar::render_content(shared, ui);
             });
