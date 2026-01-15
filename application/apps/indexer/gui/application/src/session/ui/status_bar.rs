@@ -28,7 +28,7 @@ fn observe_states(shared: &SessionShared, ui: &mut Ui) {
         .peekable();
 
     if finished.peek().is_some() {
-        let finished_txt = RichText::new(icons::regular::LIST).size(16.);
+        let finished_txt = RichText::new(icons::regular::LIST).size(15.);
         let finished_res = Button::new(finished_txt)
             .frame(true)
             .frame_when_inactive(false)
