@@ -1,13 +1,13 @@
 use std::{ops::RangeInclusive, time::Duration};
 
-use egui::{Color32, Direction, Label, Layout, Ui, Vec2, Widget};
+use egui::{Color32, Direction, Label, Layout, Spinner, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     common::action_throttle::ActionThrottle,
     host::ui::UiActions,
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{command::SessionCommand, types::OperationPhase, ui::shared::SessionShared},
 };
 
 pub use data::{ChartBar, ChartsData};
@@ -82,10 +82,18 @@ impl ChartUI {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        if shared.search.is_search_active() {
-            self.chart(shared, actions, ui);
-        } else {
-            Self::place_holder(ui);
+        match shared.search.search_operation_phase() {
+            Some(OperationPhase::Initializing) => {
+                ui.centered_and_justified(|ui| {
+                    Spinner::new().size(20.0).ui(ui);
+                });
+            }
+            Some(OperationPhase::Processing | OperationPhase::Done) => {
+                self.chart(shared, actions, ui);
+            }
+            None => {
+                Self::place_holder(ui);
+            }
         }
     }
 
@@ -177,7 +185,7 @@ impl ChartUI {
                 plot_ui.set_auto_bounds([false, true]);
             }
 
-            if shared.search.total_count == 0 {
+            if shared.search.total_count() == 0 {
                 return PlotResponse::None;
             }
 
@@ -203,7 +211,7 @@ impl ChartUI {
                         return PlotResponse::RequestForRange(bounds_x);
                     }
                 }
-                None if shared.search.total_count > 0 => {
+                None if shared.search.total_count() > 0 => {
                     // This is the first render frame after having search results.
 
                     //TODO AAZ: It would make sense to update this on logs_count changed.
