@@ -19,16 +19,12 @@ use crate::{
         ui::{SessionInfo, chart::ChartBar},
     },
 };
-use operation_track::OperationTracker;
-
-mod operation_track;
 
 #[derive(Debug)]
 pub struct SessionService {
     cmd_rx: mpsc::Receiver<SessionCommand>,
     senders: ServiceSenders,
     session: Session,
-    ops_tracker: OperationTracker,
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
 }
 
@@ -58,7 +54,6 @@ impl SessionService {
             cmd_rx,
             senders,
             session,
-            ops_tracker: OperationTracker::default(),
             callback_rx,
         };
 
@@ -155,17 +150,14 @@ impl SessionService {
                     );
                 }
             }
-            SessionCommand::ApplySearchFilter(search_filters) => {
-                let op_id = Uuid::new_v4();
-                debug_assert!(
-                    self.ops_tracker.filter_op.is_none(),
-                    "filter must be dropped before applying new one"
-                );
-                self.ops_tracker.filter_op = Some(op_id);
-                self.session.apply_search_filters(op_id, search_filters)?;
+            SessionCommand::ApplySearchFilter {
+                operation_id,
+                filters,
+            } => {
+                self.session.apply_search_filters(operation_id, filters)?;
             }
-            SessionCommand::DropSearch => {
-                if let Some(filter_op) = self.ops_tracker.filter_op.take() {
+            SessionCommand::DropSearch { operation_id } => {
+                if let Some(filter_op) = operation_id {
                     self.session.abort(Uuid::new_v4(), filter_op)?;
                 }
                 self.session.drop_search().await?;
@@ -254,11 +246,6 @@ impl SessionService {
             SessionCommand::CloseSession => {
                 // Session UI can be already dropped at this point, therefore
                 // we don't need to send errors to UI in this case.
-                for op_id in self.ops_tracker.get_all() {
-                    if let Err(err) = self.session.abort(Uuid::new_v4(), op_id) {
-                        log::error!("Abort operation failed. {err:?}");
-                    }
-                }
 
                 if let Err(err) = self.session.stop(Uuid::new_v4()).await {
                     log::error!("Stopping session failed. {err:?}");
@@ -283,11 +270,13 @@ impl SessionService {
                     .send_session_msg(SessionMessage::LogsCount(logs_count))
                     .await;
             }
-            // TODO AAZ: Search callbacks seem to have duplications. Check
-            // how they're used in master.
-            //
-            // CallbackEvent::SearchUpdated { found, stat } => {
-            // }
+            CallbackEvent::SearchUpdated { found, stat: _ } => {
+                // TODO AAZ: For now I'm updating the total count of logs.
+                // But this will be changed once we got to multiple filters.
+                self.senders
+                    .send_session_msg(SessionMessage::SearchState { found_count: found })
+                    .await;
+            }
             CallbackEvent::IndexedMapUpdated { len } => {
                 self.senders
                     .send_session_msg(SessionMessage::SearchState { found_count: len })
@@ -295,9 +284,6 @@ impl SessionService {
             }
             CallbackEvent::SearchMapUpdated(filter_matches) => {
                 if let Some(list) = filter_matches {
-                    // Long process ends when it deliver its initial results.
-                    self.ops_tracker.filter_op = None;
-
                     self.senders
                         .send_session_msg(SessionMessage::SearchResults(list.0))
                         .await;
