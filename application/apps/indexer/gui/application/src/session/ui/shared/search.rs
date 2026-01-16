@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 use stypes::FilterMatch;
+use uuid::Uuid;
+
+use crate::session::{types::OperationPhase, ui::definitions::UpdateOperationOutcome};
 
 #[allow(unused)]
 #[derive(Debug, Clone, Copy)]
@@ -9,43 +12,99 @@ pub struct FilterIndex(pub u8);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LogMainIndex(pub u64);
 
+#[derive(Debug, Clone)]
+struct SearchOperation {
+    pub id: Uuid,
+    pub phase: OperationPhase,
+}
+
+impl SearchOperation {
+    pub fn new(id: Uuid) -> Self {
+        Self {
+            id,
+            phase: OperationPhase::Initializing,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct SearchState {
-    is_active: bool,
-    //TODO AAZ: This should be equal to `results_map.len()`.
-    //Make sure we need to keep both
-    pub total_count: u64,
+    search_op: Option<SearchOperation>,
+    total_count: u64,
     matches_map: Option<HashMap<LogMainIndex, Vec<FilterIndex>>>,
 }
 
 impl SearchState {
-    #[inline]
-    pub fn activate(&mut self) {
-        self.is_active = true;
+    pub fn total_count(&self) -> u64 {
+        self.total_count
     }
 
-    #[inline]
+    pub fn set_total_count(&mut self, total_count: u64) {
+        // total_count and matches_map can go currently out-of-sync when
+        // multiple search queries are applied rapidly.
+        // This solution is a workaround until the issue is fixed in core.
+        if total_count == 0 {
+            self.matches_map = None;
+        }
+
+        self.total_count = total_count;
+    }
+
+    pub fn set_search_operation(&mut self, operation_id: Uuid) {
+        self.search_op = Some(SearchOperation::new(operation_id));
+    }
+
+    pub fn processing_search_operation(&self) -> Option<Uuid> {
+        self.search_op.as_ref().and_then(|op| {
+            if op.phase != OperationPhase::Done {
+                Some(op.id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn search_operation_phase(&self) -> Option<OperationPhase> {
+        self.search_op.as_ref().map(|op| op.phase)
+    }
+
     pub fn is_search_active(&self) -> bool {
-        self.is_active
+        self.search_op.is_some()
     }
 
-    pub(super) fn drop_search(&mut self) {
-        self.is_active = false;
-
+    pub fn drop_search(&mut self) {
         let Self {
-            is_active: _,
-            total_count: search_count,
+            search_op: operation_op,
+            total_count,
             matches_map,
         } = self;
 
-        *search_count = 0;
+        *operation_op = None;
+        *total_count = 0;
         *matches_map = None;
     }
 
-    pub fn append_matches(&mut self, filter_matches: Vec<FilterMatch>) {
-        if !self.is_search_active() {
-            return;
+    pub fn update_operation(
+        &mut self,
+        operation_id: Uuid,
+        phase: OperationPhase,
+    ) -> UpdateOperationOutcome {
+        if let Some(search_op) = &mut self.search_op
+            && search_op.id == operation_id
+        {
+            search_op.phase = phase;
+            UpdateOperationOutcome::Consumed
+        } else {
+            UpdateOperationOutcome::None
         }
+    }
+
+    pub fn append_matches(&mut self, filter_matches: Vec<FilterMatch>) {
+        let Some(operation) = &mut self.search_op else {
+            return;
+        };
+
+        operation.phase = OperationPhase::Done;
 
         let matches_map = self.matches_map.get_or_insert_default();
 

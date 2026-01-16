@@ -5,11 +5,12 @@ use egui::{
     Ui, Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
+use uuid::Uuid;
 
 use crate::{
     common::phosphor::{self, icons},
     host::ui::UiActions,
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{command::SessionCommand, types::OperationPhase, ui::shared::SessionShared},
 };
 
 #[derive(Debug, Clone)]
@@ -80,9 +81,13 @@ impl SearchBar {
                 self.is_word,
             );
 
-            let cmd = SessionCommand::ApplySearchFilter(vec![filter.clone()]);
+            let operation_id = Uuid::new_v4();
+            let cmd = SessionCommand::ApplySearchFilter {
+                operation_id,
+                filters: vec![filter.clone()],
+            };
             if actions.try_send_command(&self.cmd_tx, cmd) {
-                shared.search.activate();
+                shared.search.set_search_operation(operation_id);
                 self.temp_filter = Some(filter);
             }
         }
@@ -214,15 +219,20 @@ impl SearchBar {
         }
 
         ui.horizontal_centered(|ui| {
-            let percentage = shared.search.total_count as f32 / logs_count as f32 * 100.;
+            let percentage = shared.search.total_count() as f32 / logs_count as f32 * 100.;
 
             let state_txt = format!(
                 "{}/{} ({percentage:.2}%)",
-                shared.search.total_count, logs_count,
+                shared.search.total_count(),
+                logs_count,
             );
             Label::new(state_txt).selectable(false).ui(ui);
 
-            if shared.search.current_matches_map().is_none() {
+            if shared
+                .search
+                .search_operation_phase()
+                .is_some_and(|ph| ph == OperationPhase::Initializing)
+            {
                 ui.spinner();
             }
         });
@@ -231,7 +241,8 @@ impl SearchBar {
     }
 
     fn drop_search(&self, shared: &mut SessionShared, actions: &mut UiActions) {
-        actions.try_send_command(&self.cmd_tx, SessionCommand::DropSearch);
+        let operation_id = shared.search.processing_search_operation();
+        actions.try_send_command(&self.cmd_tx, SessionCommand::DropSearch { operation_id });
         shared.drop_search();
     }
 }
