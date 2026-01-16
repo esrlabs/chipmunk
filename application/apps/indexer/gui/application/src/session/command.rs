@@ -4,6 +4,7 @@ use std::sync::mpsc::Sender;
 
 use processor::{grabber::LineRange, search::filter::SearchFilter};
 use stypes::GrabbedElement;
+use uuid::Uuid;
 
 use crate::session::error::SessionError;
 
@@ -16,9 +17,14 @@ use crate::session::error::SessionError;
 #[derive(Debug)]
 pub enum SessionCommand {
     /// Apply the provided search filters.
-    ApplySearchFilter(Vec<SearchFilter>),
+    ApplySearchFilter {
+        operation_id: Uuid,
+        filters: Vec<SearchFilter>,
+    },
     /// Cancel current search and clear results.
-    DropSearch,
+    /// If search operation is still processing then a search id will be provided
+    /// to abort this operation.
+    DropSearch { operation_id: Option<Uuid> },
     /// Request the nearest index in the search view for a given main-log index.
     GetNearestPosition(u64),
 

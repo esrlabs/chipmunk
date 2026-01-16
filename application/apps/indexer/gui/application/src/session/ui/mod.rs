@@ -168,7 +168,7 @@ impl Session {
                     self.shared.logs.selected_log = selected;
                 }
                 SessionMessage::SearchState { found_count } => {
-                    self.shared.search.total_count = found_count;
+                    self.shared.search.set_total_count(found_count);
                     self.bottom_panel
                         .chart
                         .on_search_count_changes(&self.shared);
@@ -199,7 +199,20 @@ impl Session {
                     operation_id,
                     phase,
                 } => {
-                    if self.shared.observe.update(operation_id, phase).consumed() {
+                    if self
+                        .shared
+                        .observe
+                        .update_operation(operation_id, phase)
+                        .consumed()
+                    {
+                        return;
+                    }
+                    if self
+                        .shared
+                        .search
+                        .update_operation(operation_id, phase)
+                        .consumed()
+                    {
                         return;
                     }
                     // Potential components which keep track for operations can go here.
