@@ -8,6 +8,7 @@ use crate::{
     host::ui::UiActions,
     session::{
         command::SessionCommand,
+        types::OperationPhase,
         ui::{definitions::schema::LogSchema, shared::SessionShared},
     },
 };
@@ -40,7 +41,11 @@ impl SearchUI {
     ) {
         self.bar.render_content(shared, actions, ui);
 
-        if shared.search.is_search_active() {
+        if shared
+            .search
+            .search_operation_phase()
+            .is_some_and(|ph| ph != OperationPhase::Initializing)
+        {
             // We need to give a unique id for the direct parent of each table because
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).

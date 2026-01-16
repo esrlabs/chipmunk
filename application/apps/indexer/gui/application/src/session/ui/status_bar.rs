@@ -10,7 +10,8 @@ pub fn render_content(shared: &SessionShared, ui: &mut Ui) {
     ui.horizontal_centered(|ui| {
         ui.label(format!(
             "{} / {}",
-            shared.search.total_count, shared.logs.logs_count
+            shared.search.total_count(),
+            shared.logs.logs_count
         ));
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
