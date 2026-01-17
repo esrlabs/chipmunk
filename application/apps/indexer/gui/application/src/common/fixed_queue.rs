@@ -58,3 +58,67 @@ impl<T> FixedQueue<T> {
         self.queue.clear();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new() {
+        let queue: FixedQueue<i32> = FixedQueue::new(3);
+        assert_eq!(queue.len(), 0);
+        assert!(queue.is_empty());
+    }
+
+    #[test]
+    fn test_add_item() {
+        let mut queue = FixedQueue::new(3);
+        queue.add_item(1);
+        queue.add_item(2);
+        queue.add_item(3);
+        assert_eq!(queue.len(), 3);
+        assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&3, &2, &1]);
+
+        // Add 4th item, 1 should be dropped
+        queue.add_item(4);
+        assert_eq!(queue.len(), 3);
+        assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&4, &3, &2]);
+    }
+
+    #[test]
+    fn test_set_max_size_shrink() {
+        let mut queue = FixedQueue::new(5);
+        for i in 1..=5 {
+            queue.add_item(i);
+        }
+        assert_eq!(queue.len(), 5);
+
+        // Shrink to 3, oldest (1, 2) should be dropped
+        queue.set_max_size(3);
+        assert_eq!(queue.len(), 3);
+        assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&5, &4, &3]);
+    }
+
+    #[test]
+    fn test_set_max_size_grow() {
+        let mut queue = FixedQueue::new(2);
+        queue.add_item(1);
+        queue.add_item(2);
+
+        queue.set_max_size(5);
+        assert_eq!(queue.len(), 2);
+        queue.add_item(3);
+        assert_eq!(queue.len(), 3);
+        assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&3, &2, &1]);
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut queue = FixedQueue::new(3);
+        queue.add_item(1);
+        queue.add_item(2);
+        queue.clear();
+        assert_eq!(queue.len(), 0);
+        assert!(queue.is_empty());
+    }
+}
