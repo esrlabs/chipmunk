@@ -65,3 +65,48 @@ impl ActionThrottle {
             .unwrap_or_else(Instant::now);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::thread;
+
+    #[test]
+    fn test_throttle_leading_edge() {
+        let mut throttle = ActionThrottle::new(Duration::from_millis(100));
+        // First call should always be ready
+        assert!(throttle.ready(None));
+    }
+
+    #[test]
+    fn test_throttle_blocking() {
+        let mut throttle = ActionThrottle::new(Duration::from_millis(100));
+        assert!(throttle.ready(None));
+        // Immediate second call should be blocked
+        assert!(!throttle.ready(None));
+    }
+
+    #[test]
+    fn test_throttle_wait() {
+        let interval = Duration::from_millis(20);
+        let mut throttle = ActionThrottle::new(interval);
+
+        assert!(throttle.ready(None));
+        assert!(!throttle.ready(None));
+
+        // Wait for interval to pass
+        thread::sleep(interval + Duration::from_millis(10));
+        assert!(throttle.ready(None));
+    }
+
+    #[test]
+    fn test_throttle_reset() {
+        let mut throttle = ActionThrottle::new(Duration::from_millis(100));
+        assert!(throttle.ready(None));
+        assert!(!throttle.ready(None));
+
+        throttle.reset();
+        // Should be ready immediately after reset
+        assert!(throttle.ready(None));
+    }
+}
