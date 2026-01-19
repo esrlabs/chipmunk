@@ -5,13 +5,7 @@
 use anyhow::{Context, Error};
 use console::style;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::{
-    collections::BTreeMap,
-    iter,
-    process::{Command, ExitStatus},
-    sync::OnceLock,
-    time::Instant,
-};
+use std::{collections::BTreeMap, sync::OnceLock, time::Instant};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
     oneshot,
@@ -65,8 +59,6 @@ enum UiTick {
         total_time: bool,
         tx_response: oneshot::Sender<()>,
     },
-    /// Suspends the progress bars and execute the giving blocking command
-    SuspendAndRun(Command, oneshot::Sender<anyhow::Result<ExitStatus>>),
 }
 
 #[derive(Debug)]
@@ -380,14 +372,6 @@ impl Tracker {
 
                     return;
                 }
-                UiTick::SuspendAndRun(mut command, tx_response) => {
-                    let status = mp
-                        .suspend(|| command.status())
-                        .context("Error while executing command");
-                    if tx_response.send(status).is_err() {
-                        let _ = mp.println("Fail to send response");
-                    }
-                }
             }
         }
     }
@@ -609,39 +593,6 @@ impl Tracker {
             self.send_ui_tick(UiTick::Print(msg));
         } else {
             println!("{msg}",);
-        }
-    }
-
-    /// Run the given command synchronously, suspending the progress bars if enabled and printing
-    /// the command output directly to the console, returning the command exit status.
-    /// The output of the command can't be saved in logs cache.
-    pub async fn run_synchronously(
-        &self,
-        job_def: JobDefinition,
-        mut cmd: std::process::Command,
-    ) -> Result<ExitStatus, anyhow::Error> {
-        if self.show_bars() {
-            let (tx_response, rx_response) = oneshot::channel();
-            self.ui_tx
-                .send(UiTick::SuspendAndRun(cmd, tx_response))
-                .context("Fail to send tick")?;
-
-            let output_res = rx_response.await.context("Fail to receive tick")?;
-
-            output_res.context("Error while execution command synchronously")
-        } else {
-            // Print jobs and command
-            let cmd_parts: Vec<_> = iter::once(cmd.get_program().to_string_lossy())
-                .chain(cmd.get_args().map(|args| args.to_string_lossy()))
-                .collect();
-            let cmd_txt: String = cmd_parts.join(" ");
-            println!(
-                "Job {}: Running command {cmd_txt} synchronously...",
-                job_def.job_title()
-            );
-
-            cmd.status()
-                .context("Error while execution command synchronously")
         }
     }
 
