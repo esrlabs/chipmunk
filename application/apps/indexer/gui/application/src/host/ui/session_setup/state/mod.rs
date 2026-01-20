@@ -32,13 +32,14 @@ impl SessionSetupState {
 
     pub fn update_parser(&mut self, parser: ParserNames) {
         self.parser = match parser {
-            ParserNames::Dlt => {
-                let with_headers = match self.source {
-                    ByteSourceConfig::File(..) => true,
-                    ByteSourceConfig::Stream(..) => false,
-                };
-                ParserConfig::Dlt(DltParserConfig::new(with_headers))
-            }
+            ParserNames::Dlt => match &self.source {
+                ByteSourceConfig::File(file) => {
+                    ParserConfig::Dlt(DltParserConfig::new(true, Some(file.path.clone())))
+                }
+                ByteSourceConfig::Stream(..) => {
+                    ParserConfig::Dlt(DltParserConfig::new(false, None))
+                }
+            },
             ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::new()),
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => ParserConfig::Plugins,

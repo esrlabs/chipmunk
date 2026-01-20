@@ -142,7 +142,7 @@ impl HostService {
                 FileFormat::Text => ParserConfig::Text,
                 FileFormat::Binary => {
                     if extension.is_some_and(|ext| ext.eq_ignore_ascii_case("dlt")) {
-                        ParserConfig::Dlt(DltParserConfig::new(true))
+                        ParserConfig::Dlt(DltParserConfig::new(true, Some(file_path.clone())))
                     } else {
                         return Err(HostError::InitSessionError(InitSessionError::Other(
                             "File extension is not supported".to_owned(),
@@ -192,7 +192,7 @@ impl HostService {
         };
 
         let parser = match parser {
-            ParserNames::Dlt => ParserConfig::Dlt(DltParserConfig::new(false)),
+            ParserNames::Dlt => ParserConfig::Dlt(DltParserConfig::new(false, None)),
             ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::default()),
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => todo!(),

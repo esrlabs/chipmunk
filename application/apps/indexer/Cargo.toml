@@ -81,6 +81,7 @@ clap = { version = "4", features = ["derive"] }
 
 egui = "0.33"
 eframe = { version = "0.33", default-features = false }
+egui_extras = "0.33"
 rfd = {version = "0.15", default-features = false, features = [ "tokio", "xdg-portal"] }
 egui_table = "0.6"
 egui_plot = "0.34"
