@@ -75,11 +75,6 @@ impl SessionService {
         self.session.get_uuid()
     }
 
-    #[inline]
-    pub fn session_id(&self) -> Uuid {
-        self.session.get_uuid()
-    }
-
     async fn run(mut self) {
         log::trace!("Start Session Service {}", self.session_id());
 

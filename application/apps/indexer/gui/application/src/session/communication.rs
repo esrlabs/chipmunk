@@ -102,7 +102,7 @@ impl ServiceSenders {
 }
 
 /// Initialize communication channels for session application.
-pub fn init(session_id: Uuid, shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
+pub fn init(/*_session_id: Uuid, */ shared_senders: SharedSenders,) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (session_msg_tx, session_msg_rx) = mpsc::channel(CHANNELS_CAPACITY);
 

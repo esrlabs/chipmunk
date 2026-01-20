@@ -38,12 +38,17 @@ chrono.workspace = true
 chrono-tz.workspace = true
 dirs.workspace = true
 serialport.workspace = true
+dlt-core.workspace = true
+lazy_static.workspace = true
+rustc-hash = "2.1"
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true
 
 winit.workspace = true
 egui.workspace = true
+egui_extras.workspace = true
+
 # TODO: Check which dependency is needed in the final version.
 # Enabling the default features provides the system title bar on ubuntu 22.04
 eframe = { workspace = true, default_features = false, features = [
@@ -55,7 +60,6 @@ eframe = { workspace = true, default_features = false, features = [
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 
-egui_extras.workspace = true
 egui_table.workspace = true
 egui_plot.workspace = true
 egui-phosphor = { workspace = true, features = ["regular", "fill"] }
