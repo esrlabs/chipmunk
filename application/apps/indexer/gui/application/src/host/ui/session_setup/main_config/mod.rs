@@ -7,7 +7,7 @@ use crate::host::ui::{
         state::{
             SessionSetupState,
             parsers::ParserConfig,
-            sources::{ByteSourceConfig, SourceFileInfo, StreamConfig},
+            sources::{ByteSourceConfig, StreamConfig},
         },
     },
 };
@@ -26,15 +26,15 @@ pub fn render_content(
     let SessionSetupState { source, parser, .. } = state;
 
     match source {
-        ByteSourceConfig::File(file) => render_file(file, parser, ui),
+        ByteSourceConfig::File(_) => render_file(parser, ui),
         ByteSourceConfig::Stream(stream) => render_stream(stream, actions, ui),
     }
 }
 
 /// Render main configuration for files sources.
-fn render_file(file: &mut SourceFileInfo, parser: &ParserConfig, ui: &mut Ui) -> RenderOutcome {
+fn render_file(parser: &mut ParserConfig, ui: &mut Ui) -> RenderOutcome {
     match parser {
-        ParserConfig::Dlt(dlt) => dlt::render_statistics(file, dlt, ui),
+        ParserConfig::Dlt(dlt) => dlt::render_statistics(dlt, ui),
         ParserConfig::SomeIP(..) | ParserConfig::Text | ParserConfig::Plugins => {
             RenderOutcome::None
         }

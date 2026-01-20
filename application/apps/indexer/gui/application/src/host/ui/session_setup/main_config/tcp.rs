@@ -1,6 +1,6 @@
 use egui::Ui;
 
-use crate::host::ui::session_setup::{ state::sources::TcpConfig};
+use crate::host::ui::session_setup::state::sources::TcpConfig;
 
 use super::{ConfigBindAddress, RenderOutcome, render_socket_address};
 
