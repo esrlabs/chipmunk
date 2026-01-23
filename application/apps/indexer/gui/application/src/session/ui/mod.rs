@@ -7,6 +7,7 @@ use tokio::sync::mpsc::Sender;
 use crate::{
     common::modal::show_busy_indicator,
     host::{
+        command::HostCommand,
         common::parsers::ParserNames,
         notification::AppNotification,
         ui::{HostAction, UiActions},
@@ -43,6 +44,8 @@ pub use shared::SessionInfo;
 #[derive(Debug)]
 pub struct Session {
     cmd_tx: Sender<SessionCommand>,
+    #[allow(unused)]
+    host_cmd_tx: Sender<HostCommand>,
     receivers: UiReceivers,
     shared: SessionShared,
     logs_table: LogsTable,
@@ -51,7 +54,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(init: InitSessionParams) -> Self {
+    pub fn new(init: InitSessionParams, host_cmd_tx: Sender<HostCommand>) -> Self {
         let InitSessionParams {
             session_info,
             communication,
@@ -72,8 +75,9 @@ impl Session {
             shared: SessionShared::new(session_info, observe_op),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), schema),
-            side_panel: SidePanelUi::new(senders.cmd_tx.clone()),
+            side_panel: SidePanelUi::new(senders.cmd_tx.clone(), host_cmd_tx.clone()),
             cmd_tx: senders.cmd_tx,
+            host_cmd_tx,
         }
     }
 
@@ -121,7 +125,7 @@ impl Session {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.take_available_width();
-                side_panel.render_content(shared, ui);
+                side_panel.render_content(ui, shared, actions);
             });
 
         TopBottomPanel::bottom("bottom_panel")
