@@ -243,6 +243,9 @@ impl SessionService {
                     .send_session_msg(SessionMessage::ChartLinePlots(values))
                     .await;
             }
+            SessionCommand::CancelOperation { id } => {
+                self.session.abort(Uuid::new_v4(), id)?;
+            }
             SessionCommand::CloseSession => {
                 // Session UI can be already dropped at this point, therefore
                 // we don't need to send errors to UI in this case.

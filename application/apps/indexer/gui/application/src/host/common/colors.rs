@@ -1,6 +1,6 @@
 use egui::Color32;
 
-const HIGHLIGHT_COLORS: [ColorPair; 10] = [
+pub const HIGHLIGHT_COLORS: [ColorPair; 10] = [
     // Red
     ColorPair::new(
         Color32::from_rgb(255, 255, 255),
