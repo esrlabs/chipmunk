@@ -1,7 +1,7 @@
 [package]
 name = "parsers"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [lints]
 workspace = true 
@@ -24,7 +24,7 @@ someip-messages = { git = "https://github.com/esrlabs/someip" }
 # depends on the internal implementation of this library.
 # Verify safety contract on update.
 someip-payload = { git = "https://github.com/esrlabs/someip-payload", rev= "b9aa52c96fcbdb0e5aa1ee5258299f0ff7e3a094" }
-someip-tools = { path = "../addons/someip-tools" }
+someip-tools.workspace = true
 
 [dev-dependencies]
 stringreader = "0.1"

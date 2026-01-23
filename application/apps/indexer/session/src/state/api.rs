@@ -28,6 +28,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub enum Api {
     SetSessionFile(
         (
@@ -161,6 +162,7 @@ pub enum Api {
     DropSearch(oneshot::Sender<bool>),
     GetNearestPosition((u64, oneshot::Sender<stypes::ResultNearestPosition>)),
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
+    //TODO AAZ: Currently, the options must have value together or be none.
     SetMatches(
         (
             Option<Vec<stypes::FilterMatch>>,

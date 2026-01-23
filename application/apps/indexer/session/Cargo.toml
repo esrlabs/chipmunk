@@ -1,8 +1,8 @@
 [package]
 name = "session"
-version = "0.1.0"
 authors = ["esrlabs.com"]
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [lints]
 workspace = true 
@@ -11,29 +11,29 @@ workspace = true
 blake3.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serialization"] }
-file-tools = { path = "../addons/file-tools" }
-shell-tools = {path = "../addons/shell-tools"}
+file-tools.workspace = true
+shell-tools.workspace = true
 futures.workspace = true
-indexer_base = { path = "../indexer_base" }
+indexer_base.workspace = true
 lazy_static.workspace = true
 log.workspace = true
-merging = { path = "../merging" }
+merging.workspace = true
 mime_guess = "2.0"
-parsers = { path = "../parsers" }
-processor = { path = "../processor" }
+parsers.workspace = true
+processor.workspace = true
 rustc-hash = "2.1"
-stypes = { path = "../stypes", features=["rustcore"] }
+stypes = { workspace = true, features=["rustcore"] }
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
-serialport = "4.6"
-sources = { path = "../sources" }
+serialport.workspace = true
+sources.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
-plugins_host = {path = "../plugins_host/"}
+plugins_host.workspace = true
 
 [dev-dependencies]
 lazy_static.workspace = true

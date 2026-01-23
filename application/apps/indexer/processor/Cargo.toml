@@ -1,32 +1,32 @@
 [package]
 name = "processor"
-version = "0.2.0"
 authors = ["esrlabs.com"]
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [lints]
 workspace = true 
 
 [dependencies]
 bincode = "1.3"
-bufread = { path = "../addons/bufread" }
+bufread.workspace = true
 bytecount = "0.6"
 futures.workspace = true
 grep-regex.workspace = true
 grep-searcher.workspace = true
-indexer_base = { path = "../indexer_base" }
-itertools = "0.13"
+indexer_base.workspace = true
+itertools.workspace = true
 lazy_static.workspace = true
 log.workspace = true
-parsers = { path = "../parsers" }
-sources = { path = "../sources" }
+parsers.workspace = true
+sources.workspace = true
 regex.workspace = true
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
-text_grep = { path = "../addons/text_grep" }
+text_grep.workspace = true
 thiserror.workspace = true
 tokio-util.workspace = true
-stypes = { path = "../stypes", features=["rustcore"] }
+stypes = { workspace = true, features=["rustcore"] }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
@@ -34,7 +34,7 @@ pretty_assertions = "1.4"
 rand.workspace = true
 tempfile.workspace = true
 tokio.workspace = true
-plugins_host = {path = "../plugins_host/"}
+plugins_host.workspace = true
 toml.workspace = true
 
 [[bench]]

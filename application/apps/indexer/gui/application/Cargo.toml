@@ -1,0 +1,65 @@
+[package]
+name = "application"
+authors.workspace = true
+description = "Chipmunk is one of the fastest desktop applications for viewing log files, with no limitations on data size."
+version.workspace = true
+edition.workspace = true
+
+default-run = "chipmunk" # Start this on `cargo run` in this workspace.
+
+[[bin]]
+name = "chipmunk"
+path = "src/main.rs"
+
+
+[dependencies]
+# *** Internal ***
+stypes = { workspace = true, features=["rustcore"] }
+merging.workspace = true
+processor.workspace = true
+sources.workspace = true
+file-tools.workspace = true
+shell-tools.workspace = true
+parsers.workspace = true
+#TODO: We need to avoid clashing with module `session` in Workaround to avoid potential merge conflic  
+session_core = { package = "session",  path = "../../session" }
+
+# *** External ***
+anyhow.workspace = true
+thiserror.workspace = true
+clap.workspace = true
+serde.workspace = true
+log.workspace = true
+tokio.workspace = true
+rfd.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+itertools.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+dirs.workspace = true
+serialport.workspace = true
+dlt-core.workspace = true
+
+#TODO: Replace env logger with log4rs
+env_logger.workspace = true
+
+winit.workspace = true
+egui.workspace = true
+egui_extras.workspace = true
+# TODO: Check which dependency is needed in the final version.
+# Enabling the default features provides the system title bar on ubuntu 22.04
+eframe = { workspace = true, default_features = false, features = [
+    # "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+    "wayland",       # To support Linux (and CI)
+    "x11",           # To support older Linux distributions (restores one of the default features)
+] }
+
+egui_table.workspace = true
+egui_plot.workspace = true
+egui-phosphor = { workspace = true, features = ["regular", "fill"] }
+
+[lints]
+workspace = true

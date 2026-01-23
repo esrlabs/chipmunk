@@ -1,7 +1,12 @@
+# TODO AAZ: 
+# * Resolve all TODOs in this file before final merge.
+# * Resolve all [allow(unused)] in gui/.. Crates.
+
 [workspace]
 resolver = "3"
 
 members = [
+    "gui/application",
     "addons/dlt-tools",
     "addons/someip-tools",
     "addons/shell-tools",
@@ -18,7 +23,31 @@ members = [
     "stypes"
 ]
 
+[workspace.package]
+edition = "2024"
+version = "4.0.0"
+authors = ["esrlabs.com"]
+
 [workspace.dependencies]
+
+# Internal crates
+application = { path = "gui/application" }
+dlt-tools = { path = "addons/dlt-tools"}
+someip-tools = { path = "addons/someip-tools"}
+file-tools = { path = "addons/file-tools"}
+shell-tools = { path = "addons/shell-tools"}
+text_grep = { path = "addons/text_grep"}
+bufread = { path = "addons/bufread"}
+indexer_base = { path = "indexer_base"}
+merging = { path = "merging"}
+parsers = { path = "parsers"}
+plugins_host = { path = "plugins_host"}
+processor = { path = "processor"}
+session = { path = "session"}
+sources = { path = "sources"}
+stypes = { path = "stypes"}
+
+# External dependencies
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -43,6 +72,26 @@ anyhow = "1.0"
 toml = "0.8"
 blake3 = "1.8"
 which = "8"
+itertools = "0.14"
+chrono = "0.4"
+chrono-tz = "0.8"
+serialport = "4.8"
+
+clap = { version = "4", features = ["derive"] }
+
+egui = "0.33"
+eframe = { version = "0.33", default-features = false }
+egui_extras = "0.33"
+rfd = {version = "0.15", default-features = false, features = [ "tokio", "xdg-portal"] }
+egui_table = "0.6"
+egui_plot = "0.34"
+# We don't have direct dependency to winit but we need to specify it here to activate 
+# its default features which won't be activated otherwise without activating egui default 
+# features.
+# TODO: This can be removed once egui default features are activated.
+winit = { version = "0.30"}
+egui-phosphor = "0.11"
+
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
@@ -53,19 +102,28 @@ proptest = "1.6"
 [workspace.lints.clippy]
 undocumented_unsafe_blocks = "deny"
 
+# Optimize all dependencies even in debug builds (does not affect workspace packages):
+# This makes initial clean build slower, but doesn't affect tests.
+# TODO: Decide if upgrading all packages compared to egui ones only.
+# [profile.dev.package."*"]
+# opt-level = 2
+
 # `insta` crate and its dependency `similar` will be compiled once and run many times, 
 # therefore it's suggested to compile them with more optimizations for faster runs.
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
+# NOTE: For now I'm keeping the optimizations for egui only.
+egui.opt-level = 2
+eframe.opt-level = 2
 
+[profile.test.package]
 # Proptest and its random number generator can be CPU intensive, therefore setting their optimizations level 
 # to max will have significant performance improvement for the tests.
-[profile.test.package.proptest]
-opt-level = 3
-
-[profile.test.package.rand_chacha]
-opt-level = 3
+proptest.opt-level = 3
+rand_chacha.opt-level = 3
+insta.opt-level = 3
+similar.opt-level = 3
 
 # only uncomment when profiling
 # [profile.release]

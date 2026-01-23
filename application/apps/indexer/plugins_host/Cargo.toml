@@ -1,7 +1,7 @@
 [package]
 name = "plugins_host"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [lints]
 workspace = true 
@@ -21,14 +21,14 @@ rand.workspace = true
 wasmtime = "33.0"
 wasmtime-wasi = "33.0"
 
-parsers = { path = "../parsers" }
-stypes = { path = "../stypes" }
+parsers.workspace = true
+stypes.workspace = true
 # TODO : Introduce shared crates and move dir_checksum to it.
 dir_checksum = { path = "../../../../cli/development-cli/dir_checksum" }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
-processor = { path = "../processor"}
+processor.workspace = true
 
 [[bench]]
 name = "plugin_parser_init"
