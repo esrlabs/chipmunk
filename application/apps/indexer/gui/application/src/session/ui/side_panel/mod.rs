@@ -3,6 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     common::phosphor::icons,
+    host::{command::HostCommand, ui::UiActions},
     session::{command::SessionCommand, ui::shared::SessionShared},
 };
 
@@ -25,15 +26,23 @@ pub struct SidePanelUi {
 }
 
 impl SidePanelUi {
-    pub fn new(cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
+    pub fn new(
+        cmd_tx: mpsc::Sender<SessionCommand>,
+        host_cmd_tx: mpsc::Sender<HostCommand>,
+    ) -> Self {
         Self {
-            observing: ObservingUi::new(cmd_tx.clone()),
+            observing: ObservingUi::new(cmd_tx.clone(), host_cmd_tx),
             attachments: AttachmentsUi::new(cmd_tx.clone()),
-            filters: FiltersUi::new(cmd_tx.clone()),
+            filters: FiltersUi::new(cmd_tx),
         }
     }
 
-    pub fn render_content(&mut self, shared: &mut SessionShared, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        ui: &mut Ui,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+    ) {
         SidePanel::left("side tabs")
             .frame(
                 Frame::new()
@@ -56,7 +65,7 @@ impl SidePanelUi {
             });
 
         CentralPanel::default().show_inside(ui, |ui| match shared.side_tab {
-            SideTabType::Observing => self.observing.render_content(shared, ui),
+            SideTabType::Observing => self.observing.render_content(shared, actions, ui),
             SideTabType::Attachments => self.attachments.render_content(shared, ui),
             SideTabType::Filters => self.filters.render_content(shared, ui),
         });
