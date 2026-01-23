@@ -31,8 +31,13 @@ impl HostState {
         &self.tabs[self.active_tab_idx]
     }
 
-    pub fn add_session(&mut self, session: InitSessionParams, session_setup_id: Option<Uuid>) {
-        let session = Session::new(session);
+    pub fn add_session(
+        &mut self,
+        session: InitSessionParams,
+        session_setup_id: Option<Uuid>,
+        host_cmd_tx: Sender<HostCommand>,
+    ) {
+        let session = Session::new(session, host_cmd_tx);
         let id = session.get_info().id;
 
         self.sessions.insert(id, session);

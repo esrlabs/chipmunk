@@ -147,7 +147,11 @@ impl Host {
             HostMessage::SessionCreated {
                 session_params,
                 session_setup_id,
-            } => self.state.add_session(*session_params, session_setup_id),
+            } => self.state.add_session(
+                *session_params,
+                session_setup_id,
+                self.senders.cmd_tx.clone(),
+            ),
             HostMessage::MultiFilesSetup(state) => self
                 .state
                 .add_multi_files(*state, self.senders.cmd_tx.clone()),

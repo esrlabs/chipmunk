@@ -63,6 +63,8 @@ pub enum SessionCommand {
         range: Option<RangeInclusive<u64>>,
     },
 
+    /// Cancel the running operation with the given id.
+    CancelOperation { id: Uuid },
     /// Gracefully terminate the session service.
     CloseSession,
 }
