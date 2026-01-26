@@ -28,14 +28,14 @@ impl Observed {
         let mut files: Vec<(stypes::ParserType, stypes::FileFormat, PathBuf)> = vec![];
         self.executed.iter().for_each(|opt| match &opt.origin {
             stypes::ObserveOrigin::File(_, file_format, filename) => {
-                files.push((opt.parser.clone(), file_format.clone(), filename.clone()))
+                files.push((opt.parser.clone(), *file_format, filename.clone()))
             }
             stypes::ObserveOrigin::Concat(list) => {
                 files.append(
                     &mut list
                         .iter()
                         .map(|(_, file_format, filename)| {
-                            (opt.parser.clone(), file_format.clone(), filename.clone())
+                            (opt.parser.clone(), *file_format, filename.clone())
                         })
                         .collect::<Vec<(stypes::ParserType, stypes::FileFormat, PathBuf)>>(),
                 );

@@ -55,6 +55,7 @@ eframe = { workspace = true, default_features = false, features = [
     "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 
+egui_extras.workspace = true
 egui_table.workspace = true
 egui_plot.workspace = true
 egui-phosphor = { workspace = true, features = ["regular", "fill"] }

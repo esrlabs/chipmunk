@@ -1,7 +1,7 @@
-use egui::{Color32, Frame, Label, Margin, RichText, Ui, Widget};
+use egui::{Color32, Label, RichText, Ui, Widget};
 
 use crate::host::{
-    common::parsers::ParserNames,
+    common::{parsers::ParserNames, ui_utls::side_panel_group_frame},
     ui::{UiActions, session_setup::state::parsers::ParserConfig},
 };
 
@@ -18,7 +18,7 @@ pub fn render_content(state: &mut SessionSetupState, actions: &mut UiActions, ui
         validation_errors(state, ui);
     }
 
-    group_frame(ui).show(ui, |ui| {
+    side_panel_group_frame(ui).show(ui, |ui| {
         let title = format!("{} Parser", ParserNames::from(&state.parser));
         ui.heading(title);
         ui.add_space(6.);
@@ -40,7 +40,7 @@ fn validation_errors(state: &SessionSetupState, ui: &mut Ui) {
         return;
     }
 
-    group_frame(ui).show(ui, |ui| {
+    side_panel_group_frame(ui).show(ui, |ui| {
         ui.heading("Error(s)");
 
         for err in errors {
@@ -53,11 +53,4 @@ fn validation_errors(state: &SessionSetupState, ui: &mut Ui) {
             Label::new(txt).selectable(false).ui(ui);
         }
     });
-}
-
-fn group_frame(ui: &mut Ui) -> Frame {
-    Frame::group(ui.style())
-        .fill(ui.style().visuals.faint_bg_color)
-        .inner_margin(Margin::symmetric(10, 8))
-        .outer_margin(Margin::symmetric(0, 4))
 }

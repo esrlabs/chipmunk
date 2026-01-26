@@ -42,7 +42,7 @@ pub async fn start_observing(
                     observing::concat::concat_files(
                         operation_api,
                         state,
-                        &[(uuid.clone(), file_origin.clone(), filename.clone())],
+                        &[(uuid.clone(), *file_origin, filename.clone())],
                         &options.parser,
                     )
                     .await

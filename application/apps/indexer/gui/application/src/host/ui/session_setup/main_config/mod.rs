@@ -1,3 +1,5 @@
+use core::slice;
+
 use egui::{Align, Frame, Label, Layout, Margin, RichText, TextEdit, Ui, Widget as _};
 
 use crate::host::ui::{
@@ -26,15 +28,16 @@ pub fn render_content(
     let SessionSetupState { source, parser, .. } = state;
 
     match source {
-        ByteSourceConfig::File(file) => render_file(file, parser, ui),
+        ByteSourceConfig::File(file) => render_files(slice::from_ref(file), parser, ui),
+        ByteSourceConfig::Concat(files) => render_files(files, parser, ui),
         ByteSourceConfig::Stream(stream) => render_stream(stream, actions, ui),
     }
 }
 
 /// Render main configuration for files sources.
-fn render_file(file: &mut SourceFileInfo, parser: &ParserConfig, ui: &mut Ui) -> RenderOutcome {
+fn render_files(files: &[SourceFileInfo], parser: &ParserConfig, ui: &mut Ui) -> RenderOutcome {
     match parser {
-        ParserConfig::Dlt(dlt) => dlt::render_statistics(file, dlt, ui),
+        ParserConfig::Dlt(dlt) => dlt::render_statistics(files, dlt, ui),
         ParserConfig::SomeIP(..) | ParserConfig::Text | ParserConfig::Plugins => {
             RenderOutcome::None
         }

@@ -19,7 +19,7 @@ impl FileDialogFilter {
 
 #[derive(Debug)]
 pub struct FileDialogOutput {
-    pub files: Vec<PathBuf>,
+    pub paths: Vec<PathBuf>,
     pub id: String,
 }
 
@@ -85,7 +85,7 @@ impl FileDialogHandle {
                 .map(|files| files.into_iter().map(|file| file.into()).collect())
                 .unwrap_or_default();
 
-            let output = FileDialogOutput { files, id };
+            let output = FileDialogOutput { paths: files, id };
             files_tx.send(output).ok();
         });
 
@@ -120,7 +120,7 @@ impl FileDialogHandle {
                 None => Vec::new(),
             };
 
-            let output = FileDialogOutput { files, id };
+            let output = FileDialogOutput { paths: files, id };
             files_tx.send(output).ok();
         });
 
@@ -150,7 +150,7 @@ impl FileDialogHandle {
     pub fn take_output(&mut self, id: &str) -> Option<Vec<PathBuf>> {
         if let Some(data) = self.dialog_output.take() {
             if data.id.as_str() == id {
-                Some(data.files)
+                Some(data.paths)
             } else {
                 self.dialog_output = Some(data);
                 None
@@ -158,5 +158,74 @@ impl FileDialogHandle {
         } else {
             None
         }
+    }
+
+    /// Consumes and returns the result of the file dialog if the dialog ID matches any of the provided IDs.
+    ///
+    /// Returns `Some((matched_id, paths))` if a match is found.
+    /// Returns `None` if no match is found or if there is no pending output.
+    pub fn take_output_many<'a>(&mut self, ids: &[&'a str]) -> Option<(&'a str, Vec<PathBuf>)> {
+        let output = self.dialog_output.take()?;
+
+        for id in ids {
+            if output.id.as_str() == *id {
+                return Some((id, output.paths));
+            }
+        }
+
+        self.dialog_output = Some(output);
+        None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::runtime::Runtime;
+
+    #[test]
+    fn test_take_output() {
+        let rt = Runtime::new().unwrap();
+        let mut handle = FileDialogHandle::new(rt.handle().clone());
+
+        handle.dialog_output = Some(FileDialogOutput {
+            paths: vec![PathBuf::from("/tmp/test")],
+            id: "test_dialog".to_string(),
+        });
+
+        // Try taking with wrong ID
+        assert!(handle.take_output("wrong_id").is_none());
+        assert!(handle.dialog_output.is_some());
+
+        // Try taking with correct ID
+        let res = handle.take_output("test_dialog");
+        assert!(res.is_some());
+        assert_eq!(res.unwrap()[0], PathBuf::from("/tmp/test"));
+        assert!(handle.dialog_output.is_none());
+    }
+
+    #[test]
+    fn test_take_output_many() {
+        let rt = Runtime::new().unwrap();
+        let mut handle = FileDialogHandle::new(rt.handle().clone());
+
+        handle.dialog_output = Some(FileDialogOutput {
+            paths: vec![PathBuf::from("/tmp/test")],
+            id: "target_id".to_string(),
+        });
+
+        // Try with no matches
+        let ids = vec!["id1", "id2"];
+        assert!(handle.take_output_many(&ids).is_none());
+        assert!(handle.dialog_output.is_some());
+
+        // Try with match
+        let ids = vec!["id1", "target_id", "id3"];
+        let res = handle.take_output_many(&ids);
+        assert!(res.is_some());
+        let (matched_id, paths) = res.unwrap();
+        assert_eq!(matched_id, "target_id");
+        assert_eq!(paths[0], PathBuf::from("/tmp/test"));
+        assert!(handle.dialog_output.is_none());
     }
 }

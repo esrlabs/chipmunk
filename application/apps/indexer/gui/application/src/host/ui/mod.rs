@@ -30,6 +30,7 @@ pub use actions::{HostAction, UiActions};
 mod actions;
 mod home;
 mod menu;
+pub mod multi_setup;
 mod notification;
 pub mod session_setup;
 mod state;
@@ -130,7 +131,11 @@ impl Host {
                 session_params,
                 session_setup_id,
             } => self.state.add_session(session_params, session_setup_id),
+            HostMessage::MultiFilesSetup(state) => self
+                .state
+                .add_multi_files(state, self.senders.cmd_tx.clone()),
             HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
+            HostMessage::MultiSetupClose { id } => self.state.close_multi_setup(id),
             HostMessage::Shutdown => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
@@ -200,6 +205,12 @@ impl Host {
                 .session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
+                .render_content(ui_actions, ui),
+            TabType::MultiFileSetup(id) => self
+                .state
+                .multi_setups
+                .get_mut(&id)
+                .expect("Multiple files setups with provided ID from active tab must exist")
                 .render_content(ui_actions, ui),
         }
     }
