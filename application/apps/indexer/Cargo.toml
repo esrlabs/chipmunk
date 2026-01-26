@@ -82,6 +82,7 @@ clap = { version = "4", features = ["derive"] }
 egui = "0.33"
 eframe = { version = "0.33", default-features = false }
 rfd = "0.17"
+egui_extras = { version = "0.33", default-features = false }
 egui_table = "0.6"
 egui_plot = "0.34"
 # We don't have direct dependency to winit but we need to specify it here to activate 

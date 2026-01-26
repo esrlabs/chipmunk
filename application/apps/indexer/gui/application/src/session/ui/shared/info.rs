@@ -19,7 +19,7 @@ impl SessionInfo {
                 .file_name()
                 .map(|name| name.to_string_lossy().to_string())
                 .unwrap_or_else(|| String::from("Unknown")),
-            ObserveOrigin::Concat(..) => todo!("session info not implemented for concat"),
+            ObserveOrigin::Concat(files) => format!("Concating {} files", files.len()),
             ObserveOrigin::Stream(_id, transport) => match transport {
                 Transport::Process(config) => config.command.to_owned(),
                 Transport::TCP(config) => config.bind_addr.to_owned(),

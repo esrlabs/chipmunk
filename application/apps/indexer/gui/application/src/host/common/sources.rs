@@ -30,7 +30,7 @@ impl StreamNames {
     }
 
     pub fn is_compatible(self, parser: ParserNames) -> bool {
-        parser.is_compatible(self)
+        parser.is_compatible_stream(self)
     }
 }
 

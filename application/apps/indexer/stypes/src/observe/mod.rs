@@ -188,7 +188,7 @@ pub struct UDPTransportConfig {
 }
 
 /// Supported file formats for observation.
-#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq, PartialEq, Hash)]
 #[extend::encode_decode]
 #[cfg_attr(
     all(test, feature = "test_and_gen"),
@@ -199,6 +199,9 @@ pub enum FileFormat {
     PcapNG,
     PcapLegacy,
     Text,
+    // TODO: Binary type is ambiguous because it's used for DLT only sometimes
+    // and for all other binary types expect Pcap some other times.
+    // It should be replaced with DLT type once the current master is removed.
     Binary,
 }
 

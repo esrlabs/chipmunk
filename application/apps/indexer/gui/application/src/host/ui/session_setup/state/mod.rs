@@ -35,6 +35,7 @@ impl SessionSetupState {
             ParserNames::Dlt => {
                 let with_headers = match self.source {
                     ByteSourceConfig::File(..) => true,
+                    ByteSourceConfig::Concat(..) => true,
                     ByteSourceConfig::Stream(..) => false,
                 };
                 ParserConfig::Dlt(DltParserConfig::new(with_headers))
@@ -59,10 +60,10 @@ impl SessionSetupState {
 
         // Check if current parser is compatible with the new source
         let parser = ParserNames::from(&self.parser);
-        if !parser.is_compatible(stream) {
+        if !parser.is_compatible_stream(stream) {
             let new_parser = ParserNames::all()
                 .iter()
-                .find(|p| p.is_compatible(stream))
+                .find(|p| p.is_compatible_stream(stream))
                 .copied()
                 .unwrap_or(ParserNames::Text);
             self.update_parser(new_parser);
