@@ -4,7 +4,7 @@ use super::RenderOutcome;
 use crate::host::ui::session_setup::state::{parsers::DltParserConfig, sources::SourceFileInfo};
 
 pub fn render_statistics(
-    _file: &SourceFileInfo,
+    _files: &[SourceFileInfo],
     _parser: &DltParserConfig,
     ui: &mut Ui,
 ) -> RenderOutcome {
