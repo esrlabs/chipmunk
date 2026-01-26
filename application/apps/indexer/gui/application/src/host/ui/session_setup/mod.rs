@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{borrow::Cow, ops::Deref};
 
 use egui::{
     Align, Button, CentralPanel, ComboBox, Key, Label, Layout, Response, RichText, SidePanel,
@@ -7,11 +7,9 @@ use egui::{
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-use stypes::FileFormat;
-
 use crate::host::{
     command::HostCommand,
-    common::{parsers::ParserNames, sources::StreamNames},
+    common::{file_utls, parsers::ParserNames, sources::StreamNames},
     ui::UiActions,
 };
 use state::{SessionSetupState, sources::ByteSourceConfig};
@@ -43,10 +41,11 @@ impl SessionSetup {
         self.state.id
     }
 
-    pub fn title(&self) -> &str {
+    pub fn title(&self) -> Cow<'_, str> {
         match &self.state.source {
-            ByteSourceConfig::File(info) => info.name.as_str(),
-            ByteSourceConfig::Stream(..) => "Stream",
+            ByteSourceConfig::File(info) => info.name.as_str().into(),
+            ByteSourceConfig::Concat(files) => format!("Concating {} files", files.len()).into(),
+            ByteSourceConfig::Stream(..) => "Stream".into(),
         }
     }
 
@@ -125,8 +124,27 @@ impl SessionSetup {
 
         match &mut self.state.source {
             ByteSourceConfig::File(source_file_info) => {
-                Label::new(format!("({})", source_file_info.size_txt)).ui(ui);
+                if let Some(size) = &source_file_info.size_byte {
+                    Label::new(format!("({})", file_utls::format_file_size(*size))).ui(ui);
+                }
                 Label::new(RichText::new(source_file_info.name.as_str()).strong()).ui(ui);
+            }
+            ByteSourceConfig::Concat(files) => {
+                let size = files.iter().filter_map(|f| f.size_byte).sum();
+                Label::new(format!("({})", file_utls::format_file_size(size))).ui(ui);
+
+                Label::new(RichText::new(format!("{} files", files.len())).strong())
+                    .selectable(false)
+                    .ui(ui)
+                    .on_hover_ui(|ui| {
+                        files.iter().enumerate().for_each(|(idx, f)| {
+                            if idx != 0 {
+                                ui.separator();
+                            }
+                            Label::new(format!("{}", f.path.display())).ui(ui);
+                        });
+                    });
+                Label::new("Concating:").selectable(false).ui(ui);
             }
             ByteSourceConfig::Stream(stream_config) => {
                 let mut selected_stream = StreamNames::from(stream_config.deref());
@@ -156,26 +174,21 @@ impl SessionSetup {
 
     fn supported_parsers(source: &ByteSourceConfig) -> Vec<ParserNames> {
         match source {
-            ByteSourceConfig::File(source_file_info) => {
-                if source_file_info.format != FileFormat::Text {
-                    ParserNames::all()
-                        .iter()
-                        .filter(|f| f.support_binary_files())
-                        .copied()
-                        .collect()
-                } else {
-                    ParserNames::all()
-                        .iter()
-                        .filter(|f| f.support_text_files())
-                        .copied()
-                        .collect()
-                }
-            }
+            ByteSourceConfig::File(source_file_info) => ParserNames::all()
+                .iter()
+                .filter(|f| f.is_compatible_file(source_file_info.format))
+                .copied()
+                .collect(),
+            ByteSourceConfig::Concat(files) => ParserNames::all()
+                .iter()
+                .filter(|f| f.is_compatible_file(files[0].format))
+                .copied()
+                .collect(),
             ByteSourceConfig::Stream(stream_config) => {
                 let stream = StreamNames::from(stream_config);
                 ParserNames::all()
                     .iter()
-                    .filter(|p| p.is_compatible(stream))
+                    .filter(|p| p.is_compatible_stream(stream))
                     .copied()
                     .collect()
             }
