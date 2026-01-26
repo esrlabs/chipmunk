@@ -7,6 +7,7 @@ use crate::{
     host::{
         command::HostCommand,
         ui::{
+            multi_setup::{MultiFileSetup, state::MultiFileState},
             session_setup::{SessionSetup, state::SessionSetupState},
             tabs::TabType,
         },
@@ -22,6 +23,7 @@ pub struct HostState {
     pub tabs: Vec<TabType>,
     pub sessions: HashMap<Uuid, Session>,
     pub session_setups: HashMap<Uuid, SessionSetup>,
+    pub multi_setups: HashMap<Uuid, MultiFileSetup>,
 }
 
 impl HostState {
@@ -59,6 +61,14 @@ impl HostState {
         let setup = SessionSetup::new(setup_state, cmd_tx);
         self.tabs.push(TabType::SessionSetup(id));
         self.session_setups.insert(id, setup);
+        self.active_tab_idx = self.tabs.len() - 1;
+    }
+
+    pub fn add_multi_files(&mut self, state: MultiFileState, cmd_tx: Sender<HostCommand>) {
+        let id = state.id();
+        let setup = MultiFileSetup::new(state, cmd_tx);
+        self.tabs.push(TabType::MultiFileSetup(id));
+        self.multi_setups.insert(id, setup);
         self.active_tab_idx = self.tabs.len() - 1;
     }
 
@@ -118,6 +128,34 @@ impl HostState {
         self.session_setups.remove(&setup_id);
     }
 
+    pub fn close_multi_setup(&mut self, setup_id: Uuid) {
+        let tab_idx = self
+            .tabs
+            .iter()
+            .position(|tab| matches!(tab, TabType::MultiFileSetup(id) if  *id == setup_id));
+
+        let tab_idx = match tab_idx {
+            Some(idx) => idx,
+            None => {
+                log::error!(
+                    "Close multiple files setup message: Multi files Setup with ID {setup_id}\
+                    doesn't exist in host UI struct"
+                );
+
+                if cfg!(debug_assertions) {
+                    panic!("Received close command for unknown multiple files setup ID");
+                } else {
+                    return;
+                }
+            }
+        };
+
+        self.update_current_tab_on_close(tab_idx);
+
+        self.tabs.remove(tab_idx);
+        self.multi_setups.remove(&setup_id);
+    }
+
     fn update_current_tab_on_close(&mut self, removed_idx: usize) {
         if self.active_tab_idx == removed_idx {
             self.active_tab_idx = HOME_TAB_IDX;
@@ -135,6 +173,7 @@ impl Default for HostState {
             tabs: vec![TabType::Home],
             sessions: HashMap::new(),
             session_setups: HashMap::new(),
+            multi_setups: HashMap::new(),
         }
     }
 }

@@ -1,11 +1,19 @@
-use std::{ops::Not, path::PathBuf, thread};
+use std::{
+    collections::HashMap,
+    ops::Not,
+    path::{Path, PathBuf},
+    thread,
+};
+
+use anyhow::Result;
+use itertools::Itertools;
+use tokio::runtime::Handle;
+use uuid::Uuid;
 
 use stypes::{
     DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
     Transport,
 };
-use tokio::runtime::Handle;
-use uuid::Uuid;
 
 use crate::{
     host::{
@@ -15,17 +23,22 @@ use crate::{
         error::HostError,
         message::HostMessage,
         notification::AppNotification,
-        ui::session_setup::state::{
-            SessionSetupState,
-            parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
-            sources::{
-                ByteSourceConfig, ProcessConfig, SerialConfig, SourceFileInfo, StreamConfig,
-                TcpConfig, UdpConfig,
+        ui::{
+            multi_setup::state::MultiFileState,
+            session_setup::state::{
+                SessionSetupState,
+                parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
+                sources::{
+                    ByteSourceConfig, ProcessConfig, SerialConfig, SourceFileInfo, StreamConfig,
+                    TcpConfig, UdpConfig,
+                },
             },
         },
     },
     session::{InitSessionError, service::SessionService},
 };
+
+mod file;
 
 #[derive(Debug)]
 pub struct HostService {
@@ -63,10 +76,7 @@ impl HostService {
     async fn run(mut self) {
         while let Some(cmd) = self.communication.cmd_rx.recv().await {
             if let Err(err) = self.handle_command(cmd).await {
-                self.communication
-                    .senders
-                    .send_notification(AppNotification::HostError(err))
-                    .await;
+                self.send_host_err(err).await;
             }
         }
     }
@@ -76,13 +86,30 @@ impl HostService {
             HostCommand::OpenFiles(files) => {
                 log::trace!("Got open files request. Files: {files:?}");
 
-                for file in files {
-                    self.open_file(file).await?;
+                if files.len() == 1 {
+                    self.open_single_file(files.into_iter().next().unwrap())
+                        .await?;
+                } else {
+                    self.open_multi_files(files).await?;
                 }
             }
+            HostCommand::OpenAsSessions(files) => {
+                for file in files {
+                    if let Err(err) = self.open_single_file(file).await {
+                        self.send_host_err(err).await;
+                    }
+                }
+            }
+            HostCommand::OpenFromDirectory {
+                dir_path,
+                target_format,
+            } => self.files_in_dir(dir_path, target_format).await?,
+
+            HostCommand::ConcatFiles(files) => self.concatenate_files(files).await?,
             HostCommand::ConnectionSessionSetup { stream, parser } => {
                 self.connection_session_setup(stream, parser).await
             }
+
             HostCommand::StartSession(start_params) => {
                 let StartSessionParam {
                     parser,
@@ -100,6 +127,13 @@ impl HostService {
                     .send_message(HostMessage::SessionSetupClosed { id })
                     .await;
             }
+            HostCommand::CloseMultiSetup(id) => {
+                // Preparation for close goes here.
+                self.communication
+                    .senders
+                    .send_message(HostMessage::MultiSetupClose { id })
+                    .await;
+            }
             HostCommand::Close => {
                 // Do any preparation before closing.
                 self.communication
@@ -112,47 +146,33 @@ impl HostService {
         Ok(())
     }
 
-    async fn open_file(&self, file_path: PathBuf) -> Result<(), HostError> {
+    async fn open_single_file(&self, file_path: PathBuf) -> Result<(), HostError> {
         log::trace!("Opening file: {}", file_path.display());
 
-        let is_binary = file_tools::is_binary(&file_path).map_err(InitSessionError::IO)?;
-
-        if is_binary {
-            let extension = file_path.extension();
-            // Open session setup view for binary files.
-            let format = match extension {
-                Some(ext) if ext.eq_ignore_ascii_case("pcap") => FileFormat::PcapLegacy,
-                Some(ext) if ext.eq_ignore_ascii_case("pcapng") => FileFormat::PcapNG,
-                _ => FileFormat::Binary,
-            };
-
-            let name = file_path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| String::from("Unknown"));
-
-            let size_bytes = std::fs::metadata(&file_path)
-                .map_err(InitSessionError::IO)?
-                .len();
-            let size_txt = format_file_size(size_bytes);
-
-            let parser = match format {
-                FileFormat::PcapNG | FileFormat::PcapLegacy => {
-                    ParserConfig::SomeIP(SomeIpParserConfig::new())
+        let format = file::get_file_format(&file_path).map_err(InitSessionError::IO)?;
+        let parser = match format {
+            FileFormat::PcapNG | FileFormat::PcapLegacy => {
+                ParserConfig::SomeIP(SomeIpParserConfig::new())
+            }
+            FileFormat::Text => ParserConfig::Text,
+            FileFormat::Binary => {
+                if Self::is_dlt_file(&file_path) {
+                    ParserConfig::Dlt(DltParserConfig::new(true))
+                } else {
+                    return Err(HostError::InitSessionError(InitSessionError::Other(
+                        format!(
+                            "File extension is not supported for file: {}",
+                            file_path.display()
+                        ),
+                    )));
                 }
-                FileFormat::Text => ParserConfig::Text,
-                FileFormat::Binary => {
-                    if extension.is_some_and(|ext| ext.eq_ignore_ascii_case("dlt")) {
-                        ParserConfig::Dlt(DltParserConfig::new(true))
-                    } else {
-                        return Err(HostError::InitSessionError(InitSessionError::Other(
-                            "File extension is not supported".to_owned(),
-                        )));
-                    }
-                }
-            };
+            }
+        };
 
-            let file_info = SourceFileInfo::new(file_path, name, size_txt, format);
+        let need_session_setup = !matches!(parser, ParserConfig::Text);
+
+        if need_session_setup {
+            let file_info = SourceFileInfo::new(file_path, format);
             let source_type = ByteSourceConfig::File(file_info);
 
             let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
@@ -176,6 +196,196 @@ impl HostService {
                     session_setup_id: None,
                 })
                 .await;
+        }
+
+        Ok(())
+    }
+
+    pub async fn open_multi_files(&self, paths: Vec<PathBuf>) -> Result<(), HostError> {
+        let files = tokio::task::spawn_blocking(move || {
+            paths
+                .into_iter()
+                .filter_map(|path| {
+                    file::get_file_format(&path)
+                        .inspect_err(|err| {
+                            log::warn!(
+                                "Error while checking file type. File will be skipped. \
+                                Path: {}. Error {err:?}",
+                                path.display()
+                            )
+                        })
+                        .ok()
+                        .map(|format| (path, format))
+                })
+                .collect_vec()
+        })
+        .await
+        .map_err(|_| {
+            HostError::InitSessionError(InitSessionError::Other(
+                "Determining file types failed.".into(),
+            ))
+        })?;
+
+        let state = MultiFileState::new(files);
+
+        self.communication
+            .senders
+            .send_message(HostMessage::MultiFilesSetup(state))
+            .await;
+
+        Ok(())
+    }
+
+    /// Scan the files in directory and open the files of the given type
+    async fn files_in_dir(&self, dir_path: PathBuf, format: FileFormat) -> Result<(), HostError> {
+        let files = tokio::task::spawn_blocking(move || file::scan_dir(&dir_path, format))
+            .await
+            .map_err(|_| {
+                HostError::InitSessionError(InitSessionError::Other(
+                    "Background task failed".into(),
+                ))
+            })?
+            .map_err(|err| HostError::InitSessionError(InitSessionError::IO(err)))?;
+
+        if files.is_empty() {
+            self.communication
+                .senders
+                .send_notification(AppNotification::Info("No files has been found".into()))
+                .await;
+
+            return Ok(());
+        }
+
+        if files.len() == 1 {
+            return self
+                .open_single_file(files.into_iter().next().unwrap())
+                .await;
+        }
+
+        let files = files.into_iter().map(|path| (path, format)).collect_vec();
+
+        let state = MultiFileState::new(files);
+        let msg = HostMessage::MultiFilesSetup(state);
+
+        self.communication.senders.send_message(msg).await;
+
+        Ok(())
+    }
+
+    async fn concatenate_files(&self, files: Vec<(PathBuf, FileFormat)>) -> Result<(), HostError> {
+        let mut file_groups = HashMap::new();
+
+        for (path, format) in files {
+            file_groups
+                .entry(format)
+                .or_insert_with(Vec::new)
+                .push(path);
+        }
+
+        for (format, mut files) in file_groups.into_iter() {
+            if files.len() == 1 {
+                log::trace!("Concat: Only one file with format {format}");
+                if let Err(err) = self
+                    .open_single_file(files.into_iter().next().unwrap())
+                    .await
+                {
+                    self.send_host_err(err).await;
+                }
+                continue;
+            }
+
+            let parser = match format {
+                FileFormat::PcapNG | FileFormat::PcapLegacy => {
+                    ParserConfig::SomeIP(SomeIpParserConfig::new())
+                }
+                FileFormat::Text => ParserConfig::Text,
+                FileFormat::Binary => {
+                    // Validate files for binary since only DLT is supported.
+                    let (valid, invalid): (Vec<_>, Vec<_>) =
+                        files.drain(..).partition(|path| Self::is_dlt_file(path));
+                    files = valid;
+
+                    // Notify for unsupported files.
+                    for path in invalid {
+                        let err = HostError::InitSessionError(InitSessionError::Other(format!(
+                            "File extension is not supported for file: {}",
+                            path.display()
+                        )));
+                        self.send_host_err(err).await;
+                    }
+
+                    // Check edge cases after validation.
+                    match files.len() {
+                        0 => {
+                            log::debug!("Concat Binary: No valid files after validation. Skipping");
+                            continue;
+                        }
+                        1 => {
+                            log::debug!("Concat Binary: One valid file after validation.");
+                            if let Err(err) = self
+                                .open_single_file(files.into_iter().next().unwrap())
+                                .await
+                            {
+                                self.send_host_err(err).await;
+                            }
+                            continue;
+                        }
+                        _ => {}
+                    }
+                    ParserConfig::Dlt(DltParserConfig::new(true))
+                }
+            };
+
+            match parser {
+                ParserConfig::Dlt(..) | ParserConfig::SomeIP(..) => {
+                    let files = files
+                        .into_iter()
+                        .map(|path| SourceFileInfo::new(path, format))
+                        .collect_vec();
+
+                    let source_type = ByteSourceConfig::Concat(files);
+
+                    let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
+
+                    self.communication
+                        .senders
+                        .send_message(HostMessage::SessionSetupOpened(session_setup))
+                        .await;
+                }
+                ParserConfig::Text => {
+                    let files = files
+                        .into_iter()
+                        .map(|path| (Uuid::new_v4().to_string(), format, path))
+                        .collect_vec();
+
+                    let origin = ObserveOptions {
+                        origin: ObserveOrigin::Concat(files),
+                        parser: ParserType::Text(()),
+                    };
+
+                    let session_params = match SessionService::spawn(
+                        self.communication.senders.get_shared_senders(),
+                        origin,
+                    )
+                    .await
+                    {
+                        Ok(params) => params,
+                        Err(err) => {
+                            self.send_host_err(err.into()).await;
+                            continue;
+                        }
+                    };
+
+                    self.communication
+                        .senders
+                        .send_message(HostMessage::SessionCreated {
+                            session_params,
+                            session_setup_id: None,
+                        })
+                        .await;
+                }
+                ParserConfig::Plugins => todo!(),
+            }
         }
 
         Ok(())
@@ -214,22 +424,30 @@ impl HostService {
         parser: ParserConfig,
         session_setup_id: Option<Uuid>,
     ) -> Result<(), HostError> {
-        let source_id = Uuid::new_v4().to_string();
         let origin = match source {
-            ByteSourceConfig::File(source_file_info) => {
-                ObserveOrigin::File(source_id, source_file_info.format, source_file_info.path)
-            }
-            ByteSourceConfig::Stream(StreamConfig::Process(config)) => {
-                ObserveOrigin::Stream(source_id, Transport::Process(config.into()))
-            }
+            ByteSourceConfig::File(source_file_info) => ObserveOrigin::File(
+                Uuid::new_v4().to_string(),
+                source_file_info.format,
+                source_file_info.path,
+            ),
+            ByteSourceConfig::Concat(files) => ObserveOrigin::Concat(
+                files
+                    .into_iter()
+                    .map(|file| (Uuid::new_v4().to_string(), file.format, file.path))
+                    .collect(),
+            ),
+            ByteSourceConfig::Stream(StreamConfig::Process(config)) => ObserveOrigin::Stream(
+                Uuid::new_v4().to_string(),
+                Transport::Process(config.into()),
+            ),
             ByteSourceConfig::Stream(StreamConfig::Tcp(config)) => {
-                ObserveOrigin::Stream(source_id, Transport::TCP(config.into()))
+                ObserveOrigin::Stream(Uuid::new_v4().to_string(), Transport::TCP(config.into()))
             }
             ByteSourceConfig::Stream(StreamConfig::Udp(config)) => {
-                ObserveOrigin::Stream(source_id, Transport::UDP(config.into()))
+                ObserveOrigin::Stream(Uuid::new_v4().to_string(), Transport::UDP(config.into()))
             }
             ByteSourceConfig::Stream(StreamConfig::Serial(config)) => {
-                ObserveOrigin::Stream(source_id, Transport::Serial(config.into()))
+                ObserveOrigin::Stream(Uuid::new_v4().to_string(), Transport::Serial(config.into()))
             }
         };
 
@@ -290,20 +508,17 @@ impl HostService {
 
         Ok(())
     }
-}
 
-fn format_file_size(bytes: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = 1024 * KB;
-    const GB: u64 = 1024 * MB;
+    async fn send_host_err(&self, err: HostError) -> bool {
+        self.communication
+            .senders
+            .send_notification(AppNotification::HostError(err))
+            .await
+    }
 
-    if bytes < KB {
-        format!("{} B", bytes)
-    } else if bytes < MB {
-        format!("{:.2} KB", bytes as f64 / KB as f64)
-    } else if bytes < GB {
-        format!("{:.2} MB", bytes as f64 / MB as f64)
-    } else {
-        format!("{:.2} GB", bytes as f64 / GB as f64)
+    fn is_dlt_file(file_path: &Path) -> bool {
+        file_path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("dlt"))
     }
 }
