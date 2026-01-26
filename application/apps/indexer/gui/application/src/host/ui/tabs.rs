@@ -5,7 +5,9 @@ use uuid::Uuid;
 
 use crate::{
     common::phosphor::{self, icons},
-    host::ui::{HostAction, session_setup::SessionSetup, state::HOME_TAB_IDX},
+    host::ui::{
+        HostAction, multi_setup::MultiFileSetup, session_setup::SessionSetup, state::HOME_TAB_IDX,
+    },
     session::ui::Session,
 };
 
@@ -16,6 +18,7 @@ pub enum TabType {
     Home,
     Session(Uuid),
     SessionSetup(Uuid),
+    MultiFileSetup(Uuid),
 }
 
 pub fn render_all_tabs(state: &mut HostState, actions: &mut UiActions, ui: &mut Ui) {
@@ -24,6 +27,7 @@ pub fn render_all_tabs(state: &mut HostState, actions: &mut UiActions, ui: &mut 
         tabs,
         sessions,
         session_setups,
+        multi_setups,
     } = state;
 
     for (idx, tab) in tabs.iter().enumerate() {
@@ -32,6 +36,9 @@ pub fn render_all_tabs(state: &mut HostState, actions: &mut UiActions, ui: &mut 
             TabType::Session(uuid) => session_tab(uuid, idx, active_tab_idx, sessions, actions, ui),
             TabType::SessionSetup(uuid) => {
                 setup_session_tab(uuid, idx, active_tab_idx, session_setups, actions, ui)
+            }
+            TabType::MultiFileSetup(uuid) => {
+                multi_setup_tab(uuid, idx, active_tab_idx, multi_setups, actions, ui)
             }
         }
     }
@@ -71,6 +78,20 @@ fn setup_session_tab(
     ui: &mut Ui,
 ) {
     let title = setups[id].title();
+    render_single_tab(&title, tab_idx, active_tab_idx, ui, || {
+        setups[id].close(actions)
+    });
+}
+
+fn multi_setup_tab(
+    id: &Uuid,
+    tab_idx: usize,
+    active_tab_idx: &mut usize,
+    setups: &HashMap<Uuid, MultiFileSetup>,
+    actions: &mut UiActions,
+    ui: &mut Ui,
+) {
+    let title = "Multiple Files";
     render_single_tab(title, tab_idx, active_tab_idx, ui, || {
         setups[id].close(actions)
     });

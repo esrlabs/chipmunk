@@ -13,6 +13,7 @@ pub use udp::{MulticastItem, UdpConfig};
 #[derive(Debug, Clone)]
 pub enum ByteSourceConfig {
     File(SourceFileInfo),
+    Concat(Vec<SourceFileInfo>),
     Stream(StreamConfig),
 }
 
@@ -24,6 +25,7 @@ impl ByteSourceConfig {
     pub fn is_valid(&self) -> bool {
         match self {
             ByteSourceConfig::File(file) => file.is_valid(),
+            ByteSourceConfig::Concat(files) => files.iter().all(|f| f.is_valid()),
             ByteSourceConfig::Stream(stream) => stream.is_valid(),
         }
     }
@@ -31,6 +33,9 @@ impl ByteSourceConfig {
     pub fn validation_errors(&self) -> Vec<&str> {
         match self {
             ByteSourceConfig::File(file) => file.validation_errors(),
+            ByteSourceConfig::Concat(files) => {
+                files.iter().flat_map(|f| f.validation_errors()).collect()
+            }
             ByteSourceConfig::Stream(stream) => stream.validation_errors(),
         }
     }
