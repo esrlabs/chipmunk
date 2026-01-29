@@ -30,7 +30,7 @@ impl MainMenuBar {
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("Chipmunk", |ui| {
                 if ui.button("Close").clicked() {
-                    actions.try_send_command(&self.cmd_tx, HostCommand::Close);
+                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                 }
             });
 
