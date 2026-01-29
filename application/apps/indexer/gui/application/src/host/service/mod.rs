@@ -134,12 +134,9 @@ impl HostService {
                     .send_message(HostMessage::MultiSetupClose { id })
                     .await;
             }
-            HostCommand::Close => {
-                // Do any preparation before closing.
-                self.communication
-                    .senders
-                    .send_message(HostMessage::Shutdown)
-                    .await;
+            HostCommand::OnShutdown { confirm_tx } => {
+                // Cleanup on shutdown goes here.
+                let _ = confirm_tx.send(());
             }
         }
 

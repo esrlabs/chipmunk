@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::mpsc::Sender as StdSender};
 
 use stypes::FileFormat;
 use uuid::Uuid;
@@ -35,7 +35,12 @@ pub enum HostCommand {
     StartSession(Box<StartSessionParam>),
     CloseSessionSetup(Uuid),
     CloseMultiSetup(Uuid),
-    Close,
+    /// Signal that the application is shutting down.
+    OnShutdown {
+        /// Channel is used to notify the UI when the back-end service
+        /// has finished its cleanup tasks.
+        confirm_tx: StdSender<()>,
+    },
 }
 
 #[derive(Debug, Clone)]

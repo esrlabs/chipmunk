@@ -24,6 +24,4 @@ pub enum HostMessage {
     },
     /// Open Session Setup for concatenating files.
     MultiFilesSetup(MultiFileState),
-    /// Host service has finished shutting down; the UI should now exit.
-    Shutdown,
 }
