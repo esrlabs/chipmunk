@@ -1,7 +1,10 @@
+use std::time::Duration;
+
 use anyhow::ensure;
 use eframe::NativeOptions;
 use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, Widget, vec2};
 use itertools::Itertools;
+use log::{info, trace, warn};
 
 use crate::{
     cli::CliCommand,
@@ -122,7 +125,7 @@ impl Host {
         Ok(())
     }
 
-    fn handle_message(&mut self, message: HostMessage, ctx: &Context) {
+    fn handle_message(&mut self, message: HostMessage) {
         match message {
             HostMessage::SessionSetupOpened(setup_state) => self
                 .state
@@ -136,7 +139,6 @@ impl Host {
                 .add_multi_files(state, self.senders.cmd_tx.clone()),
             HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
             HostMessage::MultiSetupClose { id } => self.state.close_multi_setup(id),
-            HostMessage::Shutdown => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
         }
     }
 
@@ -264,7 +266,7 @@ impl eframe::App for Host {
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         // Handle incoming messages & notifications
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
-            self.handle_message(msg, ctx);
+            self.handle_message(msg);
         }
 
         while let Ok(notification) = self.receivers.notification_rx.try_recv() {
@@ -281,5 +283,22 @@ impl eframe::App for Host {
 
         // Handle actions sent from UI components after rendering.
         self.handle_ui_actions(ctx);
+    }
+
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        trace!("App Shutdown requested.");
+
+        let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();
+        let cmd = HostCommand::OnShutdown { confirm_tx };
+
+        if self.senders.cmd_tx.try_send(cmd).is_err() {
+            warn!("Sending shutdown confirmation failed. Shutting down without cleanup");
+            return;
+        }
+
+        match confirm_rx.recv_timeout(Duration::from_millis(1000)) {
+            Ok(()) => info!("Shutting down gracefully"),
+            Err(_) => warn!("Graceful shutdown failed"),
+        }
     }
 }
