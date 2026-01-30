@@ -2,6 +2,7 @@
 //! to listening to incoming operations and updating the state, to destroying it at the end.
 
 use crate::{
+    mcp_api::{self, McpApi},
     operations,
     operations::Operation,
     state,
@@ -66,6 +67,8 @@ impl Session {
             state: state_api.clone(),
             tracker: tracker_api.clone(),
         };
+        let (mcp_server, mcp_client, mcp_api_endpoints) = mcp::new();
+        let mcp_api = McpApi::new(mcp_api_endpoints.prompt_tx.clone());
         let destroyed = session.destroyed.clone();
         let destroying = session.destroying.clone();
         let (tx, rx) = oneshot::channel();
@@ -78,6 +81,29 @@ impl Session {
                 }
             };
             debug!("Session is started");
+
+            if let Err(error) = mcp_server.start().await {
+                error!("🔴 Error starting MCP server {}", error);
+            }
+
+            if let Err(error) = mcp_client.start().await {
+                error!("🔴 Error starting MCP client {}", error);
+            }
+
+            // TODO:[MCP] MOCK: Instead of receiving a prompts via the UI, we send a test prompt here
+            let prompt: String = String::from(
+                "Genarate filter to filter out the following log lines where time is 13\n64 bytes from 172.217.19.164: icmp_seq=15 ttl=119 time=13.095 ms
+64 bytes from 172.217.19.164: icmp_seq=16 ttl=119 time=10.854 ms
+64 bytes from 172.217.19.164: icmp_seq=17 ttl=119 time=15.970 ms",
+            );
+            if let Err(error) = mcp_api
+                .send_prompt(prompt)
+                .await
+                .map_err(|e| stypes::ComputationError::Communication(e.message.unwrap_or_default()))
+            {
+                error!("🔴 Failed to send test prompt to MCP client: {:?}", error);
+            }
+
             let tx_callback_events_state = tx_callback_events.clone();
             join!(
                 async {
@@ -99,6 +125,12 @@ impl Session {
                 },
                 async {
                     join!(
+                        mcp_api::run(
+                            uuid,
+                            mcp_api_endpoints.task_rx,
+                            mcp_api_endpoints.response_rx,
+                            tx_operations.clone(),
+                        ),
                         operations::run(
                             rx_operations,
                             state_api.clone(),
