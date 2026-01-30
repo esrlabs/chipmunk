@@ -9,6 +9,7 @@ members = [
     "addons/text_grep",
     "addons/bufread",
     "indexer_base",
+    "mcp",
     "merging",
     "parsers",
     "plugins_host",
