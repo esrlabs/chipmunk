@@ -34,23 +34,16 @@ Checked/Unchecked/Disabled filters
 
 ![Filters manipulation](assets/search/filters_enable_disable.gif)
 
-### Importing / Exporting Presets
+### Importing / Exporting
 
 Filters/charts will be associated with an opened file (or stream). Next time the same file (or stream) is opened, filters/charts will be restored.
 
 At the same time, there are a couple of ways to export filters:
 
 - via the context menu on the list of filters/charts
-- via tab "History/Profiles" to export different collections of filters/charts
+- via tab "History/Profiles" to export/import different collections of filters/charts
 
 ![Import/Export](assets/search/importing.gif)
-
-Just like the exorting the filter from the Chipmunk, user can also import the 
-filters in the Chipmunk.
-
-![Import Filter](assets/search/import_filter.gif)
-
-
 
 ### Breadcrumbs
 

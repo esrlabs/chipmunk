@@ -23,6 +23,9 @@ data analysis tools (Excel, pandas, etc.).
 
 1. The filtered results are exported as a binary file.
 2. Useful when user wants to share only filtered logs from Chipmunk.
+3. This is also useful when user wants to combine the results from two files,
+and then export only filtered results. This filtered export will contain
+data from both files.
 
 ![Export Search Results](assets/export/export_search.gif)
 
@@ -36,15 +39,9 @@ filters.
 
 ![Export Lines](assets/export/export_lines.gif)
 
-### Exporting filters and presets
+### Exporting Logs from Streams
 
-Along with the logs user can also export the filters for later use and sharing,
-find out more how user can export the filters from Chipmunk
-[here](../search/#importing-exporting-presets)
-
-### Exporting Streams
-
-Chipmunk allows to render the streams of data from TCP or UDP.
+Chipmunk allows to rendering and analyzing logs from multiple stream sources.
 User can also search through these streams and also can select particular lines
 to export.
 
