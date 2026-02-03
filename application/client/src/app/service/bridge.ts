@@ -700,7 +700,7 @@ export class Service extends Implementation {
                     new Requests.Storage.EntriesSet.Request({
                         key: dest.key,
                         file: dest.file,
-                        entries: JSON.stringify(entries),
+                        entries: entries,
                         mode,
                     }),
                 )

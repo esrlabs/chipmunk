@@ -157,7 +157,7 @@ export class Service extends Implementation {
                         return new CancelablePromise((resolve, reject) => {
                             const entries: Entry[] | Error = (() => {
                                 try {
-                                    const entries: Entry[] = JSON.parse(request.entries);
+                                    const entries: Entry[] = request.entries;
                                     if (!(entries instanceof Array)) {
                                         throw new Error(`Expecting entries will be {Entry[]}`);
                                     }
