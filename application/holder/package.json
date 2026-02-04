@@ -50,7 +50,7 @@
     "dotenv": "^16.4.7",
     "dotnet": "^1.1.4",
     "electron": "^34.0.1",
-    "electron-builder": "24.13.3",
+    "electron-builder": "26.7.0",
     "eslint": "^9.18.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-node": "^11.1.0",

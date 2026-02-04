@@ -31,3 +31,20 @@ Requirements:
 Unpack chipmunk to a folder of your choosing. Use the `chipmunk` executable to start chipmunk. 
 
 Additionally, each `chipmunk` release comes with `deb` and `rpm` packages.
+
+### Ubuntu 24.04 and newer
+
+Ubuntu 24.04 introduced stricter **AppArmor** restrictions that may prevent the Electron sandbox from working correctly when running the **portable version** of Chipmunk.
+
+In some cases, Chipmunk may start normally when launched from the **GUI**, but fail when started from the **terminal**.
+
+If you require running Chipmunk from the terminal, we recommend installing it using the provided **`.deb` or `.rpm` package**.
+
+If Chipmunk fails to start with an error similar to:
+```
+FATAL:setuid_sandbox_host.cc(163)
+```
+run the following helper script to enable the required AppArmor profile for Chipmunk:
+```
+sudo ./scripts/os/ubuntu_enabler.sh
+```

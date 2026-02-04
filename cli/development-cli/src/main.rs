@@ -302,6 +302,7 @@ async fn main_process(command: Command) -> Result<(), Error> {
 
     if matches!(job_type, JobType::Run { .. }) {
         println!("Starting chipmunk...");
+        ensure_electron_sandbox().await?;
         let status = chipmunk_runner::run_chipmunk().await?;
         if !status.success() {
             bail!("Error: Chipmunk Exited with the Code {status}");
@@ -318,4 +319,51 @@ fn get_targets_or_all(targets: Option<Vec<Target>>) -> Vec<Target> {
     } else {
         Target::all().to_vec()
     }
+}
+
+#[cfg(target_os = "linux")]
+async fn ensure_electron_sandbox() -> anyhow::Result<()> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+    let sandbox = Target::App
+        .cwd()
+        .join("node_modules/electron/dist/chrome-sandbox");
+
+    if sandbox.exists() {
+        let meta = std::fs::metadata(&sandbox)?;
+        if meta.uid() == 0 && (meta.permissions().mode() & 0o4000) != 0 {
+            return Ok(());
+        }
+
+        eprintln!("\n[!] ACTION REQUIRED: Fixing Electron Sandbox permissions.");
+        eprintln!("[!] Please enter your password for sudo:");
+
+        let status = std::process::Command::new("sudo")
+            .arg("sh")
+            .arg("-c")
+            .arg(format!(
+                "chown root {0} && chmod 4755 {0}",
+                sandbox.display()
+            ))
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
+            .status()?;
+
+        if status.success() {
+            eprintln!("[+] Permissions fixed successfully.\n");
+            Ok(())
+        } else {
+            eprintln!("You may need to run manually:");
+            eprintln!("  sudo chown root <path> && sudo chmod 4755 <path>");
+            anyhow::bail!("Sudo prompt failed or was cancelled by user.")
+        }
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+async fn ensure_electron_sandbox() -> anyhow::Result<()> {
+    Ok(())
 }
