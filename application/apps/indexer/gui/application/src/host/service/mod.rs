@@ -10,6 +10,7 @@ use itertools::Itertools;
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
+use parsers::dlt::DltFilterConfig;
 use stypes::{
     DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
     Transport,
@@ -154,7 +155,7 @@ impl HostService {
             FileFormat::Text => ParserConfig::Text,
             FileFormat::Binary => {
                 if Self::is_dlt_file(&file_path) {
-                    ParserConfig::Dlt(DltParserConfig::new(true))
+                    ParserConfig::Dlt(DltParserConfig::new(true, Some(vec![file_path.clone()])))
                 } else {
                     return Err(HostError::InitSessionError(InitSessionError::Other(
                         format!(
@@ -329,7 +330,7 @@ impl HostService {
                         }
                         _ => {}
                     }
-                    ParserConfig::Dlt(DltParserConfig::new(true))
+                    ParserConfig::Dlt(DltParserConfig::new(true, Some(files.clone())))
                 }
             };
 
@@ -401,7 +402,7 @@ impl HostService {
         };
 
         let parser = match parser {
-            ParserNames::Dlt => ParserConfig::Dlt(DltParserConfig::new(false)),
+            ParserNames::Dlt => ParserConfig::Dlt(DltParserConfig::new(false, None)),
             ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::default()),
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => todo!(),
@@ -450,6 +451,65 @@ impl HostService {
 
         let parser = match parser {
             ParserConfig::Dlt(config) => {
+                let (app_ids, app_id_count) =
+                    if !config.dlt_tables.app_table.selected_ids.is_empty() {
+                        (
+                            Some(
+                                config
+                                    .dlt_tables
+                                    .app_table
+                                    .selected_ids
+                                    .iter()
+                                    .cloned()
+                                    .collect::<Vec<String>>(),
+                            ),
+                            config.dlt_tables.app_table.selected_ids.len() as i64,
+                        )
+                    } else {
+                        (None, 0)
+                    };
+
+                let (context_ids, context_id_count) =
+                    if !config.dlt_tables.ctx_table.selected_ids.is_empty() {
+                        (
+                            Some(
+                                config
+                                    .dlt_tables
+                                    .ctx_table
+                                    .selected_ids
+                                    .iter()
+                                    .cloned()
+                                    .collect::<Vec<String>>(),
+                            ),
+                            config.dlt_tables.ctx_table.selected_ids.len() as i64,
+                        )
+                    } else {
+                        (None, 0)
+                    };
+
+                let ecu_ids = if !config.dlt_tables.ecu_table.selected_ids.is_empty() {
+                    Some(
+                        config
+                            .dlt_tables
+                            .ecu_table
+                            .selected_ids
+                            .iter()
+                            .cloned()
+                            .collect::<Vec<String>>(),
+                    )
+                } else {
+                    None
+                };
+
+                let filter_config = DltFilterConfig {
+                    min_log_level: Some(config.log_level as u8),
+                    app_ids,
+                    ecu_ids,
+                    context_ids,
+                    app_id_count,
+                    context_id_count,
+                };
+
                 let fibex_file_paths = config.fibex_files.is_empty().not().then(|| {
                     config
                         .fibex_files
@@ -459,7 +519,7 @@ impl HostService {
                 });
 
                 let dlt_config = DltParserSettings {
-                    filter_config: None,
+                    filter_config: Some(filter_config),
                     fibex_file_paths,
                     with_storage_header: config.with_storage_header,
                     tz: config.timezone,
