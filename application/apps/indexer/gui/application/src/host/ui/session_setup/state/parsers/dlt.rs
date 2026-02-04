@@ -7,6 +7,9 @@ use stypes::{DltParserSettings, ObserveOrigin};
 use chrono::{Offset, TimeZone, Utc};
 use chrono_tz::Tz;
 use itertools::Itertools;
+use rustc_hash::FxHashSet;
+use statistics::DltStatistics;
+use summary::DltSummary;
 
 use super::FibexFileInfo;
 use crate::host::common::dlt_stats::{DltStatistics, LevelDistribution};
@@ -81,6 +84,8 @@ impl DltParserConfig {
             dlt_summary: Box::new(DltSummary::default()),
             dlt_tables: Box::new(DltTables::default()),
         }
+
+        config
     }
 
     fn timezone_list() -> Vec<(String, i32)> {
