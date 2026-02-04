@@ -35,9 +35,13 @@ pub fn render_content(
 }
 
 /// Render main configuration for files sources.
-fn render_files(files: &[SourceFileInfo], parser: &ParserConfig, ui: &mut Ui) -> RenderOutcome {
+fn render_files(
+    _files: &[SourceFileInfo],
+    parser: &mut ParserConfig,
+    ui: &mut Ui,
+) -> RenderOutcome {
     match parser {
-        ParserConfig::Dlt(dlt) => dlt::render_statistics(files, dlt, ui),
+        ParserConfig::Dlt(dlt) => dlt::render_statistics(dlt, ui),
         ParserConfig::SomeIP(..) | ParserConfig::Text | ParserConfig::Plugins => {
             RenderOutcome::None
         }
