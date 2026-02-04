@@ -6,6 +6,7 @@ use std::any::Any;
 use log::{error, warn};
 use ollama_rs::generation::chat::{ChatMessage, request::ChatMessageRequest};
 use ollama_rs::generation::tools::{ToolFunctionInfo, ToolInfo, ToolType};
+use ollama_rs::history;
 use rmcp::{
     RoleClient,
     model::{
@@ -22,7 +23,7 @@ use tokio::{select, sync::mpsc};
 use crate::{
     errors::McpError,
     // client::llm::{Llm, LlmClient, LlmConfig},
-    types::{Prompt, Response},
+    types::{Prompt, Response, SearchFilter, SearchFilters},
 };
 
 // TODO:[MCP] store this in a single global location
@@ -131,7 +132,7 @@ impl McpClient {
         let mut history = vec![];
         loop {
             select! {
-                Some(chipmunk_request) = prompt_rx.recv() => {
+              Some(chipmunk_request) = prompt_rx.recv() => {
                     let tools = mcp_service.list_tools(Default::default()).await?.tools.iter().map(|tool| {
                                 ToolInfo {
                                     tool_type: ToolType::Function,
@@ -142,8 +143,8 @@ impl McpClient {
                                     }
                                 }
                             }).collect::<Vec<ToolInfo>>();
-                    let chat_message_request = ChatMessageRequest::new("llama3.2".to_string(), vec![ChatMessage::user(chipmunk_request)]).tools(tools);
-                    let response = ollama_client.send_chat_message_with_history(history, chat_message_request);
+                    let mut chat_message_request = ChatMessageRequest::new("llama3.2".to_string(), vec![ChatMessage::user(chipmunk_request)]).tools(tools);
+                    let response = ollama_client.send_chat_messages_with_history(&mut history, chat_message_request);
                     match response.await {
                         Ok(res) => {
                             warn!("🟢 🥳 MCP Client received mock prompt response: {:?}", res);
@@ -154,7 +155,6 @@ impl McpClient {
                                     name: tool_call.function.name.clone().into(),
                                     arguments: fetch_arguments(tool_call)
                                 }
-
                             }).collect::<Vec<rmcp::model::CallToolRequestParam>>().first().cloned();
                             warn!("✔️ Tool Call Param {:?}", tool_call_params);
                             match tool_call_params {
@@ -176,7 +176,7 @@ impl McpClient {
                             error!("🔴 MCP Client failed to get mock prompt response:");
                         }
                     }
-                    println!("Chipmunk request {chipmunk_request:?}");
+                    // println!("Chipmunk request {chipmunk_request:?}");
                 }
             }
         }
