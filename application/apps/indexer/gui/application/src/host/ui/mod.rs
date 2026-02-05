@@ -130,6 +130,17 @@ impl Host {
             HostMessage::SessionSetupOpened(setup_state) => self
                 .state
                 .add_session_setup(setup_state, self.senders.cmd_tx.clone()),
+            HostMessage::DltStatistics {
+                setup_session_id,
+                statistics,
+            } => {
+                if let Some(setup) = self.state.session_setups.get_mut(&setup_session_id)
+                    && let ParserConfig::Dlt(config) = &mut setup.state.parser
+                {
+                    config.dlt_statistics = Some(Box::new(statistics.unwrap_or_default()));
+                    config.update_summary();
+                }
+            }
             HostMessage::SessionCreated {
                 session_params,
                 session_setup_id,
