@@ -32,6 +32,7 @@ pub enum HostCommand {
         stream: StreamNames,
         parser: ParserNames,
     },
+    DltStatistics(Box<DltStatisticsParam>),
     StartSession(Box<StartSessionParam>),
     CloseSessionSetup(Uuid),
     CloseMultiSetup(Uuid),
@@ -41,6 +42,12 @@ pub enum HostCommand {
         /// has finished its cleanup tasks.
         confirm_tx: StdSender<()>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub struct DltStatisticsParam {
+    pub session_setup_id: Uuid,
+    pub source_paths: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone)]

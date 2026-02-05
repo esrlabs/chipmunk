@@ -27,6 +27,7 @@ pub struct SessionSetup {
 /// The outcome of render routines in children components of this view.
 #[derive(Debug, Clone, Copy)]
 enum RenderOutcome {
+    CollectStatistics,
     StartSession,
     None,
 }
@@ -76,6 +77,11 @@ impl SessionSetup {
             ui.centered_and_justified(|ui| {
                 let outcome = main_config::render_content(&mut self.state, actions, ui);
                 match outcome {
+                    RenderOutcome::CollectStatistics => {
+                        if self.state.is_valid() {
+                            self.state.collect_statistics(&self.cmd_tx, actions);
+                        }
+                    }
                     RenderOutcome::StartSession => {
                         if self.state.is_valid() {
                             self.state.start_session(&self.cmd_tx, actions);
