@@ -3,41 +3,58 @@ use crate::host::ui::session_setup::state::parsers::DltParserConfig;
 use egui::{ScrollArea, Ui};
 
 pub fn render_statistics(parser: &mut DltParserConfig, ui: &mut Ui) -> RenderOutcome {
+    if parser.dlt_statistics.is_none() {
+        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+            let available = ui.available_height();
+            ui.add_space(available * 0.45);
+
+            ui.vertical_centered(|ui| {
+                ui.spinner();
+                ui.add_space(8.0);
+                ui.label("Analyzing DLT structure...");
+            });
+        });
+
+        return RenderOutcome::CollectStatistics;
+    }
+
     ui.vertical(|ui| {
         if parser.dlt_tables.take_changed() {
-            parser.update();
+            parser.update_summary();
         }
 
-        summary::table(ui, &parser.dlt_summary);
-        summary::chart(ui, &parser.dlt_summary);
-        ui.separator();
+        if let Some(dlt_statistics) = &parser.dlt_statistics {
+            summary::table(ui, &parser.dlt_summary);
+            summary::chart(ui, &parser.dlt_summary);
+            ui.separator();
 
-        ScrollArea::vertical()
-            .auto_shrink([false; 2])
-            .show(ui, |ui| {
-                ui.vertical(|ui| {
-                    statistics::table(
-                        ui,
-                        "Applications",
-                        &parser.dlt_statistics.app_ids,
-                        &mut parser.dlt_tables.app_table,
-                    );
-                    ui.separator();
-                    statistics::table(
-                        ui,
-                        "Contexts",
-                        &parser.dlt_statistics.ctx_ids,
-                        &mut parser.dlt_tables.ctx_table,
-                    );
-                    ui.separator();
-                    statistics::table(
-                        ui,
-                        "ECUs",
-                        &parser.dlt_statistics.ecu_ids,
-                        &mut parser.dlt_tables.ecu_table,
-                    );
+            ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    ui.vertical(|ui| {
+                        statistics::table(
+                            ui,
+                            "Applications",
+                            &dlt_statistics.app_ids,
+                            &mut parser.dlt_tables.app_table,
+                        );
+                        ui.separator();
+                        statistics::table(
+                            ui,
+                            "Contexts",
+                            &dlt_statistics.ctx_ids,
+                            &mut parser.dlt_tables.ctx_table,
+                        );
+                        ui.separator();
+                        statistics::table(
+                            ui,
+                            "ECUs",
+                            &dlt_statistics.ecu_ids,
+                            &mut parser.dlt_tables.ecu_table,
+                        );
+                    });
                 });
-            });
+        }
     });
 
     RenderOutcome::None
@@ -47,28 +64,23 @@ pub mod summary {
     use egui::{Color32, RichText, Sense, TextStyle, Ui, vec2};
     use egui_extras::{Column, TableBuilder};
     use egui_plot::{Bar, BarChart, Plot};
-    use lazy_static::lazy_static;
 
-    use crate::host::ui::session_setup::state::parsers::dlt::summary::DltSummary;
+    use crate::host::ui::session_setup::state::parsers::dlt::DltSummary;
 
-    lazy_static! {
-        static ref COLUMN_NAMES: [&'static str; 9] = [
-            "TOTAL", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "VERBOSE", "NONE", "INVALID",
-        ];
-    }
+    const COLUMN_NAMES: [&str; 9] = [
+        "TOTAL", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "VERBOSE", "NONE", "INVALID",
+    ];
 
-    lazy_static! {
-        static ref LEVEL_WITH_COLORS: [(&'static str, Color32); 8] = [
-            ("FATAL", Color32::from_rgb(220, 20, 60)),
-            ("ERROR", Color32::from_rgb(255, 69, 0)),
-            ("WARN", Color32::from_rgb(255, 140, 0)),
-            ("INFO", Color32::from_rgb(60, 179, 113)),
-            ("DEBUG", Color32::from_rgb(30, 144, 255)),
-            ("VERBOSE", Color32::from_rgb(138, 43, 226)),
-            ("NONE", Color32::from_rgb(192, 192, 192)),
-            ("INVALID", Color32::from_rgb(128, 128, 128)),
-        ];
-    }
+    const LEVEL_WITH_COLORS: [(&str, Color32); 8] = [
+        ("FATAL", Color32::from_rgb(220, 20, 60)),
+        ("ERROR", Color32::from_rgb(255, 69, 0)),
+        ("WARN", Color32::from_rgb(255, 140, 0)),
+        ("INFO", Color32::from_rgb(60, 179, 113)),
+        ("DEBUG", Color32::from_rgb(30, 144, 255)),
+        ("VERBOSE", Color32::from_rgb(138, 43, 226)),
+        ("NONE", Color32::from_rgb(192, 192, 192)),
+        ("INVALID", Color32::from_rgb(128, 128, 128)),
+    ];
 
     pub fn table(ui: &mut Ui, summary: &DltSummary) {
         let title = format!("Summary ({} / {})", summary.total.ids, summary.selected.ids);
@@ -189,22 +201,20 @@ pub mod summary {
 pub mod statistics {
     use egui::{Button, RichText, Sense, TextWrapMode, Ui};
     use egui_extras::{Column, TableBuilder};
-    use lazy_static::lazy_static;
     use rustc_hash::FxHashMap;
     use std::cmp::Ordering;
 
     use crate::{
         common::phosphor::icons,
-        host::ui::session_setup::state::parsers::dlt::{
-            TableConfig, statistics::LevelDistribution,
+        host::{
+            common::dlt_stats::LevelDistribution,
+            ui::session_setup::state::parsers::dlt::TableConfig,
         },
     };
 
-    lazy_static! {
-        static ref COLUMN_NAMES: [&'static str; 9] = [
-            "ID", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "VERBOSE", "NONE", "INVALID",
-        ];
-    }
+    const COLUMN_NAMES: [&str; 9] = [
+        "ID", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "VERBOSE", "NONE", "INVALID",
+    ];
 
     pub fn table(
         ui: &mut Ui,

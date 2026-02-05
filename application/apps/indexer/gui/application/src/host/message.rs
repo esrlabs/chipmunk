@@ -1,7 +1,10 @@
 use uuid::Uuid;
 
 use crate::{
-    host::ui::{multi_setup::state::MultiFileState, session_setup::state::SessionSetupState},
+    host::{
+        common::dlt_stats::DltStatistics,
+        ui::{multi_setup::state::MultiFileState, session_setup::state::SessionSetupState},
+    },
     session::InitSessionParams,
 };
 
@@ -14,7 +17,11 @@ pub enum HostMessage {
     SessionSetupClosed { id: Uuid },
     /// Close multiple files setup with the provided id.
     MultiSetupClose { id: Uuid },
-
+    /// The collected DLT statistics on a file for a SessionSetup
+    DltStatistics {
+        setup_session_id: Uuid,
+        statistics: Option<DltStatistics>,
+    },
     /// A new session has been successfully created.
     SessionCreated {
         session_params: InitSessionParams,

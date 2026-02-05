@@ -2,7 +2,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::host::{
-    command::{HostCommand, StartSessionParam},
+    command::{DltStatisticsParam, HostCommand, StartSessionParam},
     common::{parsers::ParserNames, sources::StreamNames},
     ui::{
         UiActions,
@@ -85,6 +85,27 @@ impl SessionSetupState {
         self.source.is_valid() && self.parser.is_valid()
     }
 
+    pub fn collect_statistics(
+        &mut self,
+        cmd_tx: &Sender<crate::host::command::HostCommand>,
+        actions: &mut UiActions,
+    ) {
+        debug_assert!(self.is_valid());
+
+        if let ParserConfig::Dlt(config) = &mut self.parser
+            && let Some(source_paths) = config.source_paths.take()
+        {
+            let param = DltStatisticsParam {
+                session_setup_id: self.id,
+                source_paths,
+            };
+
+            let cmd = HostCommand::DltStatistics(Box::new(param));
+
+            actions.try_send_command(cmd_tx, cmd);
+        }
+    }
+
     pub fn start_session(
         &self,
         cmd_tx: &Sender<crate::host::command::HostCommand>,
@@ -92,13 +113,13 @@ impl SessionSetupState {
     ) {
         debug_assert!(self.is_valid());
 
-        let session_params = StartSessionParam {
+        let param = StartSessionParam {
             parser: self.parser.clone(),
             source: self.source.clone(),
             session_setup_id: Some(self.id),
         };
 
-        let cmd = HostCommand::StartSession(Box::new(session_params));
+        let cmd = HostCommand::StartSession(Box::new(param));
 
         actions.try_send_command(cmd_tx, cmd);
     }
