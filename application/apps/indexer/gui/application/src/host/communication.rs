@@ -34,7 +34,7 @@ pub struct ServiceHandle {
 }
 
 /// Provide functions to send host messages and waking up the UI on them.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ServiceSenders {
     message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,

@@ -82,7 +82,7 @@ impl HostState {
             Some(idx) => idx,
             None => {
                 log::error!(
-                    "Close Session Message: Session with ID {session_id}\
+                    "Close Session Message: Session with ID {session_id} \
                     doesn't exist in host UI struct"
                 );
 
@@ -110,7 +110,7 @@ impl HostState {
             Some(idx) => idx,
             None => {
                 log::error!(
-                    "Close Session Setup Message: Session Setup with ID {setup_id}\
+                    "Close Session Setup Message: Session Setup with ID {setup_id} \
                     doesn't exist in host UI struct"
                 );
 
@@ -138,7 +138,7 @@ impl HostState {
             Some(idx) => idx,
             None => {
                 log::error!(
-                    "Close multiple files setup message: Multi files Setup with ID {setup_id}\
+                    "Close multiple files setup message: Multi files Setup with ID {setup_id} \
                     doesn't exist in host UI struct"
                 );
 
