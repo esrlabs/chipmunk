@@ -18,8 +18,8 @@ use stypes::{
 
 use crate::{
     host::{
-        command::{HostCommand, StartSessionParam},
-        common::{parsers::ParserNames, sources::StreamNames},
+        command::{DltStatisticsParam, HostCommand, StartSessionParam},
+        common::{dlt_stats::dlt_statistics, parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
         message::HostMessage,
@@ -109,6 +109,16 @@ impl HostService {
             HostCommand::ConcatFiles(files) => self.concatenate_files(files).await?,
             HostCommand::ConnectionSessionSetup { stream, parser } => {
                 self.connection_session_setup(stream, parser).await
+            }
+
+            HostCommand::DltStatistics(statistics_param) => {
+                let DltStatisticsParam {
+                    session_setup_id,
+                    source_paths,
+                } = *statistics_param;
+
+                self.collect_statistics(session_setup_id, source_paths)
+                    .await?;
             }
 
             HostCommand::StartSession(start_params) => {
@@ -416,6 +426,43 @@ impl HostService {
             .await;
     }
 
+    async fn collect_statistics(
+        &self,
+        setup_session_id: Uuid,
+        source_paths: Vec<PathBuf>,
+    ) -> Result<(), HostError> {
+        let senders = self.communication.senders.clone();
+        tokio::task::spawn_blocking(move || {
+            match dlt_statistics(source_paths) {
+                Ok(statistics) => {
+                    Handle::current().block_on(async move {
+                        senders
+                            .send_message(HostMessage::DltStatistics {
+                                setup_session_id,
+                                statistics: Some(statistics),
+                            })
+                            .await;
+                    });
+                }
+                Err(error) => {
+                    Handle::current().block_on(async move {
+                        senders
+                            .send_notification(AppNotification::Error(error))
+                            .await;
+                        senders
+                            .send_message(HostMessage::DltStatistics {
+                                setup_session_id,
+                                statistics: None,
+                            })
+                            .await;
+                    });
+                }
+            };
+        });
+
+        Ok(())
+    }
+
     async fn start_session(
         &self,
         source: ByteSourceConfig,
@@ -451,55 +498,24 @@ impl HostService {
 
         let parser = match parser {
             ParserConfig::Dlt(config) => {
-                let (app_ids, app_id_count) =
-                    if !config.dlt_tables.app_table.selected_ids.is_empty() {
-                        (
-                            Some(
-                                config
-                                    .dlt_tables
-                                    .app_table
-                                    .selected_ids
-                                    .iter()
-                                    .cloned()
-                                    .collect::<Vec<String>>(),
-                            ),
-                            config.dlt_tables.app_table.selected_ids.len() as i64,
-                        )
-                    } else {
-                        (None, 0)
-                    };
+                let (app_ids, ctx_ids, ecu_ids) = (
+                    config.dlt_tables.app_table.selected_ids,
+                    config.dlt_tables.ctx_table.selected_ids,
+                    config.dlt_tables.ecu_table.selected_ids,
+                );
 
-                let (context_ids, context_id_count) =
-                    if !config.dlt_tables.ctx_table.selected_ids.is_empty() {
-                        (
-                            Some(
-                                config
-                                    .dlt_tables
-                                    .ctx_table
-                                    .selected_ids
-                                    .iter()
-                                    .cloned()
-                                    .collect::<Vec<String>>(),
-                            ),
-                            config.dlt_tables.ctx_table.selected_ids.len() as i64,
-                        )
-                    } else {
-                        (None, 0)
-                    };
+                let app_id_count = app_ids.len() as i64;
+                let app_ids =
+                    (app_id_count > 0).then(|| app_ids.into_iter().collect::<Vec<String>>());
 
-                let ecu_ids = if !config.dlt_tables.ecu_table.selected_ids.is_empty() {
-                    Some(
-                        config
-                            .dlt_tables
-                            .ecu_table
-                            .selected_ids
-                            .iter()
-                            .cloned()
-                            .collect::<Vec<String>>(),
-                    )
-                } else {
-                    None
-                };
+                let context_id_count = ctx_ids.len() as i64;
+                let context_ids =
+                    (context_id_count > 0).then(|| ctx_ids.into_iter().collect::<Vec<String>>());
+
+                let ecu_ids = ecu_ids
+                    .is_empty()
+                    .not()
+                    .then(|| ecu_ids.into_iter().collect::<Vec<String>>());
 
                 let filter_config = DltFilterConfig {
                     min_log_level: Some(config.log_level as u8),
