@@ -128,10 +128,6 @@ When the user provides natural language instructions, interpret them as follows:
         &self,
         Parameters(params): Parameters<SearchFilters>,
     ) -> Result<CallToolResult, RmcpError> {
-        warn!(
-            "🟢 MCP server received apply_search_filter tool call with params: {:?}",
-            params
-        );
         let (task_result_tx, task_result_rx) = oneshot::channel();
         let task = ApplySearchFilter {
             filters: params.filters.clone(),
