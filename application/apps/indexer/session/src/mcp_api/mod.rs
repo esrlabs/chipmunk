@@ -62,10 +62,83 @@ pub async fn run(
                         } else {
                             let _ = task_result_tx.send(Ok(()));
                         }
-
                     },
-                    Tasks::CreateCharts {sequence, task_result_tx} => {
-                        warn!("Creating charts");
+                    Tasks::DropSearch { task_result_tx } => {
+                        let operation = Operation::new(session_uuid, OperationKind::Search { filters: vec![] });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::SearchValues { filters, task_result_tx } => {
+                        let operation = Operation::new(session_uuid, OperationKind::SearchValues { filters });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::ExtractMatches { filters, task_result_tx } => {
+                        let filters = filters.iter().map(|f| SearchFilter::new(
+                            f.value.clone(), f.is_regex, f.ignore_case, f.is_word
+                        )).collect();
+                        let operation = Operation::new(session_uuid, OperationKind::Extract { filters });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::GetChartHistogram { dataset_len, range, task_result_tx } => {
+                        let operation = Operation::new(session_uuid, OperationKind::Map { dataset_len, range });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::GetChartLinePlots { dataset_len, range, task_result_tx } => {
+                        let range = range.map(|r| r.0..=r.1);
+                        let operation = Operation::new(session_uuid, OperationKind::Values { dataset_len, range });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::Export { out_path, ranges, columns, spliter, delimiter, task_result_tx } => {
+                        let ranges = ranges.into_iter().map(|r| r.0..=r.1).collect();
+                        let operation = Operation::new(session_uuid, OperationKind::Export {
+                            out_path: out_path.into(), ranges, columns, spliter, delimiter
+                        });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::ExportRaw { out_path, ranges, task_result_tx } => {
+                        let ranges = ranges.into_iter().map(|r| r.0..=r.1).collect();
+                        let operation = Operation::new(session_uuid, OperationKind::ExportRaw {
+                            out_path: out_path.into(), ranges
+                        });
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    Tasks::GetNearestPosition { position_in_stream, task_result_tx } => {
+                        let operation = Operation::new(session_uuid, OperationKind::GetNearestPosition(position_in_stream));
+                        if let Err(err) = tx_operations.send(operation) {
+                            let _ = task_result_tx.send(Err(McpError::ToolExecution { message: err.to_string()}));
+                        } else {
+                            let _ = task_result_tx.send(Ok(()));
+                        }
+                    },
+                    _ => {
+                        warn!("Yet to be implemented");
                     }
                 }
             }
