@@ -92,10 +92,11 @@ impl Session {
 
             // TODO:[MCP] MOCK: Instead of receiving a prompts via the UI, we send a test prompt here
             let prompt: String = String::from(
-                "Genarate filter to filter out the following log lines where time is 13\n64 bytes from 172.217.19.164: icmp_seq=15 ttl=119 time=13.095 ms
-64 bytes from 172.217.19.164: icmp_seq=16 ttl=119 time=10.854 ms
-64 bytes from 172.217.19.164: icmp_seq=17 ttl=119 time=15.970 ms",
-            );
+                                "Genarate filter to filter out the following log lines where time is 32\n64 bytes from 172.217.19.164: icmp_seq=15 ttl=119 time=13.095 ms
+                64 bytes from 172.217.19.164: icmp_seq=16 ttl=119 time=10.854 ms
+                64 bytes from 172.217.19.164: icmp_seq=17 ttl=119 time=15.970 ms",
+                            );
+            // let prompt: String = String::from("Drop current search");
             if let Err(error) = mcp_api
                 .send_prompt(prompt)
                 .await

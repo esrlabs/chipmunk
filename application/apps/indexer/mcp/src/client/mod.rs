@@ -1,8 +1,6 @@
 // pub mod conversation;
 // pub mod llm;
 
-use std::any::Any;
-
 use log::{error, warn};
 use ollama_rs::generation::chat::{ChatMessage, request::ChatMessageRequest};
 use ollama_rs::generation::tools::{ToolFunctionInfo, ToolInfo, ToolType};
@@ -16,14 +14,13 @@ use rmcp::{
     service::{RunningService, ServiceExt},
     transport::StreamableHttpClientTransport,
 };
-use schemars::Schema;
-use serde_json::{Map, Value};
+use serde_json::Value;
 use tokio::{select, sync::mpsc};
 
 use crate::{
     errors::McpError,
     // client::llm::{Llm, LlmClient, LlmConfig},
-    types::{Prompt, Response, SearchFilter, SearchFilters},
+    types::{Prompt, Response},
 };
 
 // TODO:[MCP] store this in a single global location
@@ -133,6 +130,7 @@ impl McpClient {
                     match response.await {
                         Ok(res) => {
                             let tool_calls = res.message.tool_calls.clone();
+                            warn!("🤙🏻 Received Tool Call/s from LLM {tool_calls:?}");
                             let tool_call_params = tool_calls.iter().map(|tool_call| {
                                 CallToolRequestParam {
                                     name: tool_call.function.name.clone().into(),
@@ -169,46 +167,33 @@ impl McpClient {
 fn fetch_arguments(
     tool_call: &ollama_rs::generation::tools::ToolCall,
 ) -> Option<rmcp::model::JsonObject> {
-    let mut json_obj = rmcp::model::JsonObject::new();
+    let args_value = tool_call.function.arguments.clone();
+    let args_object = match args_value {
+        Value::Object(map) => Some(map),
+        Value::String(raw) => serde_json::from_str::<Value>(&raw)
+            .ok()
+            .and_then(|val| val.as_object().cloned()),
+        _ => None,
+    }?;
 
-    tool_call
-        .function
-        .arguments
-        .clone()
-        .as_object()
-        .and_then(|obj| obj.get("filters"))
-        .and_then(serde_json::Value::as_str)
-        .and_then(|str_val| Some(str_val.replace(r"\\", r"\\\\").replace("\'", "\"")))
-        .and_then(|str_val| serde_json::from_str::<serde_json::Value>(str_val.as_ref()).ok())
-        .and_then(|val| val.as_array().cloned())
-        .and_then(|arr| {
-            Some(
-                arr.iter()
-                    .map(|item| SearchFilter {
-                        value: item
-                            .get("value")
-                            .and_then(serde_json::Value::as_str)
-                            .unwrap_or("")
-                            .to_string(),
-                        is_regex: item
-                            .get("is_regex")
-                            .and_then(serde_json::Value::as_bool)
-                            .unwrap_or(false),
-                        ignore_case: item
-                            .get("ignore_case")
-                            .and_then(serde_json::Value::as_bool)
-                            .unwrap_or(false),
-                        is_word: item
-                            .get("is_word")
-                            .and_then(serde_json::Value::as_bool)
-                            .unwrap_or(false),
-                    })
-                    .filter_map(|filter| serde_json::to_value(filter).ok())
-                    .collect::<Vec<serde_json::Value>>(),
-            )
-        })
-        .map(|arr| json_obj.insert("filters".to_string(), serde_json::Value::Array(arr)));
+    let mut json_obj = rmcp::model::JsonObject::new();
+    for (key, value) in args_object {
+        json_obj.insert(key, normalize_json_value(value));
+    }
 
     warn!("☑️ Final call parameters are {json_obj:?}");
     Some(json_obj)
+}
+
+fn normalize_json_value(value: Value) -> Value {
+    match value {
+        Value::String(raw) => serde_json::from_str::<Value>(&raw).unwrap_or(Value::String(raw)),
+        Value::Array(items) => Value::Array(items.into_iter().map(normalize_json_value).collect()),
+        Value::Object(map) => Value::Object(
+            map.into_iter()
+                .map(|(k, v)| (k, normalize_json_value(v)))
+                .collect(),
+        ),
+        other => other,
+    }
 }
