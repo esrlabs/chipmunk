@@ -50,11 +50,6 @@ pub async fn run(
             Some(server_request) = task_rx.recv() => {
                 match server_request {
                     Tasks::ApplySearchFilter {filters, task_result_tx} => {
-
-                        warn!(
-                            "🟢 Chipmunk core received tool invocation ApplySearchFilter: {:?}", filters
-                        );
-
                         let filters = filters.iter().map(|f| SearchFilter::new(f.value.clone(), f.is_regex, f.ignore_case, f.is_word)).collect();
 
                         let operation = Operation::new(
