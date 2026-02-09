@@ -86,24 +86,9 @@ impl McpClient {
             mcp_service.peer_info()
         );
 
-        let tools = mcp_service.list_tools(Default::default()).await?;
-        tools.tools.iter().for_each(|tool| {
-            warn!(
-                "🟢 MCP client discovered tool: {} - {} (inputs: {:?})",
-                tool.name,
-                tool.description
-                    .as_ref()
-                    .map(|x| x.to_string())
-                    .unwrap_or("No description".to_string()),
-                tool.input_schema.keys().collect::<Vec<&String>>()
-            );
-        });
-
         // let llm = Llm::from_config(self.llm_config);
 
         tokio::spawn(async move {
-            warn!("🟢 Starting MCP Client");
-
             if let Err(e) = McpClient::run(
                 self.prompt_rx,
                 self.response_tx,
@@ -147,26 +132,21 @@ impl McpClient {
                     let response = ollama_client.send_chat_messages_with_history(&mut history, chat_message_request);
                     match response.await {
                         Ok(res) => {
-                            warn!("🟢 🥳 MCP Client received mock prompt response: {:?}", res);
                             let tool_calls = res.message.tool_calls.clone();
-                            warn!("🟢 🥳 Tool Calls {:?}", tool_calls);
                             let tool_call_params = tool_calls.iter().map(|tool_call| {
                                 CallToolRequestParam {
                                     name: tool_call.function.name.clone().into(),
                                     arguments: fetch_arguments(tool_call)
                                 }
                             }).collect::<Vec<rmcp::model::CallToolRequestParam>>().first().cloned();
-                            warn!("✔️ Tool Call Param {:?}", tool_call_params);
                             match tool_call_params {
                                 Some(param) => {
-                                    warn!("🟢 🥳 Calling tool with {:?}", param);
                                     let tool_result = mcp_service
                                     .call_tool(param)
                                     .await
                                     .map_err(|e| McpError::Generic {
                                         message: e.to_string(),
                                     })?;
-                                    warn!("✔️ Tool Call Result {:?}", tool_result);
                                 },
                                 None => {}
                             }
