@@ -257,7 +257,9 @@ impl NotificationUi {
                 ui.add_space(8.);
 
                 ScrollArea::vertical().max_height(12.).show(ui, |ui| {
-                    let msg_lbl = Label::new(notification_msg).wrap_mode(egui::TextWrapMode::Wrap);
+                    let msg_lbl = Label::new(notification_msg)
+                        .selectable(true)
+                        .wrap_mode(egui::TextWrapMode::Wrap);
                     ui.add(msg_lbl);
                 });
             })

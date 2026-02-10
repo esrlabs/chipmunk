@@ -251,6 +251,9 @@ impl TableDelegate for LogsDelegate<'_> {
     }
 
     fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {
+        // Users should be able to select the content of log files.
+        ui.style_mut().interaction.selectable_labels = true;
+
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
         Frame::NONE
