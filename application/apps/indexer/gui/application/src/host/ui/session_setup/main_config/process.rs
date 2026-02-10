@@ -95,8 +95,8 @@ fn working_dir(config: &mut ProcessConfig, actions: &mut UiActions, ui: &mut Ui)
     egui::Sides::new().show(
         ui,
         |ui| {
-            Label::new("Working Folder:").selectable(false).ui(ui);
-            Label::new(path_txt).ui(ui);
+            ui.label("Working Folder:");
+            Label::new(path_txt).selectable(true).ui(ui);
         },
         |ui| {
             let btn_size = vec2(12., height);

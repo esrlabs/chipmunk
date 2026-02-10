@@ -14,12 +14,12 @@ impl DetailsUI {
         ui.add_space(10.);
 
         Label::new(format!("Row #: {}", log.pos))
-            .selectable(false)
+            .selectable(true)
             .ui(ui);
 
         ui.add_space(10.);
 
         let content = RichText::new(&log.content).strong();
-        Label::new(content).ui(ui);
+        Label::new(content).selectable(true).ui(ui);
     }
 }

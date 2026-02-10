@@ -1,6 +1,6 @@
 use egui::{
-    Align, Button, ComboBox, Frame, Label, Layout, Margin, Popup, RectAlign, RichText, TextEdit,
-    Ui, Widget, vec2,
+    Align, Button, ComboBox, Frame, Layout, Margin, Popup, RectAlign, RichText, TextEdit, Ui,
+    Widget, vec2,
 };
 
 use crate::host::ui::session_setup::{
@@ -27,9 +27,7 @@ pub fn render_connection(config: &mut SerialConfig, ui: &mut Ui) -> RenderOutcom
     );
 
     ui.separator();
-    Label::new(RichText::new("Settings").heading().size(15.))
-        .selectable(false)
-        .ui(ui);
+    ui.label(RichText::new("Settings").heading().size(15.));
 
     ui.horizontal_wrapped(|ui| {
         ui.style_mut().spacing.combo_width = CONTROL_WIDTH;
@@ -201,7 +199,7 @@ fn labeled_field(ui: &mut Ui, label: &str, add_widget: impl FnOnce(&mut Ui)) {
             Frame::NONE
                 .inner_margin(Margin::symmetric(CONTROL_GROUP_SIDE_MARGIN, 0))
                 .show(ui, |ui| {
-                    Label::new(label).selectable(false).ui(ui);
+                    ui.label(label);
                     add_widget(ui);
                 });
         },

@@ -113,7 +113,7 @@ fn label_input_field(
     ui.allocate_ui_with_layout(vec2(200., 70.), Layout::top_down(Align::LEFT), |ui| {
         ui.style_mut().spacing.item_spacing.y += 2.;
 
-        Label::new(label).selectable(false).ui(ui);
+        ui.label(label);
 
         let input_res = TextEdit::singleline(value).hint_text(hint_text).ui(ui);
 
@@ -123,7 +123,7 @@ fn label_input_field(
                 .size(11.)
                 .color(ui.visuals().warn_fg_color);
 
-            ui.label(txt);
+            Label::new(txt).selectable(true).ui(ui);
         }
 
         ui.allocate_space(ui.available_size());
