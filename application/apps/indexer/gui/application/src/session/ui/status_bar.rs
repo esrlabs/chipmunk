@@ -8,11 +8,13 @@ use crate::{common::phosphor::icons, session::ui::shared::SessionShared};
 
 pub fn render_content(shared: &SessionShared, ui: &mut Ui) {
     ui.horizontal_centered(|ui| {
-        ui.label(format!(
+        Label::new(format!(
             "{} / {}",
             shared.search.total_count(),
             shared.logs.logs_count
-        ));
+        ))
+        .selectable(true)
+        .ui(ui);
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             observe_states(shared, ui);
@@ -72,14 +74,14 @@ fn observe_states(shared: &SessionShared, ui: &mut Ui) {
                     };
 
                     let title = RichText::new(title).heading().size(15.0);
-                    Label::new(title).selectable(false).ui(ui);
+                    ui.label(title);
 
                     ui.horizontal_centered(|ui| {
                         if let Some(duratio) = operation.total_run_duration() {
                             let duration_txt = format!("[{:.2}s]", duratio.as_secs_f32());
-                            Label::new(duration_txt).selectable(false).ui(ui);
+                            ui.label(duration_txt);
                         }
-                        Label::new(desc).selectable(false).ui(ui);
+                        ui.label(desc);
                     });
                 }
             });
@@ -105,7 +107,7 @@ fn observe_states(shared: &SessionShared, ui: &mut Ui) {
             },
         };
 
-        Label::new(name).selectable(false).truncate().ui(ui);
+        Label::new(name).truncate().ui(ui);
 
         let (res, painter) = ui.allocate_painter(Vec2::splat(9.0), Sense::empty());
 

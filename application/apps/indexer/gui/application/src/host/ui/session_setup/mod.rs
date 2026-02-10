@@ -124,24 +124,26 @@ impl SessionSetup {
             self.state.update_parser(selected_parser);
         }
 
-        Label::new("Used Parser:").selectable(false).ui(ui);
+        ui.label("Used Parser:");
 
         ui.add_space(10.);
 
         match &mut self.state.source {
             ByteSourceConfig::File(source_file_info) => {
                 if let Some(size) = &source_file_info.size_byte {
-                    Label::new(format!("({})", file_utls::format_file_size(*size))).ui(ui);
+                    Label::new(format!("({})", file_utls::format_file_size(*size)))
+                        .selectable(true)
+                        .ui(ui);
                 }
-                Label::new(RichText::new(source_file_info.name.as_str()).strong()).ui(ui);
+                Label::new(RichText::new(source_file_info.name.as_str()).strong())
+                    .selectable(true)
+                    .ui(ui);
             }
             ByteSourceConfig::Concat(files) => {
                 let size = files.iter().filter_map(|f| f.size_byte).sum();
                 Label::new(format!("({})", file_utls::format_file_size(size))).ui(ui);
 
-                Label::new(RichText::new(format!("{} files", files.len())).strong())
-                    .selectable(false)
-                    .ui(ui)
+                ui.label(RichText::new(format!("{} files", files.len())).strong())
                     .on_hover_ui(|ui| {
                         files.iter().enumerate().for_each(|(idx, f)| {
                             if idx != 0 {
@@ -150,7 +152,7 @@ impl SessionSetup {
                             Label::new(format!("{}", f.path.display())).ui(ui);
                         });
                     });
-                Label::new("Concating:").selectable(false).ui(ui);
+                ui.label("Concating:");
             }
             ByteSourceConfig::Stream(stream_config) => {
                 let mut selected_stream = StreamNames::from(stream_config.deref());
@@ -173,7 +175,7 @@ impl SessionSetup {
                     self.state.update_stream(selected_stream);
                 }
 
-                Label::new("Stream From:").selectable(false).ui(ui);
+                ui.label("Stream From:");
             }
         }
     }

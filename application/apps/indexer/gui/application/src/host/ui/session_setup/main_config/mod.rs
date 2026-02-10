@@ -91,7 +91,7 @@ fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) -> R
     let mut outcome = RenderOutcome::None;
 
     ui.vertical(|ui| {
-        Label::new("Socket Address:").selectable(false).ui(ui);
+        ui.label("Socket Address:");
 
         let ip_txt_res = TextEdit::singleline(config.bind_addr())
             .vertical_align(Align::Center)
@@ -113,7 +113,7 @@ fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) -> R
                     .size(10.5)
                     .small()
                     .color(ui.style().visuals.warn_fg_color);
-                Label::new(err_txt).selectable(false).ui(ui);
+                Label::new(err_txt).selectable(true).ui(ui);
             }
         });
     });
