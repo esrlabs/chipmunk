@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::ensure;
 use eframe::NativeOptions;
-use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, Widget, vec2};
+use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, vec2};
 use itertools::Itertools;
 use log::{info, trace, warn};
 
@@ -11,6 +11,7 @@ use crate::{
     common::{modal::show_modal, phosphor},
     host::{
         command::{HostCommand, StartSessionParam},
+        common::app_style,
         communication::{UiReceivers, UiSenders},
         message::HostMessage,
         service::HostService,
@@ -79,6 +80,8 @@ impl Host {
                     state: HostState::default(),
                     ui_actions: UiActions::new(tokio_handle),
                 };
+
+                ctx.egui_ctx.all_styles_mut(app_style::global_styles);
 
                 host.handle_cli(cli_cmds)?;
 
@@ -262,12 +265,10 @@ impl Host {
 
                 ui.add_space(6.);
 
-                egui::Label::new(
+                ui.label(
                     "A file picker is currently open.\
                     If you don't see it, please check your taskbar or move this window",
-                )
-                .selectable(false)
-                .ui(ui);
+                );
             })
         });
     }

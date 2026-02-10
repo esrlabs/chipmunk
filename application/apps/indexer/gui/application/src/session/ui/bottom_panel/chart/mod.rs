@@ -340,7 +340,6 @@ impl ChartUI {
                 the chart will be rendered.",
                 )
                 .halign(egui::Align::Min)
-                .selectable(false)
                 .ui(ui);
             },
         );

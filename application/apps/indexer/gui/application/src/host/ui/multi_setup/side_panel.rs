@@ -37,9 +37,7 @@ impl MultiSidePanel {
     }
 
     fn render_summary(ui: &mut Ui, state: &mut MultiFileState) {
-        Label::new(RichText::new("Summary").heading())
-            .selectable(false)
-            .ui(ui);
+        ui.label(RichText::new("Summary").heading());
 
         ui.add_space(6.);
 
@@ -55,9 +53,7 @@ impl MultiSidePanel {
     }
 
     fn render_overview(&mut self, ui: &mut Ui, state: &mut MultiFileState) {
-        Label::new(RichText::new("Concat Overview").heading())
-            .selectable(false)
-            .ui(ui);
+        ui.label(RichText::new("Concat Overview").heading());
         ui.add_space(6.);
 
         // ------------------------------
