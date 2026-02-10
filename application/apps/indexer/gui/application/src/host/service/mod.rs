@@ -187,7 +187,7 @@ impl HostService {
 
             self.communication
                 .senders
-                .send_message(HostMessage::SessionSetupOpened(session_setup))
+                .send_message(HostMessage::SessionSetupOpened(Box::new(session_setup)))
                 .await;
         } else {
             // Start sessions directly for text files.
@@ -200,7 +200,7 @@ impl HostService {
             self.communication
                 .senders
                 .send_message(HostMessage::SessionCreated {
-                    session_params,
+                    session_params: Box::new(session_params),
                     session_setup_id: None,
                 })
                 .await;
@@ -238,7 +238,7 @@ impl HostService {
 
         self.communication
             .senders
-            .send_message(HostMessage::MultiFilesSetup(state))
+            .send_message(HostMessage::MultiFilesSetup(Box::new(state)))
             .await;
 
         Ok(())
@@ -273,7 +273,7 @@ impl HostService {
         let files = files.into_iter().map(|path| (path, format)).collect_vec();
 
         let state = MultiFileState::new(files);
-        let msg = HostMessage::MultiFilesSetup(state);
+        let msg = HostMessage::MultiFilesSetup(Box::new(state));
 
         self.communication.senders.send_message(msg).await;
 
@@ -357,7 +357,7 @@ impl HostService {
 
                     self.communication
                         .senders
-                        .send_message(HostMessage::SessionSetupOpened(session_setup))
+                        .send_message(HostMessage::SessionSetupOpened(Box::new(session_setup)))
                         .await;
                 }
                 ParserConfig::Text => {
@@ -387,7 +387,7 @@ impl HostService {
                     self.communication
                         .senders
                         .send_message(HostMessage::SessionCreated {
-                            session_params,
+                            session_params: Box::new(session_params),
                             session_setup_id: None,
                         })
                         .await;
@@ -422,7 +422,7 @@ impl HostService {
 
         self.communication
             .senders
-            .send_message(HostMessage::SessionSetupOpened(session_setup))
+            .send_message(HostMessage::SessionSetupOpened(Box::new(session_setup)))
             .await;
     }
 
@@ -439,7 +439,7 @@ impl HostService {
                         senders
                             .send_message(HostMessage::DltStatistics {
                                 setup_session_id,
-                                statistics: Some(statistics),
+                                statistics: Some(Box::new(statistics)),
                             })
                             .await;
                     });
@@ -574,7 +574,7 @@ impl HostService {
         self.communication
             .senders
             .send_message(HostMessage::SessionCreated {
-                session_params,
+                session_params: Box::new(session_params),
                 session_setup_id,
             })
             .await;
