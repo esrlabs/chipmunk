@@ -129,7 +129,7 @@ impl Host {
         match message {
             HostMessage::SessionSetupOpened(setup_state) => self
                 .state
-                .add_session_setup(setup_state, self.senders.cmd_tx.clone()),
+                .add_session_setup(*setup_state, self.senders.cmd_tx.clone()),
             HostMessage::DltStatistics {
                 setup_session_id,
                 statistics,
@@ -137,17 +137,17 @@ impl Host {
                 if let Some(setup) = self.state.session_setups.get_mut(&setup_session_id)
                     && let ParserConfig::Dlt(config) = &mut setup.state.parser
                 {
-                    config.dlt_statistics = Some(Box::new(statistics.unwrap_or_default()));
+                    config.dlt_statistics = Some(Box::new(*statistics.unwrap_or_default()));
                     config.update_summary();
                 }
             }
             HostMessage::SessionCreated {
                 session_params,
                 session_setup_id,
-            } => self.state.add_session(session_params, session_setup_id),
+            } => self.state.add_session(*session_params, session_setup_id),
             HostMessage::MultiFilesSetup(state) => self
                 .state
-                .add_multi_files(state, self.senders.cmd_tx.clone()),
+                .add_multi_files(*state, self.senders.cmd_tx.clone()),
             HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
             HostMessage::MultiSetupClose { id } => self.state.close_multi_setup(id),
         }
