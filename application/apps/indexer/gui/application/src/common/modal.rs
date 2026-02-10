@@ -1,5 +1,5 @@
 use egui::{
-    Button, Context, Frame, Id, Label, ModalResponse, NumExt as _, Spinner, Ui, Widget as _, vec2,
+    Button, Context, Frame, Id, ModalResponse, NumExt as _, Spinner, Ui, Widget as _, vec2,
 };
 
 /// Show standard modal dialog filled with the provided content.
@@ -31,7 +31,7 @@ where
     show_modal(ctx, "busy indicator", 200.0, |ui| {
         ui.vertical_centered(|ui| {
             if let Some(label) = label {
-                Label::new(label).selectable(false).ui(ui);
+                ui.label(label);
                 ui.add_space(5.);
             }
             Spinner::new().size(25.).ui(ui);

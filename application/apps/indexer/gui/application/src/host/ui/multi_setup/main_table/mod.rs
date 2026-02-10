@@ -10,9 +10,7 @@ mod table_columns;
 
 pub fn render_content(ui: &mut Ui, state: &mut MultiFileState) {
     main_panel_group_frame(ui).show(ui, |ui| {
-        Label::new(RichText::new("Multiple files").heading())
-            .selectable(false)
-            .ui(ui);
+        ui.label(RichText::new("Multiple files").heading());
 
         ui.add_space(10.);
 
@@ -73,11 +71,9 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
 }
 
 fn table_header(ui: &mut Ui, column: TableColumn) {
-    Label::new(RichText::new(column.header()).strong())
-        .selectable(false)
-        .ui(ui);
+    ui.label(RichText::new(column.header()).strong());
 }
 
 fn table_cell_text(ui: &mut Ui, content: String) {
-    Label::new(content).selectable(false).truncate().ui(ui);
+    Label::new(content).truncate().ui(ui);
 }

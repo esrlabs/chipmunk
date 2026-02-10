@@ -1,8 +1,8 @@
 use tokio::sync::mpsc::Sender;
 
 use egui::{
-    Align, Button, Frame, Id, Key, Label, Layout, Margin, Modifiers, RichText, Stroke, TextEdit,
-    Ui, Widget, vec2,
+    Align, Button, Frame, Id, Key, Layout, Margin, Modifiers, RichText, Stroke, TextEdit, Ui,
+    Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
 use uuid::Uuid;
@@ -226,7 +226,7 @@ impl SearchBar {
                 shared.search.total_count(),
                 logs_count,
             );
-            Label::new(state_txt).selectable(false).ui(ui);
+            ui.label(state_txt);
 
             if shared
                 .search

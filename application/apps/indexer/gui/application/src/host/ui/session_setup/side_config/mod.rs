@@ -1,4 +1,4 @@
-use egui::{Color32, Label, RichText, Ui, Widget};
+use egui::{Color32, RichText, Ui};
 
 use crate::host::{
     common::{parsers::ParserNames, ui_utls::side_panel_group_frame},
@@ -50,7 +50,7 @@ fn validation_errors(state: &SessionSetupState, ui: &mut Ui) {
             } else {
                 Color32::DARK_RED
             });
-            Label::new(txt).selectable(false).ui(ui);
+            ui.label(txt);
         }
     });
 }
