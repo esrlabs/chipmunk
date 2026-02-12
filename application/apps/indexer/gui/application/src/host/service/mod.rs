@@ -39,7 +39,7 @@ use crate::{
     session::{InitSessionError, service::SessionService},
 };
 
-mod file;
+pub mod file;
 
 #[derive(Debug)]
 pub struct HostService {
