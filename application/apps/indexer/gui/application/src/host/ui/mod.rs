@@ -31,7 +31,7 @@ use state::HostState;
 
 pub use actions::{HostAction, UiActions};
 
-mod actions;
+pub mod actions;
 mod home;
 mod menu;
 pub mod multi_setup;

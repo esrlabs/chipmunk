@@ -1,95 +1,169 @@
 use std::path::Path;
 
-use egui::{Button, Label, RichText, Ui, Widget};
-use stypes::ObserveOrigin;
+use egui::{Align, Button, Label, Layout, RichText, ScrollArea, Ui, Widget};
+use stypes::{FileFormat, ObserveOrigin};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
-    host::{command::HostCommand, ui::UiActions},
+    host::{
+        command::HostCommand,
+        common::parsers::ParserNames,
+        ui::{UiActions, actions::FileDialogFilter},
+    },
     session::{
-        command::SessionCommand,
+        command::{AttachSource, SessionCommand},
         types::{ObserveOperation, OperationPhase},
-        ui::shared::ObserveState,
+        ui::shared::{ObserveState, SessionShared},
     },
 };
 
+const ATTATCH_FILE_ID: &str = "session_files_observe_tab";
+
 pub fn render_content(
     ui: &mut Ui,
-    operation: &ObserveOperation,
+    shared: &mut SessionShared,
     actions: &mut UiActions,
     cmd_rx: &mpsc::Sender<SessionCommand>,
     host_cmd_tx: &mpsc::Sender<HostCommand>,
 ) {
+    check_attach_dialog(actions, cmd_rx);
+
     super::render_group_title(ui, "Files");
 
     let space = 5.;
     ui.add_space(space);
 
-    attach_files(ui);
+    let Some(first_operation) = shared.observe.operations().first() else {
+        return;
+    };
+
+    // All files will shared the same state because:
+    // * Tailing can be applied to one file only.
+    // * Multiple files don't support tailing and will be done by default.
+    let is_tailing = match first_operation.phase() {
+        OperationPhase::Initializing | OperationPhase::Processing => true,
+        OperationPhase::Done => false,
+    };
+    let parser = shared.get_info().parser;
+    attach_files(ui, first_operation, actions, is_tailing, parser);
     ui.add_space(space);
 
-    files_list(ui, operation, actions, cmd_rx, host_cmd_tx);
+    files_list(
+        ui,
+        &shared.observe,
+        actions,
+        cmd_rx,
+        host_cmd_tx,
+        is_tailing,
+    );
 }
 
-fn attach_files(ui: &mut Ui) {
-    ui.horizontal_wrapped(|ui| {
-        ui.label("Attach New File TODO");
+fn attach_files(
+    ui: &mut Ui,
+    operation: &ObserveOperation,
+    actions: &mut UiActions,
+    is_tailing: bool,
+    parser: ParserNames,
+) {
+    let id = ui.make_persistent_id(format!("attach_{}", operation.id));
+    super::render_attach_source(ui, id, "Attach New File", |ui| {
+        let file_format = match &operation.origin {
+            ObserveOrigin::File(..) => {
+                ui.label("Single file has been opened. In this case you cannot attach new sources");
+                return;
+            }
+            ObserveOrigin::Concat(files) => {
+                if is_tailing {
+                    ui.label("Cannot attach new sources while file is tailing");
+                    return;
+                }
+
+                files
+                    .first()
+                    .map(|f| f.1)
+                    .unwrap_or(stypes::FileFormat::Text)
+            }
+            ObserveOrigin::Stream(..) => return,
+        };
+
+        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+            if ui.button("Attach Files").clicked() {
+                let mut filters = Vec::new();
+                match file_format {
+                    FileFormat::PcapNG => {
+                        filters.push(FileDialogFilter::new(
+                            "PcapNG",
+                            vec![String::from("pcapng")],
+                        ));
+                    }
+                    FileFormat::PcapLegacy => {
+                        filters.push(FileDialogFilter::new("Pcap", vec![String::from("pcap")]));
+                    }
+                    FileFormat::Text => {}
+                    FileFormat::Binary => match parser {
+                        ParserNames::Dlt => {
+                            filters.push(FileDialogFilter::new("DLT", vec![String::from("dlt")]));
+                        }
+                        ParserNames::SomeIP | ParserNames::Text => {}
+                        ParserNames::Plugins => todo!("Plugins not supported yet"),
+                    },
+                };
+                actions.file_dialog.pick_files(ATTATCH_FILE_ID, &filters);
+            }
+        });
     });
 }
 
 fn files_list(
     ui: &mut Ui,
-    operation: &ObserveOperation,
+    state: &ObserveState,
     actions: &mut UiActions,
     cmd_rx: &mpsc::Sender<SessionCommand>,
     host_cmd_tx: &mpsc::Sender<HostCommand>,
+    is_tailing: bool,
 ) {
-    // All files will shared the same state because:
-    // * Tailing can be applied to one file only.
-    // * Multiple files don't support tailing and will be done by default.
-    let is_tailing = match operation.phase() {
-        OperationPhase::Initializing | OperationPhase::Processing => true,
-        OperationPhase::Done => false,
-    };
     let title = if is_tailing { "Tailing" } else { "Opened" };
 
     // File sources can't be mixed with other type of sources.
-    let files_count = match &operation.origin {
-        ObserveOrigin::File(..) => 1,
-        ObserveOrigin::Concat(items) => items.len(),
-        ObserveOrigin::Stream(..) => return,
-    };
+    let files_count = state.sources_count();
 
     let title = format!("{title} ({files_count})");
     ui.heading(RichText::new(title).size(14.0));
 
-    match &operation.origin {
-        ObserveOrigin::File(_, _, path_buf) => {
-            let button = if is_tailing {
-                ButtonAction::Stop {
-                    op_id: operation.id,
+    ScrollArea::vertical().show(ui, |ui| {
+        let mut idx = 0;
+        for operation in state.operations() {
+            match &operation.origin {
+                ObserveOrigin::File(_, _, path_buf) => {
+                    let button = if is_tailing {
+                        ButtonAction::Stop {
+                            op_id: operation.id,
+                        }
+                    } else {
+                        ButtonAction::NewSession
+                    };
+                    render_file(ui, path_buf, button, idx, actions, cmd_rx, host_cmd_tx);
+                    idx += 1;
                 }
-            } else {
-                ButtonAction::NewSession
-            };
-            render_file(ui, path_buf, button, 0, actions, cmd_rx, host_cmd_tx)
-        }
-        ObserveOrigin::Concat(items) => {
-            for (idx, (_, _, path)) in items.iter().enumerate() {
-                let button = if is_tailing {
-                    ButtonAction::Stop {
-                        op_id: operation.id,
+                ObserveOrigin::Concat(items) => {
+                    for (_, _, path) in items {
+                        let button = if is_tailing {
+                            ButtonAction::Stop {
+                                op_id: operation.id,
+                            }
+                        } else {
+                            ButtonAction::NewSession
+                        };
+                        render_file(ui, path, button, idx, actions, cmd_rx, host_cmd_tx);
+                        idx += 1;
                     }
-                } else {
-                    ButtonAction::NewSession
-                };
-                render_file(ui, path, button, idx, actions, cmd_rx, host_cmd_tx);
+                }
+                ObserveOrigin::Stream(..) => {}
             }
         }
-        ObserveOrigin::Stream(..) => {}
-    }
+    });
 }
 
 #[derive(Debug)]
@@ -162,4 +236,19 @@ fn render_file(
             });
         },
     );
+}
+
+fn check_attach_dialog(actions: &mut UiActions, cmd_rx: &mpsc::Sender<SessionCommand>) {
+    let Some(paths) = actions.file_dialog.take_output(ATTATCH_FILE_ID) else {
+        return;
+    };
+
+    if paths.is_empty() {
+        return;
+    }
+
+    let cmd = SessionCommand::AttachSource {
+        source: Box::new(AttachSource::Files(paths)),
+    };
+    actions.try_send_command(cmd_rx, cmd);
 }
