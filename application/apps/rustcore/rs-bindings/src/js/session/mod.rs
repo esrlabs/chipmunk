@@ -126,6 +126,15 @@ impl RustSession {
     }
 
     #[node_bindgen]
+    async fn send_prompt(&self, prompt: String) -> Result<(), stypes::ComputationError> {
+        self.session
+            .as_ref()
+            .ok_or(stypes::ComputationError::SessionUnavailable)?
+            .send_prompt(prompt)
+            .await
+    }
+
+    #[node_bindgen]
     async fn get_stream_len(&self) -> Result<i64, stypes::ComputationError> {
         self.session
             .as_ref()

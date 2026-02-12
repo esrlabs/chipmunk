@@ -35,6 +35,7 @@ pub struct Session {
     tx_operations: UnboundedSender<Operation>,
     destroyed: CancellationToken,
     destroying: CancellationToken,
+    mcp_api: McpApi,
     pub state: SessionStateAPI,
     pub tracker: OperationTrackerAPI,
 }
@@ -58,16 +59,17 @@ impl Session {
             UnboundedSender<stypes::CallbackEvent>,
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
+        let (mcp_server, mcp_client, mcp_api_endpoints) = mcp::new();
+        let mcp_api = McpApi::new(mcp_api_endpoints.prompt_tx.clone());
         let session = Self {
             uuid,
             tx_operations: tx_operations.clone(),
             destroyed: CancellationToken::new(),
             destroying: CancellationToken::new(),
+            mcp_api,
             state: state_api.clone(),
             tracker: tracker_api.clone(),
         };
-        let (mcp_server, mcp_client, mcp_api_endpoints) = mcp::new();
-        let mcp_api = McpApi::new(mcp_api_endpoints.prompt_tx.clone());
         let destroyed = session.destroyed.clone();
         let destroying = session.destroying.clone();
         let (tx, rx) = oneshot::channel();
@@ -87,21 +89,6 @@ impl Session {
 
             if let Err(error) = mcp_client.start().await {
                 error!("🔴 Error starting MCP client {}", error);
-            }
-
-            // TODO:[MCP] MOCK: Instead of receiving a prompts via the UI, we send a test prompt here
-            let prompt: String = String::from(
-                                "Genarate filter to filter out the following log lines where time is 32\n64 bytes from 172.217.19.164: icmp_seq=15 ttl=119 time=13.095 ms
-                64 bytes from 172.217.19.164: icmp_seq=16 ttl=119 time=10.854 ms
-                64 bytes from 172.217.19.164: icmp_seq=17 ttl=119 time=15.970 ms",
-                            );
-            // let prompt: String = String::from("Drop current search");
-            if let Err(error) = mcp_api
-                .send_prompt(prompt)
-                .await
-                .map_err(|e| stypes::ComputationError::Communication(e.message.unwrap_or_default()))
-            {
-                error!("🔴 Failed to send test prompt to MCP client: {:?}", error);
             }
 
             let tx_callback_events_state = tx_callback_events.clone();
@@ -185,6 +172,13 @@ impl Session {
     }
     pub fn get_state(&self) -> SessionStateAPI {
         self.state.clone()
+    }
+
+    pub async fn send_prompt(&self, prompt: String) -> Result<(), stypes::ComputationError> {
+        self.mcp_api
+            .send_prompt(prompt)
+            .await
+            .map_err(|e| stypes::ComputationError::Communication(e.message.unwrap_or_default()))
     }
 
     pub async fn grab(

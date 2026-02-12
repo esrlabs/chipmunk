@@ -1,0 +1,44 @@
+<div class="caption">
+    <span class="title">Chat</span>
+    <span class="subtitle">({{messages.length}})</span>
+    <span class="filler"></span>
+    <button
+        mat-icon-button
+        aria-label="Clear chat"
+        *ngIf="messages.length > 0"
+        (click)="ngOnClear()"
+    >
+        <mat-icon>delete_sweep</mat-icon>
+    </button>
+</div>
+
+<div class="messages">
+    <p class="empty" *ngIf="messages.length === 0">No messages yet.</p>
+    <div class="message" *ngFor="let message of messages">
+        <div class="message-header">
+            <span class="message-author">You</span>
+            <span class="message-time">{{message.time}}</span>
+        </div>
+        <div class="message-text">{{message.text}}</div>
+    </div>
+</div>
+
+<div class="composer">
+    <mat-form-field appearance="fill" class="composer-field">
+        <textarea
+            matInput
+            rows="2"
+            placeholder="Type a message"
+            [(ngModel)]="draft"
+            (keydown)="ngOnKeydown($event)"
+        ></textarea>
+    </mat-form-field>
+    <button
+        mat-icon-button
+        aria-label="Send message"
+        (click)="ngOnSend()"
+        [disabled]="draft.trim().length === 0"
+    >
+        <mat-icon>send</mat-icon>
+    </button>
+</div>

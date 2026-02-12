@@ -1,0 +1,100 @@
+@import '../../../styles/variables.less';
+
+app-views-chat {
+    position: absolute;
+    display: block;
+    padding: 0;
+    margin: 0;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+    overflow: hidden;
+
+    & > div.caption {
+        position: sticky !important;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        background: var(--scheme-color-5);
+        display: flex;
+        padding: 0 22px;
+        margin: 0;
+        text-align: left;
+        align-items: center;
+        white-space: nowrap;
+        font-size: 0.9rem;
+        font-weight: 400;
+        height: 32px;
+
+        span.title {
+            color: var(--scheme-color-2);
+        }
+
+        span.subtitle {
+            padding-left: 6px;
+            color: var(--scheme-color-3);
+        }
+
+        & span.filler {
+            flex: auto;
+        }
+    }
+
+    & .messages {
+        position: absolute;
+        top: 32px;
+        bottom: 72px;
+        left: 0;
+        right: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 8px 16px 0;
+    }
+
+    & .empty {
+        margin: 8px 0 0;
+        color: var(--scheme-color-3);
+    }
+
+    & .message {
+        background: var(--scheme-color-4);
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        color: var(--scheme-color-1);
+    }
+
+    & .message-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--scheme-color-3);
+        margin-bottom: 4px;
+    }
+
+    & .message-text {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    & .composer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--scheme-color-5);
+        align-items: flex-end;
+    }
+
+    & .composer-field {
+        flex: 1 1 auto;
+    }
+
+    & .composer-field .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+    }
+}

@@ -172,6 +172,10 @@ export class Session {
         return this._session.getSessionFile();
     }
 
+    public sendMcpPrompt(prompt: string): Promise<void> {
+        return this._session.sendPrompt(prompt);
+    }
+
     public getEvents(): ISessionEvents {
         if (this._provider === undefined) {
             throw new Error(`EventProvider wasn't created`);

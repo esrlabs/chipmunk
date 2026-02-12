@@ -178,6 +178,19 @@ export class Session extends Base {
             },
         });
         this._sidebar.add({
+            uuid: ids.SIDEBAR_TAB_CHAT,
+            name: 'Chat',
+            active: false,
+            closable: false,
+            uppercaseTitle: true,
+            content: {
+                factory: components.get('app-views-chat'),
+                inputs: {
+                    session: this,
+                },
+            },
+        });
+        this._sidebar.add({
             uuid: ids.SIDEBAR_TAB_TEAMWORK,
             name: 'Teamwork',
             active: false,
@@ -267,6 +280,16 @@ export class Session extends Base {
         return this._uuid;
     }
 
+    public sendMcpPrompt(prompt: string): Promise<void> {
+        return Requests.IpcRequest.send<Requests.Session.McpPrompt.Response>(
+            Requests.Session.McpPrompt.Response,
+            new Requests.Session.McpPrompt.Request({
+                session: this.uuid(),
+                prompt,
+            }),
+        ).then(() => undefined);
+    }
+
     public sidebar(): TabsService | undefined {
         return this._sidebar;
     }
@@ -288,6 +311,7 @@ export class Session extends Base {
             attachments(): void;
             observing(): void;
             teamwork(): void;
+            chat(): void;
         };
     } {
         return {
@@ -320,6 +344,9 @@ export class Session extends Base {
                 },
                 teamwork: (): void => {
                     this._sidebar.setActive(ids.SIDEBAR_TAB_TEAMWORK);
+                },
+                chat: (): void => {
+                    this._sidebar.setActive(ids.SIDEBAR_TAB_CHAT);
                 },
             },
         };
