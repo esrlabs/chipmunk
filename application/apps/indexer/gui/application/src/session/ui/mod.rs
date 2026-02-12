@@ -199,6 +199,9 @@ impl Session {
 
                     self.bottom_panel.chart.update_line_plots(values);
                 }
+                SessionMessage::SourceAdded { observe_op } => {
+                    self.shared.add_operation(*observe_op);
+                }
                 SessionMessage::OperationUpdated {
                     operation_id,
                     phase,

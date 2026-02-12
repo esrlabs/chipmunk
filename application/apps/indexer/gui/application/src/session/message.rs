@@ -1,7 +1,11 @@
 use stypes::{FilterMatch, GrabbedElement, NearestPosition};
 use uuid::Uuid;
 
-use crate::session::{error::SessionError, types::OperationPhase, ui::chart::ChartBar};
+use crate::session::{
+    error::SessionError,
+    types::{ObserveOperation, OperationPhase},
+    ui::chart::ChartBar,
+};
 
 /// Messages sent to Session UI form services.
 #[derive(Debug)]
@@ -36,4 +40,7 @@ pub enum SessionMessage {
         operation_id: Uuid,
         phase: OperationPhase,
     },
+
+    /// Source has been added to session.
+    SourceAdded { observe_op: Box<ObserveOperation> },
 }

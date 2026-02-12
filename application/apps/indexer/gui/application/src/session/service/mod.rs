@@ -6,13 +6,14 @@ use uuid::Uuid;
 
 use processor::grabber::LineRange;
 use session_core::session::Session;
-use stypes::{CallbackEvent, ComputationError, ObserveOptions};
+use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin};
 
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
-    host::notification::AppNotification,
+    host::{notification::AppNotification, service::file::get_file_format},
     session::{
         InitSessionError, InitSessionParams,
+        command::AttachSource,
         communication::{self, ServiceSenders, SharedSenders},
         message::SessionMessage,
         types::{ObserveOperation, OperationPhase},
@@ -241,6 +242,49 @@ impl SessionService {
 
                 self.senders
                     .send_session_msg(SessionMessage::ChartLinePlots(values))
+                    .await;
+            }
+            SessionCommand::AttachSource { source } => {
+                let executed = self
+                    .session
+                    .state
+                    .get_executed_holder()
+                    .await
+                    .map_err(SessionError::NativeError)?;
+
+                let Some(parser) = executed.executed.first().map(|opt| opt.parser.to_owned())
+                else {
+                    if cfg!(debug_assertions) {
+                        panic!("No executed operatoins");
+                    }
+                    return Ok(ControlFlow::Continue(()));
+                };
+
+                let origin = match *source {
+                    AttachSource::Files(paths) => {
+                        let files = paths
+                            .into_iter()
+                            .map(|path| {
+                                (
+                                    Uuid::new_v4().to_string(),
+                                    get_file_format(&path).unwrap_or(stypes::FileFormat::Text),
+                                    path,
+                                )
+                            })
+                            .collect_vec();
+                        ObserveOrigin::Concat(files)
+                    }
+                };
+                let observe_id = Uuid::new_v4();
+                let observe_op = ObserveOperation::new(observe_id, origin.clone());
+
+                self.session
+                    .observe(observe_id, ObserveOptions { origin, parser })?;
+
+                self.senders
+                    .send_session_msg(SessionMessage::SourceAdded {
+                        observe_op: Box::new(observe_op),
+                    })
                     .await;
             }
             SessionCommand::CancelOperation { id } => {

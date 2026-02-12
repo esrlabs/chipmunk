@@ -1,8 +1,12 @@
-use egui::{Color32, Frame, Margin, RichText, Sense, Sides, Ui, vec2};
+use egui::{
+    Button, Color32, Frame, Id, Margin, RichText, Sense, Sides, Ui, Widget,
+    collapsing_header::CollapsingState, vec2,
+};
 use stypes::{ObserveOrigin, Transport};
 use tokio::sync::mpsc;
 
 use crate::{
+    common::phosphor::icons,
     host::{command::HostCommand, ui::UiActions},
     session::{command::SessionCommand, ui::shared::SessionShared},
 };
@@ -53,13 +57,9 @@ impl ObservingUi {
                 };
 
                 match &first_operation.origin {
-                    ObserveOrigin::File(..) | ObserveOrigin::Concat(..) => file::render_content(
-                        ui,
-                        first_operation,
-                        actions,
-                        &self.cmd_tx,
-                        &self.host_cmd_tx,
-                    ),
+                    ObserveOrigin::File(..) | ObserveOrigin::Concat(..) => {
+                        file::render_content(ui, shared, actions, &self.cmd_tx, &self.host_cmd_tx)
+                    }
                     ObserveOrigin::Stream(_, transport) => match transport {
                         Transport::Process(..) => process::render_content(shared, ui),
                         Transport::TCP(..) => tcp::render_content(shared, ui),
@@ -115,4 +115,35 @@ fn render_observe_item(
             button_content(ui);
         },
     );
+}
+
+fn render_attach_source(ui: &mut Ui, id: Id, title: &str, collaps_content: impl FnOnce(&mut Ui)) {
+    let mut state = CollapsingState::load_with_default_open(ui.ctx(), id, false);
+
+    Sides::new().shrink_left().truncate().height(25.0).show(
+        ui,
+        |ui| {
+            ui.label(title);
+        },
+        {
+            |ui| {
+                use icons::regular as ic;
+
+                let icon = if state.is_open() {
+                    ic::CARET_UP
+                } else {
+                    ic::CARET_DOWN
+                };
+                let btn_res = Button::new(RichText::new(icon).size(18.0))
+                    .frame(false)
+                    .frame_when_inactive(false)
+                    .ui(ui);
+                if btn_res.clicked() {
+                    state.toggle(ui);
+                }
+            }
+        },
+    );
+
+    state.show_body_unindented(ui, |ui| collaps_content(ui));
 }
