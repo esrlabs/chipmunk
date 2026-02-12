@@ -62,4 +62,9 @@ impl SessionShared {
         self.search.drop_search();
         self.signals.push(SessionSignal::SearchDropped);
     }
+
+    pub fn add_operation(&mut self, observe_op: ObserveOperation) {
+        self.observe.add_operation(observe_op);
+        self.session_info.update_title(&self.observe);
+    }
 }

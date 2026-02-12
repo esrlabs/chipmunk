@@ -31,7 +31,7 @@ impl ObserveState {
         colors::HIGHLIGHT_COLORS[source_idx % colors::HIGHLIGHT_COLORS.len()].bg
     }
 
-    pub fn add_operation(&mut self, observe_op: ObserveOperation) {
+    pub(super) fn add_operation(&mut self, observe_op: ObserveOperation) {
         let Self {
             sources_count,
             operations,
