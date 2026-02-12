@@ -76,7 +76,7 @@ fn observe_states(shared: &SessionShared, ui: &mut Ui) {
                     let title = RichText::new(title).heading().size(15.0);
                     ui.label(title);
 
-                    ui.horizontal_centered(|ui| {
+                    ui.horizontal(|ui| {
                         if let Some(duratio) = operation.total_run_duration() {
                             let duration_txt = format!("[{:.2}s]", duratio.as_secs_f32());
                             ui.label(duration_txt);
