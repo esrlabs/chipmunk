@@ -93,6 +93,8 @@ export abstract class RustSession extends RustSessionRequiered {
 
     public abstract getSessionFile(): Promise<string>;
 
+    public abstract sendPrompt(prompt: string): Promise<void>;
+
     /**
      * Returns reference to option's type, which should be defined for @method append
      * Would be called each time before @method append
@@ -226,6 +228,8 @@ export abstract class RustSessionNative {
     public abstract getUuid(): string;
 
     public abstract getSessionFile(): Promise<string>;
+
+    public abstract sendPrompt(prompt: string): Promise<void>;
 
     public abstract observe(source: Uint8Array, operationUuid: string): Promise<void>;
 
@@ -457,6 +461,18 @@ export class RustSessionWrapper extends RustSession {
 
     public getSessionFile(): Promise<string> {
         return this._native.getSessionFile();
+    }
+
+    public sendPrompt(prompt: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this._provider.debug().emit.operation('sendPrompt');
+            this._native
+                .sendPrompt(prompt)
+                .then(resolve)
+                .catch((err) => {
+                    reject(NativeError.from(err));
+                });
+        });
     }
 
     public getUuid(): string {
