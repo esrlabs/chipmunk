@@ -18,7 +18,7 @@ mod dlt;
 pub mod process;
 mod serial;
 mod tcp;
-mod udp;
+pub mod udp;
 
 pub fn render_content(
     state: &mut SessionSetupState,
