@@ -51,3 +51,16 @@ impl From<TcpConfig> for stypes::TCPTransportConfig {
         }
     }
 }
+
+impl From<&stypes::TCPTransportConfig> for TcpConfig {
+    fn from(c: &stypes::TCPTransportConfig) -> Self {
+        let mut config = Self {
+            bind_addr: c.bind_addr.to_owned(),
+            err_msg: None,
+        };
+
+        config.validate();
+
+        config
+    }
+}
