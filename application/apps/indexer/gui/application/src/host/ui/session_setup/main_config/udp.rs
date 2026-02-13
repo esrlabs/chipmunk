@@ -55,7 +55,7 @@ fn render_multicasts(config: &mut UdpConfig, ui: &mut Ui) {
 
     let mut to_delete = None;
     for (idx, item) in config.multicasts.iter_mut().enumerate() {
-        Sides::new().show(
+        Sides::new().height(50.0).shrink_left().truncate().show(
             ui,
             |ui| {
                 let multi_res = label_input_field(
@@ -79,21 +79,15 @@ fn render_multicasts(config: &mut UdpConfig, ui: &mut Ui) {
                 }
             },
             |ui| {
-                ui.allocate_ui_with_layout(
-                    vec2(0., 50.),
-                    Layout::right_to_left(Align::Center),
-                    |ui| {
-                        ui.add_space(10.);
-                        let button_res = Button::new(icons::regular::X)
-                            .frame(false)
-                            .ui(ui)
-                            .on_hover_text("Remove");
+                ui.add_space(10.);
+                let button_res = Button::new(icons::regular::X)
+                    .frame(false)
+                    .ui(ui)
+                    .on_hover_text("Remove");
 
-                        if button_res.clicked() {
-                            to_delete = Some(idx);
-                        }
-                    },
-                );
+                if button_res.clicked() {
+                    to_delete = Some(idx);
+                }
             },
         );
     }

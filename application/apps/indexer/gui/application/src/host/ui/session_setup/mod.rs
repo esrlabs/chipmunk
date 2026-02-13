@@ -14,7 +14,7 @@ use crate::host::{
 };
 use state::{SessionSetupState, sources::ByteSourceConfig};
 
-mod main_config;
+pub mod main_config;
 mod side_config;
 pub mod state;
 
@@ -25,8 +25,8 @@ pub struct SessionSetup {
 }
 
 /// The outcome of render routines in children components of this view.
-#[derive(Debug, Clone, Copy)]
-enum RenderOutcome {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RenderOutcome {
     CollectStatistics,
     StartSession,
     None,

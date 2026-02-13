@@ -6,6 +6,7 @@ use processor::{grabber::LineRange, search::filter::SearchFilter};
 use stypes::GrabbedElement;
 use uuid::Uuid;
 
+use crate::host::ui::session_setup::state::sources::StreamConfig;
 use crate::session::error::SessionError;
 
 /// Represents session specific commands to be sent from UI to session service.
@@ -66,7 +67,7 @@ pub enum SessionCommand {
     },
 
     AttachSource {
-        source: Box<AttachSource>,
+        source: AttachSource,
     },
 
     /// Cancel the running operation with the given id.
@@ -80,4 +81,5 @@ pub enum SessionCommand {
 #[derive(Debug)]
 pub enum AttachSource {
     Files(Vec<PathBuf>),
+    Stream(Box<StreamConfig>),
 }
