@@ -37,9 +37,18 @@ impl SessionInfo {
             return;
         };
 
-        match first_op.origin {
-            ObserveOrigin::File(..) | ObserveOrigin::Stream(..) => {}
+        match &first_op.origin {
+            ObserveOrigin::File(..) => {}
             ObserveOrigin::Concat(..) => self.title = concat_title(state.sources_count()),
+            ObserveOrigin::Stream(_, transport) => {
+                let count = state.sources_count();
+                self.title = match transport {
+                    Transport::Process(..) => format!("{count} Terminal Commands"),
+                    Transport::TCP(..) => format!("{count} TCP Connections"),
+                    Transport::UDP(..) => format!("{count} UDP Connections"),
+                    Transport::Serial(..) => format!("{count} Serial Connections"),
+                }
+            }
         }
     }
 }
