@@ -1,9 +1,170 @@
-use egui::Ui;
+use egui::{Align, Id, Label, Layout, RichText, ScrollArea, Ui, Widget, vec2};
+use stypes::Transport;
+use tokio::sync::mpsc;
+use uuid::Uuid;
 
-use crate::session::ui::shared::SessionShared;
+use crate::{
+    common::phosphor::icons,
+    host::ui::{
+        UiActions,
+        session_setup::{
+            self,
+            state::sources::{ProcessConfig, StreamConfig},
+        },
+    },
+    session::{
+        command::{AttachSource, SessionCommand},
+        types::ObserveOperation,
+        ui::shared::SessionShared,
+    },
+};
 
-pub fn render_content(_shared: &mut SessionShared, ui: &mut Ui) {
-    super::render_group_title(ui, "Commands");
+#[derive(Debug)]
+pub struct ProcessObserveUi {
+    id: Id,
+    cmd_tx: mpsc::Sender<SessionCommand>,
+    /// Process config is being lazy loaded since it has initialization process.
+    config: Option<Box<ProcessConfig>>,
+}
 
-    ui.centered_and_justified(|ui| ui.heading("Process UI coming soon."));
+impl ProcessObserveUi {
+    pub fn new(id_salt: Uuid, cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
+        let id = Id::new(format!("side_process_{id_salt}"));
+        Self {
+            id,
+            cmd_tx,
+            config: None,
+        }
+    }
+
+    pub fn render_content(
+        &mut self,
+        ui: &mut Ui,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+    ) {
+        super::render_group_title(ui, "Commands");
+
+        ui.add_space(super::SPACE_BETWEEN_GROUPS);
+
+        self.attach_commands(ui, actions);
+
+        ui.add_space(super::SPACE_BETWEEN_GROUPS);
+
+        let (running, finished): (Vec<_>, Vec<_>) = shared
+            .observe
+            .operations()
+            .iter()
+            .partition(|op| op.phase().is_running());
+
+        ScrollArea::vertical().show(ui, |ui| {
+            let mut idx = 0;
+            if !running.is_empty() {
+                let running_title = format!("Running {}", running.len());
+                ui.heading(RichText::new(running_title).size(super::TITLE_SIZE));
+                for op in running {
+                    self.render_command(ui, op, idx, actions);
+                    idx += 1;
+                }
+            }
+
+            if !finished.is_empty() {
+                ui.add_space(super::SPACE_BETWEEN_GROUPS);
+
+                let finished_title = format!("Finished {}", finished.len());
+                ui.heading(RichText::new(finished_title).size(super::TITLE_SIZE));
+
+                for op in finished {
+                    self.render_command(ui, op, idx, actions);
+                    idx += 1;
+                }
+            }
+        });
+    }
+
+    fn attach_commands(&mut self, ui: &mut Ui, actions: &mut UiActions) {
+        let config = self
+            .config
+            .get_or_insert_with(|| Box::new(ProcessConfig::new()));
+
+        super::render_attach_source(ui, self.id, "New Command", |ui| {
+            use session_setup::{RenderOutcome, main_config::process as host_setup};
+
+            let mut outcome = RenderOutcome::None;
+
+            let row_height = 25.0;
+            ui.allocate_ui_with_layout(
+                vec2(ui.available_width(), row_height),
+                Layout::right_to_left(Align::Center),
+                |ui| host_setup::command_and_shell(config, &mut outcome, ui),
+            );
+
+            ui.add_space(10.);
+
+            ui.allocate_ui_with_layout(
+                vec2(ui.available_width(), row_height),
+                Layout::left_to_right(Align::Center),
+                |ui| host_setup::working_dir(ui, config, actions, false),
+            );
+
+            if outcome == RenderOutcome::StartSession {
+                let config_to_send = config.clone();
+                config.command.clear();
+                config.validate();
+
+                let cmd = SessionCommand::AttachSource {
+                    source: AttachSource::Stream(Box::new(StreamConfig::Process(*config_to_send))),
+                };
+
+                actions.try_send_command(&self.cmd_tx, cmd);
+            }
+        });
+    }
+
+    fn render_command(
+        &self,
+        ui: &mut Ui,
+        operation: &ObserveOperation,
+        idx: usize,
+        actions: &mut UiActions,
+    ) {
+        let config = match &operation.origin {
+            stypes::ObserveOrigin::Stream(_, Transport::Process(config)) => config,
+            _ => return,
+        };
+        super::render_observe_item(
+            ui,
+            idx,
+            icons::regular::TERMINAL_WINDOW,
+            |ui| {
+                ui.vertical(|ui| {
+                    ui.label(RichText::new(&config.command).strong());
+                    Label::new(config.cwd.to_string_lossy()).truncate().ui(ui);
+                });
+            },
+            |ui| {
+                if operation.phase().is_running() {
+                    let stop_res = super::get_item_button(icons::regular::STOP_CIRCLE)
+                        .ui(ui)
+                        .on_hover_text("Stop Command");
+                    if stop_res.clicked() {
+                        let cmd = SessionCommand::CancelOperation { id: operation.id };
+                        actions.try_send_command(&self.cmd_tx, cmd);
+                    }
+                } else {
+                    let run_res = super::get_item_button(icons::regular::PLAY_CIRCLE)
+                        .ui(ui)
+                        .on_hover_text("Rerun command");
+                    if run_res.clicked() {
+                        let to_send = ProcessConfig::from(config);
+                        let cmd = SessionCommand::AttachSource {
+                            source: AttachSource::Stream(Box::new(StreamConfig::Process(to_send))),
+                        };
+
+                        actions.try_send_command(&self.cmd_tx, cmd);
+                    }
+                }
+            },
+        );
+    }
 }

@@ -85,3 +85,20 @@ impl From<ProcessConfig> for stypes::ProcessTransportConfig {
         }
     }
 }
+
+impl From<&stypes::ProcessTransportConfig> for ProcessConfig {
+    fn from(config: &stypes::ProcessTransportConfig) -> Self {
+        let mut c = Self {
+            cwd: config.cwd.to_owned(),
+            command: config.command.to_owned(),
+            shell: config.shell.to_owned(),
+            available_shells: Vec::new(),
+            command_error_msg: None,
+            cwd_error_msg: None,
+        };
+
+        c.validate();
+
+        c
+    }
+}
