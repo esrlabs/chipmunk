@@ -49,7 +49,7 @@ pub fn render_connection(config: &mut UdpConfig, ui: &mut Ui) -> RenderOutcome {
     outcome
 }
 
-fn render_multicasts(config: &mut UdpConfig, ui: &mut Ui) {
+pub fn render_multicasts(config: &mut UdpConfig, ui: &mut Ui) {
     ui.separator();
     ui.heading("Multicasts");
 
@@ -58,20 +58,28 @@ fn render_multicasts(config: &mut UdpConfig, ui: &mut Ui) {
         Sides::new().height(50.0).shrink_left().truncate().show(
             ui,
             |ui| {
+                // Calculate the width for input fields manually to ensure
+                // they will align with close button correctly in both session setup
+                // and observe side view form within the session.
+                let available_width = ui.available_width();
+                let width = (available_width / 2.2).min(200.0);
+
                 let multi_res = label_input_field(
+                    ui,
                     "Address",
                     &mut item.multi_address,
                     "255.255.255.255",
                     item.multi_address_err,
-                    ui,
+                    width,
                 );
 
                 let inter_res = label_input_field(
+                    ui,
                     "Interface Address",
                     &mut item.interface_addr,
                     "0.0.0.0",
                     item.interface_addr_err,
-                    ui,
+                    width,
                 );
 
                 if multi_res.changed() || inter_res.changed() {
@@ -98,18 +106,22 @@ fn render_multicasts(config: &mut UdpConfig, ui: &mut Ui) {
 }
 
 fn label_input_field(
+    ui: &mut Ui,
     label: &str,
     value: &mut String,
     hint_text: &str,
     error_msg: Option<&str>,
-    ui: &mut Ui,
+    width: f32,
 ) -> Response {
-    ui.allocate_ui_with_layout(vec2(200., 70.), Layout::top_down(Align::LEFT), |ui| {
+    ui.with_layout(Layout::top_down(Align::LEFT), |ui| {
         ui.style_mut().spacing.item_spacing.y += 2.;
 
         ui.label(label);
 
-        let input_res = TextEdit::singleline(value).hint_text(hint_text).ui(ui);
+        let input_res = TextEdit::singleline(value)
+            .desired_width(width)
+            .hint_text(hint_text)
+            .ui(ui);
 
         if let Some(msg) = error_msg {
             let txt = RichText::new(msg)
@@ -119,8 +131,6 @@ fn label_input_field(
 
             Label::new(txt).selectable(true).ui(ui);
         }
-
-        ui.allocate_space(ui.available_size());
 
         input_res
     })
