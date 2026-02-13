@@ -130,3 +130,26 @@ impl From<UdpConfig> for stypes::UDPTransportConfig {
         }
     }
 }
+
+impl From<&stypes::UDPTransportConfig> for UdpConfig {
+    fn from(config: &stypes::UDPTransportConfig) -> Self {
+        let mut c = Self {
+            bind_addr: config.bind_addr.to_owned(),
+            multicasts: config
+                .multicast
+                .iter()
+                .map(|item| MulticastItem {
+                    multi_address: item.multiaddr.to_owned(),
+                    interface_addr: item.interface.to_owned().unwrap_or_default(),
+                    multi_address_err: None,
+                    interface_addr_err: None,
+                })
+                .collect(),
+            bind_err_msg: None,
+        };
+
+        c.validate();
+
+        c
+    }
+}
