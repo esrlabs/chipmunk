@@ -1,4 +1,4 @@
-use egui::{Align, Button, Id, Layout, RichText, ScrollArea, Ui, Widget};
+use egui::{Align, Button, Id, Layout, RichText, Ui, Widget};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -50,35 +50,15 @@ impl TcpObserveUi {
 
         ui.add_space(super::SPACE_BETWEEN_GROUPS);
 
-        let (connected, disconnected): (Vec<_>, Vec<_>) = shared
-            .observe
-            .operations()
-            .iter()
-            .partition(|op| op.phase().is_running());
-
-        ScrollArea::vertical().show(ui, |ui| {
-            let mut idx = 0;
-            if !connected.is_empty() {
-                let connected_title = format!("Connected {}", connected.len());
-                ui.heading(RichText::new(connected_title).size(super::TITLE_SIZE));
-                for op in connected {
-                    self.render_tcp_item(ui, op, idx, actions);
-                    idx += 1;
-                }
-            }
-
-            if !disconnected.is_empty() {
-                ui.add_space(super::SPACE_BETWEEN_GROUPS);
-
-                let disconnected_title = format!("Disconnected {}", disconnected.len());
-                ui.heading(RichText::new(disconnected_title).size(super::TITLE_SIZE));
-
-                for op in disconnected {
-                    self.render_tcp_item(ui, op, idx, actions);
-                    idx += 1;
-                }
-            }
-        });
+        super::render_stream_ops(
+            ui,
+            shared.observe.operations(),
+            "Connected",
+            "Disconnected",
+            |ui, op, idx| {
+                self.render_tcp_item(ui, op, idx, actions);
+            },
+        );
     }
 
     fn attach_tcp(&mut self, ui: &mut Ui, actions: &mut UiActions) {
