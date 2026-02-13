@@ -6,11 +6,14 @@ use uuid::Uuid;
 
 use processor::grabber::LineRange;
 use session_core::session::Session;
-use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin};
+use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
 
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
-    host::{notification::AppNotification, service::file::get_file_format},
+    host::{
+        notification::AppNotification, service::file::get_file_format,
+        ui::session_setup::state::sources::StreamConfig,
+    },
     session::{
         InitSessionError, InitSessionParams,
         command::AttachSource,
@@ -260,7 +263,7 @@ impl SessionService {
                     return Ok(ControlFlow::Continue(()));
                 };
 
-                let origin = match *source {
+                let origin = match source {
                     AttachSource::Files(paths) => {
                         let files = paths
                             .into_iter()
@@ -273,6 +276,17 @@ impl SessionService {
                             })
                             .collect_vec();
                         ObserveOrigin::Concat(files)
+                    }
+                    AttachSource::Stream(config) => {
+                        let id = Uuid::new_v4().to_string();
+                        let transport = match *config {
+                            StreamConfig::Process(process) => Transport::Process(process.into()),
+                            StreamConfig::Tcp(tcp) => Transport::TCP(tcp.into()),
+                            StreamConfig::Udp(udp) => Transport::UDP(udp.into()),
+                            StreamConfig::Serial(serial) => Transport::Serial(serial.into()),
+                        };
+
+                        ObserveOrigin::Stream(id, transport)
                     }
                 };
                 let observe_id = Uuid::new_v4();

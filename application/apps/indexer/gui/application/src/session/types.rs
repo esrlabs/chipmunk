@@ -68,3 +68,12 @@ pub enum OperationPhase {
     /// Operation is done.
     Done,
 }
+
+impl OperationPhase {
+    pub fn is_running(self) -> bool {
+        match self {
+            OperationPhase::Initializing | OperationPhase::Processing => true,
+            OperationPhase::Done => false,
+        }
+    }
+}

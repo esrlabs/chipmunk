@@ -15,7 +15,7 @@ use crate::host::ui::{
 };
 
 mod dlt;
-mod process;
+pub mod process;
 mod serial;
 mod tcp;
 mod udp;

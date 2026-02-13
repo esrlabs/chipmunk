@@ -72,10 +72,10 @@ impl Session {
 
         Self {
             receivers,
+            side_panel: SidePanelUi::new(&observe_op, senders.cmd_tx.clone(), host_cmd_tx.clone()),
             shared: SessionShared::new(session_info, observe_op),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), schema),
-            side_panel: SidePanelUi::new(senders.cmd_tx.clone(), host_cmd_tx.clone()),
             cmd_tx: senders.cmd_tx,
             host_cmd_tx,
         }
