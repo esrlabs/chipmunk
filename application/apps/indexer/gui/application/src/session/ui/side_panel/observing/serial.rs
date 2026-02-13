@@ -33,6 +33,10 @@ impl SerialObserveUi {
         ui.add_space(super::SPACE_BETWEEN_GROUPS);
 
         self.attach_serial(ui, actions);
+
+        ui.add_space(super::SPACE_BETWEEN_GROUPS);
+
+        ui.heading("Observe view for serial ports coming soon");
     }
 
     fn attach_serial(&self, ui: &mut Ui, _actions: &mut UiActions) {

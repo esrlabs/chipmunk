@@ -1,4 +1,4 @@
-use egui::{Align, Id, Label, Layout, RichText, ScrollArea, Ui, Widget, vec2};
+use egui::{Align, Id, Label, Layout, RichText, Ui, Widget, vec2};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -51,35 +51,15 @@ impl ProcessObserveUi {
 
         ui.add_space(super::SPACE_BETWEEN_GROUPS);
 
-        let (running, finished): (Vec<_>, Vec<_>) = shared
-            .observe
-            .operations()
-            .iter()
-            .partition(|op| op.phase().is_running());
-
-        ScrollArea::vertical().show(ui, |ui| {
-            let mut idx = 0;
-            if !running.is_empty() {
-                let running_title = format!("Running {}", running.len());
-                ui.heading(RichText::new(running_title).size(super::TITLE_SIZE));
-                for op in running {
-                    self.render_command(ui, op, idx, actions);
-                    idx += 1;
-                }
-            }
-
-            if !finished.is_empty() {
-                ui.add_space(super::SPACE_BETWEEN_GROUPS);
-
-                let finished_title = format!("Finished {}", finished.len());
-                ui.heading(RichText::new(finished_title).size(super::TITLE_SIZE));
-
-                for op in finished {
-                    self.render_command(ui, op, idx, actions);
-                    idx += 1;
-                }
-            }
-        });
+        super::render_stream_ops(
+            ui,
+            shared.observe.operations(),
+            "Running",
+            "Finished",
+            |ui, op, idx| {
+                self.render_command(ui, op, idx, actions);
+            },
+        );
     }
 
     fn attach_commands(&mut self, ui: &mut Ui, actions: &mut UiActions) {

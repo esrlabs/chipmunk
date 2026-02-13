@@ -1,5 +1,5 @@
 use egui::{
-    Button, Frame, Id, Margin, RichText, Sense, Sides, Ui, Widget,
+    Button, Frame, Id, Margin, RichText, ScrollArea, Sense, Sides, Ui, Widget,
     collapsing_header::CollapsingState, vec2,
 };
 use stypes::{ObserveOrigin, Transport};
@@ -175,4 +175,40 @@ fn render_attach_source(ui: &mut Ui, id: Id, title: &str, collaps_content: impl 
     );
 
     state.show_body_unindented(ui, |ui| collaps_content(ui));
+}
+
+fn render_stream_ops<F>(
+    ui: &mut Ui,
+    ops: &[ObserveOperation],
+    run_txt: &str,
+    stop_txt: &str,
+    mut render_item: F,
+) where
+    F: FnMut(&mut Ui, &ObserveOperation, usize),
+{
+    let (running, finished): (Vec<_>, Vec<_>) = ops
+        .iter()
+        .enumerate()
+        .partition(|(_idx, op)| op.phase().is_running());
+
+    ScrollArea::vertical().show(ui, |ui| {
+        if !running.is_empty() {
+            let running_title = format!("{run_txt} ({})", running.len());
+            ui.heading(RichText::new(running_title).size(TITLE_SIZE));
+            for (idx, op) in running {
+                render_item(ui, op, idx);
+            }
+        }
+
+        if !finished.is_empty() {
+            ui.add_space(SPACE_BETWEEN_GROUPS);
+
+            let finished_title = format!("{stop_txt} ({})", finished.len());
+            ui.heading(RichText::new(finished_title).size(TITLE_SIZE));
+
+            for (idx, op) in finished {
+                render_item(ui, op, idx);
+            }
+        }
+    });
 }
