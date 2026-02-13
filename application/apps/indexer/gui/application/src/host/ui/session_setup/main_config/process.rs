@@ -26,14 +26,14 @@ pub fn render_connection(
     ui.allocate_ui_with_layout(
         vec2(ui.available_width(), row_height),
         Layout::left_to_right(Align::Center),
-        |ui| working_dir(config, actions, ui),
+        |ui| working_dir(ui, config, actions, true),
     );
 
     outcome
 }
 
 /// Renders the area to specify the command and the shell to run on it.
-fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome, ui: &mut Ui) {
+pub fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome, ui: &mut Ui) {
     let height = ui.available_height();
 
     let shell_txt = RichText::new(format!(
@@ -81,7 +81,12 @@ fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome, ui
 }
 
 /// Render the area to specify the working directory.
-fn working_dir(config: &mut ProcessConfig, actions: &mut UiActions, ui: &mut Ui) {
+pub fn working_dir(
+    ui: &mut Ui,
+    config: &mut ProcessConfig,
+    actions: &mut UiActions,
+    show_label: bool,
+) {
     if let Some(paths) = actions.file_dialog.take_output(CWD_DIALOG_ID)
         && let Some(cwd) = paths.into_iter().next()
     {
@@ -92,10 +97,12 @@ fn working_dir(config: &mut ProcessConfig, actions: &mut UiActions, ui: &mut Ui)
 
     let path_txt = format!("{}", config.cwd.display());
 
-    egui::Sides::new().show(
+    egui::Sides::new().shrink_left().truncate().show(
         ui,
         |ui| {
-            ui.label("Working Folder:");
+            if show_label {
+                ui.label("Working Folder:");
+            }
             Label::new(path_txt).selectable(true).ui(ui);
         },
         |ui| {
