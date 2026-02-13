@@ -79,7 +79,7 @@ fn render_stream(stream: &mut StreamConfig, actions: &mut UiActions, ui: &mut Ui
 }
 
 /// Specifies the needed functionality to be used with the function [`render_socket_address`].
-trait ConfigBindAddress {
+pub trait ConfigBindAddress {
     fn bind_addr(&mut self) -> &mut String;
     fn validate(&mut self);
     fn is_valid(&self) -> bool;
@@ -87,7 +87,7 @@ trait ConfigBindAddress {
 }
 
 /// General function to render the binding address for TCP & UDP.
-fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) -> RenderOutcome {
+pub fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) -> RenderOutcome {
     let mut outcome = RenderOutcome::None;
 
     ui.vertical(|ui| {
