@@ -8,7 +8,6 @@ use uuid::Uuid;
 use crate::{
     common::phosphor::icons,
     host::{
-        command::HostCommand,
         common::parsers::ParserNames,
         ui::{UiActions, actions::FileDialogFilter},
     },
@@ -25,21 +24,12 @@ const ATTATCH_FILE_ID: &str = "session_files_observe_tab";
 pub struct FilesObserveUi {
     id: Id,
     cmd_tx: mpsc::Sender<SessionCommand>,
-    host_cmd_tx: mpsc::Sender<HostCommand>,
 }
 
 impl FilesObserveUi {
-    pub fn new(
-        id_salt: Uuid,
-        cmd_tx: mpsc::Sender<SessionCommand>,
-        host_cmd_tx: mpsc::Sender<HostCommand>,
-    ) -> Self {
+    pub fn new(id_salt: Uuid, cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
         let id = Id::new(format!("side_file_{id_salt}"));
-        Self {
-            id,
-            cmd_tx,
-            host_cmd_tx,
-        }
+        Self { id, cmd_tx }
     }
 
     pub fn render_content(
@@ -147,7 +137,7 @@ impl FilesObserveUi {
             let mut idx = 0;
             for operation in state.operations() {
                 match &operation.origin {
-                    ObserveOrigin::File(_, _, path_buf) => {
+                    ObserveOrigin::File(uuid, _, path_buf) => {
                         let button = if is_tailing {
                             ButtonAction::Stop {
                                 op_id: operation.id,
@@ -155,11 +145,11 @@ impl FilesObserveUi {
                         } else {
                             ButtonAction::NewSession
                         };
-                        self.render_file(ui, path_buf, button, idx, actions);
+                        self.render_file(ui, path_buf, button, idx, uuid, actions);
                         idx += 1;
                     }
                     ObserveOrigin::Concat(items) => {
-                        for (_, _, path) in items {
+                        for (uuid, _, path) in items {
                             let button = if is_tailing {
                                 ButtonAction::Stop {
                                     op_id: operation.id,
@@ -167,7 +157,7 @@ impl FilesObserveUi {
                             } else {
                                 ButtonAction::NewSession
                             };
-                            self.render_file(ui, path, button, idx, actions);
+                            self.render_file(ui, path, button, idx, uuid, actions);
                             idx += 1;
                         }
                     }
@@ -183,6 +173,7 @@ impl FilesObserveUi {
         path: &Path,
         button: ButtonAction,
         idx: usize,
+        source_uuid: &str,
         actions: &mut UiActions,
     ) {
         let title = path
@@ -192,6 +183,7 @@ impl FilesObserveUi {
 
         super::render_observe_item(
             ui,
+            actions,
             idx,
             &title,
             |ui| {
@@ -206,7 +198,7 @@ impl FilesObserveUi {
                     }
                 });
             },
-            |ui| match button {
+            |ui, actions| match button {
                 ButtonAction::Stop { op_id } => {
                     if super::get_item_button(icons::regular::STOP_CIRCLE)
                         .ui(ui)
@@ -223,9 +215,20 @@ impl FilesObserveUi {
                         .on_hover_text("Open file in new session")
                         .clicked()
                     {
-                        let cmd = HostCommand::OpenFiles(vec![path.into()]);
-                        actions.try_send_command(&self.host_cmd_tx, cmd);
+                        super::open_in_new_tab(source_uuid, actions, &self.cmd_tx);
                     }
+                }
+            },
+            |ui, actions| {
+                if let ButtonAction::Stop { op_id } = button {
+                    if ui.button("Stop Tailing").clicked() {
+                        let cmd = SessionCommand::CancelOperation { id: op_id };
+                        actions.try_send_command(&self.cmd_tx, cmd);
+                    }
+                    ui.separator();
+                }
+                if ui.button("Reopen in New Tab").clicked() {
+                    super::open_in_new_tab(source_uuid, actions, &self.cmd_tx);
                 }
             },
         );
