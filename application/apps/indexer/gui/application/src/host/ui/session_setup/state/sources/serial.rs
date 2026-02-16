@@ -246,3 +246,52 @@ impl From<SerialConfig> for stypes::SerialTransportConfig {
         }
     }
 }
+
+impl From<&stypes::SerialTransportConfig> for SerialConfig {
+    fn from(config: &stypes::SerialTransportConfig) -> Self {
+        let stypes::SerialTransportConfig {
+            path,
+            baud_rate,
+            data_bits,
+            flow_control,
+            parity,
+            stop_bits,
+            send_data_delay,
+            exclusive,
+        } = config;
+
+        let mut c = Self::new();
+        c.path = path.to_owned();
+        c.baud_rate = BaudRate::Custom(*baud_rate);
+        c.data_bits = *data_bits;
+        c.flow_control = Self::FLOW_CONTROL
+            .iter()
+            .find(|c| c.value == *flow_control)
+            .cloned()
+            .unwrap_or_else(|| Self::FLOW_CONTROL[0].to_owned());
+
+        c.parity = Self::PARITY
+            .iter()
+            .find(|p| p.value == *parity)
+            .cloned()
+            .unwrap_or_else(|| Self::PARITY[0].to_owned());
+
+        c.stop_bits = *stop_bits;
+
+        c.send_data_delay = Self::DELAY
+            .iter()
+            .find(|d| d.value == *send_data_delay)
+            .cloned()
+            .unwrap_or_else(|| Self::DELAY[0].to_owned());
+
+        c.exclusive = Self::EXCLUSIVE
+            .iter()
+            .find(|e| e.value == *exclusive)
+            .cloned()
+            .unwrap_or_else(|| Self::EXCLUSIVE[0].to_owned());
+
+        c.validate();
+
+        c
+    }
+}

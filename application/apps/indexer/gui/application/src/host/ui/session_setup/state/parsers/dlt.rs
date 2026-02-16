@@ -1,5 +1,6 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{fmt::Display, path::PathBuf};
+use stypes::{DltParserSettings, ObserveOrigin};
 
 use chrono::{Offset, TimeZone, Utc};
 use chrono_tz::Tz;
@@ -33,6 +34,47 @@ impl DltParserConfig {
             timezone: None,
             timezone_filter: String::new(),
             timezone_list: Self::timezone_list(),
+            dlt_statistics: None,
+            dlt_summary: Box::new(DltSummary::default()),
+            dlt_tables: Box::new(DltTables::default()),
+        }
+    }
+
+    pub fn from_observe_options(settings: &DltParserSettings, origin: &ObserveOrigin) -> Self {
+        let source_paths = match origin {
+            ObserveOrigin::File(_, _, path_buf) => Some(vec![path_buf.to_owned()]),
+            ObserveOrigin::Concat(items) => Some(
+                items
+                    .iter()
+                    .map(|(_, _, path)| path.to_owned())
+                    .collect_vec(),
+            ),
+            ObserveOrigin::Stream(..) => None,
+        };
+
+        Self {
+            with_storage_header: settings.with_storage_header,
+            log_level: settings
+                .filter_config
+                .as_ref()
+                .and_then(|c| c.min_log_level)
+                .and_then(|level| DltLogLevel::try_from(level).ok())
+                .unwrap_or(DltLogLevel::Verbose),
+            source_paths,
+            fibex_files: settings
+                .fibex_file_paths
+                .as_ref()
+                .map(|paths| {
+                    paths
+                        .iter()
+                        .map(PathBuf::from)
+                        .map(FibexFileInfo::from_path_lossy)
+                        .collect_vec()
+                })
+                .unwrap_or_default(),
+            timezone: settings.tz.to_owned(),
+            timezone_list: Self::timezone_list(),
+            timezone_filter: String::default(),
             dlt_statistics: None,
             dlt_summary: Box::new(DltSummary::default()),
             dlt_tables: Box::new(DltTables::default()),
@@ -145,6 +187,22 @@ impl DltLogLevel {
             DltLogLevel::Debug,
             DltLogLevel::Verbose,
         ]
+    }
+}
+
+impl TryFrom<u8> for DltLogLevel {
+    type Error = &'static str;
+
+    fn try_from(value: u8) -> Result<Self, <DltLogLevel as TryFrom<u8>>::Error> {
+        match value {
+            1 => Ok(Self::Fatal),
+            2 => Ok(Self::Error),
+            3 => Ok(Self::Warn),
+            4 => Ok(Self::Info),
+            5 => Ok(Self::Debug),
+            6 => Ok(Self::Verbose),
+            _ => Err("Invalid DltLogLevel value"),
+        }
     }
 }
 

@@ -25,9 +25,7 @@ pub enum SessionCommand {
     /// Cancel current search and clear results.
     /// If search operation is still processing then a search id will be provided
     /// to abort this operation.
-    DropSearch {
-        operation_id: Option<Uuid>,
-    },
+    DropSearch { operation_id: Option<Uuid> },
     /// Request the nearest index in the search view for a given main-log index.
     GetNearestPosition(u64),
 
@@ -66,14 +64,15 @@ pub enum SessionCommand {
         range: Option<RangeInclusive<u64>>,
     },
 
-    AttachSource {
-        source: AttachSource,
-    },
+    /// Attach the provided source to the running session.
+    AttachSource { source: AttachSource },
+
+    /// Starts a new session with the provided byte source, using the same
+    /// configuration of the current session as basis
+    StartSessionWithSource { source_uuid: String },
 
     /// Cancel the running operation with the given id.
-    CancelOperation {
-        id: Uuid,
-    },
+    CancelOperation { id: Uuid },
     /// Gracefully terminate the session service.
     CloseSession,
 }
