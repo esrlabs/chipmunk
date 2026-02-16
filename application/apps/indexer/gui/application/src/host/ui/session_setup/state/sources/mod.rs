@@ -4,9 +4,12 @@ pub mod serial;
 pub mod tcp;
 pub mod udp;
 
+use std::path::PathBuf;
+
 pub use file::SourceFileInfo;
 pub use process::ProcessConfig;
 pub use serial::{BaudRate, SerialConfig};
+use stypes::{FileFormat, Transport};
 pub use tcp::TcpConfig;
 pub use udp::{MulticastItem, UdpConfig};
 
@@ -38,6 +41,20 @@ impl ByteSourceConfig {
             }
             ByteSourceConfig::Stream(stream) => stream.validation_errors(),
         }
+    }
+
+    pub fn from_file(path: PathBuf, format: FileFormat) -> Self {
+        Self::File(SourceFileInfo::new(path, format))
+    }
+
+    pub fn from_transport(transport: &Transport) -> Self {
+        let config = match transport {
+            Transport::Process(config) => StreamConfig::Process(config.into()),
+            Transport::TCP(config) => StreamConfig::Tcp(config.into()),
+            Transport::UDP(config) => StreamConfig::Udp(config.into()),
+            Transport::Serial(config) => StreamConfig::Serial(config.into()),
+        };
+        Self::Stream(config)
     }
 }
 

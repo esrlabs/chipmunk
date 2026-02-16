@@ -14,15 +14,7 @@ pub fn fibex_file_selector(
     ui: &mut egui::Ui,
 ) {
     if let Some(files) = actions.file_dialog.take_output(file_dialog_id) {
-        for file in files {
-            let name = file
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| file.to_string_lossy().to_string());
-
-            let file_info = FibexFileInfo { name, path: file };
-            fibex_files.push(file_info);
-        }
+        fibex_files.extend(files.into_iter().map(FibexFileInfo::from_path_lossy));
     }
 
     ui.label("Fibex Files");
