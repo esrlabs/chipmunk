@@ -11,8 +11,14 @@ use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Tra
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
     host::{
-        notification::AppNotification, service::file::get_file_format,
-        ui::session_setup::state::sources::StreamConfig,
+        message::HostMessage,
+        notification::AppNotification,
+        service::file::get_file_format,
+        ui::session_setup::state::{
+            SessionSetupState,
+            parsers::ParserConfig,
+            sources::{ByteSourceConfig, StreamConfig},
+        },
     },
     session::{
         InitSessionError, InitSessionParams,
@@ -300,6 +306,47 @@ impl SessionService {
                         observe_op: Box::new(observe_op),
                     })
                     .await;
+            }
+            SessionCommand::StartSessionWithSource { source_uuid } => {
+                let observed = self
+                    .session
+                    .state
+                    .get_executed_holder()
+                    .await
+                    .map_err(SessionError::NativeError)?
+                    .executed;
+
+                for options in observed {
+                    let source = match &options.origin {
+                        ObserveOrigin::File(uuid, file_format, path_buf) => (uuid == &source_uuid)
+                            .then(|| {
+                                ByteSourceConfig::from_file(path_buf.to_owned(), *file_format)
+                            }),
+                        ObserveOrigin::Concat(items) => items
+                            .iter()
+                            .find(|(uuid, _, _)| uuid == &source_uuid)
+                            .map(|(_, format, path)| {
+                                ByteSourceConfig::from_file(path.to_owned(), *format)
+                            }),
+                        ObserveOrigin::Stream(uuid, transport) => (uuid == &source_uuid)
+                            .then(|| ByteSourceConfig::from_transport(transport)),
+                    };
+
+                    let Some(source) = source else {
+                        continue;
+                    };
+
+                    let parser = ParserConfig::from_observe_options(&options);
+
+                    let session_setup = SessionSetupState::new(Uuid::new_v4(), source, parser);
+
+                    self.senders
+                        .send_host_message(HostMessage::SessionSetupOpened(Box::new(session_setup)))
+                        .await;
+                    return Ok(ControlFlow::Continue(()));
+                }
+
+                return Err(ComputationError::SessionCreatingFail.into());
             }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;

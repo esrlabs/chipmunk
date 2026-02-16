@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 #[allow(unused)]
 pub use dlt::{DltLogLevel, DltParserConfig};
+use stypes::ObserveOptions;
 
 use crate::host::ui::session_setup::state::parsers::someip::SomeIpParserConfig;
 
@@ -18,6 +19,20 @@ pub enum ParserConfig {
 }
 
 impl ParserConfig {
+    pub fn from_observe_options(options: &ObserveOptions) -> Self {
+        match &options.parser {
+            stypes::ParserType::Dlt(settings) => Self::Dlt(DltParserConfig::from_observe_options(
+                settings,
+                &options.origin,
+            )),
+            stypes::ParserType::SomeIp(settings) => {
+                Self::SomeIP(SomeIpParserConfig::from_parser_settings(settings))
+            }
+            stypes::ParserType::Text(()) => Self::Text,
+            // Plugins are not fully supported yet.
+            stypes::ParserType::Plugin(..) => Self::Plugins,
+        }
+    }
     /// Checks if the parser with the configurations is valid
     ///
     /// # Note:
@@ -40,4 +55,15 @@ impl ParserConfig {
 pub struct FibexFileInfo {
     pub name: String,
     pub path: PathBuf,
+}
+
+impl FibexFileInfo {
+    pub fn from_path_lossy(path: PathBuf) -> Self {
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string_lossy().to_string());
+
+        Self { name, path }
+    }
 }

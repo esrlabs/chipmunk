@@ -1,5 +1,5 @@
 use egui::{
-    Button, Frame, Id, Margin, RichText, ScrollArea, Sense, Sides, Ui, Widget,
+    Button, Frame, Id, Margin, RichText, ScrollArea, Sense, Sides, Ui, UiBuilder, Widget,
     collapsing_header::CollapsingState, vec2,
 };
 use stypes::{ObserveOrigin, Transport};
@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     common::phosphor::icons,
-    host::{command::HostCommand, ui::UiActions},
+    host::ui::UiActions,
     session::{
         command::SessionCommand,
         types::ObserveOperation,
@@ -46,16 +46,12 @@ pub struct ObservingUi {
 }
 
 impl ObservingUi {
-    pub fn new(
-        observe_op: &ObserveOperation,
-        cmd_tx: mpsc::Sender<SessionCommand>,
-        host_cmd_tx: mpsc::Sender<HostCommand>,
-    ) -> Self {
+    pub fn new(observe_op: &ObserveOperation, cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
         let id_salt = observe_op.id;
         use ObserveSidePanel as OSP;
         let observe_ui = match &observe_op.origin {
             ObserveOrigin::File(..) | ObserveOrigin::Concat(..) => {
-                OSP::Files(FilesObserveUi::new(id_salt, cmd_tx, host_cmd_tx))
+                OSP::Files(FilesObserveUi::new(id_salt, cmd_tx))
             }
             ObserveOrigin::Stream(_, transport) => match transport {
                 Transport::Process(..) => OSP::Process(ProcessObserveUi::new(id_salt, cmd_tx)),
@@ -119,25 +115,46 @@ fn render_group_title(ui: &mut Ui, title: &str) {
 
 fn render_observe_item(
     ui: &mut Ui,
+    actions: &mut UiActions,
     color_idx: usize,
     title: &str,
     name_content: impl FnOnce(&mut Ui),
-    button_content: impl FnOnce(&mut Ui),
+    button_content: impl FnOnce(&mut Ui, &mut UiActions),
+    context_content: impl FnOnce(&mut Ui, &mut UiActions),
 ) {
-    Sides::new().shrink_left().truncate().height(35.0).show(
-        ui,
-        |ui| {
-            let color = ObserveState::source_color(color_idx);
-            let (res, painter) =
-                ui.allocate_painter(vec2(10.0, ui.available_height()), Sense::hover());
-            painter.rect_filled(res.rect, 0, color);
+    let height = 35.0;
 
-            ui.label(RichText::new(title).strong());
+    let (rect, response) =
+        ui.allocate_exact_size(vec2(ui.available_width(), height), Sense::click());
 
-            name_content(ui);
-        },
-        |ui| ui.horizontal_centered(|ui| button_content(ui)),
-    );
+    // Context Menu content
+    response.context_menu(|ui| context_content(ui, actions));
+
+    // Background on hover
+    if response.hovered() {
+        ui.painter()
+            .rect_filled(rect, 0.0, ui.visuals().widgets.hovered.bg_fill);
+    }
+
+    // Render the content inside the allocated rect
+    ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
+        Sides::new().shrink_left().truncate().height(height).show(
+            ui,
+            |ui| {
+                let color = ObserveState::source_color(color_idx);
+
+                let (res, painter) =
+                    ui.allocate_painter(vec2(10.0, ui.available_height()), Sense::hover());
+                painter.rect_filled(res.rect, 0.0, color);
+
+                ui.label(RichText::new(title).strong());
+                name_content(ui);
+            },
+            |ui| {
+                ui.horizontal_centered(|ui| button_content(ui, actions));
+            },
+        );
+    });
 }
 
 fn get_item_button(content: &str) -> Button<'_> {
@@ -211,4 +228,15 @@ fn render_stream_ops<F>(
             }
         }
     });
+}
+
+fn open_in_new_tab(
+    source_uuid: impl Into<String>,
+    actions: &mut UiActions,
+    cmd_tx: &mpsc::Sender<SessionCommand>,
+) {
+    let cmd = SessionCommand::StartSessionWithSource {
+        source_uuid: source_uuid.into(),
+    };
+    actions.try_send_command(cmd_tx, cmd);
 }

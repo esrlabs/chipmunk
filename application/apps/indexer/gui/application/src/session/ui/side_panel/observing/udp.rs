@@ -106,19 +106,20 @@ impl UdpObserveUi {
         idx: usize,
         actions: &mut UiActions,
     ) {
-        let config = match &operation.origin {
-            stypes::ObserveOrigin::Stream(_, Transport::UDP(config)) => config,
+        let (source_uuid, config) = match &operation.origin {
+            stypes::ObserveOrigin::Stream(uuid, Transport::UDP(config)) => (uuid, config),
             _ => return,
         };
 
         super::render_observe_item(
             ui,
+            actions,
             idx,
             "UDP",
             |ui| {
                 ui.label(RichText::new(&config.bind_addr).strong());
             },
-            |ui| {
+            |ui, actions| {
                 if operation.phase().is_running() {
                     let stop_res = super::get_item_button(icons::regular::STOP_CIRCLE)
                         .ui(ui)
@@ -139,6 +140,28 @@ impl UdpObserveUi {
 
                         actions.try_send_command(&self.cmd_tx, cmd);
                     }
+                }
+            },
+            |ui, actions| {
+                let is_running = operation.phase().is_running();
+                let label = if is_running { "Disconnect" } else { "Connect" };
+
+                if ui.button(label).clicked() {
+                    let cmd = if is_running {
+                        SessionCommand::CancelOperation { id: operation.id }
+                    } else {
+                        let stream_cfg = StreamConfig::Udp(UdpConfig::from(config));
+                        SessionCommand::AttachSource {
+                            source: AttachSource::Stream(Box::new(stream_cfg)),
+                        }
+                    };
+
+                    actions.try_send_command(&self.cmd_tx, cmd);
+                }
+
+                ui.separator();
+                if ui.button("Reopen in New Tab").clicked() {
+                    super::open_in_new_tab(source_uuid, actions, &self.cmd_tx);
                 }
             },
         );
