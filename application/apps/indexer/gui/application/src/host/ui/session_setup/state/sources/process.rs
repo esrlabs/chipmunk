@@ -92,7 +92,7 @@ impl From<&stypes::ProcessTransportConfig> for ProcessConfig {
             cwd: config.cwd.to_owned(),
             command: config.command.to_owned(),
             shell: config.shell.to_owned(),
-            available_shells: Vec::new(),
+            available_shells: shell_tools::get_available_shells().to_vec(),
             command_error_msg: None,
             cwd_error_msg: None,
         };

@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     common::phosphor::icons,
-    host::{command::HostCommand, ui::UiActions},
+    host::ui::UiActions,
     session::{command::SessionCommand, types::ObserveOperation, ui::shared::SessionShared},
 };
 
@@ -26,13 +26,9 @@ pub struct SidePanelUi {
 }
 
 impl SidePanelUi {
-    pub fn new(
-        observe_op: &ObserveOperation,
-        cmd_tx: mpsc::Sender<SessionCommand>,
-        host_cmd_tx: mpsc::Sender<HostCommand>,
-    ) -> Self {
+    pub fn new(observe_op: &ObserveOperation, cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
         Self {
-            observing: ObservingUi::new(observe_op, cmd_tx.clone(), host_cmd_tx),
+            observing: ObservingUi::new(observe_op, cmd_tx.clone()),
             attachments: AttachmentsUi::new(cmd_tx.clone()),
             filters: FiltersUi::new(cmd_tx),
         }
