@@ -108,12 +108,13 @@ impl ProcessObserveUi {
         idx: usize,
         actions: &mut UiActions,
     ) {
-        let config = match &operation.origin {
-            stypes::ObserveOrigin::Stream(_, Transport::Process(config)) => config,
+        let (source_uuid, config) = match &operation.origin {
+            stypes::ObserveOrigin::Stream(uuid, Transport::Process(config)) => (uuid, config),
             _ => return,
         };
         super::render_observe_item(
             ui,
+            actions,
             idx,
             icons::regular::TERMINAL_WINDOW,
             |ui| {
@@ -122,7 +123,7 @@ impl ProcessObserveUi {
                     Label::new(config.cwd.to_string_lossy()).truncate().ui(ui);
                 });
             },
-            |ui| {
+            |ui, actions| {
                 if operation.phase().is_running() {
                     let stop_res = super::get_item_button(icons::regular::STOP_CIRCLE)
                         .ui(ui)
@@ -143,6 +144,32 @@ impl ProcessObserveUi {
 
                         actions.try_send_command(&self.cmd_tx, cmd);
                     }
+                }
+            },
+            |ui, actions| {
+                let is_running = operation.phase().is_running();
+                let label = if is_running {
+                    "Stop Command"
+                } else {
+                    "Rerun Command"
+                };
+
+                if ui.button(label).clicked() {
+                    let cmd = if is_running {
+                        SessionCommand::CancelOperation { id: operation.id }
+                    } else {
+                        let stream_cfg = StreamConfig::Process(ProcessConfig::from(config));
+                        SessionCommand::AttachSource {
+                            source: AttachSource::Stream(Box::new(stream_cfg)),
+                        }
+                    };
+
+                    actions.try_send_command(&self.cmd_tx, cmd);
+                }
+
+                ui.separator();
+                if ui.button("Reopen in New Tab").clicked() {
+                    super::open_in_new_tab(source_uuid, actions, &self.cmd_tx);
                 }
             },
         );
