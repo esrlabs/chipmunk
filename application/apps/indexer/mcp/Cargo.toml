@@ -27,6 +27,7 @@ serde.workspace = true
 thiserror.workspace = true
 tokio-util.workspace = true
 tokio.workspace = true
+rand = "0.9"
 
 [lints]
 workspace = true

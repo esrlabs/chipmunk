@@ -168,13 +168,24 @@ fn fetch_arguments(
     tool_call: &ollama_rs::generation::tools::ToolCall,
 ) -> Option<rmcp::model::JsonObject> {
     let args_value = tool_call.function.arguments.clone();
+    let args_value = normalize_args_value(args_value)?;
     let args_object = match args_value {
-        Value::Object(map) => Some(map),
-        Value::String(raw) => serde_json::from_str::<Value>(&raw)
-            .ok()
-            .and_then(|val| val.as_object().cloned()),
-        _ => None,
-    }?;
+        Value::Object(map) => map,
+        Value::Null => {
+            warn!(
+                "⚠️ Tool call arguments are null; using empty parameters for {}",
+                tool_call.function.name
+            );
+            serde_json::Map::new()
+        }
+        _ => {
+            warn!(
+                "⚠️ Tool call arguments are not an object for {}",
+                tool_call.function.name
+            );
+            return None;
+        }
+    };
 
     let mut json_obj = rmcp::model::JsonObject::new();
     for (key, value) in args_object {
@@ -183,6 +194,36 @@ fn fetch_arguments(
 
     warn!("☑️ Final call parameters are {json_obj:?}");
     Some(json_obj)
+}
+
+fn normalize_args_value(value: Value) -> Option<Value> {
+    match value {
+        Value::String(raw) => parse_jsonish_string(&raw),
+        other => Some(other),
+    }
+}
+
+fn parse_jsonish_string(raw: &str) -> Option<Value> {
+    let mut trimmed = raw.trim();
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("null") {
+        return Some(Value::Null);
+    }
+    if trimmed.starts_with("```") {
+        if let Some(end) = trimmed.rfind("```") {
+            trimmed = &trimmed[3..end];
+            if trimmed.trim_start().starts_with("json") {
+                trimmed = trimmed.trim_start_matches("json").trim();
+            }
+        }
+    }
+    if trimmed.is_empty() || trimmed.eq_ignore_ascii_case("null") {
+        return Some(Value::Null);
+    }
+    let parsed = serde_json::from_str::<Value>(trimmed).ok()?;
+    match parsed {
+        Value::String(inner) => serde_json::from_str::<Value>(inner.trim()).ok(),
+        other => Some(other),
+    }
 }
 
 fn normalize_json_value(value: Value) -> Value {

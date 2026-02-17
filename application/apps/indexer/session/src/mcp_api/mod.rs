@@ -12,7 +12,6 @@ use uuid::Uuid;
 
 use crate::operations::{Operation, OperationKind};
 use crate::state::SessionStateAPI;
-use crate::tracker::OperationTrackerAPI;
 use mcp::errors::McpError;
 use mcp::server::tasks::Tasks;
 use mcp::types::{Prompt, Response};
@@ -21,19 +20,51 @@ use processor::search::filter::SearchFilter;
 #[derive(Debug, Clone)]
 pub struct McpApi {
     pub prompt_tx: mpsc::Sender<Prompt>,
+    pub state_api: SessionStateAPI,
 }
 
 impl McpApi {
-    pub fn new(prompt_tx: mpsc::Sender<Prompt>) -> Self {
-        Self { prompt_tx }
+    pub fn new(prompt_tx: mpsc::Sender<Prompt>, state_api: SessionStateAPI) -> Self {
+        Self {
+            prompt_tx,
+            state_api,
+        }
     }
 
     /// TODO:[MCP] Send a prompt to the Chipmunk MCP client. The prompt would typically come from the UI.
     /// The arguments probably need to be tweaked to also include the session
     pub async fn send_prompt(&self, prompt: String) -> Result<(), stypes::NativeError> {
         warn!("✅ Sending prompt to the client over `prompt_tx` channel");
+        let mut final_prompt = prompt.clone();
+        match self.state_api.get_stream_len().await {
+            Ok((len, _)) => {
+                let count = std::cmp::min(len, 20);
+                if count > 0 {
+                    let ranges = vec![0..=(count - 1)];
+                    match self.state_api.grab_ranges(ranges).await {
+                        Ok(elements) => {
+                            let logs = elements
+                                .into_iter()
+                                .map(|e| e.content)
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            final_prompt = format!(
+                                "{}\n\nHere are the first {} log lines from the current session to help you understand the format and content:\n```\n{}\n```",
+                                prompt, count, logs
+                            );
+                        }
+                        Err(err) => {
+                            error!("Failed to grab log lines: {:?}", err);
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                error!("Failed to get stream length: {:?}", err);
+            }
+        };
         self.prompt_tx
-            .send(prompt.clone())
+            .send(final_prompt)
             .await
             .map_err(|_| stypes::NativeError::channel(&format!("Failed to get send::{:?}", prompt)))
     }
