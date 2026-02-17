@@ -9,8 +9,11 @@ pub type Response = String;
 #[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
 pub struct SearchFilter {
     pub value: String,
+    #[serde(default)]
     pub is_regex: bool,
+    #[serde(default)]
     pub ignore_case: bool,
+    #[serde(default)]
     pub is_word: bool,
 }
 

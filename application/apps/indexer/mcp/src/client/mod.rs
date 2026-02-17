@@ -4,7 +4,6 @@
 use log::{error, warn};
 use ollama_rs::generation::chat::{ChatMessage, request::ChatMessageRequest};
 use ollama_rs::generation::tools::{ToolFunctionInfo, ToolInfo, ToolType};
-use ollama_rs::history;
 use rmcp::{
     RoleClient,
     model::{
@@ -25,6 +24,23 @@ use crate::{
 
 // TODO:[MCP] store this in a single global location
 pub const SERVER_ADDRESS: &str = "http://127.0.0.1:8181/mcp";
+
+const SYSTEM_PROMPT: &str = r#"You are a log analysis assistant for Chipmunk.
+Your goal is to help users analyze logs using the provided tools.
+When you receive a prompt, often accompanied by sample log lines, analyze the user's intent and call the appropriate tool.
+
+Rules for tool usage:
+1. 'apply_search_filter': Use this for filtering logs.
+   - 'value' is the search pattern.
+   - 'is_regex' should be true if you use regex patterns (like \d+, [A-Z], etc.).
+   - 'ignore_case' should be true if the user doesn't specify case sensitivity.
+   - 'is_word' should be true if the user wants to match whole words only. Default to false.
+2. If the user asks for a chart or values, use 'search_values' or 'get_chart_histogram'.
+3. Always be precise with the parameters. If a parameter is not specified, use common-sense defaults.
+4. Output ONLY the tool call if that's the primary action.
+
+Sample log lines provided at the end of the prompt show the context and format of the current session. Use them to craft better search patterns.
+"#;
 
 pub struct McpConfig {
     pub url: String,
@@ -105,13 +121,13 @@ impl McpClient {
     async fn run(
         mut prompt_rx: mpsc::Receiver<Prompt>,
         response_tx: mpsc::Sender<Response>,
-        mut mcp_service: RunningService<RoleClient, InitializeRequestParam>,
+        mcp_service: RunningService<RoleClient, InitializeRequestParam>,
         // llm: Llm<impl LlmClient>,
     ) -> Result<(), McpError> {
         // TODO:[MCP] System prompt probably needs to be tailored to our use case
         // Also this would need to be moved to the below loop, into the initial llm request / system prompt
         let ollama_client = ollama_rs::Ollama::default();
-        let mut history = vec![];
+        let mut history = vec![ChatMessage::system(SYSTEM_PROMPT.to_string())];
         loop {
             select! {
               Some(chipmunk_request) = prompt_rx.recv() => {
@@ -125,30 +141,37 @@ impl McpClient {
                                     }
                                 }
                             }).collect::<Vec<ToolInfo>>();
-                    let mut chat_message_request = ChatMessageRequest::new("llama3.2".to_string(), vec![ChatMessage::user(chipmunk_request)]).tools(tools);
+                    let chat_message_request = ChatMessageRequest::new("llama3.2".to_string(), vec![ChatMessage::user(chipmunk_request)])
+                        .tools(tools);
+
                     let response = ollama_client.send_chat_messages_with_history(&mut history, chat_message_request);
                     match response.await {
                         Ok(res) => {
                             let tool_calls = res.message.tool_calls.clone();
                             warn!("🤙🏻 Received Tool Call/s from LLM {tool_calls:?}");
-                            let tool_call_params = tool_calls.iter().map(|tool_call| {
-                                CallToolRequestParam {
-                                    name: tool_call.function.name.clone().into(),
-                                    arguments: fetch_arguments(tool_call)
+
+                            if tool_calls.is_empty() {
+                                if !res.message.content.is_empty() {
+                                     let _ = response_tx.send(res.message.content.clone()).await;
                                 }
-                            }).collect::<Vec<rmcp::model::CallToolRequestParam>>().first().cloned();
-                            match tool_call_params {
-                                Some(param) => {
-                                    let tool_result = mcp_service
-                                    .call_tool(param)
-                                    .await
-                                    .map_err(|e| McpError::Generic {
-                                        message: e.to_string(),
-                                    })?;
-                                },
-                                None => {}
+                                continue;
                             }
 
+                            for tool_call in tool_calls {
+                                let param = CallToolRequestParam {
+                                    name: tool_call.function.name.clone().into(),
+                                    arguments: fetch_arguments(&tool_call)
+                                };
+
+                                match mcp_service.call_tool(param).await {
+                                    Ok(tool_result) => {
+                                        warn!("✅ Tool call successful: {:?}", tool_result);
+                                    },
+                                    Err(e) => {
+                                        error!("🔴 Tool call failed: {:?}", e);
+                                    }
+                                }
+                            }
                         },
                         _ => {
                             error!("🔴 MCP Client failed to get mock prompt response:");
