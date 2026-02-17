@@ -61,7 +61,7 @@ impl Session {
             UnboundedReceiver<stypes::CallbackEvent>,
         ) = unbounded_channel();
         let (mcp_server, mcp_client, mcp_api_endpoints) = mcp::new();
-        let mcp_api = McpApi::new(mcp_api_endpoints.prompt_tx.clone());
+        let mcp_api = McpApi::new(mcp_api_endpoints.prompt_tx.clone(), state_api.clone());
         let session = Self {
             uuid,
             tx_operations: tx_operations.clone(),
