@@ -1,5 +1,3 @@
-//TODO AAZ: This is duplicated from LogsTable.
-//We need to have it in one place and encapsulate the changes.
 use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver, time::Duration};
 
 use egui::{Color32, Frame, Id, Label, Margin, Sense, Shape, Stroke, Ui, Widget, vec2};
@@ -13,13 +11,12 @@ use crate::{
         command::SessionCommand,
         error::SessionError,
         ui::{
+            common::logs_mapped::LogsMapped,
             definitions::{LogTableItem, schema::LogSchema},
             shared::{ObserveState, SessionShared},
         },
     },
 };
-
-use super::indexed_mapped::{IndexedMapped, SearchTableIndex};
 
 const TIMEOUT_DURATION: Duration = Duration::from_millis(50);
 const SEND_INTERVAL: Duration = Duration::from_millis(5);
@@ -29,7 +26,7 @@ const SEND_RETRY_MAX_COUNT: u8 = 10;
 pub struct SearchTable {
     cmd_tx: Sender<SessionCommand>,
     last_visible_rows: Option<Range<u64>>,
-    indexed_logs: IndexedMapped,
+    indexed_logs: LogsMapped,
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
@@ -50,7 +47,7 @@ impl SearchTable {
         Self {
             cmd_tx,
             last_visible_rows: None,
-            indexed_logs: IndexedMapped::new(schema),
+            indexed_logs: LogsMapped::new(schema),
             pending_logs_rx: None,
             scroll_nearest_pos: None,
             columns: cols.into_boxed_slice(),
@@ -165,9 +162,7 @@ impl<'a> LogsDelegate<'a> {
     }
 
     fn get_log_item(&self, cell: &CellInfo) -> Option<&LogTableItem> {
-        self.table
-            .indexed_logs
-            .get_log_item(&SearchTableIndex(cell.row_nr))
+        self.table.indexed_logs.get_log_item(&cell.row_nr)
     }
 
     fn render_row_header(&mut self, ui: &mut Ui, cell: &CellInfo) {
@@ -299,7 +294,7 @@ impl TableDelegate for LogsDelegate<'_> {
         if let Ok(elements) = logs_rx.recv_timeout(TIMEOUT_DURATION) {
             match elements {
                 Ok(elements) => {
-                    let combined = rng.map(SearchTableIndex).zip(elements);
+                    let combined = rng.zip(elements);
                     self.table
                         .indexed_logs
                         .append(combined, self.has_multi_sources);
@@ -327,10 +322,7 @@ impl TableDelegate for LogsDelegate<'_> {
     }
 
     fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
-        let log_item = self
-            .table
-            .indexed_logs
-            .get_log_item(&SearchTableIndex(row_nr));
+        let log_item = self.table.indexed_logs.get_log_item(&row_nr);
 
         let is_selected = self.is_row_selected(log_item);
 
