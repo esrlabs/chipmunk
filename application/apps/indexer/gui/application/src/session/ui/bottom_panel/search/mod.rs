@@ -16,7 +16,6 @@ use crate::{
 use search_bar::SearchBar;
 use search_table::SearchTable;
 
-mod indexed_mapped;
 mod search_bar;
 mod search_table;
 
