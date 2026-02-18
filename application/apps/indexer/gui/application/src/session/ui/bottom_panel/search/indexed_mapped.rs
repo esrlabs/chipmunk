@@ -1,5 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
+use rustc_hash::{FxHashMap, FxHashSet};
 use stypes::GrabbedElement;
 
 use crate::session::ui::definitions::{LogTableItem, schema::LogSchema};
@@ -15,14 +16,18 @@ pub struct SearchTableIndex(pub u64);
 /// the new ones blindly.
 #[derive(Debug)]
 pub struct IndexedMapped {
-    logs: HashMap<SearchTableIndex, LogTableItem>,
+    logs: FxHashMap<SearchTableIndex, LogTableItem>,
+    /// Stores log positions where source is changed for highlighting
+    /// as separator in table.
+    source_change_positions: FxHashSet<usize>,
     schema: Rc<dyn LogSchema>,
 }
 
 impl IndexedMapped {
     pub fn new(schema: Rc<dyn LogSchema>) -> Self {
         Self {
-            logs: HashMap::new(),
+            logs: FxHashMap::default(),
+            source_change_positions: FxHashSet::default(),
             schema,
         }
     }
@@ -31,10 +36,24 @@ impl IndexedMapped {
     pub fn append(
         &mut self,
         indexed_items: impl Iterator<Item = (SearchTableIndex, GrabbedElement)>,
+        has_multi_sources: bool,
     ) {
         self.logs.clear();
+        self.source_change_positions.clear();
+
+        let mut last_source_id = None;
 
         indexed_items.for_each(|(idx, element)| {
+            if has_multi_sources {
+                match &mut last_source_id {
+                    Some(source_id) if *source_id != element.source_id => {
+                        self.source_change_positions.insert(element.pos);
+                        *source_id = element.source_id;
+                    }
+                    _ => last_source_id = Some(element.source_id),
+                }
+            }
+
             let column_ranges = self.schema.map_columns(&element.content);
             let item = LogTableItem {
                 element,
@@ -49,6 +68,19 @@ impl IndexedMapped {
     }
 
     pub fn clear(&mut self) {
-        self.logs.clear();
+        let Self {
+            logs,
+            source_change_positions,
+            schema: _,
+        } = self;
+
+        logs.clear();
+        source_change_positions.clear();
+    }
+
+    /// Provides log positions where source is changed for highlighting
+    /// as separator in table.
+    pub fn source_change_positions(&self) -> &FxHashSet<usize> {
+        &self.source_change_positions
     }
 }
