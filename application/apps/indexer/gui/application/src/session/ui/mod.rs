@@ -32,6 +32,7 @@ use logs_table::LogsTable;
 use side_panel::SidePanelUi;
 
 mod bottom_panel;
+mod common;
 mod definitions;
 mod logs_table;
 mod shared;
