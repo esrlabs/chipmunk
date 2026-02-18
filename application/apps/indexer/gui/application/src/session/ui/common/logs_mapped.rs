@@ -5,25 +5,27 @@ use stypes::GrabbedElement;
 
 use crate::session::ui::definitions::{LogTableItem, schema::LogSchema};
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct SearchTableIndex(pub u64);
-
 /// Simple implementation for displaying a window of the logs to be used
-/// inside the search logs viewer.
+/// inside the log viewers (e.g., Main Table, Search Table).
 /// This implementation keeps the log element info inside a map with their
-/// matching index according to search table view as the keys.
+/// matching index (row number or log position) as the keys.
 /// Once new elements arrive it will replace all exiting logs with
 /// the new ones blindly.
 #[derive(Debug)]
-pub struct IndexedMapped {
-    logs: FxHashMap<SearchTableIndex, LogTableItem>,
+pub struct LogsMapped {
+    logs: FxHashMap<u64, LogTableItem>,
     /// Stores log positions where source is changed for highlighting
     /// as separator in table.
     source_change_positions: FxHashSet<usize>,
     schema: Rc<dyn LogSchema>,
 }
 
-impl IndexedMapped {
+impl LogsMapped {
+    /// Creates a new `LogsMapped` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema` - The schema used for parsing and mapping log columns.
     pub fn new(schema: Rc<dyn LogSchema>) -> Self {
         Self {
             logs: FxHashMap::default(),
@@ -32,10 +34,21 @@ impl IndexedMapped {
         }
     }
 
-    /// Append expect to
+    /// Appends new log items to the map, replacing any existing content.
+    ///
+    /// This method clears the current logs and source change positions before
+    /// processing the new items. It calculates where source ID changes occur
+    /// to support visual separators in the UI.
+    ///
+    /// # Arguments
+    ///
+    /// * `indexed_items` - An iterator of tuples containing the index (row number or position)
+    ///   and the `GrabbedElement`.
+    /// * `has_multi_sources` - A flag indicating if multiple data sources are present.
+    ///   If true, source changes will be tracked.
     pub fn append(
         &mut self,
-        indexed_items: impl Iterator<Item = (SearchTableIndex, GrabbedElement)>,
+        indexed_items: impl Iterator<Item = (u64, GrabbedElement)>,
         has_multi_sources: bool,
     ) {
         self.logs.clear();
@@ -63,10 +76,16 @@ impl IndexedMapped {
         });
     }
 
-    pub fn get_log_item(&self, row_idx: &SearchTableIndex) -> Option<&LogTableItem> {
+    /// Retrieves a reference to a `LogTableItem` by its index.
+    ///
+    /// # Arguments
+    ///
+    /// * `row_idx` - The key (row number or log position) to look up.
+    pub fn get_log_item(&self, row_idx: &u64) -> Option<&LogTableItem> {
         self.logs.get(row_idx)
     }
 
+    /// Clears all stored logs and source change positions.
     pub fn clear(&mut self) {
         let Self {
             logs,
@@ -78,8 +97,10 @@ impl IndexedMapped {
         source_change_positions.clear();
     }
 
-    /// Provides log positions where source is changed for highlighting
-    /// as separator in table.
+    /// Returns the set of log positions where the source ID has changed.
+    ///
+    /// These positions are used by the UI to draw separator lines between
+    /// logs from different sources.
     pub fn source_change_positions(&self) -> &FxHashSet<usize> {
         &self.source_change_positions
     }
