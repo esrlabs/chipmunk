@@ -14,15 +14,12 @@ use crate::{
         error::SessionError,
         ui::{
             bottom_panel::BottomTabType,
+            common::logs_mapped::LogsMapped,
             definitions::schema::LogSchema,
             shared::{LogMainIndex, ObserveState, SessionShared},
         },
     },
 };
-
-use logs_mapped::LogsMapped;
-
-mod logs_mapped;
 
 const TIMEOUT_DURATION: Duration = Duration::from_millis(50);
 const SEND_INTERVAL: Duration = Duration::from_millis(5);
@@ -264,7 +261,10 @@ impl TableDelegate for LogsDelegate<'_> {
 
         if let Ok(elements) = logs_rx.recv_timeout(TIMEOUT_DURATION) {
             match elements {
-                Ok(elements) => self.table.logs.append(elements, self.has_multi_sources),
+                Ok(elements) => self.table.logs.append(
+                    elements.into_iter().map(|e| (e.pos as u64, e)),
+                    self.has_multi_sources,
+                ),
                 Err(error) => {
                     let session_id = self.shared.get_id();
                     log::error!("Session Error: Session ID: {session_id}, error: {error}");
