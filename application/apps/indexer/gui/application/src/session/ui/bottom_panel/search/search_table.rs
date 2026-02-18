@@ -2,7 +2,7 @@
 //We need to have it in one place and encapsulate the changes.
 use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver, time::Duration};
 
-use egui::{Color32, Frame, Id, Label, Margin, Sense, Ui, Widget};
+use egui::{Color32, Frame, Id, Label, Margin, Sense, Shape, Stroke, Ui, Widget, vec2};
 use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
 use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
@@ -14,7 +14,7 @@ use crate::{
         error::SessionError,
         ui::{
             definitions::{LogTableItem, schema::LogSchema},
-            shared::SessionShared,
+            shared::{ObserveState, SessionShared},
         },
     },
 };
@@ -84,13 +84,7 @@ impl SearchTable {
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
 
-        let mut delegate = LogsDelegate {
-            shared,
-            table: self,
-            actions,
-            request_repaint: false,
-        };
-
+        let mut delegate = LogsDelegate::new(self, shared, actions);
         table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
@@ -115,14 +109,31 @@ impl SearchTable {
     }
 }
 
+#[derive(Debug)]
 struct LogsDelegate<'a> {
     table: &'a mut SearchTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
     request_repaint: bool,
+    has_multi_sources: bool,
 }
 
-impl LogsDelegate<'_> {
+impl<'a> LogsDelegate<'a> {
+    fn new(
+        table: &'a mut SearchTable,
+        shared: &'a mut SessionShared,
+        actions: &'a mut UiActions,
+    ) -> Self {
+        let has_multi_sources = shared.observe.sources_count() > 1;
+        Self {
+            table,
+            shared,
+            actions,
+            request_repaint: false,
+            has_multi_sources,
+        }
+    }
+
     #[inline(always)]
     fn is_row_selected(&self, log_item: Option<&LogTableItem>) -> bool {
         self.shared
@@ -151,6 +162,89 @@ impl LogsDelegate<'_> {
             self.actions
                 .try_send_command(&self.table.cmd_tx, SessionCommand::GetSelectedLog(pos));
         };
+    }
+
+    fn get_log_item(&self, cell: &CellInfo) -> Option<&LogTableItem> {
+        self.table
+            .indexed_logs
+            .get_log_item(&SearchTableIndex(cell.row_nr))
+    }
+
+    fn render_row_header(&mut self, ui: &mut Ui, cell: &CellInfo) {
+        ui.horizontal(|ui| {
+            let (res, painter) =
+                //TODO AAZ: Use central positions for magic values in all tables like the 5.0 here.
+                ui.allocate_painter(vec2(5.0, ui.available_height()), Sense::hover());
+
+            let has_multi_sources = self.has_multi_sources;
+            let log_item = self.get_log_item(cell);
+            if has_multi_sources && let Some(log_item) = log_item {
+                let source_idx = log_item.element.source_id;
+                let color = ObserveState::source_color(source_idx as usize);
+                painter.rect_filled(res.rect, 0, color);
+            }
+
+            ui.label(
+                log_item
+                    .map(|i| i.element.pos.to_string())
+                    .unwrap_or_default(),
+            );
+        });
+    }
+
+    fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {
+        let mut source_changed = false;
+
+        Frame::NONE
+            .inner_margin(Margin::symmetric(4, 0))
+            .show(ui, |ui| {
+                let log_item = match self.get_log_item(cell) {
+                    Some(log) => log,
+                    None => {
+                        // Ensure data will be requested on next frame.
+                        if self.table.pending_logs_rx.is_none() {
+                            self.table.last_visible_rows = None;
+                        }
+
+                        ui.label("Loading...");
+                        return;
+                    }
+                };
+
+                source_changed = self.has_multi_sources
+                    && self
+                        .table
+                        .indexed_logs
+                        .source_change_positions()
+                        .contains(&log_item.element.pos);
+
+                let content = log_item
+                    .column_ranges
+                    .get(cell.col_nr.saturating_sub(1))
+                    .and_then(|rng| log_item.element.content.get(rng.to_owned()))
+                    .unwrap_or_default();
+
+                if Label::new(content).ui(ui).clicked() {
+                    let is_selected = self.is_row_selected(Some(log_item));
+                    self.toggle_row_selected(log_item.element.pos as u64, is_selected);
+                }
+            });
+
+        if source_changed {
+            let rect = ui.max_rect();
+            ui.painter().add(Shape::dashed_line(
+                &[
+                    egui::Pos2::new(rect.min.x, rect.top() + 1.0),
+                    egui::Pos2::new(rect.max.x, rect.top() + 1.0),
+                ],
+                Stroke::new(
+                    0.5,
+                    ui.style().visuals.widgets.noninteractive.fg_stroke.color,
+                ),
+                4.0,
+                2.0,
+            ));
+        }
     }
 }
 
@@ -206,7 +300,9 @@ impl TableDelegate for LogsDelegate<'_> {
             match elements {
                 Ok(elements) => {
                     let combined = rng.map(SearchTableIndex).zip(elements);
-                    self.table.indexed_logs.append(combined);
+                    self.table
+                        .indexed_logs
+                        .append(combined, self.has_multi_sources);
                 }
                 Err(error) => {
                     let session_id = self.shared.get_id();
@@ -255,46 +351,13 @@ impl TableDelegate for LogsDelegate<'_> {
         // Users should be able to select the content of log files.
         ui.style_mut().interaction.selectable_labels = true;
 
-        let &CellInfo { col_nr, row_nr, .. } = cell;
-
-        Frame::NONE
-            .inner_margin(Margin::symmetric(4, 0))
-            .show(ui, |ui| {
-                let log_item = self
-                    .table
-                    .indexed_logs
-                    .get_log_item(&SearchTableIndex(row_nr));
-
-                let log_item = match log_item {
-                    Some(log) => log,
-                    None => {
-                        // Ensure data will be requested on next frame.
-                        if self.table.pending_logs_rx.is_none() {
-                            self.table.last_visible_rows = None;
-                        }
-
-                        ui.label("Loading...");
-                        return;
-                    }
-                };
-
-                match col_nr {
-                    0 => {
-                        ui.label(log_item.element.pos.to_string());
-                    }
-                    _ => {
-                        let content = log_item
-                            .column_ranges
-                            .get(col_nr.saturating_sub(1))
-                            .and_then(|rng| log_item.element.content.get(rng.clone()))
-                            .unwrap_or_default();
-
-                        if Label::new(content).ui(ui).clicked() {
-                            let is_selected = self.is_row_selected(Some(log_item));
-                            self.toggle_row_selected(log_item.element.pos as u64, is_selected);
-                        }
-                    }
-                }
-            });
+        match cell.col_nr {
+            0 => {
+                self.render_row_header(ui, cell);
+            }
+            _ => {
+                self.render_log_cell(ui, cell);
+            }
+        }
     }
 }
