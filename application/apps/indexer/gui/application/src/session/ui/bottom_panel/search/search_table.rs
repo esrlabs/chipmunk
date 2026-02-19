@@ -1,26 +1,22 @@
-use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver, time::Duration};
+use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver};
 
-use egui::{Color32, Frame, Id, Label, Margin, Sense, Shape, Stroke, Ui, Widget, vec2};
-use egui_table::{AutoSizeMode, CellInfo, Column, PrefetchInfo, TableDelegate};
+use egui::{Color32, Label, Sense, Ui, Widget};
+use egui_table::{CellInfo, Column, PrefetchInfo, TableDelegate};
 use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::{notification::AppNotification, ui::UiActions},
+    host::ui::UiActions,
     session::{
         command::SessionCommand,
         error::SessionError,
         ui::{
-            common::logs_mapped::LogsMapped,
+            common::{self, logs_mapped::LogsMapped, logs_tables::grab_cmd_consts},
             definitions::{LogTableItem, schema::LogSchema},
-            shared::{ObserveState, SessionShared},
+            shared::SessionShared,
         },
     },
 };
-
-const TIMEOUT_DURATION: Duration = Duration::from_millis(50);
-const SEND_INTERVAL: Duration = Duration::from_millis(5);
-const SEND_RETRY_MAX_COUNT: u8 = 10;
 
 #[derive(Debug)]
 pub struct SearchTable {
@@ -38,11 +34,7 @@ pub struct SearchTable {
 
 impl SearchTable {
     pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
-        let mut cols = Vec::with_capacity(schema.columns().len() + 1);
-        let nums_col = Column::new(100.0).range(50.0..=500.0).resizable(true);
-
-        cols.push(nums_col);
-        cols.extend(schema.columns().iter().map(|col| col.column));
+        let columns = common::logs_tables::create_table_columns(schema.as_ref());
 
         Self {
             cmd_tx,
@@ -50,7 +42,7 @@ impl SearchTable {
             indexed_logs: LogsMapped::new(schema),
             pending_logs_rx: None,
             scroll_nearest_pos: None,
-            columns: cols.into_boxed_slice(),
+            columns,
         }
     }
 
@@ -64,14 +56,11 @@ impl SearchTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        let id_salt = Id::new("search_table");
-
         let mut table = egui_table::Table::new()
-            .id_salt(id_salt)
+            .id_salt("search_table")
             .num_rows(shared.search.total_count())
             .headers(Vec::new())
             .columns(self.columns.as_ref())
-            .auto_size_mode(AutoSizeMode::Never)
             .num_sticky_cols(1);
 
         if let Some(row_nr) = self.scroll_nearest_pos.take().map(|pos| pos.index)
@@ -166,79 +155,58 @@ impl<'a> LogsDelegate<'a> {
     }
 
     fn render_row_header(&mut self, ui: &mut Ui, cell: &CellInfo) {
-        ui.horizontal(|ui| {
-            let (res, painter) =
-                //TODO AAZ: Use central positions for magic values in all tables like the 5.0 here.
-                ui.allocate_painter(vec2(5.0, ui.available_height()), Sense::hover());
+        let (text, color_idx) = self
+            .get_log_item(cell)
+            .map(|item| {
+                (
+                    item.element.pos.to_string(),
+                    self.has_multi_sources
+                        .then_some(item.element.source_id as usize),
+                )
+            })
+            .unwrap_or_default();
 
-            let has_multi_sources = self.has_multi_sources;
-            let log_item = self.get_log_item(cell);
-            if has_multi_sources && let Some(log_item) = log_item {
-                let source_idx = log_item.element.source_id;
-                let color = ObserveState::source_color(source_idx as usize);
-                painter.rect_filled(res.rect, 0, color);
-            }
-
-            ui.label(
-                log_item
-                    .map(|i| i.element.pos.to_string())
-                    .unwrap_or_default(),
-            );
-        });
+        common::logs_tables::render_row_header(ui, text, color_idx);
     }
 
     fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {
         let mut source_changed = false;
 
-        Frame::NONE
-            .inner_margin(Margin::symmetric(4, 0))
-            .show(ui, |ui| {
-                let log_item = match self.get_log_item(cell) {
-                    Some(log) => log,
-                    None => {
-                        // Ensure data will be requested on next frame.
-                        if self.table.pending_logs_rx.is_none() {
-                            self.table.last_visible_rows = None;
-                        }
-
-                        ui.label("Loading...");
-                        return;
+        common::logs_tables::get_cell_frame().show(ui, |ui| {
+            let log_item = match self.get_log_item(cell) {
+                Some(log) => log,
+                None => {
+                    // Ensure data will be requested on next frame.
+                    if self.table.pending_logs_rx.is_none() {
+                        self.table.last_visible_rows = None;
                     }
-                };
 
-                source_changed = self.has_multi_sources
-                    && self
-                        .table
-                        .indexed_logs
-                        .source_change_positions()
-                        .contains(&log_item.element.pos);
-
-                let content = log_item
-                    .column_ranges
-                    .get(cell.col_nr.saturating_sub(1))
-                    .and_then(|rng| log_item.element.content.get(rng.to_owned()))
-                    .unwrap_or_default();
-
-                if Label::new(content).ui(ui).clicked() {
-                    let is_selected = self.is_row_selected(Some(log_item));
-                    self.toggle_row_selected(log_item.element.pos as u64, is_selected);
+                    ui.label("Loading...");
+                    return;
                 }
-            });
+            };
+
+            source_changed = self.has_multi_sources
+                && self
+                    .table
+                    .indexed_logs
+                    .source_change_positions()
+                    .contains(&log_item.element.pos);
+
+            let content = log_item
+                .column_ranges
+                .get(cell.col_nr.saturating_sub(1))
+                .and_then(|rng| log_item.element.content.get(rng.to_owned()))
+                .unwrap_or_default();
+
+            if Label::new(content).ui(ui).clicked() {
+                let is_selected = self.is_row_selected(Some(log_item));
+                self.toggle_row_selected(log_item.element.pos as u64, is_selected);
+            }
+        });
 
         if source_changed {
-            let rect = ui.max_rect();
-            ui.painter().add(Shape::dashed_line(
-                &[
-                    egui::Pos2::new(rect.min.x, rect.top() + 1.0),
-                    egui::Pos2::new(rect.max.x, rect.top() + 1.0),
-                ],
-                Stroke::new(
-                    0.5,
-                    ui.style().visuals.widgets.noninteractive.fg_stroke.color,
-                ),
-                4.0,
-                2.0,
-            ));
+            common::logs_tables::render_upper_bound(ui);
         }
     }
 }
@@ -282,8 +250,8 @@ impl TableDelegate for LogsDelegate<'_> {
             if !self.actions.send_command_with_retry(
                 &self.table.cmd_tx,
                 cmd,
-                SEND_INTERVAL,
-                SEND_RETRY_MAX_COUNT,
+                grab_cmd_consts::SEND_INTERVAL,
+                grab_cmd_consts::SEND_RETRY_MAX_COUNT,
             ) {
                 return;
             }
@@ -291,7 +259,7 @@ impl TableDelegate for LogsDelegate<'_> {
             elems_rx
         };
 
-        if let Ok(elements) = logs_rx.recv_timeout(TIMEOUT_DURATION) {
+        if let Ok(elements) = logs_rx.recv_timeout(grab_cmd_consts::TIMEOUT_DURATION) {
             match elements {
                 Ok(elements) => {
                     let combined = rng.zip(elements);
@@ -300,12 +268,11 @@ impl TableDelegate for LogsDelegate<'_> {
                         .append(combined, self.has_multi_sources);
                 }
                 Err(error) => {
-                    let session_id = self.shared.get_id();
-                    log::error!("Session Error: Session ID: {session_id}, error: {error}");
-
-                    let notifi = AppNotification::SessionError { session_id, error };
-
-                    self.actions.add_notification(notifi);
+                    common::logs_tables::handle_grab_errors(
+                        error,
+                        self.shared.get_id(),
+                        self.actions,
+                    );
                 }
             }
         } else {
