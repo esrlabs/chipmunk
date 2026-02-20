@@ -424,6 +424,11 @@ impl SessionService {
                     })
                     .await;
             }
+            CallbackEvent::FileRead => {
+                self.senders
+                    .send_session_msg(SessionMessage::FileReadCompleted)
+                    .await;
+            }
             event => {
                 println!("************** DEBUG: Received unhandled callback: {event:?}");
                 log::warn!("Unhandled callback: {event}");

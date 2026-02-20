@@ -14,6 +14,9 @@ use crate::{
 pub struct ObserveState {
     sources_count: usize,
     operations: Vec<ObserveOperation>,
+    /// Indicates if the initial file reading process has completed.
+    /// This is only relevant for file sources.
+    file_read_completed: bool,
 }
 
 impl ObserveState {
@@ -21,6 +24,7 @@ impl ObserveState {
         let mut state = Self {
             sources_count: 0,
             operations: Vec::with_capacity(1),
+            file_read_completed: false,
         };
         state.add_operation(observe_op);
 
@@ -35,6 +39,7 @@ impl ObserveState {
         let Self {
             sources_count,
             operations,
+            file_read_completed: _,
         } = self;
 
         operations.push(observe_op);
@@ -72,5 +77,15 @@ impl ObserveState {
     /// producing any logs.
     pub fn is_initial_loading(&self) -> bool {
         self.operations.iter().all(ObserveOperation::initializing)
+    }
+
+    /// Mark the initial file reading as completed.
+    pub fn set_file_read_completed(&mut self) {
+        self.file_read_completed = true
+    }
+
+    /// Check if the initial file reading has completed.
+    pub fn is_file_read_completed(&self) -> bool {
+        self.file_read_completed
     }
 }
