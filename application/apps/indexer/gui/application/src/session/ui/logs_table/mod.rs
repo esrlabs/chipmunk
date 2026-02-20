@@ -4,7 +4,7 @@ use egui::{Color32, Sense, TextBuffer, Ui};
 use egui_table::{CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 use std::sync::mpsc::Receiver as StdReceiver;
-use stypes::GrabbedElement;
+use stypes::{GrabbedElement, ObserveOrigin};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -53,11 +53,27 @@ impl LogsTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
+        let stick_to_bottom =
+            shared
+                .observe
+                .operations()
+                .first()
+                .is_some_and(|op| match &op.origin {
+                    ObserveOrigin::File(..) => {
+                        // Enable stick to bottom for files only when they reach tailing phase
+                        // after reading the already existed data in that file.
+                        op.phase().is_running() && shared.observe.is_file_read_completed()
+                    }
+                    ObserveOrigin::Concat(..) => false,
+                    ObserveOrigin::Stream(..) => true,
+                });
+
         let mut table = egui_table::Table::new()
             .id_salt("logs_table")
             .num_rows(shared.logs.logs_count)
             .columns(self.columns.as_ref())
-            .num_sticky_cols(1);
+            .num_sticky_cols(1)
+            .stick_to_bottom(stick_to_bottom);
 
         if !self.schema.has_headers() {
             table = table.headers(Vec::new());
