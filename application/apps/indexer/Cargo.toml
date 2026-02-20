@@ -83,7 +83,7 @@ egui = "0.33"
 eframe = { version = "0.33", default-features = false }
 rfd = "0.17"
 egui_extras = { version = "0.33", default-features = false }
-egui_table = "0.6"
+egui_table = "0.7"
 egui_plot = "0.34"
 # We don't have direct dependency to winit but we need to specify it here to activate 
 # its default features which won't be activated otherwise without activating egui default 
@@ -98,6 +98,10 @@ egui-phosphor = "0.11"
 criterion = { version = "0.5", features = ["html_reports"] }
 insta = { version = "1.41", features = ["yaml"] }
 proptest = "1.6"
+
+[patch.crates-io]
+# This is needed until the next release "0.8" is available.
+egui_table = { git = "https://github.com/rerun-io/egui_table.git", rev = "cb95a2481f0e62f8f128d62ba2045ae0e6fb6253" }
 
 [workspace.lints.clippy]
 undocumented_unsafe_blocks = "deny"

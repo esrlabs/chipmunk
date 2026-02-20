@@ -43,4 +43,10 @@ pub enum SessionMessage {
 
     /// Source has been added to session.
     SourceAdded { observe_op: Box<ObserveOperation> },
+
+    /// Triggered when a file is opened within the session.
+    /// Although `chipmunk` continues to monitor the file for changes,
+    /// this event is triggered upon the completion of file reading.
+    /// This event is not triggered for streams within a session.
+    FileReadCompleted,
 }

@@ -225,6 +225,7 @@ impl Session {
                     }
                     // Potential components which keep track for operations can go here.
                 }
+                SessionMessage::FileReadCompleted => self.shared.observe.set_file_read_completed(),
             }
         }
     }
