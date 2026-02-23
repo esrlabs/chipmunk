@@ -22,6 +22,8 @@ use crate::{
     types::{Prompt, Response},
 };
 
+pub mod llm_agent;
+
 // TODO:[MCP] store this in a single global location
 pub const SERVER_ADDRESS: &str = "http://127.0.0.1:8181/mcp";
 
@@ -131,21 +133,10 @@ impl McpClient {
         loop {
             select! {
               Some(chipmunk_request) = prompt_rx.recv() => {
-                    let tools = mcp_service.list_tools(Default::default()).await?.tools.iter().map(|tool| {
-                                ToolInfo {
-                                    tool_type: ToolType::Function,
-                                    function: ToolFunctionInfo {
-                                        name: tool.name.to_string(),
-                                        description: tool.description.as_ref().map(|x| x.to_string()).unwrap_or("No description".to_string()),
-                                        parameters: serde_json::from_value(Value::Object((*tool.input_schema).clone())).unwrap_or(schemars::json_schema!({"type": ["object", "null"]}))
-                                    }
-                                }
-                            }).collect::<Vec<ToolInfo>>();
-                    let chat_message_request = ChatMessageRequest::new("llama3.2".to_string(), vec![ChatMessage::user(chipmunk_request)])
-                        .tools(tools);
+                    let tools = mcp_service.list_tools(Default::default()).await?;
 
-                    let response = ollama_client.send_chat_messages_with_history(&mut history, chat_message_request);
-                    match response.await {
+                    let response = llm_agent::send_chat_messages(crate::types::LlmProvider::OpenAI, chipmunk_request, &mut history, tools).await;
+                    match response {
                         Ok(res) => {
                             let tool_calls = res.message.tool_calls.clone();
                             warn!("🤙🏻 Received Tool Call/s from LLM {tool_calls:?}");
