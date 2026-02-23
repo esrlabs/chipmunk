@@ -492,7 +492,7 @@ impl FormattableMessage<'_> {
         Ok(())
     }
 
-    fn info_from_metadata<'b>(&'b self, id: u32, data: &[u8]) -> Option<NonVerboseInfo<'b>> {
+    fn info_from_metadata<'b>(&'b self, id: u32, mut data: &[u8]) -> Option<NonVerboseInfo<'b>> {
         let fibex = self.fibex_dlt_metadata?;
         let md = extract_metadata(fibex, id, self.message.extended_header.as_ref())?;
         let msg_type: Option<MessageType> = message_type(&self.message, md.message_info.as_deref());
@@ -525,10 +525,11 @@ impl FormattableMessage<'_> {
                 };
                 arguments.push(arg);
             } else {
-                if let Ok(mut new_args) =
+                if let Ok((rest, mut new_args)) =
                     construct_arguments(self.message.header.endianness, &pdu.signal_types, data)
                 {
                     arguments.append(&mut new_args);
+                    data = rest;
                 }
                 trace!("Constructed {} arguments", arguments.len());
             };
