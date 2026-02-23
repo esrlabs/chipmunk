@@ -13,6 +13,9 @@ pub enum McpError {
     #[error("Request timeout: {message}")]
     Timeout { message: String },
 
+    #[error("Error while sending ChatMessage: {message}")]
+    ChatError { message: String },
+
     // Server errors
     #[error("Tool execution failed: {message}")]
     ToolExecution { message: String },

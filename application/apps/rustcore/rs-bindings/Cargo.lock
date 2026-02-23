@@ -2246,6 +2246,7 @@ dependencies = [
  "axum",
  "log",
  "ollama-rs",
+ "rand 0.9.1",
  "reqwest",
  "rmcp",
  "schemars",
