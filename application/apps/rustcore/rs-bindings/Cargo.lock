@@ -973,9 +973,8 @@ dependencies = [
 
 [[package]]
 name = "dlt-core"
-version = "0.20.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b30630aabfec167a260bdd37bcb381ce7f8b9c41f5ada4182aa7b20e0bb691f"
+version = "0.20.2"
+source = "git+https://github.com/kruss/dlt-core.git?branch=fix_fibex_non_verbose_args#864a17740a604165580b190489096ca2aef15cb8"
 dependencies = [
  "byteorder",
  "bytes",
