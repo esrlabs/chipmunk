@@ -27,3 +27,13 @@ pub enum McpError {
     #[error("{message}")]
     Generic { message: String },
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConversionError {
+    #[error("OpenAI response has no choices")]
+    NoChoices,
+    #[error("Unknown role: {0}")]
+    UnknownRole(String),
+    #[error("Failed to parse tool arguments: {0}")]
+    JsonParse(#[from] serde_json::Error),
+}

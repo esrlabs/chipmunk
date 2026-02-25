@@ -63,31 +63,6 @@ pub enum LlmProvider {
     Gemini,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LlmConfig {
-    pub provider: LlmProvider,
-    pub model: String,
-    pub api_key: Option<String>,
-    pub url: Option<String>,
-}
-
-impl Default for LlmConfig {
-    fn default() -> Self {
-        Self {
-            model: String::from("llama3.2"),
-            url: Some(String::from("http://127.0.0.1:11434")),
-            api_key: None,
-            provider: LlmProvider::default(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PromptRequest {
-    pub prompt: String,
-    pub config: LlmConfig,
-}
-
 #[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
 pub struct ExportRawRequest {
     pub out_path: String,
