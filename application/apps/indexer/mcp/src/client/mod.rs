@@ -2,8 +2,7 @@
 // pub mod llm;
 
 use log::{error, warn};
-use ollama_rs::generation::chat::{ChatMessage, request::ChatMessageRequest};
-use ollama_rs::generation::tools::{ToolFunctionInfo, ToolInfo, ToolType};
+use ollama_rs::generation::chat::ChatMessage;
 use rmcp::{
     RoleClient,
     model::{
@@ -17,12 +16,11 @@ use serde_json::Value;
 use tokio::{select, sync::mpsc};
 
 use crate::{
-    errors::McpError,
     // client::llm::{Llm, LlmClient, LlmConfig},
+    agents::{self, LlmAgent},
+    errors::McpError,
     types::{Prompt, Response},
 };
-
-pub mod llm_agent;
 
 // TODO:[MCP] store this in a single global location
 pub const SERVER_ADDRESS: &str = "http://127.0.0.1:8181/mcp";
@@ -128,14 +126,28 @@ impl McpClient {
     ) -> Result<(), McpError> {
         // TODO:[MCP] System prompt probably needs to be tailored to our use case
         // Also this would need to be moved to the below loop, into the initial llm request / system prompt
-        let ollama_client = ollama_rs::Ollama::default();
         let mut history = vec![ChatMessage::system(SYSTEM_PROMPT.to_string())];
         loop {
             select! {
-              Some(chipmunk_request) = prompt_rx.recv() => {
+                Some(chipmunk_request) = prompt_rx.recv() => {
                     let tools = mcp_service.list_tools(Default::default()).await?;
 
-                    let response = llm_agent::send_chat_messages(crate::types::LlmProvider::OpenAI, chipmunk_request, &mut history, tools).await;
+                    let response = match std::env::var("LLM_AGENT")
+                        .ok()
+                        .map(|v| v.to_ascii_lowercase())
+                        .as_deref()
+                    {
+                        Some("openai") => {
+                            agents::open_ai::OpenAI::default()
+                                .send_chat_message(chipmunk_request, &mut history, tools)
+                                .await
+                        }
+                        _ => {
+                            agents::ollama::Ollama::default()
+                                .send_chat_message(chipmunk_request, &mut history, tools)
+                                .await
+                        }
+                    };
                     match response {
                         Ok(res) => {
                             let tool_calls = res.message.tool_calls.clone();
