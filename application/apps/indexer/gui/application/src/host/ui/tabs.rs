@@ -22,6 +22,7 @@ pub enum TabType {
 
 pub fn render_all_tabs(state: &mut HostState, actions: &mut UiActions, ui: &mut Ui) {
     let HostState {
+        home_screen: _,
         active_tab_idx,
         tabs,
         sessions,
