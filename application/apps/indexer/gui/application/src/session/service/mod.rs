@@ -14,10 +14,13 @@ use crate::{
         message::HostMessage,
         notification::AppNotification,
         service::file::get_file_format,
-        ui::session_setup::state::{
-            SessionSetupState,
-            parsers::ParserConfig,
-            sources::{ByteSourceConfig, StreamConfig},
+        ui::{
+            home::settings::SessionConfig,
+            session_setup::state::{
+                SessionSetupState,
+                parsers::ParserConfig,
+                sources::{ByteSourceConfig, StreamConfig},
+            },
         },
     },
     session::{
@@ -51,9 +54,9 @@ impl SessionService {
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
+        let session_config = SessionConfig::from_observe_options(&options);
 
         let observe_id = Uuid::new_v4();
-
         let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
 
         session.observe(observe_id, options)?;
@@ -73,6 +76,7 @@ impl SessionService {
 
         let info = InitSessionParams {
             session_info,
+            session_config,
             communication: ui_handle,
             observe_op,
         };

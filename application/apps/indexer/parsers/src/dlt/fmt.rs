@@ -525,7 +525,7 @@ impl FormattableMessage<'_> {
                 };
                 arguments.push(arg);
             } else {
-                if let Ok(mut new_args) =
+                if let Ok((_, mut new_args)) =
                     construct_arguments(self.message.header.endianness, &pdu.signal_types, data)
                 {
                     arguments.append(&mut new_args);

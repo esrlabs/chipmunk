@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-
 use stypes::FileFormat;
 
 #[derive(Debug, Clone)]
