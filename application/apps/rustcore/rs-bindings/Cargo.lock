@@ -2255,6 +2255,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-util",
+ "url",
 ]
 
 [[package]]
@@ -2538,7 +2539,9 @@ dependencies = [
 
 [[package]]
 name = "ollama-rs"
-version = "0.3.3"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f647d8676b95a6b6205e11453c9fac338d73c9cdcc011c94d1ba9c9bfea582cd"
 dependencies = [
  "async-stream",
  "log",
@@ -3742,6 +3745,7 @@ dependencies = [
  "log",
  "pcap-parser",
  "serde",
+ "shell-tools",
  "socket2",
  "stypes",
  "thiserror 2.0.18",
@@ -4107,9 +4111,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-stream"
-version = "0.1.17"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eca58d7bba4a75707817a2c44174253f9236b2d5fbd055602e9d5c07c139a047"
+checksum = "32da49809aab5c3bc678af03902d4ccddea2a87d028d86392a4b1560c6906c70"
 dependencies = [
  "futures-core",
  "pin-project-lite",
@@ -4383,6 +4387,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

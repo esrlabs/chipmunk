@@ -6,7 +6,7 @@ authors.workspace = true
 
 [dependencies]
 axum = { version = "0.7", features = ["macros"] }
-ollama-rs = { version = "0.3", path = "/Users/sudeep.tarlekar/Projects/ollama-rs/ollama-rs", features = ["stream"]}
+ollama-rs = { version = "0.3", features = ["stream"] }
 rmcp = { version = "0.11", features = [
   "client",
   "macros",

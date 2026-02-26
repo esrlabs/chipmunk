@@ -229,6 +229,7 @@ pub fn fetch_chat_message(resp: open_ai::OpenAIResponse) -> Result<ChatMessageRe
         message,
         done: true,
         final_data: None,
+        logprobs: None,
     })
 }
 

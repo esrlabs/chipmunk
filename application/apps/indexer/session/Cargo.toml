@@ -33,7 +33,7 @@ tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
-plugins_host.workspace = true
+plugins_host = {path = "../plugins_host/"}
 mcp = {path = "../mcp/"}
 
 [dev-dependencies]
