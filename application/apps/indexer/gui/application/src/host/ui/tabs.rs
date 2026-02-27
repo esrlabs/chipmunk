@@ -28,6 +28,7 @@ pub fn render_all_tabs(state: &mut HostState, actions: &mut UiActions, ui: &mut 
         sessions,
         session_setups,
         multi_setups,
+        ..
     } = state;
 
     for (idx, tab) in tabs.iter().enumerate() {

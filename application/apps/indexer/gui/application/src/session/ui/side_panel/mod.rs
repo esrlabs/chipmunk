@@ -3,7 +3,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     common::phosphor::icons,
-    host::ui::UiActions,
+    host::ui::{UiActions, registry::HostRegistry},
     session::{command::SessionCommand, types::ObserveOperation, ui::shared::SessionShared},
 };
 
@@ -39,6 +39,7 @@ impl SidePanelUi {
         ui: &mut Ui,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &mut HostRegistry,
     ) {
         SidePanel::left("side tabs")
             .frame(
@@ -64,7 +65,10 @@ impl SidePanelUi {
         CentralPanel::default().show_inside(ui, |ui| match shared.side_tab {
             SideTabType::Observing => self.observing.render_content(shared, actions, ui),
             SideTabType::Attachments => self.attachments.render_content(shared, ui),
-            SideTabType::Filters => self.filters.render_content(shared, ui),
+            SideTabType::Filters => {
+                self.filters
+                    .render_content(shared, actions, &mut registry.filters, ui)
+            }
         });
     }
 }

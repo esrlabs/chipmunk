@@ -8,7 +8,13 @@ use stypes::{GrabbedElement, ObserveOrigin};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::ui::UiActions,
+    host::{
+        common::colors::TEMP_SEARCH_BACKGROUND,
+        ui::{
+            UiActions,
+            registry::{HostRegistry, filters::FilterRegistry},
+        },
+    },
     session::{
         command::SessionCommand,
         error::SessionError,
@@ -51,6 +57,7 @@ impl LogsTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &HostRegistry,
         ui: &mut Ui,
     ) {
         let stick_to_bottom =
@@ -84,7 +91,7 @@ impl LogsTable {
             table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
         }
 
-        let mut delegate = LogsDelegate::new(self, shared, actions);
+        let mut delegate = LogsDelegate::new(self, shared, actions, &registry.filters);
         table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
@@ -98,6 +105,7 @@ struct LogsDelegate<'a> {
     table: &'a mut LogsTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
+    registry: &'a FilterRegistry,
     request_repaint: bool,
     has_multi_sources: bool,
 }
@@ -107,12 +115,14 @@ impl<'a> LogsDelegate<'a> {
         table: &'a mut LogsTable,
         shared: &'a mut SessionShared,
         actions: &'a mut UiActions,
+        registry: &'a FilterRegistry,
     ) -> Self {
         let has_multi_sources = shared.observe.sources_count() > 1;
         Self {
             table,
             shared,
             actions,
+            registry,
             request_repaint: false,
             has_multi_sources,
         }
@@ -291,20 +301,32 @@ impl TableDelegate for LogsDelegate<'_> {
 
         let mut invert_fg = is_selected;
 
+        //TODO AAZ: Logic is duplicated here and in search_table
+
         if is_selected {
             ui.painter()
                 .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GREEN);
         } else {
-            let highlight_match = self
+            let applied_filters = &self.shared.filters.applied_filters;
+            let match_color = self
                 .shared
                 .search
                 .current_matches_map()
-                .is_some_and(|map| map.contains_key(&LogMainIndex(row_nr)));
+                .and_then(|map| map.get(&LogMainIndex(row_nr)))
+                .and_then(|matches| matches.first())
+                .and_then(|filter_idx| {
+                    let idx = filter_idx.0 as usize;
+                    if let Some(filter) = applied_filters.get(idx) {
+                        self.registry.get_filter(filter).map(|def| def.colors.bg)
+                    } else {
+                        // This is the temporary unregistered search
+                        Some(TEMP_SEARCH_BACKGROUND)
+                    }
+                });
 
-            if highlight_match {
+            if let Some(color) = match_color {
                 invert_fg = true;
-                ui.painter()
-                    .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GRAY);
+                ui.painter().rect_filled(ui.max_rect(), 0.0, color);
             }
         }
 
