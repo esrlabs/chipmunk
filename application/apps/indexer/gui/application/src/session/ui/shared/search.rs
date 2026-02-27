@@ -1,9 +1,15 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use stypes::FilterMatch;
 use uuid::Uuid;
 
-use crate::session::{types::OperationPhase, ui::definitions::UpdateOperationOutcome};
+use crate::{
+    host::ui::registry::filters::FilterRegistry,
+    session::{
+        types::OperationPhase,
+        ui::{definitions::UpdateOperationOutcome, shared::FiltersState},
+    },
+};
 
 #[allow(unused)]
 #[derive(Debug, Clone, Copy)]
@@ -27,14 +33,53 @@ impl SearchOperation {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SearchState {
     search_op: Option<SearchOperation>,
     total_count: u64,
-    matches_map: Option<HashMap<LogMainIndex, Vec<FilterIndex>>>,
+    matches_map: Option<FxHashMap<LogMainIndex, Vec<FilterIndex>>>,
 }
 
 impl SearchState {
+    pub fn new(_session_id: Uuid) -> Self {
+        Self {
+            search_op: None,
+            total_count: 0,
+            matches_map: None,
+        }
+    }
+
+    pub fn drop_search(&mut self) {
+        let Self {
+            search_op: operation_op,
+            total_count,
+            matches_map,
+        } = self;
+
+        *operation_op = None;
+        *total_count = 0;
+        *matches_map = None;
+    }
+
+    pub fn get_active_filters(
+        &self,
+        filters_state: &FiltersState,
+        registry: &FilterRegistry,
+    ) -> Vec<processor::search::filter::SearchFilter> {
+        let mut filters: Vec<_> = filters_state
+            .applied_filters
+            .iter()
+            .filter_map(|uuid| registry.get_filter(uuid))
+            .map(|def| def.filter.clone())
+            .collect();
+
+        if let Some(active) = &filters_state.active_temp_search {
+            filters.push(active.clone());
+        }
+
+        filters
+    }
+
     pub fn total_count(&self) -> u64 {
         self.total_count
     }
@@ -70,18 +115,6 @@ impl SearchState {
 
     pub fn is_search_active(&self) -> bool {
         self.search_op.is_some()
-    }
-
-    pub fn drop_search(&mut self) {
-        let Self {
-            search_op: operation_op,
-            total_count,
-            matches_map,
-        } = self;
-
-        *operation_op = None;
-        *total_count = 0;
-        *matches_map = None;
     }
 
     pub fn update_operation(
@@ -125,7 +158,7 @@ impl SearchState {
         );
     }
 
-    pub fn current_matches_map(&self) -> Option<&HashMap<LogMainIndex, Vec<FilterIndex>>> {
+    pub fn current_matches_map(&self) -> Option<&FxHashMap<LogMainIndex, Vec<FilterIndex>>> {
         self.matches_map.as_ref()
     }
 }
