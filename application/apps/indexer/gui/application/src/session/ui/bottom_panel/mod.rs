@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Sender;
 use egui::{Frame, Margin, Ui};
 
 use crate::{
-    host::ui::UiActions,
+    host::ui::{UiActions, registry::HostRegistry},
     session::{
         command::SessionCommand,
         ui::{definitions::schema::LogSchema, shared::SessionShared},
@@ -38,7 +38,7 @@ impl BottomPanelUI {
         Self {
             search: SearchUI::new(cmd_tx.clone(), schema),
             details: DetailsUI::default(),
-            presets: PresetsUI::default(),
+            presets: PresetsUI::new(cmd_tx.clone()),
             chart: ChartUI::new(cmd_tx),
         }
     }
@@ -47,14 +47,21 @@ impl BottomPanelUI {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &mut HostRegistry,
         ui: &mut Ui,
     ) {
         self.render_tabs(shared, ui);
 
         match shared.bottom_tab {
-            BottomTabType::Search => self.search.render_content(shared, actions, ui),
+            BottomTabType::Search => {
+                self.search
+                    .render_content(shared, actions, &mut registry.filters, ui)
+            }
             BottomTabType::Details => self.details.render_content(shared, ui),
-            BottomTabType::Presets => self.presets.render_content(ui),
+            BottomTabType::Presets => {
+                self.presets
+                    .render_content(shared, actions, &mut registry.filters, ui)
+            }
             BottomTabType::Chart => self.chart.render_content(shared, actions, ui),
         }
     }

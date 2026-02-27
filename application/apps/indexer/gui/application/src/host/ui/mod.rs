@@ -36,8 +36,9 @@ mod home;
 mod menu;
 pub mod multi_setup;
 mod notification;
+pub mod registry;
 pub mod session_setup;
-mod state;
+pub mod state;
 mod tabs;
 
 const APP_TITLE: &str = "Chipmunk";
@@ -211,24 +212,29 @@ impl Host {
     }
 
     fn render_main(&mut self, ui: &mut Ui) {
-        let Self { ui_actions, .. } = self;
-        match *self.state.active_tab() {
+        let Self {
+            ui_actions, state, ..
+        } = self;
+        let active_tab = state.active_tab().clone();
+        let HostState {
+            sessions,
+            session_setups,
+            multi_setups,
+            registry,
+            ..
+        } = state;
+
+        match active_tab {
             TabType::Home => HomeView::render_content(ui),
-            TabType::Session(id) => self
-                .state
-                .sessions
+            TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")
-                .render_content(ui_actions, ui),
-            TabType::SessionSetup(id) => self
-                .state
-                .session_setups
+                .render_content(ui_actions, registry, ui),
+            TabType::SessionSetup(id) => session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
                 .render_content(ui_actions, ui),
-            TabType::MultiFileSetup(id) => self
-                .state
-                .multi_setups
+            TabType::MultiFileSetup(id) => multi_setups
                 .get_mut(&id)
                 .expect("Multiple files setups with provided ID from active tab must exist")
                 .render_content(ui_actions, ui),
@@ -246,8 +252,7 @@ impl Host {
             changed = true;
             match action {
                 HostAction::CloseSession(session_id) => {
-                    self.state.sessions[&session_id].on_close_session(&mut self.ui_actions);
-                    self.state.close_session(session_id);
+                    self.state.close_session(session_id, &mut self.ui_actions);
                 }
             }
         }
