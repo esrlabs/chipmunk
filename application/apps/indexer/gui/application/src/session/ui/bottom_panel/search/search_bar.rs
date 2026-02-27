@@ -5,11 +5,10 @@ use egui::{
     Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
-use uuid::Uuid;
 
 use crate::{
     common::phosphor::{self, icons},
-    host::ui::UiActions,
+    host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{command::SessionCommand, types::OperationPhase, ui::shared::SessionShared},
 };
 
@@ -20,7 +19,6 @@ pub struct SearchBar {
     pub is_regex: bool,
     pub match_case: bool,
     pub is_word: bool,
-    pub temp_filter: Option<SearchFilter>,
 }
 
 impl SearchBar {
@@ -31,13 +29,13 @@ impl SearchBar {
             is_regex: true,
             match_case: false,
             is_word: false,
-            temp_filter: None,
         }
     }
     pub fn render_content(
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
         // - Capture enter before creating text edit to prevent it from stealing it.
@@ -54,12 +52,13 @@ impl SearchBar {
         //   from it and use it as the current text for the text input.
         let move_cursor_end = if backspace_pressed
             && self.query.is_empty()
-            && let Some(mut filter) = self.temp_filter.take()
+            && let Some(mut filter) = shared.filters.active_temp_search.take()
         {
-            self.drop_search(shared, actions);
             if command_modifier {
+                self.drop_search(shared, actions, registry);
                 false
             } else {
+                self.drop_search(shared, actions, registry);
                 filter.value.pop();
                 self.query = filter.value;
                 true
@@ -69,26 +68,23 @@ impl SearchBar {
         };
 
         // Apply temp filter on pressing enter.
-        if enter_pressed && !self.query.is_empty() {
-            if self.temp_filter.is_some() {
-                self.drop_search(shared, actions);
-            }
+        if enter_pressed {
+            if !self.query.is_empty() {
+                let filter = SearchFilter::new(
+                    std::mem::take(&mut self.query),
+                    self.is_regex,
+                    !self.match_case,
+                    self.is_word,
+                );
 
-            let filter = SearchFilter::new(
-                std::mem::take(&mut self.query),
-                self.is_regex,
-                !self.match_case,
-                self.is_word,
-            );
+                shared.filters.set_temp_search(filter);
+                let cmd = shared.apply_search_filters(registry);
+                actions.try_send_command(&self.cmd_tx, cmd);
+            } else if shared.filters.active_temp_search.is_some() {
+                shared.filters.pin_temp_search(registry);
 
-            let operation_id = Uuid::new_v4();
-            let cmd = SessionCommand::ApplySearchFilter {
-                operation_id,
-                filters: vec![filter.clone()],
-            };
-            if actions.try_send_command(&self.cmd_tx, cmd) {
-                shared.search.set_search_operation(operation_id);
-                self.temp_filter = Some(filter);
+                let cmd = shared.apply_search_filters(registry);
+                actions.try_send_command(&self.cmd_tx, cmd);
             }
         }
 
@@ -120,7 +116,7 @@ impl SearchBar {
                             .fill(ui.visuals().extreme_bg_color)
                             .stroke(Self::text_frame_stroke(ui, text_id))
                             .show(ui, |ui| {
-                                self.render_temp_filter(shared, actions, ui);
+                                self.render_active_search(shared, actions, registry, ui);
 
                                 let mut text_output = TextEdit::singleline(&mut self.query)
                                     .id(text_id)
@@ -143,14 +139,20 @@ impl SearchBar {
         );
     }
 
-    /// Renders temp filter if exists inside input frame.
-    fn render_temp_filter(
+    /// Renders active search if exists inside input frame.
+    fn render_active_search(
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
-        if let Some(filter) = self.temp_filter.take() {
+        if let Some(filter_txt) = shared
+            .filters
+            .active_temp_search
+            .as_ref()
+            .map(|f| f.value.to_owned())
+        {
             ui.add_space(1.);
 
             Frame::new()
@@ -160,38 +162,40 @@ impl SearchBar {
                 .stroke(ui.style().visuals.window_stroke)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.label(&filter.value);
+                        ui.label(filter_txt);
 
                         ui.style_mut().visuals.button_frame = false;
+
                         // Add to filters
                         let save_txt = RichText::new(icons::fill::FLOPPY_DISK_BACK)
                             .family(phosphor::fill_font_family());
+
                         if Button::new(save_txt)
                             .ui(ui)
                             .on_hover_text("Add to Filters")
                             .clicked()
                         {
-                            // TODO: Add to filters
+                            shared.filters.pin_temp_search(registry);
+
+                            // Re-apply search which now includes new filter and NO active_search
+                            let cmd = shared.apply_search_filters(registry);
+                            actions.try_send_command(&self.cmd_tx, cmd);
                         }
 
-                        // Add to charts
                         if Button::new(icons::regular::CHART_LINE)
                             .ui(ui)
-                            .on_hover_text("Add to Charts")
+                            .on_hover_text("Add to Search Values")
                             .clicked()
                         {
-                            //TODO: Add to charts
+                            shared.filters.pin_temp_search_as_value(registry);
                         }
 
-                        // Remove filter button
                         if Button::new(icons::regular::X)
                             .ui(ui)
                             .on_hover_text("Remove filter")
                             .clicked()
                         {
-                            self.drop_search(shared, actions);
-                        } else {
-                            self.temp_filter = Some(filter);
+                            self.drop_search(shared, actions, registry);
                         }
                     })
                 });
@@ -240,9 +244,16 @@ impl SearchBar {
         ui.separator();
     }
 
-    fn drop_search(&self, shared: &mut SessionShared, actions: &mut UiActions) {
-        let operation_id = shared.search.processing_search_operation();
-        actions.try_send_command(&self.cmd_tx, SessionCommand::DropSearch { operation_id });
-        shared.drop_search();
+    /// Discards the current temporary search and synchronizes the session state
+    /// considering the already applied filters.
+    fn drop_search(
+        &self,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+        registry: &FilterRegistry,
+    ) {
+        shared.filters.clear_temp_search();
+        let cmd = shared.apply_search_filters(registry);
+        actions.try_send_command(&self.cmd_tx, cmd);
     }
 }

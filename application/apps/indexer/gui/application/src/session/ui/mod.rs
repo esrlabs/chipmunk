@@ -10,7 +10,7 @@ use crate::{
         command::HostCommand,
         common::parsers::ParserNames,
         notification::AppNotification,
-        ui::{HostAction, UiActions},
+        ui::{HostAction, UiActions, registry::HostRegistry},
     },
     session::{
         InitSessionParams,
@@ -90,7 +90,12 @@ impl Session {
         actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
     }
 
-    pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        actions: &mut UiActions,
+        registry: &mut HostRegistry,
+        ui: &mut Ui,
+    ) {
         let Self {
             logs_table,
             bottom_panel,
@@ -126,7 +131,7 @@ impl Session {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.take_available_width();
-                side_panel.render_content(ui, shared, actions);
+                side_panel.render_content(ui, shared, actions, registry);
             });
 
         TopBottomPanel::bottom("bottom_panel")
@@ -135,7 +140,7 @@ impl Session {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.take_available_height();
-                bottom_panel.render_content(shared, actions, ui);
+                bottom_panel.render_content(shared, actions, registry, ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
@@ -143,7 +148,7 @@ impl Session {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(shared.get_id(), |ui| {
-                logs_table.render_content(shared, actions, ui);
+                logs_table.render_content(shared, actions, registry, ui);
             });
         });
 

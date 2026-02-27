@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Sender;
 use egui::Ui;
 
 use crate::{
-    host::ui::UiActions,
+    host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{
         command::SessionCommand,
         types::OperationPhase,
@@ -36,9 +36,10 @@ impl SearchUI {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
-        self.bar.render_content(shared, actions, ui);
+        self.bar.render_content(shared, actions, registry, ui);
 
         if shared
             .search
@@ -49,7 +50,7 @@ impl SearchUI {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(shared.get_id(), |ui| {
-                self.table.render_content(shared, actions, ui);
+                self.table.render_content(shared, actions, registry, ui);
             });
         }
     }
