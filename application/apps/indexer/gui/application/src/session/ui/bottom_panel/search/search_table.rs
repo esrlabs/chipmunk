@@ -6,14 +6,17 @@ use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::ui::UiActions,
+    host::{
+        common::colors::TEMP_SEARCH_BACKGROUND,
+        ui::{UiActions, registry::filters::FilterRegistry},
+    },
     session::{
         command::SessionCommand,
         error::SessionError,
         ui::{
             common::{self, logs_mapped::LogsMapped, logs_tables::grab_cmd_consts},
             definitions::{LogTableItem, schema::LogSchema},
-            shared::SessionShared,
+            shared::{LogMainIndex, SessionShared},
         },
     },
 };
@@ -54,6 +57,7 @@ impl SearchTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
         let mut table = egui_table::Table::new()
@@ -70,7 +74,7 @@ impl SearchTable {
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
 
-        let mut delegate = LogsDelegate::new(self, shared, actions);
+        let mut delegate = LogsDelegate::new(self, shared, actions, registry);
         table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
@@ -100,6 +104,7 @@ struct LogsDelegate<'a> {
     table: &'a mut SearchTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
+    registry: &'a FilterRegistry,
     request_repaint: bool,
     has_multi_sources: bool,
 }
@@ -109,12 +114,14 @@ impl<'a> LogsDelegate<'a> {
         table: &'a mut SearchTable,
         shared: &'a mut SessionShared,
         actions: &'a mut UiActions,
+        registry: &'a FilterRegistry,
     ) -> Self {
         let has_multi_sources = shared.observe.sources_count() > 1;
         Self {
             table,
             shared,
             actions,
+            registry,
             request_repaint: false,
             has_multi_sources,
         }
@@ -293,9 +300,40 @@ impl TableDelegate for LogsDelegate<'_> {
 
         let is_selected = self.is_row_selected(log_item);
 
+        //TODO AAZ: Unify color handling in both tables and consider foreground colors instead of
+        //inverting the color blindly.
+
+        let mut invert_fg = is_selected;
+
         if is_selected {
             ui.painter()
                 .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GREEN);
+        } else if let Some(log_item) = log_item {
+            let applied_filters = &self.shared.filters.applied_filters;
+            let match_color = self
+                .shared
+                .search
+                .current_matches_map()
+                .and_then(|map| map.get(&LogMainIndex(log_item.element.pos as u64)))
+                // Highlight wit the first filter matches in case of multiple matches.
+                .and_then(|matches| matches.first())
+                .and_then(|filter_idx| {
+                    let idx = filter_idx.0 as usize;
+                    if let Some(filter) = applied_filters.get(idx) {
+                        self.registry.get_filter(filter).map(|def| def.colors.bg)
+                    } else {
+                        // This is the temporary unregistered search
+                        Some(TEMP_SEARCH_BACKGROUND)
+                    }
+                });
+
+            if let Some(color) = match_color {
+                invert_fg = true;
+                ui.painter().rect_filled(ui.max_rect(), 0.0, color);
+            }
+        }
+
+        if invert_fg {
             ui.style_mut().visuals.override_text_color = Some(Color32::WHITE);
         }
 

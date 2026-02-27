@@ -1,5 +1,8 @@
 use egui::Color32;
 
+/// Background color for logs matching the temporal search.
+pub const TEMP_SEARCH_BACKGROUND: Color32 = Color32::from_rgb(60, 60, 60);
+
 pub const HIGHLIGHT_COLORS: [ColorPair; 10] = [
     // Red
     ColorPair::new(

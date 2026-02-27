@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::host::ui::{UiActions, registry::HostRegistry};
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -24,6 +25,7 @@ pub struct HostState {
     pub sessions: HashMap<Uuid, Session>,
     pub session_setups: HashMap<Uuid, SessionSetup>,
     pub multi_setups: HashMap<Uuid, MultiFileSetup>,
+    pub registry: HostRegistry,
 }
 
 impl HostState {
@@ -77,7 +79,7 @@ impl HostState {
         self.active_tab_idx = self.tabs.len() - 1;
     }
 
-    pub fn close_session(&mut self, session_id: Uuid) {
+    pub fn close_session(&mut self, session_id: Uuid, actions: &mut UiActions) {
         let session_tab_idx = self
             .tabs
             .iter()
@@ -99,10 +101,14 @@ impl HostState {
             }
         };
 
+        self.registry.cleanup_session(&session_id);
+
         self.update_current_tab_on_close(session_tab_idx);
 
         self.tabs.remove(session_tab_idx);
-        self.sessions.remove(&session_id);
+        if let Some(session) = self.sessions.remove(&session_id) {
+            session.on_close_session(actions);
+        }
     }
 
     pub fn close_session_setup(&mut self, setup_id: Uuid) {
@@ -179,6 +185,7 @@ impl Default for HostState {
             sessions: HashMap::new(),
             session_setups: HashMap::new(),
             multi_setups: HashMap::new(),
+            registry: HostRegistry::default(),
         }
     }
 }
