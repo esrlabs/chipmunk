@@ -10,12 +10,14 @@ use uuid::Uuid;
 
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
+pub(crate) mod config;
 mod info;
 mod logs;
 mod observe;
 pub(crate) mod searching;
 mod signal;
 
+pub use config::AiConfig;
 pub use info::SessionInfo;
 pub use logs::{LogsState, SelectionIntent};
 pub use observe::ObserveState;
@@ -42,6 +44,8 @@ pub struct SessionShared {
     pub logs: LogsState,
 
     pub observe: ObserveState,
+
+    pub ai_configuration: AiConfig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,6 +72,7 @@ impl SessionShared {
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
             observe: ObserveState::new(observe_op),
+            ai_configuration: AiConfig::default(),
         }
     }
 
@@ -108,6 +113,7 @@ impl SessionShared {
             search_values,
             logs: _,
             observe,
+            ai_configuration,
         } = self;
 
         if observe.update_operation(operation_id, phase).consumed() {
@@ -141,6 +147,17 @@ impl SessionShared {
                 commands
             }
         }
+    }
+
+    pub fn update_ai_configuration(
+        &mut self,
+        model_name: String,
+        url: String,
+        api_key: Option<String>,
+    ) {
+        self.ai_configuration.model = model_name;
+        self.ai_configuration.url = url;
+        self.ai_configuration.api_token = api_key;
     }
 
     /// Synchronizes the logs search pipeline from current applied filters.

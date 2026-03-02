@@ -39,6 +39,22 @@ impl SearchBar {
             is_word: false,
         }
     }
+
+    pub fn apply_search_filters(
+        &self,
+        filter: SearchFilter,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+        registry: &FilterRegistry,
+    ) {
+        shared.filters.set_temp_search(filter);
+
+        shared
+            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+            .into_iter()
+            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+    }
+
     pub fn render_content(
         &mut self,
         shared: &mut SessionShared,

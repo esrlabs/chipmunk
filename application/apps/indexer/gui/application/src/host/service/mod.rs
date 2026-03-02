@@ -11,6 +11,7 @@ use log::trace;
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
+use mcp::server::McpServer;
 use parsers::dlt::DltFilterConfig;
 use stypes::{
     DltParserSettings, FileFormat, NativeError, NativeErrorKind, ObserveOptions, ObserveOrigin,
@@ -54,9 +55,11 @@ impl HostService {
     /// Spawns tokio runtime to run host services returning a handle of the runtime.
     #[must_use]
     pub fn spawn(communication: ServiceHandle) -> Handle {
+        let mcp_task_tx = communication.senders.mcp_task_tx.clone();
         let host = Self { communication };
 
         let (handle_tx, handle_rx) = std::sync::mpsc::channel();
+        let mcp_server = McpServer::new(mcp_task_tx);
 
         thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_multi_thread()
@@ -69,6 +72,9 @@ impl HostService {
                 .expect("Sending tokio handle should never fail");
 
             rt.block_on(async {
+                if let Err(err) = mcp_server.start().await {
+                    log::error!("MCP Server error: {:?}", err);
+                }
                 host.run().await;
             });
         });

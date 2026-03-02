@@ -87,6 +87,8 @@ pub enum SessionCommand {
 
     /// Cancel the running operation with the given id.
     CancelOperation { id: Uuid },
+    /// Send a chat message.
+    SendChatMessage { id: Uuid, message: String },
     /// Gracefully terminate the session service.
     CloseSession,
 }

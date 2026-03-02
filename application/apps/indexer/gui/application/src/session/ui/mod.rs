@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
-use egui::{CentralPanel, Frame, Margin, Panel, Ui};
+use egui::{CentralPanel, Frame, Margin, SidePanel, TopBottomPanel, Ui};
+use mcp::server::tasks::Tasks;
+use shared::SessionShared;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -16,13 +18,13 @@ use crate::{
         command::SessionCommand,
         communication::{UiHandle, UiReceivers},
         error::SessionError,
-        message::SessionMessage,
+        message::{AiMessage, SessionMessage},
         ui::{
             definitions::schema::{
                 LogSchema, dlt::DltLogSchema, plugins::PluginsLogSchema, someip::SomeIpLogSchema,
                 text::TextLogSchema,
             },
-            shared::SessionSignal,
+            shared::{SearchSyncTarget, SessionSignal},
         },
     },
 };
@@ -34,7 +36,7 @@ mod bottom_panel;
 mod common;
 mod definitions;
 mod logs_table;
-mod shared;
+pub(crate) mod shared;
 mod side_panel;
 mod status_bar;
 
@@ -104,7 +106,8 @@ impl Session {
 
         debug_assert!(
             shared.signals.is_empty(),
-            "Signals leaked from previous frame."
+            "Signals leaked from previous frame. {:?}",
+            shared.signals
         );
 
         if shared.observe.is_initial_loading() {
@@ -174,8 +177,47 @@ impl Session {
         }
     }
 
+    fn handle_mcp_task(
+        &mut self,
+        task: Tasks,
+        actions: &mut UiActions,
+        registry: &mut FilterRegistry,
+    ) {
+        match task {
+            Tasks::ApplySearchFilter {
+                session_id,
+                filters,
+                task_result_tx,
+            } => {
+                if session_id == self.shared.get_id() {
+                    filters.iter().for_each(|filter| {
+                        self.bottom_panel.search.bar.apply_search_filters(
+                            filter.clone(),
+                            &mut self.shared,
+                            actions,
+                            registry,
+                        );
+                    });
+                    self.shared.filters.pin_temp_search(registry);
+
+                    // Re-apply search which now includes new filter and NO active_search
+                    self.shared
+                        .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                        .into_iter()
+                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                    self.handle_signals();
+                    actions
+                        .try_send_command(&task_result_tx, Ok("Applied Search Filter".to_string()));
+                }
+            }
+            _ => {
+                println!("****** DEBUG: Should handle other tasks");
+            } // Handle other tasks here
+        }
+    }
+
     /// Check incoming messages and handle them.
-    pub fn handle_messages(&mut self, actions: &mut UiActions) {
+    pub fn handle_messages(&mut self, actions: &mut UiActions, registry: &mut FilterRegistry) {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             match msg {
                 SessionMessage::LogsCount(count) => {
@@ -247,6 +289,13 @@ impl Session {
                     // Potential components which keep track for operations can go here.
                 }
                 SessionMessage::FileReadCompleted => self.shared.observe.set_file_read_completed(),
+                SessionMessage::ChatResponseReceived(response) => {
+                    self.side_panel
+                        .update_chat(AiMessage::Response(response.clone()));
+                }
+                SessionMessage::MCPTaskReceived(task) => {
+                    self.handle_mcp_task(task, actions, registry);
+                }
             }
         }
     }

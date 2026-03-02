@@ -43,7 +43,7 @@ pub mod multi_setup;
 mod notification;
 pub mod registry;
 pub mod session_setup;
-pub mod state;
+mod state;
 mod tabs;
 
 const APP_TITLE: &str = "Chipmunk";
@@ -201,9 +201,12 @@ impl Host {
 
     fn render_menu(&mut self, ui: &mut Ui) {
         let Self {
-            menu, ui_actions, ..
+            menu,
+            ui_actions,
+            state,
+            ..
         } = self;
-        menu.render(ui, ui_actions);
+        menu.render(ui, ui_actions, state);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {

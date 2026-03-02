@@ -1,10 +1,11 @@
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     common::comm_utls::evaluate_send_res,
     host::{message::HostMessage, notification::AppNotification},
     session::{command::SessionCommand, message::SessionMessage},
 };
+use mcp::server::tasks::Tasks;
 
 const CHANNELS_CAPACITY: usize = 32;
 
@@ -14,6 +15,7 @@ const CHANNELS_CAPACITY: usize = 32;
 pub struct SharedSenders {
     host_message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,
+    mcp_task_tx: broadcast::Sender<Tasks>,
     egui_ctx: egui::Context,
 }
 
@@ -21,13 +23,19 @@ impl SharedSenders {
     pub fn new(
         host_message_tx: mpsc::Sender<HostMessage>,
         notification_tx: mpsc::Sender<AppNotification>,
+        mcp_task_tx: broadcast::Sender<Tasks>,
         egui_ctx: egui::Context,
     ) -> Self {
         Self {
             host_message_tx,
             notification_tx,
+            mcp_task_tx,
             egui_ctx,
         }
+    }
+
+    pub fn get_mcp_task_subscriber(&self) -> broadcast::Receiver<Tasks> {
+        self.mcp_task_tx.subscribe()
     }
 }
 
@@ -120,6 +128,7 @@ pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let SharedSenders {
         host_message_tx,
         notification_tx,
+        mcp_task_tx,
         egui_ctx,
     } = shared_senders;
 

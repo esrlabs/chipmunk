@@ -2,6 +2,7 @@ use egui::{MenuBar, Theme, Ui};
 use stypes::FileFormat;
 use tokio::sync::mpsc::Sender;
 
+use super::state::HostState;
 use crate::host::{
     command::HostCommand,
     common::{app_style, parsers::ParserNames, sources::StreamNames},
@@ -24,7 +25,7 @@ impl MainMenuBar {
         Self { cmd_tx }
     }
 
-    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions) {
+    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions, state: &mut HostState) {
         self.handle_file_dialog(actions);
 
         MenuBar::new().ui(ui, |ui| {

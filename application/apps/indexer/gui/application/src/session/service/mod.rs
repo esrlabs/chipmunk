@@ -1,9 +1,13 @@
 use std::ops::ControlFlow;
 
 use itertools::Itertools;
-use tokio::{select, sync::mpsc};
+use tokio::{
+    select,
+    sync::{broadcast, mpsc},
+};
 use uuid::Uuid;
 
+use mcp::{client::McpClient, server::tasks::Tasks, types::Prompt};
 use processor::grabber::LineRange;
 use session_core::session::Session;
 use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
@@ -39,6 +43,7 @@ pub struct SessionService {
     senders: ServiceSenders,
     session: Session,
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
+    mcp_task_rx: broadcast::Receiver<Tasks>,
 }
 
 impl SessionService {
@@ -47,6 +52,8 @@ impl SessionService {
         shared_senders: SharedSenders,
         options: ObserveOptions,
     ) -> Result<InitSessionParams, InitSessionError> {
+        let mcp_task_rx = shared_senders.get_mcp_task_subscriber();
+
         let session_id = Uuid::new_v4();
 
         let (ui_handle, service_handle) = communication::init(shared_senders);
@@ -68,6 +75,7 @@ impl SessionService {
             senders,
             session,
             callback_rx,
+            mcp_task_rx,
         };
 
         tokio::spawn(async move {
@@ -92,10 +100,17 @@ impl SessionService {
     async fn run(mut self) {
         log::trace!("Start Session Service {}", self.session_id());
 
+        let (client, prompt_tx, mut response_rx) = McpClient::new();
+        if let Err(err) = client.start().await {
+            log::error!(
+                "Failed to start MCP client for session {}: {err:?}",
+                self.session_id()
+            );
+        }
         loop {
             select! {
                 Some(cmd) = self.cmd_rx.recv() => {
-                    match self.handle_command(cmd).await {
+                    match self.handle_command(cmd, prompt_tx.clone()).await {
                         Ok(ControlFlow::Break(())) => break,
                         Ok(ControlFlow::Continue(())) => {},
                         Err(error) => {
@@ -104,13 +119,25 @@ impl SessionService {
                         }
                     }
                 },
+
+                Ok(task) = self.mcp_task_rx.recv() => {
+                    println!("***** DEBUG: Received the MCP Task : {task:?}");
+                    let message = SessionMessage::MCPTaskReceived(task);
+                    self.senders.send_session_msg(message).await;
+                },
+
+                Some(response) = response_rx.recv() => {
+                    log::trace!("Received response from MCP client for session {}: {response}", self.session_id());
+                    self.senders.send_session_msg(SessionMessage::ChatResponseReceived(response)).await;
+                },
+
                 // Callback receiver won't be dropped when session is dropped.
                 Some(event) = self.callback_rx.recv() => {
                     if let Err(error)= self.handle_callbacks(event).await {
                         log::error!("Error while handling session callback event: {error:?}");
                         self.send_error(error).await;
                     }
-                }
+                },
                 else => { break; }
             }
         }
@@ -136,6 +163,7 @@ impl SessionService {
     async fn handle_command(
         &mut self,
         cmd: SessionCommand,
+        prompt_tx: mpsc::Sender<Prompt>,
     ) -> Result<ControlFlow<(), ()>, SessionError> {
         match cmd {
             SessionCommand::GrabLinesBlocking { range, sender } => {
@@ -389,6 +417,17 @@ impl SessionService {
             }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;
+            }
+            SessionCommand::SendChatMessage { id, message } => {
+                if let Err(err) = prompt_tx
+                    .send(Prompt {
+                        id,
+                        message: message.clone(),
+                    })
+                    .await
+                {
+                    log::error!("Failed to send chat message to MCP client: {err:?}");
+                }
             }
             SessionCommand::CloseSession => {
                 // Session UI can be already dropped at this point, therefore
