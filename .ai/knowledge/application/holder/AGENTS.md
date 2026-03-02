@@ -10,8 +10,8 @@
 2. `application/holder/src/controller/`
 3. `application/holder/src/service/bridge/`
 4. `application/holder/src/service/electron/`
-5. `.ai/application/platform/AGENTS.md`
-6. `.ai/application/apps/rustcore/ts-bindings/AGENTS.md`
+5. `.ai/knowledge/application/platform/AGENTS.md`
+6. `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md`
 
 ## If You Need X, Go to Y
 

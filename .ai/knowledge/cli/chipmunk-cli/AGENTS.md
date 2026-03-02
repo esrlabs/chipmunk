@@ -10,7 +10,7 @@
 3. `cli/chipmunk-cli/src/cli_args/`
 4. `cli/chipmunk-cli/src/session/`
 5. `cli/chipmunk-cli/src/session/format/`
-6. `.ai/application/apps/indexer/AGENTS.md`
+6. `.ai/knowledge/application/apps/indexer/AGENTS.md`
 
 ## If You Need X, Go to Y
 

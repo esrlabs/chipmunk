@@ -10,8 +10,8 @@
 2. `application/platform/types/`
 3. `application/platform/env/`
 4. `application/platform/log/`
-5. `.ai/application/client/AGENTS.md`
-6. `.ai/application/holder/AGENTS.md`
+5. `.ai/knowledge/application/client/AGENTS.md`
+6. `.ai/knowledge/application/holder/AGENTS.md`
 
 ## If You Need X, Go to Y
 

@@ -12,7 +12,7 @@
 4. `application/apps/rustcore/wasm-bindings/spec/`
 5. `application/apps/rustcore/wasm-bindings/pkg/`
 6. `application/apps/rustcore/wasm-bindings/package.json`
-7. `.ai/application/client/AGENTS.md`
+7. `.ai/knowledge/application/client/AGENTS.md`
 
 ## If You Need X, Go to Y
 

@@ -14,7 +14,7 @@ Indexer is the Rust backend core for parsing, ingestion, indexing, search, mergi
 6. `application/apps/indexer/parsers/src/`
 7. `application/apps/indexer/session/src/`
 8. `application/apps/indexer/plugins_host/src/`
-9. `.ai/application/apps/indexer/stypes/AGENTS.md`
+9. `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
 10. `application/apps/indexer/indexer_base/src/`
 
 ## Architecture & Crates (Condensed)

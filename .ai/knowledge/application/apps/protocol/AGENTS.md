@@ -11,7 +11,7 @@
 3. `application/apps/protocol/src/generate.rs`
 4. `application/apps/protocol/src/err.rs`
 5. `application/apps/protocol/test.sh`
-6. `.ai/application/apps/indexer/stypes/AGENTS.md`
+6. `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
 7. `application/apps/rustcore/ts-bindings/spec/session.protocol.spec.ts`
 
 ## If You Need X, Go to Y

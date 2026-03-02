@@ -11,8 +11,8 @@ The Angular client is the primary UI for viewing logs, managing filters, and vis
 3. `application/client/src/app/service/`
 4. `application/client/src/app/ui/`
 5. `application/client/src/app/ui/styles/`
-6. `.ai/application/platform/AGENTS.md`
-7. `.ai/application/apps/rustcore/ts-bindings/AGENTS.md`
+6. `.ai/knowledge/application/platform/AGENTS.md`
+7. `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md`
 
 ## If You Need X, Go to Y
 

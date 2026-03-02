@@ -10,7 +10,7 @@ The plugin system extends Chipmunk with sandboxed WASM parser and bytesource com
 3. `plugins/plugins_api/wit/v0.1.0/` (WIT contracts and worlds)
 4. `plugins/examples/rust/` and `plugins/templates/rust/parser/` (reference and starter implementations)
 4. `application/apps/indexer/plugins_host/src/`
-5. `.ai/application/apps/indexer/AGENTS.md`
+5. `.ai/knowledge/application/apps/indexer/AGENTS.md`
 
 ## If You Need X, Go to Y
 
