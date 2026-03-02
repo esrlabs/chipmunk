@@ -11,8 +11,8 @@
 3. `application/apps/rustcore/ts-bindings/src/native/`
 4. `application/apps/rustcore/ts-bindings/src/services/`
 5. `application/apps/rustcore/ts-bindings/spec/`
-6. `.ai/application/apps/rustcore/rs-bindings/AGENTS.md`
-7. `.ai/application/apps/protocol/AGENTS.md`
+6. `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md`
+7. `.ai/knowledge/application/apps/protocol/AGENTS.md`
 
 ## If You Need X, Go to Y
 
