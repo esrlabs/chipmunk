@@ -1,6 +1,6 @@
 use std::{ops::Range, rc::Rc};
 
-use egui::{Color32, Sense, TextBuffer, Ui};
+use egui::{Sense, TextBuffer, Ui};
 use egui_table::{CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 use std::sync::mpsc::Receiver as StdReceiver;
@@ -8,12 +8,9 @@ use stypes::{GrabbedElement, ObserveOrigin};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::{
-        common::colors::TEMP_SEARCH_BACKGROUND,
-        ui::{
-            UiActions,
-            registry::{HostRegistry, filters::FilterRegistry},
-        },
+    host::ui::{
+        UiActions,
+        registry::{HostRegistry, filters::FilterRegistry},
     },
     session::{
         command::SessionCommand,
@@ -22,7 +19,7 @@ use crate::{
             bottom_panel::BottomTabType,
             common::{self, logs_mapped::LogsMapped, logs_tables::grab_cmd_consts},
             definitions::schema::LogSchema,
-            shared::{LogMainIndex, SessionShared},
+            shared::SessionShared,
         },
     },
 };
@@ -298,41 +295,13 @@ impl TableDelegate for LogsDelegate<'_> {
 
     fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
         let is_selected = self.is_row_selected(row_nr);
-
-        let mut invert_fg = is_selected;
-
-        //TODO AAZ: Logic is duplicated here and in search_table
-
-        if is_selected {
-            ui.painter()
-                .rect_filled(ui.max_rect(), 0.0, Color32::DARK_GREEN);
-        } else {
-            let applied_filters = &self.shared.filters.applied_filters;
-            let match_color = self
-                .shared
-                .search
-                .current_matches_map()
-                .and_then(|map| map.get(&LogMainIndex(row_nr)))
-                .and_then(|matches| matches.first())
-                .and_then(|filter_idx| {
-                    let idx = filter_idx.0 as usize;
-                    if let Some(filter) = applied_filters.get(idx) {
-                        self.registry.get_filter(filter).map(|def| def.colors.bg)
-                    } else {
-                        // This is the temporary unregistered search
-                        Some(TEMP_SEARCH_BACKGROUND)
-                    }
-                });
-
-            if let Some(color) = match_color {
-                invert_fg = true;
-                ui.painter().rect_filled(ui.max_rect(), 0.0, color);
-            }
-        }
-
-        if invert_fg {
-            ui.style_mut().visuals.override_text_color = Some(Color32::WHITE);
-        }
+        common::logs_tables::apply_log_row_colors(
+            ui,
+            self.shared,
+            self.registry,
+            Some(row_nr),
+            is_selected,
+        );
 
         if ui.response().interact(Sense::click()).clicked() {
             self.toggle_row_selected(row_nr, is_selected);

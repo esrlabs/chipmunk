@@ -6,10 +6,17 @@ use egui_table::Column;
 use uuid::Uuid;
 
 use crate::{
-    host::{notification::AppNotification, ui::UiActions},
+    host::{
+        common::colors::{SELECTED_LOG_COLORS, TEMP_SEARCH_COLORS},
+        notification::AppNotification,
+        ui::{UiActions, registry::filters::FilterRegistry},
+    },
     session::{
         error::SessionError,
-        ui::{definitions::schema::LogSchema, shared::ObserveState},
+        ui::{
+            definitions::schema::LogSchema,
+            shared::{LogMainIndex, ObserveState, SessionShared},
+        },
     },
 };
 
@@ -71,6 +78,45 @@ pub fn render_row_header(ui: &mut Ui, text: String, color_idx: Option<usize>) {
 /// Frame for table content cells.
 pub fn get_cell_frame() -> Frame {
     Frame::NONE.inner_margin(Margin::symmetric(4, 0))
+}
+
+/// Apply row background and foreground colors for logs/search tables.
+pub fn apply_log_row_colors(
+    ui: &mut Ui,
+    shared: &SessionShared,
+    registry: &FilterRegistry,
+    main_log_pos: Option<u64>,
+    is_selected: bool,
+) {
+    // Selected wins over filters
+    let row_colors = if is_selected {
+        Some(&SELECTED_LOG_COLORS)
+    } else if let Some(pos) = main_log_pos {
+        let applied_filters = &shared.filters.applied_filters;
+        shared
+            .search
+            .current_matches_map()
+            .and_then(|map| map.get(&LogMainIndex(pos)))
+            .and_then(|matches| matches.first())
+            .and_then(|filter_idx| {
+                let idx = filter_idx.0 as usize;
+                if let Some(filter) = applied_filters.get(idx) {
+                    registry.get_filter(filter).map(|def| &def.colors)
+                } else {
+                    // This is the temporary unregistered search.
+                    Some(&TEMP_SEARCH_COLORS)
+                }
+            })
+    } else {
+        None
+    };
+
+    if let Some(colors) = row_colors {
+        ui.painter().rect_filled(ui.max_rect(), 0.0, colors.bg);
+        ui.style_mut().visuals.override_text_color = Some(colors.fg);
+    } else {
+        ui.style_mut().visuals.override_text_color = None;
+    }
 }
 
 pub fn handle_grab_errors(error: SessionError, session_id: Uuid, actions: &mut UiActions) {

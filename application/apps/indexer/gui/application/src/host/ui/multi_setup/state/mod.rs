@@ -19,8 +19,12 @@ impl MultiFileState {
     pub fn new(files: Vec<(PathBuf, FileFormat)>) -> Self {
         let files = files
             .into_iter()
-            .zip(common::colors::highlighting_colors().into_iter().cycle())
-            .map(|((path, format), color)| FileUiState::new(path, format, color.bg))
+            .zip(
+                common::colors::source_highlighting_colors()
+                    .into_iter()
+                    .cycle(),
+            )
+            .map(|((path, format), color)| FileUiState::new(path, format, color))
             .collect();
 
         Self {
