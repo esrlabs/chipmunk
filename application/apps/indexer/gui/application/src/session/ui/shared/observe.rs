@@ -32,7 +32,7 @@ impl ObserveState {
     }
 
     pub fn source_color(source_idx: usize) -> Color32 {
-        colors::HIGHLIGHT_COLORS[source_idx % colors::HIGHLIGHT_COLORS.len()].bg
+        colors::SOURCE_HIGHLIGHT_COLORS[source_idx % colors::SOURCE_HIGHLIGHT_COLORS.len()]
     }
 
     pub(super) fn add_operation(&mut self, observe_op: ObserveOperation) {
