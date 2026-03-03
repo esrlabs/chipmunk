@@ -36,9 +36,9 @@ impl FiltersState {
     /// Converts the current temporary search into a persistent filter.
     pub fn pin_temp_search(&mut self, registry: &mut FilterRegistry) {
         if let Some(filter) = self.active_temp_search.take() {
-            let color_idx = registry.filters_map().len() % colors::HIGHLIGHT_COLORS.len();
+            let color_idx = registry.filters_map().len() % colors::FILTER_HIGHLIGHT_COLORS.len();
             let filter_def =
-                FilterDefinition::new(filter, colors::HIGHLIGHT_COLORS[color_idx].clone());
+                FilterDefinition::new(filter, colors::FILTER_HIGHLIGHT_COLORS[color_idx].clone());
             let filter_id = filter_def.id;
             registry.add_filter(filter_def);
             self.apply_filter(registry, filter_id);
