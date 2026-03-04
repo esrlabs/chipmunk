@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use egui::{CentralPanel, Frame, Margin, Panel, Ui};
+use log::error;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -247,6 +248,16 @@ impl Session {
                     // Potential components which keep track for operations can go here.
                 }
                 SessionMessage::FileReadCompleted => self.shared.observe.set_file_read_completed(),
+                SessionMessage::AttachmentsUpdated { attachment, len } => {
+                    self.shared.attachments.add(attachment);
+                    if self.shared.attachments.attachments().len() as u64 != len {
+                        error!(
+                            "Unexpected internal error: Attachment count mismatch: expected {} from backend, got {}.",
+                            len,
+                            self.shared.attachments.attachments().len()
+                        );
+                    }
+                }
             }
         }
     }

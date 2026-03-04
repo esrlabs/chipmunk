@@ -184,22 +184,41 @@ impl<'a> LogsDelegate<'a> {
                 )
             })
             .unwrap_or_default();
-        let is_bookmarked = self
-            .get_log_item(cell)
-            .is_some_and(|item| self.shared.logs.is_bookmarked(item.element.pos as u64));
 
-        let bookmark_pos = self.get_log_item(cell).map(|item| item.element.pos as u64);
-        let response =
-            common::logs_tables::render_row_header(ui, text, color_idx, is_bookmarked, || {
+        let bookmark_pos: Option<usize> = self.get_log_item(cell).map(|item| item.element.pos);
+
+        let is_bookmarked = bookmark_pos
+            .is_some_and(|row_number| self.shared.logs.is_bookmarked(row_number as u64));
+
+        let attachment = bookmark_pos.and_then(|row_number| {
+            self.shared
+                .attachments
+                .attachment_by_log_position(row_number)
+        });
+
+        let has_attachment = attachment.is_some();
+
+        let attachment_color = attachment
+            .and_then(|attachment| self.shared.attachments.color_by_uuid(&attachment.uuid));
+
+        let response = common::logs_tables::render_row_header(
+            ui,
+            text,
+            color_idx,
+            is_bookmarked,
+            || {
                 if let Some(bookmark_pos) = bookmark_pos {
-                    self.toggle_row_bookmark(bookmark_pos);
+                    self.toggle_row_bookmark(bookmark_pos as u64);
                 }
-            });
+            },
+            has_attachment,
+            attachment_color,
+        );
 
         if let Some(bookmark_pos) = bookmark_pos
             && response.clicked()
         {
-            self.handle_selection_click(bookmark_pos, ui.input(|i| i.modifiers));
+            self.handle_selection_click(bookmark_pos as u64, ui.input(|i| i.modifiers));
         }
     }
 

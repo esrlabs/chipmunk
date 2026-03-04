@@ -94,6 +94,8 @@ pub fn render_row_header(
     color_idx: Option<usize>,
     is_bookmarked: bool,
     on_toggle_bookmark: impl FnOnce(),
+    has_attachment: bool,
+    attachment_color: Option<egui::Color32>,
 ) -> Response {
     ui.horizontal(|ui| {
         let (res, painter) = ui.allocate_painter(
@@ -105,8 +107,15 @@ pub fn render_row_header(
             let color = ObserveState::source_color(color_idx);
             painter.rect_filled(res.rect, 0.0, color);
         }
-
         let text_res = ui.label(text);
+
+        if has_attachment {
+            ui.colored_label(
+                attachment_color.unwrap_or(egui::Color32::GRAY),
+                egui::RichText::new(egui_phosphor::fill::FILE),
+            );
+            ui.add_space(ui.spacing().item_spacing.x);
+        }
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             ui.add_space(3.0);

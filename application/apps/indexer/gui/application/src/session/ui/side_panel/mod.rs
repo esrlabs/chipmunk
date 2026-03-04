@@ -65,7 +65,7 @@ impl SidePanelUi {
 
         CentralPanel::default().show_inside(ui, |ui| match shared.side_tab {
             SideTabType::Observing => self.observing.render_content(shared, actions, ui),
-            SideTabType::Attachments => self.attachments.render_content(shared, ui),
+            SideTabType::Attachments => self.attachments.render_content(shared, actions, ui),
             SideTabType::Filters => {
                 self.filters
                     .render_content(shared, actions, &mut registry.filters, ui)

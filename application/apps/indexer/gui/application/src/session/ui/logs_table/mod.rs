@@ -166,12 +166,24 @@ impl<'a> LogsDelegate<'a> {
             .flatten();
         let is_bookmarked = self.shared.logs.is_bookmarked(cell.row_nr);
 
+        let attachment = self
+            .shared
+            .attachments
+            .attachment_by_log_position(cell.row_nr as usize);
+
+        let has_attachment = attachment.is_some();
+
+        let attachment_color = attachment
+            .and_then(|attachment| self.shared.attachments.color_by_uuid(&attachment.uuid));
+
         let response = common::logs_tables::render_row_header(
             ui,
             cell.row_nr.to_string(),
             color_idx,
             is_bookmarked,
             || self.toggle_row_bookmark(cell.row_nr),
+            has_attachment,
+            attachment_color,
         );
 
         if response.clicked() {
