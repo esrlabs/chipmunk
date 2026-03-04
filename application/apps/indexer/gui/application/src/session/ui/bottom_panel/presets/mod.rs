@@ -77,8 +77,9 @@ impl PresetsUI {
                                 }
 
                                 // Trigger backend apply
-                                let cmd = shared.apply_search_filters(registry);
-                                actions.try_send_command(&self.cmd_tx, cmd);
+                                for cmd in shared.apply_search_filters(registry) {
+                                    actions.try_send_command(&self.cmd_tx, cmd);
+                                }
                             }
 
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -112,8 +113,9 @@ impl PresetsUI {
                         shared.filters.unapply_filter(registry, &id);
 
                         if was_applied {
-                            let cmd = shared.apply_search_filters(registry);
-                            actions.try_send_command(&self.cmd_tx, cmd);
+                            for cmd in shared.apply_search_filters(registry) {
+                                actions.try_send_command(&self.cmd_tx, cmd);
+                            }
                         }
                     }
                 });
