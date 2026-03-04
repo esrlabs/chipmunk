@@ -397,7 +397,14 @@ impl SessionService {
                         .await;
                 }
             }
-            CallbackEvent::OperationError { uuid: _, error } => {
+            CallbackEvent::OperationError { uuid, error } => {
+                // Stop running operation on errors besides sending the notification.
+                self.senders
+                    .send_session_msg(SessionMessage::OperationUpdated {
+                        operation_id: uuid,
+                        phase: OperationPhase::Done,
+                    })
+                    .await;
                 self.send_error(SessionError::NativeError(error)).await;
             }
             CallbackEvent::OperationStarted(uuid) => {
