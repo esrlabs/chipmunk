@@ -78,13 +78,15 @@ impl SearchBar {
                 );
 
                 shared.filters.set_temp_search(filter);
-                let cmd = shared.apply_search_filters(registry);
-                actions.try_send_command(&self.cmd_tx, cmd);
+                for cmd in shared.apply_search_filters(registry) {
+                    actions.try_send_command(&self.cmd_tx, cmd);
+                }
             } else if shared.filters.active_temp_search.is_some() {
                 shared.filters.pin_temp_search(registry);
 
-                let cmd = shared.apply_search_filters(registry);
-                actions.try_send_command(&self.cmd_tx, cmd);
+                for cmd in shared.apply_search_filters(registry) {
+                    actions.try_send_command(&self.cmd_tx, cmd);
+                }
             }
         }
 
@@ -178,8 +180,9 @@ impl SearchBar {
                             shared.filters.pin_temp_search(registry);
 
                             // Re-apply search which now includes new filter and NO active_search
-                            let cmd = shared.apply_search_filters(registry);
-                            actions.try_send_command(&self.cmd_tx, cmd);
+                            for cmd in shared.apply_search_filters(registry) {
+                                actions.try_send_command(&self.cmd_tx, cmd);
+                            }
                         }
 
                         if Button::new(icons::regular::CHART_LINE)
@@ -253,7 +256,8 @@ impl SearchBar {
         registry: &FilterRegistry,
     ) {
         shared.filters.clear_temp_search();
-        let cmd = shared.apply_search_filters(registry);
-        actions.try_send_command(&self.cmd_tx, cmd);
+        for cmd in shared.apply_search_filters(registry) {
+            actions.try_send_command(&self.cmd_tx, cmd);
+        }
     }
 }

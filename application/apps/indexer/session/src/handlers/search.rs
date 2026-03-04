@@ -17,7 +17,7 @@ use tokio::{
     select,
     sync::mpsc::{Receiver, Sender, channel},
     task,
-    time::{Duration, timeout},
+    time::{Duration, sleep, timeout},
 };
 
 const TRACKING_INTERVAL_MS: u64 = 250;
@@ -37,13 +37,42 @@ struct SearchOutput {
     holder: RegularSearchHolder,
 }
 
+/// Waits until the previous search holder is dropped before starting a
+/// replacement search.
+///
+/// Search cancellation and holder release happen on separate async paths.
+/// During rapid re-apply, `drop_search` can temporarily report `false` even
+/// though release is still progressing. We bound retries to keep this handover
+/// window tolerant without risking an unbounded wait.
+async fn wait_until_search_dropped(state: &SessionStateAPI) -> Result<(), stypes::NativeError> {
+    const RETRY_ATTEMPTS: u8 = 10;
+    const RETRY_DELAY_MS: u64 = 15;
+
+    for attempt in 0..RETRY_ATTEMPTS {
+        if state.drop_search().await? {
+            return Ok(());
+        }
+        if attempt + 1 < RETRY_ATTEMPTS {
+            sleep(Duration::from_millis(RETRY_DELAY_MS)).await;
+        }
+    }
+
+    Err(stypes::NativeError {
+        severity: stypes::Severity::ERROR,
+        kind: stypes::NativeErrorKind::OperationSearch,
+        message: Some(format!(
+            "Previous search holder is still in use after {RETRY_ATTEMPTS} drop attempts.",
+        )),
+    })
+}
+
 pub async fn execute_search(
     operation_api: &OperationAPI,
     filters: Vec<SearchFilter>,
     state: SessionStateAPI,
 ) -> OperationResult<u64> {
     debug!("RUST: Search operation is requested");
-    state.drop_search().await?;
+    wait_until_search_dropped(&state).await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     let mut holder = state.get_search_holder(operation_api.id()).await?;
     if let Err(err) = holder

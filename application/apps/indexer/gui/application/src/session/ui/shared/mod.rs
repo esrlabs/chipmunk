@@ -77,27 +77,37 @@ impl SessionShared {
     }
 
     /// Synchronizes the current session filters with the backend by generating the appropriate command.
+    /// It'll call [`Self::drop_search`] to reset search and charts state in the UI.
     ///
     /// This function acts as the central coordinator for filter updates. It:
     /// 1. Resolves the effective list of filters by combining pinned session filters
     ///    (from the registry) and the current temporary search from the search bar.
-    /// 2. If filters are present, it initializes a new search operation, updates the local
-    ///    [`SearchState`], and returns an `ApplySearchFilter` command.
-    /// 3. If no filters are active, it drops the current search state, pushes a [`SessionSignal::SearchDropped`]
-    ///    to notify the UI, and returns a `DropSearch` command for the backend.
-    pub fn apply_search_filters(&mut self, registry: &FilterRegistry) -> SessionCommand {
+    /// 2. If filters are present, it initializes a new search operation and returns one or
+    ///    two commands:
+    ///    - If a search is already running: `DropSearch` followed by `ApplySearchFilter`.
+    ///    - Otherwise: `ApplySearchFilter`.
+    /// 3. If no filters are active, it'll return a `DropSearch` command for the backend.
+    pub fn apply_search_filters(&mut self, registry: &FilterRegistry) -> Vec<SessionCommand> {
         let filters = self.search.get_active_filters(&self.filters, registry);
         if filters.is_empty() {
             let operation_id = self.search.processing_search_operation();
             self.drop_search();
-            SessionCommand::DropSearch { operation_id }
+            vec![SessionCommand::DropSearch { operation_id }]
         } else {
+            let mut commands = Vec::with_capacity(2);
+            if let Some(operation_id) = self.search.processing_search_operation() {
+                commands.push(SessionCommand::DropSearch {
+                    operation_id: Some(operation_id),
+                });
+            }
+            self.drop_search();
             let operation_id = Uuid::new_v4();
             self.search.set_search_operation(operation_id);
-            SessionCommand::ApplySearchFilter {
+            commands.push(SessionCommand::ApplySearchFilter {
                 operation_id,
                 filters,
-            }
+            });
+            commands
         }
     }
 }
