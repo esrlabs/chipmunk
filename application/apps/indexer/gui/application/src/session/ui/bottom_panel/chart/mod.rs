@@ -1,12 +1,12 @@
 use std::{ops::RangeInclusive, time::Duration};
 
-use egui::{Color32, Direction, Label, Layout, Spinner, Ui, Vec2, Widget};
+use egui::{Direction, Label, Layout, Spinner, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Plot};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     common::action_throttle::ActionThrottle,
-    host::ui::UiActions,
+    host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{command::SessionCommand, types::OperationPhase, ui::shared::SessionShared},
 };
 
@@ -66,9 +66,7 @@ impl ChartUI {
     }
 
     pub fn update_histogram(&mut self, map: Vec<Vec<ChartBar>>) {
-        //NOTE: Current implementation for temporal filter case.
-        self.data.bars.clear();
-        self.data.bars.extend(map);
+        self.data.set_histogram(map);
     }
 
     pub fn update_line_plots(&mut self, values: Vec<(u8, Vec<stypes::Point>)>) {
@@ -80,6 +78,7 @@ impl ChartUI {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
         match shared.search.search_operation_phase() {
@@ -89,7 +88,7 @@ impl ChartUI {
                 });
             }
             Some(OperationPhase::Processing | OperationPhase::Done) => {
-                self.chart(shared, actions, ui);
+                self.chart(shared, actions, registry, ui);
             }
             None => {
                 Self::place_holder(ui);
@@ -97,10 +96,24 @@ impl ChartUI {
         }
     }
 
-    fn chart(&mut self, shared: &mut SessionShared, actions: &mut UiActions, ui: &mut Ui) {
+    fn chart(
+        &mut self,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+        registry: &FilterRegistry,
+        ui: &mut Ui,
+    ) {
+        // Rebuild series metadata from current session state every frame.
+        // Histogram buckets are cached separately and only updated on messages.
+        self.data.resolve_histogram_series(shared, registry);
+
+        let has_bars = !self.data.bars.is_empty();
+
         // Ratio describes how many logs will be represented in one unit of
         // axe x on charts.
-        let (ratio, offset) = if let Some(logs_rng) = &self.requested_logs_rng {
+        let (ratio, offset) = if !has_bars {
+            (1.0, 0.0)
+        } else if let Some(logs_rng) = &self.requested_logs_rng {
             let ratio = ((logs_rng.end() - logs_rng.start()) as f64) / self.data.bars.len() as f64;
             let offset = *logs_rng.start() as f64;
             (ratio, offset)
@@ -108,24 +121,6 @@ impl ChartUI {
             let ratio = shared.logs.logs_count as f64 / self.data.bars.len() as f64;
             (ratio, 0.)
         };
-
-        let chart = BarChart::new(
-            "TODO: Search Name",
-            self.data
-                .bars
-                .iter()
-                .enumerate()
-                .map(|(idx, bar)| {
-                    Bar::new(
-                        (idx + 1) as f64 * ratio + offset,
-                        bar.first().map(|a| a.matches_count).unwrap_or_default() as f64,
-                    )
-                })
-                .collect(),
-        )
-        .allow_hover(false)
-        .width(ratio)
-        .color(Color32::LIGHT_BLUE);
 
         // Function to convert value from x axis while ensuring it's in logs valid bound.
         let convert_bounded = |x: f64| (x as u64).min(shared.logs.logs_count.saturating_sub(1));
@@ -169,7 +164,53 @@ impl ChartUI {
         }
 
         let plot_res = plot.show(ui, |plot_ui| {
-            plot_ui.bar_chart(chart);
+            if has_bars {
+                // `PlotUi::bar_chart` consumes `BarChart` by value.
+                // Keep only one pending chart so we can stack current chart on previous
+                // while avoiding allocating a temporary `Vec<BarChart>`.
+                let mut pending_chart: Option<BarChart> = None;
+
+                for ser in self.data.series.drain(..) {
+                    let bars = self
+                        .data
+                        .bars
+                        .iter()
+                        .enumerate()
+                        .map(|(idx, bucket)| {
+                            // Missing index means this filter has no matches in this bucket.
+                            let count = bucket
+                                .counts
+                                .get(&ser.filter_idx)
+                                .copied()
+                                .unwrap_or_default();
+
+                            Bar::new((idx + 1) as f64 * ratio + offset, count as f64)
+                        })
+                        .collect();
+
+                    let mut current_chart = BarChart::new(ser.name, bars)
+                        .allow_hover(false)
+                        .width(ratio)
+                        .color(ser.color);
+
+                    // Stack using the previous series as base.
+                    if let Some(prev_chart) = pending_chart.as_ref() {
+                        current_chart = current_chart.stack_on(&[prev_chart]);
+                    }
+
+                    // Previous chart is fully configured now; submit it.
+                    if let Some(chart_to_draw) = pending_chart.take() {
+                        plot_ui.bar_chart(chart_to_draw);
+                    }
+
+                    pending_chart = Some(current_chart);
+                }
+
+                // Submit the last pending chart.
+                if let Some(chart_to_draw) = pending_chart {
+                    plot_ui.bar_chart(chart_to_draw);
+                }
+            }
 
             // Reset chart on secondary double click.
             if plot_ui

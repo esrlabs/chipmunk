@@ -62,7 +62,10 @@ impl BottomPanelUI {
                 self.presets
                     .render_content(shared, actions, &mut registry.filters, ui)
             }
-            BottomTabType::Chart => self.chart.render_content(shared, actions, ui),
+            BottomTabType::Chart => {
+                self.chart
+                    .render_content(shared, actions, &registry.filters, ui)
+            }
         }
     }
 
