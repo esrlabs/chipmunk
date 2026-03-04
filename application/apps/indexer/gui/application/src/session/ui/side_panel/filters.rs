@@ -55,8 +55,9 @@ impl FiltersUi {
                     shared.filters.unapply_filter(registry, &filter_id);
 
                     // Re-apply filters
-                    let cmd = shared.apply_search_filters(registry);
-                    actions.try_send_command(&self.cmd_tx, cmd);
+                    for cmd in shared.apply_search_filters(registry) {
+                        actions.try_send_command(&self.cmd_tx, cmd);
+                    }
                 }
             });
         });
