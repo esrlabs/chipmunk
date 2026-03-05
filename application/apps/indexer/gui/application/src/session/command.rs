@@ -26,6 +26,14 @@ pub enum SessionCommand {
     /// If search operation is still processing then a search id will be provided
     /// to abort this operation.
     DropSearch { operation_id: Option<Uuid> },
+    /// Apply the provided search value filters.
+    ApplySearchValuesFilter {
+        operation_id: Uuid,
+        filters: Vec<String>,
+    },
+    /// Cancel current search values extraction and clear value results.
+    /// If operation is still processing then an id will be provided to abort it.
+    DropSearchValues { operation_id: Option<Uuid> },
     /// Request the nearest index in the search view for a given main-log index.
     GetNearestPosition(u64),
 

@@ -172,6 +172,23 @@ impl SessionService {
                 }
                 self.session.drop_search().await?;
             }
+            SessionCommand::ApplySearchValuesFilter {
+                operation_id,
+                filters,
+            } => {
+                self.session
+                    .apply_search_values_filters(operation_id, filters)?;
+            }
+            SessionCommand::DropSearchValues { operation_id } => {
+                if let Some(values_op) = operation_id {
+                    self.session.abort(Uuid::new_v4(), values_op)?;
+                }
+                self.session
+                    .state
+                    .drop_search_values()
+                    .await
+                    .map_err(SessionError::NativeError)?;
+            }
             SessionCommand::GetNearestPosition(position) => {
                 let nearest = self
                     .session
@@ -396,6 +413,11 @@ impl SessionService {
                         .send_session_msg(SessionMessage::SearchResults(list.0))
                         .await;
                 }
+            }
+            CallbackEvent::SearchValuesUpdated(values_matches) => {
+                self.senders
+                    .send_session_msg(SessionMessage::ChartSearchValues(values_matches))
+                    .await;
             }
             CallbackEvent::OperationError { uuid, error } => {
                 // Stop running operation on errors besides sending the notification.

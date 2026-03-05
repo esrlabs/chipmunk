@@ -205,6 +205,10 @@ impl Session {
 
                     self.bottom_panel.chart.update_line_plots(values);
                 }
+                SessionMessage::ChartSearchValues(values) => {
+                    self.shared.search_values.set_values_map(values);
+                    self.bottom_panel.chart.on_search_values_changes(&self.shared);
+                }
                 SessionMessage::SourceAdded { observe_op } => {
                     self.shared.add_operation(*observe_op);
                 }
@@ -212,20 +216,7 @@ impl Session {
                     operation_id,
                     phase,
                 } => {
-                    if self
-                        .shared
-                        .observe
-                        .update_operation(operation_id, phase)
-                        .consumed()
-                    {
-                        return;
-                    }
-                    if self
-                        .shared
-                        .search
-                        .update_operation(operation_id, phase)
-                        .consumed()
-                    {
+                    if self.shared.update_operation(operation_id, phase).consumed() {
                         return;
                     }
                     // Potential components which keep track for operations can go here.

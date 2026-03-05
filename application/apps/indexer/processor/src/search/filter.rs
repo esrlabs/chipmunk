@@ -41,6 +41,18 @@ impl SearchFilter {
         get_filter_error(self).is_none()
     }
 
+    pub fn is_regex(&self) -> bool {
+        self.is_regex
+    }
+
+    pub fn ignore_case_flag(&self) -> bool {
+        self.ignore_case
+    }
+
+    pub fn is_word(&self) -> bool {
+        self.is_word
+    }
+
     #[must_use]
     pub fn ignore_case(mut self, ignore: bool) -> Self {
         self.ignore_case = ignore;
