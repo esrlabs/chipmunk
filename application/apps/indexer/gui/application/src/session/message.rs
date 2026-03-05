@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use stypes::{FilterMatch, GrabbedElement, NearestPosition};
 use uuid::Uuid;
 
@@ -34,6 +36,9 @@ pub enum SessionMessage {
 
     /// Point data for line charts.
     ChartLinePlots(Result<Vec<(u8, Vec<stypes::Point>)>, SessionError>),
+
+    /// Push-based search values metadata used by charts.
+    ChartSearchValues(Option<HashMap<u8, (f64, f64)>>),
 
     /// Updated the phase of an operation
     OperationUpdated {

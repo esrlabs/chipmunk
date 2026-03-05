@@ -1,4 +1,7 @@
-use crate::host::common::colors::ColorPair;
+use crate::{
+    common::search_value_validation::{SearchValueEligibility, validate_search_value_filter},
+    host::common::colors::{self, ColorPair},
+};
 use egui::Color32;
 use processor::search::filter::SearchFilter;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -10,14 +13,17 @@ pub struct FilterDefinition {
     pub id: Uuid,
     pub filter: SearchFilter,
     pub colors: ColorPair,
+    pub search_value_eligibility: SearchValueEligibility,
 }
 
 impl FilterDefinition {
     pub fn new(filter: SearchFilter, colors: ColorPair) -> Self {
+        let search_value_eligibility = validate_search_value_filter(&filter);
         Self {
             id: Uuid::new_v4(),
             filter,
             colors,
+            search_value_eligibility,
         }
     }
 }
@@ -62,7 +68,6 @@ impl FilterRegistry {
         &self.filters
     }
 
-    #[allow(dead_code)]
     pub fn get_search_value(&self, id: &Uuid) -> Option<&SearchValueDefinition> {
         self.search_values.get(id)
     }
@@ -148,6 +153,50 @@ impl FilterRegistry {
         self.value_usage.remove(id);
     }
 
+    /// Convert a filter definition into a search value definition.
+    ///
+    /// The source filter is removed globally only when it is not needed by
+    /// other sessions. If it is still in use elsewhere, both definitions are kept.
+    pub fn convert_filter_to_value(&mut self, filter_id: Uuid, session_id: Uuid) -> Option<Uuid> {
+        let filter_def = self.get_filter(&filter_id)?;
+        if !filter_def.search_value_eligibility.is_eligible() {
+            return None;
+        }
+
+        //TODO AAZ: We need new set of color for search values.
+        let search_value_def =
+            SearchValueDefinition::new(filter_def.filter.clone(), Color32::LIGHT_BLUE);
+        let search_value_id = search_value_def.id;
+        self.add_search_value(search_value_def);
+
+        if self.can_remove_filter(&filter_id, &session_id) {
+            self.remove_filter(&filter_id);
+        }
+
+        Some(search_value_id)
+    }
+
+    /// Convert a search value definition into a filter definition.
+    ///
+    /// The source search value is removed globally only when it is not needed
+    /// by other sessions. If it is still in use elsewhere, both definitions are kept.
+    pub fn convert_value_to_filter(&mut self, value_id: Uuid, session_id: Uuid) -> Option<Uuid> {
+        let value_def = self.get_search_value(&value_id)?;
+        let color_idx = self.filters_map().len() % colors::FILTER_HIGHLIGHT_COLORS.len();
+        let filter_def = FilterDefinition::new(
+            value_def.filter.clone(),
+            colors::FILTER_HIGHLIGHT_COLORS[color_idx].clone(),
+        );
+        let filter_id = filter_def.id;
+        self.add_filter(filter_def);
+
+        if self.can_remove_search_value(&value_id, &session_id) {
+            self.remove_search_value(&value_id);
+        }
+
+        Some(filter_id)
+    }
+
     /// Cleanup all usage records for a closing session.
     pub(super) fn cleanup_session(&mut self, session_id: &Uuid) {
         for sessions in self.filter_usage.values_mut() {
@@ -156,5 +205,89 @@ impl FilterRegistry {
         for sessions in self.value_usage.values_mut() {
             sessions.remove(session_id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn convert_filter_to_value_removes_source_when_unused_elsewhere() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+        registry.apply_filter_to_session(filter_id, session_id);
+
+        let value_id = registry
+            .convert_filter_to_value(filter_id, session_id)
+            .expect("eligible filter should convert");
+
+        assert!(registry.get_filter(&filter_id).is_none());
+        assert!(registry.get_search_value(&value_id).is_some());
+    }
+
+    #[test]
+    fn convert_filter_to_value_keeps_source_when_used_by_other_session() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let other_session_id = Uuid::new_v4();
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+        registry.apply_filter_to_session(filter_id, session_id);
+        registry.apply_filter_to_session(filter_id, other_session_id);
+
+        let value_id = registry
+            .convert_filter_to_value(filter_id, session_id)
+            .expect("eligible filter should convert");
+
+        assert!(registry.get_filter(&filter_id).is_some());
+        assert!(registry.get_search_value(&value_id).is_some());
+    }
+
+    #[test]
+    fn convert_value_to_filter_removes_source_when_unused_elsewhere() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
+            Color32::LIGHT_BLUE,
+        );
+        let value_id = value_def.id;
+        registry.add_search_value(value_def);
+        registry.apply_search_value_to_session(value_id, session_id);
+
+        let filter_id = registry
+            .convert_value_to_filter(value_id, session_id)
+            .expect("search value should convert");
+
+        assert!(registry.get_search_value(&value_id).is_none());
+        assert!(registry.get_filter(&filter_id).is_some());
+    }
+
+    #[test]
+    fn convert_filter_to_value_rejects_ineligible_filter() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new("cpu=(abc)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+
+        let result = registry.convert_filter_to_value(filter_id, session_id);
+
+        assert!(result.is_none());
+        assert!(registry.get_filter(&filter_id).is_some());
     }
 }

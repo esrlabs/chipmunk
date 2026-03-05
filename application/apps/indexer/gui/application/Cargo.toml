@@ -39,7 +39,8 @@ chrono-tz.workspace = true
 dirs.workspace = true
 serialport.workspace = true
 dlt-core.workspace = true
-rustc-hash = "2.1"
+rustc-hash.workspace = true
+regex-syntax.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true

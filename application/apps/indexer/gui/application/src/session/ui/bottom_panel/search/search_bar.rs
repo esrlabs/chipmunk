@@ -8,8 +8,13 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     common::phosphor::{self, icons},
+    common::search_value_validation::SearchValueEligibility,
     host::ui::{UiActions, registry::filters::FilterRegistry},
-    session::{command::SessionCommand, types::OperationPhase, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        types::OperationPhase,
+        ui::shared::{SearchSyncTarget, SessionShared},
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -52,7 +57,7 @@ impl SearchBar {
         //   from it and use it as the current text for the text input.
         let move_cursor_end = if backspace_pressed
             && self.query.is_empty()
-            && let Some(mut filter) = shared.filters.active_temp_search.take()
+            && let Some(mut filter) = shared.filters.take_temp_search()
         {
             if command_modifier {
                 self.drop_search(shared, actions, registry);
@@ -78,15 +83,17 @@ impl SearchBar {
                 );
 
                 shared.filters.set_temp_search(filter);
-                for cmd in shared.apply_search_filters(registry) {
-                    actions.try_send_command(&self.cmd_tx, cmd);
-                }
+                shared
+                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                    .into_iter()
+                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             } else if shared.filters.active_temp_search.is_some() {
                 shared.filters.pin_temp_search(registry);
 
-                for cmd in shared.apply_search_filters(registry) {
-                    actions.try_send_command(&self.cmd_tx, cmd);
-                }
+                shared
+                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                    .into_iter()
+                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
         }
 
@@ -153,7 +160,7 @@ impl SearchBar {
             .filters
             .active_temp_search
             .as_ref()
-            .map(|f| f.value.to_owned())
+            .map(|temp| temp.filter().value.to_owned())
         {
             ui.add_space(1.);
 
@@ -169,28 +176,74 @@ impl SearchBar {
                         ui.style_mut().visuals.button_frame = false;
 
                         // Add to filters
-                        let save_txt = RichText::new(icons::fill::FLOPPY_DISK_BACK)
-                            .family(phosphor::fill_font_family());
-
-                        if Button::new(save_txt)
-                            .ui(ui)
-                            .on_hover_text("Add to Filters")
-                            .clicked()
                         {
-                            shared.filters.pin_temp_search(registry);
+                            let save_txt = RichText::new(icons::fill::FLOPPY_DISK_BACK)
+                                .family(phosphor::fill_font_family());
 
-                            // Re-apply search which now includes new filter and NO active_search
-                            for cmd in shared.apply_search_filters(registry) {
-                                actions.try_send_command(&self.cmd_tx, cmd);
+                            if Button::new(save_txt)
+                                .ui(ui)
+                                .on_hover_text("Add to Filters")
+                                .clicked()
+                            {
+                                shared.filters.pin_temp_search(registry);
+
+                                // Re-apply search which now includes new filter and NO active_search
+                                shared
+                                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                                    .into_iter()
+                                    .for_each(|cmd| {
+                                        _ = actions.try_send_command(&self.cmd_tx, cmd)
+                                    });
                             }
                         }
 
-                        if Button::new(icons::regular::CHART_LINE)
-                            .ui(ui)
-                            .on_hover_text("Add to Search Values")
-                            .clicked()
+                        // Add to search values.
                         {
-                            shared.filters.pin_temp_search_as_value(registry);
+                            let eligibility = shared
+                                .filters
+                                .active_temp_search
+                                .as_ref()
+                                .map(|temp| temp.eligibility());
+
+                            let disabled_reason = match eligibility {
+                                Some(SearchValueEligibility::Eligible) => None,
+                                Some(SearchValueEligibility::Ineligible { reason }) => {
+                                    Some(reason.as_str())
+                                }
+                                None => Some("Search value is not eligible."),
+                            };
+
+                            let mut add_btn = ui
+                                .add_enabled(
+                                    disabled_reason.is_none(),
+                                    Button::new(icons::regular::CHART_LINE),
+                                )
+                                .on_hover_text("Add to Search Values");
+
+                            if let Some(reason) = disabled_reason {
+                                add_btn = {
+                                    add_btn.on_disabled_hover_ui(|ui| {
+                                        ui.set_max_width(ui.spacing().tooltip_width);
+
+                                        let text = format!("Search Value: {reason}");
+                                        ui.label(text);
+                                    })
+                                }
+                            }
+
+                            if add_btn.clicked() {
+                                let success = shared.filters.pin_temp_search_as_value(registry);
+                                if success {
+                                    // We need to consider both targets (filters and search values)
+                                    // because we are removed the current temp filter here.
+                                    shared
+                                        .sync_search_pipelines(registry, SearchSyncTarget::Both)
+                                        .into_iter()
+                                        .for_each(|cmd| {
+                                            _ = actions.try_send_command(&self.cmd_tx, cmd)
+                                        });
+                                }
+                            }
                         }
 
                         if Button::new(icons::regular::X)
@@ -256,8 +309,9 @@ impl SearchBar {
         registry: &FilterRegistry,
     ) {
         shared.filters.clear_temp_search();
-        for cmd in shared.apply_search_filters(registry) {
-            actions.try_send_command(&self.cmd_tx, cmd);
-        }
+        shared
+            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+            .into_iter()
+            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
     }
 }
