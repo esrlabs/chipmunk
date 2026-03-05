@@ -1,3 +1,6 @@
+//TODO AAZ: Consider moving search, filters and search_values to a parent module
+//making them sub-modules there since they are related.
+
 use rustc_hash::FxHashMap;
 
 use stypes::FilterMatch;
@@ -51,12 +54,12 @@ impl SearchState {
 
     pub fn drop_search(&mut self) {
         let Self {
-            search_op: operation_op,
+            search_op,
             total_count,
             matches_map,
         } = self;
 
-        *operation_op = None;
+        *search_op = None;
         *total_count = 0;
         *matches_map = None;
     }
@@ -74,7 +77,7 @@ impl SearchState {
             .collect();
 
         if let Some(active) = &filters_state.active_temp_search {
-            filters.push(active.clone());
+            filters.push(active.filter().clone());
         }
 
         filters

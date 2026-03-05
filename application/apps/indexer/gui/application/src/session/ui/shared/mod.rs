@@ -1,6 +1,10 @@
 use crate::{
     host::ui::registry::filters::FilterRegistry,
-    session::{command::SessionCommand, types::ObserveOperation},
+    session::{
+        command::SessionCommand,
+        types::{ObserveOperation, OperationPhase},
+        ui::definitions::UpdateOperationOutcome,
+    },
 };
 use uuid::Uuid;
 
@@ -11,6 +15,7 @@ mod info;
 mod logs;
 mod observe;
 mod search;
+mod search_values;
 mod signal;
 
 pub use filters::FiltersState;
@@ -19,6 +24,7 @@ pub use logs::LogsState;
 pub use observe::ObserveState;
 #[allow(unused)]
 pub use search::{FilterIndex, LogMainIndex, SearchState};
+pub use search_values::SearchValuesState;
 pub use signal::SessionSignal;
 
 #[derive(Debug)]
@@ -35,10 +41,22 @@ pub struct SessionShared {
     pub filters: FiltersState,
 
     pub search: SearchState,
+    pub search_values: SearchValuesState,
 
     pub logs: LogsState,
 
     pub observe: ObserveState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Selects which backend search pipeline(s) should be synchronized for a UI action.
+pub(crate) enum SearchSyncTarget {
+    /// Synchronize only the logs search pipeline (`ApplySearchFilter` / `DropSearch`).
+    Filter,
+    /// Synchronize only the chart search-values pipeline.
+    SearchValue,
+    /// Synchronize both pipelines in one pass.
+    Both,
 }
 
 impl SessionShared {
@@ -51,6 +69,7 @@ impl SessionShared {
             side_tab: SideTabType::Filters,
             filters: FiltersState::new(session_id),
             search: SearchState::new(session_id),
+            search_values: SearchValuesState::default(),
             logs: LogsState::default(),
             observe: ObserveState::new(observe_op),
         }
@@ -76,18 +95,63 @@ impl SessionShared {
         self.session_info.update_title(&self.observe);
     }
 
-    /// Synchronizes the current session filters with the backend by generating the appropriate command.
-    /// It'll call [`Self::drop_search`] to reset search and charts state in the UI.
+    /// Routes an operation phase update to the corresponding session state.
+    pub fn update_operation(
+        &mut self,
+        operation_id: Uuid,
+        phase: OperationPhase,
+    ) -> UpdateOperationOutcome {
+        // Ensure to update this method when new fields are added.
+        let Self {
+            session_info: _,
+            signals: _,
+            bottom_tab: _,
+            side_tab: _,
+            filters: _,
+            search,
+            search_values,
+            logs: _,
+            observe,
+        } = self;
+
+        if observe.update_operation(operation_id, phase).consumed() {
+            return UpdateOperationOutcome::Consumed;
+        }
+
+        if search.update_operation(operation_id, phase).consumed() {
+            return UpdateOperationOutcome::Consumed;
+        }
+
+        search_values.update_operation(operation_id, phase)
+    }
+
+    /// Synchronizes UI state with backend search pipelines and returns the commands to dispatch.
     ///
-    /// This function acts as the central coordinator for filter updates. It:
-    /// 1. Resolves the effective list of filters by combining pinned session filters
-    ///    (from the registry) and the current temporary search from the search bar.
-    /// 2. If filters are present, it initializes a new search operation and returns one or
-    ///    two commands:
-    ///    - If a search is already running: `DropSearch` followed by `ApplySearchFilter`.
-    ///    - Otherwise: `ApplySearchFilter`.
-    /// 3. If no filters are active, it'll return a `DropSearch` command for the backend.
-    pub fn apply_search_filters(&mut self, registry: &FilterRegistry) -> Vec<SessionCommand> {
+    /// `target` selects which pipeline to sync:
+    /// - `Filter`: logs search results pipeline (table/search results).
+    /// - `SearchValue`: numeric search-values pipeline (charts only).
+    /// - `Both`: use when one UI action affects both sets at once.
+    pub fn sync_search_pipelines(
+        &mut self,
+        registry: &FilterRegistry,
+        target: SearchSyncTarget,
+    ) -> Vec<SessionCommand> {
+        match target {
+            SearchSyncTarget::Filter => self.sync_filter_search_pipeline(registry),
+            SearchSyncTarget::SearchValue => self.sync_search_values_pipeline(registry),
+            SearchSyncTarget::Both => {
+                let mut commands = self.sync_filter_search_pipeline(registry);
+                commands.extend(self.sync_search_values_pipeline(registry));
+                commands
+            }
+        }
+    }
+
+    /// Synchronizes the logs search pipeline from current applied filters.
+    ///
+    /// When filters become empty we only drop the active search, otherwise we issue a
+    /// drop-then-apply sequence so a running search does not keep the holder in use.
+    fn sync_filter_search_pipeline(&mut self, registry: &FilterRegistry) -> Vec<SessionCommand> {
         let filters = self.search.get_active_filters(&self.filters, registry);
         if filters.is_empty() {
             let operation_id = self.search.processing_search_operation();
@@ -109,5 +173,255 @@ impl SessionShared {
             });
             commands
         }
+    }
+
+    /// Synchronizes the search-values pipeline used by charts.
+    ///
+    /// Search values are independent from logs search results, so they are synchronized through
+    /// their own drop/apply command pair and operation tracking.
+    fn sync_search_values_pipeline(&mut self, registry: &FilterRegistry) -> Vec<SessionCommand> {
+        let filters: Vec<_> = self
+            .filters
+            .applied_search_values
+            .iter()
+            .filter_map(|uuid| registry.get_search_value(uuid))
+            .map(|def| def.filter.value.clone())
+            .collect();
+
+        if filters.is_empty() {
+            let operation_id = self.search_values.processing_operation();
+            self.search_values.drop_search_values();
+            vec![SessionCommand::DropSearchValues { operation_id }]
+        } else {
+            let mut commands = Vec::with_capacity(2);
+            if let Some(operation_id) = self.search_values.processing_operation() {
+                commands.push(SessionCommand::DropSearchValues {
+                    operation_id: Some(operation_id),
+                });
+            }
+
+            self.search_values.drop_search_values();
+            let operation_id = Uuid::new_v4();
+            self.search_values.set_operation(operation_id);
+            commands.push(SessionCommand::ApplySearchValuesFilter {
+                operation_id,
+                filters,
+            });
+            commands
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use egui::Color32;
+    use processor::search::filter::SearchFilter;
+    use stypes::{FileFormat, ObserveOrigin};
+
+    use crate::{
+        host::{
+            common::{colors, parsers::ParserNames},
+            ui::registry::filters::{FilterDefinition, SearchValueDefinition},
+        },
+        session::command::SessionCommand,
+    };
+
+    use super::*;
+
+    fn new_shared() -> SessionShared {
+        let session_id = Uuid::new_v4();
+        let origin = ObserveOrigin::File(
+            "source".to_owned(),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        );
+        let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
+        let session_info = SessionInfo {
+            id: session_id,
+            title: "test".to_owned(),
+            parser: ParserNames::Text,
+        };
+
+        SessionShared::new(session_info, observe_op)
+    }
+
+    fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new(value.to_owned(), false, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+        shared.filters.apply_filter(registry, filter_id);
+    }
+
+    fn add_value(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::new(value.to_owned(), true, true, false),
+            Color32::LIGHT_BLUE,
+        );
+        let value_id = value_def.id;
+        registry.add_search_value(value_def);
+        shared.filters.apply_search_value(registry, value_id);
+    }
+
+    #[test]
+    fn filter_sync_drops_search() {
+        let mut shared = new_shared();
+        let registry = FilterRegistry::default();
+        let previous_operation_id = Uuid::new_v4();
+        shared.search.set_search_operation(previous_operation_id);
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            SessionCommand::DropSearch { operation_id } => {
+                assert_eq!(*operation_id, Some(previous_operation_id));
+            }
+            other => panic!("expected DropSearch command, got {other:?}"),
+        }
+        assert!(shared.search.processing_search_operation().is_none());
+    }
+
+    #[test]
+    fn filter_sync_reapplies() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        add_filter(&mut shared, &mut registry, "status=ok");
+
+        let previous_operation_id = Uuid::new_v4();
+        shared.search.set_search_operation(previous_operation_id);
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+
+        assert_eq!(commands.len(), 2);
+        match &commands[0] {
+            SessionCommand::DropSearch { operation_id } => {
+                assert_eq!(*operation_id, Some(previous_operation_id));
+            }
+            other => panic!("expected first command DropSearch, got {other:?}"),
+        }
+
+        let applied_operation_id = match &commands[1] {
+            SessionCommand::ApplySearchFilter {
+                operation_id,
+                filters,
+            } => {
+                assert_eq!(filters.len(), 1);
+                assert_eq!(filters[0].value, "status=ok");
+                *operation_id
+            }
+            other => panic!("expected second command ApplySearchFilter, got {other:?}"),
+        };
+
+        assert_eq!(
+            shared.search.processing_search_operation(),
+            Some(applied_operation_id)
+        );
+    }
+
+    #[test]
+    fn filter_sync_applies_temp() {
+        let mut shared = new_shared();
+        let registry = FilterRegistry::default();
+        shared
+            .filters
+            .set_temp_search(SearchFilter::new("temp".to_owned(), false, true, false));
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            SessionCommand::ApplySearchFilter { filters, .. } => {
+                assert_eq!(filters.len(), 1);
+                assert_eq!(filters[0].value, "temp");
+            }
+            other => panic!("expected ApplySearchFilter, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn values_sync_drops() {
+        let mut shared = new_shared();
+        let registry = FilterRegistry::default();
+        let previous_operation_id = Uuid::new_v4();
+        shared.search_values.set_operation(previous_operation_id);
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::SearchValue);
+
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            SessionCommand::DropSearchValues { operation_id } => {
+                assert_eq!(*operation_id, Some(previous_operation_id));
+            }
+            other => panic!("expected DropSearchValues command, got {other:?}"),
+        }
+        assert!(shared.search_values.processing_operation().is_none());
+    }
+
+    #[test]
+    fn values_sync_reapplies() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        add_value(&mut shared, &mut registry, "cpu=(\\d+)");
+        let previous_operation_id = Uuid::new_v4();
+        shared.search_values.set_operation(previous_operation_id);
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::SearchValue);
+
+        assert_eq!(commands.len(), 2);
+        match &commands[0] {
+            SessionCommand::DropSearchValues { operation_id } => {
+                assert_eq!(*operation_id, Some(previous_operation_id));
+            }
+            other => panic!("expected first command DropSearchValues, got {other:?}"),
+        }
+
+        let applied_operation_id = match &commands[1] {
+            SessionCommand::ApplySearchValuesFilter {
+                operation_id,
+                filters,
+            } => {
+                assert_eq!(filters, &vec!["cpu=(\\d+)".to_owned()]);
+                *operation_id
+            }
+            other => panic!("expected second command ApplySearchValuesFilter, got {other:?}"),
+        };
+
+        assert_eq!(
+            shared.search_values.processing_operation(),
+            Some(applied_operation_id)
+        );
+    }
+
+    #[test]
+    fn both_sync_orders_filters_first() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        add_filter(&mut shared, &mut registry, "level=warn");
+        add_value(&mut shared, &mut registry, "temp=(\\d+)");
+
+        shared.search.set_search_operation(Uuid::new_v4());
+        shared.search_values.set_operation(Uuid::new_v4());
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Both);
+
+        assert_eq!(commands.len(), 4);
+        assert!(matches!(commands[0], SessionCommand::DropSearch { .. }));
+        assert!(matches!(
+            commands[1],
+            SessionCommand::ApplySearchFilter { .. }
+        ));
+        assert!(matches!(
+            commands[2],
+            SessionCommand::DropSearchValues { .. }
+        ));
+        assert!(matches!(
+            commands[3],
+            SessionCommand::ApplySearchValuesFilter { .. }
+        ));
     }
 }
