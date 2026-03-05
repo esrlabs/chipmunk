@@ -15,7 +15,7 @@ use tokio::{
     select,
     sync::mpsc::{Receiver, Sender, channel},
     task,
-    time::{Duration, timeout},
+    time::{Duration, sleep, timeout},
 };
 
 const TRACKING_INTERVAL_MS: u64 = 250;
@@ -33,13 +33,40 @@ struct ValueSearchResults {
     holder: ValueSearchHolder,
 }
 
+/// Search-values holder release is asynchronous and can lag behind a new
+/// apply request during rapid re-apply. Bounded retries make this handover
+/// tolerant without blocking the backend indefinitely.
+async fn wait_until_search_values_dropped(
+    state: &SessionStateAPI,
+) -> Result<(), stypes::NativeError> {
+    const RETRY_ATTEMPTS: u8 = 10;
+    const RETRY_DELAY_MS: u64 = 15;
+
+    for attempt in 0..RETRY_ATTEMPTS {
+        if state.drop_search_values().await? {
+            return Ok(());
+        }
+        if attempt + 1 < RETRY_ATTEMPTS {
+            sleep(Duration::from_millis(RETRY_DELAY_MS)).await;
+        }
+    }
+
+    Err(stypes::NativeError {
+        severity: stypes::Severity::ERROR,
+        kind: stypes::NativeErrorKind::OperationSearch,
+        message: Some(format!(
+            "Previous search values holder is still in use after {RETRY_ATTEMPTS} drop attempts.",
+        )),
+    })
+}
+
 pub async fn execute_value_search(
     operation_api: &OperationAPI,
     filters: Vec<String>,
     state: SessionStateAPI,
 ) -> OperationResult<()> {
     debug!("RUST: Search values operation is requested");
-    state.drop_search_values().await?;
+    wait_until_search_values_dropped(&state).await?;
     let (rows, read_bytes) = state.get_stream_len().await?;
     let mut holder = state.get_search_values_holder(operation_api.id()).await?;
     if let Err(err) = holder

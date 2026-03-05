@@ -2,11 +2,15 @@ use egui::{Align, Layout, RichText, ScrollArea, Ui};
 
 use crate::{
     common::phosphor::icons,
+    common::search_value_validation::SearchValueEligibility,
     host::ui::{
         UiActions,
         registry::filters::{FilterDefinition, FilterRegistry},
     },
-    session::{command::SessionCommand, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        ui::shared::{SearchSyncTarget, SessionShared},
+    },
 };
 
 use tokio::sync::mpsc::Sender;
@@ -61,11 +65,15 @@ impl PresetsUI {
                         .filters_map()
                         .iter()
                         .map(|(id, def): (&uuid::Uuid, &FilterDefinition)| {
-                            (*id, def.filter.value.to_owned())
+                            (
+                                *id,
+                                def.filter.value.to_owned(),
+                                def.search_value_eligibility.clone(),
+                            )
                         })
                         .collect();
 
-                    for (id, filter_txt) in filters {
+                    for (id, filter_txt, eligibility) in filters {
                         ui.horizontal(|ui| {
                             let is_applied = shared.filters.is_filter_applied(&id);
 
@@ -76,13 +84,25 @@ impl PresetsUI {
                                     shared.filters.apply_filter(registry, id);
                                 }
 
-                                // Trigger backend apply
-                                for cmd in shared.apply_search_filters(registry) {
-                                    actions.try_send_command(&self.cmd_tx, cmd);
-                                }
+                                shared
+                                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                                    .into_iter()
+                                    .for_each(|cmd| {
+                                        _ = actions.try_send_command(&self.cmd_tx, cmd)
+                                    });
                             }
 
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                let eligibility_btn = match &eligibility {
+                                    SearchValueEligibility::Eligible => ui
+                                        .label(RichText::new(icons::regular::CHECK).size(12.0))
+                                        .on_hover_text("Eligible to convert into search value."),
+                                    SearchValueEligibility::Ineligible { reason } => ui
+                                        .label(RichText::new(icons::regular::X).size(12.0))
+                                        .on_hover_text(reason),
+                                };
+                                eligibility_btn.on_hover_cursor(egui::CursorIcon::Help);
+
                                 let can_remove = registry.can_remove_filter(&id, &session_id);
                                 ui.add_enabled_ui(can_remove, |ui| {
                                     let btn =
@@ -113,9 +133,10 @@ impl PresetsUI {
                         shared.filters.unapply_filter(registry, &id);
 
                         if was_applied {
-                            for cmd in shared.apply_search_filters(registry) {
-                                actions.try_send_command(&self.cmd_tx, cmd);
-                            }
+                            shared
+                                .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                                .into_iter()
+                                .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                         }
                     }
                 });
@@ -125,7 +146,7 @@ impl PresetsUI {
     fn render_search_values_section(
         &mut self,
         shared: &mut SessionShared,
-        _actions: &mut UiActions,
+        actions: &mut UiActions,
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
@@ -168,6 +189,12 @@ impl PresetsUI {
                                 } else {
                                     shared.filters.apply_search_value(registry, id);
                                 }
+                                shared
+                                    .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
+                                    .into_iter()
+                                    .for_each(|cmd| {
+                                        _ = actions.try_send_command(&self.cmd_tx, cmd)
+                                    });
                             }
 
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -196,8 +223,15 @@ impl PresetsUI {
                     }
 
                     if let Some(id) = to_delete {
+                        let was_applied = shared.filters.is_search_value_applied(&id);
                         registry.remove_search_value(&id);
                         shared.filters.unapply_search_value(registry, &id);
+                        if was_applied {
+                            shared
+                                .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
+                                .into_iter()
+                                .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        }
                     }
                 });
         });

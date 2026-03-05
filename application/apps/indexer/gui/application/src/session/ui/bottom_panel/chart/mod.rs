@@ -1,7 +1,7 @@
 use std::{ops::RangeInclusive, time::Duration};
 
 use egui::{Direction, Label, Layout, Spinner, Ui, Vec2, Widget};
-use egui_plot::{Bar, BarChart, Legend, Plot};
+use egui_plot::{Bar, BarChart, Legend, Line, Plot};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -27,6 +27,8 @@ pub struct ChartUI {
     last_zoom_factor: Option<u64>,
     /// Last requested logs range.
     requested_logs_rng: Option<RangeInclusive<u64>>,
+    /// Re-centers the chart on the full log range on the next frame.
+    reset_full_range: bool,
     /// Throttle chart data requests to avoid overwhelming the backend
     /// with too many request while zooming, scrolling or panning.
     throttle: ActionThrottle,
@@ -39,6 +41,13 @@ enum PlotResponse {
     None,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ChartRenderState {
+    Placeholder,
+    Spinner,
+    Chart,
+}
+
 impl ChartUI {
     pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
         Self {
@@ -46,6 +55,7 @@ impl ChartUI {
             data: Default::default(),
             last_zoom_factor: None,
             requested_logs_rng: None,
+            reset_full_range: false,
             throttle: ActionThrottle::new(Duration::from_millis(100)),
         }
     }
@@ -56,6 +66,15 @@ impl ChartUI {
         if self.is_requsting_full_range(shared) {
             self.last_zoom_factor = None;
             self.requested_logs_rng = None;
+            self.reset_full_range = true;
+        }
+    }
+
+    pub fn on_search_values_changes(&mut self, shared: &SessionShared) {
+        if self.is_requsting_full_range(shared) {
+            self.last_zoom_factor = None;
+            self.requested_logs_rng = None;
+            self.reset_full_range = true;
         }
     }
 
@@ -63,6 +82,32 @@ impl ChartUI {
         self.requested_logs_rng
             .as_ref()
             .is_some_and(|rng| *rng == (0u64..=shared.logs.logs_count.saturating_sub(1)))
+    }
+
+    /// Selects chart rendering state based on running operations phases.
+    fn render_state(shared: &SessionShared) -> ChartRenderState {
+        let filter_phase = shared.search.search_operation_phase();
+        let search_values_phase = shared.search_values.operation_phase();
+
+        match (filter_phase, search_values_phase) {
+            // Any have values
+            (Some(OperationPhase::Processing | OperationPhase::Done), _)
+            | (_, Some(OperationPhase::Processing | OperationPhase::Done)) => {
+                ChartRenderState::Chart
+            }
+            // Else if any is still Initializing
+            (Some(OperationPhase::Initializing), _) | (_, Some(OperationPhase::Initializing)) => {
+                ChartRenderState::Spinner
+            }
+            (None, None) => ChartRenderState::Placeholder,
+        }
+    }
+
+    /// Returns whether the chart has enough active search state to request data.
+    fn has_chart_request_context(shared: &SessionShared) -> bool {
+        shared.search.total_count() > 0
+            || shared.search_values.current_values_map().is_some()
+            || shared.search_values.operation_phase().is_some()
     }
 
     pub fn update_histogram(&mut self, map: Vec<Vec<ChartBar>>) {
@@ -81,16 +126,16 @@ impl ChartUI {
         registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
-        match shared.search.search_operation_phase() {
-            Some(OperationPhase::Initializing) => {
+        match Self::render_state(shared) {
+            ChartRenderState::Spinner => {
                 ui.centered_and_justified(|ui| {
                     Spinner::new().size(20.0).ui(ui);
                 });
             }
-            Some(OperationPhase::Processing | OperationPhase::Done) => {
+            ChartRenderState::Chart => {
                 self.chart(shared, actions, registry, ui);
             }
-            None => {
+            ChartRenderState::Placeholder => {
                 Self::place_holder(ui);
             }
         }
@@ -106,6 +151,7 @@ impl ChartUI {
         // Rebuild series metadata from current session state every frame.
         // Histogram buckets are cached separately and only updated on messages.
         self.data.resolve_histogram_series(shared, registry);
+        self.data.resolve_search_value_series(shared, registry);
 
         let has_bars = !self.data.bars.is_empty();
 
@@ -125,7 +171,7 @@ impl ChartUI {
         // Function to convert value from x axis while ensuring it's in logs valid bound.
         let convert_bounded = |x: f64| (x as u64).min(shared.logs.logs_count.saturating_sub(1));
 
-        let mut plot = Plot::new(shared.get_id())
+        let plot = Plot::new(shared.get_id())
             .legend(Legend::default())
             .clamp_grid(false)
             .allow_double_click_reset(false) // We are handling reset manually.
@@ -159,11 +205,19 @@ impl ChartUI {
                 }
             });
 
-        if self.requested_logs_rng.is_none() {
-            plot = plot.reset();
-        }
-
         let plot_res = plot.show(ui, |plot_ui| {
+            if self.reset_full_range {
+                self.reset_full_range = false;
+
+                // We need to reset X axis manually to show all logs span.
+                // Y axis can be reset manually since we are not modifying it manually.
+
+                let logs_count = shared.logs.logs_count as f64;
+                let offset = logs_count * CHART_OFFSET;
+                plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
+                plot_ui.set_auto_bounds([false, true]);
+            }
+
             if has_bars {
                 // `PlotUi::bar_chart` consumes `BarChart` by value.
                 // Keep only one pending chart so we can stack current chart on previous
@@ -212,21 +266,31 @@ impl ChartUI {
                 }
             }
 
+            for ser in self.data.search_value_series.drain(..) {
+                let Some(points) = self.data.line_plots.get(&ser.value_idx) else {
+                    continue;
+                };
+                if points.is_empty() {
+                    continue;
+                }
+
+                let plot_points: Vec<[f64; 2]> = points
+                    .iter()
+                    .map(|point| [point.row as f64, point.y_value])
+                    .collect();
+
+                plot_ui.line(Line::new(ser.name, plot_points).color(ser.color));
+            }
+
             // Reset chart on secondary double click.
             if plot_ui
                 .response()
                 .double_clicked_by(egui::PointerButton::Secondary)
             {
-                // We need to reset X axis manually to show all logs span.
-                // Y axis can be reset manually since we are not modifying it manually.
-                let logs_count = shared.logs.logs_count as f64;
-                let offset = logs_count * CHART_OFFSET;
-                plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
-
-                plot_ui.set_auto_bounds([false, true]);
+                self.reset_full_range = true;
             }
 
-            if shared.search.total_count() == 0 {
+            if !Self::has_chart_request_context(shared) {
                 return PlotResponse::None;
             }
 
@@ -252,7 +316,7 @@ impl ChartUI {
                         return PlotResponse::RequestForRange(bounds_x);
                     }
                 }
-                None if shared.search.total_count() > 0 => {
+                None if Self::has_chart_request_context(shared) => {
                     // This is the first render frame after having search results.
 
                     //TODO AAZ: It would make sense to update this on logs_count changed.
@@ -334,6 +398,8 @@ impl ChartUI {
                     // Soft reset ensuring data will be requested the next frame.
 
                     self.requested_logs_rng = None;
+                    self.reset_full_range = true;
+                    return;
                 }
             }
             PlotResponse::None => {}
@@ -346,11 +412,13 @@ impl ChartUI {
             throttle,
             last_zoom_factor,
             requested_logs_rng,
+            reset_full_range: reset_viewport_to_full_range,
             data,
         } = self;
 
         *last_zoom_factor = None;
         *requested_logs_rng = None;
+        *reset_viewport_to_full_range = false;
         data.clear();
         throttle.reset();
     }
@@ -384,5 +452,176 @@ impl ChartUI {
                 .ui(ui);
             },
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use tokio::sync::mpsc;
+    use uuid::Uuid;
+
+    use crate::{
+        host::common::parsers::ParserNames,
+        session::{
+            types::{ObserveOperation, OperationPhase},
+            ui::shared::{SessionInfo, SessionShared},
+        },
+    };
+
+    use super::{ChartBar, ChartUI};
+
+    fn new_shared(logs_count: u64) -> SessionShared {
+        let session_id = Uuid::new_v4();
+        let observe_op = ObserveOperation::new(
+            Uuid::new_v4(),
+            stypes::ObserveOrigin::File(
+                "source".to_owned(),
+                stypes::FileFormat::Text,
+                PathBuf::from("source.log"),
+            ),
+        );
+
+        let session_info = SessionInfo {
+            id: session_id,
+            title: "test".to_owned(),
+            parser: ParserNames::Text,
+        };
+
+        let mut shared = SessionShared::new(session_info, observe_op);
+        shared.logs.logs_count = logs_count;
+        shared
+    }
+
+    fn new_chart() -> ChartUI {
+        let (tx, _rx) = mpsc::channel(4);
+        ChartUI::new(tx)
+    }
+
+    fn point(row: u64, y_value: f64) -> stypes::Point {
+        stypes::Point {
+            row,
+            min: y_value - 1.0,
+            max: y_value + 1.0,
+            y_value,
+        }
+    }
+
+    #[test]
+    fn render_state_with_values() {
+        let mut shared = new_shared(10);
+        let operation_id = Uuid::new_v4();
+        shared.search_values.set_operation(operation_id);
+
+        assert_eq!(
+            ChartUI::render_state(&shared),
+            super::ChartRenderState::Spinner
+        );
+
+        shared
+            .search_values
+            .update_operation(operation_id, OperationPhase::Processing);
+
+        assert_eq!(
+            ChartUI::render_state(&shared),
+            super::ChartRenderState::Chart
+        );
+    }
+
+    #[test]
+    fn search_count_resets() {
+        let shared = new_shared(10);
+        let mut chart = new_chart();
+        chart.last_zoom_factor = Some(42);
+        chart.requested_logs_rng = Some(0..=9);
+
+        chart.on_search_count_changes(&shared);
+
+        assert!(chart.last_zoom_factor.is_none());
+        assert!(chart.requested_logs_rng.is_none());
+        assert!(chart.reset_full_range);
+    }
+
+    #[test]
+    fn search_count_keeps_range() {
+        let shared = new_shared(10);
+        let mut chart = new_chart();
+        chart.last_zoom_factor = Some(42);
+        chart.requested_logs_rng = Some(2..=7);
+
+        chart.on_search_count_changes(&shared);
+
+        assert_eq!(chart.last_zoom_factor, Some(42));
+        assert_eq!(chart.requested_logs_rng, Some(2..=7));
+    }
+
+    #[test]
+    fn line_plots_replace() {
+        let mut chart = new_chart();
+        chart
+            .data
+            .line_plots
+            .insert(0, vec![point(1, 10.0), point(2, 12.0)]);
+        chart.data.line_plots.insert(1, vec![point(3, 14.0)]);
+
+        chart.update_line_plots(vec![(2, vec![point(4, 20.0)])]);
+
+        assert_eq!(chart.data.line_plots.len(), 1);
+        assert!(!chart.data.line_plots.contains_key(&0));
+        assert!(!chart.data.line_plots.contains_key(&1));
+        assert_eq!(chart.data.line_plots.get(&2).map(Vec::len), Some(1));
+    }
+
+    #[test]
+    fn reset_clears_state() {
+        let mut chart = new_chart();
+        chart.last_zoom_factor = Some(7);
+        chart.requested_logs_rng = Some(1..=4);
+        chart.reset_full_range = true;
+        chart.data.set_histogram(vec![vec![ChartBar::new(0, 3)]]);
+        chart.data.line_plots.insert(0, vec![point(1, 5.0)]);
+
+        assert!(chart.throttle.ready(None));
+        assert!(!chart.throttle.ready(None));
+
+        chart.reset();
+
+        assert!(chart.last_zoom_factor.is_none());
+        assert!(chart.requested_logs_rng.is_none());
+        assert!(!chart.reset_full_range);
+        assert!(chart.data.bars.is_empty());
+        assert!(chart.data.line_plots.is_empty());
+        assert!(chart.throttle.ready(None));
+    }
+
+    #[test]
+    fn search_values_reset_range() {
+        let mut shared = new_shared(10);
+        shared
+            .search_values
+            .set_values_map(Some(std::collections::HashMap::from([(0, (1.0, 2.0))])));
+
+        let mut chart = new_chart();
+        chart.last_zoom_factor = Some(42);
+        chart.requested_logs_rng = Some(0..=9);
+
+        chart.on_search_values_changes(&shared);
+
+        assert!(chart.last_zoom_factor.is_none());
+        assert!(chart.requested_logs_rng.is_none());
+        assert!(chart.reset_full_range);
+    }
+
+    #[test]
+    fn search_count_keeps_flag() {
+        let shared = new_shared(10);
+        let mut chart = new_chart();
+        chart.last_zoom_factor = Some(42);
+        chart.requested_logs_rng = Some(2..=7);
+
+        chart.on_search_count_changes(&shared);
+
+        assert!(!chart.reset_full_range);
     }
 }
