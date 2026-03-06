@@ -26,7 +26,7 @@ type SearchResultChannel = (
 );
 
 type ValueSearchResult =
-    Result<ValueSearchResults, (Option<ValueSearchHolder>, stypes::NativeError)>;
+    Result<ValueSearchResults, (Option<Box<ValueSearchHolder>>, stypes::NativeError)>;
 
 struct ValueSearchResults {
     values: HashMap<u8, Vec<ValueSearchMatch>>,
@@ -91,7 +91,7 @@ pub async fn execute_value_search(
                                 |(holder, search_results)| {
                                     match search_results {
                                         Ok(ValueSearchOutput{values, ..}) => Ok(ValueSearchResults {values, holder}),
-                                        Err(err) => Err((Some(holder), stypes::NativeError {
+                                        Err(err) => Err((Some(Box::new(holder)), stypes::NativeError {
                                             severity: stypes::Severity::ERROR,
                                             kind: stypes::NativeErrorKind::OperationSearch,
                                             message: Some(format!(
@@ -127,7 +127,7 @@ pub async fn execute_value_search(
                 Err((holder, err)) => {
                     if let Some(holder) = holder {
                         state
-                            .set_search_values_holder(Some(holder), operation_api.id())
+                            .set_search_values_holder(Some(*holder), operation_api.id())
                             .await?;
                     } else {
                         state

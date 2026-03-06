@@ -404,7 +404,7 @@ pub mod tests {
     fn ft_file(id: u32, ecu: &str, name: &str, payload: &[u8]) -> Vec<Message> {
         let size: usize = payload.len();
         let mut packets: usize = size / DLT_FT_CHUNK_SIZE;
-        if size % DLT_FT_CHUNK_SIZE != 0 {
+        if !size.is_multiple_of(DLT_FT_CHUNK_SIZE) {
             packets += 1;
         }
 

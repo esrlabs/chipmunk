@@ -100,7 +100,7 @@ fn test_mock_parser() {
 
     let parse_result_ok_none = parser.parse(b"ab", None).unwrap().next().unwrap();
     assert_eq!(parse_result_ok_none.consumed, 1);
-    assert!(matches!(parse_result_ok_none.message, None));
+    assert!(parse_result_ok_none.message.is_none());
 
     let parse_result_ok_val = parser.parse(b"ab", None).unwrap().next().unwrap();
     assert_eq!(parse_result_ok_val.consumed, 2);

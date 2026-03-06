@@ -27,6 +27,9 @@ type SearchResultChannel = (
     Receiver<(RegularSearchHolder, searchers::regular::SearchResults)>,
 );
 
+type SearchOutputResult =
+    Result<SearchOutput, (Option<Box<RegularSearchHolder>>, stypes::NativeError)>;
+
 #[derive(Debug)]
 struct SearchOutput {
     matches: Vec<stypes::FilterMatch>,
@@ -74,9 +77,7 @@ pub async fn execute_search(
                 && tx_result.send((holder, search_results)).await.is_ok()
             {}
         });
-        let search_results: Option<
-            Result<SearchOutput, (Option<RegularSearchHolder>, stypes::NativeError)>,
-        > = select! {
+        let search_results: Option<SearchOutputResult> = select! {
             res = async {
                 loop {
                     match timeout(
@@ -95,7 +96,7 @@ pub async fn execute_search(
                                 |(holder, search_results)| {
                                     match search_results {
                                         Ok((_processed, matches, stats)) => Ok(SearchOutput {matches, stats, holder}),
-                                        Err(err) => Err((Some(holder), stypes::NativeError {
+                                        Err(err) => Err((Some(Box::new(holder)), stypes::NativeError {
                                             severity: stypes::Severity::ERROR,
                                             kind: stypes::NativeErrorKind::OperationSearch,
                                             message: Some(format!(
@@ -139,7 +140,7 @@ pub async fn execute_search(
                 Err((holder, err)) => {
                     if let Some(holder) = holder {
                         state
-                            .set_search_holder(Some(holder), operation_api.id())
+                            .set_search_holder(Some(*holder), operation_api.id())
                             .await?;
                     } else {
                         state.set_search_holder(None, operation_api.id()).await?;
