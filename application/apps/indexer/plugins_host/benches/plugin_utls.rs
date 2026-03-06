@@ -5,12 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use stypes::{PluginConfigItem, PluginConfigValue};
 
-// Note:
-// Rust LSP may mark this as an error, but this is an issue with the LSP itself.
-// The code will compile without problems.
-
-#[path = "./../../processor/benches/bench_utls.rs"]
-mod bench_utls;
+const CONFIG_ENV_VAR: &str = "CHIPMUNK_BENCH_CONFIG";
 
 /// Represents the needed configuration to run benchmarks on a plugin.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,7 +23,8 @@ pub struct PluginBenchConfig {
 /// This function expects to get the path for the plugin configurations `toml` file
 /// via bench configuration environment variable.
 pub fn get_plugin_config() -> PluginBenchConfig {
-    let config_path = bench_utls::get_config()
+    let config_path = std::env::var(CONFIG_ENV_VAR)
+        .ok()
         .map(PathBuf::from)
         .expect("Path to plugin config must be provided as additional config");
     assert!(config_path.exists(), "Config files doesn't exist");
