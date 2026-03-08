@@ -179,9 +179,7 @@ impl Session {
                 }
                 SessionMessage::SearchState { found_count } => {
                     self.shared.search.set_total_count(found_count);
-                    self.bottom_panel
-                        .chart
-                        .on_search_count_changes(&self.shared);
+                    self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SearchResults(filter_matches) => {
                     self.shared.search.append_matches(filter_matches);
@@ -207,7 +205,7 @@ impl Session {
                 }
                 SessionMessage::ChartSearchValues(values) => {
                     self.shared.search_values.set_values_map(values);
-                    self.bottom_panel.chart.on_search_values_changes(&self.shared);
+                    self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SourceAdded { observe_op } => {
                     self.shared.add_operation(*observe_op);
