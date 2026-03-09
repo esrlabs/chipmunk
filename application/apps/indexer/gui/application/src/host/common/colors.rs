@@ -1,5 +1,7 @@
 use egui::Color32;
 
+const SEARCH_VALUE_COLOR_OFFSET: usize = 3;
+
 /// Strong highlight colors used for source/concat indicators.
 pub const SOURCE_HIGHLIGHT_COLORS: [Color32; 10] = [
     // Red
@@ -107,4 +109,24 @@ pub const SELECTED_LOG_COLORS: ColorPair = ColorPair::new(Color32::WHITE, Color3
 /// Returns a list of available source highlighting colors.
 pub fn source_highlighting_colors() -> Vec<Color32> {
     SOURCE_HIGHLIGHT_COLORS.to_vec()
+}
+
+/// Returns a stable search-value color from the rotated source palette.
+pub fn search_value_color(index: usize) -> Color32 {
+    // We are using the offset here to keep using one source colors while avoiding
+    // having similar colors (red, light-red) in the charts.
+    let idx = (index + SEARCH_VALUE_COLOR_OFFSET) % SOURCE_HIGHLIGHT_COLORS.len();
+    SOURCE_HIGHLIGHT_COLORS[idx]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SOURCE_HIGHLIGHT_COLORS, search_value_color};
+
+    #[test]
+    fn search_value_color_uses_rotated_source_palette() {
+        assert_eq!(search_value_color(0), SOURCE_HIGHLIGHT_COLORS[3]);
+        assert_eq!(search_value_color(1), SOURCE_HIGHLIGHT_COLORS[4]);
+        assert_eq!(search_value_color(7), SOURCE_HIGHLIGHT_COLORS[0]);
+    }
 }
