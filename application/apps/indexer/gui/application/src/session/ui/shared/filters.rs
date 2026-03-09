@@ -37,12 +37,20 @@ impl TempSearch {
     }
 }
 
-/// Maintains the ordered list of filters and search values applied to a specific session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Session-local item state used by filters and search values.
+pub struct AppliedItemState {
+    pub id: Uuid,
+    pub enabled: bool,
+}
+
+/// Maintains the ordered list of filters and search values applied
+/// to a specific session.
 #[derive(Debug, Clone)]
 pub struct FiltersState {
     session_id: Uuid,
-    pub applied_filters: Vec<Uuid>,
-    pub applied_search_values: Vec<Uuid>,
+    pub filter_entries: Vec<AppliedItemState>,
+    pub search_value_entries: Vec<AppliedItemState>,
     pub active_temp_search: Option<TempSearch>,
 }
 
@@ -50,8 +58,8 @@ impl FiltersState {
     pub fn new(session_id: Uuid) -> Self {
         Self {
             session_id,
-            applied_filters: Vec::new(),
-            applied_search_values: Vec::new(),
+            filter_entries: Vec::new(),
+            search_value_entries: Vec::new(),
             active_temp_search: None,
         }
     }
@@ -104,38 +112,148 @@ impl FiltersState {
         false
     }
 
+    /// Returns whether the filter exists in this session,
+    /// regardless of enabled state.
     pub fn is_filter_applied(&self, id: &Uuid) -> bool {
-        self.applied_filters.contains(id)
+        self.filter_entries.iter().any(|item| item.id == *id)
     }
 
+    /// Returns whether the search value exists in this session,
+    /// regardless of enabled state.
     pub fn is_search_value_applied(&self, id: &Uuid) -> bool {
-        self.applied_search_values.contains(id)
+        self.search_value_entries.iter().any(|item| item.id == *id)
     }
 
-    pub fn apply_filter(&mut self, registry: &mut FilterRegistry, id: Uuid) {
-        if !self.is_filter_applied(&id) {
-            self.applied_filters.push(id);
-            registry.apply_filter_to_session(id, self.session_id);
+    /// Returns whether the filter is currently active for sync and rendering.
+    pub fn is_filter_enabled(&self, id: &Uuid) -> bool {
+        self.filter_entries
+            .iter()
+            .find(|item| item.id == *id)
+            .is_some_and(|item| item.enabled)
+    }
+
+    /// Returns whether the search value is currently active for sync and rendering.
+    pub fn is_search_value_enabled(&self, id: &Uuid) -> bool {
+        self.search_value_entries
+            .iter()
+            .find(|item| item.id == *id)
+            .is_some_and(|item| item.enabled)
+    }
+
+    /// Iterates enabled filters in their session order.
+    pub fn enabled_filter_ids(&self) -> impl Iterator<Item = &Uuid> {
+        self.filter_entries
+            .iter()
+            .filter(|item| item.enabled)
+            .map(|item| &item.id)
+    }
+
+    /// Iterates enabled search values in their session order.
+    pub fn enabled_search_value_ids(&self) -> impl Iterator<Item = &Uuid> {
+        self.search_value_entries
+            .iter()
+            .filter(|item| item.enabled)
+            .map(|item| &item.id)
+    }
+
+    /// Adds the filter to the session or updates its enabled state in place.
+    fn set_filter_entry(&mut self, registry: &mut FilterRegistry, id: Uuid, enabled: bool) {
+        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == id) {
+            item.enabled = enabled;
+            return;
         }
+
+        self.filter_entries.push(AppliedItemState { id, enabled });
+        registry.apply_filter_to_session(id, self.session_id);
     }
 
+    /// Adds the search value to the session or updates its enabled state in place.
+    fn set_search_value_entry(&mut self, registry: &mut FilterRegistry, id: Uuid, enabled: bool) {
+        if let Some(item) = self
+            .search_value_entries
+            .iter_mut()
+            .find(|item| item.id == id)
+        {
+            item.enabled = enabled;
+            return;
+        }
+
+        self.search_value_entries
+            .push(AppliedItemState { id, enabled });
+        registry.apply_search_value_to_session(id, self.session_id);
+    }
+
+    /// Updates the enabled flag for an existing filter and reports
+    /// whether it changed.
+    pub fn set_filter_enabled(&mut self, id: &Uuid, enabled: bool) -> bool {
+        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == *id) {
+            let changed = item.enabled != enabled;
+            item.enabled = enabled;
+            return changed;
+        }
+
+        false
+    }
+
+    /// Updates the enabled flag for an existing search value and reports
+    /// whether it changed.
+    pub fn set_search_value_enabled(&mut self, id: &Uuid, enabled: bool) -> bool {
+        if let Some(item) = self
+            .search_value_entries
+            .iter_mut()
+            .find(|item| item.id == *id)
+        {
+            let changed = item.enabled != enabled;
+            item.enabled = enabled;
+            return changed;
+        }
+
+        false
+    }
+
+    /// Adds a filter to the session in the enabled state.
+    pub fn apply_filter(&mut self, registry: &mut FilterRegistry, id: Uuid) {
+        self.set_filter_entry(registry, id, true);
+    }
+
+    /// Adds a filter to the session while preserving an explicit enabled state.
+    pub fn apply_filter_with_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        id: Uuid,
+        enabled: bool,
+    ) {
+        self.set_filter_entry(registry, id, enabled);
+    }
+
+    /// Removes the filter from the session entirely.
     pub fn unapply_filter(&mut self, registry: &mut FilterRegistry, id: &Uuid) {
         if self.is_filter_applied(id) {
-            self.applied_filters.retain(|f| f != id);
+            self.filter_entries.retain(|item| item.id != *id);
             registry.unapply_filter_from_session(*id, self.session_id);
         }
     }
 
+    /// Adds a search value to the session in the enabled state.
     pub fn apply_search_value(&mut self, registry: &mut FilterRegistry, id: Uuid) {
-        if !self.is_search_value_applied(&id) {
-            self.applied_search_values.push(id);
-            registry.apply_search_value_to_session(id, self.session_id);
-        }
+        self.set_search_value_entry(registry, id, true);
     }
 
+    /// Adds a search value to the session while preserving
+    /// an explicit enabled state.
+    pub fn apply_search_value_with_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        id: Uuid,
+        enabled: bool,
+    ) {
+        self.set_search_value_entry(registry, id, enabled);
+    }
+
+    /// Removes the search value from the session entirely.
     pub fn unapply_search_value(&mut self, registry: &mut FilterRegistry, id: &Uuid) {
         if self.is_search_value_applied(id) {
-            self.applied_search_values.retain(|v| v != id);
+            self.search_value_entries.retain(|item| item.id != *id);
             registry.unapply_search_value_from_session(*id, self.session_id);
         }
     }
@@ -164,12 +282,56 @@ mod tests {
 
         assert!(state.pin_temp_search_as_value(&mut registry));
 
-        let value_id = state.applied_search_values[0];
+        let value_id = state.search_value_entries[0].id;
         assert_eq!(
             registry
                 .get_search_value(&value_id)
                 .map(|value| value.color),
             Some(crate::host::common::colors::search_value_color(0))
+        );
+    }
+
+    #[test]
+    fn apply_filter_defaults_enabled() {
+        let session_id = Uuid::new_v4();
+        let mut state = FiltersState::new(session_id);
+        let mut registry = FilterRegistry::default();
+        let filter_id = Uuid::new_v4();
+
+        state.apply_filter(&mut registry, filter_id);
+
+        assert!(state.is_filter_applied(&filter_id));
+        assert!(state.is_filter_enabled(&filter_id));
+        assert_eq!(
+            state.enabled_filter_ids().copied().collect::<Vec<_>>(),
+            vec![filter_id]
+        );
+    }
+
+    #[test]
+    fn toggle_filter_keeps_order() {
+        let session_id = Uuid::new_v4();
+        let mut state = FiltersState::new(session_id);
+        let mut registry = FilterRegistry::default();
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+
+        state.apply_filter(&mut registry, first);
+        state.apply_filter(&mut registry, second);
+
+        assert!(state.set_filter_enabled(&first, false));
+
+        assert_eq!(
+            state
+                .filter_entries
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![first, second]
+        );
+        assert_eq!(
+            state.enabled_filter_ids().copied().collect::<Vec<_>>(),
+            vec![second]
         );
     }
 }
