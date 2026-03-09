@@ -18,8 +18,10 @@ use crate::{
 #[derive(Debug, Clone, Copy)]
 /// Pending action selected from the Filters side panel.
 enum FilterPanelAction {
+    ToggleFilter(Uuid, bool),
     RemoveFilter(Uuid),
     MoveFilterToValue(Uuid),
+    ToggleSearchValue(Uuid, bool),
     RemoveSearchValue(Uuid),
     MoveValueToFilter(Uuid),
 }
@@ -51,7 +53,7 @@ impl FiltersUi {
                 self.render_filters_section(shared, registry, ui, &mut side_action);
 
                 ui.add_space(8.0);
-                ui.heading(RichText::new("Search Values").size(16.0));
+                ui.heading(RichText::new("Charts").size(16.0));
                 ui.add_space(5.0);
                 self.render_search_values_section(shared, registry, ui, &mut side_action);
 
@@ -67,20 +69,23 @@ impl FiltersUi {
         ui: &mut Ui,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        let applied_filters: Vec<_> = shared
+        let mut have_items = false;
+        shared
             .filters
-            .applied_filters
+            .filter_entries
             .iter()
-            .filter_map(|id| registry.get_filter(id).map(|def| (*id, def.clone())))
-            .collect();
+            .filter_map(|item| {
+                registry
+                    .get_filter(&item.id)
+                    .map(|def| (item.id, item.enabled, def.clone()))
+            })
+            .for_each(|(filter_id, enabled, filter_def)| {
+                have_items = true;
+                self.render_filter_item(ui, filter_id, enabled, &filter_def, side_action);
+            });
 
-        if applied_filters.is_empty() {
+        if !have_items {
             ui.label(RichText::new("No filters applied").weak());
-            return;
-        }
-
-        for (filter_id, filter_def) in applied_filters {
-            self.render_filter_item(ui, filter_id, &filter_def, side_action);
         }
     }
 
@@ -91,20 +96,23 @@ impl FiltersUi {
         ui: &mut Ui,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        let applied_values: Vec<_> = shared
+        let mut has_items = false;
+        shared
             .filters
-            .applied_search_values
+            .search_value_entries
             .iter()
-            .filter_map(|id| registry.get_search_value(id).map(|def| (*id, def.clone())))
-            .collect();
+            .filter_map(|item| {
+                registry
+                    .get_search_value(&item.id)
+                    .map(|def| (item.id, item.enabled, def.clone()))
+            })
+            .for_each(|(value_id, enabled, value_def)| {
+                has_items = true;
+                self.render_search_value_item(ui, value_id, enabled, &value_def, side_action);
+            });
 
-        if applied_values.is_empty() {
-            ui.label(RichText::new("No search values applied").weak());
-            return;
-        }
-
-        for (value_id, value_def) in applied_values {
-            self.render_search_value_item(ui, value_id, &value_def, side_action);
+        if !has_items {
+            ui.label(RichText::new("No Charts applied").weak());
         }
     }
 
@@ -116,6 +124,14 @@ impl FiltersUi {
         registry: &mut FilterRegistry,
     ) {
         match side_action {
+            Some(FilterPanelAction::ToggleFilter(filter_id, enabled)) => {
+                if shared.filters.set_filter_enabled(&filter_id, enabled) {
+                    shared
+                        .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                        .into_iter()
+                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                }
+            }
             Some(FilterPanelAction::RemoveFilter(filter_id)) => {
                 shared.filters.unapply_filter(registry, &filter_id);
                 shared
@@ -125,15 +141,26 @@ impl FiltersUi {
             }
             Some(FilterPanelAction::MoveFilterToValue(filter_id)) => {
                 let was_applied = shared.filters.is_filter_applied(&filter_id);
+                let was_enabled = shared.filters.is_filter_enabled(&filter_id);
                 let session_id = shared.get_id();
                 let converted_value = registry.convert_filter_to_value(filter_id, session_id);
                 if let Some(value_id) = converted_value
                     && was_applied
                 {
                     shared.filters.unapply_filter(registry, &filter_id);
-                    shared.filters.apply_search_value(registry, value_id);
+                    shared
+                        .filters
+                        .apply_search_value_with_state(registry, value_id, was_enabled);
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::Both)
+                        .into_iter()
+                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                }
+            }
+            Some(FilterPanelAction::ToggleSearchValue(value_id, enabled)) => {
+                if shared.filters.set_search_value_enabled(&value_id, enabled) {
+                    shared
+                        .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
                         .into_iter()
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
@@ -147,13 +174,16 @@ impl FiltersUi {
             }
             Some(FilterPanelAction::MoveValueToFilter(value_id)) => {
                 let was_applied = shared.filters.is_search_value_applied(&value_id);
+                let was_enabled = shared.filters.is_search_value_enabled(&value_id);
                 let session_id = shared.get_id();
                 let converted_filter = registry.convert_value_to_filter(value_id, session_id);
                 if let Some(filter_id) = converted_filter
                     && was_applied
                 {
                     shared.filters.unapply_search_value(registry, &value_id);
-                    shared.filters.apply_filter(registry, filter_id);
+                    shared
+                        .filters
+                        .apply_filter_with_state(registry, filter_id, was_enabled);
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::Both)
                         .into_iter()
@@ -168,6 +198,7 @@ impl FiltersUi {
         &self,
         ui: &mut Ui,
         filter_id: Uuid,
+        enabled: bool,
         filter_def: &FilterDefinition,
         side_action: &mut Option<FilterPanelAction>,
     ) {
@@ -178,6 +209,21 @@ impl FiltersUi {
             .inner_margin(Margin::symmetric(8, 4))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
+                    let mut enabled_state = enabled;
+                    let checkbox = ui.checkbox(&mut enabled_state, "").on_hover_ui(|ui| {
+                        ui.set_max_width(ui.spacing().tooltip_width);
+                        let tooltip = if enabled {
+                            "Disable this filter temporarily."
+                        } else {
+                            "Enable this filter again."
+                        };
+                        ui.label(tooltip);
+                    });
+                    if checkbox.changed() {
+                        *side_action =
+                            Some(FilterPanelAction::ToggleFilter(filter_id, enabled_state));
+                    }
+
                     let (res, painter) =
                         ui.allocate_painter(vec2(10.0, 20.0), egui::Sense::hover());
                     painter.rect_filled(res.rect, 2.0, filter_def.colors.bg);
@@ -192,9 +238,9 @@ impl FiltersUi {
                                     RichText::new(icons::regular::CHART_LINE).size(14.0),
                                 ),
                             )
-                            .on_hover_text("Move to Search Value");
+                            .on_hover_text("Move to Charts");
                         if let SearchValueEligibility::Ineligible { reason } = eligibility {
-                            move_btn.on_disabled_hover_text(format!("Search Value: {reason}"));
+                            move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
                         } else if move_btn.clicked() {
                             *side_action = Some(FilterPanelAction::MoveFilterToValue(filter_id));
                         }
@@ -215,6 +261,7 @@ impl FiltersUi {
         &self,
         ui: &mut Ui,
         value_id: Uuid,
+        enabled: bool,
         value_def: &SearchValueDefinition,
         side_action: &mut Option<FilterPanelAction>,
     ) {
@@ -223,6 +270,23 @@ impl FiltersUi {
             .inner_margin(Margin::symmetric(8, 4))
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
+                    let mut enabled_state = enabled;
+                    let checkbox = ui.checkbox(&mut enabled_state, "").on_hover_ui(|ui| {
+                        ui.set_max_width(ui.spacing().tooltip_width);
+                        let tooltip = if enabled {
+                            "Disable this Chart temporarily."
+                        } else {
+                            "Enable this Chart again."
+                        };
+                        ui.label(tooltip);
+                    });
+                    if checkbox.changed() {
+                        *side_action = Some(FilterPanelAction::ToggleSearchValue(
+                            value_id,
+                            enabled_state,
+                        ));
+                    }
+
                     let (res, painter) =
                         ui.allocate_painter(vec2(10.0, 20.0), egui::Sense::hover());
                     painter.rect_filled(res.rect, 2.0, value_def.color);
@@ -240,7 +304,7 @@ impl FiltersUi {
 
                         if ui
                             .button(RichText::new(icons::regular::TRASH).size(14.0))
-                            .on_hover_text("Remove search value from session")
+                            .on_hover_text("Remove chart from session")
                             .clicked()
                         {
                             *side_action = Some(FilterPanelAction::RemoveSearchValue(value_id));
