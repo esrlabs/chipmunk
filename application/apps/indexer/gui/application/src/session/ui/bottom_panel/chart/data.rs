@@ -77,13 +77,19 @@ impl ChartsData {
     /// Resolve active histogram series for the current session in backend index order.
     ///
     /// The expected index mapping is:
-    /// 1. Applied filters in `applied_filters` order.
+    /// 1. Enabled filters in session order.
     /// 2. Active temp search as the last series (if present).
     pub fn resolve_histogram_series(&mut self, shared: &SessionShared, registry: &FilterRegistry) {
         self.series.clear();
 
-        for (idx, filter_id) in shared.filters.applied_filters.iter().enumerate() {
-            let Some(filter_def) = registry.get_filter(filter_id) else {
+        for (idx, item) in shared
+            .filters
+            .filter_entries
+            .iter()
+            .filter(|item| item.enabled)
+            .enumerate()
+        {
+            let Some(filter_def) = registry.get_filter(&item.id) else {
                 continue;
             };
             let Ok(filter_idx) = u8::try_from(idx) else {
@@ -99,7 +105,7 @@ impl ChartsData {
 
         // Append temp search to the end of charts
         if let Some(temp_search) = &shared.filters.active_temp_search
-            && let Ok(filter_idx) = u8::try_from(shared.filters.applied_filters.len())
+            && let Ok(filter_idx) = u8::try_from(shared.filters.enabled_filter_ids().count())
         {
             self.series.push(HistogramSeries {
                 filter_idx,
@@ -117,8 +123,14 @@ impl ChartsData {
     ) {
         self.search_value_series.clear();
 
-        for (idx, value_id) in shared.filters.applied_search_values.iter().enumerate() {
-            let Some(value_def) = registry.get_search_value(value_id) else {
+        for (idx, item) in shared
+            .filters
+            .search_value_entries
+            .iter()
+            .filter(|item| item.enabled)
+            .enumerate()
+        {
+            let Some(value_def) = registry.get_search_value(&item.id) else {
                 continue;
             };
             let Ok(value_idx) = u8::try_from(idx) else {
@@ -244,7 +256,11 @@ mod tests {
 
         // Keep a missing id in the middle to verify we skip unknown entries
         // without re-numbering backend indices.
-        shared.filters.applied_search_values = vec![first_id, Uuid::new_v4(), second_id];
+        shared.filters.apply_search_value(&mut registry, first_id);
+        shared
+            .filters
+            .apply_search_value(&mut registry, Uuid::new_v4());
+        shared.filters.apply_search_value(&mut registry, second_id);
 
         data.resolve_search_value_series(&shared, &registry);
 
@@ -252,7 +268,7 @@ mod tests {
         assert_eq!(data.search_value_series[0].value_idx, 0);
         assert_eq!(data.search_value_series[0].name, "cpu=(\\d+)");
         assert_eq!(data.search_value_series[0].color, Color32::RED);
-        // The second resolved series keeps index 2 because applied order is canonical.
+        // The second resolved series keeps index 2 because enabled order is canonical.
         assert_eq!(data.search_value_series[1].value_idx, 2);
         assert_eq!(data.search_value_series[1].name, "temp=(\\d+)");
         assert_eq!(data.search_value_series[1].color, Color32::GREEN);
