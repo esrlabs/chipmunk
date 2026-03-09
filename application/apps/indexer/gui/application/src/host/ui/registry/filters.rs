@@ -163,9 +163,11 @@ impl FilterRegistry {
             return None;
         }
 
-        //TODO AAZ: We need new set of color for search values.
-        let search_value_def =
-            SearchValueDefinition::new(filter_def.filter.clone(), Color32::LIGHT_BLUE);
+        let color_idx = self.search_values.len();
+        let search_value_def = SearchValueDefinition::new(
+            filter_def.filter.clone(),
+            colors::search_value_color(color_idx),
+        );
         let search_value_id = search_value_def.id;
         self.add_search_value(search_value_def);
 
@@ -213,7 +215,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn convert_filter_to_value_removes_source_when_unused_elsewhere() {
+    fn convert_filter_to_value_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let filter_def = FilterDefinition::new(
@@ -233,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_filter_to_value_keeps_source_when_used_by_other_session() {
+    fn convert_filter_to_value_keeps_shared_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let other_session_id = Uuid::new_v4();
@@ -255,7 +257,31 @@ mod tests {
     }
 
     #[test]
-    fn convert_value_to_filter_removes_source_when_unused_elsewhere() {
+    fn convert_filter_to_value_uses_palette() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+        registry.apply_filter_to_session(filter_id, session_id);
+
+        let value_id = registry
+            .convert_filter_to_value(filter_id, session_id)
+            .expect("eligible filter should convert");
+
+        assert_eq!(
+            registry
+                .get_search_value(&value_id)
+                .map(|value| value.color),
+            Some(colors::search_value_color(0))
+        );
+    }
+
+    #[test]
+    fn convert_value_to_filter_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let value_def = SearchValueDefinition::new(
@@ -275,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_filter_to_value_rejects_ineligible_filter() {
+    fn convert_filter_to_value_rejects_ineligible() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let filter_def = FilterDefinition::new(
