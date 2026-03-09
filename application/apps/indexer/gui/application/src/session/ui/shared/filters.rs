@@ -5,7 +5,6 @@ use crate::host::{
     common::colors,
     ui::registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
 };
-use egui::Color32;
 use processor::search::filter::SearchFilter;
 use uuid::Uuid;
 
@@ -93,7 +92,9 @@ impl FiltersState {
         }
 
         if let Some(filter) = self.take_temp_search() {
-            let search_value_def = SearchValueDefinition::new(filter, Color32::LIGHT_BLUE);
+            let color_idx = registry.search_value_map().len();
+            let search_value_def =
+                SearchValueDefinition::new(filter, colors::search_value_color(color_idx));
             let search_value_id = search_value_def.id;
             registry.add_search_value(search_value_def);
             self.apply_search_value(registry, search_value_id);
@@ -137,5 +138,38 @@ impl FiltersState {
             self.applied_search_values.retain(|v| v != id);
             registry.unapply_search_value_from_session(*id, self.session_id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use processor::search::filter::SearchFilter;
+    use uuid::Uuid;
+
+    use crate::host::ui::registry::filters::FilterRegistry;
+
+    use super::FiltersState;
+
+    #[test]
+    fn pin_temp_search_as_value_uses_palette() {
+        let session_id = Uuid::new_v4();
+        let mut state = FiltersState::new(session_id);
+        let mut registry = FilterRegistry::default();
+        state.set_temp_search(SearchFilter::new(
+            "cpu=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
+
+        assert!(state.pin_temp_search_as_value(&mut registry));
+
+        let value_id = state.applied_search_values[0];
+        assert_eq!(
+            registry
+                .get_search_value(&value_id)
+                .map(|value| value.color),
+            Some(crate::host::common::colors::search_value_color(0))
+        );
     }
 }
