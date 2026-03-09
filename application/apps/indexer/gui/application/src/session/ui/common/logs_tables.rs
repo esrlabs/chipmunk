@@ -92,7 +92,6 @@ pub fn apply_log_row_colors(
     let row_colors = if is_selected {
         Some(&SELECTED_LOG_COLORS)
     } else if let Some(pos) = main_log_pos {
-        let applied_filters = &shared.filters.applied_filters;
         shared
             .search
             .current_matches_map()
@@ -100,7 +99,7 @@ pub fn apply_log_row_colors(
             .and_then(|matches| matches.first())
             .and_then(|filter_idx| {
                 let idx = filter_idx.0 as usize;
-                if let Some(filter) = applied_filters.get(idx) {
+                if let Some(filter) = shared.filters.enabled_filter_ids().nth(idx) {
                     registry.get_filter(filter).map(|def| &def.colors)
                 } else {
                     // This is the temporary unregistered search.

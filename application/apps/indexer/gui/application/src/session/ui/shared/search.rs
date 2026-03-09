@@ -70,8 +70,7 @@ impl SearchState {
         registry: &FilterRegistry,
     ) -> Vec<processor::search::filter::SearchFilter> {
         let mut filters: Vec<_> = filters_state
-            .applied_filters
-            .iter()
+            .enabled_filter_ids()
             .filter_map(|uuid| registry.get_filter(uuid))
             .map(|def| def.filter.clone())
             .collect();

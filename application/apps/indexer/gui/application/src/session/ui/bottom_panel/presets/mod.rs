@@ -75,10 +75,11 @@ impl PresetsUI {
 
                     for (id, filter_txt, eligibility) in filters {
                         ui.horizontal(|ui| {
-                            let is_applied = shared.filters.is_filter_applied(&id);
+                            let is_enabled = shared.filters.is_filter_enabled(&id);
+                            let is_in_session = shared.filters.is_filter_applied(&id);
 
-                            if ui.selectable_label(is_applied, filter_txt).clicked() {
-                                if is_applied {
+                            if ui.selectable_label(is_enabled, filter_txt).clicked() {
+                                if is_enabled {
                                     shared.filters.unapply_filter(registry, &id);
                                 } else {
                                     shared.filters.apply_filter(registry, id);
@@ -110,7 +111,7 @@ impl PresetsUI {
 
                                     let btn = if !can_remove {
                                         let other_count = registry.filter_usage_count(&id)
-                                            - if is_applied { 1 } else { 0 };
+                                            - if is_in_session { 1 } else { 0 };
                                         btn.on_disabled_hover_text(format!(
                                             "Cannot delete: currently used in {} other session(s).",
                                             other_count
@@ -128,11 +129,11 @@ impl PresetsUI {
                     }
 
                     if let Some(id) = to_delete {
-                        let was_applied = shared.filters.is_filter_applied(&id);
+                        let was_enabled = shared.filters.is_filter_enabled(&id);
                         registry.remove_filter(&id);
                         shared.filters.unapply_filter(registry, &id);
 
-                        if was_applied {
+                        if was_enabled {
                             shared
                                 .sync_search_pipelines(registry, SearchSyncTarget::Filter)
                                 .into_iter()
@@ -178,13 +179,14 @@ impl PresetsUI {
 
                     for (id, search_value_def) in values {
                         ui.horizontal(|ui| {
-                            let is_applied = shared.filters.is_search_value_applied(&id);
+                            let is_enabled = shared.filters.is_search_value_enabled(&id);
+                            let is_in_session = shared.filters.is_search_value_applied(&id);
 
                             if ui
-                                .selectable_label(is_applied, &search_value_def.filter.value)
+                                .selectable_label(is_enabled, &search_value_def.filter.value)
                                 .clicked()
                             {
-                                if is_applied {
+                                if is_enabled {
                                     shared.filters.unapply_search_value(registry, &id);
                                 } else {
                                     shared.filters.apply_search_value(registry, id);
@@ -205,7 +207,7 @@ impl PresetsUI {
 
                                     let btn = if !can_remove {
                                         let other_count = registry.search_value_usage_count(&id)
-                                            - if is_applied { 1 } else { 0 };
+                                            - if is_in_session { 1 } else { 0 };
                                         btn.on_disabled_hover_text(format!(
                                             "Cannot delete: currently used in {} other session(s).",
                                             other_count
@@ -223,10 +225,10 @@ impl PresetsUI {
                     }
 
                     if let Some(id) = to_delete {
-                        let was_applied = shared.filters.is_search_value_applied(&id);
+                        let was_enabled = shared.filters.is_search_value_enabled(&id);
                         registry.remove_search_value(&id);
                         shared.filters.unapply_search_value(registry, &id);
-                        if was_applied {
+                        if was_enabled {
                             shared
                                 .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
                                 .into_iter()
