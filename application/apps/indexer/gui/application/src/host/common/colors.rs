@@ -81,7 +81,7 @@ pub const FILTER_HIGHLIGHT_COLORS: [ColorPair; 10] = [
 ];
 
 /// Represents a foreground and background color combination.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColorPair {
     /// Foreground color.
     #[allow(dead_code)]
@@ -111,6 +111,22 @@ pub fn source_highlighting_colors() -> Vec<Color32> {
     SOURCE_HIGHLIGHT_COLORS.to_vec()
 }
 
+/// Returns the first unused filter color.
+///
+/// # Note:
+///
+/// This is needed because count-based cycling can reuse an already
+/// visible color after filters are moved or removed.
+pub fn next_filter_color(used_colors: &[ColorPair]) -> ColorPair {
+    FILTER_HIGHLIGHT_COLORS
+        .iter()
+        .find(|color| !used_colors.contains(color))
+        .unwrap_or_else(|| {
+            &FILTER_HIGHLIGHT_COLORS[used_colors.len() % FILTER_HIGHLIGHT_COLORS.len()]
+        })
+        .to_owned()
+}
+
 /// Returns a stable search-value color from the rotated source palette.
 pub fn search_value_color(index: usize) -> Color32 {
     // We are using the offset here to keep using one source colors while avoiding
@@ -119,14 +135,46 @@ pub fn search_value_color(index: usize) -> Color32 {
     SOURCE_HIGHLIGHT_COLORS[idx]
 }
 
+/// Returns the first unused search-value color from the rotated source palette.
+///
+/// # Note:
+///
+/// This is needed because count-based cycling can reuse an already
+/// visible color after charts are moved or removed.
+pub fn next_search_value_color(used_colors: &[Color32]) -> Color32 {
+    (0..SOURCE_HIGHLIGHT_COLORS.len())
+        .map(search_value_color)
+        .find(|color| !used_colors.contains(color))
+        .unwrap_or_else(|| search_value_color(used_colors.len()))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{SOURCE_HIGHLIGHT_COLORS, search_value_color};
+    use super::*;
 
     #[test]
-    fn search_value_color_uses_rotated_source_palette() {
+    fn search_value_color_uses_palette() {
         assert_eq!(search_value_color(0), SOURCE_HIGHLIGHT_COLORS[3]);
         assert_eq!(search_value_color(1), SOURCE_HIGHLIGHT_COLORS[4]);
         assert_eq!(search_value_color(7), SOURCE_HIGHLIGHT_COLORS[0]);
+    }
+
+    #[test]
+    fn next_filter_color_skips_used() {
+        let used = [
+            FILTER_HIGHLIGHT_COLORS[0].clone(),
+            FILTER_HIGHLIGHT_COLORS[2].clone(),
+        ];
+        let next = next_filter_color(&used);
+
+        assert_eq!(next, FILTER_HIGHLIGHT_COLORS[1]);
+    }
+
+    #[test]
+    fn next_chart_color_skips_used() {
+        let used = [search_value_color(0), search_value_color(2)];
+        let next = next_search_value_color(&used);
+
+        assert_eq!(next, search_value_color(1));
     }
 }
