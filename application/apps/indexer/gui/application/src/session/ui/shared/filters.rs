@@ -79,9 +79,12 @@ impl FiltersState {
     /// Converts the current temporary search into a persistent filter.
     pub fn pin_temp_search(&mut self, registry: &mut FilterRegistry) {
         if let Some(filter) = self.take_temp_search() {
-            let color_idx = registry.filters_map().len() % colors::FILTER_HIGHLIGHT_COLORS.len();
-            let filter_def =
-                FilterDefinition::new(filter, colors::FILTER_HIGHLIGHT_COLORS[color_idx].clone());
+            let used_colors: Vec<_> = registry
+                .filters_map()
+                .values()
+                .map(|def| def.colors.clone())
+                .collect();
+            let filter_def = FilterDefinition::new(filter, colors::next_filter_color(&used_colors));
             let filter_id = filter_def.id;
             registry.add_filter(filter_def);
             self.apply_filter(registry, filter_id);
@@ -100,9 +103,13 @@ impl FiltersState {
         }
 
         if let Some(filter) = self.take_temp_search() {
-            let color_idx = registry.search_value_map().len();
+            let used_colors: Vec<_> = registry
+                .search_value_map()
+                .values()
+                .map(|value| value.color)
+                .collect();
             let search_value_def =
-                SearchValueDefinition::new(filter, colors::search_value_color(color_idx));
+                SearchValueDefinition::new(filter, colors::next_search_value_color(&used_colors));
             let search_value_id = search_value_def.id;
             registry.add_search_value(search_value_def);
             self.apply_search_value(registry, search_value_id);
@@ -261,12 +268,7 @@ impl FiltersState {
 
 #[cfg(test)]
 mod tests {
-    use processor::search::filter::SearchFilter;
-    use uuid::Uuid;
-
-    use crate::host::ui::registry::filters::FilterRegistry;
-
-    use super::FiltersState;
+    use super::*;
 
     #[test]
     fn pin_temp_search_as_value_uses_palette() {
@@ -288,6 +290,72 @@ mod tests {
                 .get_search_value(&value_id)
                 .map(|value| value.color),
             Some(crate::host::common::colors::search_value_color(0))
+        );
+    }
+
+    #[test]
+    fn pin_temp_search_reuses_color() {
+        let session_id = Uuid::new_v4();
+        let mut state = FiltersState::new(session_id);
+        let mut registry = FilterRegistry::default();
+
+        let first = FilterDefinition::new(
+            SearchFilter::new("a".to_owned(), false, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let first_id = first.id;
+        registry.add_filter(first);
+
+        let second = FilterDefinition::new(
+            SearchFilter::new("b".to_owned(), false, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[1].clone(),
+        );
+        registry.add_filter(second);
+
+        registry.remove_filter(&first_id);
+
+        state.set_temp_search(SearchFilter::new("c".to_owned(), false, true, false));
+        state.pin_temp_search(&mut registry);
+
+        let filter_id = state.filter_entries[0].id;
+        assert_eq!(
+            registry
+                .get_filter(&filter_id)
+                .map(|filter| filter.colors.clone()),
+            Some(colors::FILTER_HIGHLIGHT_COLORS[0].clone())
+        );
+    }
+
+    #[test]
+    fn pin_temp_chart_reuses_color() {
+        let session_id = Uuid::new_v4();
+        let mut state = FiltersState::new(session_id);
+        let mut registry = FilterRegistry::default();
+
+        let first = SearchValueDefinition::new(
+            SearchFilter::new("a=(\\d+)".to_owned(), true, true, false),
+            colors::search_value_color(0),
+        );
+        let first_id = first.id;
+        registry.add_search_value(first);
+
+        let second = SearchValueDefinition::new(
+            SearchFilter::new("b=(\\d+)".to_owned(), true, true, false),
+            colors::search_value_color(1),
+        );
+        registry.add_search_value(second);
+
+        registry.remove_search_value(&first_id);
+
+        state.set_temp_search(SearchFilter::new("c=(\\d+)".to_owned(), true, true, false));
+        assert!(state.pin_temp_search_as_value(&mut registry));
+
+        let value_id = state.search_value_entries[0].id;
+        assert_eq!(
+            registry
+                .get_search_value(&value_id)
+                .map(|value| value.color),
+            Some(colors::search_value_color(0))
         );
     }
 
