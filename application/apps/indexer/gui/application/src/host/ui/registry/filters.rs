@@ -163,10 +163,14 @@ impl FilterRegistry {
             return None;
         }
 
-        let color_idx = self.search_values.len();
+        let used_colors: Vec<_> = self
+            .search_values
+            .values()
+            .map(|value| value.color)
+            .collect();
         let search_value_def = SearchValueDefinition::new(
             filter_def.filter.clone(),
-            colors::search_value_color(color_idx),
+            colors::next_search_value_color(&used_colors),
         );
         let search_value_id = search_value_def.id;
         self.add_search_value(search_value_def);
@@ -184,10 +188,14 @@ impl FilterRegistry {
     /// by other sessions. If it is still in use elsewhere, both definitions are kept.
     pub fn convert_value_to_filter(&mut self, value_id: Uuid, session_id: Uuid) -> Option<Uuid> {
         let value_def = self.get_search_value(&value_id)?;
-        let color_idx = self.filters_map().len() % colors::FILTER_HIGHLIGHT_COLORS.len();
+        let used_colors: Vec<_> = self
+            .filters
+            .values()
+            .map(|filter| filter.colors.clone())
+            .collect();
         let filter_def = FilterDefinition::new(
             value_def.filter.clone(),
-            colors::FILTER_HIGHLIGHT_COLORS[color_idx].clone(),
+            colors::next_filter_color(&used_colors),
         );
         let filter_id = filter_def.id;
         self.add_filter(filter_def);
@@ -281,6 +289,62 @@ mod tests {
     }
 
     #[test]
+    fn filter_to_value_reuses_color() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+
+        let first = FilterDefinition::new(
+            SearchFilter::new("a=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let first_id = first.id;
+        registry.add_filter(first);
+        registry.apply_filter_to_session(first_id, session_id);
+
+        let second = FilterDefinition::new(
+            SearchFilter::new("b=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[1].clone(),
+        );
+        let second_id = second.id;
+        registry.add_filter(second);
+        registry.apply_filter_to_session(second_id, session_id);
+
+        let first_value_id = registry
+            .convert_filter_to_value(first_id, session_id)
+            .expect("first filter should convert");
+        let second_value_id = registry
+            .convert_filter_to_value(second_id, session_id)
+            .expect("second filter should convert");
+
+        registry.remove_search_value(&first_value_id);
+
+        let third = FilterDefinition::new(
+            SearchFilter::new("c=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[2].clone(),
+        );
+        let third_id = third.id;
+        registry.add_filter(third);
+        registry.apply_filter_to_session(third_id, session_id);
+
+        let third_value_id = registry
+            .convert_filter_to_value(third_id, session_id)
+            .expect("third filter should convert");
+
+        assert_eq!(
+            registry
+                .get_search_value(&second_value_id)
+                .map(|value| value.color),
+            Some(colors::search_value_color(1))
+        );
+        assert_eq!(
+            registry
+                .get_search_value(&third_value_id)
+                .map(|value| value.color),
+            Some(colors::search_value_color(0))
+        );
+    }
+
+    #[test]
     fn convert_value_to_filter_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
@@ -301,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn convert_filter_to_value_rejects_ineligible() {
+    fn filter_to_value_rejects_ineligible() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let filter_def = FilterDefinition::new(
@@ -315,5 +379,61 @@ mod tests {
 
         assert!(result.is_none());
         assert!(registry.get_filter(&filter_id).is_some());
+    }
+
+    #[test]
+    fn value_to_filter_reuses_color() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+
+        let first = SearchValueDefinition::new(
+            SearchFilter::new("a=(\\d+)".to_owned(), true, true, false),
+            colors::search_value_color(0),
+        );
+        let first_id = first.id;
+        registry.add_search_value(first);
+        registry.apply_search_value_to_session(first_id, session_id);
+
+        let second = SearchValueDefinition::new(
+            SearchFilter::new("b=(\\d+)".to_owned(), true, true, false),
+            colors::search_value_color(1),
+        );
+        let second_id = second.id;
+        registry.add_search_value(second);
+        registry.apply_search_value_to_session(second_id, session_id);
+
+        let first_filter_id = registry
+            .convert_value_to_filter(first_id, session_id)
+            .expect("first value should convert");
+        let second_filter_id = registry
+            .convert_value_to_filter(second_id, session_id)
+            .expect("second value should convert");
+
+        registry.remove_filter(&first_filter_id);
+
+        let third = SearchValueDefinition::new(
+            SearchFilter::new("c=(\\d+)".to_owned(), true, true, false),
+            colors::search_value_color(2),
+        );
+        let third_id = third.id;
+        registry.add_search_value(third);
+        registry.apply_search_value_to_session(third_id, session_id);
+
+        let third_filter_id = registry
+            .convert_value_to_filter(third_id, session_id)
+            .expect("third value should convert");
+
+        assert_eq!(
+            registry
+                .get_filter(&second_filter_id)
+                .map(|filter| filter.colors.clone()),
+            Some(colors::FILTER_HIGHLIGHT_COLORS[1].clone())
+        );
+        assert_eq!(
+            registry
+                .get_filter(&third_filter_id)
+                .map(|filter| filter.colors.clone()),
+            Some(colors::FILTER_HIGHLIGHT_COLORS[0].clone())
+        );
     }
 }
