@@ -1,20 +1,22 @@
-//TODO AAZ: Consider moving search, filters and search_values to a parent module
-//making them sub-modules there since they are related.
+//! Session-side state for the log search pipeline.
+//!
+//! [`SearchState`] tracks the active backend search operation, the reported result count, and the
+//! row-level match metadata used by the logs and search-result tables.
+//! It is specific to log searching; chart value extraction is tracked separately in
+//! [`SearchValuesState`](super::SearchValuesState).
 
 use rustc_hash::FxHashMap;
 
 use stypes::FilterMatch;
 use uuid::Uuid;
 
+use crate::session::types::OperationPhase;
 use crate::{
-    host::ui::registry::filters::FilterRegistry,
-    session::{
-        types::OperationPhase,
-        ui::{definitions::UpdateOperationOutcome, shared::FiltersState},
-    },
+    host::ui::registry::filters::FilterRegistry, session::ui::definitions::UpdateOperationOutcome,
 };
 
-#[allow(unused)]
+use super::FiltersState;
+
 #[derive(Debug, Clone, Copy)]
 pub struct FilterIndex(pub u8);
 
@@ -143,10 +145,7 @@ impl SearchState {
 
         let matches_map = self.matches_map.get_or_insert_default();
 
-        //TODO AAZ: Check when pending search should be updated.
         filter_matches.into_iter().for_each(|mat| {
-            // Filter indexes get combined in chipmunk core.
-            // We don't need to extend the indices vector and check for duplications here.
             matches_map.insert(
                 LogMainIndex(mat.index),
                 mat.filters.into_iter().map(FilterIndex).collect(),

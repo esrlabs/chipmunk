@@ -15,7 +15,7 @@ use crate::{
         error::SessionError,
         ui::{
             definitions::schema::LogSchema,
-            shared::{LogMainIndex, ObserveState, SessionShared},
+            shared::{ObserveState, SessionShared, searching::LogMainIndex},
         },
     },
 };
