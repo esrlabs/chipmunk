@@ -1,5 +1,7 @@
 use egui::Color32;
 
+/// Offset used when reusing the source palette for charts so neighboring filter
+/// and chart defaults do not start with visually similar colors.
 const SEARCH_VALUE_COLOR_OFFSET: usize = 3;
 
 /// Strong highlight colors used for source/concat indicators.
@@ -84,7 +86,6 @@ pub const FILTER_HIGHLIGHT_COLORS: [ColorPair; 10] = [
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ColorPair {
     /// Foreground color.
-    #[allow(dead_code)]
     pub fg: Color32,
     /// Background color.
     pub bg: Color32,
@@ -106,12 +107,13 @@ pub const TEMP_SEARCH_COLORS: ColorPair = ColorPair::new(
 /// Foreground/background colors used for selected log rows.
 pub const SELECTED_LOG_COLORS: ColorPair = ColorPair::new(Color32::WHITE, Color32::DARK_GREEN);
 
-/// Returns a list of available source highlighting colors.
+/// Returns the source palette as an owned list for UI code that needs to iterate
+/// or display the available colors.
 pub fn source_highlighting_colors() -> Vec<Color32> {
     SOURCE_HIGHLIGHT_COLORS.to_vec()
 }
 
-/// Returns the first unused filter color.
+/// Returns the first unused filter color pair from the fixed filter palette.
 ///
 /// # Note:
 ///
@@ -127,15 +129,17 @@ pub fn next_filter_color(used_colors: &[ColorPair]) -> ColorPair {
         .to_owned()
 }
 
-/// Returns a stable search-value color from the rotated source palette.
+/// Returns a stable chart color from the rotated source palette.
+///
+/// Charts intentionally reuse the source palette with a fixed offset instead of a
+/// separate hard-coded list so filter and chart defaults stay related without
+/// starting on the same color.
 pub fn search_value_color(index: usize) -> Color32 {
-    // We are using the offset here to keep using one source colors while avoiding
-    // having similar colors (red, light-red) in the charts.
     let idx = (index + SEARCH_VALUE_COLOR_OFFSET) % SOURCE_HIGHLIGHT_COLORS.len();
     SOURCE_HIGHLIGHT_COLORS[idx]
 }
 
-/// Returns the first unused search-value color from the rotated source palette.
+/// Returns the first unused chart color from the rotated source palette.
 ///
 /// # Note:
 ///

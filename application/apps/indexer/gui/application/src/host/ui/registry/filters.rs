@@ -17,6 +17,8 @@ pub struct FilterDefinition {
 }
 
 impl FilterDefinition {
+    /// Creates a registry-owned filter definition and caches whether it can
+    /// later be converted into a search value.
     pub fn new(filter: SearchFilter, colors: ColorPair) -> Self {
         let search_value_eligibility = validate_search_value_filter(&filter);
         Self {
@@ -33,11 +35,11 @@ impl FilterDefinition {
 pub struct SearchValueDefinition {
     pub id: Uuid,
     pub filter: SearchFilter,
-    #[allow(dead_code)]
     pub color: Color32,
 }
 
 impl SearchValueDefinition {
+    /// Creates a registry-owned search value definition with its chart color.
     pub fn new(filter: SearchFilter, color: Color32) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -60,26 +62,42 @@ pub struct FilterRegistry {
 }
 
 impl FilterRegistry {
+    /// Returns the immutable filter definition used by UI rendering and sync.
     pub fn get_filter(&self, id: &Uuid) -> Option<&FilterDefinition> {
         self.filters.get(id)
     }
 
+    /// Returns mutable filter access for UI-only edits such as color changes.
+    pub fn get_filter_mut(&mut self, id: &Uuid) -> Option<&mut FilterDefinition> {
+        self.filters.get_mut(id)
+    }
+
+    /// Exposes the full filter registry for read-only library views.
     pub fn filters_map(&self) -> &FxHashMap<Uuid, FilterDefinition> {
         &self.filters
     }
 
+    /// Returns the immutable search value definition used by UI rendering and sync.
     pub fn get_search_value(&self, id: &Uuid) -> Option<&SearchValueDefinition> {
         self.search_values.get(id)
     }
 
+    /// Returns mutable search-value access for UI-only edits such as color changes.
+    pub fn get_search_value_mut(&mut self, id: &Uuid) -> Option<&mut SearchValueDefinition> {
+        self.search_values.get_mut(id)
+    }
+
+    /// Exposes the full search-value registry for read-only library views.
     pub fn search_value_map(&self) -> &FxHashMap<Uuid, SearchValueDefinition> {
         &self.search_values
     }
 
+    /// Inserts a new global filter definition without attaching it to a session.
     pub fn add_filter(&mut self, filter: FilterDefinition) {
         self.filters.insert(filter.id, filter);
     }
 
+    /// Inserts a new global search-value definition without attaching it to a session.
     pub fn add_search_value(&mut self, search_value: SearchValueDefinition) {
         self.search_values.insert(search_value.id, search_value);
     }
@@ -125,29 +143,37 @@ impl FilterRegistry {
             .is_some_and(|s| s.contains(session_id))
     }
 
+    /// Returns how many sessions currently reference the filter.
     pub fn filter_usage_count(&self, id: &Uuid) -> usize {
         self.filter_usage.get(id).map_or(0, |s| s.len())
     }
 
+    /// Returns how many sessions currently reference the search value.
     pub fn search_value_usage_count(&self, id: &Uuid) -> usize {
         self.value_usage.get(id).map_or(0, |s| s.len())
     }
 
+    /// A definition can be removed only when unused or used solely by the
+    /// requesting session.
     pub fn can_remove_filter(&self, filter_id: &Uuid, session_id: &Uuid) -> bool {
         let count = self.filter_usage_count(filter_id);
         count == 0 || (count == 1 && self.is_filter_applied(filter_id, session_id))
     }
 
+    /// A definition can be removed only when unused or used solely by the
+    /// requesting session.
     pub fn can_remove_search_value(&self, id: &Uuid, session_id: &Uuid) -> bool {
         let count = self.search_value_usage_count(id);
         count == 0 || (count == 1 && self.is_search_value_applied(id, session_id))
     }
 
+    /// Removes the filter definition and all of its session usage tracking.
     pub fn remove_filter(&mut self, id: &Uuid) {
         self.filters.remove(id);
         self.filter_usage.remove(id);
     }
 
+    /// Removes the search-value definition and all of its session usage tracking.
     pub fn remove_search_value(&mut self, id: &Uuid) {
         self.search_values.remove(id);
         self.value_usage.remove(id);
@@ -207,7 +233,8 @@ impl FilterRegistry {
         Some(filter_id)
     }
 
-    /// Cleanup all usage records for a closing session.
+    /// Removes a closing session from usage tracking without deleting any global
+    /// filter or search-value definitions.
     pub(super) fn cleanup_session(&mut self, session_id: &Uuid) {
         for sessions in self.filter_usage.values_mut() {
             sessions.remove(session_id);
@@ -289,6 +316,29 @@ mod tests {
     }
 
     #[test]
+    fn filter_color_mutation_updates_stored_pair() {
+        let mut registry = FilterRegistry::default();
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+
+        let filter = registry
+            .get_filter_mut(&filter_id)
+            .expect("filter should exist");
+        filter.colors.fg = Color32::WHITE;
+        filter.colors.bg = Color32::BLACK;
+
+        let stored = registry
+            .get_filter(&filter_id)
+            .expect("filter should still exist");
+        assert_eq!(stored.colors.fg, Color32::WHITE);
+        assert_eq!(stored.colors.bg, Color32::BLACK);
+    }
+
+    #[test]
     fn filter_to_value_reuses_color() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
@@ -362,6 +412,27 @@ mod tests {
 
         assert!(registry.get_search_value(&value_id).is_none());
         assert!(registry.get_filter(&filter_id).is_some());
+    }
+
+    #[test]
+    fn chart_color_mutation_updates_stored_color() {
+        let mut registry = FilterRegistry::default();
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
+            Color32::LIGHT_BLUE,
+        );
+        let value_id = value_def.id;
+        registry.add_search_value(value_def);
+
+        let value = registry
+            .get_search_value_mut(&value_id)
+            .expect("search value should exist");
+        value.color = Color32::LIGHT_RED;
+
+        let stored = registry
+            .get_search_value(&value_id)
+            .expect("search value should still exist");
+        assert_eq!(stored.color, Color32::LIGHT_RED);
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use egui::{Align, Frame, Layout, Margin, RichText, ScrollArea, Ui, vec2};
+use egui::{Align, Frame, Layout, Margin, RichText, ScrollArea, Sense, Ui, UiBuilder, vec2};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -17,6 +17,11 @@ use crate::{
 
 #[derive(Debug, Clone, Copy)]
 /// Pending action selected from the Filters side panel.
+///
+/// # Note:
+///
+/// We are using actions here because we can't apply changes on the state while
+/// we are iterating through them.
 enum FilterPanelAction {
     ToggleFilter(Uuid, bool),
     RemoveFilter(Uuid),
@@ -26,15 +31,25 @@ enum FilterPanelAction {
     MoveValueToFilter(Uuid),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SelectedSidebarItem {
+    Filter(Uuid),
+    SearchValue(Uuid),
+}
+
 #[allow(unused)]
 #[derive(Debug)]
 pub struct FiltersUi {
     cmd_tx: mpsc::Sender<SessionCommand>,
+    selected_item: Option<SelectedSidebarItem>,
 }
 
 impl FiltersUi {
     pub fn new(cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
-        Self { cmd_tx }
+        Self {
+            cmd_tx,
+            selected_item: None,
+        }
     }
 
     pub fn render_content(
@@ -44,11 +59,15 @@ impl FiltersUi {
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
+        self.sync_selected_item(shared, registry);
+
         ui.vertical(|ui| {
             ui.heading(RichText::new("Filters").size(16.0));
             ui.add_space(5.0);
 
             ScrollArea::vertical().show(ui, |ui| {
+                // Render both lists first, then apply the deferred row action once,
+                // and finally refresh the selected editor against the latest state.
                 let mut side_action = None;
                 self.render_filters_section(shared, registry, ui, &mut side_action);
 
@@ -58,12 +77,14 @@ impl FiltersUi {
                 self.render_search_values_section(shared, registry, ui, &mut side_action);
 
                 self.handle_action(side_action, shared, actions, registry);
+                self.sync_selected_item(shared, registry);
+                self.render_selected_section(shared, registry, ui);
             });
         });
     }
 
     fn render_filters_section(
-        &self,
+        &mut self,
         shared: &SessionShared,
         registry: &FilterRegistry,
         ui: &mut Ui,
@@ -90,7 +111,7 @@ impl FiltersUi {
     }
 
     fn render_search_values_section(
-        &self,
+        &mut self,
         shared: &SessionShared,
         registry: &FilterRegistry,
         ui: &mut Ui,
@@ -116,13 +137,201 @@ impl FiltersUi {
         }
     }
 
+    fn render_filter_item(
+        &mut self,
+        ui: &mut Ui,
+        filter_id: Uuid,
+        enabled: bool,
+        filter_def: &FilterDefinition,
+        side_action: &mut Option<FilterPanelAction>,
+    ) {
+        let eligibility = &filter_def.search_value_eligibility;
+        self.render_sidebar_item(ui, SelectedSidebarItem::Filter(filter_id), |ui| {
+            ui.horizontal(|ui| {
+                if Self::render_enabled_checkbox(
+                    ui,
+                    enabled,
+                    "Disable this filter temporarily.",
+                    "Enable this filter again.",
+                ) {
+                    *side_action = Some(FilterPanelAction::ToggleFilter(filter_id, !enabled));
+                }
+
+                Self::render_color_swatch(ui, filter_def.colors.bg);
+                ui.label(&filter_def.filter.value);
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    let move_btn = ui
+                        .add_enabled(
+                            eligibility.is_eligible(),
+                            egui::Button::new(RichText::new(icons::regular::CHART_LINE).size(14.0)),
+                        )
+                        .on_hover_text("Move to Charts");
+                    if let SearchValueEligibility::Ineligible { reason } = eligibility {
+                        move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
+                    } else if move_btn.clicked() {
+                        *side_action = Some(FilterPanelAction::MoveFilterToValue(filter_id));
+                    }
+
+                    let remove_btn = ui
+                        .button(RichText::new(icons::regular::TRASH).size(14.0))
+                        .on_hover_text("Remove filter from session");
+                    if remove_btn.clicked() {
+                        *side_action = Some(FilterPanelAction::RemoveFilter(filter_id));
+                    }
+                });
+            });
+        });
+    }
+
+    fn render_search_value_item(
+        &mut self,
+        ui: &mut Ui,
+        value_id: Uuid,
+        enabled: bool,
+        value_def: &SearchValueDefinition,
+        side_action: &mut Option<FilterPanelAction>,
+    ) {
+        self.render_sidebar_item(ui, SelectedSidebarItem::SearchValue(value_id), |ui| {
+            ui.horizontal(|ui| {
+                if Self::render_enabled_checkbox(
+                    ui,
+                    enabled,
+                    "Disable this Chart temporarily.",
+                    "Enable this Chart again.",
+                ) {
+                    *side_action = Some(FilterPanelAction::ToggleSearchValue(value_id, !enabled));
+                }
+
+                Self::render_color_swatch(ui, value_def.color);
+                ui.label(&value_def.filter.value);
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    let move_btn = ui
+                        .button(RichText::new(icons::regular::FUNNEL).size(14.0))
+                        .on_hover_text("Move to Filter");
+                    if move_btn.clicked() {
+                        *side_action = Some(FilterPanelAction::MoveValueToFilter(value_id));
+                    }
+
+                    let remove_btn = ui
+                        .button(RichText::new(icons::regular::TRASH).size(14.0))
+                        .on_hover_text("Remove chart from session");
+                    if remove_btn.clicked() {
+                        *side_action = Some(FilterPanelAction::RemoveSearchValue(value_id));
+                    }
+                });
+            });
+        });
+    }
+
+    fn render_sidebar_item<F>(&mut self, ui: &mut Ui, item: SelectedSidebarItem, render_ui: F)
+    where
+        F: FnOnce(&mut Ui),
+    {
+        let is_selected = self.selected_item.is_some_and(|current| current == item);
+
+        const ITEM_ROW_HEIGHT: f32 = 30.0;
+        let desired_size = vec2(ui.available_width(), ITEM_ROW_HEIGHT);
+        let (_, item_response) = ui.allocate_exact_size(desired_size, Sense::click());
+
+        // Keep one explicit row-sized selection target while child widgets render
+        // inside the same rect and retain their own interaction handling.
+        ui.scope_builder(
+            UiBuilder::new()
+                .max_rect(item_response.rect)
+                .layout(Layout::left_to_right(Align::Center)),
+            |ui| {
+                let visuals = ui.visuals();
+                let mut frame = Frame::group(ui.style()).fill(visuals.faint_bg_color);
+                if is_selected {
+                    frame = frame
+                        .fill(visuals.widgets.active.bg_fill)
+                        .stroke(visuals.selection.stroke);
+                }
+
+                frame.show(ui, |ui| {
+                    render_ui(ui);
+                });
+            },
+        );
+
+        if item_response
+            .on_hover_cursor(egui::CursorIcon::PointingHand)
+            .clicked()
+        {
+            self.toggle_selected_item(item);
+        }
+    }
+
+    fn render_selected_section(
+        &mut self,
+        shared: &SessionShared,
+        registry: &mut FilterRegistry,
+        ui: &mut Ui,
+    ) {
+        let Some(selected_item) = self.selected_item else {
+            return;
+        };
+
+        ui.add_space(8.0);
+        ui.heading(RichText::new("Selected").size(16.0));
+        ui.add_space(5.0);
+
+        // Color edits update registry-owned presentation data only, so they do not
+        // need a search-pipeline resync.
+        match selected_item {
+            SelectedSidebarItem::Filter(filter_id) => {
+                if shared.filters.is_filter_applied(&filter_id)
+                    && let Some(filter_def) = registry.get_filter_mut(&filter_id)
+                {
+                    Self::render_filter_editor(ui, filter_def);
+                }
+            }
+            SelectedSidebarItem::SearchValue(value_id) => {
+                if shared.filters.is_search_value_applied(&value_id)
+                    && let Some(value_def) = registry.get_search_value_mut(&value_id)
+                {
+                    Self::render_search_value_editor(ui, value_def);
+                }
+            }
+        }
+    }
+
+    fn render_filter_editor(ui: &mut Ui, filter_def: &mut FilterDefinition) {
+        Frame::group(ui.style())
+            .fill(ui.visuals().faint_bg_color)
+            .inner_margin(Margin::symmetric(8, 8))
+            .show(ui, |ui| {
+                ui.label(&filter_def.filter.value);
+                ui.add_space(6.0);
+
+                Self::render_color_picker_row(ui, "Foreground", &mut filter_def.colors.fg);
+                Self::render_color_picker_row(ui, "Background", &mut filter_def.colors.bg);
+            });
+    }
+
+    fn render_search_value_editor(ui: &mut Ui, value_def: &mut SearchValueDefinition) {
+        Frame::group(ui.style())
+            .fill(ui.visuals().faint_bg_color)
+            .inner_margin(Margin::symmetric(8, 8))
+            .show(ui, |ui| {
+                ui.label(&value_def.filter.value);
+                ui.add_space(6.0);
+
+                Self::render_color_picker_row(ui, "Color", &mut value_def.color);
+            });
+    }
+
     fn handle_action(
-        &self,
+        &mut self,
         side_action: Option<FilterPanelAction>,
         shared: &mut SessionShared,
         actions: &mut UiActions,
         registry: &mut FilterRegistry,
     ) {
+        // Apply the queued row mutation after rendering so we don't mutate the
+        // session/registry state while iterating it to build the current UI frame.
         match side_action {
             Some(FilterPanelAction::ToggleFilter(filter_id, enabled)) => {
                 if shared.filters.set_filter_enabled(&filter_id, enabled) {
@@ -133,6 +342,7 @@ impl FiltersUi {
                 }
             }
             Some(FilterPanelAction::RemoveFilter(filter_id)) => {
+                self.clear_selection_for(SelectedSidebarItem::Filter(filter_id));
                 shared.filters.unapply_filter(registry, &filter_id);
                 shared
                     .sync_search_pipelines(registry, SearchSyncTarget::Filter)
@@ -151,6 +361,10 @@ impl FiltersUi {
                     shared
                         .filters
                         .apply_search_value_with_state(registry, value_id, was_enabled);
+                    self.replace_selection(
+                        SelectedSidebarItem::Filter(filter_id),
+                        SelectedSidebarItem::SearchValue(value_id),
+                    );
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::Both)
                         .into_iter()
@@ -166,6 +380,7 @@ impl FiltersUi {
                 }
             }
             Some(FilterPanelAction::RemoveSearchValue(value_id)) => {
+                self.clear_selection_for(SelectedSidebarItem::SearchValue(value_id));
                 shared.filters.unapply_search_value(registry, &value_id);
                 shared
                     .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
@@ -184,6 +399,10 @@ impl FiltersUi {
                     shared
                         .filters
                         .apply_filter_with_state(registry, filter_id, was_enabled);
+                    self.replace_selection(
+                        SelectedSidebarItem::SearchValue(value_id),
+                        SelectedSidebarItem::Filter(filter_id),
+                    );
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::Both)
                         .into_iter()
@@ -194,123 +413,253 @@ impl FiltersUi {
         }
     }
 
-    fn render_filter_item(
-        &self,
-        ui: &mut Ui,
-        filter_id: Uuid,
-        enabled: bool,
-        filter_def: &FilterDefinition,
-        side_action: &mut Option<FilterPanelAction>,
-    ) {
-        let eligibility = &filter_def.search_value_eligibility;
-
-        Frame::group(ui.style())
-            .fill(ui.visuals().faint_bg_color)
-            .inner_margin(Margin::symmetric(8, 4))
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    let mut enabled_state = enabled;
-                    let checkbox = ui.checkbox(&mut enabled_state, "").on_hover_ui(|ui| {
-                        ui.set_max_width(ui.spacing().tooltip_width);
-                        let tooltip = if enabled {
-                            "Disable this filter temporarily."
-                        } else {
-                            "Enable this filter again."
-                        };
-                        ui.label(tooltip);
-                    });
-                    if checkbox.changed() {
-                        *side_action =
-                            Some(FilterPanelAction::ToggleFilter(filter_id, enabled_state));
-                    }
-
-                    let (res, painter) =
-                        ui.allocate_painter(vec2(10.0, 20.0), egui::Sense::hover());
-                    painter.rect_filled(res.rect, 2.0, filter_def.colors.bg);
-
-                    ui.label(&filter_def.filter.value);
-
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        let move_btn = ui
-                            .add_enabled(
-                                eligibility.is_eligible(),
-                                egui::Button::new(
-                                    RichText::new(icons::regular::CHART_LINE).size(14.0),
-                                ),
-                            )
-                            .on_hover_text("Move to Charts");
-                        if let SearchValueEligibility::Ineligible { reason } = eligibility {
-                            move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
-                        } else if move_btn.clicked() {
-                            *side_action = Some(FilterPanelAction::MoveFilterToValue(filter_id));
-                        }
-
-                        if ui
-                            .button(RichText::new(icons::regular::TRASH).size(14.0))
-                            .on_hover_text("Remove filter from session")
-                            .clicked()
-                        {
-                            *side_action = Some(FilterPanelAction::RemoveFilter(filter_id));
-                        }
-                    });
-                });
-            });
+    fn sync_selected_item(&mut self, shared: &SessionShared, registry: &FilterRegistry) {
+        // Clear selection when the item disappears from either the session-local
+        // ordering state or the global registry definitions.
+        self.selected_item = self
+            .selected_item
+            .filter(|item| self.selected_item_exists(*item, shared, registry));
     }
 
-    fn render_search_value_item(
+    fn selected_item_exists(
         &self,
+        item: SelectedSidebarItem,
+        shared: &SessionShared,
+        registry: &FilterRegistry,
+    ) -> bool {
+        match item {
+            SelectedSidebarItem::Filter(filter_id) => {
+                shared.filters.is_filter_applied(&filter_id)
+                    && registry.get_filter(&filter_id).is_some()
+            }
+            SelectedSidebarItem::SearchValue(value_id) => {
+                shared.filters.is_search_value_applied(&value_id)
+                    && registry.get_search_value(&value_id).is_some()
+            }
+        }
+    }
+
+    fn toggle_selected_item(&mut self, item: SelectedSidebarItem) {
+        self.selected_item = match self.selected_item {
+            Some(current) if current == item => None,
+            _ => Some(item),
+        };
+    }
+
+    fn clear_selection_for(&mut self, item: SelectedSidebarItem) {
+        if self.selected_item.is_some_and(|i| i == item) {
+            self.selected_item = None;
+        }
+    }
+
+    fn replace_selection(&mut self, from: SelectedSidebarItem, to: SelectedSidebarItem) {
+        if self.selected_item.is_some_and(|i| i == from) {
+            self.selected_item = Some(to);
+        }
+    }
+
+    fn render_enabled_checkbox(
         ui: &mut Ui,
-        value_id: Uuid,
         enabled: bool,
-        value_def: &SearchValueDefinition,
-        side_action: &mut Option<FilterPanelAction>,
-    ) {
-        Frame::group(ui.style())
-            .fill(ui.visuals().faint_bg_color)
-            .inner_margin(Margin::symmetric(8, 4))
-            .show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    let mut enabled_state = enabled;
-                    let checkbox = ui.checkbox(&mut enabled_state, "").on_hover_ui(|ui| {
-                        ui.set_max_width(ui.spacing().tooltip_width);
-                        let tooltip = if enabled {
-                            "Disable this Chart temporarily."
-                        } else {
-                            "Enable this Chart again."
-                        };
-                        ui.label(tooltip);
-                    });
-                    if checkbox.changed() {
-                        *side_action = Some(FilterPanelAction::ToggleSearchValue(
-                            value_id,
-                            enabled_state,
-                        ));
-                    }
+        disabled_tooltip: &str,
+        enabled_tooltip: &str,
+    ) -> bool {
+        let mut enabled_state = enabled;
+        let checkbox = ui.checkbox(&mut enabled_state, "").on_hover_ui(|ui| {
+            ui.set_max_width(ui.spacing().tooltip_width);
 
-                    let (res, painter) =
-                        ui.allocate_painter(vec2(10.0, 20.0), egui::Sense::hover());
-                    painter.rect_filled(res.rect, 2.0, value_def.color);
+            let tooltip = if enabled {
+                disabled_tooltip
+            } else {
+                enabled_tooltip
+            };
+            ui.label(tooltip);
+        });
+        checkbox.changed()
+    }
 
-                    ui.label(&value_def.filter.value);
+    fn render_color_picker_row(ui: &mut Ui, label: &str, color: &mut egui::Color32) {
+        ui.horizontal(|ui| {
+            ui.label(label);
+            ui.color_edit_button_srgba(color);
+        });
+    }
 
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui
-                            .button(RichText::new(icons::regular::FUNNEL).size(14.0))
-                            .on_hover_text("Move to Filter")
-                            .clicked()
-                        {
-                            *side_action = Some(FilterPanelAction::MoveValueToFilter(value_id));
-                        }
+    fn render_color_swatch(ui: &mut Ui, color: egui::Color32) {
+        const ITEM_SWATCH_SIZE: egui::Vec2 = vec2(10.0, 20.0);
 
-                        if ui
-                            .button(RichText::new(icons::regular::TRASH).size(14.0))
-                            .on_hover_text("Remove chart from session")
-                            .clicked()
-                        {
-                            *side_action = Some(FilterPanelAction::RemoveSearchValue(value_id));
-                        }
-                    });
-                });
-            });
+        let (response, painter) = ui.allocate_painter(ITEM_SWATCH_SIZE, Sense::hover());
+        painter.rect_filled(response.rect, 2.0, color);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use processor::search::filter::SearchFilter;
+    use stypes::{FileFormat, ObserveOrigin};
+    use tokio::sync::mpsc;
+    use uuid::Uuid;
+
+    use crate::{
+        host::{
+            common::{colors, parsers::ParserNames},
+            ui::registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
+        },
+        session::{
+            command::SessionCommand,
+            types::ObserveOperation,
+            ui::shared::{SessionInfo, SessionShared},
+        },
+    };
+
+    use super::{FiltersUi, SelectedSidebarItem};
+
+    fn new_ui() -> FiltersUi {
+        let (cmd_tx, _cmd_rx) = mpsc::channel::<SessionCommand>(4);
+        FiltersUi::new(cmd_tx)
+    }
+
+    fn new_shared() -> SessionShared {
+        let session_id = Uuid::new_v4();
+        let origin = ObserveOrigin::File(
+            "source".to_owned(),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        );
+        let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
+        let session_info = SessionInfo {
+            id: session_id,
+            title: "test".to_owned(),
+            parser: ParserNames::Text,
+        };
+
+        SessionShared::new(session_info, observe_op)
+    }
+
+    fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) -> Uuid {
+        let filter_def = FilterDefinition::new(
+            SearchFilter::new(value.to_owned(), false, true, false),
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
+        );
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+        shared.filters.apply_filter(registry, filter_id);
+        filter_id
+    }
+
+    fn add_search_value(
+        shared: &mut SessionShared,
+        registry: &mut FilterRegistry,
+        value: &str,
+    ) -> Uuid {
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::new(value.to_owned(), true, true, false),
+            colors::search_value_color(0),
+        );
+        let value_id = value_def.id;
+        registry.add_search_value(value_def);
+        shared.filters.apply_search_value(registry, value_id);
+        value_id
+    }
+
+    #[test]
+    fn selecting_same_toggles() {
+        let mut ui = new_ui();
+        let filter_id = Uuid::new_v4();
+
+        ui.toggle_selected_item(SelectedSidebarItem::Filter(filter_id));
+        ui.toggle_selected_item(SelectedSidebarItem::Filter(filter_id));
+
+        assert_eq!(ui.selected_item, None);
+    }
+
+    #[test]
+    fn selecting_other_replaces() {
+        let mut ui = new_ui();
+        let first = Uuid::new_v4();
+        let second = Uuid::new_v4();
+
+        ui.toggle_selected_item(SelectedSidebarItem::Filter(first));
+        ui.toggle_selected_item(SelectedSidebarItem::SearchValue(second));
+
+        assert_eq!(
+            ui.selected_item,
+            Some(SelectedSidebarItem::SearchValue(second))
+        );
+    }
+
+    #[test]
+    fn removing_selected_clears() {
+        let mut ui = new_ui();
+        let filter_id = Uuid::new_v4();
+        ui.selected_item = Some(SelectedSidebarItem::Filter(filter_id));
+
+        ui.clear_selection_for(SelectedSidebarItem::Filter(filter_id));
+
+        assert_eq!(ui.selected_item, None);
+    }
+
+    #[test]
+    fn moving_filter_follows() {
+        let mut ui = new_ui();
+        let filter_id = Uuid::new_v4();
+        let value_id = Uuid::new_v4();
+        ui.selected_item = Some(SelectedSidebarItem::Filter(filter_id));
+
+        ui.replace_selection(
+            SelectedSidebarItem::Filter(filter_id),
+            SelectedSidebarItem::SearchValue(value_id),
+        );
+
+        assert_eq!(
+            ui.selected_item,
+            Some(SelectedSidebarItem::SearchValue(value_id))
+        );
+    }
+
+    #[test]
+    fn moving_value_follows() {
+        let mut ui = new_ui();
+        let filter_id = Uuid::new_v4();
+        let value_id = Uuid::new_v4();
+        ui.selected_item = Some(SelectedSidebarItem::SearchValue(value_id));
+
+        ui.replace_selection(
+            SelectedSidebarItem::SearchValue(value_id),
+            SelectedSidebarItem::Filter(filter_id),
+        );
+
+        assert_eq!(
+            ui.selected_item,
+            Some(SelectedSidebarItem::Filter(filter_id))
+        );
+    }
+
+    #[test]
+    fn missing_session_item_clears() {
+        let mut ui = new_ui();
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let filter_id = add_filter(&mut shared, &mut registry, "status=ok");
+
+        ui.selected_item = Some(SelectedSidebarItem::Filter(filter_id));
+        shared.filters.unapply_filter(&mut registry, &filter_id);
+        ui.sync_selected_item(&shared, &registry);
+        assert_eq!(ui.selected_item, None);
+    }
+
+    #[test]
+    fn missing_registry_item_clears() {
+        let mut ui = new_ui();
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let value_id = add_search_value(&mut shared, &mut registry, "cpu=(\\d+)");
+
+        ui.selected_item = Some(SelectedSidebarItem::SearchValue(value_id));
+        registry.remove_search_value(&value_id);
+        ui.sync_selected_item(&shared, &registry);
+        assert_eq!(ui.selected_item, None);
     }
 }
