@@ -1,3 +1,9 @@
+//! Session-local state for the user-selected search inputs.
+//!
+//! [`FiltersState`] bridges global registry definitions with per-session UI state.
+//! It owns the ordered list of applied filters and search values, plus the temporary search from
+//! the search bar before it is pinned into the registry.
+
 use crate::common::search_value_validation::{
     SearchValueEligibility, validate_search_value_filter,
 };
@@ -246,8 +252,7 @@ impl FiltersState {
         self.set_search_value_entry(registry, id, true);
     }
 
-    /// Adds a search value to the session while preserving
-    /// an explicit enabled state.
+    /// Adds a search value to the session while preserving an explicit enabled state.
     pub fn apply_search_value_with_state(
         &mut self,
         registry: &mut FilterRegistry,
@@ -263,143 +268,5 @@ impl FiltersState {
             self.search_value_entries.retain(|item| item.id != *id);
             registry.unapply_search_value_from_session(*id, self.session_id);
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pin_temp_search_as_value_uses_palette() {
-        let session_id = Uuid::new_v4();
-        let mut state = FiltersState::new(session_id);
-        let mut registry = FilterRegistry::default();
-        state.set_temp_search(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
-
-        assert!(state.pin_temp_search_as_value(&mut registry));
-
-        let value_id = state.search_value_entries[0].id;
-        assert_eq!(
-            registry
-                .get_search_value(&value_id)
-                .map(|value| value.color),
-            Some(crate::host::common::colors::search_value_color(0))
-        );
-    }
-
-    #[test]
-    fn pin_temp_search_reuses_color() {
-        let session_id = Uuid::new_v4();
-        let mut state = FiltersState::new(session_id);
-        let mut registry = FilterRegistry::default();
-
-        let first = FilterDefinition::new(
-            SearchFilter::new("a".to_owned(), false, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
-        let first_id = first.id;
-        registry.add_filter(first);
-
-        let second = FilterDefinition::new(
-            SearchFilter::new("b".to_owned(), false, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[1].clone(),
-        );
-        registry.add_filter(second);
-
-        registry.remove_filter(&first_id);
-
-        state.set_temp_search(SearchFilter::new("c".to_owned(), false, true, false));
-        state.pin_temp_search(&mut registry);
-
-        let filter_id = state.filter_entries[0].id;
-        assert_eq!(
-            registry
-                .get_filter(&filter_id)
-                .map(|filter| filter.colors.clone()),
-            Some(colors::FILTER_HIGHLIGHT_COLORS[0].clone())
-        );
-    }
-
-    #[test]
-    fn pin_temp_chart_reuses_color() {
-        let session_id = Uuid::new_v4();
-        let mut state = FiltersState::new(session_id);
-        let mut registry = FilterRegistry::default();
-
-        let first = SearchValueDefinition::new(
-            SearchFilter::new("a=(\\d+)".to_owned(), true, true, false),
-            colors::search_value_color(0),
-        );
-        let first_id = first.id;
-        registry.add_search_value(first);
-
-        let second = SearchValueDefinition::new(
-            SearchFilter::new("b=(\\d+)".to_owned(), true, true, false),
-            colors::search_value_color(1),
-        );
-        registry.add_search_value(second);
-
-        registry.remove_search_value(&first_id);
-
-        state.set_temp_search(SearchFilter::new("c=(\\d+)".to_owned(), true, true, false));
-        assert!(state.pin_temp_search_as_value(&mut registry));
-
-        let value_id = state.search_value_entries[0].id;
-        assert_eq!(
-            registry
-                .get_search_value(&value_id)
-                .map(|value| value.color),
-            Some(colors::search_value_color(0))
-        );
-    }
-
-    #[test]
-    fn apply_filter_defaults_enabled() {
-        let session_id = Uuid::new_v4();
-        let mut state = FiltersState::new(session_id);
-        let mut registry = FilterRegistry::default();
-        let filter_id = Uuid::new_v4();
-
-        state.apply_filter(&mut registry, filter_id);
-
-        assert!(state.is_filter_applied(&filter_id));
-        assert!(state.is_filter_enabled(&filter_id));
-        assert_eq!(
-            state.enabled_filter_ids().copied().collect::<Vec<_>>(),
-            vec![filter_id]
-        );
-    }
-
-    #[test]
-    fn toggle_filter_keeps_order() {
-        let session_id = Uuid::new_v4();
-        let mut state = FiltersState::new(session_id);
-        let mut registry = FilterRegistry::default();
-        let first = Uuid::new_v4();
-        let second = Uuid::new_v4();
-
-        state.apply_filter(&mut registry, first);
-        state.apply_filter(&mut registry, second);
-
-        assert!(state.set_filter_enabled(&first, false));
-
-        assert_eq!(
-            state
-                .filter_entries
-                .iter()
-                .map(|item| item.id)
-                .collect::<Vec<_>>(),
-            vec![first, second]
-        );
-        assert_eq!(
-            state.enabled_filter_ids().copied().collect::<Vec<_>>(),
-            vec![second]
-        );
     }
 }

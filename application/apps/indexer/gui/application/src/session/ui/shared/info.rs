@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 use crate::{host::common::parsers::ParserNames, session::ui::shared::ObserveState};
 
-#[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct SessionInfo {
     pub id: Uuid,

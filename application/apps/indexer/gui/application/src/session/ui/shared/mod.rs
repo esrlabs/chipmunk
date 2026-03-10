@@ -10,22 +10,18 @@ use uuid::Uuid;
 
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
-mod filters;
 mod info;
 mod logs;
 mod observe;
-mod search;
-mod search_values;
+pub(crate) mod searching;
 mod signal;
 
-pub use filters::FiltersState;
 pub use info::SessionInfo;
 pub use logs::LogsState;
 pub use observe::ObserveState;
-#[allow(unused)]
-pub use search::{FilterIndex, LogMainIndex, SearchState};
-pub use search_values::SearchValuesState;
 pub use signal::SessionSignal;
+
+use self::searching::{FiltersState, SearchState, SearchValuesState};
 
 #[derive(Debug)]
 pub struct SessionShared {
