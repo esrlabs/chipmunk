@@ -10,9 +10,10 @@ All module context files live under `.ai/knowledge/` with a layout mirroring rep
 1. `.ai/knowledge/INDEX.md` (this file)
 2. `.ai/knowledge/cli/development-cli/AGENTS.md` (`cargo chipmunk` orchestration)
 3. `.ai/knowledge/application/apps/indexer/AGENTS.md` (Rust core)
-4. `.ai/knowledge/application/platform/AGENTS.md` (shared TS contracts)
-5. `.ai/knowledge/application/holder/AGENTS.md` (desktop host flow)
-6. `.ai/knowledge/application/client/AGENTS.md` (desktop application client)
+4. `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md` (native Rust GUI)
+5. `.ai/knowledge/application/platform/AGENTS.md` (shared TS contracts)
+6. `.ai/knowledge/application/holder/AGENTS.md` (desktop host flow)
+7. `.ai/knowledge/application/client/AGENTS.md` (desktop application client)
 
 ## Canonical Mapping
 
@@ -20,6 +21,7 @@ All module context files live under `.ai/knowledge/` with a layout mirroring rep
 | :--- | :--- | :--- | :--- |
 | `application/apps/indexer` | `.ai/knowledge/application/apps/indexer/AGENTS.md` | Rust backend parsing/ingestion/search core | `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` |
 | `application/apps/indexer/stypes` | `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` | Rust/TS shared type source of truth | `.ai/knowledge/application/apps/protocol/AGENTS.md`, `.ai/knowledge/application/platform/AGENTS.md` |
+| `application/apps/indexer/gui/application` | `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md` | Native Rust GUI host/session UI for logs, filters, and search | `.ai/knowledge/application/apps/indexer/AGENTS.md`, `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` |
 | `application/apps/protocol` | `.ai/knowledge/application/apps/protocol/AGENTS.md` | WASM encode/decode bridge around `stypes` | `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` |
 | `application/apps/rustcore/rs-bindings` | `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md` | Native Node addon boundary over Rust `session` | `.ai/knowledge/application/apps/indexer/AGENTS.md` |
 | `application/apps/rustcore/ts-bindings` | `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md` | High-level TS API over native addon/protocol | `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md`, `.ai/knowledge/application/apps/protocol/AGENTS.md` |
@@ -34,6 +36,7 @@ All module context files live under `.ai/knowledge/` with a layout mirroring rep
 ## Cross-Module Dependency Paths
 
 - Data path: `application/apps/indexer` -> `application/apps/rustcore/rs-bindings` -> `application/apps/rustcore/ts-bindings` -> `application/holder` and `application/client`.
+- Native GUI path: `application/apps/indexer` + `application/apps/indexer/stypes` -> `application/apps/indexer/gui/application`.
 - Shared type path: `application/apps/indexer/stypes` -> `application/apps/protocol` -> `application/apps/rustcore/ts-bindings` and `application/platform/types`.
 - Plugin path: `plugins/` contracts/components -> `application/apps/indexer/plugins_host` runtime execution.
 - Orchestration path: `cli/development-cli` drives builds/tests/lints across all targets.
