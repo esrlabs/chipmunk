@@ -39,7 +39,6 @@ enum ObserveSidePanel {
     Serial(SerialObserveUi),
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub struct ObservingUi {
     observe_ui: ObserveSidePanel,
