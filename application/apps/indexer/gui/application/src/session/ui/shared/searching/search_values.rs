@@ -1,4 +1,9 @@
-//! UI-side state tracking for the search-values extraction pipeline.
+//! Session-side state for the search-values extraction pipeline used by charts.
+//!
+//! [`SearchValuesState`] tracks the backend operation that extracts numeric values from enabled
+//! search-value filters and exposes the chart-oriented metadata needed by the UI.
+//! It is separate from [`SearchState`](super::SearchState) because chart extraction and log search
+//! have different outputs and operation lifecycles.
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -58,7 +63,6 @@ impl SearchValuesState {
         })
     }
 
-    #[allow(unused)]
     pub fn operation_phase(&self) -> Option<OperationPhase> {
         self.operation.as_ref().map(|op| op.phase)
     }
@@ -67,7 +71,6 @@ impl SearchValuesState {
         self.values_map = values_map;
     }
 
-    #[allow(unused)]
     pub fn current_values_map(&self) -> Option<&HashMap<u8, (f64, f64)>> {
         self.values_map.as_ref()
     }
@@ -77,7 +80,6 @@ impl SearchValuesState {
         operation_id: Uuid,
         phase: OperationPhase,
     ) -> UpdateOperationOutcome {
-        // We only consume updates that belong to the active tracked operation.
         if let Some(operation) = self.operation.as_mut()
             && operation.id == operation_id
         {

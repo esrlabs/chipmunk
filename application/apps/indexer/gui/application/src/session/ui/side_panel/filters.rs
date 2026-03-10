@@ -40,7 +40,6 @@ enum SelectedSidebarItem {
     SearchValue(Uuid),
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub struct FiltersUi {
     cmd_tx: mpsc::Sender<SessionCommand>,
@@ -55,6 +54,7 @@ impl FiltersUi {
         }
     }
 
+    /// Renders the sidebar lists, applies one deferred action, and then shows the editor.
     pub fn render_content(
         &mut self,
         shared: &mut SessionShared,
@@ -274,6 +274,7 @@ impl FiltersUi {
         });
     }
 
+    /// Renders one selectable sidebar row while preserving child widget interactions.
     fn render_sidebar_item<F>(&mut self, ui: &mut Ui, item: SelectedSidebarItem, render_ui: F)
     where
         F: FnOnce(&mut Ui),
@@ -313,6 +314,7 @@ impl FiltersUi {
         }
     }
 
+    /// Renders the editor for the currently selected filter or chart item.
     fn render_selected_group(
         &mut self,
         shared: &SessionShared,
@@ -413,6 +415,7 @@ impl FiltersUi {
         painter.rect_filled(response.rect, 2.0, color);
     }
 
+    /// Applies the queued sidebar mutation and dispatches any required pipeline sync commands.
     fn handle_action(
         &mut self,
         side_action: Option<FilterPanelAction>,
@@ -420,10 +423,13 @@ impl FiltersUi {
         actions: &mut UiActions,
         registry: &mut FilterRegistry,
     ) {
+        let Some(side_action) = side_action else {
+            return;
+        };
         // Apply the queued row mutation after rendering so we don't mutate the
         // session/registry state while iterating it to build the current UI frame.
         match side_action {
-            Some(FilterPanelAction::ToggleFilter(filter_id, enabled)) => {
+            FilterPanelAction::ToggleFilter(filter_id, enabled) => {
                 if shared.filters.set_filter_enabled(&filter_id, enabled) {
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::Filter)
@@ -431,7 +437,7 @@ impl FiltersUi {
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
             }
-            Some(FilterPanelAction::RemoveFilter(filter_id)) => {
+            FilterPanelAction::RemoveFilter(filter_id) => {
                 self.clear_selection_for(SelectedSidebarItem::Filter(filter_id));
                 shared.filters.unapply_filter(registry, &filter_id);
                 shared
@@ -439,7 +445,7 @@ impl FiltersUi {
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
-            Some(FilterPanelAction::MoveFilterToValue(filter_id)) => {
+            FilterPanelAction::MoveFilterToValue(filter_id) => {
                 let was_applied = shared.filters.is_filter_applied(&filter_id);
                 let was_enabled = shared.filters.is_filter_enabled(&filter_id);
                 let session_id = shared.get_id();
@@ -461,7 +467,7 @@ impl FiltersUi {
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
             }
-            Some(FilterPanelAction::ToggleSearchValue(value_id, enabled)) => {
+            FilterPanelAction::ToggleSearchValue(value_id, enabled) => {
                 if shared.filters.set_search_value_enabled(&value_id, enabled) {
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
@@ -469,7 +475,7 @@ impl FiltersUi {
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
             }
-            Some(FilterPanelAction::RemoveSearchValue(value_id)) => {
+            FilterPanelAction::RemoveSearchValue(value_id) => {
                 self.clear_selection_for(SelectedSidebarItem::SearchValue(value_id));
                 shared.filters.unapply_search_value(registry, &value_id);
                 shared
@@ -477,7 +483,7 @@ impl FiltersUi {
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
-            Some(FilterPanelAction::MoveValueToFilter(value_id)) => {
+            FilterPanelAction::MoveValueToFilter(value_id) => {
                 let was_applied = shared.filters.is_search_value_applied(&value_id);
                 let was_enabled = shared.filters.is_search_value_enabled(&value_id);
                 let session_id = shared.get_id();
@@ -499,7 +505,6 @@ impl FiltersUi {
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
             }
-            None => {}
         }
     }
 
