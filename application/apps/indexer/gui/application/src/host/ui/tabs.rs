@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use egui::{Atom, Button, Popup, RichText, Ui};
+use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
 use crate::{
@@ -60,7 +59,7 @@ fn session_tab(
     session_id: &Uuid,
     tab_idx: usize,
     active_tab_idx: &mut usize,
-    sessions: &HashMap<Uuid, Session>,
+    sessions: &FxHashMap<Uuid, Session>,
     actions: &mut UiActions,
     ui: &mut Ui,
 ) {
@@ -74,7 +73,7 @@ fn setup_session_tab(
     id: &Uuid,
     tab_idx: usize,
     active_tab_idx: &mut usize,
-    setups: &HashMap<Uuid, SessionSetup>,
+    setups: &FxHashMap<Uuid, SessionSetup>,
     actions: &mut UiActions,
     ui: &mut Ui,
 ) {
@@ -88,7 +87,7 @@ fn multi_setup_tab(
     id: &Uuid,
     tab_idx: usize,
     active_tab_idx: &mut usize,
-    setups: &HashMap<Uuid, MultiFileSetup>,
+    setups: &FxHashMap<Uuid, MultiFileSetup>,
     actions: &mut UiActions,
     ui: &mut Ui,
 ) {
