@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use crate::host::ui::{UiActions, registry::HostRegistry};
+use rustc_hash::FxHashMap;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -8,7 +6,9 @@ use crate::{
     host::{
         command::HostCommand,
         ui::{
+            UiActions,
             multi_setup::{MultiFileSetup, state::MultiFileState},
+            registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
             tabs::TabType,
         },
@@ -22,9 +22,9 @@ pub const HOME_TAB_IDX: usize = 0;
 pub struct HostState {
     pub active_tab_idx: usize,
     pub tabs: Vec<TabType>,
-    pub sessions: HashMap<Uuid, Session>,
-    pub session_setups: HashMap<Uuid, SessionSetup>,
-    pub multi_setups: HashMap<Uuid, MultiFileSetup>,
+    pub sessions: FxHashMap<Uuid, Session>,
+    pub session_setups: FxHashMap<Uuid, SessionSetup>,
+    pub multi_setups: FxHashMap<Uuid, MultiFileSetup>,
     pub registry: HostRegistry,
 }
 
@@ -182,9 +182,9 @@ impl Default for HostState {
         Self {
             active_tab_idx: 0,
             tabs: vec![TabType::Home],
-            sessions: HashMap::new(),
-            session_setups: HashMap::new(),
-            multi_setups: HashMap::new(),
+            sessions: FxHashMap::default(),
+            session_setups: FxHashMap::default(),
+            multi_setups: FxHashMap::default(),
             registry: HostRegistry::default(),
         }
     }
