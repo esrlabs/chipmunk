@@ -6,11 +6,9 @@ use crate::{
     common::phosphor::icons,
     common::search_value_validation::SearchValueEligibility,
     host::{
+        common::colors::ColorPair,
         common::ui_utls::show_side_panel_group,
-        ui::{
-            UiActions,
-            registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
-        },
+        ui::{UiActions, registry::filters::FilterRegistry},
     },
     session::{
         command::SessionCommand,
@@ -44,6 +42,23 @@ enum SelectedSidebarItem {
 pub struct FiltersUi {
     cmd_tx: mpsc::Sender<SessionCommand>,
     selected_item: Option<SelectedSidebarItem>,
+}
+
+#[derive(Debug, Clone)]
+struct FilterRowView {
+    id: Uuid,
+    enabled: bool,
+    color: egui::Color32,
+    text: String,
+    eligibility: SearchValueEligibility,
+}
+
+#[derive(Debug, Clone)]
+struct SearchValueRowView {
+    id: Uuid,
+    enabled: bool,
+    color: egui::Color32,
+    text: String,
 }
 
 impl FiltersUi {
@@ -117,13 +132,17 @@ impl FiltersUi {
             .filter_entries
             .iter()
             .filter_map(|item| {
-                registry
-                    .get_filter(&item.id)
-                    .map(|def| (item.id, item.enabled, def.clone()))
+                registry.get_filter(&item.id).map(|def| FilterRowView {
+                    id: item.id,
+                    enabled: item.enabled,
+                    color: item.colors.bg,
+                    text: def.filter.value.clone(),
+                    eligibility: def.search_value_eligibility.clone(),
+                })
             })
-            .for_each(|(filter_id, enabled, filter_def)| {
+            .for_each(|row| {
                 have_items = true;
-                self.render_filter_item(ui, filter_id, enabled, &filter_def, side_action);
+                self.render_filter_item(ui, &row, side_action);
             });
 
         if !have_items {
@@ -146,11 +165,16 @@ impl FiltersUi {
             .filter_map(|item| {
                 registry
                     .get_search_value(&item.id)
-                    .map(|def| (item.id, item.enabled, def.clone()))
+                    .map(|def| SearchValueRowView {
+                        id: item.id,
+                        enabled: item.enabled,
+                        color: item.color,
+                        text: def.filter.value.clone(),
+                    })
             })
-            .for_each(|(value_id, enabled, value_def)| {
+            .for_each(|row| {
                 has_items = true;
-                self.render_search_value_item(ui, value_id, enabled, &value_def, side_action);
+                self.render_search_value_item(ui, &row, side_action);
             });
 
         if !has_items {
@@ -161,13 +185,10 @@ impl FiltersUi {
     fn render_filter_item(
         &mut self,
         ui: &mut Ui,
-        filter_id: Uuid,
-        enabled: bool,
-        filter_def: &FilterDefinition,
+        row: &FilterRowView,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        let eligibility = &filter_def.search_value_eligibility;
-        self.render_sidebar_item(ui, SelectedSidebarItem::Filter(filter_id), |ui| {
+        self.render_sidebar_item(ui, SelectedSidebarItem::Filter(row.id), |ui| {
             let (left_action, right_action) = Sides::new().shrink_left().truncate().show(
                 ui,
                 |ui| {
@@ -175,15 +196,15 @@ impl FiltersUi {
 
                     if Self::render_enabled_checkbox(
                         ui,
-                        enabled,
+                        row.enabled,
                         "Disable this filter temporarily.",
                         "Enable this filter again.",
                     ) {
-                        action = Some(FilterPanelAction::ToggleFilter(filter_id, !enabled));
+                        action = Some(FilterPanelAction::ToggleFilter(row.id, !row.enabled));
                     }
 
-                    Self::render_color_swatch(ui, filter_def.colors.bg);
-                    ui.label(&filter_def.filter.value);
+                    Self::render_color_swatch(ui, row.color);
+                    ui.label(&row.text);
 
                     action
                 },
@@ -192,21 +213,21 @@ impl FiltersUi {
 
                     let move_btn = ui
                         .add_enabled(
-                            eligibility.is_eligible(),
+                            row.eligibility.is_eligible(),
                             egui::Button::new(RichText::new(icons::regular::CHART_LINE).size(14.0)),
                         )
                         .on_hover_text("Move to Charts");
-                    if let SearchValueEligibility::Ineligible { reason } = eligibility {
+                    if let SearchValueEligibility::Ineligible { reason } = &row.eligibility {
                         move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
                     } else if move_btn.clicked() {
-                        action = Some(FilterPanelAction::MoveFilterToValue(filter_id));
+                        action = Some(FilterPanelAction::MoveFilterToValue(row.id));
                     }
 
                     let remove_btn = ui
                         .button(RichText::new(icons::regular::TRASH).size(14.0))
                         .on_hover_text("Remove filter from session");
                     if remove_btn.clicked() {
-                        action = Some(FilterPanelAction::RemoveFilter(filter_id));
+                        action = Some(FilterPanelAction::RemoveFilter(row.id));
                     }
 
                     action
@@ -222,12 +243,10 @@ impl FiltersUi {
     fn render_search_value_item(
         &mut self,
         ui: &mut Ui,
-        value_id: Uuid,
-        enabled: bool,
-        value_def: &SearchValueDefinition,
+        row: &SearchValueRowView,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        self.render_sidebar_item(ui, SelectedSidebarItem::SearchValue(value_id), |ui| {
+        self.render_sidebar_item(ui, SelectedSidebarItem::SearchValue(row.id), |ui| {
             let (left_action, right_action) = Sides::new().shrink_left().truncate().show(
                 ui,
                 |ui| {
@@ -235,15 +254,15 @@ impl FiltersUi {
 
                     if Self::render_enabled_checkbox(
                         ui,
-                        enabled,
+                        row.enabled,
                         "Disable this Chart temporarily.",
                         "Enable this Chart again.",
                     ) {
-                        action = Some(FilterPanelAction::ToggleSearchValue(value_id, !enabled));
+                        action = Some(FilterPanelAction::ToggleSearchValue(row.id, !row.enabled));
                     }
 
-                    Self::render_color_swatch(ui, value_def.color);
-                    ui.label(&value_def.filter.value);
+                    Self::render_color_swatch(ui, row.color);
+                    ui.label(&row.text);
 
                     action
                 },
@@ -254,14 +273,14 @@ impl FiltersUi {
                         .button(RichText::new(icons::regular::FUNNEL).size(14.0))
                         .on_hover_text("Move to Filter");
                     if move_btn.clicked() {
-                        action = Some(FilterPanelAction::MoveValueToFilter(value_id));
+                        action = Some(FilterPanelAction::MoveValueToFilter(row.id));
                     }
 
                     let remove_btn = ui
                         .button(RichText::new(icons::regular::TRASH).size(14.0))
                         .on_hover_text("Remove chart from session");
                     if remove_btn.clicked() {
-                        action = Some(FilterPanelAction::RemoveSearchValue(value_id));
+                        action = Some(FilterPanelAction::RemoveSearchValue(row.id));
                     }
 
                     action
@@ -317,24 +336,29 @@ impl FiltersUi {
     /// Renders the editor for the currently selected filter or chart item.
     fn render_selected_group(
         &mut self,
-        shared: &SessionShared,
-        registry: &mut FilterRegistry,
+        shared: &mut SessionShared,
+        registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
         let Some(selected_item) = self.selected_item else {
             return;
         };
 
-        // Color edits update registry-owned presentation data only, so they do not
-        // need a search-pipeline resync. This is also where stale sidebar-local
-        // selection is cleared if the backing item no longer exists.
+        // Color edits are session-local presentation changes, so they do not need
+        // a search-pipeline resync. This also clears stale sidebar-local selection
+        // when the semantic definition disappears from the registry.
         match selected_item {
             SelectedSidebarItem::Filter(filter_id) => {
                 if shared.filters.is_filter_applied(&filter_id)
-                    && let Some(filter_def) = registry.get_filter_mut(&filter_id)
+                    && registry.get_filter(&filter_id).is_some()
+                    && let Some(filter_entry) = shared
+                        .filters
+                        .filter_entries
+                        .iter_mut()
+                        .find(|item| item.id == filter_id)
                 {
                     show_side_panel_group(ui, |ui| {
-                        Self::render_filter_editor(ui, filter_def);
+                        Self::render_filter_editor(ui, &mut filter_entry.colors);
                     });
                 } else {
                     self.selected_item = None;
@@ -342,10 +366,15 @@ impl FiltersUi {
             }
             SelectedSidebarItem::SearchValue(value_id) => {
                 if shared.filters.is_search_value_applied(&value_id)
-                    && let Some(value_def) = registry.get_search_value_mut(&value_id)
+                    && registry.get_search_value(&value_id).is_some()
+                    && let Some(value_entry) = shared
+                        .filters
+                        .search_value_entries
+                        .iter_mut()
+                        .find(|item| item.id == value_id)
                 {
                     show_side_panel_group(ui, |ui| {
-                        Self::render_search_value_editor(ui, value_def);
+                        Self::render_search_value_editor(ui, &mut value_entry.color);
                     });
                 } else {
                     self.selected_item = None;
@@ -354,19 +383,19 @@ impl FiltersUi {
         }
     }
 
-    fn render_filter_editor(ui: &mut Ui, filter_def: &mut FilterDefinition) {
+    fn render_filter_editor(ui: &mut Ui, colors: &mut ColorPair) {
         ui.heading(RichText::new("Filter Details").size(16.0));
         ui.add_space(10.0);
 
-        Self::render_color_picker_row(ui, "Foreground", &mut filter_def.colors.fg);
-        Self::render_color_picker_row(ui, "Background", &mut filter_def.colors.bg);
+        Self::render_color_picker_row(ui, "Foreground", &mut colors.fg);
+        Self::render_color_picker_row(ui, "Background", &mut colors.bg);
     }
 
-    fn render_search_value_editor(ui: &mut Ui, value_def: &mut SearchValueDefinition) {
+    fn render_search_value_editor(ui: &mut Ui, color: &mut egui::Color32) {
         ui.heading(RichText::new("Chart Details").size(16.0));
         ui.add_space(10.0);
 
-        Self::render_color_picker_row(ui, "Color", &mut value_def.color);
+        Self::render_color_picker_row(ui, "Color", color);
     }
 
     /// Renders the enabled/disabled checkbox and returns whether the user
