@@ -173,20 +173,33 @@ impl Session {
                 SessionMessage::LogsCount(count) => {
                     self.shared.logs.logs_count = count;
                 }
+                SessionMessage::IndexedCountUpdated { count } => {
+                    self.shared.search.set_indexed_result_count(count);
+                }
                 SessionMessage::SelectedLog(log_element) => {
                     let selected = self.ok_or_notify(log_element, actions);
                     self.shared.logs.selected_log = selected;
                 }
-                SessionMessage::SearchState { found_count } => {
-                    self.shared.search.set_total_count(found_count);
+                SessionMessage::SearchResultCountUpdated { count } => {
+                    self.shared.search.set_search_result_count(count);
                     self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SearchResults(filter_matches) => {
                     self.shared.search.append_matches(filter_matches);
                 }
+                SessionMessage::SearchResultsCleared => {
+                    self.shared.search.clear_matches();
+                }
                 SessionMessage::NearestPosition(nearest_position) => {
                     if let Some(pos) = self.ok_or_notify(nearest_position, actions) {
                         self.bottom_panel.search.table.set_nearest_pos(pos);
+                    }
+                }
+                SessionMessage::BookmarkUpdated { row, is_bookmarked } => {
+                    if is_bookmarked {
+                        self.shared.logs.insert_bookmark(row);
+                    } else {
+                        self.shared.logs.remove_bookmark(row);
                     }
                 }
                 SessionMessage::ChartHistogram(map) => {
