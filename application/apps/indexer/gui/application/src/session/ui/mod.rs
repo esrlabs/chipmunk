@@ -148,7 +148,7 @@ impl Session {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(shared.get_id(), |ui| {
-                logs_table.render_content(shared, actions, registry, ui);
+                logs_table.render_content(shared, actions, ui);
             });
         });
 

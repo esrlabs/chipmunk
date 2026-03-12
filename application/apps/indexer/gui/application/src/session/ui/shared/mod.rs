@@ -211,13 +211,12 @@ impl SessionShared {
 mod tests {
     use std::path::PathBuf;
 
-    use egui::Color32;
     use processor::search::filter::SearchFilter;
     use stypes::{FileFormat, ObserveOrigin};
 
     use crate::{
         host::{
-            common::{colors, parsers::ParserNames},
+            common::parsers::ParserNames,
             ui::registry::filters::{FilterDefinition, SearchValueDefinition},
         },
         session::command::SessionCommand,
@@ -243,20 +242,16 @@ mod tests {
     }
 
     fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
-        let filter_def = FilterDefinition::new(
-            SearchFilter::new(value.to_owned(), false, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
+        let filter_def =
+            FilterDefinition::new(SearchFilter::new(value.to_owned(), false, true, false));
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
         shared.filters.apply_filter(registry, filter_id);
     }
 
     fn add_value(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
-        let value_def = SearchValueDefinition::new(
-            SearchFilter::new(value.to_owned(), true, true, false),
-            Color32::LIGHT_BLUE,
-        );
+        let value_def =
+            SearchValueDefinition::new(SearchFilter::new(value.to_owned(), true, true, false));
         let value_id = value_def.id;
         registry.add_search_value(value_def);
         shared.filters.apply_search_value(registry, value_id);
