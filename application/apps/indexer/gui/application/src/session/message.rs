@@ -20,14 +20,25 @@ pub enum SessionMessage {
 
     // --- Search ---
     //
-    /// Metadata about the current search (e.g., total found).
-    SearchState { found_count: u64 },
+    /// Total number of rows matched by the active search.
+    SearchResultCountUpdated { count: u64 },
+
+    /// Total number of rows currently exposed by the indexed lower table.
+    /// This can include search results, bookmarked rows, and any other indexed-map entries
+    /// currently materialized by the backend.
+    IndexedCountUpdated { count: u64 },
 
     /// Search matches found.
     SearchResults(Vec<FilterMatch>),
 
+    /// Clear search matches after dropping or replacing the search map.
+    SearchResultsCleared,
+
     /// The nearest log index to jump to in search table.
     NearestPosition(Result<Option<NearestPosition>, SessionError>),
+
+    /// Confirmed bookmark mutation from the session backend.
+    BookmarkUpdated { row: u64, is_bookmarked: bool },
 
     // --- Charts ---
     //

@@ -148,6 +148,15 @@ impl<'a> LogsDelegate<'a> {
         };
     }
 
+    fn toggle_row_bookmark(&mut self, row_nr: u64) {
+        let cmd = if self.shared.logs.is_bookmarked(row_nr) {
+            SessionCommand::RemoveBookmark(row_nr)
+        } else {
+            SessionCommand::AddBookmark(row_nr)
+        };
+        self.actions.try_send_command(&self.table.cmd_tx, cmd);
+    }
+
     fn render_row_header(&mut self, ui: &mut Ui, cell: &CellInfo) {
         let color_idx = self
             .has_multi_sources
@@ -158,8 +167,15 @@ impl<'a> LogsDelegate<'a> {
                     .map(|item| item.element.source_id as usize)
             })
             .flatten();
+        let is_bookmarked = self.shared.logs.is_bookmarked(cell.row_nr);
 
-        common::logs_tables::render_row_header(ui, cell.row_nr.to_string(), color_idx);
+        common::logs_tables::render_row_header(
+            ui,
+            cell.row_nr.to_string(),
+            color_idx,
+            is_bookmarked,
+            || self.toggle_row_bookmark(cell.row_nr),
+        );
     }
 
     fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {

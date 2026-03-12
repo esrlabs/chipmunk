@@ -10,11 +10,12 @@ pub fn render_content(shared: &SessionShared, ui: &mut Ui) {
     ui.horizontal_centered(|ui| {
         Label::new(format!(
             "{} / {}",
-            shared.search.total_count(),
+            shared.search.search_result_count(),
             shared.logs.logs_count
         ))
         .selectable(true)
-        .ui(ui);
+        .ui(ui)
+        .on_hover_text("Search matches / total logs");
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             observe_states(shared, ui);

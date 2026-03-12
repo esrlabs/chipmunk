@@ -58,13 +58,13 @@ impl SearchTable {
     ) {
         let mut table = egui_table::Table::new()
             .id_salt("search_table")
-            .num_rows(shared.search.total_count())
+            .num_rows(shared.search.indexed_result_count())
             .headers(Vec::new())
             .columns(self.columns.as_ref())
             .num_sticky_cols(1);
 
         if let Some(row_nr) = self.scroll_nearest_pos.take().map(|pos| pos.index)
-            && row_nr < shared.search.total_count()
+            && row_nr < shared.search.indexed_result_count()
         {
             const OFFSET: u64 = 2;
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
@@ -150,6 +150,15 @@ impl<'a> LogsDelegate<'a> {
         };
     }
 
+    fn toggle_row_bookmark(&mut self, pos: u64) {
+        let cmd = if self.shared.logs.is_bookmarked(pos) {
+            SessionCommand::RemoveBookmark(pos)
+        } else {
+            SessionCommand::AddBookmark(pos)
+        };
+        self.actions.try_send_command(&self.table.cmd_tx, cmd);
+    }
+
     fn get_log_item(&self, cell: &CellInfo) -> Option<&LogTableItem> {
         self.table.indexed_logs.get_log_item(&cell.row_nr)
     }
@@ -165,8 +174,16 @@ impl<'a> LogsDelegate<'a> {
                 )
             })
             .unwrap_or_default();
+        let is_bookmarked = self
+            .get_log_item(cell)
+            .is_some_and(|item| self.shared.logs.is_bookmarked(item.element.pos as u64));
 
-        common::logs_tables::render_row_header(ui, text, color_idx);
+        let bookmark_pos = self.get_log_item(cell).map(|item| item.element.pos as u64);
+        common::logs_tables::render_row_header(ui, text, color_idx, is_bookmarked, || {
+            if let Some(bookmark_pos) = bookmark_pos {
+                self.toggle_row_bookmark(bookmark_pos);
+            }
+        });
     }
 
     fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {
@@ -237,7 +254,7 @@ impl TableDelegate for LogsDelegate<'_> {
             // Request new data.
             self.table.last_visible_rows = Some(info.visible_rows.to_owned());
 
-            if self.shared.search.total_count() == 0 {
+            if self.shared.search.indexed_result_count() == 0 {
                 return;
             }
 
