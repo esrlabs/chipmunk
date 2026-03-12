@@ -45,20 +45,20 @@ pub struct FiltersUi {
 }
 
 #[derive(Debug, Clone)]
-struct FilterRowView {
+struct FilterRowView<'a> {
     id: Uuid,
     enabled: bool,
     color: egui::Color32,
-    text: String,
-    eligibility: SearchValueEligibility,
+    text: &'a str,
+    eligibility: &'a SearchValueEligibility,
 }
 
 #[derive(Debug, Clone)]
-struct SearchValueRowView {
+struct SearchValueRowView<'a> {
     id: Uuid,
     enabled: bool,
     color: egui::Color32,
-    text: String,
+    text: &'a str,
 }
 
 impl FiltersUi {
@@ -136,8 +136,8 @@ impl FiltersUi {
                     id: item.id,
                     enabled: item.enabled,
                     color: item.colors.bg,
-                    text: def.filter.value.clone(),
-                    eligibility: def.search_value_eligibility.clone(),
+                    text: def.filter.value.as_str(),
+                    eligibility: &def.search_value_eligibility,
                 })
             })
             .for_each(|row| {
@@ -169,7 +169,7 @@ impl FiltersUi {
                         id: item.id,
                         enabled: item.enabled,
                         color: item.color,
-                        text: def.filter.value.clone(),
+                        text: def.filter.value.as_str(),
                     })
             })
             .for_each(|row| {
@@ -188,56 +188,95 @@ impl FiltersUi {
         row: &FilterRowView,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        self.render_sidebar_item(ui, SelectedSidebarItem::Filter(row.id), |ui| {
-            let (left_action, right_action) = Sides::new().shrink_left().truncate().show(
-                ui,
-                |ui| {
-                    let mut action = None;
+        if let Some(action) = self.render_sidebar_item(
+            ui,
+            SelectedSidebarItem::Filter(row.id),
+            |ui, side_action| {
+                let (left_action, right_action) = Sides::new().shrink_left().truncate().show(
+                    ui,
+                    |ui| {
+                        let mut action = None;
 
-                    if Self::render_enabled_checkbox(
-                        ui,
-                        row.enabled,
-                        "Disable this filter temporarily.",
-                        "Enable this filter again.",
-                    ) {
-                        action = Some(FilterPanelAction::ToggleFilter(row.id, !row.enabled));
-                    }
+                        if Self::render_enabled_checkbox(
+                            ui,
+                            row.enabled,
+                            "Disable this filter temporarily.",
+                            "Enable this filter again.",
+                        ) {
+                            action = Some(FilterPanelAction::ToggleFilter(row.id, !row.enabled));
+                        }
 
-                    Self::render_color_swatch(ui, row.color);
-                    ui.label(&row.text);
+                        Self::render_color_swatch(ui, row.color);
+                        ui.label(row.text);
 
-                    action
-                },
-                |ui| {
-                    let mut action = None;
+                        action
+                    },
+                    |ui| {
+                        let mut action = None;
 
-                    let move_btn = ui
-                        .add_enabled(
-                            row.eligibility.is_eligible(),
-                            egui::Button::new(RichText::new(icons::regular::CHART_LINE).size(14.0)),
-                        )
-                        .on_hover_text("Move to Charts");
-                    if let SearchValueEligibility::Ineligible { reason } = &row.eligibility {
-                        move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
-                    } else if move_btn.clicked() {
-                        action = Some(FilterPanelAction::MoveFilterToValue(row.id));
-                    }
+                        let move_btn = ui
+                            .add_enabled(
+                                row.eligibility.is_eligible(),
+                                egui::Button::new(
+                                    RichText::new(icons::regular::CHART_LINE).size(14.0),
+                                ),
+                            )
+                            .on_hover_text("Move to Charts");
+                        if let SearchValueEligibility::Ineligible { reason } = &row.eligibility {
+                            move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
+                        } else if move_btn.clicked() {
+                            action = Some(FilterPanelAction::MoveFilterToValue(row.id));
+                        }
 
-                    let remove_btn = ui
-                        .button(RichText::new(icons::regular::TRASH).size(14.0))
-                        .on_hover_text("Remove filter from session");
-                    if remove_btn.clicked() {
-                        action = Some(FilterPanelAction::RemoveFilter(row.id));
-                    }
+                        let remove_btn = ui
+                            .button(RichText::new(icons::regular::TRASH).size(14.0))
+                            .on_hover_text("Remove filter from session");
+                        if remove_btn.clicked() {
+                            action = Some(FilterPanelAction::RemoveFilter(row.id));
+                        }
 
-                    action
-                },
-            );
+                        action
+                    },
+                );
 
-            if let Some(action) = left_action.or(right_action) {
-                *side_action = Some(action);
-            }
-        });
+                if let Some(action) = left_action.or(right_action) {
+                    *side_action = Some(action);
+                }
+            },
+            |ui, side_action| {
+                let toggle_label = if row.enabled {
+                    "Disable Filter"
+                } else {
+                    "Enable Filter"
+                };
+                if ui.button(toggle_label).clicked() {
+                    *side_action = Some(FilterPanelAction::ToggleFilter(row.id, !row.enabled));
+                    ui.close();
+                }
+
+                if ui.button("Remove Filter").clicked() {
+                    *side_action = Some(FilterPanelAction::RemoveFilter(row.id));
+                    ui.close();
+                }
+
+                ui.separator();
+
+                let move_btn = ui
+                    .add_enabled(
+                        row.eligibility.is_eligible(),
+                        egui::Button::new("Move to Charts"),
+                    )
+                    .on_hover_text("Move to Charts");
+                if let SearchValueEligibility::Ineligible { reason } = &row.eligibility {
+                    move_btn.on_disabled_hover_text(format!("Chart: {reason}"));
+                } else if move_btn.clicked() {
+                    *side_action = Some(FilterPanelAction::MoveFilterToValue(row.id));
+                    ui.close();
+                }
+            },
+        ) {
+            *side_action = Some(action);
+        }
     }
 
     fn render_search_value_item(
@@ -246,63 +285,102 @@ impl FiltersUi {
         row: &SearchValueRowView,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        self.render_sidebar_item(ui, SelectedSidebarItem::SearchValue(row.id), |ui| {
-            let (left_action, right_action) = Sides::new().shrink_left().truncate().show(
-                ui,
-                |ui| {
-                    let mut action = None;
+        if let Some(action) = self.render_sidebar_item(
+            ui,
+            SelectedSidebarItem::SearchValue(row.id),
+            |ui, side_action| {
+                let (left_action, right_action) = Sides::new().shrink_left().truncate().show(
+                    ui,
+                    |ui| {
+                        let mut action = None;
 
-                    if Self::render_enabled_checkbox(
-                        ui,
-                        row.enabled,
-                        "Disable this Chart temporarily.",
-                        "Enable this Chart again.",
-                    ) {
-                        action = Some(FilterPanelAction::ToggleSearchValue(row.id, !row.enabled));
-                    }
+                        if Self::render_enabled_checkbox(
+                            ui,
+                            row.enabled,
+                            "Disable this Chart temporarily.",
+                            "Enable this Chart again.",
+                        ) {
+                            action =
+                                Some(FilterPanelAction::ToggleSearchValue(row.id, !row.enabled));
+                        }
 
-                    Self::render_color_swatch(ui, row.color);
-                    ui.label(&row.text);
+                        Self::render_color_swatch(ui, row.color);
+                        ui.label(row.text);
 
-                    action
-                },
-                |ui| {
-                    let mut action = None;
+                        action
+                    },
+                    |ui| {
+                        let mut action = None;
 
-                    let move_btn = ui
-                        .button(RichText::new(icons::regular::FUNNEL).size(14.0))
-                        .on_hover_text("Move to Filter");
-                    if move_btn.clicked() {
-                        action = Some(FilterPanelAction::MoveValueToFilter(row.id));
-                    }
+                        let move_btn = ui
+                            .button(RichText::new(icons::regular::FUNNEL).size(14.0))
+                            .on_hover_text("Move to Filter");
+                        if move_btn.clicked() {
+                            action = Some(FilterPanelAction::MoveValueToFilter(row.id));
+                        }
 
-                    let remove_btn = ui
-                        .button(RichText::new(icons::regular::TRASH).size(14.0))
-                        .on_hover_text("Remove chart from session");
-                    if remove_btn.clicked() {
-                        action = Some(FilterPanelAction::RemoveSearchValue(row.id));
-                    }
+                        let remove_btn = ui
+                            .button(RichText::new(icons::regular::TRASH).size(14.0))
+                            .on_hover_text("Remove chart from session");
+                        if remove_btn.clicked() {
+                            action = Some(FilterPanelAction::RemoveSearchValue(row.id));
+                        }
 
-                    action
-                },
-            );
+                        action
+                    },
+                );
 
-            if let Some(action) = left_action.or(right_action) {
-                *side_action = Some(action);
-            }
-        });
+                if let Some(action) = left_action.or(right_action) {
+                    *side_action = Some(action);
+                }
+            },
+            |ui, side_action| {
+                let toggle_label = if row.enabled {
+                    "Disable Chart"
+                } else {
+                    "Enable Chart"
+                };
+                if ui.button(toggle_label).clicked() {
+                    *side_action = Some(FilterPanelAction::ToggleSearchValue(row.id, !row.enabled));
+                    ui.close();
+                }
+
+                if ui.button("Remove Chart").clicked() {
+                    *side_action = Some(FilterPanelAction::RemoveSearchValue(row.id));
+                    ui.close();
+                }
+
+                ui.separator();
+
+                if ui.button("Move to Filter").clicked() {
+                    *side_action = Some(FilterPanelAction::MoveValueToFilter(row.id));
+                    ui.close();
+                }
+            },
+        ) {
+            *side_action = Some(action);
+        }
     }
 
     /// Renders one selectable sidebar row while preserving child widget interactions.
-    fn render_sidebar_item<F>(&mut self, ui: &mut Ui, item: SelectedSidebarItem, render_ui: F)
+    fn render_sidebar_item<F, C>(
+        &mut self,
+        ui: &mut Ui,
+        item: SelectedSidebarItem,
+        render_ui: F,
+        context_ui: C,
+    ) -> Option<FilterPanelAction>
     where
-        F: FnOnce(&mut Ui),
+        F: FnOnce(&mut Ui, &mut Option<FilterPanelAction>),
+        C: FnOnce(&mut Ui, &mut Option<FilterPanelAction>),
     {
         let is_selected = self.selected_item.is_some_and(|current| current == item);
+        let mut side_action = None;
 
         const ITEM_ROW_HEIGHT: f32 = 30.0;
         let desired_size = vec2(ui.available_width(), ITEM_ROW_HEIGHT);
         let (_, item_response) = ui.allocate_exact_size(desired_size, Sense::click());
+        item_response.context_menu(|ui| context_ui(ui, &mut side_action));
 
         // Keep one explicit row-sized selection target while child widgets render
         // inside the same rect and retain their own interaction handling.
@@ -320,7 +398,7 @@ impl FiltersUi {
                 }
 
                 frame.show(ui, |ui| {
-                    render_ui(ui);
+                    render_ui(ui, &mut side_action);
                 });
             },
         );
@@ -331,8 +409,9 @@ impl FiltersUi {
         {
             self.toggle_selected_item(item);
         }
-    }
 
+        side_action
+    }
     /// Renders the editor for the currently selected filter or chart item.
     fn render_selected_group(
         &mut self,
