@@ -75,12 +75,10 @@ impl SearchBar {
         // Apply temp filter on pressing enter.
         if enter_pressed {
             if !self.query.is_empty() {
-                let filter = SearchFilter::new(
-                    std::mem::take(&mut self.query),
-                    self.is_regex,
-                    !self.match_case,
-                    self.is_word,
-                );
+                let filter = SearchFilter::plain(std::mem::take(&mut self.query))
+                    .regex(self.is_regex)
+                    .ignore_case(!self.match_case)
+                    .word(self.is_word);
 
                 shared.filters.set_temp_search(filter);
                 shared
