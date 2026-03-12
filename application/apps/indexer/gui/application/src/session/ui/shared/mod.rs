@@ -242,8 +242,7 @@ mod tests {
     }
 
     fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
-        let filter_def =
-            FilterDefinition::new(SearchFilter::new(value.to_owned(), false, true, false));
+        let filter_def = FilterDefinition::new(SearchFilter::plain(value).ignore_case(true));
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
         shared.filters.apply_filter(registry, filter_id);
@@ -251,7 +250,7 @@ mod tests {
 
     fn add_value(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
         let value_def =
-            SearchValueDefinition::new(SearchFilter::new(value.to_owned(), true, true, false));
+            SearchValueDefinition::new(SearchFilter::plain(value).regex(true).ignore_case(true));
         let value_id = value_def.id;
         registry.add_search_value(value_def);
         shared.filters.apply_search_value(registry, value_id);
@@ -321,7 +320,7 @@ mod tests {
         let registry = FilterRegistry::default();
         shared
             .filters
-            .set_temp_search(SearchFilter::new("temp".to_owned(), false, true, false));
+            .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
 
         let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
 

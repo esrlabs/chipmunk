@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn rejects_non_regex_mode() {
-        let filter = SearchFilter::new("cpu=(\\d+)".to_owned(), false, true, false);
+        let filter = SearchFilter::plain("cpu=(\\d+)").ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -192,7 +192,9 @@ mod tests {
 
     #[test]
     fn rejects_missing_capture_group() {
-        let filter = SearchFilter::new("cpu=\\d+".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=\\d+")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -201,7 +203,9 @@ mod tests {
 
     #[test]
     fn rejects_non_numeric_capture_group() {
-        let filter = SearchFilter::new("cpu=([a-z]+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=([a-z]+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -210,7 +214,9 @@ mod tests {
 
     #[test]
     fn rejects_when_first_group_is_not_numeric_even_if_later_group_is_numeric() {
-        let filter = SearchFilter::new("cpu=([a-z]+)-(\\d+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=([a-z]+)-(\\d+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -219,7 +225,9 @@ mod tests {
 
     #[test]
     fn rejects_escaped_parentheses_without_capture_group() {
-        let filter = SearchFilter::new("cpu=\\(\\d+\\)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=\\(\\d+\\)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -228,7 +236,9 @@ mod tests {
 
     #[test]
     fn accepts_digit_character_class_capture_group() {
-        let filter = SearchFilter::new("cpu=([0-9]+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=([0-9]+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible
@@ -237,7 +247,9 @@ mod tests {
 
     #[test]
     fn accepts_signed_decimal_capture_group() {
-        let filter = SearchFilter::new("cpu=([-+]?\\d*\\.\\d+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=([-+]?\\d*\\.\\d+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible
@@ -246,8 +258,9 @@ mod tests {
 
     #[test]
     fn accepts_scientific_notation_capture_group() {
-        let filter =
-            SearchFilter::new("cpu=([-+]?\\d+[eE][-+]?\\d+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=([-+]?\\d+[eE][-+]?\\d+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible
@@ -256,7 +269,9 @@ mod tests {
 
     #[test]
     fn rejects_wildcard_capture_group() {
-        let filter = SearchFilter::new("cpu=(.+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=(.+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -265,7 +280,9 @@ mod tests {
 
     #[test]
     fn accepts_numeric_alternation() {
-        let filter = SearchFilter::new("cpu=(\\d+|\\d+\\.\\d+)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=(\\d+|\\d+\\.\\d+)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible
@@ -274,7 +291,9 @@ mod tests {
 
     #[test]
     fn rejects_mixed_alternation_with_non_numeric_branch() {
-        let filter = SearchFilter::new("cpu=(\\d+|abc)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=(\\d+|abc)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Ineligible { .. }
@@ -283,7 +302,9 @@ mod tests {
 
     #[test]
     fn accepts_nested_numeric_first_group() {
-        let filter = SearchFilter::new("cpu=((\\d+))".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=((\\d+))")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible
@@ -292,7 +313,9 @@ mod tests {
 
     #[test]
     fn invalid_regex_has_non_empty_reason() {
-        let filter = SearchFilter::new("cpu=(\\d+".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=(\\d+")
+            .regex(true)
+            .ignore_case(true);
         let result = validate_search_value_filter(&filter);
 
         match result {
@@ -307,7 +330,9 @@ mod tests {
 
     #[test]
     fn accepts_signed_float_capture_group() {
-        let filter = SearchFilter::new("cpu=([-+]?\\d+(\\.\\d+)?)".to_owned(), true, true, false);
+        let filter = SearchFilter::plain("cpu=([-+]?\\d+(\\.\\d+)?)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible
@@ -316,12 +341,9 @@ mod tests {
 
     #[test]
     fn accepts_exponent_capture_group() {
-        let filter = SearchFilter::new(
-            "cpu=([-+]?\\d+(\\.\\d+)?([eE][-+]?\\d+)?)".to_owned(),
-            true,
-            true,
-            false,
-        );
+        let filter = SearchFilter::plain("cpu=([-+]?\\d+(\\.\\d+)?([eE][-+]?\\d+)?)")
+            .regex(true)
+            .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
             SearchValueEligibility::Eligible

@@ -240,21 +240,11 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let mut data = ChartsData::default();
 
-        let first = FilterDefinition::new(SearchFilter::new(
-            "status=ok".to_owned(),
-            false,
-            true,
-            false,
-        ));
+        let first = FilterDefinition::new(SearchFilter::plain("status=ok").ignore_case(true));
         let first_id = first.id;
         registry.add_filter(first);
 
-        let second = FilterDefinition::new(SearchFilter::new(
-            "status=warn".to_owned(),
-            false,
-            true,
-            false,
-        ));
+        let second = FilterDefinition::new(SearchFilter::plain("status=warn").ignore_case(true));
         let second_id = second.id;
         registry.add_filter(second);
 
@@ -291,21 +281,19 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let mut data = ChartsData::default();
 
-        let first = SearchValueDefinition::new(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        let first = SearchValueDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let first_id = first.id;
         registry.add_search_value(first);
 
-        let second = SearchValueDefinition::new(SearchFilter::new(
-            "temp=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        let second = SearchValueDefinition::new(
+            SearchFilter::plain("temp=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let second_id = second.id;
         registry.add_search_value(second);
 
