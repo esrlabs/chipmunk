@@ -40,6 +40,12 @@ pub enum SessionCommand {
     /// Request details for a specific log line.
     GetSelectedLog(u64),
 
+    /// Insert a bookmark for the provided stream row.
+    AddBookmark(u64),
+
+    /// Remove a bookmark from the provided stream row.
+    RemoveBookmark(u64),
+
     // --- Blocking Commands ---
     /// Synchronously fetches log lines for main table within the provided range.
     ///
