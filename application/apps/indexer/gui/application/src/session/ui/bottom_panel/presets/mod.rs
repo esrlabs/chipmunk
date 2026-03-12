@@ -2,7 +2,7 @@ use egui::{Align, Layout, RichText, ScrollArea, Ui};
 
 use crate::{
     common::phosphor::icons,
-    common::search_value_validation::SearchValueEligibility,
+    common::validation::ValidationEligibility,
     host::ui::{
         UiActions,
         registry::filters::{FilterDefinition, FilterRegistry},
@@ -95,10 +95,10 @@ impl PresetsUI {
 
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 let eligibility_btn = match &eligibility {
-                                    SearchValueEligibility::Eligible => ui
+                                    ValidationEligibility::Eligible => ui
                                         .label(RichText::new(icons::regular::CHECK).size(12.0))
                                         .on_hover_text("Eligible to convert into search value."),
-                                    SearchValueEligibility::Ineligible { reason } => ui
+                                    ValidationEligibility::Ineligible { reason } => ui
                                         .label(RichText::new(icons::regular::X).size(12.0))
                                         .on_hover_text(reason),
                                 };
