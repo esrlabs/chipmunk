@@ -1,8 +1,6 @@
-use crate::{
-    common::search_value_validation::{SearchValueEligibility, validate_search_value_filter},
-    host::common::colors::{self, ColorPair},
+use crate::common::search_value_validation::{
+    SearchValueEligibility, validate_search_value_filter,
 };
-use egui::Color32;
 use processor::search::filter::SearchFilter;
 use rustc_hash::{FxHashMap, FxHashSet};
 use uuid::Uuid;
@@ -12,19 +10,17 @@ use uuid::Uuid;
 pub struct FilterDefinition {
     pub id: Uuid,
     pub filter: SearchFilter,
-    pub colors: ColorPair,
     pub search_value_eligibility: SearchValueEligibility,
 }
 
 impl FilterDefinition {
     /// Creates a registry-owned filter definition and caches whether it can
     /// later be converted into a search value.
-    pub fn new(filter: SearchFilter, colors: ColorPair) -> Self {
+    pub fn new(filter: SearchFilter) -> Self {
         let search_value_eligibility = validate_search_value_filter(&filter);
         Self {
             id: Uuid::new_v4(),
             filter,
-            colors,
             search_value_eligibility,
         }
     }
@@ -35,16 +31,14 @@ impl FilterDefinition {
 pub struct SearchValueDefinition {
     pub id: Uuid,
     pub filter: SearchFilter,
-    pub color: Color32,
 }
 
 impl SearchValueDefinition {
-    /// Creates a registry-owned search value definition with its chart color.
-    pub fn new(filter: SearchFilter, color: Color32) -> Self {
+    /// Creates a registry-owned search value definition.
+    pub fn new(filter: SearchFilter) -> Self {
         Self {
             id: Uuid::new_v4(),
             filter,
-            color,
         }
     }
 }
@@ -67,11 +61,6 @@ impl FilterRegistry {
         self.filters.get(id)
     }
 
-    /// Returns mutable filter access for UI-only edits such as color changes.
-    pub fn get_filter_mut(&mut self, id: &Uuid) -> Option<&mut FilterDefinition> {
-        self.filters.get_mut(id)
-    }
-
     /// Exposes the full filter registry for read-only library views.
     pub fn filters_map(&self) -> &FxHashMap<Uuid, FilterDefinition> {
         &self.filters
@@ -80,11 +69,6 @@ impl FilterRegistry {
     /// Returns the immutable search value definition used by UI rendering and sync.
     pub fn get_search_value(&self, id: &Uuid) -> Option<&SearchValueDefinition> {
         self.search_values.get(id)
-    }
-
-    /// Returns mutable search-value access for UI-only edits such as color changes.
-    pub fn get_search_value_mut(&mut self, id: &Uuid) -> Option<&mut SearchValueDefinition> {
-        self.search_values.get_mut(id)
     }
 
     /// Exposes the full search-value registry for read-only library views.
@@ -189,15 +173,7 @@ impl FilterRegistry {
             return None;
         }
 
-        let used_colors: Vec<_> = self
-            .search_values
-            .values()
-            .map(|value| value.color)
-            .collect();
-        let search_value_def = SearchValueDefinition::new(
-            filter_def.filter.clone(),
-            colors::next_search_value_color(&used_colors),
-        );
+        let search_value_def = SearchValueDefinition::new(filter_def.filter.clone());
         let search_value_id = search_value_def.id;
         self.add_search_value(search_value_def);
 
@@ -214,15 +190,7 @@ impl FilterRegistry {
     /// by other sessions. If it is still in use elsewhere, both definitions are kept.
     pub fn convert_value_to_filter(&mut self, value_id: Uuid, session_id: Uuid) -> Option<Uuid> {
         let value_def = self.get_search_value(&value_id)?;
-        let used_colors: Vec<_> = self
-            .filters
-            .values()
-            .map(|filter| filter.colors.clone())
-            .collect();
-        let filter_def = FilterDefinition::new(
-            value_def.filter.clone(),
-            colors::next_filter_color(&used_colors),
-        );
+        let filter_def = FilterDefinition::new(value_def.filter.clone());
         let filter_id = filter_def.id;
         self.add_filter(filter_def);
 
@@ -253,10 +221,12 @@ mod tests {
     fn convert_filter_to_value_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
-        let filter_def = FilterDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
+        let filter_def = FilterDefinition::new(SearchFilter::new(
+            "cpu=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
         registry.apply_filter_to_session(filter_id, session_id);
@@ -274,10 +244,12 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let other_session_id = Uuid::new_v4();
-        let filter_def = FilterDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
+        let filter_def = FilterDefinition::new(SearchFilter::new(
+            "cpu=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
         registry.apply_filter_to_session(filter_id, session_id);
@@ -292,116 +264,15 @@ mod tests {
     }
 
     #[test]
-    fn convert_filter_to_value_uses_palette() {
-        let mut registry = FilterRegistry::default();
-        let session_id = Uuid::new_v4();
-        let filter_def = FilterDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
-        let filter_id = filter_def.id;
-        registry.add_filter(filter_def);
-        registry.apply_filter_to_session(filter_id, session_id);
-
-        let value_id = registry
-            .convert_filter_to_value(filter_id, session_id)
-            .expect("eligible filter should convert");
-
-        assert_eq!(
-            registry
-                .get_search_value(&value_id)
-                .map(|value| value.color),
-            Some(colors::search_value_color(0))
-        );
-    }
-
-    #[test]
-    fn filter_color_mutation_updates_stored_pair() {
-        let mut registry = FilterRegistry::default();
-        let filter_def = FilterDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
-        let filter_id = filter_def.id;
-        registry.add_filter(filter_def);
-
-        let filter = registry
-            .get_filter_mut(&filter_id)
-            .expect("filter should exist");
-        filter.colors.fg = Color32::WHITE;
-        filter.colors.bg = Color32::BLACK;
-
-        let stored = registry
-            .get_filter(&filter_id)
-            .expect("filter should still exist");
-        assert_eq!(stored.colors.fg, Color32::WHITE);
-        assert_eq!(stored.colors.bg, Color32::BLACK);
-    }
-
-    #[test]
-    fn filter_to_value_reuses_color() {
-        let mut registry = FilterRegistry::default();
-        let session_id = Uuid::new_v4();
-
-        let first = FilterDefinition::new(
-            SearchFilter::new("a=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
-        let first_id = first.id;
-        registry.add_filter(first);
-        registry.apply_filter_to_session(first_id, session_id);
-
-        let second = FilterDefinition::new(
-            SearchFilter::new("b=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[1].clone(),
-        );
-        let second_id = second.id;
-        registry.add_filter(second);
-        registry.apply_filter_to_session(second_id, session_id);
-
-        let first_value_id = registry
-            .convert_filter_to_value(first_id, session_id)
-            .expect("first filter should convert");
-        let second_value_id = registry
-            .convert_filter_to_value(second_id, session_id)
-            .expect("second filter should convert");
-
-        registry.remove_search_value(&first_value_id);
-
-        let third = FilterDefinition::new(
-            SearchFilter::new("c=(\\d+)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[2].clone(),
-        );
-        let third_id = third.id;
-        registry.add_filter(third);
-        registry.apply_filter_to_session(third_id, session_id);
-
-        let third_value_id = registry
-            .convert_filter_to_value(third_id, session_id)
-            .expect("third filter should convert");
-
-        assert_eq!(
-            registry
-                .get_search_value(&second_value_id)
-                .map(|value| value.color),
-            Some(colors::search_value_color(1))
-        );
-        assert_eq!(
-            registry
-                .get_search_value(&third_value_id)
-                .map(|value| value.color),
-            Some(colors::search_value_color(0))
-        );
-    }
-
-    #[test]
     fn convert_value_to_filter_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
-        let value_def = SearchValueDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            Color32::LIGHT_BLUE,
-        );
+        let value_def = SearchValueDefinition::new(SearchFilter::new(
+            "cpu=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
         let value_id = value_def.id;
         registry.add_search_value(value_def);
         registry.apply_search_value_to_session(value_id, session_id);
@@ -415,34 +286,11 @@ mod tests {
     }
 
     #[test]
-    fn chart_color_mutation_updates_stored_color() {
-        let mut registry = FilterRegistry::default();
-        let value_def = SearchValueDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            Color32::LIGHT_BLUE,
-        );
-        let value_id = value_def.id;
-        registry.add_search_value(value_def);
-
-        let value = registry
-            .get_search_value_mut(&value_id)
-            .expect("search value should exist");
-        value.color = Color32::LIGHT_RED;
-
-        let stored = registry
-            .get_search_value(&value_id)
-            .expect("search value should still exist");
-        assert_eq!(stored.color, Color32::LIGHT_RED);
-    }
-
-    #[test]
     fn filter_to_value_rejects_ineligible() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
-        let filter_def = FilterDefinition::new(
-            SearchFilter::new("cpu=(abc)".to_owned(), true, true, false),
-            colors::FILTER_HIGHLIGHT_COLORS[0].clone(),
-        );
+        let filter_def =
+            FilterDefinition::new(SearchFilter::new("cpu=(abc)".to_owned(), true, true, false));
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
 
@@ -453,58 +301,27 @@ mod tests {
     }
 
     #[test]
-    fn value_to_filter_reuses_color() {
+    fn convert_value_to_filter_keeps_shared_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
+        let other_session_id = Uuid::new_v4();
 
-        let first = SearchValueDefinition::new(
-            SearchFilter::new("a=(\\d+)".to_owned(), true, true, false),
-            colors::search_value_color(0),
-        );
-        let first_id = first.id;
-        registry.add_search_value(first);
-        registry.apply_search_value_to_session(first_id, session_id);
+        let value_def = SearchValueDefinition::new(SearchFilter::new(
+            "cpu=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
+        let value_id = value_def.id;
+        registry.add_search_value(value_def);
+        registry.apply_search_value_to_session(value_id, session_id);
+        registry.apply_search_value_to_session(value_id, other_session_id);
 
-        let second = SearchValueDefinition::new(
-            SearchFilter::new("b=(\\d+)".to_owned(), true, true, false),
-            colors::search_value_color(1),
-        );
-        let second_id = second.id;
-        registry.add_search_value(second);
-        registry.apply_search_value_to_session(second_id, session_id);
+        let filter_id = registry
+            .convert_value_to_filter(value_id, session_id)
+            .expect("search value should convert");
 
-        let first_filter_id = registry
-            .convert_value_to_filter(first_id, session_id)
-            .expect("first value should convert");
-        let second_filter_id = registry
-            .convert_value_to_filter(second_id, session_id)
-            .expect("second value should convert");
-
-        registry.remove_filter(&first_filter_id);
-
-        let third = SearchValueDefinition::new(
-            SearchFilter::new("c=(\\d+)".to_owned(), true, true, false),
-            colors::search_value_color(2),
-        );
-        let third_id = third.id;
-        registry.add_search_value(third);
-        registry.apply_search_value_to_session(third_id, session_id);
-
-        let third_filter_id = registry
-            .convert_value_to_filter(third_id, session_id)
-            .expect("third value should convert");
-
-        assert_eq!(
-            registry
-                .get_filter(&second_filter_id)
-                .map(|filter| filter.colors.clone()),
-            Some(colors::FILTER_HIGHLIGHT_COLORS[1].clone())
-        );
-        assert_eq!(
-            registry
-                .get_filter(&third_filter_id)
-                .map(|filter| filter.colors.clone()),
-            Some(colors::FILTER_HIGHLIGHT_COLORS[0].clone())
-        );
+        assert!(registry.get_search_value(&value_id).is_some());
+        assert!(registry.get_filter(&filter_id).is_some());
     }
 }

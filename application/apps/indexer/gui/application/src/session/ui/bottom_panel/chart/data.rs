@@ -99,7 +99,7 @@ impl ChartsData {
             self.series.push(HistogramSeries {
                 filter_idx,
                 name: filter_def.filter.value.clone(),
-                color: filter_def.colors.bg,
+                color: item.colors.bg,
             });
         }
 
@@ -140,7 +140,7 @@ impl ChartsData {
             self.search_value_series.push(SearchValueSeries {
                 value_idx,
                 name: value_def.filter.value.clone(),
-                color: value_def.color,
+                color: item.color,
             });
         }
     }
@@ -171,8 +171,8 @@ mod tests {
 
     use crate::{
         host::{
-            common::parsers::ParserNames,
-            ui::registry::filters::{FilterRegistry, SearchValueDefinition},
+            common::{colors::ColorPair, parsers::ParserNames},
+            ui::registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
         },
         session::{
             types::ObserveOperation,
@@ -180,7 +180,7 @@ mod tests {
         },
     };
 
-    use super::{ChartBar, ChartsData};
+    use super::*;
 
     fn new_shared() -> SessionShared {
         let session_id = Uuid::new_v4();
@@ -235,22 +235,77 @@ mod tests {
     }
 
     #[test]
+    fn resolve_histogram_series_uses_session_colors() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let mut data = ChartsData::default();
+
+        let first = FilterDefinition::new(SearchFilter::new(
+            "status=ok".to_owned(),
+            false,
+            true,
+            false,
+        ));
+        let first_id = first.id;
+        registry.add_filter(first);
+
+        let second = FilterDefinition::new(SearchFilter::new(
+            "status=warn".to_owned(),
+            false,
+            true,
+            false,
+        ));
+        let second_id = second.id;
+        registry.add_filter(second);
+
+        shared.filters.apply_filter(&mut registry, first_id);
+        shared
+            .filters
+            .filter_entries
+            .iter_mut()
+            .find(|item| item.id == first_id)
+            .expect("first filter should exist")
+            .colors = ColorPair::new(Color32::WHITE, Color32::RED);
+
+        shared.filters.apply_filter(&mut registry, second_id);
+        shared
+            .filters
+            .filter_entries
+            .iter_mut()
+            .find(|item| item.id == second_id)
+            .expect("second filter should exist")
+            .colors = ColorPair::new(Color32::BLACK, Color32::GREEN);
+
+        data.resolve_histogram_series(&shared, &registry);
+
+        assert_eq!(data.series.len(), 2);
+        assert_eq!(data.series[0].name, "status=ok");
+        assert_eq!(data.series[0].color, Color32::RED);
+        assert_eq!(data.series[1].name, "status=warn");
+        assert_eq!(data.series[1].color, Color32::GREEN);
+    }
+
+    #[test]
     fn resolve_value_series_skips_missing() {
         let mut shared = new_shared();
         let mut registry = FilterRegistry::default();
         let mut data = ChartsData::default();
 
-        let first = SearchValueDefinition::new(
-            SearchFilter::new("cpu=(\\d+)".to_owned(), true, true, false),
-            Color32::RED,
-        );
+        let first = SearchValueDefinition::new(SearchFilter::new(
+            "cpu=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
         let first_id = first.id;
         registry.add_search_value(first);
 
-        let second = SearchValueDefinition::new(
-            SearchFilter::new("temp=(\\d+)".to_owned(), true, true, false),
-            Color32::GREEN,
-        );
+        let second = SearchValueDefinition::new(SearchFilter::new(
+            "temp=(\\d+)".to_owned(),
+            true,
+            true,
+            false,
+        ));
         let second_id = second.id;
         registry.add_search_value(second);
 
@@ -259,8 +314,22 @@ mod tests {
         shared.filters.apply_search_value(&mut registry, first_id);
         shared
             .filters
+            .search_value_entries
+            .iter_mut()
+            .find(|item| item.id == first_id)
+            .expect("first search value should exist")
+            .color = Color32::RED;
+        shared
+            .filters
             .apply_search_value(&mut registry, Uuid::new_v4());
         shared.filters.apply_search_value(&mut registry, second_id);
+        shared
+            .filters
+            .search_value_entries
+            .iter_mut()
+            .find(|item| item.id == second_id)
+            .expect("second search value should exist")
+            .color = Color32::GREEN;
 
         data.resolve_search_value_series(&shared, &registry);
 

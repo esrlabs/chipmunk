@@ -50,7 +50,7 @@ impl SearchUI {
             // they will be used as identifiers for table state to avoid ID clashes between
             // tables from different tabs (different sessions).
             ui.push_id(shared.get_id(), |ui| {
-                self.table.render_content(shared, actions, registry, ui);
+                self.table.render_content(shared, actions, ui);
             });
         }
     }
