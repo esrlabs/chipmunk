@@ -12,16 +12,11 @@ pub struct SearchFilter {
 }
 
 impl SearchFilter {
-    pub fn new(value: String, is_regex: bool, ignore_case: bool, is_word: bool) -> Self {
-        SearchFilter {
-            value,
-            is_regex,
-            ignore_case,
-            is_word,
-        }
-    }
-
-    pub fn plain(value: &str) -> Self {
+    /// Creates a plain-text filter with all optional flags disabled.
+    ///
+    /// This is the canonical entrypoint; enable regex, case-insensitive,
+    /// or word-boundary behavior with the builder-style flag setters.
+    pub fn plain(value: impl Into<String>) -> Self {
         SearchFilter {
             value: value.into(),
             is_regex: false,
@@ -30,41 +25,41 @@ impl SearchFilter {
         }
     }
 
-    /// Validate filter. Checks possibility to convert filter
-    /// to RegEx considering filter's options
-    ///
-    /// # Returns
-    ///
-    /// `true` in case of valid condition; `false` - invalid
-    ///
+    /// Returns whether the filter can be compiled into its effective regex form.
     pub fn valid(&self) -> bool {
         get_filter_error(self).is_none()
     }
 
+    /// Returns whether `value` is treated as a raw regex pattern.
     pub fn is_regex(&self) -> bool {
         self.is_regex
     }
 
-    pub fn ignore_case_flag(&self) -> bool {
+    /// Returns whether matching should ignore letter case.
+    pub fn is_ignore_case(&self) -> bool {
         self.ignore_case
     }
 
+    /// Returns whether the filter is wrapped in word boundaries.
     pub fn is_word(&self) -> bool {
         self.is_word
     }
 
+    /// Sets case-insensitive matching for the filter builder.
     #[must_use]
     pub fn ignore_case(mut self, ignore: bool) -> Self {
         self.ignore_case = ignore;
         self
     }
 
+    /// Sets whether `value` should be interpreted as a raw regex pattern.
     #[must_use]
     pub fn regex(mut self, regex: bool) -> Self {
         self.is_regex = regex;
         self
     }
 
+    /// Sets whether the effective regex is wrapped in word boundaries.
     #[must_use]
     pub fn word(mut self, word: bool) -> Self {
         self.is_word = word;
@@ -97,4 +92,43 @@ pub fn as_alias(filter: &SearchFilter) -> String {
         "{}:{}{}{}",
         filter.value, is_regex, ignore_case, word_marker
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SearchFilter, as_alias, as_regex};
+
+    #[test]
+    fn as_regex_escapes_plain_text() {
+        let filter = SearchFilter::plain("cpu=(1.0)");
+
+        assert_eq!(as_regex(&filter), "cpu=\\(1\\.0\\)");
+    }
+
+    #[test]
+    fn as_regex_preserves_regex_with_flags() {
+        let filter = SearchFilter::plain("cpu=(\\d+)")
+            .regex(true)
+            .ignore_case(true)
+            .word(true);
+
+        assert_eq!(as_regex(&filter), "(?i)\\bcpu=(\\d+)\\b(?-i)");
+    }
+
+    #[test]
+    fn as_alias_encodes_disabled_flags() {
+        let filter = SearchFilter::plain("status=ok");
+
+        assert_eq!(as_alias(&filter), "status=ok:000");
+    }
+
+    #[test]
+    fn as_alias_encodes_enabled_flags_in_order() {
+        let filter = SearchFilter::plain("cpu=(\\d+)")
+            .regex(true)
+            .ignore_case(true)
+            .word(true);
+
+        assert_eq!(as_alias(&filter), "cpu=(\\d+):111");
+    }
 }

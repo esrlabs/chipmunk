@@ -319,14 +319,14 @@ mod tests {
     }
 
     fn add_plain_filter_definition(registry: &mut FilterRegistry, value: &str) -> Uuid {
-        let def = FilterDefinition::new(SearchFilter::new(value.to_owned(), false, true, false));
+        let def = FilterDefinition::new(SearchFilter::plain(value).ignore_case(true));
         let id = def.id;
         registry.add_filter(def);
         id
     }
 
     fn add_regex_filter_definition(registry: &mut FilterRegistry, value: &str) -> Uuid {
-        let def = FilterDefinition::new(SearchFilter::new(value.to_owned(), true, true, false));
+        let def = FilterDefinition::new(SearchFilter::plain(value).regex(true).ignore_case(true));
         let id = def.id;
         registry.add_filter(def);
         id
@@ -334,7 +334,7 @@ mod tests {
 
     fn add_search_value_definition(registry: &mut FilterRegistry, value: &str) -> Uuid {
         let def =
-            SearchValueDefinition::new(SearchFilter::new(value.to_owned(), true, true, false));
+            SearchValueDefinition::new(SearchFilter::plain(value).regex(true).ignore_case(true));
         let id = def.id;
         registry.add_search_value(def);
         id
@@ -497,12 +497,7 @@ mod tests {
     fn pinning_temp_search_assigns_filter_color() {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
-        state.set_temp_search(SearchFilter::new(
-            "status=ok".to_owned(),
-            false,
-            true,
-            false,
-        ));
+        state.set_temp_search(SearchFilter::plain("status=ok").ignore_case(true));
 
         state.pin_temp_search(&mut registry);
 
@@ -517,12 +512,11 @@ mod tests {
     fn pinning_temp_search_as_value_assigns_chart_color() {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
-        state.set_temp_search(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        state.set_temp_search(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
 
         assert!(state.pin_temp_search_as_value(&mut registry));
 

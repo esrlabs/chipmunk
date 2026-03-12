@@ -221,12 +221,11 @@ mod tests {
     fn convert_filter_to_value_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
-        let filter_def = FilterDefinition::new(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        let filter_def = FilterDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
         registry.apply_filter_to_session(filter_id, session_id);
@@ -244,12 +243,11 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
         let other_session_id = Uuid::new_v4();
-        let filter_def = FilterDefinition::new(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        let filter_def = FilterDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
         registry.apply_filter_to_session(filter_id, session_id);
@@ -267,12 +265,11 @@ mod tests {
     fn convert_value_to_filter_removes_source() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
-        let value_def = SearchValueDefinition::new(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let value_id = value_def.id;
         registry.add_search_value(value_def);
         registry.apply_search_value_to_session(value_id, session_id);
@@ -289,8 +286,11 @@ mod tests {
     fn filter_to_value_rejects_ineligible() {
         let mut registry = FilterRegistry::default();
         let session_id = Uuid::new_v4();
-        let filter_def =
-            FilterDefinition::new(SearchFilter::new("cpu=(abc)".to_owned(), true, true, false));
+        let filter_def = FilterDefinition::new(
+            SearchFilter::plain("cpu=(abc)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let filter_id = filter_def.id;
         registry.add_filter(filter_def);
 
@@ -306,12 +306,11 @@ mod tests {
         let session_id = Uuid::new_v4();
         let other_session_id = Uuid::new_v4();
 
-        let value_def = SearchValueDefinition::new(SearchFilter::new(
-            "cpu=(\\d+)".to_owned(),
-            true,
-            true,
-            false,
-        ));
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
         let value_id = value_def.id;
         registry.add_search_value(value_def);
         registry.apply_search_value_to_session(value_id, session_id);
