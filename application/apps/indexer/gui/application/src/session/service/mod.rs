@@ -227,6 +227,24 @@ impl SessionService {
                     .send_session_msg(SessionMessage::SelectedLog(selected_log))
                     .await;
             }
+            SessionCommand::AddBookmark(row) => {
+                self.session.add_bookmark(row).await?;
+                self.senders
+                    .send_session_msg(SessionMessage::BookmarkUpdated {
+                        row,
+                        is_bookmarked: true,
+                    })
+                    .await;
+            }
+            SessionCommand::RemoveBookmark(row) => {
+                self.session.remove_bookmark(row).await?;
+                self.senders
+                    .send_session_msg(SessionMessage::BookmarkUpdated {
+                        row,
+                        is_bookmarked: false,
+                    })
+                    .await;
+            }
             SessionCommand::GetChartHistogram { dataset_len, range } => {
                 let map = self
                     .session
@@ -396,24 +414,27 @@ impl SessionService {
                     .await;
             }
             CallbackEvent::SearchUpdated { found, stat: _ } => {
-                // TODO AAZ: For now I'm updating the total count of logs.
-                // But this will be changed once we got to multiple filters.
                 self.senders
-                    .send_session_msg(SessionMessage::SearchState { found_count: found })
+                    .send_session_msg(SessionMessage::SearchResultCountUpdated { count: found })
                     .await;
             }
             CallbackEvent::IndexedMapUpdated { len } => {
                 self.senders
-                    .send_session_msg(SessionMessage::SearchState { found_count: len })
+                    .send_session_msg(SessionMessage::IndexedCountUpdated { count: len })
                     .await;
             }
-            CallbackEvent::SearchMapUpdated(filter_matches) => {
-                if let Some(list) = filter_matches {
+            CallbackEvent::SearchMapUpdated(filter_matches) => match filter_matches {
+                Some(list) => {
                     self.senders
                         .send_session_msg(SessionMessage::SearchResults(list.0))
                         .await;
                 }
-            }
+                None => {
+                    self.senders
+                        .send_session_msg(SessionMessage::SearchResultsCleared)
+                        .await;
+                }
+            },
             CallbackEvent::SearchValuesUpdated(values_matches) => {
                 self.senders
                     .send_session_msg(SessionMessage::ChartSearchValues(values_matches))

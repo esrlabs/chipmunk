@@ -257,6 +257,22 @@ mod tests {
     }
 
     #[test]
+    fn drop_search_updates_counts() {
+        let mut shared = new_shared();
+        shared.search.set_search_operation(Uuid::new_v4());
+        shared.search.set_search_result_count(4);
+        shared.search.set_indexed_result_count(9);
+
+        shared.drop_search();
+
+        assert_eq!(shared.search.search_result_count(), 0);
+        assert_eq!(shared.search.indexed_result_count(), 5);
+        assert!(shared.search.current_matches_map().is_none());
+        assert!(shared.search.search_operation_phase().is_none());
+        assert_eq!(shared.signals, vec![SessionSignal::SearchDropped]);
+    }
+
+    #[test]
     fn filter_sync_drops_search() {
         let mut shared = new_shared();
         let registry = FilterRegistry::default();

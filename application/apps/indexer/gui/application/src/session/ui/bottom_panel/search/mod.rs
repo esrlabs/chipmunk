@@ -45,6 +45,7 @@ impl SearchUI {
             .search
             .search_operation_phase()
             .is_some_and(|ph| ph != OperationPhase::Initializing)
+            || !shared.logs.bookmarked_rows.is_empty()
         {
             // We need to give a unique id for the direct parent of each table because
             // they will be used as identifiers for table state to avoid ID clashes between
