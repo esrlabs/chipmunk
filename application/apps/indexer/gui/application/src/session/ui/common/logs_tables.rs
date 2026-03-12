@@ -9,7 +9,7 @@ use crate::{
     host::{
         common::colors::{SELECTED_LOG_COLORS, TEMP_SEARCH_COLORS},
         notification::AppNotification,
-        ui::{UiActions, registry::filters::FilterRegistry},
+        ui::UiActions,
     },
     session::{
         error::SessionError,
@@ -84,7 +84,6 @@ pub fn get_cell_frame() -> Frame {
 pub fn apply_log_row_colors(
     ui: &mut Ui,
     shared: &SessionShared,
-    registry: &FilterRegistry,
     main_log_pos: Option<u64>,
     is_selected: bool,
 ) {
@@ -99,8 +98,13 @@ pub fn apply_log_row_colors(
             .and_then(|matches| matches.first())
             .and_then(|filter_idx| {
                 let idx = filter_idx.0 as usize;
-                if let Some(filter) = shared.filters.enabled_filter_ids().nth(idx) {
-                    registry.get_filter(filter).map(|def| &def.colors)
+                if let Some(filter_id) = shared.filters.enabled_filter_ids().nth(idx) {
+                    shared
+                        .filters
+                        .filter_entries
+                        .iter()
+                        .find(|item| item.id == *filter_id)
+                        .map(|item| &item.colors)
                 } else {
                     // This is the temporary unregistered search.
                     Some(&TEMP_SEARCH_COLORS)

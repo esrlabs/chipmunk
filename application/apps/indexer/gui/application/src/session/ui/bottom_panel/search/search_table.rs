@@ -6,7 +6,7 @@ use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::ui::{UiActions, registry::filters::FilterRegistry},
+    host::ui::UiActions,
     session::{
         command::SessionCommand,
         error::SessionError,
@@ -54,7 +54,6 @@ impl SearchTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
-        registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
         let mut table = egui_table::Table::new()
@@ -71,7 +70,7 @@ impl SearchTable {
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
 
-        let mut delegate = LogsDelegate::new(self, shared, actions, registry);
+        let mut delegate = LogsDelegate::new(self, shared, actions);
         table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
@@ -101,7 +100,6 @@ struct LogsDelegate<'a> {
     table: &'a mut SearchTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
-    registry: &'a FilterRegistry,
     request_repaint: bool,
     has_multi_sources: bool,
 }
@@ -111,14 +109,12 @@ impl<'a> LogsDelegate<'a> {
         table: &'a mut SearchTable,
         shared: &'a mut SessionShared,
         actions: &'a mut UiActions,
-        registry: &'a FilterRegistry,
     ) -> Self {
         let has_multi_sources = shared.observe.sources_count() > 1;
         Self {
             table,
             shared,
             actions,
-            registry,
             request_repaint: false,
             has_multi_sources,
         }
@@ -297,13 +293,7 @@ impl TableDelegate for LogsDelegate<'_> {
 
         let is_selected = self.is_row_selected(log_item);
         let main_log_pos = log_item.map(|item| item.element.pos as u64);
-        common::logs_tables::apply_log_row_colors(
-            ui,
-            self.shared,
-            self.registry,
-            main_log_pos,
-            is_selected,
-        );
+        common::logs_tables::apply_log_row_colors(ui, self.shared, main_log_pos, is_selected);
 
         if ui.response().interact(Sense::click()).clicked()
             && let Some(log_item) = log_item

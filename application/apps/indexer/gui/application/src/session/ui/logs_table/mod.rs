@@ -8,10 +8,7 @@ use stypes::{GrabbedElement, ObserveOrigin};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::ui::{
-        UiActions,
-        registry::{HostRegistry, filters::FilterRegistry},
-    },
+    host::ui::UiActions,
     session::{
         command::SessionCommand,
         error::SessionError,
@@ -54,7 +51,6 @@ impl LogsTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
-        registry: &HostRegistry,
         ui: &mut Ui,
     ) {
         let stick_to_bottom =
@@ -88,7 +84,7 @@ impl LogsTable {
             table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
         }
 
-        let mut delegate = LogsDelegate::new(self, shared, actions, &registry.filters);
+        let mut delegate = LogsDelegate::new(self, shared, actions);
         table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
@@ -102,7 +98,6 @@ struct LogsDelegate<'a> {
     table: &'a mut LogsTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
-    registry: &'a FilterRegistry,
     request_repaint: bool,
     has_multi_sources: bool,
 }
@@ -112,14 +107,12 @@ impl<'a> LogsDelegate<'a> {
         table: &'a mut LogsTable,
         shared: &'a mut SessionShared,
         actions: &'a mut UiActions,
-        registry: &'a FilterRegistry,
     ) -> Self {
         let has_multi_sources = shared.observe.sources_count() > 1;
         Self {
             table,
             shared,
             actions,
-            registry,
             request_repaint: false,
             has_multi_sources,
         }
@@ -295,13 +288,7 @@ impl TableDelegate for LogsDelegate<'_> {
 
     fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
         let is_selected = self.is_row_selected(row_nr);
-        common::logs_tables::apply_log_row_colors(
-            ui,
-            self.shared,
-            self.registry,
-            Some(row_nr),
-            is_selected,
-        );
+        common::logs_tables::apply_log_row_colors(ui, self.shared, Some(row_nr), is_selected);
 
         if ui.response().interact(Sense::click()).clicked() {
             self.toggle_row_selected(row_nr, is_selected);
