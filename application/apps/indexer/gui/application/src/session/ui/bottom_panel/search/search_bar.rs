@@ -319,11 +319,11 @@ impl SearchBar {
         }
 
         ui.horizontal_centered(|ui| {
-            let percentage = shared.search.total_count() as f32 / logs_count as f32 * 100.;
+            let percentage = shared.search.search_result_count() as f32 / logs_count as f32 * 100.;
 
             let state_txt = format!(
                 "{}/{} ({percentage:.2}%)",
-                shared.search.total_count(),
+                shared.search.search_result_count(),
                 logs_count,
             );
             ui.label(state_txt);

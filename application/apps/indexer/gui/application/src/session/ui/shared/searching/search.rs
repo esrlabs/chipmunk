@@ -1,7 +1,7 @@
 //! Session-side state for the log search pipeline.
 //!
-//! [`SearchState`] tracks the active backend search operation, the reported result count, and the
-//! row-level match metadata used by the logs and search-result tables.
+//! [`SearchState`] tracks the active backend search operation, the lower-table counts derived from
+//! that pipeline, and the row-level match metadata used by the logs and search-result tables.
 //! It is specific to log searching; chart value extraction is tracked separately in
 //! [`SearchValuesState`](super::SearchValuesState).
 
@@ -38,10 +38,38 @@ impl SearchOperation {
     }
 }
 
+#[derive(Debug, Default)]
+struct SearchCounts {
+    /// Count of backend search matches only. Indexed-only rows like bookmarks are excluded.
+    search_result_count: u64,
+    /// Count of rows materialized in the indexed lower-table view.
+    ///
+    /// This includes the active search rows plus pinned indexed rows such as bookmarks.
+    indexed_result_count: u64,
+}
+
+impl SearchCounts {
+    /// Clears the tracked backend search matches while preserving indexed-only rows.
+    ///
+    /// The indexed lower-table count includes both search rows and pinned indexed rows such as
+    /// bookmarks, so only the search-owned portion is removed here.
+    fn reset_search_counts(&mut self) {
+        let Self {
+            search_result_count,
+            indexed_result_count,
+        } = self;
+
+        // `DropSearch` removes only search entries from the indexed map. The lower-table count
+        // therefore keeps whatever pinned rows were already present, such as bookmarks.
+        *indexed_result_count = indexed_result_count.saturating_sub(*search_result_count);
+        *search_result_count = 0;
+    }
+}
+
 #[derive(Debug)]
 pub struct SearchState {
     search_op: Option<SearchOperation>,
-    total_count: u64,
+    counts: SearchCounts,
     matches_map: Option<FxHashMap<LogMainIndex, Vec<FilterIndex>>>,
 }
 
@@ -49,20 +77,24 @@ impl SearchState {
     pub fn new(_session_id: Uuid) -> Self {
         Self {
             search_op: None,
-            total_count: 0,
+            counts: SearchCounts::default(),
             matches_map: None,
         }
     }
 
+    /// Clears all log-search state after the active search is dropped or replaced.
+    ///
+    /// This keeps the lower indexed count locally in sync with the drop-then-apply UI flow:
+    /// when search rows are removed, only the non-search indexed rows such as bookmarks remain.
     pub fn drop_search(&mut self) {
         let Self {
             search_op,
-            total_count,
+            counts,
             matches_map,
         } = self;
 
+        counts.reset_search_counts();
         *search_op = None;
-        *total_count = 0;
         *matches_map = None;
     }
 
@@ -84,25 +116,34 @@ impl SearchState {
         filters
     }
 
-    pub fn total_count(&self) -> u64 {
-        self.total_count
+    /// Returns the current backend search match count.
+    pub fn search_result_count(&self) -> u64 {
+        self.counts.search_result_count
     }
 
-    pub fn set_total_count(&mut self, total_count: u64) {
-        // total_count and matches_map can go currently out-of-sync when
-        // multiple search queries are applied rapidly.
-        // This solution is a workaround until the issue is fixed in core.
-        if total_count == 0 {
-            self.matches_map = None;
-        }
-
-        self.total_count = total_count;
+    /// Returns the current lower-table indexed count.
+    ///
+    /// This may include search rows, bookmarks, and other indexed entries owned by the backend.
+    pub fn indexed_result_count(&self) -> u64 {
+        self.counts.indexed_result_count
     }
 
+    /// Updates the backend search match count without touching indexed-only rows.
+    pub fn set_search_result_count(&mut self, count: u64) {
+        self.counts.search_result_count = count;
+    }
+
+    /// Updates the current lower-table indexed count from backend indexed-map notifications.
+    pub fn set_indexed_result_count(&mut self, count: u64) {
+        self.counts.indexed_result_count = count;
+    }
+
+    /// Starts tracking a new search operation and resets its phase to initializing.
     pub fn set_search_operation(&mut self, operation_id: Uuid) {
         self.search_op = Some(SearchOperation::new(operation_id));
     }
 
+    /// Returns the active operation ID while the search is still running.
     pub fn processing_search_operation(&self) -> Option<Uuid> {
         self.search_op.as_ref().and_then(|op| {
             if op.phase != OperationPhase::Done {
@@ -121,6 +162,7 @@ impl SearchState {
         self.search_op.is_some()
     }
 
+    /// Updates the tracked operation phase when the callback belongs to the active search.
     pub fn update_operation(
         &mut self,
         operation_id: Uuid,
@@ -136,6 +178,7 @@ impl SearchState {
         }
     }
 
+    /// Merges incremental backend match updates into the row-level match map.
     pub fn append_matches(&mut self, filter_matches: Vec<FilterMatch>) {
         let Some(operation) = &mut self.search_op else {
             return;
@@ -151,15 +194,131 @@ impl SearchState {
                 mat.filters.into_iter().map(FilterIndex).collect(),
             );
         });
-
-        debug_assert_eq!(
-            matches_map.len() as u64,
-            self.total_count,
-            "Search count and matches length can't go out of sync"
-        );
     }
 
+    /// Clears row-level matches and the reported result count while preserving operation state.
+    ///
+    /// This is used when the backend search-map payload is removed without treating it as a full
+    /// local `drop_search()` reset.
+    pub fn clear_matches(&mut self) {
+        let Self {
+            search_op: _,
+            counts,
+            matches_map,
+        } = self;
+
+        counts.reset_search_counts();
+        *matches_map = None;
+    }
+
+    /// Returns the per-row filter matches used for row coloring and search-table highlights.
     pub fn current_matches_map(&self) -> Option<&FxHashMap<LogMainIndex, Vec<FilterIndex>>> {
         self.matches_map.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use crate::session::{types::OperationPhase, ui::definitions::UpdateOperationOutcome};
+
+    use super::{SearchCounts, SearchState};
+
+    fn sample_match() -> stypes::FilterMatch {
+        stypes::FilterMatch {
+            index: 42,
+            filters: vec![1, 3],
+        }
+    }
+
+    #[test]
+    fn zero_count_keeps_pinned() {
+        let mut counts = SearchCounts {
+            search_result_count: 4,
+            indexed_result_count: 9,
+        };
+
+        counts.reset_search_counts();
+
+        assert_eq!(counts.search_result_count, 0);
+        assert_eq!(counts.indexed_result_count, 5);
+    }
+
+    #[test]
+    fn zero_count_saturates() {
+        let mut counts = SearchCounts {
+            search_result_count: 4,
+            indexed_result_count: 2,
+        };
+
+        counts.reset_search_counts();
+
+        assert_eq!(counts.search_result_count, 0);
+        assert_eq!(counts.indexed_result_count, 0);
+    }
+
+    #[test]
+    fn clear_matches_keeps_phase() {
+        let operation_id = Uuid::new_v4();
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_operation(operation_id);
+        state.set_search_result_count(2);
+        state.set_indexed_result_count(7);
+        state.append_matches(vec![sample_match()]);
+
+        state.clear_matches();
+
+        assert!(state.processing_search_operation().is_none());
+        assert_eq!(state.search_operation_phase(), Some(OperationPhase::Done));
+        assert_eq!(state.search_result_count(), 0);
+        assert_eq!(state.indexed_result_count(), 5);
+        assert!(state.current_matches_map().is_none());
+        let outcome = state.update_operation(operation_id, OperationPhase::Processing);
+        assert!(matches!(outcome, UpdateOperationOutcome::Consumed));
+    }
+
+    #[test]
+    fn drop_search_syncs_counts() {
+        let operation_id = Uuid::new_v4();
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_operation(operation_id);
+        state.set_search_result_count(4);
+        state.set_indexed_result_count(9);
+        state.append_matches(vec![sample_match()]);
+
+        state.drop_search();
+
+        assert!(state.processing_search_operation().is_none());
+        assert!(state.search_operation_phase().is_none());
+        assert_eq!(state.search_result_count(), 0);
+        assert_eq!(state.indexed_result_count(), 5);
+        assert!(state.current_matches_map().is_none());
+    }
+
+    #[test]
+    fn drop_search_saturates_indexed() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_result_count(4);
+        state.set_indexed_result_count(2);
+
+        state.drop_search();
+
+        assert_eq!(state.search_result_count(), 0);
+        assert_eq!(state.indexed_result_count(), 0);
+    }
+
+    #[test]
+    fn update_operation_ignores_other() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_operation(Uuid::new_v4());
+
+        let outcome = state.update_operation(Uuid::new_v4(), OperationPhase::Processing);
+
+        assert!(matches!(outcome, UpdateOperationOutcome::None));
+        assert_eq!(
+            state.search_operation_phase(),
+            Some(OperationPhase::Initializing)
+        );
     }
 }

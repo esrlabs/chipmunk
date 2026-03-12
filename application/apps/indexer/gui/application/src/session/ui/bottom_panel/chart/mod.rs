@@ -142,7 +142,7 @@ impl ChartUI {
 
     /// Returns whether the chart has enough active search state to request data.
     fn has_chart_request_context(shared: &SessionShared) -> bool {
-        shared.search.total_count() > 0
+        shared.search.search_result_count() > 0
             || shared.search_values.current_values_map().is_some()
             || shared.search_values.operation_phase().is_some()
     }
@@ -566,7 +566,7 @@ mod tests {
     #[test]
     fn chart_updates_follow_full_range() {
         let mut shared = new_shared(10);
-        shared.search.set_total_count(5);
+        shared.search.set_search_result_count(5);
         let mut chart = new_chart();
         chart.requested_range = Some(0..=9);
 
@@ -580,7 +580,7 @@ mod tests {
     #[test]
     fn chart_updates_keep_custom_range() {
         let mut shared = new_shared(10);
-        shared.search.set_total_count(5);
+        shared.search.set_search_result_count(5);
         let mut chart = new_chart();
         chart.viewport_mode = ChartViewportMode::Custom;
         chart.requested_range = Some(2..=7);

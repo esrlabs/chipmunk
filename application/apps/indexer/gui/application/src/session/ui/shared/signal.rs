@@ -2,8 +2,8 @@
 ///
 /// These signals are collected in `SessionShared` and processed by the
 /// `SessionUI` controller at the end of the frame to handle state changes
-/// that require mutable access to the parent.#[derive(Debug, Clone)]
-#[derive(Debug, Clone)]
+/// that require mutable access to the parent.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionSignal {
     /// Indicates that search has been dropped in last frame.
     SearchDropped,
