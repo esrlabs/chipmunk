@@ -1,30 +1,24 @@
+//! Validation rules for search-value definitions.
+//!
+//! Search values are stricter than filters because they must remain usable for
+//! numeric chart extraction. This validator keeps that contract in one place
+//! for every UI surface that creates or edits chart definitions.
+
+use crate::common::validation::ValidationEligibility;
 use processor::search::filter::{SearchFilter, get_filter_error};
 use regex_syntax::ast::{self, Ast};
 
-/// Eligibility state for converting a search filter into a search value.
-#[derive(Debug, Clone)]
-pub enum SearchValueEligibility {
-    Eligible,
-    Ineligible { reason: String },
-}
-
-impl SearchValueEligibility {
-    pub const fn is_eligible(&self) -> bool {
-        matches!(self, Self::Eligible)
-    }
-}
-
-pub fn validate_search_value_filter(filter: &SearchFilter) -> SearchValueEligibility {
+pub fn validate_search_value_filter(filter: &SearchFilter) -> ValidationEligibility {
     // Search values are regex-based extraction only.
     if !filter.is_regex() {
-        return SearchValueEligibility::Ineligible {
+        return ValidationEligibility::Ineligible {
             reason: "Search value requires Regex mode.".to_owned(),
         };
     }
 
     // Reuse the same filter compilation path used by the search pipeline.
     if let Some(error) = get_filter_error(filter) {
-        return SearchValueEligibility::Ineligible {
+        return ValidationEligibility::Ineligible {
             reason: format!("Invalid regex: {error}"),
         };
     }
@@ -32,26 +26,26 @@ pub fn validate_search_value_filter(filter: &SearchFilter) -> SearchValueEligibi
     let ast = match ast::parse::Parser::new().parse(&filter.value) {
         Ok(ast) => ast,
         Err(_) => {
-            return SearchValueEligibility::Ineligible {
+            return ValidationEligibility::Ineligible {
                 reason: "Regex cannot be analyzed for capture groups.".to_owned(),
             };
         }
     };
 
     let Some(first_capture) = first_capture_ast(&ast) else {
-        return SearchValueEligibility::Ineligible {
+        return ValidationEligibility::Ineligible {
             reason: "Regex must include at least one capture group.".to_owned(),
         };
     };
 
     // First capture group defines the value extracted to charts.
     if !is_numeric_capture(first_capture) {
-        return SearchValueEligibility::Ineligible {
+        return ValidationEligibility::Ineligible {
             reason: "First capture group must describe a numeric value.".to_owned(),
         };
     }
 
-    SearchValueEligibility::Eligible
+    ValidationEligibility::Eligible
 }
 
 fn first_capture_ast(ast: &Ast) -> Option<&Ast> {
@@ -178,7 +172,8 @@ fn is_allowed_numeric_char(c: char, state: &mut NumericState) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{SearchValueEligibility, validate_search_value_filter};
+    use super::validate_search_value_filter;
+    use crate::common::validation::ValidationEligibility;
     use processor::search::filter::SearchFilter;
 
     #[test]
@@ -186,7 +181,7 @@ mod tests {
         let filter = SearchFilter::plain("cpu=(\\d+)").ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -197,7 +192,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -208,7 +203,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -219,7 +214,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -230,7 +225,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -241,7 +236,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
         ));
     }
 
@@ -252,7 +247,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
         ));
     }
 
@@ -263,7 +258,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
         ));
     }
 
@@ -274,7 +269,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -285,7 +280,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
         ));
     }
 
@@ -296,7 +291,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Ineligible { .. }
+            ValidationEligibility::Ineligible { .. }
         ));
     }
 
@@ -307,7 +302,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
         ));
     }
 
@@ -319,10 +314,10 @@ mod tests {
         let result = validate_search_value_filter(&filter);
 
         match result {
-            SearchValueEligibility::Eligible => {
+            ValidationEligibility::Eligible => {
                 panic!("Invalid regex must not be eligible");
             }
-            SearchValueEligibility::Ineligible { reason } => {
+            ValidationEligibility::Ineligible { reason } => {
                 assert!(!reason.trim().is_empty());
             }
         }
@@ -335,7 +330,7 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
         ));
     }
 
@@ -346,7 +341,33 @@ mod tests {
             .ignore_case(true);
         assert!(matches!(
             validate_search_value_filter(&filter),
-            SearchValueEligibility::Eligible
+            ValidationEligibility::Eligible
+        ));
+    }
+
+    #[test]
+    fn eligible_has_no_reason() {
+        let filter = SearchFilter::plain("cpu=(\\d+)")
+            .regex(true)
+            .ignore_case(true);
+
+        let result = validate_search_value_filter(&filter);
+
+        assert!(matches!(result, ValidationEligibility::Eligible));
+    }
+
+    #[test]
+    fn invalid_exposes_reason() {
+        let filter = SearchFilter::plain("cpu=\\d+")
+            .regex(true)
+            .ignore_case(true);
+
+        let result = validate_search_value_filter(&filter);
+
+        assert!(matches!(
+            result,
+            ValidationEligibility::Ineligible { reason }
+            if reason == "Regex must include at least one capture group."
         ));
     }
 }
