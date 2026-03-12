@@ -8,8 +8,11 @@ use processor::search::filter::SearchFilter;
 
 use crate::{
     common::phosphor::{self, icons},
-    common::search_value_validation::SearchValueEligibility,
-    host::ui::{UiActions, registry::filters::FilterRegistry},
+    common::validation::{ValidationEligibility, validate_filter},
+    host::{
+        notification::AppNotification,
+        ui::{UiActions, registry::filters::FilterRegistry},
+    },
     session::{
         command::SessionCommand,
         types::OperationPhase,
@@ -75,19 +78,10 @@ impl SearchBar {
         // Apply temp filter on pressing enter.
         if enter_pressed {
             if !self.query.is_empty() {
-                let filter = SearchFilter::plain(std::mem::take(&mut self.query))
-                    .regex(self.is_regex)
-                    .ignore_case(!self.match_case)
-                    .word(self.is_word);
-
-                shared.filters.set_temp_search(filter);
-                shared
-                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
-                    .into_iter()
-                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
-            } else if shared.filters.active_temp_search.is_some() {
-                shared.filters.pin_temp_search(registry);
-
+                self.apply_temp_search(shared, actions, registry);
+            } else if shared.filters.active_temp_search.is_some()
+                && shared.filters.pin_temp_search(registry)
+            {
                 shared
                     .sync_search_pipelines(registry, SearchSyncTarget::Filter)
                     .into_iter()
@@ -104,12 +98,22 @@ impl SearchBar {
             |ui| {
                 self.render_filter_status(shared, ui);
 
-                ui.toggle_value(&mut self.is_regex, "Regex")
-                    .on_hover_text("Use Regex Expression");
-                ui.toggle_value(&mut self.is_word, "Word")
-                    .on_hover_text("Match Whole Word");
-                ui.toggle_value(&mut self.match_case, "Case")
-                    .on_hover_text("Match Case");
+                ui.toggle_value(
+                    &mut self.is_regex,
+                    RichText::new(icons::regular::ASTERISK).size(14.0),
+                )
+                .on_hover_text("Use Regular Expression");
+                ui.toggle_value(
+                    &mut self.is_word,
+                    RichText::new(icons::regular::TEXT_T).size(14.0),
+                )
+                .on_hover_text("Match Whole Word");
+
+                ui.toggle_value(
+                    &mut self.match_case,
+                    RichText::new(icons::regular::TEXT_AA).size(14.0),
+                )
+                .on_hover_text("Match Case");
 
                 ui.allocate_ui_with_layout(
                     ui.available_size(),
@@ -146,6 +150,33 @@ impl SearchBar {
         );
     }
 
+    fn apply_temp_search(
+        &mut self,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+        registry: &FilterRegistry,
+    ) {
+        let filter = SearchFilter::plain(self.query.clone())
+            .regex(self.is_regex)
+            .ignore_case(!self.match_case)
+            .word(self.is_word);
+
+        match validate_filter(&filter) {
+            ValidationEligibility::Eligible => {
+                self.query.clear();
+                shared.filters.set_temp_search(filter);
+                shared
+                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                    .into_iter()
+                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+            }
+            ValidationEligibility::Ineligible { reason } => {
+                let msg = format!("Filter couldn't be applied: {reason}");
+                actions.add_notification(AppNotification::Warning(msg));
+            }
+        }
+    }
+
     /// Renders active search if exists inside input frame.
     fn render_active_search(
         &mut self,
@@ -178,13 +209,30 @@ impl SearchBar {
                             let save_txt = RichText::new(icons::fill::FLOPPY_DISK_BACK)
                                 .family(phosphor::fill_font_family());
 
-                            if Button::new(save_txt)
-                                .ui(ui)
-                                .on_hover_text("Add to Filters")
-                                .clicked()
-                            {
-                                shared.filters.pin_temp_search(registry);
+                            let disabled_reason =
+                                shared.filters.active_temp_search.as_ref().and_then(|temp| {
+                                    match temp.filter_eligibility() {
+                                        ValidationEligibility::Eligible => None,
+                                        ValidationEligibility::Ineligible { reason } => {
+                                            Some(reason.as_str())
+                                        }
+                                    }
+                                });
 
+                            let mut add_btn = ui
+                                .add_enabled(disabled_reason.is_none(), Button::new(save_txt))
+                                .on_hover_text("Add to Filters");
+
+                            if let Some(reason) = disabled_reason {
+                                add_btn = add_btn.on_disabled_hover_ui(|ui| {
+                                    ui.set_max_width(ui.spacing().tooltip_width);
+
+                                    let text = format!("Filter: {reason}");
+                                    ui.label(text);
+                                });
+                            }
+
+                            if add_btn.clicked() && shared.filters.pin_temp_search(registry) {
                                 // Re-apply search which now includes new filter and NO active_search
                                 shared
                                     .sync_search_pipelines(registry, SearchSyncTarget::Filter)
@@ -197,19 +245,15 @@ impl SearchBar {
 
                         // Add to search values.
                         {
-                            let eligibility = shared
-                                .filters
-                                .active_temp_search
-                                .as_ref()
-                                .map(|temp| temp.eligibility());
-
-                            let disabled_reason = match eligibility {
-                                Some(SearchValueEligibility::Eligible) => None,
-                                Some(SearchValueEligibility::Ineligible { reason }) => {
-                                    Some(reason.as_str())
-                                }
-                                None => Some("Search value is not eligible."),
-                            };
+                            let disabled_reason =
+                                shared.filters.active_temp_search.as_ref().and_then(|temp| {
+                                    match temp.search_value_eligibility() {
+                                        ValidationEligibility::Eligible => None,
+                                        ValidationEligibility::Ineligible { reason } => {
+                                            Some(reason.as_str())
+                                        }
+                                    }
+                                });
 
                             let mut add_btn = ui
                                 .add_enabled(
@@ -219,14 +263,12 @@ impl SearchBar {
                                 .on_hover_text("Add to Search Values");
 
                             if let Some(reason) = disabled_reason {
-                                add_btn = {
-                                    add_btn.on_disabled_hover_ui(|ui| {
-                                        ui.set_max_width(ui.spacing().tooltip_width);
+                                add_btn = add_btn.on_disabled_hover_ui(|ui| {
+                                    ui.set_max_width(ui.spacing().tooltip_width);
 
-                                        let text = format!("Search Value: {reason}");
-                                        ui.label(text);
-                                    })
-                                }
+                                    let text = format!("Search Value: {reason}");
+                                    ui.label(text);
+                                })
                             }
 
                             if add_btn.clicked() {
@@ -311,5 +353,76 @@ impl SearchBar {
             .sync_search_pipelines(registry, SearchSyncTarget::Filter)
             .into_iter()
             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use stypes::{FileFormat, ObserveOrigin};
+    use tokio::{runtime::Runtime, sync::mpsc};
+    use uuid::Uuid;
+
+    use crate::{
+        host::{common::parsers::ParserNames, notification::AppNotification, ui::UiActions},
+        session::{types::ObserveOperation, ui::shared::SessionInfo},
+    };
+
+    use super::*;
+
+    fn new_shared() -> SessionShared {
+        let session_info = SessionInfo {
+            id: Uuid::new_v4(),
+            title: "test".to_owned(),
+            parser: ParserNames::Text,
+        };
+        let observe_op = ObserveOperation::new(
+            Uuid::new_v4(),
+            ObserveOrigin::File(
+                "source".to_owned(),
+                FileFormat::Text,
+                PathBuf::from("source.log"),
+            ),
+        );
+
+        SessionShared::new(session_info, observe_op)
+    }
+
+    #[test]
+    fn invalid_temp_regex_warns() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut shared = new_shared();
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let registry = FilterRegistry::default();
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(4);
+        let mut search_bar = SearchBar::new(cmd_tx);
+
+        shared
+            .filters
+            .set_temp_search(SearchFilter::plain("status=ok").ignore_case(true));
+        search_bar.query = "(".to_owned();
+        search_bar.is_regex = true;
+
+        search_bar.apply_temp_search(&mut shared, &mut actions, &registry);
+
+        assert_eq!(search_bar.query, "(");
+        assert_eq!(
+            shared
+                .filters
+                .active_temp_search
+                .as_ref()
+                .map(|temp| temp.filter().value.as_str()),
+            Some("status=ok")
+        );
+        assert!(cmd_rx.try_recv().is_err());
+
+        let notifications: Vec<_> = actions.drain_notifications().collect();
+        assert_eq!(notifications.len(), 1);
+        assert!(matches!(
+            &notifications[0],
+            AppNotification::Warning(msg)
+                if msg.starts_with("Filter couldn't be applied: Invalid regex:")
+        ));
     }
 }
