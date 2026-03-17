@@ -23,8 +23,8 @@ const SEND_RETRY_MAX_COUNT: u8 = 20;
 pub struct ChartUI {
     cmd_tx: Sender<SessionCommand>,
     data: ChartsData,
-    /// Last requested logs range.
-    requested_range: Option<RangeInclusive<u64>>,
+    /// Current backend request range used as the chart's active viewport baseline.
+    current_request_range: Option<RangeInclusive<u64>>,
     /// Next chart range to request from backend.
     pending_request_range: Option<RangeInclusive<u64>>,
     /// Current viewport behavior mode.
@@ -62,7 +62,7 @@ impl ChartUI {
         Self {
             cmd_tx,
             data: Default::default(),
-            requested_range: None,
+            current_request_range: None,
             pending_request_range: None,
             viewport_mode: ChartViewportMode::FollowFullRange,
             reset_full_range: false,
@@ -70,6 +70,10 @@ impl ChartUI {
         }
     }
 
+    /// Re-queues chart work after search data or search-value metadata changes.
+    ///
+    /// Follow-full-range mode must stay attached to the live session span as logs grow, while a
+    /// custom viewport must keep requesting the user's current range instead of snapping back.
     pub fn on_chart_data_changes(&mut self, shared: &SessionShared) {
         if !Self::has_chart_request_context(shared) {
             return;
@@ -80,8 +84,8 @@ impl ChartUI {
             ChartViewportMode::Custom => {
                 if let Some(range) = self
                     .pending_request_range
-                    .clone()
-                    .or_else(|| self.requested_range.clone())
+                    .to_owned()
+                    .or_else(|| self.current_request_range.to_owned())
                 {
                     self.pending_request_range = Some(range);
                     self.reset_full_range = false;
@@ -165,7 +169,7 @@ impl ChartUI {
         // axe x on charts.
         let (ratio, offset) = if !has_bars {
             (1.0, 0.0)
-        } else if let Some(logs_rng) = &self.requested_range {
+        } else if let Some(logs_rng) = &self.current_request_range {
             let ratio = ((logs_rng.end() - logs_rng.start()) as f64) / self.data.bars.len() as f64;
             let offset = *logs_rng.start() as f64;
             (ratio, offset)
@@ -311,25 +315,28 @@ impl ChartUI {
                 return PlotResponse::RequestForRange(range);
             }
 
-            let bounds = plot_ui.plot_bounds();
-            self.update_viewport_mode(&bounds, shared);
-            let bounds_x = Self::bounds_request_range(&bounds, shared);
+            let plot_bounds = plot_ui.plot_bounds();
 
-            match &self.requested_range {
-                Some(r) => {
-                    // Check for scroll and drag changes.
-                    if r.start() != bounds_x.start() || r.end() != bounds_x.end() {
-                        return PlotResponse::RequestForRange(bounds_x);
-                    }
-                }
-                None => {
-                    self.viewport_mode = ChartViewportMode::FollowFullRange;
-                    self.reset_full_range = true;
-                    return PlotResponse::RequestForRange(Self::get_full_range(shared));
-                }
+            let Some(current_request_range) = self.current_request_range.clone() else {
+                self.set_full_range(shared);
+                return PlotResponse::RequestForRange(Self::get_full_range(shared));
             };
 
-            PlotResponse::None
+            let request_range = Self::bounds_request_range(&plot_bounds, shared);
+
+            // Derive mode from both the normalized request span and the raw visible bounds.
+            // A zoomed-out custom viewport can clamp back to the full request range, so the
+            // request span alone is not enough to decide whether we are still following live
+            // full-range updates or preserving a user-defined view.
+            self.update_viewport_mode(&plot_bounds, &request_range, shared);
+
+            let bounds_changed = current_request_range != request_range;
+
+            if bounds_changed {
+                PlotResponse::RequestForRange(request_range)
+            } else {
+                PlotResponse::None
+            }
         });
 
         match plot_res.inner {
@@ -346,7 +353,7 @@ impl ChartUI {
                     self.pending_request_range = Some(bound_x);
                     return;
                 }
-                self.requested_range = Some(bound_x.clone());
+                self.current_request_range = Some(bound_x.clone());
 
                 // Taken from current Chipmunk: Matches are divided by 2
                 let dataset_len = (ui.available_width() / 2.0) as u16;
@@ -365,7 +372,7 @@ impl ChartUI {
                     SEND_RETRY_MAX_COUNT,
                 ) {
                     // Soft reset ensuring data will be requested the next frame.
-                    self.requested_range = None;
+                    self.current_request_range = None;
                     self.pending_request_range = Some(bound_x);
                     return;
                 }
@@ -384,7 +391,7 @@ impl ChartUI {
                     SEND_RETRY_MAX_COUNT,
                 ) {
                     // Soft reset ensuring data will be requested the next frame.
-                    self.requested_range = None;
+                    self.current_request_range = None;
                     self.pending_request_range = Some(retry_range);
                 }
             }
@@ -404,25 +411,39 @@ impl ChartUI {
         0..=shared.logs.logs_count.saturating_sub(1)
     }
 
-    /// Builds the default full-range plot bounds, including the horizontal padding.
+    /// Returns the default full-range X bounds applied when the chart follows the live span.
     fn default_bounds(shared: &SessionShared) -> PlotBounds {
         let logs_count = shared.logs.logs_count as f64;
         let offset = logs_count * CHART_OFFSET;
         PlotBounds::from_min_max([-offset, 0.0], [logs_count + offset, 1.0])
     }
 
-    /// Checks whether the visible plot bounds match the default full-range viewport.
-    fn is_default_bounds(bounds: &PlotBounds, shared: &SessionShared) -> bool {
-        let expected = Self::default_bounds(shared);
+    /// Returns whether the visible bounds extend beyond the default full-range viewport.
+    ///
+    /// This keeps zoomed-out views in `Custom` mode even when the backend request range clamps
+    /// back to the full log span.
+    fn extends_past_full_bounds(bounds: &PlotBounds, shared: &SessionShared) -> bool {
+        let default_bounds = Self::default_bounds(shared);
         let epsilon = 0.01;
 
-        (bounds.min()[0] - expected.min()[0]).abs() <= epsilon
-            && (bounds.max()[0] - expected.max()[0]).abs() <= epsilon
+        bounds.min()[0] < default_bounds.min()[0] - epsilon
+            || bounds.max()[0] > default_bounds.max()[0] + epsilon
     }
 
-    /// Updates viewport mode from the raw plot bounds shown to the user.
-    fn update_viewport_mode(&mut self, bounds: &PlotBounds, shared: &SessionShared) {
-        self.viewport_mode = if Self::is_default_bounds(bounds, shared) {
+    /// Updates viewport mode from the effective backend request span plus the visible plot bounds.
+    ///
+    /// The request range is the stable source of truth for ordinary in-bounds interaction, but a
+    /// zoomed-out viewport can clamp back to the full log span. In that case the raw bounds keep
+    /// the chart in `Custom` mode so future data updates do not snap the viewport back.
+    fn update_viewport_mode(
+        &mut self,
+        visible_bounds: &PlotBounds,
+        request_range: &RangeInclusive<u64>,
+        shared: &SessionShared,
+    ) {
+        self.viewport_mode = if request_range == &Self::get_full_range(shared)
+            && !Self::extends_past_full_bounds(visible_bounds, shared)
+        {
             ChartViewportMode::FollowFullRange
         } else {
             ChartViewportMode::Custom
@@ -441,14 +462,14 @@ impl ChartUI {
         let Self {
             cmd_tx: _,
             throttle,
-            requested_range,
+            current_request_range,
             pending_request_range,
             viewport_mode,
             reset_full_range: reset_viewport_to_full_range,
             data,
         } = self;
 
-        *requested_range = None;
+        *current_request_range = None;
         *pending_request_range = None;
         *viewport_mode = ChartViewportMode::FollowFullRange;
         *reset_viewport_to_full_range = false;
@@ -568,7 +589,7 @@ mod tests {
         let mut shared = new_shared(10);
         shared.search.set_search_result_count(5);
         let mut chart = new_chart();
-        chart.requested_range = Some(0..=9);
+        chart.current_request_range = Some(0..=9);
 
         chart.on_chart_data_changes(&shared);
 
@@ -578,12 +599,59 @@ mod tests {
     }
 
     #[test]
+    fn chart_updates_without_context_are_noop() {
+        let shared = new_shared(10);
+        let mut chart = new_chart();
+        chart.viewport_mode = ChartViewportMode::Custom;
+        chart.current_request_range = Some(2..=7);
+        chart.pending_request_range = Some(3..=6);
+
+        chart.on_chart_data_changes(&shared);
+
+        assert_eq!(chart.viewport_mode, ChartViewportMode::Custom);
+        assert_eq!(chart.current_request_range, Some(2..=7));
+        assert_eq!(chart.pending_request_range, Some(3..=6));
+        assert!(!chart.reset_full_range);
+    }
+
+    #[test]
+    fn chart_updates_expand_full_range() {
+        let mut shared = new_shared(10);
+        shared.search.set_search_result_count(5);
+        let mut chart = new_chart();
+        chart.current_request_range = Some(0..=9);
+
+        shared.logs.logs_count = 12;
+        chart.on_chart_data_changes(&shared);
+
+        assert_eq!(chart.viewport_mode, ChartViewportMode::FollowFullRange);
+        assert_eq!(chart.pending_request_range, Some(0..=11));
+        assert!(chart.reset_full_range);
+    }
+
+    #[test]
+    fn custom_updates_prefer_pending_range() {
+        let mut shared = new_shared(10);
+        shared.search.set_search_result_count(5);
+        let mut chart = new_chart();
+        chart.viewport_mode = ChartViewportMode::Custom;
+        chart.current_request_range = Some(2..=7);
+        chart.pending_request_range = Some(3..=6);
+
+        chart.on_chart_data_changes(&shared);
+
+        assert_eq!(chart.viewport_mode, ChartViewportMode::Custom);
+        assert_eq!(chart.pending_request_range, Some(3..=6));
+        assert!(!chart.reset_full_range);
+    }
+
+    #[test]
     fn chart_updates_keep_custom_range() {
         let mut shared = new_shared(10);
         shared.search.set_search_result_count(5);
         let mut chart = new_chart();
         chart.viewport_mode = ChartViewportMode::Custom;
-        chart.requested_range = Some(2..=7);
+        chart.current_request_range = Some(2..=7);
 
         chart.on_chart_data_changes(&shared);
 
@@ -612,7 +680,7 @@ mod tests {
     #[test]
     fn reset_clears_state() {
         let mut chart = new_chart();
-        chart.requested_range = Some(1..=4);
+        chart.current_request_range = Some(1..=4);
         chart.pending_request_range = Some(2..=7);
         chart.viewport_mode = ChartViewportMode::Custom;
         chart.reset_full_range = true;
@@ -624,7 +692,7 @@ mod tests {
 
         chart.reset();
 
-        assert!(chart.requested_range.is_none());
+        assert!(chart.current_request_range.is_none());
         assert!(chart.pending_request_range.is_none());
         assert_eq!(chart.viewport_mode, ChartViewportMode::FollowFullRange);
         assert!(!chart.reset_full_range);
@@ -641,7 +709,7 @@ mod tests {
             .set_values_map(Some(std::collections::HashMap::from([(0, (1.0, 2.0))])));
 
         let mut chart = new_chart();
-        chart.requested_range = Some(0..=9);
+        chart.current_request_range = Some(0..=9);
 
         chart.on_chart_data_changes(&shared);
 
@@ -654,7 +722,7 @@ mod tests {
         let shared = new_shared(10);
         let mut chart = new_chart();
         chart.viewport_mode = ChartViewportMode::Custom;
-        chart.requested_range = Some(2..=7);
+        chart.current_request_range = Some(2..=7);
 
         chart.set_full_range(&shared);
 
@@ -676,21 +744,26 @@ mod tests {
         let shared = new_shared(10);
         let mut chart = new_chart();
 
-        chart.update_viewport_mode(&PlotBounds::from_min_max([2.0, 0.0], [7.0, 1.0]), &shared);
+        chart.update_viewport_mode(
+            &PlotBounds::from_min_max([2.0, 0.0], [7.0, 1.0]),
+            &(2..=7),
+            &shared,
+        );
         assert_eq!(chart.viewport_mode, ChartViewportMode::Custom);
 
-        chart.update_viewport_mode(&ChartUI::default_bounds(&shared), &shared);
+        chart.update_viewport_mode(&ChartUI::default_bounds(&shared), &(0..=9), &shared);
         assert_eq!(chart.viewport_mode, ChartViewportMode::FollowFullRange);
     }
 
     #[test]
-    fn zoomed_out_beyond_bounds_stays_custom() {
+    fn full_range_request_restores_follow_mode() {
         let shared = new_shared(10);
         let mut chart = new_chart();
+        chart.viewport_mode = ChartViewportMode::Custom;
 
-        chart.update_viewport_mode(&PlotBounds::from_min_max([-2.0, 0.0], [12.0, 1.0]), &shared);
+        chart.update_viewport_mode(&ChartUI::default_bounds(&shared), &(0..=9), &shared);
 
-        assert_eq!(chart.viewport_mode, ChartViewportMode::Custom);
+        assert_eq!(chart.viewport_mode, ChartViewportMode::FollowFullRange);
     }
 
     #[test]
@@ -699,5 +772,33 @@ mod tests {
         let bounds = PlotBounds::from_min_max([-2.0, 0.0], [12.0, 1.0]);
 
         assert_eq!(ChartUI::bounds_request_range(&bounds, &shared), 0..=9);
+    }
+
+    #[test]
+    fn zoomed_out_full_range_stays_custom() {
+        let shared = new_shared(10);
+        let mut chart = new_chart();
+        let bounds = PlotBounds::from_min_max([-2.0, 0.0], [12.0, 1.0]);
+
+        chart.update_viewport_mode(&bounds, &(0..=9), &shared);
+
+        assert_eq!(chart.viewport_mode, ChartViewportMode::Custom);
+    }
+
+    #[test]
+    fn zoomed_out_custom_view_survives_updates() {
+        let mut shared = new_shared(10);
+        shared.search.set_search_result_count(5);
+        let mut chart = new_chart();
+        let bounds = PlotBounds::from_min_max([-2.0, 0.0], [12.0, 1.0]);
+
+        chart.current_request_range = Some(0..=9);
+        chart.update_viewport_mode(&bounds, &(0..=9), &shared);
+
+        chart.on_chart_data_changes(&shared);
+
+        assert_eq!(chart.viewport_mode, ChartViewportMode::Custom);
+        assert_eq!(chart.pending_request_range, Some(0..=9));
+        assert!(!chart.reset_full_range);
     }
 }
