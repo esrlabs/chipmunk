@@ -208,7 +208,18 @@ impl<'a> LogsDelegate<'a> {
                 }
             };
 
-            if ui.label(content).clicked() {
+            let response = match common::logs_tables::highlighted_cell_layout_job(
+                ui,
+                content,
+                row_nr,
+                self.shared,
+                self.shared.search.compiled_filters(),
+            ) {
+                Some(job) => ui.label(job),
+                None => ui.label(content),
+            };
+
+            if response.clicked() {
                 let is_selected = self.is_row_selected(row_nr);
                 self.toggle_row_selected(row_nr, is_selected);
             }
