@@ -5,8 +5,9 @@
 //! It is specific to log searching; chart value extraction is tracked separately in
 //! [`SearchValuesState`](super::SearchValuesState).
 
+use processor::search::filter::{self, SearchFilter};
+use regex::Regex;
 use rustc_hash::FxHashMap;
-
 use stypes::FilterMatch;
 use uuid::Uuid;
 
@@ -68,9 +69,18 @@ impl SearchCounts {
 
 #[derive(Debug)]
 pub struct SearchState {
+    /// Active backend operation for the current log search, if one is in flight or retained.
     search_op: Option<SearchOperation>,
+    /// Backend-owned row counts for the active log search projection.
     counts: SearchCounts,
+    /// Row-level backend match metadata keyed by original main-log position.
     matches_map: Option<FxHashMap<LogMainIndex, Vec<FilterIndex>>>,
+    /// Compiled regex matchers for the current effective log-search filters.
+    ///
+    /// # Note:
+    ///
+    /// Must stay in the same backend filter index order as `ApplySearchFilter.filters`.
+    compiled_filters: Vec<Regex>,
 }
 
 impl SearchState {
@@ -79,6 +89,7 @@ impl SearchState {
             search_op: None,
             counts: SearchCounts::default(),
             matches_map: None,
+            compiled_filters: Vec::new(),
         }
     }
 
@@ -91,6 +102,7 @@ impl SearchState {
             search_op,
             counts,
             matches_map,
+            compiled_filters: _,
         } = self;
 
         counts.reset_search_counts();
@@ -102,7 +114,7 @@ impl SearchState {
         &self,
         filters_state: &FiltersState,
         registry: &FilterRegistry,
-    ) -> Vec<processor::search::filter::SearchFilter> {
+    ) -> Vec<SearchFilter> {
         let mut filters: Vec<_> = filters_state
             .enabled_filter_ids()
             .filter_map(|uuid| registry.get_filter(uuid))
@@ -114,6 +126,24 @@ impl SearchState {
         }
 
         filters
+    }
+
+    /// Rebuilds cached regex matchers from the current effective search filters.
+    pub fn refresh_compiled_filters(&mut self, filters: &[SearchFilter]) {
+        self.compiled_filters = filters
+            .iter()
+            .filter_map(|filter| Regex::new(&filter::as_regex(filter)).ok())
+            .collect();
+    }
+
+    /// Clears cached regex matchers when no effective search filters remain.
+    pub fn clear_compiled_filters(&mut self) {
+        self.compiled_filters.clear();
+    }
+
+    /// Returns compiled regex matchers in backend filter index order.
+    pub fn compiled_filters(&self) -> &[Regex] {
+        &self.compiled_filters
     }
 
     /// Returns the current backend search match count.
@@ -205,6 +235,7 @@ impl SearchState {
             search_op: _,
             counts,
             matches_map,
+            compiled_filters: _,
         } = self;
 
         counts.reset_search_counts();
@@ -219,6 +250,7 @@ impl SearchState {
 
 #[cfg(test)]
 mod tests {
+    use processor::search::filter::SearchFilter;
     use uuid::Uuid;
 
     use crate::session::{types::OperationPhase, ui::definitions::UpdateOperationOutcome};
@@ -230,6 +262,13 @@ mod tests {
             index: 42,
             filters: vec![1, 3],
         }
+    }
+
+    fn sample_filters() -> Vec<SearchFilter> {
+        vec![
+            SearchFilter::plain("status=ok"),
+            SearchFilter::plain("warning").ignore_case(true),
+        ]
     }
 
     #[test]
@@ -320,5 +359,28 @@ mod tests {
             state.search_operation_phase(),
             Some(OperationPhase::Initializing)
         );
+    }
+
+    #[test]
+    fn refresh_compiled_filters_follows_order() {
+        let mut state = SearchState::new(Uuid::new_v4());
+
+        state.refresh_compiled_filters(&sample_filters());
+
+        let compiled = state.compiled_filters();
+        assert_eq!(compiled.len(), 2);
+        assert!(compiled[0].is_match("status=ok"));
+        assert!(!compiled[0].is_match("STATUS=OK"));
+        assert!(compiled[1].is_match("WARNING"));
+    }
+
+    #[test]
+    fn clear_compiled_filters_empties_cache() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.refresh_compiled_filters(&sample_filters());
+
+        state.clear_compiled_filters();
+
+        assert!(state.compiled_filters().is_empty());
     }
 }
