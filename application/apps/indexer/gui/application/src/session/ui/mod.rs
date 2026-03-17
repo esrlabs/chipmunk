@@ -172,6 +172,8 @@ impl Session {
             match msg {
                 SessionMessage::LogsCount(count) => {
                     self.shared.logs.logs_count = count;
+                    // Keep live-follow charts attached to the growing session span.
+                    self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::IndexedCountUpdated { count } => {
                     self.shared.search.set_indexed_result_count(count);
