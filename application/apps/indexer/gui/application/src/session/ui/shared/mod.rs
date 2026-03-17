@@ -151,6 +151,7 @@ impl SessionShared {
         let filters = self.search.get_active_filters(&self.filters, registry);
         if filters.is_empty() {
             let operation_id = self.search.processing_search_operation();
+            self.search.clear_compiled_filters();
             self.drop_search();
             vec![SessionCommand::DropSearch { operation_id }]
         } else {
@@ -161,6 +162,7 @@ impl SessionShared {
                 });
             }
             self.drop_search();
+            self.search.refresh_compiled_filters(&filters);
             let operation_id = Uuid::new_v4();
             self.search.set_search_operation(operation_id);
             commands.push(SessionCommand::ApplySearchFilter {
@@ -248,6 +250,18 @@ mod tests {
         shared.filters.apply_filter(registry, filter_id);
     }
 
+    fn add_filter_def(
+        shared: &mut SessionShared,
+        registry: &mut FilterRegistry,
+        filter: SearchFilter,
+    ) -> Uuid {
+        let filter_def = FilterDefinition::new(filter);
+        let filter_id = filter_def.id;
+        registry.add_filter(filter_def);
+        shared.filters.apply_filter(registry, filter_id);
+        filter_id
+    }
+
     fn add_value(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {
         let value_def =
             SearchValueDefinition::new(SearchFilter::plain(value).regex(true).ignore_case(true));
@@ -275,7 +289,13 @@ mod tests {
     #[test]
     fn filter_sync_drops_search() {
         let mut shared = new_shared();
-        let registry = FilterRegistry::default();
+        let mut registry = FilterRegistry::default();
+        add_filter(&mut shared, &mut registry, "status=ok");
+        let _ = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        assert_eq!(shared.search.compiled_filters().len(), 1);
+        shared.filters.clear_temp_search();
+        let filter_id = shared.filters.filter_entries[0].id;
+        shared.filters.unapply_filter(&mut registry, &filter_id);
         let previous_operation_id = Uuid::new_v4();
         // An empty filter set should only tear down the active search operation.
         shared.search.set_search_operation(previous_operation_id);
@@ -289,6 +309,7 @@ mod tests {
             }
             other => panic!("expected DropSearch command, got {other:?}"),
         }
+        assert!(shared.search.compiled_filters().is_empty());
         assert!(shared.search.processing_search_operation().is_none());
     }
 
@@ -324,6 +345,8 @@ mod tests {
             other => panic!("expected second command ApplySearchFilter, got {other:?}"),
         };
 
+        assert_eq!(shared.search.compiled_filters().len(), 1);
+        assert!(shared.search.compiled_filters()[0].is_match("status=ok"));
         assert_eq!(
             shared.search.processing_search_operation(),
             Some(applied_operation_id)
@@ -348,6 +371,87 @@ mod tests {
             }
             other => panic!("expected ApplySearchFilter, got {other:?}"),
         }
+        assert_eq!(shared.search.compiled_filters().len(), 1);
+        assert!(shared.search.compiled_filters()[0].is_match("TEMP"));
+    }
+
+    #[test]
+    fn filter_sync_cache_matches_apply_payload() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        add_filter_def(&mut shared, &mut registry, SearchFilter::plain("status=ok"));
+        add_filter_def(
+            &mut shared,
+            &mut registry,
+            SearchFilter::plain("cpu=\\d+").regex(true).word(true),
+        );
+        add_filter_def(
+            &mut shared,
+            &mut registry,
+            SearchFilter::plain("warning").ignore_case(true),
+        );
+        shared
+            .filters
+            .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
+
+        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+
+        let payload_filters = match &commands[0] {
+            SessionCommand::ApplySearchFilter { filters, .. } => filters,
+            other => panic!("expected ApplySearchFilter, got {other:?}"),
+        };
+
+        let compiled = shared.search.compiled_filters();
+        assert_eq!(compiled.len(), payload_filters.len());
+        assert_eq!(payload_filters.len(), 4);
+
+        assert!(compiled[0].is_match("status=ok"));
+        assert!(!compiled[0].is_match("STATUS=OK"));
+
+        assert!(compiled[1].is_match("cpu=42"));
+        assert!(!compiled[1].is_match("cpu=42x"));
+
+        assert!(compiled[2].is_match("WARNING"));
+        assert!(!compiled[2].is_match("WARN"));
+
+        assert!(compiled[3].is_match("TEMP"));
+        assert!(!compiled[3].is_match("TEAM"));
+    }
+
+    #[test]
+    fn filter_sync_cache_updates_after_edit() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let filter_id =
+            add_filter_def(&mut shared, &mut registry, SearchFilter::plain("status=ok"));
+
+        let initial_commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        assert!(matches!(
+            initial_commands[0],
+            SessionCommand::ApplySearchFilter { .. }
+        ));
+        assert_eq!(shared.search.compiled_filters().len(), 1);
+        assert!(shared.search.compiled_filters()[0].is_match("status=ok"));
+        assert!(!shared.search.compiled_filters()[0].is_match("level=warn"));
+
+        let next_filter = SearchFilter::plain("level=warn");
+        let outcome = registry.edit_filter_for_session(filter_id, shared.get_id(), next_filter);
+        assert!(matches!(
+            outcome,
+            crate::host::ui::registry::filters::RegistryEditOutcome::EditedInPlace
+        ));
+
+        let updated_commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let payload_filters = match &updated_commands[1] {
+            SessionCommand::ApplySearchFilter { filters, .. } => filters,
+            other => panic!("expected ApplySearchFilter, got {other:?}"),
+        };
+
+        assert_eq!(payload_filters.len(), 1);
+        assert_eq!(payload_filters[0].value, "level=warn");
+        assert_eq!(shared.search.compiled_filters().len(), 1);
+        assert!(shared.search.compiled_filters()[0].is_match("level=warn"));
+        assert!(!shared.search.compiled_filters()[0].is_match("status=ok"));
     }
 
     #[test]
@@ -412,6 +516,8 @@ mod tests {
         let mut registry = FilterRegistry::default();
         add_filter(&mut shared, &mut registry, "status=ok");
         let filter_id = shared.filters.filter_entries[0].id;
+        let _ = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        assert_eq!(shared.search.compiled_filters().len(), 1);
         // Disabled filters stay in session state but should not reach backend sync.
         assert!(shared.filters.set_filter_enabled(&filter_id, false));
 
@@ -419,6 +525,7 @@ mod tests {
 
         assert_eq!(commands.len(), 1);
         assert!(matches!(commands[0], SessionCommand::DropSearch { .. }));
+        assert!(shared.search.compiled_filters().is_empty());
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver};
 
-use egui::{Label, Sense, Ui, Widget};
+use egui::{Sense, Ui};
 use egui_table::{CellInfo, Column, PrefetchInfo, TableDelegate};
 use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
@@ -216,7 +216,18 @@ impl<'a> LogsDelegate<'a> {
                 .and_then(|rng| log_item.element.content.get(rng.to_owned()))
                 .unwrap_or_default();
 
-            if Label::new(content).ui(ui).clicked() {
+            let response = match common::logs_tables::highlighted_cell_layout_job(
+                ui,
+                content,
+                log_item.element.pos as u64,
+                self.shared,
+                self.shared.search.compiled_filters(),
+            ) {
+                Some(job) => ui.label(job),
+                None => ui.label(content),
+            };
+
+            if response.clicked() {
                 let is_selected = self.is_row_selected(Some(log_item));
                 self.toggle_row_selected(log_item.element.pos as u64, is_selected);
             }

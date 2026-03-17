@@ -10,5 +10,5 @@ mod search;
 mod search_values;
 
 pub use filters::FiltersState;
-pub use search::{LogMainIndex, SearchState};
+pub use search::{FilterIndex, LogMainIndex, SearchState};
 pub use search_values::SearchValuesState;
