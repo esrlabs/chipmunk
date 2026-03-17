@@ -29,6 +29,16 @@ impl MainMenuBar {
 
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button("Chipmunk", |ui| {
+                if cfg!(debug_assertions) {
+                    ui.menu_button("Development", |ui| {
+                        if ui.button("Reset egui memory").clicked() {
+                            ui.ctx().memory_mut(|mem| *mem = Default::default());
+                        }
+                    });
+
+                    ui.separator();
+                }
+
                 if ui.button("Close").clicked() {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                 }
