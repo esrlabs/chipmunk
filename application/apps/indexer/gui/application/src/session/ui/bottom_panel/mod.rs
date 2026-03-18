@@ -13,22 +13,25 @@ use crate::{
 };
 use chart::ChartUI;
 use details::DetailsUI;
+use library::LibraryUI;
 use presets::PresetsUI;
 use search::SearchUI;
 
+mod library;
+mod presets;
 mod tab_types;
 
 pub use tab_types::BottomTabType;
 
 pub mod chart;
 mod details;
-mod presets;
 mod search;
 
 #[derive(Debug)]
 pub struct BottomPanelUI {
     pub search: SearchUI,
     pub details: DetailsUI,
+    pub library: LibraryUI,
     pub presets: PresetsUI,
     pub chart: ChartUI,
 }
@@ -38,6 +41,7 @@ impl BottomPanelUI {
         Self {
             search: SearchUI::new(cmd_tx.clone(), schema),
             details: DetailsUI::default(),
+            library: LibraryUI::new(cmd_tx.clone()),
             presets: PresetsUI::new(cmd_tx.clone()),
             chart: ChartUI::new(cmd_tx),
         }
@@ -58,10 +62,11 @@ impl BottomPanelUI {
                     .render_content(shared, actions, &mut registry.filters, ui)
             }
             BottomTabType::Details => self.details.render_content(shared, ui),
-            BottomTabType::Presets => {
-                self.presets
+            BottomTabType::Library => {
+                self.library
                     .render_content(shared, actions, &mut registry.filters, ui)
             }
+            BottomTabType::Presets => self.presets.render_content(shared, actions, registry, ui),
             BottomTabType::Chart => {
                 self.chart
                     .render_content(shared, actions, &registry.filters, ui)
