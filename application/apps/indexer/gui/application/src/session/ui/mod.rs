@@ -10,7 +10,7 @@ use crate::{
         command::HostCommand,
         common::parsers::ParserNames,
         notification::AppNotification,
-        ui::{HostAction, UiActions, registry::HostRegistry},
+        ui::{HostAction, UiActions, registry::HostRegistry, state::PanelsVisibility},
     },
     session::{
         InitSessionParams,
@@ -94,6 +94,7 @@ impl Session {
         &mut self,
         actions: &mut UiActions,
         registry: &mut HostRegistry,
+        panels_visibility: &PanelsVisibility,
         ui: &mut Ui,
     ) {
         let Self {
@@ -129,7 +130,7 @@ impl Session {
             .width_range(200.0..=350.0)
             .default_width(250.0)
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show_animated_inside(ui, panels_visibility.right, |ui| {
                 ui.take_available_width();
                 side_panel.render_content(ui, shared, actions, registry);
             });
@@ -138,7 +139,7 @@ impl Session {
             .height_range(100.0..=700.0)
             .default_height(200.)
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show_animated_inside(ui, panels_visibility.bottom, |ui| {
                 ui.take_available_height();
                 bottom_panel.render_content(shared, actions, registry, ui);
             });
