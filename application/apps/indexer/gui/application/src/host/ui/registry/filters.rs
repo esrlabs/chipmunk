@@ -1,8 +1,27 @@
-use crate::common::validation::ValidationEligibility;
-use crate::common::validation::{validate_filter_regex_enable, validate_search_value_filter};
-use processor::search::filter::SearchFilter;
 use rustc_hash::{FxHashMap, FxHashSet};
 use uuid::Uuid;
+
+use processor::search::filter::SearchFilter;
+
+use crate::common::validation::{
+    ValidationEligibility, validate_filter_regex_enable, validate_search_value_filter,
+};
+
+/// Global registry of filters and search values shared across all sessions.
+/// It tracks which filters are assigned to which sessions.
+#[derive(Debug, Default, Clone)]
+pub struct FilterRegistry {
+    filters: FxHashMap<Uuid, FilterDefinition>,
+    search_values: FxHashMap<Uuid, SearchValueDefinition>,
+    /// Monotonic change counter for filter definition catalog mutations.
+    filter_definitions_revision: u64,
+    /// Monotonic change counter for search-value definition catalog mutations.
+    search_value_definitions_revision: u64,
+    /// Mapping: FilterId -> Set of SessionIds
+    filter_usage: FxHashMap<Uuid, FxHashSet<Uuid>>,
+    /// Mapping: SearchValueId -> Set of SessionIds
+    value_usage: FxHashMap<Uuid, FxHashSet<Uuid>>,
+}
 
 /// Represents a filter definition in the global registry.
 #[derive(Debug, Clone)]
@@ -15,48 +34,11 @@ pub struct FilterDefinition {
     pub regex_enable_eligibility: ValidationEligibility,
 }
 
-impl FilterDefinition {
-    /// Creates a registry-owned filter definition and caches whether it can
-    /// later be converted into a search value.
-    pub fn new(filter: SearchFilter) -> Self {
-        let search_value_eligibility = validate_search_value_filter(&filter);
-        let regex_enable_eligibility = validate_filter_regex_enable(&filter);
-        Self {
-            id: Uuid::new_v4(),
-            filter,
-            search_value_eligibility,
-            regex_enable_eligibility,
-        }
-    }
-}
-
 /// Represents a search value definition in the global registry.
 #[derive(Debug, Clone)]
 pub struct SearchValueDefinition {
     pub id: Uuid,
     pub filter: SearchFilter,
-}
-
-impl SearchValueDefinition {
-    /// Creates a registry-owned search value definition.
-    pub fn new(filter: SearchFilter) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            filter,
-        }
-    }
-}
-
-/// Global registry of filters and search values shared across all sessions.
-/// It tracks which filters are assigned to which sessions.
-#[derive(Debug, Default, Clone)]
-pub struct FilterRegistry {
-    filters: FxHashMap<Uuid, FilterDefinition>,
-    search_values: FxHashMap<Uuid, SearchValueDefinition>,
-    // Mapping: FilterId -> Set of SessionIds
-    filter_usage: FxHashMap<Uuid, FxHashSet<Uuid>>,
-    // Mapping: SearchValueId -> Set of SessionIds
-    value_usage: FxHashMap<Uuid, FxHashSet<Uuid>>,
 }
 
 /// Outcome of editing one session's view of a registry definition.
@@ -85,6 +67,11 @@ impl FilterRegistry {
         &self.filters
     }
 
+    /// Monotonic change counter for filter definition catalog mutations.
+    pub fn filter_definitions_revision(&self) -> u64 {
+        self.filter_definitions_revision
+    }
+
     /// Returns the immutable search value definition used by UI rendering and sync.
     pub fn get_search_value(&self, id: &Uuid) -> Option<&SearchValueDefinition> {
         self.search_values.get(id)
@@ -93,6 +80,11 @@ impl FilterRegistry {
     /// Exposes the full search-value registry for read-only library views.
     pub fn search_value_map(&self) -> &FxHashMap<Uuid, SearchValueDefinition> {
         &self.search_values
+    }
+
+    /// Monotonic change counter for search-value definition catalog mutations.
+    pub fn search_value_definitions_revision(&self) -> u64 {
+        self.search_value_definitions_revision
     }
 
     /// Inserts a new global filter definition without attaching it to a session.
@@ -110,6 +102,7 @@ impl FilterRegistry {
 
         let id = filter.id;
         self.filters.insert(id, filter);
+        self.filter_definitions_revision += 1;
         id
     }
 
@@ -128,6 +121,7 @@ impl FilterRegistry {
 
         let id = search_value.id;
         self.search_values.insert(id, search_value);
+        self.search_value_definitions_revision += 1;
         id
     }
 
@@ -198,13 +192,17 @@ impl FilterRegistry {
 
     /// Removes the filter definition and all of its session usage tracking.
     pub fn remove_filter(&mut self, id: &Uuid) {
-        self.filters.remove(id);
+        if self.filters.remove(id).is_some() {
+            self.filter_definitions_revision += 1;
+        }
         self.filter_usage.remove(id);
     }
 
     /// Removes the search-value definition and all of its session usage tracking.
     pub fn remove_search_value(&mut self, id: &Uuid) {
-        self.search_values.remove(id);
+        if self.search_values.remove(id).is_some() {
+            self.search_value_definitions_revision += 1;
+        }
         self.value_usage.remove(id);
     }
 
@@ -252,9 +250,13 @@ impl FilterRegistry {
             let Some(filter_def) = self.filters.get_mut(&filter_id) else {
                 return RegistryEditOutcome::NotFound;
             };
+            if filter_def.filter == next_filter {
+                return RegistryEditOutcome::EditedInPlace;
+            }
             filter_def.filter = next_filter;
             filter_def.search_value_eligibility = validate_search_value_filter(&filter_def.filter);
             filter_def.regex_enable_eligibility = validate_filter_regex_enable(&filter_def.filter);
+            self.filter_definitions_revision += 1;
             return RegistryEditOutcome::EditedInPlace;
         }
 
@@ -292,7 +294,11 @@ impl FilterRegistry {
             let Some(value_def) = self.search_values.get_mut(&value_id) else {
                 return RegistryEditOutcome::NotFound;
             };
+            if value_def.filter == next_filter {
+                return RegistryEditOutcome::EditedInPlace;
+            }
             value_def.filter = next_filter;
+            self.search_value_definitions_revision += 1;
             return RegistryEditOutcome::EditedInPlace;
         }
 
@@ -323,12 +329,37 @@ impl FilterRegistry {
 
     /// Removes a closing session from usage tracking without deleting any global
     /// filter or search-value definitions.
-    pub(super) fn cleanup_session(&mut self, session_id: &Uuid) {
+    pub fn cleanup_session(&mut self, session_id: &Uuid) {
         for sessions in self.filter_usage.values_mut() {
             sessions.remove(session_id);
         }
         for sessions in self.value_usage.values_mut() {
             sessions.remove(session_id);
+        }
+    }
+}
+
+impl FilterDefinition {
+    /// Creates a registry-owned filter definition and caches whether it can
+    /// later be converted into a search value.
+    pub fn new(filter: SearchFilter) -> Self {
+        let search_value_eligibility = validate_search_value_filter(&filter);
+        let regex_enable_eligibility = validate_filter_regex_enable(&filter);
+        Self {
+            id: Uuid::new_v4(),
+            filter,
+            search_value_eligibility,
+            regex_enable_eligibility,
+        }
+    }
+}
+
+impl SearchValueDefinition {
+    /// Creates a registry-owned search value definition.
+    pub fn new(filter: SearchFilter) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            filter,
         }
     }
 }
@@ -397,6 +428,24 @@ mod tests {
     }
 
     #[test]
+    fn filter_revision_tracks_definition_changes() {
+        let mut registry = FilterRegistry::default();
+        let first_id = registry.add_filter(FilterDefinition::new(
+            SearchFilter::plain("status=ok").ignore_case(true),
+        ));
+
+        assert_eq!(registry.filter_definitions_revision(), 1);
+
+        registry.add_filter(FilterDefinition::new(
+            SearchFilter::plain("status=ok").ignore_case(true),
+        ));
+        assert_eq!(registry.filter_definitions_revision(), 1);
+
+        registry.remove_filter(&first_id);
+        assert_eq!(registry.filter_definitions_revision(), 2);
+    }
+
+    #[test]
     fn add_value_reuses_existing() {
         let mut registry = FilterRegistry::default();
         let first_id = registry.add_search_value(SearchValueDefinition::new(
@@ -413,6 +462,28 @@ mod tests {
 
         assert_eq!(reused_id, first_id);
         assert_eq!(registry.search_value_map().len(), 1);
+    }
+
+    #[test]
+    fn search_value_revision_tracks_definition_changes() {
+        let mut registry = FilterRegistry::default();
+        let first_id = registry.add_search_value(SearchValueDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        ));
+
+        assert_eq!(registry.search_value_definitions_revision(), 1);
+
+        registry.add_search_value(SearchValueDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        ));
+        assert_eq!(registry.search_value_definitions_revision(), 1);
+
+        registry.remove_search_value(&first_id);
+        assert_eq!(registry.search_value_definitions_revision(), 2);
     }
 
     #[test]
@@ -479,6 +550,36 @@ mod tests {
         assert!(edited.filter.is_ignore_case());
         assert!(edited.search_value_eligibility.is_eligible());
         assert!(edited.regex_enable_eligibility.is_eligible());
+    }
+
+    #[test]
+    fn in_place_filter_edit_updates_revision_only_on_change() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let filter_id = registry.add_filter(FilterDefinition::new(
+            SearchFilter::plain("status=ok").ignore_case(true),
+        ));
+        registry.apply_filter_to_session(filter_id, session_id);
+
+        let baseline_revision = registry.filter_definitions_revision();
+        let unchanged = registry.edit_filter_for_session(
+            filter_id,
+            session_id,
+            SearchFilter::plain("status=ok").ignore_case(true),
+        );
+        assert_eq!(unchanged, RegistryEditOutcome::EditedInPlace);
+        assert_eq!(registry.filter_definitions_revision(), baseline_revision);
+
+        let changed = registry.edit_filter_for_session(
+            filter_id,
+            session_id,
+            SearchFilter::plain("status=warn").ignore_case(true),
+        );
+        assert_eq!(changed, RegistryEditOutcome::EditedInPlace);
+        assert_eq!(
+            registry.filter_definitions_revision(),
+            baseline_revision + 1
+        );
     }
 
     #[test]
@@ -686,6 +787,45 @@ mod tests {
         assert_eq!(edited.filter.value, "mem=(\\d+)");
         assert!(edited.filter.is_regex());
         assert!(edited.filter.is_ignore_case());
+    }
+
+    #[test]
+    fn in_place_search_value_edit_updates_revision_only_on_change() {
+        let mut registry = FilterRegistry::default();
+        let session_id = Uuid::new_v4();
+        let value_id = registry.add_search_value(SearchValueDefinition::new(
+            SearchFilter::plain("duration=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        ));
+        registry.apply_search_value_to_session(value_id, session_id);
+
+        let baseline_revision = registry.search_value_definitions_revision();
+        let unchanged = registry.edit_search_value_for_session(
+            value_id,
+            session_id,
+            SearchFilter::plain("duration=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
+        assert_eq!(unchanged, RegistryEditOutcome::EditedInPlace);
+        assert_eq!(
+            registry.search_value_definitions_revision(),
+            baseline_revision
+        );
+
+        let changed = registry.edit_search_value_for_session(
+            value_id,
+            session_id,
+            SearchFilter::plain("latency=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
+        assert_eq!(changed, RegistryEditOutcome::EditedInPlace);
+        assert_eq!(
+            registry.search_value_definitions_revision(),
+            baseline_revision + 1
+        );
     }
 
     #[test]
