@@ -17,8 +17,11 @@ use rmcp::{
 };
 use tokio::sync::{broadcast, mpsc};
 
-use crate::errors::McpError;
-use crate::types::*;
+use crate::{
+    errors::McpError,
+    tool_params::{AnalyzeLogsRequest, MapRequest, SearchFilters, ValuesRequest},
+    types::TaskResult,
+};
 use tasks::{Tasks, Tasks::*};
 
 #[derive(Clone, Debug)]
@@ -167,11 +170,32 @@ When the user provides natural language instructions, interpret them as follows:
         handle_task_response(task_result_rx, "apply_search_filters").await
     }
 
-    #[tool(description = r#"This is generic function to 
-"#)]
+    #[tool(
+        description = r#"Analyze logs iteratively by requesting specific line ranges and optionally applying an action.
+
+Use this tool in a loop:
+1) Request a line `range` to inspect raw logs.
+2) Review returned lines.
+3) Repeat with another range as needed.
+4) On final call, optionally execute an action.
+
+Supported actions:
+- `none`: only return requested lines.
+- `apply_filter`: apply one or more search filters to the session.
+- `jump_to_line`: move UI focus to a specific log line.
+
+Input parameters:
+- `session_id` (string): target session UUID.
+- `range` (optional): {"start": u64, "end": u64} inclusive line range to fetch.
+- `action` (optional): one of `none`, `apply_filter`, `jump_to_line`.
+- `filters` (optional): list of filters, required for `apply_filter`.
+- `jump_to_line` (optional): target line index, required for `jump_to_line`.
+- `note` (optional): free-form summary/note from the LLM for traceability.
+"#
+    )]
     async fn analyze_logs(
         &self,
-        Parameters(params): Parameters<ValuesRequest>,
+        Parameters(params): Parameters<AnalyzeLogsRequest>,
     ) -> Result<CallToolResult, RmcpError> {
         let (task_result_tx, task_result_rx) = mpsc::channel(1);
         let range: Option<RangeInclusive<u64>> = params.range.clone();
@@ -182,20 +206,35 @@ When the user provides natural language instructions, interpret them as follows:
                 None,
             )
         })?;
-        let task = Tasks::GetChartLinePlots {
-            dataset_len: params.dataset_len,
+
+        let filters: Vec<processor::search::filter::SearchFilter> = params
+            .filters
+            .iter()
+            .map(|filter| {
+                processor::search::filter::SearchFilter::plain(filter.value.clone())
+                    .regex(filter.is_regex)
+                    .ignore_case(filter.ignore_case)
+                    .word(filter.is_word)
+            })
+            .collect();
+
+        let task = Tasks::AnalyzeLogFile {
             range,
             session_id,
+            action: params.action,
+            filters,
+            jump_to_line: params.jump_to_line,
+            note: params.note,
             task_result_tx,
         };
         self.task_tx.send(task).map_err(|e| {
             RmcpError::new(
                 ErrorCode::INTERNAL_ERROR,
-                format!("Failed to send GetChartLinePlots: {e}"),
+                format!("Failed to send AnalyzeLogFile: {e}"),
                 None,
             )
         })?;
-        handle_task_response(task_result_rx, "get_chart_line_plots").await
+        handle_task_response(task_result_rx, "analyze_logs").await
     }
 
     #[tool(description = r#"Get histogram data for charts.
@@ -282,23 +321,22 @@ Returns point data for line plots based on extracted values within an optional r
 }
 
 async fn handle_task_response(
-    mut task_result_rx: mpsc::Receiver<Result<String, McpError>>,
+    mut task_result_rx: mpsc::Receiver<Result<TaskResult, McpError>>,
     task_name: &str,
 ) -> Result<CallToolResult, RmcpError> {
-    match task_result_rx.recv().await {
-        Some(task_response) => match task_response {
-            Ok(_success_message) => Ok(CallToolResult::success(vec![Content::json(format!(
-                "{task_name} applied successfully"
-            ))?])),
+    if let Some(task_response) = task_result_rx.recv().await {
+        match task_response {
+            Ok(result) => Ok(CallToolResult::success(vec![Content::json(result)?])),
             Err(err) => {
                 let err_msg = format!("{task_name} resulted in Error operation: {err}");
                 Ok(CallToolResult::error(vec![Content::json(err_msg)?]))
             }
-        },
-        None => Err(RmcpError::new(
+        }
+    } else {
+        Err(RmcpError::new(
             ErrorCode::INTERNAL_ERROR,
             format!("Error while applying task {task_name}"),
             None,
-        )),
+        ))
     }
 }

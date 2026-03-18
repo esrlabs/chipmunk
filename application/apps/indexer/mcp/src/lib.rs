@@ -1,11 +1,14 @@
+pub mod chat;
 pub mod client;
+pub mod config;
 pub mod errors;
 pub mod server;
+pub mod tool_params;
 pub mod types;
 
 use tokio::sync::mpsc;
 
-use crate::types::{Prompt, Response};
+use crate::{chat::Prompt, types::Response};
 use server::tasks::Tasks;
 
 pub struct McpChannelEndpoints {

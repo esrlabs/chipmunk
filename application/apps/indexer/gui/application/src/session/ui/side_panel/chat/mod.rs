@@ -1,9 +1,13 @@
-use egui::{RichText, Ui, Window};
+use egui::{ComboBox, RichText, Ui, Window};
 use tokio::sync::mpsc;
 
+use mcp::config::{AiConfig, LlmProvider};
+
 use crate::common::phosphor::{self, icons};
-use crate::session::ui::shared::AiConfig;
-use crate::session::{command::SessionCommand, message::AiMessage, ui::shared::SessionShared};
+use crate::session::{
+    command::SessionCommand, message::AiMessage, types::FileMetadata, ui::shared::SessionShared,
+};
+use stypes::ObserveOrigin;
 
 #[allow(unused)]
 #[derive(Debug)]
@@ -14,11 +18,60 @@ pub struct ChatUi {
     thinking: bool,
     show_config_popup: bool,
     model_name: String,
+    provider: LlmProvider,
     url: String,
     api_key: String,
 }
 
 impl ChatUi {
+    fn collect_file_metadata(shared: &SessionShared) -> Option<Vec<FileMetadata>> {
+        let total_lines = shared.logs.logs_count;
+        let entries: Vec<FileMetadata> = shared
+            .observe
+            .operations()
+            .iter()
+            .flat_map(|op| match &op.origin {
+                ObserveOrigin::File(name, format, path) => vec![FileMetadata {
+                    name: name.clone(),
+                    file_type: FileMetadata::file_format_label(format).to_string(),
+                    path: Some(path.clone()),
+                    total_lines,
+                }],
+                ObserveOrigin::Concat(items) => items
+                    .iter()
+                    .map(|(name, format, path)| FileMetadata {
+                        name: name.clone(),
+                        file_type: FileMetadata::file_format_label(format).to_string(),
+                        path: Some(path.clone()),
+                        total_lines,
+                    })
+                    .collect(),
+                ObserveOrigin::Stream(name, _) => vec![FileMetadata {
+                    name: name.clone(),
+                    file_type: String::from("Stream"),
+                    path: None,
+                    total_lines,
+                }],
+            })
+            .collect();
+
+        if entries.is_empty() {
+            None
+        } else {
+            Some(entries)
+        }
+    }
+
+    fn provider_label(provider: &LlmProvider) -> &'static str {
+        match provider {
+            LlmProvider::Ollama => "Ollama",
+            LlmProvider::OpenAI => "OpenAI",
+            LlmProvider::Antropic => "Anthropic",
+            LlmProvider::Gemini => "Gemini",
+            LlmProvider::Custom => "Custom",
+        }
+    }
+
     pub fn new(cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
         let resp = AiMessage::Response(
             "Hello! I'm your AI assistant. How can I help you analyze the logs today?".to_string(),
@@ -31,8 +84,9 @@ impl ChatUi {
             thinking: false,
             show_config_popup: false,
             model_name: ai_config.model.clone(),
+            provider: ai_config.provider,
             url: ai_config.url.clone(),
-            api_key: ai_config.api_token.clone().unwrap_or_default(),
+            api_key: ai_config.api_key.clone().unwrap_or_default(),
         }
     }
 
@@ -135,13 +189,26 @@ impl ChatUi {
                     || (response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))))
                     && !self.text.trim().is_empty()
                 {
-                    let message = self.text.clone();
+                    let mut message = self.text.clone();
                     self.history.push(AiMessage::Prompt(message.clone()));
                     self.text.clear();
 
+                    let file_metadata = Self::collect_file_metadata(shared);
+                    if let Some(metadata) = file_metadata {
+                        message = format!(
+                            "{}\n\nFile Metadata: {:?}",
+                            message,
+                            metadata
+                                .iter()
+                                .map(|m| m.as_chat_message())
+                                .collect::<Vec<String>>()
+                        );
+                    }
                     let _ = self.cmd_tx.try_send(SessionCommand::SendChatMessage {
                         id: shared.get_id(),
                         message,
+                        history: self.history.clone(),
+                        ai_config: shared.ai_configuration.clone(),
                     });
                     self.thinking = true;
                 }
@@ -169,14 +236,25 @@ impl ChatUi {
         let mut should_close = false;
         ui.set_min_width(300.0);
         ui.vertical(|ui| {
+            // Provider field
+            ComboBox::from_label("Provider")
+                .selected_text(Self::provider_label(&self.provider))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.provider, LlmProvider::Ollama, "Ollama");
+                    ui.selectable_value(&mut self.provider, LlmProvider::OpenAI, "OpenAI");
+                    ui.selectable_value(&mut self.provider, LlmProvider::Gemini, "Gemini");
+                    ui.selectable_value(&mut self.provider, LlmProvider::Antropic, "Anthropic");
+                    ui.selectable_value(&mut self.provider, LlmProvider::Custom, "Custom");
+                });
+            ui.add_space(8.0);
+
+            ui.label("URL");
+            ui.text_edit_singleline(&mut self.url);
+            ui.add_space(8.0);
+
             // Model Name field
             ui.label("Model Name");
             ui.text_edit_singleline(&mut self.model_name);
-            ui.add_space(8.0);
-
-            // URL field
-            ui.label("URL");
-            ui.text_edit_singleline(&mut self.url);
             ui.add_space(8.0);
 
             // API Key field (Optional)
@@ -189,6 +267,7 @@ impl ChatUi {
                 if ui.button("Save").clicked() {
                     // Here you can emit a command or update state with the configuration
                     shared.update_ai_configuration(
+                        self.provider.clone(),
                         self.model_name.clone(),
                         self.url.clone(),
                         if self.api_key.trim().is_empty() {
@@ -200,13 +279,10 @@ impl ChatUi {
                     should_close = true;
                 }
                 if ui.button("Cancel").clicked() {
+                    self.provider = shared.ai_configuration.provider.clone();
                     self.model_name = shared.ai_configuration.model.clone();
                     self.url = shared.ai_configuration.url.clone();
-                    self.api_key = shared
-                        .ai_configuration
-                        .api_token
-                        .clone()
-                        .unwrap_or_default();
+                    self.api_key = shared.ai_configuration.api_key.clone().unwrap_or_default();
                     should_close = true;
                 }
             });

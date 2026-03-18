@@ -8,13 +8,13 @@ use serde_json::Value;
 use url::Url;
 
 use super::LlmAgent;
-use crate::errors::McpError;
+use crate::{config::AiConfig, errors::McpError};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Ollama {
     pub model: String,
-    pub url: String,
     pub api_key: Option<String>,
+    pub url: String,
 }
 
 impl Default for Ollama {
@@ -28,11 +28,11 @@ impl Default for Ollama {
 }
 
 impl LlmAgent for Ollama {
-    fn new(model: &str, url: &str) -> Self {
+    fn from_config(config: AiConfig) -> Self {
         Self {
-            model: String::from(model),
-            url: String::from(url),
-            api_key: None,
+            model: config.model,
+            url: config.url,
+            api_key: config.api_key,
         }
     }
 

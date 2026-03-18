@@ -128,8 +128,8 @@ pub fn init(shared_senders: SharedSenders) -> (UiHandle, ServiceHandle) {
     let SharedSenders {
         host_message_tx,
         notification_tx,
-        mcp_task_tx,
         egui_ctx,
+        ..
     } = shared_senders;
 
     let service_senders = ServiceSenders {

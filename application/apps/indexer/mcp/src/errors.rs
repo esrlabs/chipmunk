@@ -26,6 +26,10 @@ pub enum McpError {
     // Generic
     #[error("{message}")]
     Generic { message: String },
+
+    // Task execution errors
+    #[error("Task execution failed: {0}")]
+    TaskExecutionFailed(String),
 }
 
 #[derive(Debug, thiserror::Error)]

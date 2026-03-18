@@ -18,9 +18,10 @@ use serde_json::Value;
 use tokio::{select, sync::mpsc};
 
 use crate::{
+    chat::Prompt,
     // client::llm::{Llm, LlmClient, LlmConfig},
     errors::McpError,
-    types::{Prompt, Response},
+    types::Response,
 };
 use agents::LlmAgent;
 
@@ -125,62 +126,46 @@ impl McpClient {
         loop {
             select! {
                 Some(prompt) = prompt_rx.recv() => {
-                    let tools = mcp_service.list_tools(Default::default()).await?;
                     let message = format!("User prompt: {}\n\n session_id:\n{}", prompt.message, prompt.id);
 
-                    println!("mcp/client/mod.rs => Sending prompt to MCP: {message}");
-                    let response = match std::env::var("LLM_AGENT")
-                        .ok()
-                        .map(|v| v.to_ascii_lowercase())
-                        .as_deref()
-                    {
-                        Some("openai") => {
-                            agents::open_ai::OpenAI::default()
-                                .send_chat_message(message.clone(), &mut history, tools)
-                                .await
-                        }
-                        _ => {
-                            agents::ollama::Ollama::default()
-                                .send_chat_message(message.clone(), &mut history, tools)
-                                .await
-                        }
-                    };
-                    match response {
-                        Ok(res) => {
-                            let tool_calls = res.message.tool_calls.clone();
-                            println!("🤙🏻 Received Tool Call/s from LLM {tool_calls:?}");
+                    history.push(ChatMessage::user(message.clone()));
 
-                            if tool_calls.is_empty() {
-                                if !res.message.content.is_empty() {
-                                     let _ = response_tx.send(res.message.content.clone()).await;
+                        let tools = mcp_service.list_tools(Default::default()).await?;
+                        let response = agents::GenericAgent::from_config(prompt.config.clone()).send_chat_message(message.clone(), &mut history, tools).await;
+
+                        match response {
+                            Ok(res) => {
+                                let tool_calls = res.message.tool_calls.clone();
+                                println!("🤙🏻 Received Tool Call/s from LLM {tool_calls:?}");
+
+                                if tool_calls.is_empty() {
+                                    if !res.message.content.is_empty() {
+                                        let _ = response_tx.send(res.message.content.clone()).await;
+                                    }
+                                    break;
                                 }
-                                continue;
-                            }
 
-                            for tool_call in tool_calls {
-                                let param = CallToolRequestParam {
-                                    name: tool_call.function.name.clone().into(),
-                                    arguments: fetch_arguments(&tool_call)
-                                };
+                                for tool_call in tool_calls {
+                                    let param = CallToolRequestParam {
+                                        name: tool_call.function.name.clone().into(),
+                                        arguments: fetch_arguments(&tool_call)
+                                    };
 
-                                match mcp_service.call_tool(param).await {
-                                    Ok(tool_result) => {
-                                        if let Err(err) = response_tx.send(format!("Applied {} Tool successfully", tool_call.function.name)).await {
-                                            println!("🔴 Tool call result unsuccessful: {:?}", err);
-                                        } else {
-                                            println!("✅ Sent success response for {} tool call to UI", tool_call.function.name);
+                                    match mcp_service.call_tool(param).await {
+                                        Ok(tool_result) => {
+                                            println!("✅ Tool call result for {}: {:?}", tool_call.function.name, tool_result);
+                                            let _ = response_tx.send(format!("Tool call result for {}: {:?}", tool_call.function.name, tool_result)).await;
+                                        },
+                                        Err(e) => {
+                                            error!("🔴 Tool call failed: {:?}", e);
                                         }
-                                    },
-                                    Err(e) => {
-                                        error!("🔴 Tool call failed: {:?}", e);
                                     }
                                 }
+                            },
+                            Err(err) => {
+                                error!("🔴 MCP Client failed to get mock prompt response: {err:?}");
                             }
-                        },
-                        Err(err) => {
-                            error!("🔴 MCP Client failed to get mock prompt response: {err:?}");
                         }
-                    }
                     // println!("Chipmunk request {chipmunk_request:?}");
                 }
             }

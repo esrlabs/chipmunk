@@ -4,8 +4,9 @@ use ollama_rs::generation::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use url::Url;
 
-use crate::errors::McpError;
+use crate::{config::AiConfig, errors::McpError};
 
 use super::LlmAgent;
 
@@ -79,11 +80,11 @@ impl Default for OpenAI {
 }
 
 impl LlmAgent for OpenAI {
-    fn new(model: &str, url: &str) -> OpenAI {
-        OpenAI {
-            model: model.to_owned(),
-            url: url.to_owned(),
-            api_key: Self::api_key(),
+    fn from_config(config: AiConfig) -> Self {
+        Self {
+            model: config.model,
+            url: config.url,
+            api_key: config.api_key,
         }
     }
 
