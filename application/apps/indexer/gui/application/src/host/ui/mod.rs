@@ -2,13 +2,18 @@ use std::time::Duration;
 
 use anyhow::ensure;
 use eframe::NativeOptions;
-use egui::{Align, CentralPanel, Context, Frame, Layout, TopBottomPanel, Ui, vec2};
+use egui::{
+    Align, Button, CentralPanel, Context, Frame, Layout, RichText, TopBottomPanel, Ui, Widget, vec2,
+};
 use itertools::Itertools;
 use log::{info, trace, warn};
 
 use crate::{
     cli::CliCommand,
-    common::{modal::show_modal, phosphor},
+    common::{
+        modal::show_modal,
+        phosphor::{self, icons},
+    },
     host::{
         command::{HostCommand, StartSessionParam},
         common::app_style,
@@ -203,10 +208,26 @@ impl Host {
             // Tabs
             tabs::render_all_tabs(state, ui_actions, ui);
 
-            // Notifications
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.add_space(3.);
+                // Notifications
                 notifications.render_content(ui);
+
+                // Session panels visibility
+                if state.show_session_panel_toggles() {
+                    render_session_panel_toggle(
+                        ui,
+                        &mut state.session_panels_visibility.right,
+                        icons::fill::SQUARE_HALF,
+                        "Right panel",
+                    );
+                    render_session_panel_toggle(
+                        ui,
+                        &mut state.session_panels_visibility.bottom,
+                        icons::fill::SQUARE_HALF_BOTTOM,
+                        "Bottom panel",
+                    );
+                }
             });
         });
     }
@@ -220,6 +241,7 @@ impl Host {
             sessions,
             session_setups,
             multi_setups,
+            session_panels_visibility,
             registry,
             ..
         } = state;
@@ -229,7 +251,7 @@ impl Host {
             TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")
-                .render_content(ui_actions, registry, ui),
+                .render_content(ui_actions, registry, session_panels_visibility, ui),
             TabType::SessionSetup(id) => session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
@@ -280,6 +302,33 @@ impl Host {
                 );
             })
         });
+    }
+}
+
+fn render_session_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, panel_name: &str) {
+    let button = Button::selectable(
+        *visible,
+        RichText::new(icon)
+            .family(phosphor::fill_font_family())
+            .size(16.0),
+    )
+    .frame(true)
+    .frame_when_inactive(false)
+    .ui(ui)
+    .on_hover_ui(|ui| {
+        ui.set_max_width(ui.spacing().tooltip_width);
+
+        let hover_text = if *visible {
+            format!("Hide {panel_name}")
+        } else {
+            format!("Show {panel_name}")
+        };
+
+        ui.label(hover_text);
+    });
+
+    if button.clicked() {
+        *visible = !*visible;
     }
 }
 
