@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub enum BottomTabType {
     Search,
     Details,
+    Library,
     Presets,
     Chart,
 }
@@ -14,6 +15,7 @@ impl BottomTabType {
         match BottomTabType::Search {
             BottomTabType::Search => {}
             BottomTabType::Details => {}
+            BottomTabType::Library => {}
             BottomTabType::Presets => {}
             BottomTabType::Chart => {}
         };
@@ -21,6 +23,7 @@ impl BottomTabType {
         &[
             BottomTabType::Search,
             BottomTabType::Details,
+            BottomTabType::Library,
             BottomTabType::Presets,
             BottomTabType::Chart,
         ]
@@ -32,8 +35,28 @@ impl Display for BottomTabType {
         match self {
             BottomTabType::Search => f.write_str("Search"),
             BottomTabType::Details => f.write_str("Details"),
-            BottomTabType::Presets => f.write_str("Presets/History"),
+            BottomTabType::Library => f.write_str("Library"),
+            BottomTabType::Presets => f.write_str("Presets"),
             BottomTabType::Chart => f.write_str("Chart"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_keeps_library_order() {
+        assert_eq!(
+            BottomTabType::all(),
+            &[
+                BottomTabType::Search,
+                BottomTabType::Details,
+                BottomTabType::Library,
+                BottomTabType::Presets,
+                BottomTabType::Chart,
+            ]
+        );
     }
 }

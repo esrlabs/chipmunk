@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
 use egui::{CentralPanel, Frame, Margin, SidePanel, TopBottomPanel, Ui};
-use shared::SessionShared;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -40,7 +39,7 @@ mod side_panel;
 mod status_bar;
 
 pub use bottom_panel::chart;
-pub use shared::SessionInfo;
+pub use shared::{SessionInfo, SessionShared};
 
 #[derive(Debug)]
 pub struct Session {
@@ -144,14 +143,16 @@ impl Session {
                 bottom_panel.render_content(shared, actions, registry, ui);
             });
 
-        CentralPanel::default().show_inside(ui, |ui| {
-            // We need to give a unique id for the direct parent of each table because
-            // they will be used as identifiers for table state to avoid ID clashes between
-            // tables from different tabs (different sessions).
-            ui.push_id(shared.get_id(), |ui| {
-                logs_table.render_content(shared, actions, ui);
+        CentralPanel::default()
+            .frame(Frame::central_panel(ui.style()).inner_margin(Margin::symmetric(4, 0)))
+            .show_inside(ui, |ui| {
+                // We need to give a unique id for the direct parent of each table because
+                // they will be used as identifiers for table state to avoid ID clashes between
+                // tables from different tabs (different sessions).
+                ui.push_id(shared.get_id(), |ui| {
+                    logs_table.render_content(shared, actions, ui);
+                });
             });
-        });
 
         self.handle_signals();
     }
