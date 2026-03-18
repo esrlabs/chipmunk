@@ -25,12 +25,28 @@ pub struct HostState {
     pub sessions: FxHashMap<Uuid, Session>,
     pub session_setups: FxHashMap<Uuid, SessionSetup>,
     pub multi_setups: FxHashMap<Uuid, MultiFileSetup>,
+    /// Shared visibility for the session-only auxiliary panels in the main layout.
+    pub session_panels_visibility: PanelsVisibility,
     pub registry: HostRegistry,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Shared visibility state for the session right and bottom panels.
+pub struct PanelsVisibility {
+    /// Controls the session right-side panel visibility.
+    pub right: bool,
+    /// Controls the session bottom panel visibility.
+    pub bottom: bool,
 }
 
 impl HostState {
     pub fn active_tab(&self) -> &TabType {
         &self.tabs[self.active_tab_idx]
+    }
+
+    /// Whether the tab bar should render the session panel visibility toggles.
+    pub fn show_session_panel_toggles(&self) -> bool {
+        matches!(self.active_tab(), TabType::Session(_))
     }
 
     pub fn add_session(
@@ -185,7 +201,50 @@ impl Default for HostState {
             sessions: FxHashMap::default(),
             session_setups: FxHashMap::default(),
             multi_setups: FxHashMap::default(),
+            session_panels_visibility: PanelsVisibility::default(),
             registry: HostRegistry::default(),
         }
+    }
+}
+
+impl Default for PanelsVisibility {
+    fn default() -> Self {
+        Self {
+            right: true,
+            bottom: true,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn panels_visibility_defaults_visible() {
+        let state = HostState::default();
+
+        assert!(state.session_panels_visibility.right);
+        assert!(state.session_panels_visibility.bottom);
+    }
+
+    #[test]
+    fn toggling_right_keeps_bottom() {
+        let mut state = HostState::default();
+
+        state.session_panels_visibility.right = !state.session_panels_visibility.right;
+
+        assert!(!state.session_panels_visibility.right);
+        assert!(state.session_panels_visibility.bottom);
+    }
+
+    #[test]
+    fn toggling_bottom_keeps_right() {
+        let mut state = HostState::default();
+
+        state.session_panels_visibility.bottom = !state.session_panels_visibility.bottom;
+
+        assert!(state.session_panels_visibility.right);
+        assert!(!state.session_panels_visibility.bottom);
     }
 }
