@@ -1,3 +1,9 @@
+# 3.19.5 (19.03.2026)
+
+## Fixes
+- Fix construction of arguments for DLT non-verbose messages.
+- Fix Chrome sandbox/AppArmor startup issue on Ubuntu 24.
+
 # 3.19.4 (13.01.2026)
 
 ## Changes
