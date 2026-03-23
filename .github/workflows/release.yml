@@ -76,9 +76,10 @@ jobs:
         env:
           SCCACHE_GHA_ENABLED: "true"
           RUSTC_WRAPPER: "sccache"
-      - name: enable corepack for yarnpkg upgrade
+      - name: Setup Yarn
         run: |
           corepack enable
+          corepack prepare yarn@4.6.0 --activate
           yarn cache clean
       - name: setup keychain for signing and notarising
         if: runner.os == 'macOS'

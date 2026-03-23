@@ -20,6 +20,5 @@
   "win": {
     "icon": "resources/win/chipmunk.ico",
     "target": [],
-    "publisherName": "ESR Labs"
   }
 }
