@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 pub use file::SourceFileInfo;
 pub use process::ProcessConfig;
-pub use serial::{BaudRate, SerialConfig};
+pub use serial::{BaudRate, NamedValue, SerialConfig};
 use stypes::{FileFormat, Transport};
 pub use tcp::TcpConfig;
 pub use udp::{MulticastItem, UdpConfig};
