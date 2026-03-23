@@ -6,7 +6,7 @@ pub mod udp;
 
 pub use file::SourceFileInfo;
 pub use process::ProcessConfig;
-pub use serial::{BaudRate, SerialConfig};
+pub use serial::{BaudRate, NamedValue, SerialConfig};
 use std::path::PathBuf;
 use stypes::{FileFormat, Transport};
 pub use tcp::TcpConfig;
