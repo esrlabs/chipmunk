@@ -5,7 +5,7 @@ use tokio::sync::mpsc::Sender;
 use crate::host::{
     command::HostCommand,
     common::{parsers::ParserNames, sources::StreamNames},
-    ui::actions::UiActions,
+    ui::actions::{FileDialogOptions, UiActions},
 };
 
 #[derive(Debug)]
@@ -46,33 +46,41 @@ impl MainMenuBar {
 
             ui.menu_button("File", |ui| {
                 if ui.button("Open File(s)").clicked() {
-                    actions.file_dialog.pick_files(OPEN_FILES_ID, &[]);
+                    actions
+                        .file_dialog
+                        .pick_files(OPEN_FILES_ID, FileDialogOptions::new().title("Open Files"));
                 }
 
                 ui.separator();
 
                 ui.menu_button("Select Files from Folder", |ui| {
                     if ui.button("Text").clicked() {
-                        actions
-                            .file_dialog
-                            .pick_folder(id_from_file_format(FileFormat::Text));
+                        actions.file_dialog.pick_folder(
+                            id_from_file_format(FileFormat::Text),
+                            FileDialogOptions::new().title("Select Folder with Text Files"),
+                        );
                     }
                     if ui.button("DLT Binary").clicked() {
                         actions
                             .file_dialog
                             // NOTE: Binary is used here actually for DLT files to match the
                             // behavior in the master branch.
-                            .pick_folder(id_from_file_format(FileFormat::Binary));
+                            .pick_folder(
+                                id_from_file_format(FileFormat::Binary),
+                                FileDialogOptions::new().title("Select Folder with DLT Files"),
+                            );
                     }
                     if ui.button("PcapNG").clicked() {
-                        actions
-                            .file_dialog
-                            .pick_folder(id_from_file_format(FileFormat::PcapNG));
+                        actions.file_dialog.pick_folder(
+                            id_from_file_format(FileFormat::PcapNG),
+                            FileDialogOptions::new().title("Select Folder with PcapNG Files"),
+                        );
                     }
-                    if ui.button("Pacp").clicked() {
-                        actions
-                            .file_dialog
-                            .pick_folder(id_from_file_format(FileFormat::PcapLegacy));
+                    if ui.button("Pcap").clicked() {
+                        actions.file_dialog.pick_folder(
+                            id_from_file_format(FileFormat::PcapLegacy),
+                            FileDialogOptions::new().title("Select Folder with Pcap Files"),
+                        );
                     }
                 });
             });

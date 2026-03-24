@@ -9,7 +9,10 @@ use crate::{
     common::phosphor::icons,
     host::{
         common::parsers::ParserNames,
-        ui::{UiActions, actions::FileDialogFilter},
+        ui::{
+            UiActions,
+            actions::{FileDialogFilter, FileDialogOptions},
+        },
     },
     session::{
         command::{AttachSource, SessionCommand},
@@ -91,28 +94,33 @@ impl FilesObserveUi {
 
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 if ui.button("Attach Files").clicked() {
-                    let mut filters = Vec::new();
-                    match file_format {
-                        FileFormat::PcapNG => {
-                            filters.push(FileDialogFilter::new(
+                    let (title, filters) = match file_format {
+                        FileFormat::PcapNG => (
+                            "Attach PcapNG Files",
+                            vec![FileDialogFilter::new(
                                 "PcapNG",
                                 vec![String::from("pcapng")],
-                            ));
-                        }
-                        FileFormat::PcapLegacy => {
-                            filters.push(FileDialogFilter::new("Pcap", vec![String::from("pcap")]));
-                        }
-                        FileFormat::Text => {}
+                            )],
+                        ),
+                        FileFormat::PcapLegacy => (
+                            "Attach Pcap Files",
+                            vec![FileDialogFilter::new("Pcap", vec![String::from("pcap")])],
+                        ),
+                        FileFormat::Text => ("Attach Files", Vec::new()),
                         FileFormat::Binary => match parser {
-                            ParserNames::Dlt => {
-                                filters
-                                    .push(FileDialogFilter::new("DLT", vec![String::from("dlt")]));
-                            }
-                            ParserNames::SomeIP | ParserNames::Text => {}
+                            ParserNames::Dlt => (
+                                "Attach DLT Files",
+                                vec![FileDialogFilter::new("DLT", vec![String::from("dlt")])],
+                            ),
+                            ParserNames::SomeIP | ParserNames::Text => ("Attach Files", Vec::new()),
                             ParserNames::Plugins => todo!("Plugins not supported yet"),
                         },
                     };
-                    actions.file_dialog.pick_files(ATTATCH_FILE_ID, &filters);
+
+                    actions.file_dialog.pick_files(
+                        ATTATCH_FILE_ID,
+                        FileDialogOptions::new().title(title).filters(filters),
+                    );
                 }
             });
         });
