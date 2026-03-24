@@ -11,7 +11,13 @@ pub fn render_content(config: &mut DltParserConfig, actions: &mut UiActions, ui:
     log_level_selector(config, ui);
     ui.separator();
 
-    fibex_file_selector("dlt_fibex_dialog", &mut config.fibex_files, actions, ui);
+    fibex_file_selector(
+        "dlt_fibex_dialog",
+        "Select DLT FIBEX Files",
+        &mut config.fibex_files,
+        actions,
+        ui,
+    );
     ui.separator();
 
     timezone_selector(config, ui);
