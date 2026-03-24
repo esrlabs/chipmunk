@@ -3,6 +3,7 @@ use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, TextEdit, U
 use super::RenderOutcome;
 use crate::host::ui::{
     UiActions,
+    actions::FileDialogOptions,
     session_setup::{start_session_on_enter, state::sources::ProcessConfig},
 };
 
@@ -117,7 +118,12 @@ pub fn working_dir(
                 .on_hover_text("Browse");
 
             if open_btn.clicked() {
-                actions.file_dialog.pick_folder(CWD_DIALOG_ID);
+                actions.file_dialog.pick_folder(
+                    CWD_DIALOG_ID,
+                    FileDialogOptions::new()
+                        .title("Select Working Folder")
+                        .directory(config.cwd.clone()),
+                );
             }
 
             let home_txt = RichText::new(egui_phosphor::regular::HOUSE)

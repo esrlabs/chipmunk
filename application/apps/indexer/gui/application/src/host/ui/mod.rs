@@ -167,7 +167,7 @@ impl Host {
     }
 
     fn render_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        if self.ui_actions.file_dialog.poll_dialog_task() {
+        if self.ui_actions.file_dialog.poll_dialog_task().is_pending() {
             self.file_dialog_overlay(ctx);
         }
 
