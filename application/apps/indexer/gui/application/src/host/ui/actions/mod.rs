@@ -6,7 +6,7 @@ use tokio::{runtime::Handle, sync::mpsc};
 mod file_dialog;
 mod host_action;
 
-pub use file_dialog::{FileDialogFilter, FileDialogHandle};
+pub use file_dialog::{FileDialogFilter, FileDialogHandle, FileDialogOptions};
 pub use host_action::HostAction;
 
 /// A handle to be passed between UI components to get access to

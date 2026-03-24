@@ -3,12 +3,15 @@ use egui::RichText;
 use crate::{
     common::phosphor::{self, icons},
     host::ui::{
-        UiActions, actions::FileDialogFilter, session_setup::state::parsers::FibexFileInfo,
+        UiActions,
+        actions::{FileDialogFilter, FileDialogOptions},
+        session_setup::state::parsers::FibexFileInfo,
     },
 };
 
 pub fn fibex_file_selector(
     file_dialog_id: &str,
+    dialog_title: &str,
     fibex_files: &mut Vec<FibexFileInfo>,
     actions: &mut UiActions,
     ui: &mut egui::Ui,
@@ -36,7 +39,9 @@ pub fn fibex_file_selector(
     if ui.button(add_txt).clicked() {
         actions.file_dialog.pick_files(
             file_dialog_id,
-            &[FileDialogFilter::new("FIBEX", vec![String::from("xml")])],
+            FileDialogOptions::new()
+                .title(dialog_title)
+                .filter(FileDialogFilter::new("FIBEX", vec![String::from("xml")])),
         );
     }
 
