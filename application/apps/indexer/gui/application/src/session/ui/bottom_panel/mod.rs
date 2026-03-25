@@ -76,7 +76,7 @@ impl BottomPanelUI {
 
     fn render_tabs(&mut self, shared: &mut SessionShared, ui: &mut Ui) {
         Frame::NONE
-            .inner_margin(Margin::symmetric(0, 2))
+            .inner_margin(Margin::symmetric(0, 4))
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
                     for tab in BottomTabType::all() {
