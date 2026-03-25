@@ -8,6 +8,7 @@ use egui::{
 };
 use egui_table::Column;
 use regex::Regex;
+use stypes::ObserveOrigin;
 use uuid::Uuid;
 
 use crate::{
@@ -317,6 +318,23 @@ pub fn handle_grab_errors(error: SessionError, session_id: Uuid, actions: &mut U
     let notifi = AppNotification::SessionError { session_id, error };
 
     actions.add_notification(notifi);
+}
+
+/// Returns whether the visible table should keep following the newest row.
+pub fn should_stick_to_bottom(shared: &SessionShared) -> bool {
+    shared
+        .observe
+        .operations()
+        .first()
+        .is_some_and(|op| match &op.origin {
+            ObserveOrigin::File(..) => {
+                // Enable stick to bottom for files only when they reach tailing phase
+                // after reading the already existed data in that file.
+                op.phase().is_running() && shared.observe.is_file_read_completed()
+            }
+            ObserveOrigin::Concat(..) => false,
+            ObserveOrigin::Stream(..) => true,
+        })
 }
 
 #[cfg(test)]
