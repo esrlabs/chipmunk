@@ -134,7 +134,17 @@ impl Session {
                 side_panel.render_content(ui, shared, actions, registry);
             });
 
+        // We need to have margin on scrollbar sides because highlighting and mouse
+        // cursor flicker between resizing the panel and the scrollbar.
+        let panels_margin = Margin {
+            left: 2,
+            right: 4,
+            top: 0,
+            bottom: 4,
+        };
+
         TopBottomPanel::bottom("bottom_panel")
+            .frame(Frame::side_top_panel(ui.style()).inner_margin(panels_margin))
             .height_range(100.0..=700.0)
             .default_height(200.)
             .resizable(true)
@@ -144,7 +154,7 @@ impl Session {
             });
 
         CentralPanel::default()
-            .frame(Frame::central_panel(ui.style()).inner_margin(Margin::symmetric(4, 0)))
+            .frame(Frame::central_panel(ui.style()).inner_margin(panels_margin))
             .show_inside(ui, |ui| {
                 // We need to give a unique id for the direct parent of each table because
                 // they will be used as identifiers for table state to avoid ID clashes between
