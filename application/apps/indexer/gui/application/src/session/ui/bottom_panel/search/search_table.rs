@@ -11,7 +11,11 @@ use crate::{
         command::SessionCommand,
         error::SessionError,
         ui::{
-            common::{self, logs_mapped::LogsMapped, logs_tables::grab_cmd_consts},
+            common::{
+                self,
+                logs_mapped::LogsMapped,
+                logs_tables::{grab_cmd_consts, should_stick_to_bottom},
+            },
             definitions::{LogTableItem, schema::LogSchema},
             shared::SessionShared,
         },
@@ -61,7 +65,8 @@ impl SearchTable {
             .num_rows(shared.search.indexed_result_count())
             .headers(Vec::new())
             .columns(self.columns.as_ref())
-            .num_sticky_cols(1);
+            .num_sticky_cols(1)
+            .stick_to_bottom(should_stick_to_bottom(shared));
 
         if let Some(row_nr) = self.scroll_nearest_pos.take().map(|pos| pos.index)
             && row_nr < shared.search.indexed_result_count()
