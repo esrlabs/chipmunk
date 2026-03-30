@@ -44,8 +44,6 @@ pub use shared::{SessionInfo, SessionShared};
 #[derive(Debug)]
 pub struct Session {
     cmd_tx: Sender<SessionCommand>,
-    #[allow(unused)]
-    host_cmd_tx: Sender<HostCommand>,
     receivers: UiReceivers,
     shared: SessionShared,
     logs_table: LogsTable,
@@ -75,9 +73,8 @@ impl Session {
             side_panel: SidePanelUi::new(&observe_op, senders.cmd_tx.clone()),
             shared: SessionShared::new(session_info, observe_op),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
-            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), schema),
+            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), host_cmd_tx, schema),
             cmd_tx: senders.cmd_tx,
-            host_cmd_tx,
         }
     }
 

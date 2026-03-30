@@ -1,5 +1,3 @@
-// TODO AAZ: Remove unused suppressing once save dialog is used.
-
 use std::{future::Future, path::PathBuf};
 
 use tokio::{
@@ -139,6 +137,22 @@ impl FileDialogHandle {
                 .await
                 .map(|files| files.into_iter().map(|file| file.into()).collect())
                 .unwrap_or_default()
+        });
+    }
+
+    /// Spawns a new asynchronous single-file picker dialog.
+    ///
+    /// This method initializes the dialog builder on the current thread and spawns
+    /// the waiting task onto the configured Tokio runtime.
+    ///
+    /// To retrieve the result of the dialog, you must subsequently call [`Self::take_output`].
+    pub fn pick_file(&mut self, id: impl Into<String>, options: FileDialogOptions) {
+        let id = id.into();
+
+        let file_handle = Self::apply_options(rfd::AsyncFileDialog::new(), options).pick_file();
+
+        self.spawn_dialog_task(id, async move {
+            file_handle.await.map(PathBuf::from).into_iter().collect()
         });
     }
 

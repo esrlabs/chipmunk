@@ -2,6 +2,8 @@ use rustc_hash::FxHashMap;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+mod presets;
+
 use crate::{
     host::{
         command::HostCommand,

@@ -1,16 +1,25 @@
-use egui::{Align, Button, Layout, Margin, RichText, ScrollArea, TextEdit, Ui, Widget, vec2};
+use egui::{
+    Align, Button, Frame, Layout, Margin, RichText, ScrollArea, TextEdit, Ui, UiBuilder, Widget,
+    vec2,
+};
 use processor::search::filter::SearchFilter;
+use rustc_hash::FxHashSet;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
-    host::ui::{
-        UiActions,
-        registry::{
-            HostRegistry,
-            filters::{FilterDefinition, SearchValueDefinition},
-            presets::{Preset, PresetUpdateOutcome},
+    host::{
+        command::{ExportPresetsParam, HostCommand},
+        notification::AppNotification,
+        ui::{
+            UiActions,
+            actions::{FileDialogFilter, FileDialogOptions},
+            registry::{
+                HostRegistry,
+                filters::{FilterDefinition, SearchValueDefinition},
+                presets::{Preset, PresetUpdateOutcome},
+            },
         },
     },
     session::{
@@ -23,6 +32,10 @@ use query::collect_matching_preset_ids;
 
 mod query;
 mod render;
+
+const IMPORT_PRESETS_DIALOG_ID: &str = "import_presets";
+const EXPORT_PRESETS_DIALOG_ID: &str = "export_presets";
+const PRESETS_EXPORT_FILE_NAME: &str = "chipmunk-presets.json";
 
 mod card_metrics {
     pub const PRESET_CARD_WIDTH: f32 = 280.0;
@@ -42,8 +55,10 @@ mod card_metrics {
 #[derive(Debug)]
 pub struct PresetsUI {
     cmd_tx: Sender<SessionCommand>,
+    host_cmd_tx: Sender<HostCommand>,
     query_state: PresetQueryState,
     edit_state: Option<PresetEditState>,
+    export_state: Option<ExportSelectionState>,
 }
 
 /// Cached name-filter state keyed by the preset catalog revision.
@@ -81,6 +96,13 @@ struct PresetEditState {
     first_render_frame: bool,
 }
 
+/// Persistent selection for the temporary export-only interaction mode.
+#[derive(Debug, Clone)]
+struct ExportSelectionState {
+    selected_ids: FxHashSet<Uuid>,
+    cached_revision: u64,
+}
+
 /// Result of applying a preset into the current session state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PresetApplyOutcome {
@@ -96,6 +118,7 @@ enum PresetAction {
     CancelEdit(Uuid),
     Apply(Uuid),
     Delete(Uuid),
+    ToggleExportSelection(Uuid),
     AddFilter(Uuid, SearchFilter),
     AddSearchValue(Uuid, SearchFilter),
     RemoveFilter(Uuid, usize),
@@ -105,11 +128,13 @@ enum PresetAction {
 }
 
 impl PresetsUI {
-    pub fn new(cmd_tx: Sender<SessionCommand>) -> Self {
+    pub fn new(cmd_tx: Sender<SessionCommand>, host_cmd_tx: Sender<HostCommand>) -> Self {
         Self {
             cmd_tx,
+            host_cmd_tx,
             query_state: PresetQueryState::default(),
             edit_state: None,
+            export_state: None,
         }
     }
 
@@ -121,21 +146,60 @@ impl PresetsUI {
         ui: &mut Ui,
     ) {
         self.sync_edit_state(registry);
+        self.sync_export_state(registry);
+        self.handle_file_dialog_output(actions, registry);
+        let view_rect = ui.max_rect();
 
         ui.allocate_ui_with_layout(
             vec2(ui.available_width(), 23.),
             Layout::right_to_left(Align::Center),
             |ui| {
-                let can_create_preset = can_create_preset_from_session(shared);
-                if ui
-                    .add_enabled(
-                        can_create_preset,
-                        Button::new(RichText::new(icons::regular::PLUS).size(16.0)),
-                    )
-                    .on_hover_text("Add preset from session")
-                    .clicked()
-                {
-                    self.create_preset_from_session(shared, registry);
+                if self.is_exporting() {
+                    ui.add_space(5.0);
+                    ui.label(RichText::new("Export mode").strong());
+                } else {
+                    let icons_size = 16.0;
+
+                    let can_create_preset = can_create_preset_from_session(shared);
+                    if ui
+                        .add_enabled(
+                            can_create_preset,
+                            Button::new(RichText::new(icons::regular::PLUS).size(icons_size)),
+                        )
+                        .on_hover_text("Add preset from session")
+                        .clicked()
+                    {
+                        self.create_preset_from_session(shared, registry);
+                    }
+
+                    let can_export_presets = !registry.presets.presets().is_empty();
+                    let mut export_button = ui
+                        .add_enabled(
+                            can_export_presets && self.edit_state.is_none(),
+                            Button::new(RichText::new(icons::regular::EXPORT).size(icons_size)),
+                        )
+                        .on_hover_text("Select named presets to export");
+
+                    if self.edit_state.is_some() {
+                        export_button = export_button
+                            .on_disabled_hover_text("Finish preset editing before exporting");
+                    }
+                    if export_button.clicked() {
+                        self.start_export_mode(registry);
+                    }
+
+                    if Button::new(RichText::new(icons::regular::DOWNLOAD_SIMPLE).size(icons_size))
+                        .ui(ui)
+                        .on_hover_text("Import named presets")
+                        .clicked()
+                    {
+                        actions.file_dialog.pick_file(
+                            IMPORT_PRESETS_DIALOG_ID,
+                            FileDialogOptions::new()
+                                .title("Import Presets")
+                                .filters(preset_file_filters()),
+                        );
+                    }
                 }
 
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
@@ -189,12 +253,91 @@ impl PresetsUI {
 
         if !any_visible {
             ui.label(RichText::new("No presets match the current filter.").weak());
-            return;
+        }
+
+        if self.is_exporting() {
+            self.render_export_overlay(actions, registry, view_rect, ui);
         }
 
         if let Some(action) = pending_action {
             self.handle_preset_action(action, shared, actions, registry);
         }
+    }
+
+    fn render_export_overlay(
+        &mut self,
+        actions: &mut UiActions,
+        registry: &HostRegistry,
+        view_rect: egui::Rect,
+        ui: &mut Ui,
+    ) {
+        let can_select_filtered = self.has_visible_presets(registry);
+        let selected_count = self.selected_export_count();
+        let overlay_rect = view_rect.shrink2(vec2(6.0, 4.0));
+        let mut overlay_ui = ui.new_child(
+            UiBuilder::new()
+                .max_rect(overlay_rect)
+                .layout(Layout::bottom_up(Align::RIGHT)),
+        );
+
+        let visuals = overlay_ui.visuals();
+        Frame::new()
+            .fill(visuals.panel_fill)
+            .stroke(visuals.window_stroke)
+            .corner_radius(visuals.widgets.inactive.corner_radius)
+            .inner_margin(Margin::symmetric(6, 4))
+            .show(&mut overlay_ui, |ui| {
+                ui.horizontal(|ui| {
+                    let button_size = vec2(100.0, 20.0);
+
+                    let cancel = Button::new("Cancel")
+                        .min_size(button_size)
+                        .ui(ui)
+                        .on_hover_text("Exit export mode");
+
+                    if cancel.clicked() {
+                        self.cancel_export_mode();
+                    }
+
+                    let export_btn =
+                        Button::new(format!("Export ({selected_count})")).min_size(button_size);
+
+                    if ui
+                        .add_enabled(selected_count > 0, export_btn)
+                        .on_disabled_hover_text("Select at least one preset to export")
+                        .on_hover_text("Export the selected named presets")
+                        .clicked()
+                    {
+                        actions.file_dialog.save_file(
+                            EXPORT_PRESETS_DIALOG_ID,
+                            FileDialogOptions::new()
+                                .title("Export Presets")
+                                .file_name(PRESETS_EXPORT_FILE_NAME)
+                                .filters(preset_file_filters()),
+                        );
+                    }
+
+                    let clear_btn = Button::new("Clear").min_size(button_size);
+                    if ui
+                        .add_enabled(selected_count > 0, clear_btn)
+                        .on_disabled_hover_text("All export selections are already cleared")
+                        .on_hover_text("Clear all selected presets")
+                        .clicked()
+                    {
+                        self.clear_export_selection();
+                    }
+
+                    let select_all = Button::new("Select All").min_size(button_size);
+                    if ui
+                        .add_enabled(can_select_filtered, select_all)
+                        .on_disabled_hover_text("No presets match the current filter")
+                        .on_hover_text("Select all filtered")
+                        .clicked()
+                    {
+                        self.select_filtered_for_export(registry);
+                    }
+                });
+            });
     }
 
     fn handle_preset_action(
@@ -213,6 +356,7 @@ impl PresetsUI {
             PresetAction::Delete(id) => {
                 self.delete_preset(registry, id);
             }
+            PresetAction::ToggleExportSelection(id) => self.toggle_export_selection(id),
             PresetAction::AddFilter(id, filter) => {
                 self.add_filter_to_draft(id, filter);
             }
@@ -244,10 +388,164 @@ impl PresetsUI {
         }
     }
 
+    fn sync_export_state(&mut self, registry: &HostRegistry) {
+        let Some(export_state) = self.export_state.as_mut() else {
+            return;
+        };
+
+        let revision = registry.presets.definitions_revision();
+        if export_state.cached_revision == revision {
+            return;
+        }
+
+        export_state
+            .selected_ids
+            .retain(|preset_id| registry.presets.get(preset_id).is_some());
+        export_state.cached_revision = revision;
+
+        if registry.presets.presets().is_empty() {
+            self.export_state = None;
+        }
+    }
+
+    fn handle_file_dialog_output(&mut self, actions: &mut UiActions, registry: &HostRegistry) {
+        let Some((dialog_id, paths)) = actions
+            .file_dialog
+            .take_output_many(&[IMPORT_PRESETS_DIALOG_ID, EXPORT_PRESETS_DIALOG_ID])
+        else {
+            return;
+        };
+
+        match (dialog_id, paths.as_slice()) {
+            (IMPORT_PRESETS_DIALOG_ID, [path]) => {
+                self.dispatch_import_request(actions, path.clone());
+            }
+            (EXPORT_PRESETS_DIALOG_ID, [path]) => {
+                if self.dispatch_export_request(actions, registry, path.clone()) {
+                    self.cancel_export_mode();
+                }
+            }
+            (_, []) => {}
+            (IMPORT_PRESETS_DIALOG_ID, _) => actions.add_notification(AppNotification::UiError(
+                "Preset import expects a single selected file.".into(),
+            )),
+            (EXPORT_PRESETS_DIALOG_ID, _) => actions.add_notification(AppNotification::UiError(
+                "Preset export expects a single destination path.".into(),
+            )),
+            _ => unreachable!("only preset dialog ids are requested here"),
+        }
+    }
+
+    fn dispatch_import_request(&self, actions: &mut UiActions, path: std::path::PathBuf) -> bool {
+        actions.try_send_command(&self.host_cmd_tx, HostCommand::ImportPresets(path))
+    }
+
+    fn dispatch_export_request(
+        &self,
+        actions: &mut UiActions,
+        registry: &HostRegistry,
+        path: std::path::PathBuf,
+    ) -> bool {
+        let presets = match self.export_state.as_ref() {
+            Some(export_state) => registry
+                .presets
+                .presets()
+                .iter()
+                .filter(|preset| export_state.selected_ids.contains(&preset.id))
+                .cloned()
+                .collect(),
+            None => registry.presets.presets().to_vec(),
+        };
+        if presets.is_empty() {
+            actions.add_notification(AppNotification::UiError(
+                "Select at least one preset to export.".into(),
+            ));
+            return false;
+        }
+
+        actions.try_send_command(
+            &self.host_cmd_tx,
+            HostCommand::ExportPresets(Box::new(ExportPresetsParam { path, presets })),
+        )
+    }
+
     fn is_editing(&self, preset_id: Uuid) -> bool {
         self.edit_state
             .as_ref()
             .is_some_and(|state| state.preset_id == preset_id)
+    }
+
+    fn is_exporting(&self) -> bool {
+        self.export_state.is_some()
+    }
+
+    fn is_selected_for_export(&self, preset_id: Uuid) -> bool {
+        self.export_state
+            .as_ref()
+            .is_some_and(|state| state.selected_ids.contains(&preset_id))
+    }
+
+    fn selected_export_count(&self) -> usize {
+        self.export_state
+            .as_ref()
+            .map_or(0, |state| state.selected_ids.len())
+    }
+
+    fn has_visible_presets(&self, registry: &HostRegistry) -> bool {
+        registry
+            .presets
+            .presets()
+            .iter()
+            .any(|preset| self.query_state.matches(&preset.id))
+    }
+
+    fn start_export_mode(&mut self, registry: &HostRegistry) {
+        self.export_state = Some(ExportSelectionState {
+            selected_ids: registry
+                .presets
+                .presets()
+                .iter()
+                .map(|preset| preset.id)
+                .collect(),
+            cached_revision: registry.presets.definitions_revision(),
+        });
+    }
+
+    fn cancel_export_mode(&mut self) {
+        self.export_state = None;
+    }
+
+    fn clear_export_selection(&mut self) {
+        let Some(export_state) = self.export_state.as_mut() else {
+            return;
+        };
+
+        export_state.selected_ids.clear();
+    }
+
+    fn select_filtered_for_export(&mut self, registry: &HostRegistry) {
+        let selected_ids = registry
+            .presets
+            .presets()
+            .iter()
+            .filter_map(|preset| self.query_state.matches(&preset.id).then_some(preset.id))
+            .collect();
+
+        let Some(export_state) = self.export_state.as_mut() else {
+            return;
+        };
+
+        export_state.selected_ids = selected_ids;
+    }
+
+    fn toggle_export_selection(&mut self, preset_id: Uuid) {
+        let Some(export_state) = self.export_state.as_mut() else {
+            return;
+        };
+
+        if !export_state.selected_ids.remove(&preset_id) {
+            export_state.selected_ids.insert(preset_id);
+        }
     }
 
     fn start_edit_from_preset(&mut self, preset: &Preset) {
@@ -473,6 +771,10 @@ fn can_create_preset_from_session(shared: &SessionShared) -> bool {
     !shared.filters.filter_entries.is_empty() || !shared.filters.search_value_entries.is_empty()
 }
 
+fn preset_file_filters() -> Vec<FileDialogFilter> {
+    vec![FileDialogFilter::new("JSON", vec!["json".to_owned()])]
+}
+
 impl PresetEditState {
     fn from_preset(preset: &Preset) -> Self {
         Self {
@@ -495,6 +797,7 @@ mod tests {
     use super::*;
     use crate::{
         host::{
+            command::HostCommand,
             common::parsers::ParserNames,
             ui::registry::{
                 HostRegistry,
@@ -505,9 +808,14 @@ mod tests {
     };
     use stypes::{FileFormat, ObserveOrigin};
 
-    fn new_presets() -> (PresetsUI, mpsc::Receiver<SessionCommand>) {
+    fn new_presets() -> (
+        PresetsUI,
+        mpsc::Receiver<SessionCommand>,
+        mpsc::Receiver<HostCommand>,
+    ) {
         let (cmd_tx, cmd_rx) = mpsc::channel(8);
-        (PresetsUI::new(cmd_tx), cmd_rx)
+        let (host_cmd_tx, host_cmd_rx) = mpsc::channel(8);
+        (PresetsUI::new(cmd_tx, host_cmd_tx), cmd_rx, host_cmd_rx)
     }
 
     fn new_shared() -> SessionShared {
@@ -560,6 +868,14 @@ mod tests {
         commands
     }
 
+    fn drain_host_commands(host_cmd_rx: &mut mpsc::Receiver<HostCommand>) -> Vec<HostCommand> {
+        let mut commands = Vec::new();
+        while let Ok(command) = host_cmd_rx.try_recv() {
+            commands.push(command);
+        }
+        commands
+    }
+
     #[test]
     fn create_requires_session_items() {
         let mut shared = new_shared();
@@ -587,7 +903,7 @@ mod tests {
 
     #[test]
     fn create_stays_in_browse_mode() {
-        let (mut presets, _) = new_presets();
+        let (mut presets, _, _) = new_presets();
         let shared = new_shared();
         let mut registry = HostRegistry::default();
 
@@ -598,8 +914,91 @@ mod tests {
     }
 
     #[test]
+    fn export_mode_selects_all() {
+        let (mut presets, _, _) = new_presets();
+        let mut registry = HostRegistry::default();
+        let first_id = registry.presets.add_preset("first", vec![], vec![]);
+        let second_id = registry.presets.add_preset("second", vec![], vec![]);
+
+        presets.start_export_mode(&registry);
+
+        assert!(presets.is_exporting());
+        assert_eq!(presets.selected_export_count(), 2);
+        assert!(presets.is_selected_for_export(first_id));
+        assert!(presets.is_selected_for_export(second_id));
+    }
+
+    #[test]
+    fn export_mode_prunes_deleted() {
+        let (mut presets, _, _) = new_presets();
+        let mut registry = HostRegistry::default();
+        let first_id = registry.presets.add_preset("first", vec![], vec![]);
+        let second_id = registry.presets.add_preset("second", vec![], vec![]);
+        presets.start_export_mode(&registry);
+
+        assert!(registry.presets.remove_preset(second_id));
+        presets.sync_export_state(&registry);
+
+        assert!(presets.is_selected_for_export(first_id));
+        assert!(!presets.is_selected_for_export(second_id));
+        assert_eq!(presets.selected_export_count(), 1);
+    }
+
+    #[test]
+    fn select_filtered_replaces_selection() {
+        let (mut presets, _, _) = new_presets();
+        let mut registry = HostRegistry::default();
+        let error_id = registry.presets.add_preset("Errors", vec![], vec![]);
+        let warn_id = registry.presets.add_preset("Warnings", vec![], vec![]);
+        let other_error_id = registry.presets.add_preset("Error Group", vec![], vec![]);
+        presets.start_export_mode(&registry);
+        presets.query_state.query = "error".to_owned();
+        presets.query_state.update_with_revision(
+            registry.presets.definitions_revision(),
+            true,
+            |query| collect_matching_preset_ids(query, &registry),
+        );
+
+        presets.select_filtered_for_export(&registry);
+
+        assert!(presets.is_selected_for_export(error_id));
+        assert!(!presets.is_selected_for_export(warn_id));
+        assert!(presets.is_selected_for_export(other_error_id));
+        assert_eq!(presets.selected_export_count(), 2);
+    }
+
+    #[test]
+    fn select_filtered_uses_all_when_empty() {
+        let (mut presets, _, _) = new_presets();
+        let mut registry = HostRegistry::default();
+        let first_id = registry.presets.add_preset("Errors", vec![], vec![]);
+        let second_id = registry.presets.add_preset("Warnings", vec![], vec![]);
+        presets.start_export_mode(&registry);
+        presets.toggle_export_selection(first_id);
+
+        presets.select_filtered_for_export(&registry);
+
+        assert!(presets.is_selected_for_export(first_id));
+        assert!(presets.is_selected_for_export(second_id));
+        assert_eq!(presets.selected_export_count(), 2);
+    }
+
+    #[test]
+    fn clear_selection_empties_export_state() {
+        let (mut presets, _, _) = new_presets();
+        let mut registry = HostRegistry::default();
+        let first_id = registry.presets.add_preset("Errors", vec![], vec![]);
+        presets.start_export_mode(&registry);
+
+        presets.clear_export_selection();
+
+        assert!(!presets.is_selected_for_export(first_id));
+        assert_eq!(presets.selected_export_count(), 0);
+    }
+
+    #[test]
     fn delete_clears_editor() {
-        let (mut presets, _) = new_presets();
+        let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
         let preset_id = registry.presets.add_preset("first", vec![], vec![]);
         presets.start_edit_from_preset(registry.presets.get(&preset_id).unwrap());
@@ -611,7 +1010,7 @@ mod tests {
 
     #[test]
     fn edit_switches_cards() {
-        let (mut presets, _) = new_presets();
+        let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
         let first_id = registry.presets.add_preset("first", vec![], vec![]);
         let second_id = registry.presets.add_preset("second", vec![], vec![]);
@@ -627,7 +1026,7 @@ mod tests {
 
     #[test]
     fn move_filter_repositions_item() {
-        let (mut presets, _) = new_presets();
+        let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
         let preset_id = registry.presets.add_preset(
             "first",
@@ -656,7 +1055,7 @@ mod tests {
 
     #[test]
     fn cancel_discards_draft() {
-        let (mut presets, _) = new_presets();
+        let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
         let preset_id =
             registry
@@ -677,7 +1076,7 @@ mod tests {
 
     #[test]
     fn save_commits_draft() {
-        let (mut presets, _) = new_presets();
+        let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
         let first_id = registry.presets.add_preset(
             "first",
@@ -725,7 +1124,7 @@ mod tests {
     #[test]
     fn apply_preset_skips_existing_rows() {
         let runtime = Runtime::new().unwrap();
-        let (presets, mut cmd_rx) = new_presets();
+        let (presets, mut cmd_rx, _) = new_presets();
         let mut shared = new_shared();
         let mut actions = new_actions(&runtime);
         let mut registry = HostRegistry::default();
@@ -795,7 +1194,7 @@ mod tests {
     #[test]
     fn apply_preset_appends_and_syncs() {
         let runtime = Runtime::new().unwrap();
-        let (presets, mut cmd_rx) = new_presets();
+        let (presets, mut cmd_rx, _) = new_presets();
         let mut shared = new_shared();
         let mut actions = new_actions(&runtime);
         let mut registry = HostRegistry::default();
@@ -881,7 +1280,7 @@ mod tests {
     #[test]
     fn apply_preset_handles_missing_id() {
         let runtime = Runtime::new().unwrap();
-        let (presets, mut cmd_rx) = new_presets();
+        let (presets, mut cmd_rx, _) = new_presets();
         let mut shared = new_shared();
         let mut actions = new_actions(&runtime);
         let mut registry = HostRegistry::default();
@@ -891,5 +1290,96 @@ mod tests {
 
         assert_eq!(outcome, PresetApplyOutcome::NotFound);
         assert!(drain_commands(&mut cmd_rx).is_empty());
+    }
+
+    #[test]
+    fn dispatch_import_sends_host_command() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, _, mut host_cmd_rx) = new_presets();
+        let mut actions = new_actions(&runtime);
+        let path = PathBuf::from("/tmp/import.json");
+
+        assert!(presets.dispatch_import_request(&mut actions, path.clone()));
+
+        let commands = drain_host_commands(&mut host_cmd_rx);
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            HostCommand::ImportPresets(sent_path) => assert_eq!(sent_path, &path),
+            other => panic!("expected ImportPresets command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn dispatch_export_snapshots_registry() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, _, mut host_cmd_rx) = new_presets();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        registry.presets.add_preset(
+            "Errors",
+            vec![SearchFilter::plain("error").ignore_case(true)],
+            vec![
+                SearchFilter::plain("duration=(\\d+)")
+                    .regex(true)
+                    .ignore_case(true),
+            ],
+        );
+        let path = PathBuf::from("/tmp/export.json");
+
+        assert!(presets.dispatch_export_request(&mut actions, &registry, path.clone()));
+
+        let commands = drain_host_commands(&mut host_cmd_rx);
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            HostCommand::ExportPresets(params) => {
+                assert_eq!(params.path, path);
+                assert_eq!(params.presets.len(), 1);
+                assert_eq!(params.presets[0].name, "Errors");
+                assert_eq!(
+                    params.presets[0].filters,
+                    vec![SearchFilter::plain("error").ignore_case(true)]
+                );
+                assert_eq!(
+                    params.presets[0].search_values,
+                    vec![
+                        SearchFilter::plain("duration=(\\d+)")
+                            .regex(true)
+                            .ignore_case(true)
+                    ]
+                );
+            }
+            other => panic!("expected ExportPresets command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn dispatch_export_uses_selected_presets() {
+        let runtime = Runtime::new().unwrap();
+        let (mut presets, _, mut host_cmd_rx) = new_presets();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        let first_id =
+            registry
+                .presets
+                .add_preset("Errors", vec![SearchFilter::plain("error")], vec![]);
+        registry
+            .presets
+            .add_preset("Warnings", vec![SearchFilter::plain("warn")], vec![]);
+        let path = PathBuf::from("/tmp/export.json");
+        presets.start_export_mode(&registry);
+        presets.toggle_export_selection(first_id);
+
+        assert!(presets.dispatch_export_request(&mut actions, &registry, path.clone()));
+
+        let commands = drain_host_commands(&mut host_cmd_rx);
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            HostCommand::ExportPresets(params) => {
+                assert_eq!(params.path, path);
+                assert_eq!(params.presets.len(), 1);
+                assert_eq!(params.presets[0].name, "Warnings");
+            }
+            other => panic!("expected ExportPresets command, got {other:?}"),
+        }
     }
 }
