@@ -20,6 +20,7 @@ impl PresetsUI {
         pending_action: &mut Option<PresetAction>,
     ) {
         let is_editing = self.is_editing(preset.id);
+        let is_export_selected = self.is_selected_for_export(preset.id);
         ui.allocate_ui_with_layout(
             vec2(
                 card_metrics::PRESET_CARD_WIDTH,
@@ -42,6 +43,8 @@ impl PresetsUI {
                     frame = frame
                         .fill(visuals.widgets.open.bg_fill)
                         .stroke(visuals.selection.stroke);
+                } else if is_export_selected {
+                    frame = frame.stroke(visuals.selection.stroke);
                 }
 
                 frame.show(ui, |ui| {
@@ -51,6 +54,8 @@ impl PresetsUI {
                     ui.set_height(card_metrics::PRESET_CARD_CONTENT_HEIGHT);
                     if is_editing {
                         self.render_edit_header(preset.id, ui, pending_action);
+                    } else if self.is_exporting() {
+                        self.render_export_header(preset, ui, pending_action);
                     } else {
                         self.render_browse_header(preset, ui, pending_action);
                     }
@@ -84,6 +89,28 @@ impl PresetsUI {
                 });
             },
         );
+    }
+
+    /// Renders the export-mode header with a single inclusion checkbox.
+    fn render_export_header(
+        &self,
+        preset: &Preset,
+        ui: &mut Ui,
+        pending_action: &mut Option<PresetAction>,
+    ) {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(preset.name.as_str()).strong());
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                let mut selected = self.is_selected_for_export(preset.id);
+                if ui
+                    .checkbox(&mut selected, "")
+                    .on_hover_text("Include preset in export")
+                    .changed()
+                {
+                    *pending_action = Some(PresetAction::ToggleExportSelection(preset.id));
+                }
+            });
+        });
     }
 
     /// Renders the browse-mode header actions for a preset card.

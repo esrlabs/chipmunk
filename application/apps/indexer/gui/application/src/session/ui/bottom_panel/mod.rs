@@ -5,7 +5,10 @@ use tokio::sync::mpsc::Sender;
 use egui::{Frame, Margin, Ui};
 
 use crate::{
-    host::ui::{UiActions, registry::HostRegistry},
+    host::{
+        command::HostCommand,
+        ui::{UiActions, registry::HostRegistry},
+    },
     session::{
         command::SessionCommand,
         ui::{definitions::schema::LogSchema, shared::SessionShared},
@@ -37,12 +40,16 @@ pub struct BottomPanelUI {
 }
 
 impl BottomPanelUI {
-    pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
+    pub fn new(
+        cmd_tx: Sender<SessionCommand>,
+        host_cmd_tx: Sender<HostCommand>,
+        schema: Rc<dyn LogSchema>,
+    ) -> Self {
         Self {
             search: SearchUI::new(cmd_tx.clone(), schema),
             details: DetailsUI::default(),
             library: LibraryUI::new(cmd_tx.clone()),
-            presets: PresetsUI::new(cmd_tx.clone()),
+            presets: PresetsUI::new(cmd_tx.clone(), host_cmd_tx),
             chart: ChartUI::new(cmd_tx),
         }
     }
