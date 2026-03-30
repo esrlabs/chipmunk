@@ -163,6 +163,13 @@ impl Host {
                 .add_multi_files(*state, self.senders.cmd_tx.clone()),
             HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
             HostMessage::MultiSetupClose { id } => self.state.close_multi_setup(id),
+            HostMessage::PresetsImported(imported) => self
+                .state
+                .handle_presets_imported(*imported, &mut self.ui_actions),
+            HostMessage::PresetsExported { path, count } => {
+                self.state
+                    .handle_presets_exported(path, count, &mut self.ui_actions)
+            }
         }
     }
 

@@ -1,5 +1,8 @@
+use std::borrow::Cow;
+
 use crate::{host::ui::registry::filters::FilterRegistry, session::ui::SessionShared};
 use processor::search::filter::SearchFilter;
+
 use uuid::Uuid;
 
 /// Host-level registry for named preset snapshots captured from session filters and charts.
@@ -30,6 +33,12 @@ pub enum PresetUpdateOutcome {
     },
 }
 
+/// Result of importing a batch of presets into the registry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PresetImportSummary {
+    pub renamed_items: usize,
+}
+
 impl PresetRegistry {
     pub fn presets(&self) -> &[Preset] {
         &self.presets
@@ -40,13 +49,13 @@ impl PresetRegistry {
         self.definitions_revision
     }
 
-    fn unique_preset_name(&self, base_name: &str, skip_id: Option<Uuid>) -> String {
+    fn unique_preset_name<'a>(&self, base_name: &'a str, skip_id: Option<Uuid>) -> Cow<'a, str> {
         if !self
             .presets
             .iter()
             .any(|preset| Some(preset.id) != skip_id && preset.name == base_name)
         {
-            return base_name.to_owned();
+            return Cow::Borrowed(base_name);
         }
 
         let mut suffix = 2;
@@ -57,7 +66,7 @@ impl PresetRegistry {
                 .iter()
                 .any(|preset| Some(preset.id) != skip_id && preset.name == candidate)
             {
-                return candidate;
+                return Cow::Owned(candidate);
             }
             suffix += 1;
         }
@@ -73,7 +82,8 @@ impl PresetRegistry {
         filters: Vec<SearchFilter>,
         search_values: Vec<SearchFilter>,
     ) -> Uuid {
-        let name = self.unique_preset_name(&name.into(), None);
+        let name = name.into();
+        let name = self.unique_preset_name(&name, None).into_owned();
         let preset = Preset {
             id: Uuid::new_v4(),
             name,
@@ -84,6 +94,32 @@ impl PresetRegistry {
         self.presets.push(preset);
         self.definitions_revision += 1;
         id
+    }
+
+    fn import_preset(&mut self, mut preset: Preset) -> bool {
+        debug_assert!(
+            self.presets.iter().all(|existing| existing.id != preset.id),
+            "Imported preset ids should be unique across the registry"
+        );
+
+        let stored_name = self.unique_preset_name(&preset.name, Some(preset.id));
+        let was_renamed = preset.name != stored_name.as_ref();
+        preset.name = stored_name.into_owned();
+
+        self.presets.push(preset);
+        self.definitions_revision += 1;
+
+        was_renamed
+    }
+
+    /// Imports presets and reports how many were renamed for uniqueness.
+    pub fn import_presets(&mut self, presets: Vec<Preset>) -> PresetImportSummary {
+        let renamed_items = presets
+            .into_iter()
+            .map(|preset| usize::from(self.import_preset(preset)))
+            .sum::<usize>();
+
+        PresetImportSummary { renamed_items }
     }
 
     pub fn add_preset_from_session(
@@ -123,13 +159,14 @@ impl PresetRegistry {
 
         let next_name = self.unique_preset_name(&requested_name, Some(id));
         let preset = &mut self.presets[index];
-        if preset.name == next_name
+        if preset.name == next_name.as_ref()
             && preset.filters == filters
             && preset.search_values == search_values
         {
             return PresetUpdateOutcome::Unchanged;
         }
 
+        let next_name = next_name.into_owned();
         preset.name = next_name.clone();
         preset.filters = filters;
         preset.search_values = search_values;
@@ -312,6 +349,94 @@ mod tests {
         let preset_id = registry.add_preset("Errors", vec![plain("warn")], vec![]);
 
         assert_eq!(registry.get(&preset_id).unwrap().name, "Errors_2");
+    }
+
+    #[test]
+    fn import_keeps_provided_id() {
+        let mut registry = PresetRegistry::default();
+        let preset = Preset {
+            id: Uuid::new_v4(),
+            name: "Imported".to_owned(),
+            filters: vec![plain("error")],
+            search_values: vec![],
+        };
+        let imported_id = preset.id;
+
+        let was_renamed = registry.import_preset(preset);
+
+        assert_eq!(registry.presets()[0].id, imported_id);
+        assert!(!was_renamed);
+    }
+
+    #[test]
+    fn import_renames_colliding_name() {
+        let mut registry = PresetRegistry::default();
+        registry.add_preset("Errors", vec![plain("warn")], vec![]);
+
+        let imported_id = Uuid::new_v4();
+        let was_renamed = registry.import_preset(Preset {
+            id: imported_id,
+            name: "Errors".to_owned(),
+            filters: vec![plain("error")],
+            search_values: vec![],
+        });
+
+        assert!(was_renamed);
+        assert_eq!(registry.get(&imported_id).unwrap().name, "Errors_2");
+    }
+
+    #[test]
+    fn import_batch_preserves_order() {
+        let mut registry = PresetRegistry::default();
+        let presets = vec![
+            Preset {
+                id: Uuid::new_v4(),
+                name: "Same".to_owned(),
+                filters: vec![plain("one")],
+                search_values: vec![],
+            },
+            Preset {
+                id: Uuid::new_v4(),
+                name: "Same".to_owned(),
+                filters: vec![plain("two")],
+                search_values: vec![],
+            },
+            Preset {
+                id: Uuid::new_v4(),
+                name: "Third".to_owned(),
+                filters: vec![plain("three")],
+                search_values: vec![],
+            },
+        ];
+
+        let summary = registry.import_presets(presets);
+
+        assert_eq!(summary.renamed_items, 1);
+        assert_eq!(registry.presets()[0].name, "Same");
+        assert_eq!(registry.presets()[1].name, "Same_2");
+        assert_eq!(registry.presets()[2].name, "Third");
+    }
+
+    #[test]
+    fn import_advances_revision_per_preset() {
+        let mut registry = PresetRegistry::default();
+
+        registry.import_presets(vec![
+            Preset {
+                id: Uuid::new_v4(),
+                name: "First".to_owned(),
+                filters: vec![plain("one")],
+                search_values: vec![],
+            },
+            Preset {
+                id: Uuid::new_v4(),
+                name: "Second".to_owned(),
+                filters: vec![plain("two")],
+                search_values: vec![],
+            },
+        ]);
+
+        assert_eq!(registry.definitions_revision(), 2);
     }
 
     #[test]

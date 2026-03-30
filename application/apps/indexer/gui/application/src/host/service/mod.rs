@@ -7,22 +7,23 @@ use std::{
 
 use anyhow::Result;
 use itertools::Itertools;
+use log::trace;
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
 use parsers::dlt::DltFilterConfig;
 use stypes::{
-    DltParserSettings, FileFormat, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
-    Transport,
+    DltParserSettings, FileFormat, NativeError, NativeErrorKind, ObserveOptions, ObserveOrigin,
+    ParserType, Severity, SomeIpParserSettings, Transport,
 };
 
 use crate::{
     host::{
-        command::{DltStatisticsParam, HostCommand, StartSessionParam},
+        command::{DltStatisticsParam, ExportPresetsParam, HostCommand, StartSessionParam},
         common::{dlt_stats::dlt_statistics, parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
-        message::HostMessage,
+        message::{HostMessage, PresetsImported},
         notification::AppNotification,
         ui::{
             multi_setup::state::MultiFileState,
@@ -39,7 +40,10 @@ use crate::{
     session::{InitSessionError, service::SessionService},
 };
 
+use presets_io::{ImportFormat, import_named_presets, serialize_named_presets};
+
 pub mod file;
+mod presets_io;
 
 #[derive(Debug)]
 pub struct HostService {
@@ -129,6 +133,12 @@ impl HostService {
                 } = *start_params;
 
                 self.start_session(source, parser, session_setup_id).await?;
+            }
+            HostCommand::ImportPresets(path) => {
+                self.import_presets(path).await?;
+            }
+            HostCommand::ExportPresets(params) => {
+                self.export_presets(*params).await?;
             }
             HostCommand::CloseSessionSetup(id) => {
                 // NOTE: We need to checks here for cleaning up session setups (Like cancelling
@@ -459,6 +469,115 @@ impl HostService {
                 }
             };
         });
+
+        Ok(())
+    }
+
+    async fn import_presets(&self, path: PathBuf) -> Result<(), HostError> {
+        let task_path = path.clone();
+        let report = tokio::task::spawn_blocking(move || {
+            let text = std::fs::read_to_string(&task_path).map_err(|err| {
+                HostError::NativeError(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Failed to read preset file '{}': {err}",
+                        task_path.display()
+                    )),
+                })
+            })?;
+            import_named_presets(&text).map_err(|err| {
+                HostError::NativeError(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Failed to import presets from '{}': {err}",
+                        task_path.display()
+                    )),
+                })
+            })
+        })
+        .await
+        .map_err(|_| {
+            HostError::NativeError(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Io,
+                message: Some(format!(
+                    "Preset import task failed for '{}'.",
+                    path.display()
+                )),
+            })
+        })??;
+
+        let used_legacy_format = match report.format {
+            ImportFormat::Legacy => {
+                for warning in &report.warnings {
+                    trace!(
+                        "Legacy preset import note for '{}': {}",
+                        path.display(),
+                        warning
+                    );
+                }
+                true
+            }
+            ImportFormat::Version1 => false,
+        };
+
+        self.communication
+            .senders
+            .send_message(HostMessage::PresetsImported(Box::new(PresetsImported {
+                path,
+                presets: report.presets,
+                used_legacy_format,
+            })))
+            .await;
+
+        Ok(())
+    }
+
+    async fn export_presets(&self, params: ExportPresetsParam) -> Result<(), HostError> {
+        let ExportPresetsParam { path, presets } = params;
+        let count = presets.len();
+        let task_path = path.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let json = serialize_named_presets(presets).map_err(|err| {
+                HostError::NativeError(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Failed to serialize presets for '{}': {err}",
+                        task_path.display()
+                    )),
+                })
+            })?;
+            std::fs::write(&task_path, json).map_err(|err| {
+                HostError::NativeError(NativeError {
+                    severity: Severity::ERROR,
+                    kind: NativeErrorKind::Io,
+                    message: Some(format!(
+                        "Failed to write preset file '{}': {err}",
+                        task_path.display()
+                    )),
+                })
+            })
+        })
+        .await
+        .map_err(|_| {
+            HostError::NativeError(NativeError {
+                severity: Severity::ERROR,
+                kind: NativeErrorKind::Io,
+                message: Some(format!(
+                    "Preset export task failed for '{}'.",
+                    path.display()
+                )),
+            })
+        })??;
+
+        self.communication
+            .senders
+            .send_message(HostMessage::PresetsExported { path, count })
+            .await;
 
         Ok(())
     }

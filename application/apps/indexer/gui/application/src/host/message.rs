@@ -1,9 +1,14 @@
+use std::path::PathBuf;
+
 use uuid::Uuid;
 
 use crate::{
     host::{
         common::dlt_stats::DltStatistics,
-        ui::{multi_setup::state::MultiFileState, session_setup::state::SessionSetupState},
+        ui::{
+            multi_setup::state::MultiFileState, registry::presets::Preset,
+            session_setup::state::SessionSetupState,
+        },
     },
     session::InitSessionParams,
 };
@@ -31,4 +36,19 @@ pub enum HostMessage {
     },
     /// Open Session Setup for concatenating files.
     MultiFilesSetup(Box<MultiFileState>),
+    /// Presets loaded from a file and ready for UI-side registry import.
+    PresetsImported(Box<PresetsImported>),
+    /// Presets were exported successfully to the provided file path.
+    PresetsExported { path: PathBuf, count: usize },
+}
+
+/// Backend import result for named presets.
+#[derive(Debug)]
+pub struct PresetsImported {
+    /// Source file used for the import.
+    pub path: PathBuf,
+    /// Parsed presets ready to be inserted into the registry.
+    pub presets: Vec<Preset>,
+    /// True when the file was parsed through the legacy compatibility path.
+    pub used_legacy_format: bool,
 }

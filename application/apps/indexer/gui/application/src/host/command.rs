@@ -5,7 +5,10 @@ use uuid::Uuid;
 
 use crate::host::{
     common::{parsers::ParserNames, sources::StreamNames},
-    ui::session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
+    ui::{
+        registry::presets::Preset,
+        session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
+    },
 };
 
 /// Host commands to be sent from UI to its service.
@@ -34,6 +37,10 @@ pub enum HostCommand {
     },
     DltStatistics(Box<DltStatisticsParam>),
     StartSession(Box<StartSessionParam>),
+    /// Imports named presets from the provided file.
+    ImportPresets(PathBuf),
+    /// Exports the provided named presets to the target file.
+    ExportPresets(Box<ExportPresetsParam>),
     CloseSessionSetup(Uuid),
     CloseMultiSetup(Uuid),
     /// Signal that the application is shutting down.
@@ -55,4 +62,13 @@ pub struct StartSessionParam {
     pub parser: ParserConfig,
     pub source: ByteSourceConfig,
     pub session_setup_id: Option<Uuid>,
+}
+
+/// Parameters for exporting named presets to disk.
+#[derive(Debug, Clone)]
+pub struct ExportPresetsParam {
+    /// Destination file path for the exported presets document.
+    pub path: PathBuf,
+    /// Preset snapshot to serialize, ignoring runtime-only registry ownership.
+    pub presets: Vec<Preset>,
 }
