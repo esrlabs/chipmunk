@@ -1,27 +1,12 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+use enum_iterator::Sequence;
+
+#[derive(Debug, Clone, Copy, PartialEq, Sequence)]
 pub enum SideTabType {
     Observing,
     Attachments,
     Filters,
-}
-
-impl SideTabType {
-    pub fn all() -> &'static [SideTabType] {
-        // Reminder to add new items to this function
-        match SideTabType::Observing {
-            SideTabType::Observing => {}
-            SideTabType::Attachments => {}
-            SideTabType::Filters => {}
-        }
-
-        &[
-            SideTabType::Observing,
-            SideTabType::Attachments,
-            SideTabType::Filters,
-        ]
-    }
 }
 
 impl Display for SideTabType {
