@@ -89,6 +89,12 @@ struct LogsDelegate<'a> {
     actions: &'a mut UiActions,
     request_repaint: bool,
     has_multi_sources: bool,
+    /// One physical click can be reported twice for the same row: once by the row-wide
+    /// background response in `row_ui`, and once by a child widget response from the
+    /// header or cell content. Selection updates are not idempotent for toggle and range
+    /// cases, so handling both would apply the click semantics twice in one frame.
+    /// This tracks which row already consumed the click for the current delegate pass.
+    handled_selection_click_row: Option<u64>,
 }
 
 impl<'a> LogsDelegate<'a> {
@@ -104,37 +110,36 @@ impl<'a> LogsDelegate<'a> {
             actions,
             request_repaint: false,
             has_multi_sources,
+            handled_selection_click_row: None,
         }
     }
-    #[inline(always)]
-    fn is_row_selected(&self, row_nr: u64) -> bool {
-        self.shared
-            .logs
-            .selected_log
-            .as_ref()
-            .is_some_and(|e| e.pos == row_nr as usize)
+
+    fn select_row(&mut self, row_nr: u64, modifiers: egui::Modifiers) {
+        let Some(selected_row) = common::logs_tables::apply_selection_click(
+            self.shared,
+            self.actions,
+            &self.table.cmd_tx,
+            row_nr,
+            modifiers,
+        ) else {
+            return;
+        };
+
+        // Keep the search table aligned only while it is visible.
+        if self.shared.bottom_tab == BottomTabType::Search {
+            let nearest_cmd = SessionCommand::GetNearestPosition(selected_row);
+            self.actions
+                .try_send_command(&self.table.cmd_tx, nearest_cmd);
+        }
     }
 
-    /// Toggle if row is selected sending the needed commands when row is selected.
-    ///
-    /// # Arguments
-    ///
-    /// * `row_nr`: Row number.
-    /// * `currently_selected`: Is raw currently selected before toggling.
-    fn toggle_row_selected(&mut self, row_nr: u64, currently_selected: bool) {
-        if currently_selected {
-            self.shared.logs.selected_log = None;
-        } else {
-            // Scroll to log in search if it's active only.
-            if self.shared.bottom_tab == BottomTabType::Search {
-                let nearest_cmd = SessionCommand::GetNearestPosition(row_nr);
-                self.actions
-                    .try_send_command(&self.table.cmd_tx, nearest_cmd);
-            }
+    fn handle_selection_click(&mut self, row_nr: u64, modifiers: egui::Modifiers) {
+        if self.handled_selection_click_row == Some(row_nr) {
+            return;
+        }
 
-            self.actions
-                .try_send_command(&self.table.cmd_tx, SessionCommand::GetSelectedLog(row_nr));
-        };
+        self.handled_selection_click_row = Some(row_nr);
+        self.select_row(row_nr, modifiers);
     }
 
     fn toggle_row_bookmark(&mut self, row_nr: u64) {
@@ -158,13 +163,17 @@ impl<'a> LogsDelegate<'a> {
             .flatten();
         let is_bookmarked = self.shared.logs.is_bookmarked(cell.row_nr);
 
-        common::logs_tables::render_row_header(
+        let response = common::logs_tables::render_row_header(
             ui,
             cell.row_nr.to_string(),
             color_idx,
             is_bookmarked,
             || self.toggle_row_bookmark(cell.row_nr),
         );
+
+        if response.clicked() {
+            self.handle_selection_click(cell.row_nr, ui.input(|i| i.modifiers));
+        }
     }
 
     fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {
@@ -209,8 +218,7 @@ impl<'a> LogsDelegate<'a> {
             };
 
             if response.clicked() {
-                let is_selected = self.is_row_selected(row_nr);
-                self.toggle_row_selected(row_nr, is_selected);
+                self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
             }
         });
 
@@ -303,11 +311,11 @@ impl TableDelegate for LogsDelegate<'_> {
     }
 
     fn row_ui(&mut self, ui: &mut Ui, row_nr: u64) {
-        let is_selected = self.is_row_selected(row_nr);
+        let is_selected = self.shared.logs.is_selected(row_nr);
         common::logs_tables::apply_log_row_colors(ui, self.shared, Some(row_nr), is_selected);
 
         if ui.response().interact(Sense::click()).clicked() {
-            self.toggle_row_selected(row_nr, is_selected);
+            self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
         }
     }
 

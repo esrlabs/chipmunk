@@ -7,20 +7,55 @@ use stypes::{ObserveOrigin, Transport};
 use crate::{common::phosphor::icons, session::ui::shared::SessionShared};
 
 pub fn render_content(shared: &SessionShared, ui: &mut Ui) {
+    let selected_count = shared.logs.selected_count();
+    let single_selected_row = shared.logs.single_selected_row();
+    let search_count = shared.search.search_result_count();
+    let total_count = shared.logs.logs_count;
+
     ui.horizontal_centered(|ui| {
-        Label::new(format!(
-            "{} / {}",
-            shared.search.search_result_count(),
-            shared.logs.logs_count
+        Label::new(status_summary_text(
+            single_selected_row,
+            selected_count,
+            search_count,
+            total_count,
         ))
         .selectable(true)
         .ui(ui)
-        .on_hover_text("Search matches / total logs");
+        .on_hover_ui(|ui| {
+            ui.set_max_width(ui.spacing().tooltip_width);
+            ui.label(format!(
+                "Selected Row: {}",
+                selected_row_tooltip_text(single_selected_row, selected_count)
+            ));
+            ui.label(format!("Selected Count: {selected_count}"));
+            ui.label(format!("Search Count: {search_count}"));
+            ui.label(format!("Total Count: {total_count}"));
+        });
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             observe_states(shared, ui);
         });
     });
+}
+
+fn status_summary_text(
+    single_selected_row: Option<u64>,
+    selected_count: usize,
+    search_count: u64,
+    total_count: u64,
+) -> String {
+    let selected_row = single_selected_row
+        .map(|row| row.to_string())
+        .unwrap_or_else(|| String::from("-"));
+    format!("{selected_row} [{selected_count}] {search_count}/{total_count}")
+}
+
+fn selected_row_tooltip_text(single_selected_row: Option<u64>, selected_count: usize) -> String {
+    match (single_selected_row, selected_count) {
+        (Some(row), 1) => row.to_string(),
+        (_, 0) => String::from("None"),
+        _ => String::from("Multiple"),
+    }
 }
 
 fn observe_states(shared: &SessionShared, ui: &mut Ui) {
@@ -118,4 +153,27 @@ fn observe_states(shared: &SessionShared, ui: &mut Ui) {
     }
 
     ui.separator();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{selected_row_tooltip_text, status_summary_text};
+
+    #[test]
+    fn status_summary_uses_dash_without_single_selection() {
+        assert_eq!(status_summary_text(None, 3, 23, 343), "- [3] 23/343");
+        assert_eq!(status_summary_text(None, 0, 23, 343), "- [0] 23/343");
+    }
+
+    #[test]
+    fn status_summary_shows_selected_row_for_single_selection() {
+        assert_eq!(status_summary_text(Some(3), 1, 23, 343), "3 [1] 23/343");
+    }
+
+    #[test]
+    fn selected_row_tooltip_text_describes_selection_state() {
+        assert_eq!(selected_row_tooltip_text(None, 0), "None");
+        assert_eq!(selected_row_tooltip_text(Some(3), 1), "3");
+        assert_eq!(selected_row_tooltip_text(None, 3), "Multiple");
+    }
 }

@@ -17,7 +17,7 @@ pub(crate) mod searching;
 mod signal;
 
 pub use info::SessionInfo;
-pub use logs::LogsState;
+pub use logs::{LogsState, SelectionIntent};
 pub use observe::ObserveState;
 pub use signal::SessionSignal;
 
