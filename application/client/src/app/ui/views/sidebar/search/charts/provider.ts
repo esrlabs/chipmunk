@@ -168,7 +168,7 @@ export class ProviderCharts extends Provider<ChartRequest> {
                     },
                     {},
                     {
-                        caption: `Into Fitler`,
+                        caption: `Into Filter`,
                         handler: () => {
                             if (
                                 !this.session.search
