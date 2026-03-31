@@ -4,6 +4,7 @@ use egui::{
     Align, Button, CentralPanel, ComboBox, Key, Label, Layout, Response, RichText, SidePanel,
     TopBottomPanel, Ui, Widget,
 };
+use enum_iterator::all;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -163,11 +164,10 @@ impl SessionSetup {
                     .selected_text(selected_stream.to_string())
                     .width(120.)
                     .show_ui(ui, |ui| {
-                        for stream in StreamNames::all()
-                            .iter()
-                            .filter(|s| s.is_compatible(selected_parser))
+                        for stream in
+                            all::<StreamNames>().filter(|s| s.is_compatible(selected_parser))
                         {
-                            ui.selectable_value(&mut selected_stream, *stream, stream.to_string());
+                            ui.selectable_value(&mut selected_stream, stream, stream.to_string());
                         }
                     });
 
@@ -182,22 +182,16 @@ impl SessionSetup {
 
     fn supported_parsers(source: &ByteSourceConfig) -> Vec<ParserNames> {
         match source {
-            ByteSourceConfig::File(source_file_info) => ParserNames::all()
-                .iter()
+            ByteSourceConfig::File(source_file_info) => all::<ParserNames>()
                 .filter(|f| f.is_compatible_file(source_file_info.format))
-                .copied()
                 .collect(),
-            ByteSourceConfig::Concat(files) => ParserNames::all()
-                .iter()
+            ByteSourceConfig::Concat(files) => all::<ParserNames>()
                 .filter(|f| f.is_compatible_file(files[0].format))
-                .copied()
                 .collect(),
             ByteSourceConfig::Stream(stream_config) => {
                 let stream = StreamNames::from(stream_config);
-                ParserNames::all()
-                    .iter()
+                all::<ParserNames>()
                     .filter(|p| p.is_compatible_stream(stream))
-                    .copied()
                     .collect()
             }
         }

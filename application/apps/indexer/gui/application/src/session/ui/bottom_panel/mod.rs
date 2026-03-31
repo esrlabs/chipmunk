@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use enum_iterator::all;
 use tokio::sync::mpsc::Sender;
 
 use egui::{Frame, Margin, Ui};
@@ -86,8 +87,8 @@ impl BottomPanelUI {
             .inner_margin(Margin::symmetric(0, 4))
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    for tab in BottomTabType::all() {
-                        ui.selectable_value(&mut shared.bottom_tab, *tab, tab.to_string());
+                    for tab in all::<BottomTabType>() {
+                        ui.selectable_value(&mut shared.bottom_tab, tab, tab.to_string());
                     }
                 });
             });

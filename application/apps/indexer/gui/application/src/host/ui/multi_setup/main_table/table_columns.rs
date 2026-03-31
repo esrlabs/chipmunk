@@ -1,5 +1,7 @@
+use enum_iterator::Sequence;
+
 /// Table columns types for multiple files setup view.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Sequence)]
 pub enum TableColumn {
     Color,
     Type,
@@ -10,27 +12,6 @@ pub enum TableColumn {
 }
 
 impl TableColumn {
-    pub const fn all() -> &'static [Self] {
-        // Reminder to extend all on new fields
-        match Self::Type {
-            TableColumn::Color => {}
-            TableColumn::Type => {}
-            TableColumn::Name => {}
-            TableColumn::Path => {}
-            TableColumn::Size => {}
-            TableColumn::ModifyDate => {}
-        };
-
-        &[
-            TableColumn::Color,
-            TableColumn::Type,
-            TableColumn::Name,
-            TableColumn::Path,
-            TableColumn::Size,
-            TableColumn::ModifyDate,
-        ]
-    }
-
     pub const fn header(self) -> &'static str {
         match self {
             TableColumn::Color => "",

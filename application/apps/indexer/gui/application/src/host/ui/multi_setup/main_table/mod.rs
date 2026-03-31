@@ -1,5 +1,6 @@
 use egui::{Align, Label, Layout, RichText, ScrollArea, Sense, Ui, Widget, vec2};
 use egui_extras::{Column, TableBuilder};
+use enum_iterator::all;
 
 use crate::host::{
     common::ui_utls::main_panel_group_frame,
@@ -41,8 +42,8 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
 
     table
         .header(20.0, |mut header| {
-            for column in TableColumn::all() {
-                header.col(|ui| table_header(ui, *column));
+            for column in all::<TableColumn>() {
+                header.col(|ui| table_header(ui, column));
             }
         })
         .body(|body| {

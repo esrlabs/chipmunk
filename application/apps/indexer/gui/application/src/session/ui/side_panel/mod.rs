@@ -1,4 +1,5 @@
 use egui::{Align2, CentralPanel, FontId, Frame, Margin, Sense, SidePanel, Ui, vec2};
+use enum_iterator::all;
 use tokio::sync::mpsc;
 
 use crate::{
@@ -56,8 +57,8 @@ impl SidePanelUi {
             .exact_width(36.)
             .show_separator_line(false)
             .show_inside(ui, |ui| {
-                for tab in SideTabType::all() {
-                    render_tab_button(*tab, &mut shared.side_tab, ui);
+                for tab in all::<SideTabType>() {
+                    render_tab_button(tab, &mut shared.side_tab, ui);
                     ui.add_space(3.);
                 }
             });

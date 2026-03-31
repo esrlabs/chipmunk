@@ -1,33 +1,14 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use enum_iterator::Sequence;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Sequence)]
 pub enum BottomTabType {
     Search,
     Details,
     Library,
     Presets,
     Chart,
-}
-
-impl BottomTabType {
-    pub fn all() -> &'static [BottomTabType] {
-        // Reminder to add new items to this function
-        match BottomTabType::Search {
-            BottomTabType::Search => {}
-            BottomTabType::Details => {}
-            BottomTabType::Library => {}
-            BottomTabType::Presets => {}
-            BottomTabType::Chart => {}
-        };
-
-        &[
-            BottomTabType::Search,
-            BottomTabType::Details,
-            BottomTabType::Library,
-            BottomTabType::Presets,
-            BottomTabType::Chart,
-        ]
-    }
 }
 
 impl Display for BottomTabType {
@@ -45,12 +26,13 @@ impl Display for BottomTabType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use enum_iterator::all;
 
     #[test]
     fn all_keeps_library_order() {
         assert_eq!(
-            BottomTabType::all(),
-            &[
+            all::<BottomTabType>().collect::<Vec<_>>(),
+            vec![
                 BottomTabType::Search,
                 BottomTabType::Details,
                 BottomTabType::Library,
