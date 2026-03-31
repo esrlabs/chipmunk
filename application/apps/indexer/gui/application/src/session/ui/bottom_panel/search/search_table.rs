@@ -30,8 +30,7 @@ pub struct SearchTable {
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
-    /// The index of the log in search table to make the table scroll
-    /// toward this index.
+    /// The indexed lower-table row to make the table scroll toward.
     scroll_nearest_pos: Option<NearestPosition>,
     columns: Box<[Column]>,
 }
@@ -68,9 +67,10 @@ impl SearchTable {
             .num_sticky_cols(1)
             .stick_to_bottom(should_stick_to_bottom(shared));
 
-        if let Some(row_nr) = self.scroll_nearest_pos.take().map(|pos| pos.index)
-            && row_nr < shared.search.indexed_result_count()
-        {
+        if let Some(row_nr) = take_ready_nearest_row(
+            &mut self.scroll_nearest_pos,
+            shared.search.indexed_result_count(),
+        ) {
             const OFFSET: u64 = 2;
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
@@ -107,6 +107,9 @@ struct LogsDelegate<'a> {
     actions: &'a mut UiActions,
     request_repaint: bool,
     has_multi_sources: bool,
+    /// Dedupes row/background and child-widget clicks for the same row in one pass.
+    /// Please refer to logs table for more details.
+    handled_selection_click_row: Option<u64>,
 }
 
 impl<'a> LogsDelegate<'a> {
@@ -122,37 +125,36 @@ impl<'a> LogsDelegate<'a> {
             actions,
             request_repaint: false,
             has_multi_sources,
+            handled_selection_click_row: None,
         }
     }
 
     #[inline(always)]
     fn is_row_selected(&self, log_item: Option<&LogTableItem>) -> bool {
-        self.shared
-            .logs
-            .selected_log
-            .as_ref()
-            .is_some_and(|selected| {
-                log_item
-                    .as_ref()
-                    .is_some_and(|i| selected.pos == i.element.pos)
-            })
+        log_item.is_some_and(|item| self.shared.logs.is_selected(item.element.pos as u64))
     }
 
-    /// Toggle if row is selected sending the needed commands when row is selected.
-    ///
-    /// # Arguments
-    ///
-    /// * `pos`: Row position in original stream.
-    /// * `currently_selected`: Is raw currently selected before toggling.
-    fn toggle_row_selected(&mut self, pos: u64, currently_selected: bool) {
-        if currently_selected {
-            self.shared.logs.selected_log = None;
-        } else {
-            self.shared.logs.scroll_main_row = Some(pos);
-
-            self.actions
-                .try_send_command(&self.table.cmd_tx, SessionCommand::GetSelectedLog(pos));
+    fn select_row(&mut self, pos: u64, modifiers: egui::Modifiers) {
+        let Some(selected_row) = common::logs_tables::apply_selection_click(
+            self.shared,
+            self.actions,
+            &self.table.cmd_tx,
+            pos,
+            modifiers,
+        ) else {
+            return;
         };
+
+        self.shared.logs.scroll_main_row = Some(selected_row);
+    }
+
+    fn handle_selection_click(&mut self, pos: u64, modifiers: egui::Modifiers) {
+        if self.handled_selection_click_row == Some(pos) {
+            return;
+        }
+
+        self.handled_selection_click_row = Some(pos);
+        self.select_row(pos, modifiers);
     }
 
     fn toggle_row_bookmark(&mut self, pos: u64) {
@@ -184,11 +186,18 @@ impl<'a> LogsDelegate<'a> {
             .is_some_and(|item| self.shared.logs.is_bookmarked(item.element.pos as u64));
 
         let bookmark_pos = self.get_log_item(cell).map(|item| item.element.pos as u64);
-        common::logs_tables::render_row_header(ui, text, color_idx, is_bookmarked, || {
-            if let Some(bookmark_pos) = bookmark_pos {
-                self.toggle_row_bookmark(bookmark_pos);
-            }
-        });
+        let response =
+            common::logs_tables::render_row_header(ui, text, color_idx, is_bookmarked, || {
+                if let Some(bookmark_pos) = bookmark_pos {
+                    self.toggle_row_bookmark(bookmark_pos);
+                }
+            });
+
+        if let Some(bookmark_pos) = bookmark_pos
+            && response.clicked()
+        {
+            self.handle_selection_click(bookmark_pos, ui.input(|i| i.modifiers));
+        }
     }
 
     fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {
@@ -233,8 +242,7 @@ impl<'a> LogsDelegate<'a> {
             };
 
             if response.clicked() {
-                let is_selected = self.is_row_selected(Some(log_item));
-                self.toggle_row_selected(log_item.element.pos as u64, is_selected);
+                self.handle_selection_click(log_item.element.pos as u64, ui.input(|i| i.modifiers));
             }
         });
 
@@ -247,6 +255,12 @@ impl<'a> LogsDelegate<'a> {
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
         if self.shared.logs.logs_count == 0 {
+            return;
+        }
+
+        if self.shared.search.indexed_result_count() == 0 {
+            self.table.last_visible_rows = None;
+            self.table.pending_logs_rx = None;
             return;
         }
 
@@ -269,10 +283,6 @@ impl TableDelegate for LogsDelegate<'_> {
         } else {
             // Request new data.
             self.table.last_visible_rows = Some(info.visible_rows.to_owned());
-
-            if self.shared.search.indexed_result_count() == 0 {
-                return;
-            }
 
             let (elems_tx, elems_rx) = std::sync::mpsc::channel();
             let cmd = SessionCommand::GrabIndexedLinesBlocking {
@@ -331,7 +341,7 @@ impl TableDelegate for LogsDelegate<'_> {
         if ui.response().interact(Sense::click()).clicked()
             && let Some(log_item) = log_item
         {
-            self.toggle_row_selected(log_item.element.pos as u64, is_selected);
+            self.handle_selection_click(log_item.element.pos as u64, ui.input(|i| i.modifiers));
         }
     }
 
@@ -347,5 +357,51 @@ impl TableDelegate for LogsDelegate<'_> {
                 self.render_log_cell(ui, cell);
             }
         }
+    }
+}
+
+/// Consumes a pending nearest-row scroll only after that indexed row exists.
+///
+/// Nearest-position responses can arrive before the indexed search table has loaded
+/// enough rows to make the target valid. In that case this leaves the pending value
+/// in place so a later frame can still apply the scroll once the row is ready.
+fn take_ready_nearest_row(
+    scroll_nearest_pos: &mut Option<NearestPosition>,
+    indexed_count: u64,
+) -> Option<u64> {
+    let row = scroll_nearest_pos.as_ref()?.index;
+    if row >= indexed_count {
+        return None;
+    }
+
+    scroll_nearest_pos.take().map(|pos| pos.index)
+}
+
+#[cfg(test)]
+mod tests {
+    use stypes::NearestPosition;
+
+    use super::take_ready_nearest_row;
+
+    #[test]
+    fn keep_pending_scroll_until_ready() {
+        let mut pending = Some(NearestPosition {
+            index: 4,
+            position: 40,
+        });
+
+        assert_eq!(take_ready_nearest_row(&mut pending, 4), None);
+        assert_eq!(pending.as_ref().map(|pos| pos.index), Some(4));
+    }
+
+    #[test]
+    fn consume_pending_scroll_when_ready() {
+        let mut pending = Some(NearestPosition {
+            index: 4,
+            position: 40,
+        });
+
+        assert_eq!(take_ready_nearest_row(&mut pending, 5), Some(4));
+        assert!(pending.is_none());
     }
 }

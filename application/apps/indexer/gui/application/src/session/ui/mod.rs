@@ -188,8 +188,12 @@ impl Session {
                     self.shared.search.set_indexed_result_count(count);
                 }
                 SessionMessage::SelectedLog(log_element) => {
-                    let selected = self.ok_or_notify(log_element, actions);
-                    self.shared.logs.selected_log = selected;
+                    if let Some(selected) = self.ok_or_notify(log_element, actions) {
+                        let selected_row = self.shared.logs.single_selected_row();
+                        self.bottom_panel
+                            .details
+                            .handle_selected_log(selected_row, selected);
+                    }
                 }
                 SessionMessage::SearchResultCountUpdated { count } => {
                     self.shared.search.set_search_result_count(count);
