@@ -1,9 +1,11 @@
 use std::fmt::Display;
 
+use enum_iterator::Sequence;
+
 use crate::host::{common::parsers::ParserNames, ui::session_setup::state::sources::StreamConfig};
 
 /// Slim variant of [`stypes::Transport`] without their configurations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Sequence)]
 pub enum StreamNames {
     Process,
     Tcp,
@@ -12,23 +14,6 @@ pub enum StreamNames {
 }
 
 impl StreamNames {
-    pub const fn all() -> &'static [StreamNames] {
-        // Reminder to add on new types
-        match StreamNames::Process {
-            StreamNames::Process => {}
-            StreamNames::Tcp => {}
-            StreamNames::Udp => {}
-            StreamNames::Serial => {}
-        };
-
-        &[
-            StreamNames::Process,
-            StreamNames::Tcp,
-            StreamNames::Udp,
-            StreamNames::Serial,
-        ]
-    }
-
     pub fn is_compatible(self, parser: ParserNames) -> bool {
         parser.is_compatible_stream(self)
     }

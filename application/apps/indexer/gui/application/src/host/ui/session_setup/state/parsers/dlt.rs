@@ -1,5 +1,7 @@
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{fmt::Display, path::PathBuf};
+
+use enum_iterator::Sequence;
 use stypes::{DltParserSettings, ObserveOrigin};
 
 use chrono::{Offset, TimeZone, Utc};
@@ -157,7 +159,7 @@ impl TableConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Ord, Eq, Sequence)]
 pub enum DltLogLevel {
     Fatal = 1,
     Error = 2,
@@ -165,29 +167,6 @@ pub enum DltLogLevel {
     Info = 4,
     Debug = 5,
     Verbose = 6,
-}
-
-impl DltLogLevel {
-    pub const fn all() -> &'static [Self] {
-        // Reminder to update on new types
-        match DltLogLevel::Fatal {
-            DltLogLevel::Fatal => {}
-            DltLogLevel::Error => {}
-            DltLogLevel::Warn => {}
-            DltLogLevel::Info => {}
-            DltLogLevel::Debug => {}
-            DltLogLevel::Verbose => {}
-        };
-
-        &[
-            DltLogLevel::Fatal,
-            DltLogLevel::Error,
-            DltLogLevel::Warn,
-            DltLogLevel::Info,
-            DltLogLevel::Debug,
-            DltLogLevel::Verbose,
-        ]
-    }
 }
 
 impl TryFrom<u8> for DltLogLevel {
