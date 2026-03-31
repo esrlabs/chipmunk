@@ -1,4 +1,5 @@
 use egui::{ComboBox, RichText, ScrollArea, Ui};
+use enum_iterator::all;
 
 use crate::host::ui::{
     UiActions,
@@ -31,8 +32,8 @@ fn log_level_selector(config: &mut DltParserConfig, ui: &mut Ui) {
     ComboBox::from_id_salt("log_level_combo")
         .selected_text(config.log_level.to_string())
         .show_ui(ui, |ui| {
-            for level in DltLogLevel::all() {
-                ui.selectable_value(&mut config.log_level, *level, level.to_string());
+            for level in all::<DltLogLevel>() {
+                ui.selectable_value(&mut config.log_level, level, level.to_string());
             }
         });
 }

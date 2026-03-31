@@ -1,3 +1,4 @@
+use enum_iterator::all;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -65,10 +66,8 @@ impl SessionSetupState {
         // Check if current parser is compatible with the new source
         let parser = ParserNames::from(&self.parser);
         if !parser.is_compatible_stream(stream) {
-            let new_parser = ParserNames::all()
-                .iter()
+            let new_parser = all::<ParserNames>()
                 .find(|p| p.is_compatible_stream(stream))
-                .copied()
                 .unwrap_or(ParserNames::Text);
             self.update_parser(new_parser);
         }

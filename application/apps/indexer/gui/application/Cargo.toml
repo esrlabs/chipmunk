@@ -43,6 +43,7 @@ dlt-core.workspace = true
 rustc-hash.workspace = true
 regex.workspace = true
 regex-syntax.workspace = true
+enum-iterator.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true

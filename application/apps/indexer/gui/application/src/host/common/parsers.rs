@@ -1,11 +1,13 @@
 use std::fmt::Display;
 
+use enum_iterator::Sequence;
+
 use stypes::{FileFormat, ParserType};
 
 use crate::host::{common::sources::StreamNames, ui::session_setup::state::parsers::ParserConfig};
 
 /// Slim variant of [`ParserType`] without their configurations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Sequence)]
 pub enum ParserNames {
     Dlt,
     SomeIP,
@@ -14,23 +16,6 @@ pub enum ParserNames {
 }
 
 impl ParserNames {
-    pub const fn all() -> &'static [ParserNames] {
-        // Reminder to add on new types
-        match ParserNames::Dlt {
-            ParserNames::Dlt => {}
-            ParserNames::SomeIP => {}
-            ParserNames::Text => {}
-            ParserNames::Plugins => {}
-        }
-
-        &[
-            ParserNames::Dlt,
-            ParserNames::SomeIP,
-            ParserNames::Text,
-            ParserNames::Plugins,
-        ]
-    }
-
     pub const fn support_binary_files(self) -> bool {
         match self {
             ParserNames::Dlt | ParserNames::SomeIP | ParserNames::Plugins => true,
