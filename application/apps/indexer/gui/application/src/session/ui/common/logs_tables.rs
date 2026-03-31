@@ -4,11 +4,13 @@
 use std::ops::{Not, Range};
 
 use egui::{
-    Align, Color32, CursorIcon, Frame, Layout, Margin, Sense, Shape, Stroke, TextStyle, Ui, vec2,
+    Align, Color32, CursorIcon, Frame, Layout, Margin, Response, Sense, Shape, Stroke, TextStyle,
+    Ui, vec2,
 };
 use egui_table::Column;
 use regex::Regex;
 use stypes::ObserveOrigin;
+use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
@@ -18,11 +20,12 @@ use crate::{
         ui::UiActions,
     },
     session::{
+        command::SessionCommand,
         error::SessionError,
         ui::{
             definitions::schema::LogSchema,
             shared::{
-                ObserveState, SessionShared,
+                ObserveState, SelectionIntent, SessionShared,
                 searching::{FilterIndex, LogMainIndex},
             },
         },
@@ -91,11 +94,11 @@ pub fn render_row_header(
     color_idx: Option<usize>,
     is_bookmarked: bool,
     on_toggle_bookmark: impl FnOnce(),
-) {
+) -> Response {
     ui.horizontal(|ui| {
         let (res, painter) = ui.allocate_painter(
             vec2(ROW_HEADER_SOURCE_COLOR_WIDTH, ui.available_height()),
-            Sense::hover(),
+            Sense::click(),
         );
 
         if let Some(color_idx) = color_idx {
@@ -103,7 +106,7 @@ pub fn render_row_header(
             painter.rect_filled(res.rect, 0.0, color);
         }
 
-        ui.label(text);
+        let text_res = ui.label(text);
 
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             ui.add_space(3.0);
@@ -139,7 +142,10 @@ pub fn render_row_header(
                 on_toggle_bookmark();
             }
         });
-    });
+
+        res.union(text_res)
+    })
+    .inner
 }
 
 /// Frame for table content cells.
@@ -205,6 +211,34 @@ fn merge_match_spans(mut spans: Vec<Range<usize>>) -> Vec<Range<usize>> {
     }
 
     merged
+}
+
+pub fn apply_selection_click(
+    shared: &mut SessionShared,
+    actions: &mut UiActions,
+    cmd_tx: &Sender<SessionCommand>,
+    row: u64,
+    modifiers: egui::Modifiers,
+) -> Option<u64> {
+    let selection_intent = selection_intent(modifiers);
+    let change = shared.logs.select_from_click(row, selection_intent);
+
+    if let Some(details_row) = change.details_row {
+        actions.try_send_command(cmd_tx, SessionCommand::GetSelectedLog(details_row));
+    }
+
+    change.jump_to_row
+}
+
+/// Get selection intent based on modifier pressed while clicking on log item.
+fn selection_intent(modifiers: egui::Modifiers) -> SelectionIntent {
+    if modifiers.shift {
+        SelectionIntent::ExtendRange
+    } else if modifiers.command {
+        SelectionIntent::ToggleRow
+    } else {
+        SelectionIntent::Exclusive
+    }
 }
 
 /// Builds highlighted text only when this cell's main-log position has concrete matches to paint.
@@ -341,6 +375,7 @@ pub fn should_stick_to_bottom(shared: &SessionShared) -> bool {
 mod tests {
     use std::path::PathBuf;
 
+    use egui::Modifiers;
     use processor::search::filter::{self, SearchFilter};
     use regex::Regex;
     use stypes::{FileFormat, FilterMatch, ObserveOrigin};
@@ -357,7 +392,10 @@ mod tests {
         },
     };
 
-    use super::{FilterIndex, cell_match_spans, matched_cell_spans, matched_filter_indices};
+    use super::{
+        FilterIndex, cell_match_spans, matched_cell_spans, matched_filter_indices, selection_intent,
+    };
+    use crate::session::ui::shared::SelectionIntent;
 
     fn new_shared() -> SessionShared {
         let session_id = Uuid::new_v4();
@@ -514,5 +552,47 @@ mod tests {
         assert_eq!(shared.filters.filter_entries[0].id, first_id);
         assert_eq!(shared.filters.filter_entries[1].id, second_id);
         assert_eq!(spans, vec![0..5, 6..10]);
+    }
+
+    #[test]
+    fn plain_modifiers_map_to_exclusive_selection() {
+        assert_eq!(
+            selection_intent(Modifiers::NONE),
+            SelectionIntent::Exclusive
+        );
+    }
+
+    #[test]
+    fn command_modifier_maps_to_toggle_row() {
+        assert_eq!(
+            selection_intent(Modifiers {
+                command: true,
+                ..Default::default()
+            }),
+            SelectionIntent::ToggleRow,
+        );
+    }
+
+    #[test]
+    fn shift_modifier_maps_to_extend_range() {
+        assert_eq!(
+            selection_intent(Modifiers {
+                shift: true,
+                ..Default::default()
+            }),
+            SelectionIntent::ExtendRange,
+        );
+    }
+
+    #[test]
+    fn shift_takes_precedence_over_command() {
+        assert_eq!(
+            selection_intent(Modifiers {
+                command: true,
+                shift: true,
+                ..Default::default()
+            }),
+            SelectionIntent::ExtendRange,
+        );
     }
 }
