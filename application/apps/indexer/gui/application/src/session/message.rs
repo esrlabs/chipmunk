@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::convert::From;
 
 use mcp::server::tasks::Tasks;
+use mcp::types::Response;
 use stypes::{FilterMatch, GrabbedElement, NearestPosition};
 use uuid::Uuid;
 
@@ -76,7 +78,7 @@ pub enum SessionMessage {
     /// This event is not triggered for streams within a session.
     FileReadCompleted,
 
-    ChatResponseReceived(String),
+    ChatResponseReceived(Response),
 
     /// Process the task received from the MCP server
     MCPTaskReceived(Tasks),
@@ -85,5 +87,5 @@ pub enum SessionMessage {
 #[derive(Debug, Clone)]
 pub enum AiMessage {
     Prompt(String),
-    Response(String),
+    Response(Response),
 }

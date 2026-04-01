@@ -94,3 +94,16 @@ pub struct ValuesRequest {
     pub range: Option<RangeInclusive<u64>>,
     pub session_id: String,
 }
+
+#[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
+pub struct GrabLineParams {
+    pub session_id: String,
+    pub range: RangeInclusive<u64>,
+}
+
+#[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
+pub struct ChatResult {
+    pub session_id: String,
+    pub result: String,
+    pub success: bool,
+}

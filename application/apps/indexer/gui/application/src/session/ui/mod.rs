@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use egui::{CentralPanel, Frame, Margin, SidePanel, TopBottomPanel, Ui};
+use egui::{CentralPanel, Frame, Margin, Panel, Ui};
 use mcp::server::tasks::Tasks;
 use tokio::sync::mpsc::Sender;
 

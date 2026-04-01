@@ -124,12 +124,11 @@ impl SessionService {
                 },
 
                 Ok(task) = self.mcp_task_rx.recv() => {
-                    println!("***** DEBUG: Received the MCP Task : {task:?}");
                     self.handle_mcp_task(task).await;
                 },
 
                 Some(response) = response_rx.recv() => {
-                    log::trace!("Received response from MCP client for session {}: {response}", self.session_id());
+                    log::trace!("Received response from MCP client for session {}: {response:?}", self.session_id());
                     self.senders.send_session_msg(SessionMessage::ChatResponseReceived(response)).await;
                 },
 
@@ -189,22 +188,22 @@ impl SessionService {
                     )
                     .await;
 
+                // Still send message to UI for visibility
+                let message = SessionMessage::MCPTaskReceived(Tasks::AnalyzeLogFile {
+                    session_id,
+                    range,
+                    action,
+                    filters,
+                    jump_to_line,
+                    note,
+                    task_result_tx: task_result_tx.clone(),
+                });
+                self.senders.send_session_msg(message).await;
+
                 // Send result back to MCP server
                 if let Err(e) = task_result_tx.send(result).await {
                     log::error!("Failed to send analyze_log task result back to MCP server: {e:?}");
                 }
-
-                // // Still send message to UI for visibility
-                // let message = SessionMessage::MCPTaskReceived(Tasks::AnalyzeLogFile {
-                //     session_id,
-                //     range,
-                //     action,
-                //     filters,
-                //     jump_to_line,
-                //     note,
-                //     task_result_tx,
-                // });
-                // self.senders.send_session_msg(message).await;
             }
             Tasks::ApplySearchFilter {
                 session_id,
@@ -271,6 +270,47 @@ impl SessionService {
                 log::debug!("Processing GenericTask for session {}", session_id);
                 let result = Ok(TaskResult::Complete("Generic task completed".to_string()));
                 let _ = task_result_tx.send(result);
+            }
+            Tasks::GrabLines {
+                session_id,
+                range,
+                task_result_tx,
+            } => {
+                if self.session_id() == session_id {
+                    let mut lines: Vec<String> = vec![];
+                    if let Ok(result) = self
+                        .session
+                        .grab(processor::grabber::GrabRange::from(range))
+                        .await
+                        .map(|e| e.0)
+                        .map_err(SessionError::from)
+                    {
+                        result
+                            .into_iter()
+                            .for_each(|element| lines.push(element.content));
+                    }
+
+                    if let Err(err) = task_result_tx
+                        .send(Ok(TaskResult::RequestLines(lines)))
+                        .await
+                    {
+                        log::error!("Error while sending the result back: {err}");
+                    }
+                }
+            }
+            Tasks::CompleteChat {
+                session_id,
+                final_result,
+                task_result_tx,
+            } => {
+                if self.session_id() == session_id {
+                    if let Err(err) = task_result_tx
+                        .send(Ok(TaskResult::Complete(final_result)))
+                        .await
+                    {
+                        log::error!("Error while sending the result back: {err}");
+                    }
+                }
             }
         }
     }

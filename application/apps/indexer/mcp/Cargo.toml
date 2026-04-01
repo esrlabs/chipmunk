@@ -7,7 +7,7 @@ authors.workspace = true
 [dependencies]
 axum = { version = "0.7", features = ["macros"] }
 ollama-rs = { version = "0.3", features = ["stream"] }
-rmcp = { version = "0.11", features = [
+rmcp = { version = "1.3", features = [
   "client",
   "macros",
   "reqwest",
@@ -17,6 +17,7 @@ rmcp = { version = "0.11", features = [
   "transport-streamable-http-client-reqwest",
   "transport-streamable-http-server",
   "transport-streamable-http-server-session",
+  "tower",
 ] }
 anyhow.workspace = true
 log.workspace = true
@@ -29,6 +30,7 @@ thiserror.workspace = true
 tokio-util.workspace = true
 tokio.workspace = true
 rand = "0.9"
+non-exhaustive = "0.1.1"
 url = { version = "2.5", features = ["serde"] }
 uuid.workspace = true
 

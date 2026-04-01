@@ -20,6 +20,7 @@ mod types;
 use attachments::AttachmentsUi;
 use chat::ChatUi;
 use filters::FiltersUi;
+use mcp::types::Response;
 use observing::ObservingUi;
 
 pub use types::*;
@@ -43,8 +44,14 @@ impl SidePanelUi {
     }
 
     pub fn update_chat(&mut self, message: AiMessage) {
+        match &message {
+            AiMessage::Response(resp) => match resp {
+                Response::Progress(_) => {}
+                _ => self.chat.toggle_thinking(),
+            },
+            _ => {}
+        };
         self.chat.add_message(message);
-        self.chat.toggle_thinking();
     }
 
     pub fn render_content(

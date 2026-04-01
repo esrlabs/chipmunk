@@ -351,10 +351,9 @@ impl eframe::App for Host {
             self.notifications.add(notification);
         }
 
-        self.state
-            .sessions
-            .iter_mut()
-            .for_each(|(_id, session)| session.handle_messages(&mut self.ui_actions));
+        self.state.sessions.iter_mut().for_each(|(_id, session)| {
+            session.handle_messages(&mut self.ui_actions, &mut self.state.registry.filters)
+        });
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {

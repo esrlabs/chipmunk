@@ -7,6 +7,7 @@ use crate::common::phosphor::{self, icons};
 use crate::session::{
     command::SessionCommand, message::AiMessage, types::FileMetadata, ui::shared::SessionShared,
 };
+use mcp::types::Response;
 use stypes::ObserveOrigin;
 
 #[allow(unused)]
@@ -73,9 +74,9 @@ impl ChatUi {
     }
 
     pub fn new(cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
-        let resp = AiMessage::Response(
+        let resp = AiMessage::Response(Response::Complete(
             "Hello! I'm your AI assistant. How can I help you analyze the logs today?".to_string(),
-        );
+        ));
         let ai_config = AiConfig::default();
         Self {
             cmd_tx,
@@ -148,7 +149,10 @@ impl ChatUi {
                                                 },
                                             );
                                         }
-                                        AiMessage::Response(text) => {
+                                        AiMessage::Response(resp) => {
+                                            let text = match resp {
+                                                Response::Complete(s) | Response::Progress(s) => s,
+                                            };
                                             ui.with_layout(
                                                 egui::Layout::left_to_right(egui::Align::BOTTOM),
                                                 |ui| {

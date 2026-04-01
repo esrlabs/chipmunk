@@ -38,4 +38,14 @@ pub enum Tasks {
         note: Option<String>,
         task_result_tx: mpsc::Sender<Result<TaskResult, McpError>>,
     },
+    GrabLines {
+        session_id: Uuid,
+        range: RangeInclusive<u64>,
+        task_result_tx: mpsc::Sender<Result<TaskResult, McpError>>,
+    },
+    CompleteChat {
+        session_id: Uuid,
+        final_result: String,
+        task_result_tx: mpsc::Sender<Result<TaskResult, McpError>>,
+    },
 }

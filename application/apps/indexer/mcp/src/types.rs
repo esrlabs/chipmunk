@@ -1,11 +1,13 @@
-use std::ops::RangeInclusive;
-
 use rmcp::schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::tool_params::AnalyzeLogsResult;
 
-pub type Response = String;
+#[derive(Clone, Debug)]
+pub enum Response {
+    Complete(String),
+    Progress(String),
+}
 
 #[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
 pub struct RangeU64 {
@@ -25,8 +27,9 @@ pub struct ExportRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskResult {
     Complete(String),
-    RequestLines(RangeInclusive<u64>),
+    RequestLines(Vec<String>),
     AnalyzeLogs(AnalyzeLogsResult),
+    Failed(String),
 }
 
 #[derive(Clone, Debug, JsonSchema, Serialize, Deserialize)]
