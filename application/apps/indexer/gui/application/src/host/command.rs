@@ -1,6 +1,5 @@
 use std::{path::PathBuf, sync::mpsc::Sender as StdSender};
-
-use stypes::FileFormat;
+use stypes::{FileFormat, ObserveOptions};
 use uuid::Uuid;
 
 use crate::host::{
@@ -14,6 +13,10 @@ use crate::host::{
 /// Host commands to be sent from UI to its service.
 #[derive(Debug, Clone)]
 pub enum HostCommand {
+    /// Open a new configuration from history.
+    OpenNewConfiguration(Box<ObserveOptions>),
+    /// Open a previous configuration from history.
+    OpenPreviousConfiguration(Box<ObserveOptions>),
     /// Opens the files, prompting the user with the setup UI
     /// if multiple files are provided.
     OpenFiles(Vec<PathBuf>),
