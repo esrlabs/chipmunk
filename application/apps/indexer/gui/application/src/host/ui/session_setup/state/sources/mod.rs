@@ -4,11 +4,10 @@ pub mod serial;
 pub mod tcp;
 pub mod udp;
 
-use std::path::PathBuf;
-
 pub use file::SourceFileInfo;
 pub use process::ProcessConfig;
 pub use serial::{BaudRate, SerialConfig};
+use std::path::PathBuf;
 use stypes::{FileFormat, Transport};
 pub use tcp::TcpConfig;
 pub use udp::{MulticastItem, UdpConfig};

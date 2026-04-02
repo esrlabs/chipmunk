@@ -2,7 +2,10 @@
 
 use stypes::ComputationError;
 
-use crate::session::{communication::UiHandle, types::ObserveOperation, ui::SessionInfo};
+use crate::{
+    host::ui::home::settings::SessionConfig,
+    session::{communication::UiHandle, types::ObserveOperation, ui::SessionInfo},
+};
 
 pub mod command;
 pub mod communication;
@@ -25,6 +28,7 @@ pub enum InitSessionError {
 #[derive(Debug)]
 pub struct InitSessionParams {
     pub session_info: SessionInfo,
+    pub session_config: Option<SessionConfig>,
     pub communication: UiHandle,
     pub observe_op: ObserveOperation,
 }
