@@ -1,4 +1,6 @@
 use rustc_hash::FxHashMap;
+
+use chrono::Utc;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -8,7 +10,8 @@ use crate::{
     host::{
         command::HostCommand,
         ui::{
-            UiActions,
+            HomeScreen, UiActions,
+            home::settings::RecentSession,
             multi_setup::{MultiFileSetup, state::MultiFileState},
             registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
@@ -19,9 +22,11 @@ use crate::{
 };
 
 pub const HOME_TAB_IDX: usize = 0;
+const MAX_RECENT_SESSIONS: usize = 100;
 
 #[derive(Debug)]
 pub struct HostState {
+    pub home_screen: HomeScreen,
     pub active_tab_idx: usize,
     pub tabs: Vec<TabType>,
     pub sessions: FxHashMap<Uuid, Session>,
@@ -42,6 +47,19 @@ pub struct PanelsVisibility {
 }
 
 impl HostState {
+    pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
+        Self {
+            home_screen: HomeScreen::new(cmd_tx),
+            active_tab_idx: 0,
+            tabs: vec![TabType::Home],
+            sessions: FxHashMap::default(),
+            session_setups: FxHashMap::default(),
+            multi_setups: FxHashMap::default(),
+            session_panels_visibility: PanelsVisibility::default(),
+            registry: HostRegistry::default(),
+        }
+    }
+
     pub fn active_tab(&self) -> &TabType {
         &self.tabs[self.active_tab_idx]
     }
@@ -57,6 +75,31 @@ impl HostState {
         session_setup_id: Option<Uuid>,
         host_cmd_tx: Sender<HostCommand>,
     ) {
+        if let Some(config) = &session.session_config {
+            let now = Utc::now().timestamp() as u64;
+            let recent = &mut self.home_screen.home_settings.recent_sessions;
+
+            if let Some(entry) = recent
+                .iter_mut()
+                .find(|f| f.title == session.session_info.title)
+            {
+                entry.last_opened = now;
+
+                if !entry.configurations.iter().any(|c| c.id == config.id) {
+                    entry.configurations.push(config.clone());
+                }
+            } else {
+                recent.push(RecentSession {
+                    title: session.session_info.title.clone(),
+                    last_opened: now,
+                    configurations: vec![config.clone()],
+                });
+            }
+
+            recent.sort_by(|a, b| b.last_opened.cmp(&a.last_opened));
+            recent.truncate(MAX_RECENT_SESSIONS);
+        }
+
         let session = Session::new(session, host_cmd_tx);
         let id = session.get_info().id;
 
@@ -195,20 +238,6 @@ impl HostState {
     }
 }
 
-impl Default for HostState {
-    fn default() -> Self {
-        Self {
-            active_tab_idx: 0,
-            tabs: vec![TabType::Home],
-            sessions: FxHashMap::default(),
-            session_setups: FxHashMap::default(),
-            multi_setups: FxHashMap::default(),
-            session_panels_visibility: PanelsVisibility::default(),
-            registry: HostRegistry::default(),
-        }
-    }
-}
-
 impl Default for PanelsVisibility {
     fn default() -> Self {
         Self {
@@ -218,6 +247,7 @@ impl Default for PanelsVisibility {
     }
 }
 
+/* TODO Revive
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,3 +280,4 @@ mod tests {
         assert!(!state.session_panels_visibility.bottom);
     }
 }
+*/

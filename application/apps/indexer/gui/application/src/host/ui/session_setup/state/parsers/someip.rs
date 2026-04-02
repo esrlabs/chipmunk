@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use itertools::Itertools;
+use std::path::PathBuf;
 use stypes::SomeIpParserSettings;
 
 use super::FibexFileInfo;
