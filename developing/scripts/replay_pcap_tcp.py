@@ -58,11 +58,12 @@ count = 0
 
 for pkt in packets:
     if pkt.haslayer(TCP) and pkt.haslayer(Raw):  # Send only raw data
-        print(f"Sending {len(pkt[Raw].load)} bytes, packet {count}")
+        payload = pkt[Raw].load
+        print(f"Sending {len(payload)} bytes, packet {count}")
         count += 1
         delay = float(pkt.time) - start_time
         time.sleep(max(0, float(delay)))
-        conn.send(pkt[Raw].load)
+        conn.send(payload)
         start_time = float(pkt.time)
 
 conn.close()
