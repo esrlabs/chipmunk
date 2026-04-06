@@ -1,9 +1,12 @@
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::{fmt, fs, path::PathBuf};
+use std::{fmt, fs, io::ErrorKind, mem, path::PathBuf};
 use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 
+use crate::host::common::file_utls;
+
 #[derive(Serialize, Deserialize, Default, Debug)]
-pub struct HomeSettings {
+pub struct HomeUiState {
     pub recent_sessions: Vec<RecentSession>,
     pub favorite_folders: Vec<FavoriteFolder>,
 
@@ -13,31 +16,70 @@ pub struct HomeSettings {
     pub favorite_collapse: bool,
 }
 
-impl HomeSettings {
-    pub fn load(path: &std::path::Path) -> Option<Self> {
-        if let Ok(data) = fs::read_to_string(path) {
-            let mut settings: HomeSettings = serde_json::from_str(&data).unwrap_or_default();
-            settings.update_configurations();
-            settings.update_favorites();
-            Some(settings)
-        } else {
-            None
-        }
+impl HomeUiState {
+    pub fn load(path: &std::path::Path) -> Self {
+        let data = match fs::read_to_string(path) {
+            Ok(data) => data,
+            Err(err) if err.kind() == ErrorKind::NotFound => {
+                return Self::default();
+            }
+            Err(err) => {
+                log::error!(
+                    "Failed to read home UI state from {}: {err}",
+                    path.display()
+                );
+                return Self::default();
+            }
+        };
+
+        let mut settings = match serde_json::from_str::<HomeUiState>(&data) {
+            Ok(settings) => settings,
+            Err(err) => {
+                log::error!(
+                    "Failed to parse home UI state from {}: {err}",
+                    path.display()
+                );
+                return Self::default();
+            }
+        };
+
+        settings.update_configurations();
+        settings.update_favorites();
+        settings
     }
 
-    pub fn save(&self, path: &std::path::Path) {
-        if let Ok(data) = serde_json::to_string_pretty(self) {
-            let _ = fs::write(path, data);
-        }
+    pub fn save(&self, path: &std::path::Path) -> Result<()> {
+        let data =
+            serde_json::to_string_pretty(self).context("Failed to serialize home UI state")?;
+        fs::write(path, data)
+            .with_context(|| format!("Failed to write home UI state to {}", path.display()))
     }
 
     pub fn update_configurations(&mut self) {
-        for session in &mut self.recent_sessions {
-            session.configurations.retain(|cfg| cfg.validate().is_ok());
-        }
+        self.recent_sessions.retain_mut(|session| {
+            let mut valid_configurations = Vec::with_capacity(session.configurations.len());
+            let mut invalid_details = Vec::new();
 
-        self.recent_sessions
-            .retain(|session| !session.configurations.is_empty());
+            for config in mem::take(&mut session.configurations) {
+                match config.validate() {
+                    Ok(()) => valid_configurations.push(config),
+                    Err(err) => invalid_details.push(format!("{config}: {err}")),
+                }
+            }
+
+            session.configurations = valid_configurations;
+
+            if !invalid_details.is_empty() {
+                let invalid_count = invalid_details.len();
+                log::warn!(
+                    "Removed {invalid_count} invalid recent configuration(s) from session \"{}\": {}",
+                    session.title,
+                    invalid_details.join("; ")
+                );
+            }
+
+            !session.configurations.is_empty()
+        });
     }
 
     pub fn update_favorites(&mut self) {
@@ -59,21 +101,13 @@ pub struct RecentSession {
 impl RecentSession {
     /// Get a template for a new configuration, if supported.
     pub fn new_configuration(&self) -> Option<&SessionConfig> {
-        if let Some(cfg) = self.configurations.first() {
-            return match &cfg.options.origin {
-                ObserveOrigin::File(_, format, _) => {
-                    if *format == FileFormat::Text {
-                        None
-                    } else {
-                        Some(cfg)
-                    }
-                }
-                ObserveOrigin::Concat(_) => Some(cfg),
-                ObserveOrigin::Stream(_, _) => None,
-            };
-        }
-
-        None
+        self.configurations
+            .first()
+            .and_then(|cfg| match &cfg.options.origin {
+                ObserveOrigin::File(_, format, _) if *format == FileFormat::Text => None,
+                ObserveOrigin::File(..) | ObserveOrigin::Concat(..) => Some(cfg),
+                ObserveOrigin::Stream(..) => None,
+            })
     }
 }
 
@@ -242,7 +276,19 @@ pub struct FavoriteFolder {
     pub path: PathBuf,
 
     #[serde(skip)]
-    pub files: Vec<(String, String)>,
+    pub files: Vec<FileUiInfo>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FileUiInfo {
+    pub name: String,
+    pub size_txt: String,
+}
+
+impl FileUiInfo {
+    fn new(name: String, size_txt: String) -> Self {
+        Self { name, size_txt }
+    }
 }
 
 impl FavoriteFolder {
@@ -256,25 +302,55 @@ impl FavoriteFolder {
     pub fn scan(&mut self) {
         self.files.clear();
 
-        if let Ok(entries) = std::fs::read_dir(&self.path) {
-            for entry in entries.flatten() {
-                if let Ok(metadata) = entry.metadata() {
-                    if metadata.file_type().is_symlink() {
-                        continue;
-                    }
+        let entries = match std::fs::read_dir(&self.path) {
+            Ok(entries) => entries,
+            Err(err) => {
+                log::error!(
+                    "Failed to scan favorite folder {}: {err}",
+                    self.path.display()
+                );
+                return;
+            }
+        };
 
-                    if metadata.is_file() {
-                        let file_name = entry.file_name().to_string_lossy().to_string();
-                        if file_name.starts_with('.') {
-                            continue;
-                        }
-
-                        let size = metadata.len();
-                        let size_info = file_size(size);
-
-                        self.files.push((file_name, size_info));
-                    }
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(err) => {
+                    log::warn!(
+                        "Failed to read an entry in favorite folder {}: {err}",
+                        self.path.display()
+                    );
+                    continue;
                 }
+            };
+
+            let metadata = match entry.metadata() {
+                Ok(metadata) => metadata,
+                Err(err) => {
+                    log::warn!(
+                        "Failed to read metadata for {} while scanning favorite folder {}: {err}",
+                        entry.path().display(),
+                        self.path.display()
+                    );
+                    continue;
+                }
+            };
+
+            if metadata.file_type().is_symlink() {
+                continue;
+            }
+
+            if metadata.is_file() {
+                let file_name = entry.file_name().to_string_lossy().to_string();
+                if file_name.starts_with('.') {
+                    continue;
+                }
+
+                let size = metadata.len();
+                let size_info = file_utls::format_file_size(size);
+
+                self.files.push(FileUiInfo::new(file_name, size_info));
             }
         }
     }
@@ -285,25 +361,4 @@ fn file_name(path: &PathBuf) -> String {
         .and_then(|f| f.to_str())
         .map(|s| s.to_string())
         .unwrap_or_else(|| format!("{:?}", path))
-}
-
-fn file_size(bytes: u64) -> String {
-    const KB: f64 = 1024.0;
-    const MB: f64 = KB * 1024.0;
-    const GB: f64 = MB * 1024.0;
-    const TB: f64 = GB * 1024.0;
-
-    let bytes = bytes as f64;
-
-    if bytes >= TB {
-        format!("{:.2} TB", bytes / TB)
-    } else if bytes >= GB {
-        format!("{:.2} GB", bytes / GB)
-    } else if bytes >= MB {
-        format!("{:.2} MB", bytes / MB)
-    } else if bytes >= KB {
-        format!("{:.2} KB", bytes / KB)
-    } else {
-        format!("{} B", bytes as u64)
-    }
 }

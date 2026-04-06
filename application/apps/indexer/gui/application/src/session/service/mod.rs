@@ -15,7 +15,7 @@ use crate::{
         notification::AppNotification,
         service::file::get_file_format,
         ui::{
-            home::settings::SessionConfig,
+            home::state::SessionConfig,
             session_setup::state::{
                 SessionSetupState,
                 parsers::ParserConfig,
