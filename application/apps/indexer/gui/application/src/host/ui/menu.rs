@@ -4,7 +4,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::host::{
     command::HostCommand,
-    common::{parsers::ParserNames, sources::StreamNames},
+    common::{app_style, parsers::ParserNames, sources::StreamNames},
     ui::actions::{FileDialogOptions, UiActions},
 };
 
@@ -32,7 +32,8 @@ impl MainMenuBar {
                 if cfg!(debug_assertions) {
                     ui.menu_button("Development", |ui| {
                         if ui.button("Reset egui memory").clicked() {
-                            ui.ctx().memory_mut(|mem| *mem = Default::default());
+                            ui.memory_mut(|mem| *mem = Default::default());
+                            ui.global_style_mut(app_style::global_styles);
                         }
                     });
 
@@ -40,7 +41,7 @@ impl MainMenuBar {
                 }
 
                 if ui.button("Close").clicked() {
-                    ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                    ui.send_viewport_cmd(egui::ViewportCommand::Close);
                 }
             });
 
@@ -165,11 +166,11 @@ impl MainMenuBar {
 
             ui.menu_button("View", |ui| {
                 if ui.button("Dark Theme").clicked() {
-                    ui.ctx().set_theme(Theme::Dark);
+                    ui.set_theme(Theme::Dark);
                 }
 
                 if ui.button("Light Theme").clicked() {
-                    ui.ctx().set_theme(Theme::Light);
+                    ui.set_theme(Theme::Light);
                 }
             });
         });

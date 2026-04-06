@@ -50,16 +50,14 @@ blake3.workspace = true
 env_logger.workspace = true
 
 winit.workspace = true
-egui.workspace = true
-# TODO: Check which dependency is needed in the final version.
-# Enabling the default features provides the system title bar on ubuntu 22.04
-eframe = { workspace = true, default_features = false, features = [
-    # "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
-    "default_fonts", # Embed the default egui fonts.
-    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    "persistence",   # Enable restoring app state when restarting the app.
-    "wayland",       # To support Linux (and CI)
-    "x11",           # To support older Linux distributions (restores one of the default features)
+egui = { workspace = true, features = ["rayon"] }
+eframe = { workspace = true, default-features = false, features = [
+  "accesskit",
+  "default_fonts",
+  "persistence",
+  "wayland",
+  "wgpu",
+  "x11",
 ] }
 
 egui_extras.workspace = true

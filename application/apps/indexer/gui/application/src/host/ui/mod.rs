@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::ensure;
 use eframe::NativeOptions;
 use egui::{
-    Align, Button, CentralPanel, Context, Frame, Layout, RichText, TopBottomPanel, Ui, Widget, vec2,
+    Align, Button, CentralPanel, Context, Frame, Layout, Panel, RichText, Ui, Widget, vec2,
 };
 use itertools::Itertools;
 use log::{info, trace, warn};
@@ -175,26 +175,26 @@ impl Host {
         }
     }
 
-    fn render_ui(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn render_ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         if self.ui_actions.file_dialog.poll_dialog_task().is_pending() {
-            self.file_dialog_overlay(ctx);
+            self.file_dialog_overlay(ui.ctx());
         }
 
-        TopBottomPanel::top("menu_bar")
-            .frame(Frame::side_top_panel(&ctx.style()))
-            .show(ctx, |ui| {
+        Panel::top("menu_bar")
+            .frame(Frame::side_top_panel(ui.style()))
+            .show_inside(ui, |ui| {
                 self.render_menu(ui);
             });
 
-        TopBottomPanel::top("tab_bar")
-            .frame(Frame::side_top_panel(&ctx.style()))
-            .show(ctx, |ui| {
+        Panel::top("tab_bar")
+            .frame(Frame::side_top_panel(ui.style()))
+            .show_inside(ui, |ui| {
                 self.render_tabs(ui);
             });
 
         CentralPanel::default()
-            .frame(Frame::central_panel(&ctx.style()).inner_margin(0))
-            .show(ctx, |ui| {
+            .frame(Frame::central_panel(ui.style()).inner_margin(0))
+            .show_inside(ui, |ui| {
                 self.render_main(ui);
             });
     }
@@ -342,8 +342,7 @@ fn render_session_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, pane
 }
 
 impl eframe::App for Host {
-    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
-        // Handle incoming messages & notifications
+    fn logic(&mut self, _ctx: &Context, _frame: &mut eframe::Frame) {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             self.handle_message(msg);
         }
@@ -356,15 +355,14 @@ impl eframe::App for Host {
             .sessions
             .iter_mut()
             .for_each(|(_id, session)| session.handle_messages(&mut self.ui_actions));
-
-        // Render all UI components
-        self.render_ui(ctx, frame);
-
-        // Handle actions sent from UI components after rendering.
-        self.handle_ui_actions(ctx);
     }
 
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+    fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        self.render_ui(ui, frame);
+        self.handle_ui_actions(ui.ctx());
+    }
+
+    fn on_exit(&mut self) {
         trace!("App Shutdown requested.");
         self.state.home_view.save();
 

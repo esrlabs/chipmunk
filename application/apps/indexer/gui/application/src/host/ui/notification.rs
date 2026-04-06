@@ -120,7 +120,7 @@ impl NotificationUi {
                     .id(self.popup_id)
                     .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
                     .anchor(PopupAnchor::Position(pos2(
-                        ui.ctx().content_rect().right() - GAB,
+                        ui.content_rect().right() - GAB,
                         ui.max_rect().bottom() + GAB,
                     )))
                     .align(RectAlign::BOTTOM_END)
@@ -143,10 +143,10 @@ impl NotificationUi {
 
     /// Render the content of the notifications popup.
     fn popup_content(&mut self, ui: &mut Ui) {
-        let panel_width = (ui.ctx().content_rect().width() - 20.)
+        let panel_width = (ui.content_rect().width() - 20.)
             .at_least(20.)
             .at_most(350.);
-        let panel_height = (ui.ctx().content_rect().height() - 100.)
+        let panel_height = (ui.content_rect().height() - 100.)
             .at_least(20.)
             .at_most(400.);
 
@@ -247,7 +247,7 @@ impl NotificationUi {
         Modal::new(Id::new("notification_modal"))
             .frame(Frame::window(ui.style()).inner_margin(Margin::same(8)))
             .show(ui.ctx(), |ui| {
-                let modal_width = (ui.ctx().content_rect().width() - 20.)
+                let modal_width = (ui.content_rect().width() - 20.)
                     .at_least(20.)
                     .at_most(350.);
 

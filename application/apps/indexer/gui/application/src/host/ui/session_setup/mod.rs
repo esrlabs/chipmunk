@@ -1,8 +1,8 @@
 use std::{borrow::Cow, ops::Deref};
 
 use egui::{
-    Align, Button, CentralPanel, ComboBox, Key, Label, Layout, Response, RichText, SidePanel,
-    TopBottomPanel, Ui, Widget,
+    Align, Button, CentralPanel, ComboBox, Key, Label, Layout, Panel, Response, RichText, Ui,
+    Widget,
 };
 use enum_iterator::all;
 use tokio::sync::mpsc::Sender;
@@ -56,17 +56,17 @@ impl SessionSetup {
     }
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
-        TopBottomPanel::top("selection_panel")
-            .exact_height(40.)
+        Panel::top("selection_panel")
+            .exact_size(40.)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     self.top_bar(actions, ui);
                 });
             });
 
-        SidePanel::right("side options")
-            .width_range(200.0..=350.0)
-            .default_width(250.)
+        Panel::right("side options")
+            .size_range(200.0..=350.0)
+            .default_size(250.)
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
