@@ -3,9 +3,12 @@ use egui::{
     Widget, vec2,
 };
 
-use crate::host::ui::session_setup::{
-    start_session_on_enter,
-    state::sources::{BaudRate, SerialConfig, serial::DEFAULT_BAUD_RATE},
+use crate::host::{
+    common::ui_utls::sized_singleline_text_edit,
+    ui::session_setup::{
+        start_session_on_enter,
+        state::sources::{BaudRate, SerialConfig, serial::DEFAULT_BAUD_RATE},
+    },
 };
 
 use super::RenderOutcome;
@@ -172,12 +175,11 @@ fn render_port_path(config: &mut SerialConfig, outcome: &mut RenderOutcome, ui: 
             }
         });
 
-    let path_res = TextEdit::singleline(&mut config.path)
-        .min_size(vec2(ui.available_width(), height))
-        .vertical_align(Align::Center)
-        .hint_text("Port path")
-        .show(ui)
-        .response;
+    let path_res =
+        sized_singleline_text_edit(ui, &mut config.path, vec2(ui.available_width(), height), 4)
+            .hint_text("Port path")
+            .show(ui)
+            .response;
 
     if path_res.changed() {
         path_changed = true;

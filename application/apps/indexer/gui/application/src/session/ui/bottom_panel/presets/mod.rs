@@ -1,6 +1,5 @@
 use egui::{
-    Align, Button, Frame, Layout, Margin, RichText, ScrollArea, TextEdit, Ui, UiBuilder, Widget,
-    vec2,
+    Align, Button, Frame, Layout, Margin, RichText, ScrollArea, Ui, UiBuilder, Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
 use rustc_hash::FxHashSet;
@@ -11,6 +10,7 @@ use crate::{
     common::phosphor::icons,
     host::{
         command::{ExportPresetsParam, HostCommand},
+        common::ui_utls::sized_singleline_text_edit,
         notification::AppNotification,
         ui::{
             UiActions,
@@ -203,13 +203,15 @@ impl PresetsUI {
                 }
 
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    let query_changed = TextEdit::singleline(&mut self.query_state.query)
-                        .margin(Margin::symmetric(7, 2))
-                        .hint_text("Filter presets by name")
-                        .vertical_align(Align::Center)
-                        .min_size(ui.available_size())
-                        .ui(ui)
-                        .changed();
+                    let query_changed = sized_singleline_text_edit(
+                        ui,
+                        &mut self.query_state.query,
+                        ui.available_size(),
+                        7,
+                    )
+                    .hint_text("Filter presets by name")
+                    .ui(ui)
+                    .changed();
                     self.query_state.update_with_revision(
                         registry.presets.definitions_revision(),
                         query_changed,

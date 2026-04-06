@@ -1,4 +1,4 @@
-use egui::{Frame, Margin, Ui};
+use egui::{Align, Frame, Margin, TextBuffer, TextEdit, TextStyle, Ui, Vec2};
 
 /// Frame used to group controls in side views.
 pub fn side_panel_group_frame(ui: &mut Ui) -> Frame {
@@ -21,4 +21,31 @@ pub fn main_panel_group_frame(ui: &mut Ui) -> Frame {
         .fill(ui.style().visuals.faint_bg_color)
         .inner_margin(Margin::symmetric(12, 12))
         .outer_margin(Margin::symmetric(0, 4))
+}
+
+/// Build a single-line [`TextEdit`] that approximates the provided outer size.
+///
+/// # Note:
+///
+/// This function is a workaround for the regression egui 0.34 regarding
+/// `TextEdit::min_size().y` not being respected anymore.
+pub fn sized_singleline_text_edit<'t>(
+    ui: &mut Ui,
+    text: &'t mut dyn TextBuffer,
+    size: Vec2,
+    horizontal_margin: i8,
+) -> TextEdit<'t> {
+    let font_id = TextStyle::Body.resolve(ui.style());
+    let row_height = ui.fonts_mut(|fonts| fonts.row_height(&font_id));
+    let vertical_margin = ((size.y - row_height) / 2.0)
+        .round()
+        .clamp(0.0, i8::MAX as f32) as i8;
+
+    // egui 0.34 no longer applies `TextEdit::min_size().y`, so use the inner margin to reach the
+    // requested row height instead.
+    // TODO: Keep track on issue: https://github.com/emilk/egui/issues/8071
+    TextEdit::singleline(text)
+        .desired_width(size.x)
+        .margin(Margin::symmetric(horizontal_margin, vertical_margin))
+        .vertical_align(Align::Center)
 }
