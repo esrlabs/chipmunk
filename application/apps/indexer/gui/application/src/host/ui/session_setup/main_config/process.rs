@@ -1,10 +1,13 @@
-use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, TextEdit, Ui, Widget, vec2};
+use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, Ui, Widget, vec2};
 
 use super::RenderOutcome;
-use crate::host::ui::{
-    UiActions,
-    actions::FileDialogOptions,
-    session_setup::{start_session_on_enter, state::sources::ProcessConfig},
+use crate::host::{
+    common::ui_utls::sized_singleline_text_edit,
+    ui::{
+        UiActions,
+        actions::FileDialogOptions,
+        session_setup::{start_session_on_enter, state::sources::ProcessConfig},
+    },
 };
 
 const CWD_DIALOG_ID: &str = "cwd_for_shell";
@@ -67,12 +70,15 @@ pub fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome
             }
         });
 
-    let text_res = TextEdit::singleline(&mut config.command)
-        .min_size(vec2(ui.available_width(), height))
-        .vertical_align(Align::Center)
-        .hint_text("Terminal command")
-        .show(ui)
-        .response;
+    let text_res = sized_singleline_text_edit(
+        ui,
+        &mut config.command,
+        vec2(ui.available_width(), height),
+        4,
+    )
+    .hint_text("Terminal command")
+    .show(ui)
+    .response;
 
     if text_res.changed() {
         config.validate();
