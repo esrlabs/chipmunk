@@ -21,7 +21,7 @@ use crate::{
         message::HostMessage,
         service::HostService,
         ui::{
-            home::HomeScreen,
+            home::HomeView,
             notification::NotificationUi,
             session_setup::state::{
                 parsers::ParserConfig,
@@ -256,7 +256,7 @@ impl Host {
         } = state;
 
         match active_tab {
-            TabType::Home => self.state.home_screen.render_content(ui_actions, ui),
+            TabType::Home => self.state.home_view.render_content(ui_actions, ui),
             TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")
@@ -366,7 +366,7 @@ impl eframe::App for Host {
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         trace!("App Shutdown requested.");
-        self.state.home_screen.save();
+        self.state.home_view.save();
 
         let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();
         let cmd = HostCommand::OnShutdown { confirm_tx };

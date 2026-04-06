@@ -5,8 +5,8 @@ use crate::host::{
     notification::AppNotification,
     ui::{
         APP_SETTINGS, UiActions,
-        home::settings::{FavoriteFolder, HomeSettings, SessionConfig},
         actions::FileDialogOptions,
+        home::state::{FavoriteFolder, HomeUiState, SessionConfig},
     },
 };
 use egui::{Align, Button, CentralPanel, CollapsingHeader, Layout, RichText, SidePanel, Ui};
@@ -14,76 +14,69 @@ use tokio::sync::mpsc::Sender;
 
 use std::{env, mem::take, path::PathBuf};
 
-pub mod settings;
+pub mod state;
 
 const ACTION_FILES_ID: &str = "action_files";
 const FAVORITES_FOLDER_ID: &str = "favorites_folder";
 
 #[derive(Debug)]
-pub struct HomeScreen {
-    pub home_settings: HomeSettings,
+pub struct HomeView {
+    pub state: HomeUiState,
     pub data_path: PathBuf,
     cmd_tx: Sender<HostCommand>,
 }
 
-impl HomeScreen {
+impl HomeView {
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
         let dir = env::current_dir().expect("Failed to get current working directory");
         let path = dir.join(APP_SETTINGS);
-        let state = HomeSettings::load(&path).unwrap_or_default();
+        let state = HomeUiState::load(&path);
 
-        HomeScreen {
-            home_settings: state,
+        HomeView {
+            state,
             data_path: path,
             cmd_tx,
         }
     }
 
     pub fn save(&self) {
-        self.home_settings.save(&self.data_path);
+        if let Err(err) = self.state.save(&self.data_path) {
+            log::error!("Failed to persist home UI state: {err:#}");
+        }
     }
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
-        ui.centered_and_justified(|ui| {
-            home_screen(ui, actions, &mut self.home_settings, &self.cmd_tx);
+        let Self { state, cmd_tx, .. } = self;
+
+        SidePanel::left("quick actions")
+            .width_range(50.0..=150.0)
+            .default_width(100.)
+            .resizable(true)
+            .show_inside(ui, |ui| {
+                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                    draw_quick_actions(ui, actions, cmd_tx);
+                });
+            });
+
+        SidePanel::right("favorite folders")
+            .width_range(250.0..=750.0)
+            .default_width(350.)
+            .resizable(true)
+            .show_inside(ui, |ui| {
+                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                    ui.add_space(5.0);
+                    ui.heading("Favorite folders");
+                    draw_favorite_folders(ui, actions, state, cmd_tx);
+                });
+            });
+
+        CentralPanel::default().show_inside(ui, |ui| {
+            ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                ui.heading("Recently opened");
+                draw_recent_sessions(ui, actions, state, cmd_tx);
+            });
         });
     }
-}
-
-pub fn home_screen(
-    ui: &mut egui::Ui,
-    actions: &mut UiActions,
-    state: &mut HomeSettings,
-    cmd_tx: &Sender<HostCommand>,
-) {
-    SidePanel::left("quick actions")
-        .width_range(50.0..=150.0)
-        .default_width(100.)
-        .resizable(true)
-        .show_inside(ui, |ui| {
-            ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                draw_quick_actions(ui, actions, cmd_tx);
-            });
-        });
-
-    SidePanel::right("favorite folders")
-        .width_range(250.0..=750.0)
-        .default_width(350.)
-        .resizable(true)
-        .show_inside(ui, |ui| {
-            ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                ui.add_space(5.0);
-                ui.heading("Favorite folders");
-                draw_favorite_folders(ui, actions, state, cmd_tx);
-            });
-        });
-
-    CentralPanel::default().show_inside(ui, |ui| {
-        ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-            ui.heading("Recently opened");
-            draw_recent_sessions(ui, actions, state, cmd_tx);
-        });
-    });
 }
 
 pub fn draw_quick_actions(
@@ -181,7 +174,7 @@ fn action_button(
 fn draw_recent_sessions(
     ui: &mut egui::Ui,
     actions: &mut UiActions,
-    state: &mut HomeSettings,
+    state: &mut HomeUiState,
     cmd_tx: &Sender<HostCommand>,
 ) {
     egui::ScrollArea::vertical()
@@ -286,6 +279,7 @@ fn open_new_configuration(
             actions.try_send_command(cmd_tx, cmd);
         }
         Err(err) => {
+            log::warn!("Failed to open new configuration from Home view: {err}");
             actions.add_notification(AppNotification::Error(format!("{}", err)));
         }
     }
@@ -302,6 +296,7 @@ fn open_previous_configuration(
             actions.try_send_command(cmd_tx, cmd);
         }
         Err(err) => {
+            log::warn!("Failed to open previous configuration from Home view: {err}");
             actions.add_notification(AppNotification::Error(format!("{}", err)));
         }
     }
@@ -310,7 +305,7 @@ fn open_previous_configuration(
 fn draw_favorite_folders(
     ui: &mut egui::Ui,
     actions: &mut UiActions,
-    state: &mut HomeSettings,
+    state: &mut HomeUiState,
     cmd_tx: &Sender<HostCommand>,
 ) {
     if let Some(paths) = actions.file_dialog.take_output(FAVORITES_FOLDER_ID) {
@@ -337,8 +332,7 @@ fn draw_favorite_folders(
                 {
                     actions.file_dialog.pick_folder(
                         FAVORITES_FOLDER_ID,
-                        FileDialogOptions::new()
-                            .title("Select Favorites Folder")
+                        FileDialogOptions::new().title("Select Favorites Folder"),
                     );
                 }
 
@@ -398,9 +392,10 @@ fn draw_favorite_folders(
                             remove_path = Some(folder.path.clone());
                         }
 
-                        for (file_name, size_info) in &folder.files {
+                        for file in &folder.files {
                             if !state.favorite_search.is_empty()
-                                && !file_name
+                                && !file
+                                    .name
                                     .to_lowercase()
                                     .contains(&state.favorite_search.to_lowercase())
                             {
@@ -416,14 +411,14 @@ fn draw_favorite_folders(
                                         )
                                         .small(),
                                     )
-                                    .on_hover_text(format!("Open file ({})", size_info))
+                                    .on_hover_text(format!("Open file ({})", file.size_txt))
                                     .clicked()
                                 {
-                                    let param = [folder.path.join(file_name)].to_vec();
+                                    let param = [folder.path.join(&file.name)].to_vec();
                                     let cmd = HostCommand::OpenFiles(param);
                                     actions.try_send_command(cmd_tx, cmd);
                                 }
-                                ui.label(file_name);
+                                ui.label(&file.name);
                             });
                         }
                     });

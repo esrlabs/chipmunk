@@ -10,8 +10,8 @@ use crate::{
     host::{
         command::HostCommand,
         ui::{
-            HomeScreen, UiActions,
-            home::settings::RecentSession,
+            HomeView, UiActions,
+            home::state::RecentSession,
             multi_setup::{MultiFileSetup, state::MultiFileState},
             registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
@@ -26,7 +26,7 @@ const MAX_RECENT_SESSIONS: usize = 100;
 
 #[derive(Debug)]
 pub struct HostState {
-    pub home_screen: HomeScreen,
+    pub home_view: HomeView,
     pub active_tab_idx: usize,
     pub tabs: Vec<TabType>,
     pub sessions: FxHashMap<Uuid, Session>,
@@ -49,7 +49,7 @@ pub struct PanelsVisibility {
 impl HostState {
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
         Self {
-            home_screen: HomeScreen::new(cmd_tx),
+            home_view: HomeView::new(cmd_tx),
             active_tab_idx: 0,
             tabs: vec![TabType::Home],
             sessions: FxHashMap::default(),
@@ -77,7 +77,7 @@ impl HostState {
     ) {
         if let Some(config) = &session.session_config {
             let now = Utc::now().timestamp() as u64;
-            let recent = &mut self.home_screen.home_settings.recent_sessions;
+            let recent = &mut self.home_view.state.recent_sessions;
 
             if let Some(entry) = recent
                 .iter_mut()
