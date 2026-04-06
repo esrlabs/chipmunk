@@ -3,7 +3,7 @@
 use stypes::ComputationError;
 
 use crate::{
-    host::ui::home::settings::SessionConfig,
+    host::ui::home::state::SessionConfig,
     session::{communication::UiHandle, types::ObserveOperation, ui::SessionInfo},
 };
 
