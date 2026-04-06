@@ -9,7 +9,7 @@ use crate::host::{
         home::state::{FavoriteFolder, HomeUiState, SessionConfig},
     },
 };
-use egui::{Align, Button, CentralPanel, CollapsingHeader, Layout, RichText, SidePanel, Ui};
+use egui::{Align, Button, CentralPanel, CollapsingHeader, Layout, Panel, RichText, Ui};
 use tokio::sync::mpsc::Sender;
 
 use std::{env, mem::take, path::PathBuf};
@@ -48,9 +48,9 @@ impl HomeView {
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
         let Self { state, cmd_tx, .. } = self;
 
-        SidePanel::left("quick actions")
-            .width_range(50.0..=150.0)
-            .default_width(100.)
+        Panel::left("quick actions")
+            .size_range(50.0..=150.0)
+            .default_size(100.)
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
@@ -58,9 +58,9 @@ impl HomeView {
                 });
             });
 
-        SidePanel::right("favorite folders")
-            .width_range(250.0..=750.0)
-            .default_width(350.)
+        Panel::right("favorite folders")
+            .size_range(250.0..=750.0)
+            .default_size(350.)
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {

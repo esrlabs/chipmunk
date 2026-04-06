@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use egui::{CentralPanel, Frame, Margin, SidePanel, TopBottomPanel, Ui};
+use egui::{CentralPanel, Frame, Margin, Panel, Ui};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -115,36 +115,34 @@ impl Session {
             );
         }
 
-        TopBottomPanel::bottom("status_bar")
+        Panel::bottom("status_bar")
             .resizable(false)
-            .exact_height(23.0)
+            .exact_size(23.0)
             .show_inside(ui, |ui| {
                 status_bar::render_content(shared, ui);
             });
 
-        SidePanel::right("side_panel")
+        Panel::right("side_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::same(0)))
-            .width_range(200.0..=350.0)
-            .default_width(250.0)
+            .size_range(200.0..=500.0)
+            .default_size(250.0)
             .resizable(true)
             .show_animated_inside(ui, panels_visibility.right, |ui| {
                 ui.take_available_width();
                 side_panel.render_content(ui, shared, actions, registry);
             });
 
-        // We need to have margin on scrollbar sides because highlighting and mouse
-        // cursor flicker between resizing the panel and the scrollbar.
         let panels_margin = Margin {
             left: 2,
-            right: 4,
+            right: 0,
             top: 0,
-            bottom: 4,
+            bottom: 0,
         };
 
-        TopBottomPanel::bottom("bottom_panel")
+        Panel::bottom("bottom_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(panels_margin))
-            .height_range(100.0..=700.0)
-            .default_height(200.)
+            .size_range(100.0..=700.0)
+            .default_size(200.)
             .resizable(true)
             .show_animated_inside(ui, panels_visibility.bottom, |ui| {
                 ui.take_available_height();
