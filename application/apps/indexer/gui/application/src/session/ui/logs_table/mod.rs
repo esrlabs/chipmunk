@@ -57,6 +57,9 @@ impl LogsTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
+        // Disable fade effects on tables to avoid highlighting clashing.
+        ui.style_mut().spacing.scroll.fade.strength = 0.0;
+
         let mut table = egui_table::Table::new()
             .id_salt("logs_table")
             .num_rows(shared.logs.logs_count)
@@ -77,7 +80,7 @@ impl LogsTable {
         table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
-            ui.ctx().request_repaint();
+            ui.request_repaint();
         }
     }
 }

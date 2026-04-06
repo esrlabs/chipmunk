@@ -1,4 +1,4 @@
-use egui::{Align2, CentralPanel, FontId, Frame, Margin, Sense, SidePanel, Ui, vec2};
+use egui::{Align2, CentralPanel, FontId, Frame, Margin, Panel, Sense, Ui, vec2};
 use enum_iterator::all;
 use tokio::sync::mpsc;
 
@@ -42,7 +42,7 @@ impl SidePanelUi {
         actions: &mut UiActions,
         registry: &mut HostRegistry,
     ) {
-        SidePanel::left("side tabs")
+        Panel::left("side tabs")
             .frame(
                 Frame::new()
                     .inner_margin(Margin {
@@ -54,7 +54,7 @@ impl SidePanelUi {
                     .fill(ui.style().visuals.widgets.active.bg_fill),
             )
             .resizable(false)
-            .exact_width(36.)
+            .exact_size(36.)
             .show_separator_line(false)
             .show_inside(ui, |ui| {
                 for tab in all::<SideTabType>() {

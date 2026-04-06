@@ -10,7 +10,7 @@ pub fn show_modal<T>(
     content: impl FnOnce(&mut Ui) -> T,
 ) -> ModalResponse<T> {
     egui::Modal::new(id.into())
-        .frame(Frame::window(&ctx.style()).inner_margin(egui::Margin::same(8)))
+        .frame(Frame::window(ctx.global_style().as_ref()).inner_margin(egui::Margin::same(8)))
         .show(ctx, |ui| {
             let modal_width = (ctx.content_rect().width() - 20.)
                 .at_least(20.)
