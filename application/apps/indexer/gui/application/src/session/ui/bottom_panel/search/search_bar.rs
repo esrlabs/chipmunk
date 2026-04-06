@@ -131,7 +131,7 @@ impl SearchBar {
 
                                 let mut text_output = TextEdit::singleline(&mut self.query)
                                     .id(text_id)
-                                    .frame(false)
+                                    .frame(Frame::NONE)
                                     .hint_text("Type a Search Request")
                                     .desired_width(ui.available_width())
                                     .show(ui);

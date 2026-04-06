@@ -1,4 +1,4 @@
-use egui::{Align, Button, CentralPanel, Frame, Layout, SidePanel, TopBottomPanel, Ui, Widget};
+use egui::{Align, Button, CentralPanel, Frame, Layout, Panel, Ui, Widget};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -38,18 +38,18 @@ impl MultiFileSetup {
     }
 
     pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
-        TopBottomPanel::top("actions panel")
-            .exact_height(40.)
+        Panel::top("actions panel")
+            .exact_size(40.)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     self.top_panel(actions, ui);
                 });
             });
 
-        SidePanel::right("side info")
+        Panel::right("side info")
             .frame(Frame::central_panel(ui.style()))
-            .width_range(200.0..=350.0)
-            .default_width(250.)
+            .size_range(200.0..=350.0)
+            .default_size(250.)
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
