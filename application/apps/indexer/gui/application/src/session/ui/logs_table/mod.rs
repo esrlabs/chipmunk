@@ -25,6 +25,11 @@ use crate::{
     },
 };
 
+pub enum LogAttachmentInfo {
+    NoAttachment,
+    WithAttachment { color: Option<egui::Color32> },
+}
+
 #[derive(Debug)]
 pub struct LogsTable {
     logs: LogsMapped,
@@ -166,15 +171,15 @@ impl<'a> LogsDelegate<'a> {
             .flatten();
         let is_bookmarked = self.shared.logs.is_bookmarked(cell.row_nr);
 
-        let attachment = self
+        let attachment_info = self
             .shared
             .attachments
-            .attachment_by_log_position(cell.row_nr as usize);
-
-        let has_attachment = attachment.is_some();
-
-        let attachment_color = attachment
-            .and_then(|attachment| self.shared.attachments.color_by_uuid(&attachment.uuid));
+            .attachment_by_log_position(cell.row_nr as usize)
+            .map_or(LogAttachmentInfo::NoAttachment, |attachment| {
+                LogAttachmentInfo::WithAttachment {
+                    color: self.shared.attachments.color_by_uuid(&attachment.uuid),
+                }
+            });
 
         let response = common::logs_tables::render_row_header(
             ui,
@@ -182,8 +187,7 @@ impl<'a> LogsDelegate<'a> {
             color_idx,
             is_bookmarked,
             || self.toggle_row_bookmark(cell.row_nr),
-            has_attachment,
-            attachment_color,
+            attachment_info,
         );
 
         if response.clicked() {

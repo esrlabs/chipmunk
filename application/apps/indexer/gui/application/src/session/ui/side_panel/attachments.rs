@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fs, path::Path};
+use std::cmp::Ordering;
 
 use itertools::Itertools;
 use log::error;
@@ -11,7 +11,8 @@ use uuid::Uuid;
 
 use crate::{
     host::{
-        notification::AppNotification,
+        command::{CopyFileInfo, HostCommand},
+        common::{colors::DEFAULT_ATTACHMENT_EXT_COLOR, file_utls},
         ui::{UiActions, actions::FileDialogOptions},
     },
     session::{
@@ -22,9 +23,6 @@ use crate::{
 const ATTACHMENTS_DIALOG_ID_SAVE_SELECTED: &str = "save_selected_attachments";
 const ATTACHMENTS_DIALOG_ID_SAVE_AS: &str = "save_attachment_as";
 
-// TODO: Move to shared colors
-const SELECTION_BAR_BLUE: egui::Color32 = egui::Color32::from_rgb(80, 140, 255);
-
 const ATTACHMENTS_LIST_MINIMUM_HEIGHT: f32 = 200.0;
 const ATTACHMENTS_PREVIEW_MINIMUM_HEIGHT: f32 = 100.0;
 const EXT_COLUMN_WIDTH: f32 = 40.0;
@@ -33,18 +31,27 @@ const ROW_HORIZONTAL_PADDING: f32 = 12.0;
 
 #[derive(Debug)]
 pub struct AttachmentsUi {
+    host_cmd_tx: mpsc::Sender<HostCommand>,
     #[allow(unused)]
-    cmd_tx: mpsc::Sender<SessionCommand>,
+    session_cmd_tx: mpsc::Sender<SessionCommand>,
+    /// Indices of currently selected rows in the attachments list.
     selected_rows: FxHashSet<usize>,
+    /// Index of the clicked row, used for context menu actions.
     clicked_row: Option<usize>,
+    /// Index of the previously clicked row, used as the anchor for shift-click multi-selection.
     previously_clicked_row: Option<usize>,
+    /// Uuids of attachments that are pending to be saved after file dialog completion.
     pending_attachment_save: FxHashSet<Uuid>,
 }
 
 impl AttachmentsUi {
-    pub fn new(cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
+    pub fn new(
+        host_cmd_tx: mpsc::Sender<HostCommand>,
+        session_cmd_tx: mpsc::Sender<SessionCommand>,
+    ) -> Self {
         Self {
-            cmd_tx,
+            host_cmd_tx,
+            session_cmd_tx,
             selected_rows: FxHashSet::default(),
             previously_clicked_row: None,
             clicked_row: None,
@@ -62,7 +69,7 @@ impl AttachmentsUi {
 
         let attachments = shared.attachments.attachments();
 
-        egui::TopBottomPanel::top("attachments_header")
+        egui::Panel::top("attachments_header")
             .resizable(false)
             .show_inside(ui, |ui| {
                 self.render_attachments_header(ui, attachments.len());
@@ -70,10 +77,10 @@ impl AttachmentsUi {
 
         // Details panel located at the bottom but needs to be rendered before the attachments list.
         if self.selected_rows.len() == 1 {
-            egui::TopBottomPanel::bottom("attachments_details")
+            egui::Panel::bottom("attachments_details")
                 .resizable(true)
-                .default_height(200.0)
-                .height_range(
+                .default_size(200.0)
+                .size_range(
                     ATTACHMENTS_PREVIEW_MINIMUM_HEIGHT
                         ..=(ui.available_height() - ATTACHMENTS_LIST_MINIMUM_HEIGHT),
                 )
@@ -98,7 +105,7 @@ impl AttachmentsUi {
             |ui| ui.label(format!("Attachments ({})", attachments_count)),
             |ui| {
                 ui.menu_button(
-                    egui::RichText::new(egui_phosphor::fill::FUNNEL).size(16.0),
+                    egui::RichText::new(egui_phosphor::regular::FUNNEL).size(16.0),
                     |ui| {
                         if ui
                             .button("Attachment filters not implemented yet")
@@ -132,7 +139,6 @@ impl AttachmentsUi {
     ) {
         let attachments = attachments_state.attachments();
         ui.spacing_mut().item_spacing.y = 0.0;
-        // TOD: Reevaluate if this can be done better or uniformely across UI
         let row_height = 2.0 * ui.text_style_height(&egui::TextStyle::Body)
             + ui.spacing().item_spacing.y
             + ROW_VERTICAL_PADDING;
@@ -165,7 +171,7 @@ impl AttachmentsUi {
                                 .ext
                                 .as_deref()
                                 .and_then(|ext| attachments_state.color_by_extension(ext))
-                                .unwrap_or(egui::Color32::GRAY);
+                                .unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR);
 
                             let response = self.render_attachment_row(
                                 ui,
@@ -180,6 +186,7 @@ impl AttachmentsUi {
                                 self.handle_row_click(current_row, ui.input(|i| i.modifiers));
                             }
 
+                            // TODO [TOOL-756]: Reevaluate secondary click logic
                             if response.secondary_clicked() {
                                 self.clicked_row = Some(current_row);
                             }
@@ -227,7 +234,7 @@ impl AttachmentsUi {
                     egui::vec2(4.0, row_rectangle.height()),
                 ),
                 egui::CornerRadius::same(0),
-                SELECTION_BAR_BLUE,
+                ui.visuals().selection.stroke.color,
             );
         }
 
@@ -254,7 +261,10 @@ impl AttachmentsUi {
                     ui.add(egui::Label::new(&attachment.name).truncate());
                     ui.add(
                         egui::Label::new(
-                            egui::RichText::new(Self::file_size_to_str(attachment.size)).weak(),
+                            egui::RichText::new(file_utls::format_file_size(
+                                attachment.size as u64,
+                            ))
+                            .weak(),
                         )
                         .truncate(),
                     );
@@ -363,6 +373,8 @@ impl AttachmentsUi {
             return;
         };
 
+        let mut copy_file_infos: Vec<CopyFileInfo> = Vec::new();
+
         for &attachment_uuid in self.pending_attachment_save.iter() {
             let Some(attachment) = attachments_state.attachment_by_uuid(&attachment_uuid) else {
                 error!(
@@ -389,25 +401,15 @@ impl AttachmentsUi {
                 }
             };
 
-            self.save_attachment(ui_actions, attachment, &destination);
+            copy_file_infos.push(CopyFileInfo {
+                source: attachment.filepath.clone(),
+                destination,
+            });
         }
-    }
 
-    fn save_attachment(
-        &self,
-        ui_actions: &mut UiActions,
-        attachment: &AttachmentInfo,
-        destination: &Path,
-    ) {
-        if let Err(error) = fs::copy(attachment.filepath.as_path(), destination) {
-            let error_message = format!(
-                "Failed to save attachment '{}' from '{}' to '{}': {error}",
-                attachment.name,
-                attachment.filepath.display(),
-                destination.display(),
-            );
-            error!("{error_message}");
-            ui_actions.add_notification(AppNotification::Error(error_message));
+        if !copy_file_infos.is_empty() {
+            let host_command = HostCommand::CopyFiles { copy_file_infos };
+            ui_actions.try_send_command(&self.host_cmd_tx, host_command);
         }
     }
 
@@ -443,19 +445,5 @@ impl AttachmentsUi {
             }
         }
         self.previously_clicked_row = Some(clicked_row);
-    }
-
-    // Format file size for user display
-    pub fn file_size_to_str(bytes: usize) -> String {
-        const KB: usize = 1024;
-        const MB: usize = KB * 1024;
-        const GB: usize = MB * 1024;
-
-        match bytes {
-            b if b < KB => format!("{} B", b),
-            b if b < MB => format!("{:.2} KB", b as f64 / KB as f64),
-            b if b < GB => format!("{:.2} Mb", b as f64 / MB as f64),
-            b => format!("{:.2} GB", b as f64 / GB as f64),
-        }
     }
 }

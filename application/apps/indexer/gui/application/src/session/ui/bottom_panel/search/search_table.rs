@@ -17,6 +17,7 @@ use crate::{
                 logs_tables::{grab_cmd_consts, should_stick_to_bottom},
             },
             definitions::{LogTableItem, schema::LogSchema},
+            logs_table::LogAttachmentInfo,
             shared::SessionShared,
         },
     },
@@ -185,21 +186,20 @@ impl<'a> LogsDelegate<'a> {
             })
             .unwrap_or_default();
 
-        let bookmark_pos: Option<usize> = self.get_log_item(cell).map(|item| item.element.pos);
+        let log_position: Option<usize> = self.get_log_item(cell).map(|item| item.element.pos);
 
-        let is_bookmarked = bookmark_pos
+        let is_bookmarked = log_position
             .is_some_and(|row_number| self.shared.logs.is_bookmarked(row_number as u64));
 
-        let attachment = bookmark_pos.and_then(|row_number| {
-            self.shared
-                .attachments
-                .attachment_by_log_position(row_number)
-        });
-
-        let has_attachment = attachment.is_some();
-
-        let attachment_color = attachment
-            .and_then(|attachment| self.shared.attachments.color_by_uuid(&attachment.uuid));
+        let attachment_info = self
+            .shared
+            .attachments
+            .attachment_by_log_position(cell.row_nr as usize)
+            .map_or(LogAttachmentInfo::NoAttachment, |attachment| {
+                LogAttachmentInfo::WithAttachment {
+                    color: self.shared.attachments.color_by_uuid(&attachment.uuid),
+                }
+            });
 
         let response = common::logs_tables::render_row_header(
             ui,
@@ -207,15 +207,14 @@ impl<'a> LogsDelegate<'a> {
             color_idx,
             is_bookmarked,
             || {
-                if let Some(bookmark_pos) = bookmark_pos {
-                    self.toggle_row_bookmark(bookmark_pos as u64);
+                if let Some(log_position) = log_position {
+                    self.toggle_row_bookmark(log_position as u64);
                 }
             },
-            has_attachment,
-            attachment_color,
+            attachment_info,
         );
 
-        if let Some(bookmark_pos) = bookmark_pos
+        if let Some(bookmark_pos) = log_position
             && response.clicked()
         {
             self.handle_selection_click(bookmark_pos as u64, ui.input(|i| i.modifiers));

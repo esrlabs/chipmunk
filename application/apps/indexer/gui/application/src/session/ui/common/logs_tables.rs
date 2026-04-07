@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::{
     host::{
-        common::colors::{SELECTED_LOG_COLORS, TEMP_SEARCH_COLORS},
+        common::colors::{DEFAULT_ATTACHMENT_EXT_COLOR, SELECTED_LOG_COLORS, TEMP_SEARCH_COLORS},
         notification::AppNotification,
         ui::UiActions,
     },
@@ -24,6 +24,7 @@ use crate::{
         error::SessionError,
         ui::{
             definitions::schema::LogSchema,
+            logs_table::LogAttachmentInfo,
             shared::{
                 ObserveState, SelectionIntent, SessionShared,
                 searching::{FilterIndex, LogMainIndex},
@@ -94,8 +95,7 @@ pub fn render_row_header(
     color_idx: Option<usize>,
     is_bookmarked: bool,
     on_toggle_bookmark: impl FnOnce(),
-    has_attachment: bool,
-    attachment_color: Option<egui::Color32>,
+    attachment_info: LogAttachmentInfo,
 ) -> Response {
     ui.horizontal(|ui| {
         let (res, painter) = ui.allocate_painter(
@@ -109,9 +109,9 @@ pub fn render_row_header(
         }
         let text_res = ui.label(text);
 
-        if has_attachment {
+        if let LogAttachmentInfo::WithAttachment { color } = attachment_info {
             ui.colored_label(
-                attachment_color.unwrap_or(egui::Color32::GRAY),
+                color.unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR),
                 egui::RichText::new(egui_phosphor::fill::FILE),
             );
             ui.add_space(ui.spacing().item_spacing.x);

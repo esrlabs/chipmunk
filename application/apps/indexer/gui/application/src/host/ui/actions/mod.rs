@@ -8,7 +8,6 @@ mod host_action;
 
 pub use file_dialog::{FileDialogFilter, FileDialogHandle, FileDialogOptions};
 pub use host_action::HostAction;
-
 /// A handle to be passed between UI components to get access to
 /// shared UI functions like notifications.
 #[derive(Debug)]
