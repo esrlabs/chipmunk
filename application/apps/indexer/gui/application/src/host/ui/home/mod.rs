@@ -1,18 +1,20 @@
-use crate::common::phosphor::icons;
-use crate::host::{
-    command::HostCommand,
-    common::{parsers::ParserNames, sources::StreamNames},
-    notification::AppNotification,
-    ui::{
-        APP_SETTINGS, UiActions,
-        actions::FileDialogOptions,
-        home::state::{FavoriteFolder, HomeUiState, SessionConfig},
-    },
-};
+use std::{env, mem::take, path::PathBuf};
+
 use egui::{Align, Button, CentralPanel, CollapsingHeader, Layout, Panel, RichText, Ui};
 use tokio::sync::mpsc::Sender;
 
-use std::{env, mem::take, path::PathBuf};
+use crate::common::phosphor::icons;
+use crate::host::ui::storage::HostStorage;
+use crate::host::{
+    command::HostCommand,
+    common::{parsers::ParserNames, sources::StreamNames},
+    ui::{
+        APP_SETTINGS, UiActions,
+        actions::FileDialogOptions,
+        home::state::{FavoriteFolder, HomeUiState},
+        storage::{LoadState, RecentSessionsStorage, SessionConfig},
+    },
+};
 
 pub mod state;
 
@@ -45,7 +47,12 @@ impl HomeView {
         }
     }
 
-    pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        storage: &mut HostStorage,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) {
         let Self { state, cmd_tx, .. } = self;
 
         Panel::left("quick actions")
@@ -54,7 +61,7 @@ impl HomeView {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                    draw_quick_actions(ui, actions, cmd_tx);
+                    render_quick_actions(ui, actions, cmd_tx);
                 });
             });
 
@@ -66,24 +73,20 @@ impl HomeView {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     ui.add_space(5.0);
                     ui.heading("Favorite folders");
-                    draw_favorite_folders(ui, actions, state, cmd_tx);
+                    render_favorite_folders(ui, actions, state, cmd_tx);
                 });
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
             ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                 ui.heading("Recently opened");
-                draw_recent_sessions(ui, actions, state, cmd_tx);
+                render_recent_sessions(ui, actions, &mut storage.recent_sessions, cmd_tx);
             });
         });
     }
 }
 
-pub fn draw_quick_actions(
-    ui: &mut egui::Ui,
-    actions: &mut UiActions,
-    cmd_tx: &Sender<HostCommand>,
-) {
+fn render_quick_actions(ui: &mut egui::Ui, actions: &mut UiActions, cmd_tx: &Sender<HostCommand>) {
     if let Some(paths) = actions.file_dialog.take_output(ACTION_FILES_ID)
         && !paths.is_empty()
     {
@@ -171,10 +174,10 @@ fn action_button(
     });
 }
 
-fn draw_recent_sessions(
+fn render_recent_sessions(
     ui: &mut egui::Ui,
     actions: &mut UiActions,
-    state: &mut HomeUiState,
+    recent_sessions: &mut RecentSessionsStorage,
     cmd_tx: &Sender<HostCommand>,
 ) {
     egui::ScrollArea::vertical()
@@ -183,87 +186,94 @@ fn draw_recent_sessions(
             ui.label("List of recently opened sessions.");
             ui.add_space(5.0);
 
-            let mut remove_session: Option<String> = None;
+            let (remove_session, remove_cfg) = {
+                let LoadState::Ready(data) = &recent_sessions.state else {
+                    ui.label("Loading recent sessions...");
+                    return;
+                };
 
-            for session in &mut state.recent_sessions {
-                ui.collapsing(session.title.clone(), |ui| {
-                    let cfg_len = session.configurations.len();
-                    let cfg_tpl = session.new_configuration();
+                let mut remove_session: Option<String> = None;
+                let mut remove_cfg: Option<(String, String)> = None;
 
-                    if cfg_len > 1 || cfg_tpl.is_some() {
-                        ui.horizontal(|ui| {
-                            if cfg_len > 1
-                                && ui
+                for session in &data.sessions {
+                    ui.collapsing(session.title.clone(), |ui| {
+                        let cfg_len = session.configurations.len();
+                        let cfg_tpl = session.new_configuration();
+
+                        if cfg_len > 1 || cfg_tpl.is_some() {
+                            ui.horizontal(|ui| {
+                                if cfg_len > 1
+                                    && ui
+                                        .add(
+                                            Button::new(
+                                                RichText::new(icons::regular::TRASH).size(12.0),
+                                            )
+                                            .small(),
+                                        )
+                                        .on_hover_text("Remove all configurations")
+                                        .clicked()
+                                {
+                                    remove_session = Some(session.title.clone());
+                                }
+
+                                if let Some(cfg) = cfg_tpl
+                                    && ui
+                                        .add(
+                                            Button::new(
+                                                RichText::new(icons::regular::PLUS).size(12.0),
+                                            )
+                                            .small(),
+                                        )
+                                        .on_hover_text("New configuration")
+                                        .clicked()
+                                {
+                                    open_new_configuration(actions, cmd_tx, cfg);
+                                }
+                            });
+                        }
+
+                        for cfg in &session.configurations {
+                            ui.horizontal(|ui| {
+                                if ui
                                     .add(
                                         Button::new(
-                                            RichText::new(icons::regular::TRASH).size(12.0),
+                                            RichText::new(icons::regular::ARROW_SQUARE_OUT)
+                                                .size(12.0),
                                         )
                                         .small(),
                                     )
-                                    .on_hover_text("Remove all configurations")
+                                    .on_hover_text("Open configuration")
                                     .clicked()
-                            {
-                                remove_session = Some(session.title.clone());
-                            }
+                                {
+                                    open_previous_configuration(actions, cmd_tx, cfg);
+                                }
 
-                            if let Some(cfg) = cfg_tpl
-                                && ui
+                                if ui
                                     .add(
-                                        Button::new(RichText::new(icons::regular::PLUS).size(12.0))
+                                        Button::new(RichText::new(icons::regular::X).size(12.0))
                                             .small(),
                                     )
-                                    .on_hover_text("New configuration")
+                                    .on_hover_text("Remove configuration")
                                     .clicked()
-                            {
-                                open_new_configuration(actions, cmd_tx, cfg);
-                            }
-                        });
-                    }
+                                {
+                                    remove_cfg = Some((session.title.clone(), cfg.id.clone()));
+                                }
 
-                    let mut remove_cfg: Option<String> = None;
-
-                    for cfg in &session.configurations {
-                        ui.horizontal(|ui| {
-                            if ui
-                                .add(
-                                    Button::new(
-                                        RichText::new(icons::regular::ARROW_SQUARE_OUT).size(12.0),
-                                    )
-                                    .small(),
-                                )
-                                .on_hover_text("Open configuration")
-                                .clicked()
-                            {
-                                open_previous_configuration(actions, cmd_tx, cfg);
-                            }
-
-                            if ui
-                                .add(
-                                    Button::new(RichText::new(icons::regular::X).size(12.0))
-                                        .small(),
-                                )
-                                .on_hover_text("Remove configuration")
-                                .clicked()
-                            {
-                                remove_cfg = Some(cfg.id.clone());
-                            }
-
-                            ui.label(format!("{}", cfg));
-                        });
-                    }
-
-                    if let Some(id) = remove_cfg {
-                        session.configurations.retain(|c| c.id != id);
-
-                        if session.configurations.is_empty() {
-                            remove_session = Some(session.title.clone())
+                                ui.label(format!("{}", cfg));
+                            });
                         }
-                    }
-                });
+                    });
+                }
+
+                (remove_session, remove_cfg)
+            };
+
+            if let Some((title, id)) = remove_cfg {
+                recent_sessions.remove_configuration(&title, &id);
             }
 
             if let Some(title) = remove_session {
-                state.recent_sessions.retain(|f| f.title != title);
+                recent_sessions.remove_session(&title);
             }
         });
 }
@@ -273,16 +283,8 @@ fn open_new_configuration(
     cmd_tx: &Sender<HostCommand>,
     cfg: &SessionConfig,
 ) {
-    match cfg.validate() {
-        Ok(()) => {
-            let cmd = HostCommand::OpenNewConfiguration(Box::new(cfg.options.clone()));
-            actions.try_send_command(cmd_tx, cmd);
-        }
-        Err(err) => {
-            log::warn!("Failed to open new configuration from Home view: {err}");
-            actions.add_notification(AppNotification::Error(format!("{}", err)));
-        }
-    }
+    let cmd = HostCommand::OpenNewConfiguration(Box::new(cfg.options.clone()));
+    actions.try_send_command(cmd_tx, cmd);
 }
 
 fn open_previous_configuration(
@@ -290,19 +292,11 @@ fn open_previous_configuration(
     cmd_tx: &Sender<HostCommand>,
     cfg: &SessionConfig,
 ) {
-    match cfg.validate() {
-        Ok(()) => {
-            let cmd = HostCommand::OpenPreviousConfiguration(Box::new(cfg.options.clone()));
-            actions.try_send_command(cmd_tx, cmd);
-        }
-        Err(err) => {
-            log::warn!("Failed to open previous configuration from Home view: {err}");
-            actions.add_notification(AppNotification::Error(format!("{}", err)));
-        }
-    }
+    let cmd = HostCommand::OpenPreviousConfiguration(Box::new(cfg.options.clone()));
+    actions.try_send_command(cmd_tx, cmd);
 }
 
-fn draw_favorite_folders(
+fn render_favorite_folders(
     ui: &mut egui::Ui,
     actions: &mut UiActions,
     state: &mut HomeUiState,

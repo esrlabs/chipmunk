@@ -13,7 +13,8 @@ use tokio::sync::mpsc;
 
 use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
-pub use recent::{RecentSessionsData, RecentSessionsStorage};
+pub(crate) use recent::MAX_RECENT_SESSIONS;
+pub use recent::{RecentSession, RecentSessionsData, RecentSessionsStorage, SessionConfig};
 pub use types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
 mod recent;
@@ -178,7 +179,6 @@ impl HostStorage {
         match event {
             StorageEvent::RecentSessionsLoaded(result) => {
                 let err = self.recent_sessions.finish_load(result);
-                self.recent_sessions.increment_launch_count();
 
                 if let Some(err) = err {
                     ui_actions.add_notification(AppNotification::Error(err.to_string()));
@@ -193,7 +193,8 @@ mod tests {
     use std::{thread, time::Duration};
 
     use super::{
-        HostStorage, LoadState, RecentSessionsData, StorageError, StorageErrorKind, StorageEvent,
+        HostStorage, LoadState, RecentSessionsData, SessionConfig, StorageError, StorageErrorKind,
+        StorageEvent,
     };
     use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
@@ -216,7 +217,15 @@ mod tests {
         storage
             .recent_sessions
             .finish_load(Ok(Box::new(RecentSessionsData::default())));
-        storage.recent_sessions.increment_launch_count();
+        let config = SessionConfig::from_observe_options(stypes::ObserveOptions::file(
+            std::env::temp_dir().join("chipmunk-storage-mod-test.log"),
+            stypes::FileFormat::Text,
+            stypes::ParserType::Text(()),
+        ))
+        .expect("session config should be created");
+        storage
+            .recent_sessions
+            .register_session("test".into(), config);
     }
 
     #[test]
@@ -372,15 +381,13 @@ mod tests {
         let (_runtime, mut ui_actions) = test_ui_actions();
 
         storage.handle_event(
-            StorageEvent::RecentSessionsLoaded(Ok(Box::new(RecentSessionsData {
-                launch_count: 2,
-            }))),
+            StorageEvent::RecentSessionsLoaded(Ok(Box::new(RecentSessionsData::default()))),
             &mut ui_actions,
         );
 
         assert!(matches!(
             storage.recent_sessions.state,
-            LoadState::Ready(RecentSessionsData { launch_count: 3 })
+            LoadState::Ready(RecentSessionsData { sessions }) if sessions.is_empty()
         ));
     }
 }

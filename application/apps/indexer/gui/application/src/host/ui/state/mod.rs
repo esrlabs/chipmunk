@@ -1,6 +1,5 @@
 use rustc_hash::FxHashMap;
 
-use chrono::Utc;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -11,7 +10,6 @@ use crate::{
         command::HostCommand,
         ui::{
             HomeView, UiActions,
-            home::state::RecentSession,
             multi_setup::{MultiFileSetup, state::MultiFileState},
             registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
@@ -22,7 +20,6 @@ use crate::{
 };
 
 pub const HOME_TAB_IDX: usize = 0;
-const MAX_RECENT_SESSIONS: usize = 100;
 
 #[derive(Debug)]
 pub struct HostState {
@@ -60,8 +57,8 @@ impl HostState {
         }
     }
 
-    pub fn active_tab(&self) -> &TabType {
-        &self.tabs[self.active_tab_idx]
+    pub fn active_tab(&self) -> TabType {
+        self.tabs[self.active_tab_idx]
     }
 
     /// Whether the tab bar should render the session panel visibility toggles.
@@ -75,31 +72,6 @@ impl HostState {
         session_setup_id: Option<Uuid>,
         host_cmd_tx: Sender<HostCommand>,
     ) {
-        if let Some(config) = &session.session_config {
-            let now = Utc::now().timestamp() as u64;
-            let recent = &mut self.home_view.state.recent_sessions;
-
-            if let Some(entry) = recent
-                .iter_mut()
-                .find(|f| f.title == session.session_info.title)
-            {
-                entry.last_opened = now;
-
-                if !entry.configurations.iter().any(|c| c.id == config.id) {
-                    entry.configurations.push(config.clone());
-                }
-            } else {
-                recent.push(RecentSession {
-                    title: session.session_info.title.clone(),
-                    last_opened: now,
-                    configurations: vec![config.clone()],
-                });
-            }
-
-            recent.sort_by(|a, b| b.last_opened.cmp(&a.last_opened));
-            recent.truncate(MAX_RECENT_SESSIONS);
-        }
-
         let session = Session::new(session, host_cmd_tx);
         let id = session.get_info().id;
 
