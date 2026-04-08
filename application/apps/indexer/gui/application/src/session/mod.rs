@@ -3,7 +3,7 @@
 use stypes::ComputationError;
 
 use crate::{
-    host::ui::home::state::SessionConfig,
+    host::ui::storage::SessionConfig,
     session::{communication::UiHandle, types::ObserveOperation, ui::SessionInfo},
 };
 
@@ -28,6 +28,7 @@ pub enum InitSessionError {
 #[derive(Debug)]
 pub struct InitSessionParams {
     pub session_info: SessionInfo,
+    //TODO AAZ: Remove this and make proper types for recent sessions.
     pub session_config: Option<SessionConfig>,
     pub communication: UiHandle,
     pub observe_op: ObserveOperation,
