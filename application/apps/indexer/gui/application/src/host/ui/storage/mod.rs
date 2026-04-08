@@ -13,10 +13,14 @@ use tokio::sync::mpsc;
 
 use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
+pub use file_explorer::{
+    FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerData, FileExplorerStorage, FileUiInfo,
+};
 pub(crate) use recent::MAX_RECENT_SESSIONS;
 pub use recent::{RecentSession, RecentSessionsData, RecentSessionsStorage, SessionConfig};
 pub use types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
+mod file_explorer;
 mod recent;
 mod types;
 
@@ -27,6 +31,7 @@ const WAIT_PENDING_SAVE_TIMEOUT: Duration = Duration::from_millis(1000);
 #[derive(Debug)]
 pub struct HostStorage {
     cmd_tx: mpsc::Sender<HostCommand>,
+    pub file_explorer: FileExplorerStorage,
     pub recent_sessions: RecentSessionsStorage,
     /// Save completion for the aggregate storage snapshot currently in flight.
     pending_save: Option<SaveConfirmationRx>,
@@ -43,6 +48,7 @@ impl HostStorage {
     pub fn new(cmd_tx: mpsc::Sender<HostCommand>) -> Self {
         Self {
             cmd_tx,
+            file_explorer: FileExplorerStorage::new(),
             recent_sessions: RecentSessionsStorage::new(),
             pending_save: None,
         }
@@ -93,17 +99,24 @@ impl HostStorage {
     /// Collects one aggregate save payload from all dirty storage domains.
     fn collect_save_data(&self) -> Option<Box<StorageSaveData>> {
         let data = StorageSaveData {
+            file_explorer: self.file_explorer.get_save_data(),
             recent_sessions: self.recent_sessions.get_save_data(),
         };
 
-        (data.recent_sessions.is_some()).then_some(Box::new(data))
+        (data.recent_sessions.is_some() || data.file_explorer.is_some()).then_some(Box::new(data))
     }
 
     /// Applies the aggregate save result back to child storage domains.
     fn finish_save(&mut self, outcome: SaveOutcome) {
         match outcome {
-            SaveOutcome::Succeeded => self.recent_sessions.apply_save_success(),
-            SaveOutcome::Failed => self.recent_sessions.apply_save_error(),
+            SaveOutcome::Succeeded => {
+                self.file_explorer.apply_save_success();
+                self.recent_sessions.apply_save_success();
+            }
+            SaveOutcome::Failed => {
+                self.file_explorer.apply_save_error();
+                self.recent_sessions.apply_save_error();
+            }
         }
     }
 
@@ -179,11 +192,22 @@ impl HostStorage {
         match event {
             StorageEvent::RecentSessionsLoaded(result) => {
                 let err = self.recent_sessions.finish_load(result);
-
-                if let Some(err) = err {
-                    ui_actions.add_notification(AppNotification::Error(err.to_string()));
-                }
+                self.notify_storage_error(err, ui_actions);
             }
+            StorageEvent::FileExplorerLoaded(result) => {
+                let err = self.file_explorer.finish_load(result);
+                self.notify_storage_error(err, ui_actions);
+            }
+            StorageEvent::FavoriteFoldersScanned { request_id, result } => {
+                let err = self.file_explorer.finish_scan(request_id, result);
+                self.notify_storage_error(err, ui_actions);
+            }
+        }
+    }
+
+    fn notify_storage_error(&self, err: Option<StorageError>, ui_actions: &mut UiActions) {
+        if let Some(err) = err {
+            ui_actions.add_notification(AppNotification::Error(err.to_string()));
         }
     }
 }
@@ -193,8 +217,8 @@ mod tests {
     use std::{thread, time::Duration};
 
     use super::{
-        HostStorage, LoadState, RecentSessionsData, SessionConfig, StorageError, StorageErrorKind,
-        StorageEvent,
+        FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionsData,
+        SessionConfig, StorageError, StorageErrorKind, StorageEvent,
     };
     use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
@@ -228,6 +252,15 @@ mod tests {
             .register_session("test".into(), config);
     }
 
+    fn make_file_explorer_dirty(storage: &mut HostStorage) {
+        storage
+            .file_explorer
+            .finish_load(Ok(Box::new(FileExplorerData {
+                favorite_folders: vec![FavoriteFolder::new(std::env::temp_dir())],
+            })));
+        storage.file_explorer.dirty = true;
+    }
+
     #[test]
     fn save_data_requires_dirty_storage() {
         let (mut storage, _) = test_storage();
@@ -245,17 +278,33 @@ mod tests {
     }
 
     #[test]
+    fn save_data_includes_file_explorer() {
+        let (mut storage, _) = test_storage();
+
+        make_file_explorer_dirty(&mut storage);
+
+        let data = storage.collect_save_data();
+
+        assert!(matches!(
+            data,
+            Some(data) if data.file_explorer.is_some()
+        ));
+    }
+
+    #[test]
     fn schedule_save_tracks_pending_request() {
         let (mut storage, mut cmd_rx) = test_storage();
         let (_runtime, mut ui_actions) = test_ui_actions();
 
         make_dirty(&mut storage);
+        make_file_explorer_dirty(&mut storage);
         storage.schedule_save(&mut ui_actions);
 
         assert!(storage.pending_save.is_some());
         assert!(matches!(
             cmd_rx.try_recv(),
-            Ok(HostCommand::SaveStorage { data, .. }) if data.recent_sessions.is_some()
+            Ok(HostCommand::SaveStorage { data, .. })
+                if data.recent_sessions.is_some() && data.file_explorer.is_some()
         ));
     }
 
@@ -265,6 +314,7 @@ mod tests {
         let (_runtime, mut ui_actions) = test_ui_actions();
 
         make_dirty(&mut storage);
+        make_file_explorer_dirty(&mut storage);
         storage.schedule_save(&mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, .. } =
@@ -279,6 +329,7 @@ mod tests {
         storage.poll_pending_save(&mut ui_actions);
 
         assert!(storage.pending_save.is_none());
+        assert!(!storage.file_explorer.dirty);
         assert!(!storage.recent_sessions.dirty);
     }
 
@@ -288,6 +339,7 @@ mod tests {
         let (_runtime, mut ui_actions) = test_ui_actions();
 
         make_dirty(&mut storage);
+        make_file_explorer_dirty(&mut storage);
         storage.schedule_save(&mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, .. } =
@@ -305,6 +357,7 @@ mod tests {
         storage.poll_pending_save(&mut ui_actions);
 
         assert!(storage.pending_save.is_none());
+        assert!(storage.file_explorer.dirty);
         assert!(storage.recent_sessions.dirty);
         assert!(matches!(
             ui_actions.drain_notifications().next(),
@@ -318,6 +371,7 @@ mod tests {
         let (_runtime, mut ui_actions) = test_ui_actions();
 
         make_dirty(&mut storage);
+        make_file_explorer_dirty(&mut storage);
         storage.schedule_save(&mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, .. } =
@@ -337,6 +391,7 @@ mod tests {
         sender.join().expect("save sender should finish");
 
         assert!(storage.pending_save.is_none());
+        assert!(!storage.file_explorer.dirty);
         assert!(!storage.recent_sessions.dirty);
     }
 
@@ -346,11 +401,13 @@ mod tests {
         let (_runtime, mut ui_actions) = test_ui_actions();
 
         make_dirty(&mut storage);
+        make_file_explorer_dirty(&mut storage);
 
         let sender = thread::spawn(move || {
             for _ in 0..20 {
                 match cmd_rx.try_recv() {
                     Ok(HostCommand::SaveStorage { confirm_tx, data }) => {
+                        assert!(data.file_explorer.is_some());
                         assert!(data.recent_sessions.is_some());
                         confirm_tx
                             .send(Ok(()))
@@ -372,6 +429,7 @@ mod tests {
         sender.join().expect("save sender should finish");
 
         assert!(storage.pending_save.is_none());
+        assert!(!storage.file_explorer.dirty);
         assert!(!storage.recent_sessions.dirty);
     }
 
@@ -388,6 +446,24 @@ mod tests {
         assert!(matches!(
             storage.recent_sessions.state,
             LoadState::Ready(RecentSessionsData { sessions }) if sessions.is_empty()
+        ));
+    }
+
+    #[test]
+    fn file_explorer_load_events_route_to_domain() {
+        let (mut storage, _) = test_storage();
+        let (_runtime, mut ui_actions) = test_ui_actions();
+
+        storage.handle_event(
+            StorageEvent::FileExplorerLoaded(Ok(Box::new(FileExplorerData {
+                favorite_folders: vec![FavoriteFolder::new(std::env::temp_dir())],
+            }))),
+            &mut ui_actions,
+        );
+
+        assert!(matches!(
+            storage.file_explorer.state,
+            LoadState::Ready(FileExplorerData { favorite_folders }) if favorite_folders.len() == 1
         ));
     }
 }
