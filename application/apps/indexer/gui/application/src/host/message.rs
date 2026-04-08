@@ -7,7 +7,7 @@ use crate::{
         common::dlt_stats::DltStatistics,
         ui::{
             multi_setup::state::MultiFileState, registry::presets::Preset,
-            session_setup::state::SessionSetupState,
+            session_setup::state::SessionSetupState, storage::StorageEvent,
         },
     },
     session::InitSessionParams,
@@ -40,6 +40,8 @@ pub enum HostMessage {
     PresetsImported(Box<PresetsImported>),
     /// Presets were exported successfully to the provided file path.
     PresetsExported { path: PathBuf, count: usize },
+    /// Storage-related async events.
+    Storage(StorageEvent),
 }
 
 /// Backend import result for named presets.

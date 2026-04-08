@@ -7,6 +7,7 @@ use crate::host::{
     ui::{
         registry::presets::Preset,
         session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
+        storage::{StorageError, StorageSaveData},
     },
 };
 
@@ -44,6 +45,11 @@ pub enum HostCommand {
     ImportPresets(PathBuf),
     /// Exports the provided named presets to the target file.
     ExportPresets(Box<ExportPresetsParam>),
+    /// Persists storage and notifies the caller when it finishes.
+    SaveStorage {
+        data: Box<StorageSaveData>,
+        confirm_tx: StdSender<Result<(), StorageError>>,
+    },
     CloseSessionSetup(Uuid),
     CloseMultiSetup(Uuid),
     /// Signal that the application is shutting down.
