@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use super::RecentSessionsData;
+use super::{FavoriteFolder, FileExplorerData, RecentSessionsData};
 
 /// Represents the loading state of storage domain.
 #[derive(Debug)]
@@ -18,12 +18,20 @@ pub enum LoadState<T> {
 pub enum StorageEvent {
     /// Recent-sessions load results.
     RecentSessionsLoaded(Result<Box<RecentSessionsData>, StorageError>),
+    /// File-explorer startup load results.
+    FileExplorerLoaded(Result<Box<FileExplorerData>, StorageError>),
+    /// Favorite-folder scan results for a specific request.
+    FavoriteFoldersScanned {
+        request_id: u64,
+        result: Result<Vec<FavoriteFolder>, StorageError>,
+    },
 }
 
 /// Data sent from the UI to the storage service.
 #[derive(Debug, Clone, Default)]
 pub struct StorageSaveData {
     pub recent_sessions: Option<RecentSessionsData>,
+    pub file_explorer: Option<FileExplorerData>,
 }
 
 /// Typed storage failure used across storage.

@@ -50,6 +50,8 @@ pub enum HostCommand {
         data: Box<StorageSaveData>,
         confirm_tx: StdSender<Result<(), StorageError>>,
     },
+    /// Scans one or more favorite folders without blocking the UI thread.
+    ScanFavoriteFolders(Box<ScanFavoriteFoldersParam>),
     CloseSessionSetup(Uuid),
     CloseMultiSetup(Uuid),
     /// Signal that the application is shutting down.
@@ -74,6 +76,14 @@ pub struct StartSessionParam {
     pub parser: ParserConfig,
     pub source: ByteSourceConfig,
     pub session_setup_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ScanFavoriteFoldersParam {
+    /// Local request identifier echoed back with the scan result.
+    pub request_id: u64,
+    /// Favorite-folder paths to scan without recursing into subdirectories.
+    pub paths: Vec<PathBuf>,
 }
 
 /// Parameters for exporting named presets to disk.
