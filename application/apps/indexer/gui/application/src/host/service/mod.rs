@@ -8,7 +8,7 @@ use std::{
 use anyhow::Result;
 use itertools::Itertools;
 use log::trace;
-use tokio::runtime::Handle;
+use tokio::{runtime::Handle, select};
 use uuid::Uuid;
 
 use parsers::dlt::DltFilterConfig;
@@ -41,21 +41,22 @@ use crate::{
 };
 
 use presets_io::{ImportFormat, import_named_presets, serialize_named_presets};
+use storage::StorageService;
 
 pub mod file;
 mod presets_io;
+mod storage;
 
 #[derive(Debug)]
 pub struct HostService {
     communication: ServiceHandle,
+    storage: StorageService,
 }
 
 impl HostService {
     /// Spawns tokio runtime to run host services returning a handle of the runtime.
     #[must_use]
     pub fn spawn(communication: ServiceHandle) -> Handle {
-        let host = Self { communication };
-
         let (handle_tx, handle_rx) = std::sync::mpsc::channel();
 
         thread::spawn(move || {
@@ -69,6 +70,12 @@ impl HostService {
                 .expect("Sending tokio handle should never fail");
 
             rt.block_on(async {
+                let storage = StorageService::spawn();
+                let host = Self {
+                    communication,
+                    storage,
+                };
+
                 host.run().await;
             });
         });
@@ -79,9 +86,17 @@ impl HostService {
     }
 
     async fn run(mut self) {
-        while let Some(cmd) = self.communication.cmd_rx.recv().await {
-            if let Err(err) = self.handle_command(cmd).await {
-                self.send_host_err(err).await;
+        loop {
+            select! {
+                Some(cmd) = self.communication.cmd_rx.recv() => {
+                    if let Err(err) = self.handle_command(cmd).await {
+                        self.send_host_err(err).await;
+                    }
+                }
+                Some(event) = self.storage.event_rx.recv() => {
+                    self.handle_storage_event(event).await;
+                }
+                else => break,
             }
         }
     }
@@ -181,6 +196,9 @@ impl HostService {
             HostCommand::ExportPresets(params) => {
                 self.export_presets(*params).await?;
             }
+            HostCommand::SaveStorage { data, confirm_tx } => {
+                self.storage.save_storage(data, confirm_tx);
+            }
             HostCommand::CloseSessionSetup(id) => {
                 // NOTE: We need to checks here for cleaning up session setups (Like cancelling
                 // DLT statistics process).
@@ -204,6 +222,13 @@ impl HostService {
         }
 
         Ok(())
+    }
+
+    async fn handle_storage_event(&self, event: crate::host::ui::storage::StorageEvent) {
+        self.communication
+            .senders
+            .send_message(HostMessage::Storage(event))
+            .await;
     }
 
     async fn open_single_file(&self, file_path: PathBuf) -> Result<(), HostError> {
