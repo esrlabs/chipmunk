@@ -31,13 +31,18 @@ pub struct RecentSessionsData {
     pub sessions: Vec<RecentSession>,
 }
 
+/// One entry in the recent-sessions collection.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecentSession {
+    /// Session title shown in the recent-sessions list.
     pub title: String,
+    /// Unix timestamp used to keep the list newest-first.
     pub last_opened: u64,
+    /// Saved configurations grouped under this recent session entry.
     pub configurations: Vec<SessionConfig>,
 }
 
+/// Persisted configuration snapshot for reopening a recent session entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionConfig {
     /// The unique hash of the config.
@@ -120,6 +125,7 @@ impl RecentSessionsStorage {
         }
     }
 
+    /// Removes a recent session entry by title.
     pub fn remove_session(&mut self, title: &str) {
         let LoadState::Ready(data) = &mut self.state else {
             return;
@@ -130,6 +136,7 @@ impl RecentSessionsStorage {
         self.dirty |= data.sessions.len() != initial_len;
     }
 
+    /// Removes one saved configuration and drops the session if it becomes empty.
     pub fn remove_configuration(&mut self, title: &str, config_id: &str) {
         let LoadState::Ready(data) = &mut self.state else {
             return;
@@ -168,7 +175,7 @@ impl RecentSessionsStorage {
 }
 
 impl RecentSession {
-    /// Get a template for a new configuration, if supported.
+    /// Returns a reusable configuration template when this session supports cloning.
     pub fn new_configuration(&self) -> Option<&SessionConfig> {
         self.configurations
             .first()
@@ -181,6 +188,7 @@ impl RecentSession {
 }
 
 impl SessionConfig {
+    /// Builds a stored configuration snapshot and stable ID from observe options.
     pub fn from_observe_options(options: ObserveOptions) -> Option<Self> {
         let opts = ObserveOptions {
             // NOTE: We need to zero the id element because we are hashing the items and we want the

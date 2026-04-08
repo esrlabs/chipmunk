@@ -49,7 +49,6 @@ pub mod storage;
 mod tabs;
 
 const APP_TITLE: &str = "Chipmunk";
-const APP_SETTINGS: &str = "chipmunk.json";
 
 #[derive(Debug)]
 pub struct Host {
@@ -390,8 +389,6 @@ impl eframe::App for Host {
     fn on_exit(&mut self) {
         trace!("App Shutdown requested.");
         self.storage.wait_until_save(&mut self.ui_actions);
-
-        self.state.home_view.save();
 
         let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();
         let cmd = HostCommand::OnShutdown { confirm_tx };

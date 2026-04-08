@@ -19,7 +19,10 @@ use stypes::{
 
 use crate::{
     host::{
-        command::{DltStatisticsParam, ExportPresetsParam, HostCommand, StartSessionParam},
+        command::{
+            DltStatisticsParam, ExportPresetsParam, HostCommand, ScanFavoriteFoldersParam,
+            StartSessionParam,
+        },
         common::{dlt_stats::dlt_statistics, parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
@@ -198,6 +201,10 @@ impl HostService {
             }
             HostCommand::SaveStorage { data, confirm_tx } => {
                 self.storage.save_storage(data, confirm_tx);
+            }
+            HostCommand::ScanFavoriteFolders(params) => {
+                let ScanFavoriteFoldersParam { request_id, paths } = *params;
+                self.storage.scan_favorite_folders(request_id, paths);
             }
             HostCommand::CloseSessionSetup(id) => {
                 // NOTE: We need to checks here for cleaning up session setups (Like cancelling

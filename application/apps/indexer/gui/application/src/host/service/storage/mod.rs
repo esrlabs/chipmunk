@@ -13,6 +13,7 @@ use tokio::sync::mpsc;
 
 use crate::host::ui::storage::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
+mod file_explorer;
 mod recent;
 
 const CHANNEL_CAPACITY: usize = 16;
@@ -31,6 +32,7 @@ impl StorageService {
         let (event_tx, event_rx) = mpsc::channel(CHANNEL_CAPACITY);
         let service = Self { event_tx, event_rx };
 
+        file_explorer::spawn_load(service.event_tx.clone());
         recent::spawn_load(service.event_tx.clone());
 
         service
@@ -42,17 +44,28 @@ impl StorageService {
         data: Box<StorageSaveData>,
         confirm_tx: StdSender<Result<(), StorageError>>,
     ) {
-        tokio::spawn(async move {
-            let result = tokio::task::spawn_blocking(move || save_storage(&data))
-                .await
-                .map_err(|err| StorageError {
-                    kind: StorageErrorKind::Write,
-                    message: format!("Storage save task failed: {err}"),
-                })
-                .and_then(|result| result);
-
+        tokio::task::spawn_blocking(move || {
+            let result = save_storage(&data);
             if let Err(err) = confirm_tx.send(result) {
                 warn!("Failed to send storage save confirmation: {err:?}");
+            }
+        });
+    }
+
+    /// Scans the provided favorite folders without blocking the host loop.
+    pub fn scan_favorite_folders(&self, request_id: u64, paths: Vec<PathBuf>) {
+        let event_tx = self.event_tx.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let result = file_explorer::scan_favorite_folders(&paths);
+
+            let event = StorageEvent::FavoriteFoldersScanned {
+                request_id,
+                result: Ok(result),
+            };
+
+            if event_tx.blocking_send(event).is_err() {
+                warn!("Failed to send favorite-folder scan result");
             }
         });
     }
@@ -60,6 +73,10 @@ impl StorageService {
 
 /// Saves all storage domains present in the aggregate payload.
 fn save_storage(data: &StorageSaveData) -> Result<(), StorageError> {
+    if let Some(file_explorer) = &data.file_explorer {
+        file_explorer::save(file_explorer)?;
+    }
+
     if let Some(recent_sessions) = &data.recent_sessions {
         recent::save(recent_sessions)?;
     }
