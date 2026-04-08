@@ -27,6 +27,7 @@ use crate::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, ProcessConfig, StreamConfig},
             },
+            storage::HostStorage,
             tabs::TabType,
         },
     },
@@ -44,6 +45,7 @@ mod notification;
 pub mod registry;
 pub mod session_setup;
 pub mod state;
+pub mod storage;
 mod tabs;
 
 const APP_TITLE: &str = "Chipmunk";
@@ -56,6 +58,7 @@ pub struct Host {
     menu: MainMenuBar,
     notifications: NotificationUi,
     state: HostState,
+    storage: HostStorage,
     ui_actions: UiActions,
 }
 
@@ -75,17 +78,19 @@ impl Host {
                 let (ui_comm, service_comm) = super::communication::init(ctx.egui_ctx.clone());
 
                 let tokio_handle = HostService::spawn(service_comm);
+                let cmd_tx = ui_comm.senders.cmd_tx.clone();
 
                 phosphor::init(&ctx.egui_ctx);
 
-                let menu = MainMenuBar::new(ui_comm.senders.cmd_tx.clone());
-                let state = HostState::new(ui_comm.senders.cmd_tx.clone());
+                let menu = MainMenuBar::new(cmd_tx.clone());
+                let state = HostState::new(cmd_tx.clone());
                 let mut host = Self {
                     menu,
                     receivers: ui_comm.receivers,
                     senders: ui_comm.senders,
                     notifications: NotificationUi::default(),
                     state,
+                    storage: HostStorage::new(cmd_tx),
                     ui_actions: UiActions::new(tokio_handle),
                 };
 
@@ -172,6 +177,7 @@ impl Host {
                 self.state
                     .handle_presets_exported(path, count, &mut self.ui_actions)
             }
+            HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
         }
     }
 
@@ -351,6 +357,8 @@ impl eframe::App for Host {
             self.notifications.add(notification);
         }
 
+        self.storage.poll_pending_save(&mut self.ui_actions);
+
         self.state
             .sessions
             .iter_mut()
@@ -362,8 +370,14 @@ impl eframe::App for Host {
         self.handle_ui_actions(ui.ctx());
     }
 
+    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
+        self.storage.schedule_save(&mut self.ui_actions);
+    }
+
     fn on_exit(&mut self) {
         trace!("App Shutdown requested.");
+        self.storage.wait_until_save(&mut self.ui_actions);
+
         self.state.home_view.save();
 
         let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();
