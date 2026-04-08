@@ -158,13 +158,21 @@ impl Host {
                 }
             }
             HostMessage::SessionCreated {
-                session_params,
+                mut session_params,
                 session_setup_id,
-            } => self.state.add_session(
-                *session_params,
-                session_setup_id,
-                self.senders.cmd_tx.clone(),
-            ),
+            } => {
+                if let Some(config) = session_params.session_config.take() {
+                    self.storage
+                        .recent_sessions
+                        .register_session(session_params.session_info.title.clone(), config);
+                }
+
+                self.state.add_session(
+                    *session_params,
+                    session_setup_id,
+                    self.senders.cmd_tx.clone(),
+                )
+            }
             HostMessage::MultiFilesSetup(state) => self
                 .state
                 .add_multi_files(*state, self.senders.cmd_tx.clone()),
@@ -249,9 +257,14 @@ impl Host {
 
     fn render_main(&mut self, ui: &mut Ui) {
         let Self {
-            ui_actions, state, ..
+            ui_actions,
+            state,
+            storage,
+            ..
         } = self;
-        let active_tab = state.active_tab().clone();
+
+        let active_tab = state.active_tab();
+
         let HostState {
             sessions,
             session_setups,
@@ -262,7 +275,7 @@ impl Host {
         } = state;
 
         match active_tab {
-            TabType::Home => self.state.home_view.render_content(ui_actions, ui),
+            TabType::Home => self.state.home_view.render_content(storage, ui_actions, ui),
             TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")

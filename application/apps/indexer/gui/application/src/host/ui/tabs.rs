@@ -12,7 +12,7 @@ use crate::{
 
 use super::{HostState, UiActions};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabType {
     Home,
     Session(Uuid),
