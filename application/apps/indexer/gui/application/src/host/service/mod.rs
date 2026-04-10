@@ -28,6 +28,7 @@ use crate::{
         error::HostError,
         message::{HostMessage, PresetsImported},
         notification::AppNotification,
+        service::storage::recent::RecentSessionOpenRequest,
         ui::{
             multi_setup::state::MultiFileState,
             session_setup::state::{
@@ -106,47 +107,6 @@ impl HostService {
 
     async fn handle_command(&mut self, cmd: HostCommand) -> Result<(), HostError> {
         match cmd {
-            HostCommand::OpenNewConfiguration(options) => {
-                match options.origin {
-                    ObserveOrigin::File(_, _, path) => {
-                        self.open_single_file(path).await?;
-                    }
-                    ObserveOrigin::Concat(files) => {
-                        self.open_multi_files(files.into_iter().map(|(_, _, path)| path).collect())
-                            .await?;
-                    }
-                    ObserveOrigin::Stream(_, transport) => {
-                        let stream = match transport {
-                            Transport::Process(_) => StreamNames::Process,
-                            Transport::TCP(_) => StreamNames::Tcp,
-                            Transport::UDP(_) => StreamNames::Udp,
-                            Transport::Serial(_) => StreamNames::Serial,
-                        };
-                        let parser = match options.parser {
-                            ParserType::Dlt(_) => ParserNames::Dlt,
-                            ParserType::SomeIp(_) => ParserNames::SomeIP,
-                            ParserType::Text(_) => ParserNames::Text,
-                            ParserType::Plugin(_) => ParserNames::Plugins,
-                        };
-                        self.connection_session_setup(stream, parser).await
-                    }
-                };
-            }
-            HostCommand::OpenPreviousConfiguration(options) => {
-                let session_params = SessionService::spawn(
-                    self.communication.senders.get_shared_senders(),
-                    *options,
-                )
-                .await?;
-
-                self.communication
-                    .senders
-                    .send_message(HostMessage::SessionCreated {
-                        session_params: Box::new(session_params),
-                        session_setup_id: None,
-                    })
-                    .await;
-            }
             HostCommand::OpenFiles(files) => {
                 log::trace!("Got open files request. Files: {files:?}");
 
@@ -193,6 +153,10 @@ impl HostService {
 
                 self.start_session(source, parser, session_setup_id).await?;
             }
+            HostCommand::OpenRecentSession(params) => {
+                let request = storage::recent::resolve_open_request(*params)?;
+                self.open_recent_session(request).await?;
+            }
             HostCommand::ImportPresets(path) => {
                 self.import_presets(path).await?;
             }
@@ -236,6 +200,40 @@ impl HostService {
             .senders
             .send_message(HostMessage::Storage(event))
             .await;
+    }
+
+    async fn open_recent_session(
+        &self,
+        request: RecentSessionOpenRequest,
+    ) -> Result<(), HostError> {
+        match request {
+            RecentSessionOpenRequest::Restore(options) => {
+                let session_params =
+                    SessionService::spawn(self.communication.senders.get_shared_senders(), options)
+                        .await?;
+
+                self.communication
+                    .senders
+                    .send_message(HostMessage::SessionCreated {
+                        session_params: Box::new(session_params),
+                        session_setup_id: None,
+                    })
+                    .await;
+            }
+            RecentSessionOpenRequest::OpenFiles(paths) => {
+                if paths.len() == 1 {
+                    self.open_single_file(paths.into_iter().next().unwrap())
+                        .await?;
+                } else {
+                    self.open_multi_files(paths).await?;
+                }
+            }
+            RecentSessionOpenRequest::OpenStreamSetup { stream, parser } => {
+                self.connection_session_setup(stream, parser).await;
+            }
+        }
+
+        Ok(())
     }
 
     async fn open_single_file(&self, file_path: PathBuf) -> Result<(), HostError> {

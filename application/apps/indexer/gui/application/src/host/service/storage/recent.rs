@@ -7,16 +7,38 @@ use std::{
 };
 
 use log::{trace, warn};
-use stypes::ObserveOrigin;
+use stypes::Transport;
 use tokio::sync::mpsc;
 
 use super::storage_path;
-use crate::host::ui::storage::{
-    MAX_RECENT_SESSIONS, RecentSession, RecentSessionsData, SessionConfig, StorageError,
-    StorageErrorKind, StorageEvent,
+use crate::{
+    host::{
+        command::OpenRecentSessionParam,
+        common::{parsers::ParserNames, sources::StreamNames},
+        error::HostError,
+        ui::storage::{
+            MAX_RECENT_SESSIONS, RecentSessionReopenMode, RecentSessionSnapshot,
+            RecentSessionSource, RecentSessionsData, StorageError, StorageErrorKind, StorageEvent,
+        },
+    },
+    session::InitSessionError,
 };
 
 const RECENT_SESSIONS_FILE: &str = "recent_sessions.json";
+
+/// Host-side execution request derived from a stored recent-session snapshot.
+#[derive(Debug)]
+pub enum RecentSessionOpenRequest {
+    /// Restore the session directly from rebuilt observe options.
+    Restore(stypes::ObserveOptions),
+    /// Reopen one or more files through the normal host open flow.
+    OpenFiles(Vec<PathBuf>),
+    /// Reopen a stream source by opening the setup flow with preselected types.
+    OpenStreamSetup {
+        stream: StreamNames,
+        parser: ParserNames,
+    },
+}
 
 /// Starts the background load for recent-sessions storage and publishes the result.
 pub fn spawn_load(event_tx: mpsc::Sender<StorageEvent>) {
@@ -44,6 +66,71 @@ pub fn spawn_load(event_tx: mpsc::Sender<StorageEvent>) {
             }
         }
     });
+}
+
+pub fn resolve_open_request(
+    params: OpenRecentSessionParam,
+) -> Result<RecentSessionOpenRequest, HostError> {
+    let OpenRecentSessionParam { snapshot, mode } = params;
+
+    match mode {
+        RecentSessionReopenMode::RestoreSession
+        | RecentSessionReopenMode::RestoreParserConfiguration => snapshot
+            .to_observe_options()
+            .map(RecentSessionOpenRequest::Restore)
+            .ok_or_else(|| {
+                HostError::InitSessionError(InitSessionError::Other(
+                    "Recent session snapshot cannot be restored.".into(),
+                ))
+            }),
+        RecentSessionReopenMode::OpenClean => open_recent_session_clean(snapshot),
+    }
+}
+
+fn open_recent_session_clean(
+    snapshot: RecentSessionSnapshot,
+) -> Result<RecentSessionOpenRequest, HostError> {
+    let Some(first_source) = snapshot.source.sources.first() else {
+        return Err(HostError::InitSessionError(InitSessionError::Other(
+            "Recent session snapshot has no sources.".into(),
+        )));
+    };
+
+    match first_source {
+        RecentSessionSource::File { .. } => {
+            let paths = snapshot
+                .source
+                .sources
+                .into_iter()
+                .map(|source| match source {
+                    RecentSessionSource::File { path, .. } => Some(path),
+                    RecentSessionSource::Stream { .. } => None,
+                })
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| {
+                    HostError::InitSessionError(InitSessionError::Other(
+                        "Recent session snapshot contains mixed source types.".into(),
+                    ))
+                })?;
+
+            Ok(RecentSessionOpenRequest::OpenFiles(paths))
+        }
+        RecentSessionSource::Stream { transport } if snapshot.source.sources.len() == 1 => {
+            let stream = match transport {
+                Transport::Process(_) => StreamNames::Process,
+                Transport::TCP(_) => StreamNames::Tcp,
+                Transport::UDP(_) => StreamNames::Udp,
+                Transport::Serial(_) => StreamNames::Serial,
+            };
+            let parser = ParserNames::from(&snapshot.parser);
+            Ok(RecentSessionOpenRequest::OpenStreamSetup { stream, parser })
+        }
+        RecentSessionSource::Stream { .. } => {
+            Err(HostError::InitSessionError(InitSessionError::Other(
+                "Clean open is not supported for multiple stream sources.".into(),
+            )))
+        }
+    }
 }
 
 fn load(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
@@ -82,37 +169,27 @@ fn load(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
         })
 }
 
-/// Removes invalid saved configurations in place.
+/// Removes invalid recent snapshots in place.
 ///
-/// Returns `true` if the session changed due to validations.
-fn sanitize_recent_sessions(sessions: &mut Vec<RecentSession>) -> bool {
-    let mut changed = false;
+/// Returns `true` if the collection changed due to validations.
+fn sanitize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
+    let initial_len = sessions.len();
 
-    sessions.retain_mut(|session| {
-        session
-            .configurations
-            .retain(|config| match validate_session_config(config) {
-                Ok(()) => true,
-                Err(err) => {
-                    changed = true;
-                    warn!(
-                        "Removed invalid recent configuration from session \"{}\": {config}: {err}",
-                        session.title
-                    );
-                    false
-                }
-            });
-
-        let keep = !session.configurations.is_empty();
-        changed |= !keep;
-
-        keep
+    sessions.retain(|session| match validate_source_snapshot(session) {
+        Ok(()) => true,
+        Err(err) => {
+            warn!(
+                "Removed invalid recent session \"{}\" ({}): {err}",
+                session.title, session.source_key
+            );
+            false
+        }
     });
 
-    changed
+    sessions.len() != initial_len
 }
 
-fn sort_recent_sessions(sessions: &mut [RecentSession]) -> bool {
+fn sort_recent_sessions(sessions: &mut [RecentSessionSnapshot]) -> bool {
     let changed = sessions
         .windows(2)
         .any(|pair| pair[0].last_opened < pair[1].last_opened);
@@ -124,7 +201,7 @@ fn sort_recent_sessions(sessions: &mut [RecentSession]) -> bool {
     changed
 }
 
-fn trim_recent_sessions(sessions: &mut Vec<RecentSession>) -> bool {
+fn trim_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
     let changed = sessions.len() > MAX_RECENT_SESSIONS;
 
     if changed {
@@ -134,20 +211,17 @@ fn trim_recent_sessions(sessions: &mut Vec<RecentSession>) -> bool {
     changed
 }
 
-fn validate_session_config(config: &SessionConfig) -> std::io::Result<()> {
-    match &config.options.origin {
-        ObserveOrigin::File(_, _, path) => {
-            if path.exists() {
-                Ok(())
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::NotFound,
-                    format!("File not found: {}", path.display()),
-                ))
-            }
-        }
-        ObserveOrigin::Concat(files) => {
-            for (_, _, path) in files {
+fn validate_source_snapshot(session: &RecentSessionSnapshot) -> std::io::Result<()> {
+    if session.source.sources.is_empty() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Recent session has no sources",
+        ));
+    }
+
+    for source in &session.source.sources {
+        match source {
+            RecentSessionSource::File { path, .. } => {
                 if !path.exists() {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::NotFound,
@@ -155,11 +229,11 @@ fn validate_session_config(config: &SessionConfig) -> std::io::Result<()> {
                     ));
                 }
             }
-
-            Ok(())
+            RecentSessionSource::Stream { .. } => {}
         }
-        ObserveOrigin::Stream(_, _) => Ok(()),
     }
+
+    Ok(())
 }
 
 /// Persists the current recent-sessions snapshot to its storage file.
@@ -196,8 +270,8 @@ mod tests {
 
     use crate::host::service::storage::{STORAGE_DIR, storage_path_from_home};
     use crate::host::ui::storage::{
-        MAX_RECENT_SESSIONS, RecentSession, RecentSessionsData, RecentSessionsStorage,
-        SessionConfig, StorageError, StorageErrorKind,
+        MAX_RECENT_SESSIONS, RecentSessionSnapshot, RecentSessionsData, RecentSessionsStorage,
+        StorageError, StorageErrorKind,
     };
 
     use super::*;
@@ -225,38 +299,34 @@ mod tests {
         save_to_path(&path, data)
     }
 
-    fn file_config(path: PathBuf) -> SessionConfig {
-        SessionConfig::from_observe_options(ObserveOptions::file(
-            path,
-            stypes::FileFormat::Text,
-            ParserType::Text(()),
-        ))
-        .expect("session config should be created")
+    fn file_snapshot(path: PathBuf) -> RecentSessionSnapshot {
+        RecentSessionSnapshot::from_observe_options(
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("file")
+                .to_owned(),
+            ObserveOptions::file(path, stypes::FileFormat::Text, ParserType::Text(())),
+        )
     }
 
-    fn stream_config(id: impl Into<String>) -> SessionConfig {
-        SessionConfig {
-            id: id.into(),
-            options: ObserveOptions {
+    fn stream_snapshot(bind_addr: impl Into<String>) -> RecentSessionSnapshot {
+        let bind_addr = bind_addr.into();
+        RecentSessionSnapshot::from_observe_options(
+            bind_addr.clone(),
+            ObserveOptions {
                 origin: ObserveOrigin::Stream(
                     String::new(),
-                    Transport::TCP(TCPTransportConfig {
-                        bind_addr: "127.0.0.1:5555".into(),
-                    }),
+                    Transport::TCP(TCPTransportConfig { bind_addr }),
                 ),
                 parser: ParserType::Text(()),
             },
-        }
+        )
     }
 
-    fn recent_session(title: impl Into<String>, last_opened: u64) -> RecentSession {
-        let title = title.into();
-
-        RecentSession {
-            configurations: vec![stream_config(title.clone())],
-            title,
-            last_opened,
-        }
+    fn recent_session(title: impl Into<String>, last_opened: u64) -> RecentSessionSnapshot {
+        let mut session = stream_snapshot(title.into());
+        session.last_opened = last_opened;
+        session
     }
 
     #[test]
@@ -264,9 +334,9 @@ mod tests {
         let dir = test_home_dir();
         let path = dir.join("valid.log");
         fs::write(&path, "test").expect("test file should be written");
-        let config = file_config(path);
+        let session = file_snapshot(path);
 
-        let result = validate_session_config(&config);
+        let result = validate_source_snapshot(&session);
 
         assert!(result.is_ok());
         let _ = fs::remove_dir_all(dir);
@@ -275,53 +345,19 @@ mod tests {
     #[test]
     fn validate_rejects_missing_file() {
         let dir = test_home_dir();
-        let config = file_config(dir.join("missing.log"));
+        let session = file_snapshot(dir.join("missing.log"));
 
-        let result = validate_session_config(&config);
-
-        assert!(matches!(result, Err(err) if err.kind() == std::io::ErrorKind::NotFound));
-        let _ = fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn validate_rejects_missing_concat_member() {
-        let dir = test_home_dir();
-        let valid_path = dir.join("first.log");
-        fs::write(&valid_path, "test").expect("test file should be written");
-        let missing_path = dir.join("second.log");
-        let config = SessionConfig {
-            id: "concat".into(),
-            options: ObserveOptions {
-                origin: ObserveOrigin::Concat(vec![
-                    (String::new(), stypes::FileFormat::Text, valid_path),
-                    (String::new(), stypes::FileFormat::Text, missing_path),
-                ]),
-                parser: ParserType::Text(()),
-            },
-        };
-
-        let result = validate_session_config(&config);
+        let result = validate_source_snapshot(&session);
 
         assert!(matches!(result, Err(err) if err.kind() == std::io::ErrorKind::NotFound));
         let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
-    fn validate_accepts_stream_config() {
-        let config = SessionConfig {
-            id: "stream".into(),
-            options: ObserveOptions {
-                origin: ObserveOrigin::Stream(
-                    String::new(),
-                    Transport::TCP(TCPTransportConfig {
-                        bind_addr: "127.0.0.1:5555".into(),
-                    }),
-                ),
-                parser: ParserType::Text(()),
-            },
-        };
+    fn validate_accepts_stream_snapshot() {
+        let session = stream_snapshot("127.0.0.1:5555");
 
-        let result = validate_session_config(&config);
+        let result = validate_source_snapshot(&session);
 
         assert!(result.is_ok());
     }
@@ -350,18 +386,18 @@ mod tests {
     }
 
     #[test]
-    fn load_cleanup_marks_changed() {
+    fn load_cleanup_drops_missing_sources() {
         let home_dir = test_home_dir();
         let valid_path = home_dir.join("valid.log");
         fs::write(&valid_path, "test").expect("valid config file should be written");
         let invalid_path = home_dir.join("missing.log");
-        let valid_config = file_config(valid_path);
-        let invalid_config = file_config(invalid_path);
+        let valid_snapshot = file_snapshot(valid_path);
+        let invalid_snapshot = file_snapshot(invalid_path);
         let mut storage = RecentSessionsStorage::new();
         storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
-        storage.register_session("saved".into(), valid_config.clone());
+        storage.register_session(valid_snapshot.clone());
         let mut data = storage.get_save_data().expect("dirty storage should save");
-        data.sessions[0].configurations.push(invalid_config);
+        data.sessions.push(invalid_snapshot);
 
         save_to_home(&home_dir, &data).expect("save should succeed");
 
@@ -373,8 +409,7 @@ mod tests {
         let changed = invalid_removed || reordered || trimmed;
 
         assert_eq!(loaded.sessions.len(), 1);
-        assert_eq!(loaded.sessions[0].configurations.len(), 1);
-        assert_eq!(loaded.sessions[0].configurations[0].id, valid_config.id);
+        assert_eq!(loaded.sessions[0].source_key, valid_snapshot.source_key);
         assert!(changed);
         let _ = fs::remove_dir_all(home_dir);
     }
@@ -386,7 +421,7 @@ mod tests {
         fs::write(&config_path, "test").expect("config file should be written");
         let mut storage = RecentSessionsStorage::new();
         storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
-        storage.register_session("saved".into(), file_config(config_path));
+        storage.register_session(file_snapshot(config_path));
         let data = storage.get_save_data().expect("dirty storage should save");
 
         save_to_home(&home_dir, &data).expect("save should succeed");
@@ -465,7 +500,7 @@ mod tests {
         fs::write(&config_path, "test").expect("config file should be written");
         let mut storage = RecentSessionsStorage::new();
         storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
-        storage.register_session("saved".into(), file_config(config_path));
+        storage.register_session(file_snapshot(config_path));
         let data = storage.get_save_data().expect("dirty storage should save");
 
         save_to_home(&home_dir, &data).expect("save should succeed");
@@ -478,10 +513,7 @@ mod tests {
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].title, data.sessions[0].title);
         assert_eq!(loaded.sessions[0].last_opened, data.sessions[0].last_opened);
-        assert_eq!(
-            loaded.sessions[0].configurations[0].id,
-            data.sessions[0].configurations[0].id
-        );
+        assert_eq!(loaded.sessions[0].source_key, data.sessions[0].source_key);
         let _ = fs::remove_dir_all(home_dir);
     }
 }

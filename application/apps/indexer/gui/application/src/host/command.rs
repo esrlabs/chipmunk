@@ -1,5 +1,5 @@
 use std::{path::PathBuf, sync::mpsc::Sender as StdSender};
-use stypes::{FileFormat, ObserveOptions};
+use stypes::FileFormat;
 use uuid::Uuid;
 
 use crate::host::{
@@ -7,17 +7,13 @@ use crate::host::{
     ui::{
         registry::presets::Preset,
         session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
-        storage::{StorageError, StorageSaveData},
+        storage::{RecentSessionReopenMode, RecentSessionSnapshot, StorageError, StorageSaveData},
     },
 };
 
 /// Host commands to be sent from UI to its service.
 #[derive(Debug, Clone)]
 pub enum HostCommand {
-    /// Open a new configuration from history.
-    OpenNewConfiguration(Box<ObserveOptions>),
-    /// Open a previous configuration from history.
-    OpenPreviousConfiguration(Box<ObserveOptions>),
     /// Opens the files, prompting the user with the setup UI
     /// if multiple files are provided.
     OpenFiles(Vec<PathBuf>),
@@ -39,6 +35,8 @@ pub enum HostCommand {
         stream: StreamNames,
         parser: ParserNames,
     },
+    /// Reopen a recent-session snapshot with the requested intent.
+    OpenRecentSession(Box<OpenRecentSessionParam>),
     DltStatistics(Box<DltStatisticsParam>),
     StartSession(Box<StartSessionParam>),
     /// Imports named presets from the provided file.
@@ -66,16 +64,22 @@ pub enum HostCommand {
 }
 
 #[derive(Debug, Clone)]
-pub struct DltStatisticsParam {
-    pub session_setup_id: Uuid,
-    pub source_paths: Vec<PathBuf>,
-}
-
-#[derive(Debug, Clone)]
 pub struct StartSessionParam {
     pub parser: ParserConfig,
     pub source: ByteSourceConfig,
     pub session_setup_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone)]
+pub struct OpenRecentSessionParam {
+    pub snapshot: RecentSessionSnapshot,
+    pub mode: RecentSessionReopenMode,
+}
+
+#[derive(Debug, Clone)]
+pub struct DltStatisticsParam {
+    pub session_setup_id: Uuid,
+    pub source_paths: Vec<PathBuf>,
 }
 
 #[derive(Debug, Clone)]

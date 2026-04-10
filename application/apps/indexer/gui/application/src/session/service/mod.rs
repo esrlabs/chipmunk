@@ -20,7 +20,7 @@ use crate::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, StreamConfig},
             },
-            storage::SessionConfig,
+            storage::RecentSessionSnapshot,
         },
     },
     session::{
@@ -54,7 +54,10 @@ impl SessionService {
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
-        let session_config = SessionConfig::from_observe_options(options.clone());
+        let recent_session = Some(RecentSessionSnapshot::from_observe_options(
+            session_info.title.clone(),
+            options.clone(),
+        ));
 
         let observe_id = Uuid::new_v4();
         let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
@@ -76,7 +79,7 @@ impl SessionService {
 
         let info = InitSessionParams {
             session_info,
-            session_config,
+            recent_session,
             communication: ui_handle,
             observe_op,
         };
