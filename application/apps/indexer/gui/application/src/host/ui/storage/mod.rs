@@ -48,11 +48,11 @@ enum SaveOutcome {
 
 impl HostStorage {
     /// Creates the host-side storage coordinator.
-    pub fn new(cmd_tx: mpsc::Sender<HostCommand>) -> Self {
+    pub fn new(cmd_tx: mpsc::Sender<HostCommand>, recent_sessions: RecentSessionsData) -> Self {
         Self {
             cmd_tx,
             file_explorer: FileExplorerStorage::new(),
-            recent_sessions: RecentSessionsStorage::new(),
+            recent_sessions: RecentSessionsStorage::new(recent_sessions),
             pending_save: None,
         }
     }
@@ -193,10 +193,6 @@ impl HostStorage {
     /// Routes storage worker events back into the relevant UI-side domains.
     pub fn handle_event(&mut self, event: StorageEvent, ui_actions: &mut UiActions) {
         match event {
-            StorageEvent::RecentSessionsLoaded(result) => {
-                let err = self.recent_sessions.finish_load(result);
-                self.notify_storage_error(err, ui_actions);
-            }
             StorageEvent::FileExplorerLoaded(result) => {
                 let err = self.file_explorer.finish_load(result);
                 self.notify_storage_error(err, ui_actions);
@@ -227,7 +223,10 @@ mod tests {
 
     fn test_storage() -> (HostStorage, tokio::sync::mpsc::Receiver<HostCommand>) {
         let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(1);
-        (HostStorage::new(cmd_tx), cmd_rx)
+        (
+            HostStorage::new(cmd_tx, RecentSessionsData::default()),
+            cmd_rx,
+        )
     }
 
     fn test_ui_actions() -> (tokio::runtime::Runtime, UiActions) {
@@ -241,9 +240,6 @@ mod tests {
     }
 
     fn make_dirty(storage: &mut HostStorage) {
-        storage
-            .recent_sessions
-            .finish_load(Ok(Box::new(RecentSessionsData::default())));
         let snapshot = RecentSessionSnapshot::from_observe_options(
             String::from("test"),
             stypes::ObserveOptions::file(
@@ -434,22 +430,6 @@ mod tests {
         assert!(storage.pending_save.is_none());
         assert!(!storage.file_explorer.dirty);
         assert!(!storage.recent_sessions.dirty);
-    }
-
-    #[test]
-    fn load_events_still_route_to_domain() {
-        let (mut storage, _) = test_storage();
-        let (_runtime, mut ui_actions) = test_ui_actions();
-
-        storage.handle_event(
-            StorageEvent::RecentSessionsLoaded(Ok(Box::new(RecentSessionsData::default()))),
-            &mut ui_actions,
-        );
-
-        assert!(matches!(
-            storage.recent_sessions.state,
-            LoadState::Ready(RecentSessionsData { sessions }) if sessions.is_empty()
-        ));
     }
 
     #[test]

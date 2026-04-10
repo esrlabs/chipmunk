@@ -16,8 +16,6 @@ pub enum LoadState<T> {
 /// Storage events sent to the host.
 #[derive(Debug)]
 pub enum StorageEvent {
-    /// Recent-sessions load results.
-    RecentSessionsLoaded(Result<Box<RecentSessionsData>, StorageError>),
     /// File-explorer startup load results.
     FileExplorerLoaded(Result<Box<FileExplorerData>, StorageError>),
     /// Favorite-folder scan results for a specific request.

@@ -343,8 +343,8 @@ mod tests {
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders })
                 if favorite_folders.len() == 2
-                    && favorite_folders[0].path == PathBuf::from("/other")
-                    && favorite_folders[1].path == PathBuf::from("/tmp")
+                    && favorite_folders[0].path.as_path() == Path::new("/other")
+                    && favorite_folders[1].path.as_path() == Path::new("/tmp")
                     && favorite_folders[1].files[0].name == "new.log"
         ));
         assert!(storage.active_scan_request_id.is_none());
@@ -400,7 +400,8 @@ mod tests {
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders })
-                if favorite_folders.len() == 1 && favorite_folders[0].path == PathBuf::from("/other")
+                if favorite_folders.len() == 1
+                    && favorite_folders[0].path.as_path() == Path::new("/other")
         ));
     }
 }

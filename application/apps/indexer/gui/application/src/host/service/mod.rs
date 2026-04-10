@@ -39,6 +39,7 @@ use crate::{
                     TcpConfig, UdpConfig,
                 },
             },
+            storage::RecentSessionsData,
         },
     },
     session::{InitSessionError, service::SessionService},
@@ -58,9 +59,9 @@ pub struct HostService {
 }
 
 impl HostService {
-    /// Spawns tokio runtime to run host services returning a handle of the runtime.
+    /// Spawns tokio runtime to run host services and loads recent sessions for startup.
     #[must_use]
-    pub fn spawn(communication: ServiceHandle) -> Handle {
+    pub fn spawn(communication: ServiceHandle) -> (Handle, RecentSessionsData) {
         let (handle_tx, handle_rx) = std::sync::mpsc::channel();
 
         thread::spawn(move || {
@@ -68,13 +69,26 @@ impl HostService {
                 .enable_all()
                 .build()
                 .expect("Spawning tokio runtime failed");
+            let tokio_handle = rt.handle().clone();
 
-            handle_tx
-                .send(rt.handle().clone())
-                .expect("Sending tokio handle should never fail");
+            rt.block_on(async move {
+                let recent_sessions = match storage::recent::load_sessions() {
+                    Ok(data) => *data,
+                    Err(err) => {
+                        communication
+                            .senders
+                            .send_notification(AppNotification::Error(err.to_string()))
+                            .await;
+                        RecentSessionsData::default()
+                    }
+                };
 
-            rt.block_on(async {
-                let storage = StorageService::spawn();
+                handle_tx
+                    .send((tokio_handle, recent_sessions))
+                    .expect("Sending startup state should never fail");
+
+                let storage = StorageService::init();
+
                 let host = Self {
                     communication,
                     storage,
@@ -86,7 +100,7 @@ impl HostService {
 
         handle_rx
             .recv()
-            .expect("Receiving tokio handle should never fail")
+            .expect("Receiving startup state should never fail")
     }
 
     async fn run(mut self) {
@@ -208,9 +222,11 @@ impl HostService {
     ) -> Result<(), HostError> {
         match request {
             RecentSessionOpenRequest::Restore(options) => {
-                let session_params =
-                    SessionService::spawn(self.communication.senders.get_shared_senders(), options)
-                        .await?;
+                let session_params = SessionService::spawn(
+                    self.communication.senders.get_shared_senders(),
+                    *options,
+                )
+                .await?;
 
                 self.communication
                     .senders
