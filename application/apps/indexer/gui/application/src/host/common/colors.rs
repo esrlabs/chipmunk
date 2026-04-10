@@ -1,5 +1,10 @@
 use egui::Color32;
 
+const MAIN_ACCENT_BACKGROUND_DARK: Color32 = Color32::from_rgb(36, 44, 58);
+const MAIN_ACCENT_BACKGROUND_LIGHT: Color32 = Color32::from_rgb(220, 228, 240);
+const MAIN_ACCENT_STROKE_DARK: Color32 = Color32::from_rgb(145, 193, 255);
+const MAIN_ACCENT_STROKE_LIGHT: Color32 = Color32::from_rgb(52, 95, 168);
+
 /// Offset used when reusing the source palette for charts so neighboring filter
 /// and chart defaults do not start with visually similar colors.
 const SEARCH_VALUE_COLOR_OFFSET: usize = 3;
@@ -108,6 +113,24 @@ pub const TEMP_SEARCH_COLORS: ColorPair = ColorPair::new(
 pub const SELECTED_LOG_COLORS: ColorPair = ColorPair::new(Color32::WHITE, Color32::DARK_GREEN);
 pub const DEFAULT_ATTACHMENT_EXT_COLOR: Color32 = egui::Color32::GRAY;
 
+/// Accent background used for structural UI surfaces such as the main rail.
+pub fn main_accent_background(dark_mode: bool) -> Color32 {
+    if dark_mode {
+        MAIN_ACCENT_BACKGROUND_DARK
+    } else {
+        MAIN_ACCENT_BACKGROUND_LIGHT
+    }
+}
+
+/// Accent stroke used for emphasized UI strokes, icons, and similar details.
+pub fn main_accent_stroke(dark_mode: bool) -> Color32 {
+    if dark_mode {
+        MAIN_ACCENT_STROKE_DARK
+    } else {
+        MAIN_ACCENT_STROKE_LIGHT
+    }
+}
+
 /// Returns the source palette as an owned list for UI code that needs to iterate
 /// or display the available colors.
 pub fn source_highlighting_colors() -> Vec<Color32> {
@@ -181,5 +204,13 @@ mod tests {
         let next = next_search_value_color(&used);
 
         assert_eq!(next, search_value_color(1));
+    }
+
+    #[test]
+    fn main_accent_colors_have_theme_variants() {
+        assert_eq!(main_accent_background(true), MAIN_ACCENT_BACKGROUND_DARK);
+        assert_eq!(main_accent_background(false), MAIN_ACCENT_BACKGROUND_LIGHT);
+        assert_eq!(main_accent_stroke(true), MAIN_ACCENT_STROKE_DARK);
+        assert_eq!(main_accent_stroke(false), MAIN_ACCENT_STROKE_LIGHT);
     }
 }
