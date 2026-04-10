@@ -27,13 +27,12 @@ pub struct StorageService {
 }
 
 impl StorageService {
-    /// Creates the storage worker and starts its background domain loads.
-    pub fn spawn() -> Self {
+    /// Initializes storage and starts background domain loads.
+    pub fn init() -> Self {
         let (event_tx, event_rx) = mpsc::channel(CHANNEL_CAPACITY);
         let service = Self { event_tx, event_rx };
 
         file_explorer::spawn_load(service.event_tx.clone());
-        recent::spawn_load(service.event_tx.clone());
 
         service
     }

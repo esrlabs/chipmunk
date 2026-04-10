@@ -7,8 +7,8 @@ use std::{
 };
 
 use log::{trace, warn};
+
 use stypes::Transport;
-use tokio::sync::mpsc;
 
 use super::storage_path;
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
         error::HostError,
         ui::storage::{
             MAX_RECENT_SESSIONS, RecentSessionReopenMode, RecentSessionSnapshot,
-            RecentSessionSource, RecentSessionsData, StorageError, StorageErrorKind, StorageEvent,
+            RecentSessionSource, RecentSessionsData, StorageError, StorageErrorKind,
         },
     },
     session::InitSessionError,
@@ -30,7 +30,7 @@ const RECENT_SESSIONS_FILE: &str = "recent_sessions.json";
 #[derive(Debug)]
 pub enum RecentSessionOpenRequest {
     /// Restore the session directly from rebuilt observe options.
-    Restore(stypes::ObserveOptions),
+    Restore(Box<stypes::ObserveOptions>),
     /// Reopen one or more files through the normal host open flow.
     OpenFiles(Vec<PathBuf>),
     /// Reopen a stream source by opening the setup flow with preselected types.
@@ -40,32 +40,10 @@ pub enum RecentSessionOpenRequest {
     },
 }
 
-/// Starts the background load for recent-sessions storage and publishes the result.
-pub fn spawn_load(event_tx: mpsc::Sender<StorageEvent>) {
-    tokio::task::spawn_blocking(move || {
-        let result = get_path().and_then(|path| load(&path).map(|data| (path, data)));
-
-        match result {
-            Ok((path, mut data)) => {
-                let invalid_removed = sanitize_recent_sessions(&mut data.sessions);
-                let reordered = sort_recent_sessions(&mut data.sessions);
-                let trimmed = trim_recent_sessions(&mut data.sessions);
-                let changed = invalid_removed || reordered || trimmed;
-
-                if changed && let Err(err) = save_to_path(&path, &data) {
-                    warn!(
-                        "Failed to persist normalized recent-sessions storage to {}: {err}",
-                        path.display()
-                    );
-                }
-
-                _ = event_tx.blocking_send(StorageEvent::RecentSessionsLoaded(Ok(data)));
-            }
-            Err(err) => {
-                _ = event_tx.blocking_send(StorageEvent::RecentSessionsLoaded(Err(err)));
-            }
-        }
-    });
+/// Loads and normalizes recent sessions.
+pub fn load_sessions() -> Result<Box<RecentSessionsData>, StorageError> {
+    let path = get_path()?;
+    load_and_normalize(&path)
 }
 
 pub fn resolve_open_request(
@@ -77,6 +55,7 @@ pub fn resolve_open_request(
         RecentSessionReopenMode::RestoreSession
         | RecentSessionReopenMode::RestoreParserConfiguration => snapshot
             .to_observe_options()
+            .map(Box::new)
             .map(RecentSessionOpenRequest::Restore)
             .ok_or_else(|| {
                 HostError::InitSessionError(InitSessionError::Other(
@@ -133,6 +112,21 @@ fn open_recent_session_clean(
     }
 }
 
+fn load_and_normalize(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
+    let mut data = load(path)?;
+
+    if normalize_recent_sessions(&mut data.sessions)
+        && let Err(err) = save_to_path(path, &data)
+    {
+        warn!(
+            "Failed to persist normalized recent-sessions storage to {}: {err}",
+            path.display()
+        );
+    }
+
+    Ok(data)
+}
+
 fn load(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
     let file = match File::open(path) {
         Ok(file) => file,
@@ -167,6 +161,14 @@ fn load(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
                 message: format!("Failed to parse '{}': {err}", path.display()),
             }
         })
+}
+
+fn normalize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
+    let invalid_removed = sanitize_recent_sessions(sessions);
+    let reordered = sort_recent_sessions(sessions);
+    let trimmed = trim_recent_sessions(sessions);
+
+    invalid_removed || reordered || trimmed
 }
 
 /// Removes invalid recent snapshots in place.
@@ -386,15 +388,14 @@ mod tests {
     }
 
     #[test]
-    fn load_cleanup_drops_missing_sources() {
+    fn load_and_normalize_drops_missing_sources() {
         let home_dir = test_home_dir();
         let valid_path = home_dir.join("valid.log");
         fs::write(&valid_path, "test").expect("valid config file should be written");
         let invalid_path = home_dir.join("missing.log");
         let valid_snapshot = file_snapshot(valid_path);
         let invalid_snapshot = file_snapshot(invalid_path);
-        let mut storage = RecentSessionsStorage::new();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
+        let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
         storage.register_session(valid_snapshot.clone());
         let mut data = storage.get_save_data().expect("dirty storage should save");
         data.sessions.push(invalid_snapshot);
@@ -402,44 +403,33 @@ mod tests {
         save_to_home(&home_dir, &data).expect("save should succeed");
 
         let path = path_from_home(&home_dir).expect("path should resolve");
-        let mut loaded = load(&path).expect("load should succeed");
-        let invalid_removed = sanitize_recent_sessions(&mut loaded.sessions);
-        let reordered = sort_recent_sessions(&mut loaded.sessions);
-        let trimmed = trim_recent_sessions(&mut loaded.sessions);
-        let changed = invalid_removed || reordered || trimmed;
+        let loaded = load_and_normalize(&path).expect("load should succeed");
 
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].source_key, valid_snapshot.source_key);
-        assert!(changed);
         let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
-    fn load_without_cleanup_stays_clean() {
+    fn load_and_normalize_keeps_clean_data() {
         let home_dir = test_home_dir();
         let config_path = home_dir.join("saved.log");
         fs::write(&config_path, "test").expect("config file should be written");
-        let mut storage = RecentSessionsStorage::new();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
+        let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
         storage.register_session(file_snapshot(config_path));
         let data = storage.get_save_data().expect("dirty storage should save");
 
         save_to_home(&home_dir, &data).expect("save should succeed");
 
         let path = path_from_home(&home_dir).expect("path should resolve");
-        let mut loaded = load(&path).expect("load should succeed");
-        let invalid_removed = sanitize_recent_sessions(&mut loaded.sessions);
-        let reordered = sort_recent_sessions(&mut loaded.sessions);
-        let trimmed = trim_recent_sessions(&mut loaded.sessions);
-        let changed = invalid_removed || reordered || trimmed;
+        let loaded = load_and_normalize(&path).expect("load should succeed");
 
         assert_eq!(loaded.sessions.len(), 1);
-        assert!(!changed);
         let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
-    fn load_sorts_sessions() {
+    fn load_and_normalize_sorts_sessions() {
         let home_dir = test_home_dir();
         let data = RecentSessionsData {
             sessions: vec![
@@ -452,13 +442,8 @@ mod tests {
         save_to_home(&home_dir, &data).expect("save should succeed");
 
         let path = path_from_home(&home_dir).expect("path should resolve");
-        let mut loaded = load(&path).expect("load should succeed");
-        let invalid_removed = sanitize_recent_sessions(&mut loaded.sessions);
-        let reordered = sort_recent_sessions(&mut loaded.sessions);
-        let trimmed = trim_recent_sessions(&mut loaded.sessions);
-        let changed = invalid_removed || reordered || trimmed;
+        let loaded = load_and_normalize(&path).expect("load should succeed");
 
-        assert!(changed);
         assert_eq!(loaded.sessions[0].title, "newest");
         assert_eq!(loaded.sessions[1].title, "middle");
         assert_eq!(loaded.sessions[2].title, "oldest");
@@ -466,7 +451,7 @@ mod tests {
     }
 
     #[test]
-    fn load_trims_sessions() {
+    fn load_and_normalize_trims_sessions() {
         let home_dir = test_home_dir();
         let data = RecentSessionsData {
             sessions: (0..=MAX_RECENT_SESSIONS)
@@ -477,13 +462,8 @@ mod tests {
         save_to_home(&home_dir, &data).expect("save should succeed");
 
         let path = path_from_home(&home_dir).expect("path should resolve");
-        let mut loaded = load(&path).expect("load should succeed");
-        let invalid_removed = sanitize_recent_sessions(&mut loaded.sessions);
-        let reordered = sort_recent_sessions(&mut loaded.sessions);
-        let trimmed = trim_recent_sessions(&mut loaded.sessions);
-        let changed = invalid_removed || reordered || trimmed;
+        let loaded = load_and_normalize(&path).expect("load should succeed");
 
-        assert!(changed);
         assert_eq!(loaded.sessions.len(), MAX_RECENT_SESSIONS);
         assert_eq!(
             loaded.sessions[0].title,
@@ -498,8 +478,7 @@ mod tests {
         let home_dir = test_home_dir();
         let config_path = home_dir.join("saved.log");
         fs::write(&config_path, "test").expect("config file should be written");
-        let mut storage = RecentSessionsStorage::new();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
+        let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
         storage.register_session(file_snapshot(config_path));
         let data = storage.get_save_data().expect("dirty storage should save");
 

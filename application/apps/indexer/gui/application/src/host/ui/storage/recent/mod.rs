@@ -10,8 +10,6 @@ use serde::{Deserialize, Serialize};
 use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 use uuid::Uuid;
 
-use super::{LoadState, StorageError};
-
 mod source_key;
 
 pub const MAX_RECENT_SESSIONS: usize = 100;
@@ -19,9 +17,8 @@ pub const MAX_RECENT_SESSIONS: usize = 100;
 /// Storage state for the recent-sessions domain.
 #[derive(Debug)]
 pub struct RecentSessionsStorage {
-    pub state: LoadState<RecentSessionsData>,
-    // `register_session` can run before the async load finishes during startup.
-    pending_registrations: Vec<RecentSessionSnapshot>,
+    /// Current recent-session snapshot.
+    pub data: RecentSessionsData,
     /// True when the in-memory data still needs to be saved.
     pub dirty: bool,
 }
@@ -76,78 +73,29 @@ pub enum RecentSessionSource {
 pub struct RecentSessionStateSnapshot {}
 
 impl RecentSessionsStorage {
-    /// Creates the domain in the initial loading state.
-    pub fn new() -> Self {
-        Self {
-            state: LoadState::Loading,
-            pending_registrations: Vec::new(),
-            dirty: false,
-        }
+    /// Creates the domain from already-loaded recent-session data.
+    pub fn new(data: RecentSessionsData) -> Self {
+        Self { data, dirty: false }
     }
 
-    /// Returns the current snapshot only when the domain is ready and dirty.
+    /// Returns the current snapshot only when the domain is dirty.
     pub fn get_save_data(&self) -> Option<RecentSessionsData> {
-        if !self.dirty {
-            return None;
-        }
-
-        let LoadState::Ready(data) = &self.state else {
-            return None;
-        };
-
-        Some(data.clone())
-    }
-
-    /// Applies a load result, falling back to the default ready state on error.
-    ///
-    /// The error is returned to let the caller decide whether to notify the user.
-    pub fn finish_load(
-        &mut self,
-        result: Result<Box<RecentSessionsData>, StorageError>,
-    ) -> Option<StorageError> {
-        let (mut data, err) = match result {
-            Ok(data) => (*data, None),
-            Err(err) => (RecentSessionsData::default(), Some(err)),
-        };
-
-        let mut dirty = false;
-
-        for registration in self.pending_registrations.drain(..) {
-            register_loaded_session(&mut data.sessions, registration);
-            dirty = true;
-        }
-
-        self.state = LoadState::Ready(data);
-        self.dirty = dirty;
-
-        err
+        self.dirty.then(|| self.data.clone())
     }
 
     /// Registers an opened session and keeps the list newest-first.
     pub fn register_session(&mut self, snapshot: RecentSessionSnapshot) {
-        match &mut self.state {
-            LoadState::Ready(data) => {
-                register_loaded_session(&mut data.sessions, snapshot);
-                self.dirty = true;
-            }
-            LoadState::Loading => {
-                // Startup opens can happen before the async load completes. Buffer them so the
-                // loaded snapshot can replay the same newest-first mutations once it arrives.
-                self.pending_registrations.push(snapshot);
-            }
-        }
+        register_loaded_session(&mut self.data.sessions, snapshot);
+        self.dirty = true;
     }
 
     /// Removes a recent session entry by source key.
     pub fn remove_session(&mut self, source_key: &str) {
-        let LoadState::Ready(data) = &mut self.state else {
-            return;
-        };
-
-        let initial_len = data.sessions.len();
-        data.sessions
+        let initial_len = self.data.sessions.len();
+        self.data
+            .sessions
             .retain(|session| session.source_key != source_key);
-        self.dirty |= data.sessions.len() != initial_len;
+        self.dirty |= self.data.sessions.len() != initial_len;
     }
 
     /// Marks the current ready snapshot as persisted.
@@ -322,13 +270,12 @@ mod tests {
     };
 
     use super::{
-        LoadState, MAX_RECENT_SESSIONS, RecentSessionSnapshot, RecentSessionsData,
-        RecentSessionsStorage, StorageError,
+        MAX_RECENT_SESSIONS, RecentSessionSnapshot, RecentSessionsData, RecentSessionsStorage,
     };
-    use crate::host::ui::storage::{RecentSessionSource, StorageErrorKind};
+    use crate::host::ui::storage::RecentSessionSource;
 
     fn test_storage() -> RecentSessionsStorage {
-        RecentSessionsStorage::new()
+        RecentSessionsStorage::new(RecentSessionsData::default())
     }
 
     fn test_dir() -> PathBuf {
@@ -378,121 +325,37 @@ mod tests {
     }
 
     #[test]
-    fn finish_load_keeps_loaded_data() {
+    fn new_keeps_loaded_data() {
         let valid_path = write_test_file("valid.log");
         let valid_snapshot = file_snapshot(valid_path.clone());
         let invalid_snapshot = file_snapshot(valid_path.with_file_name("missing.log"));
-        let mut storage = test_storage();
-
-        let error = storage.finish_load(Ok(Box::new(RecentSessionsData {
+        let storage = RecentSessionsStorage::new(RecentSessionsData {
             sessions: vec![valid_snapshot.clone(), invalid_snapshot.clone()],
-        })));
+        });
 
-        assert!(error.is_none());
         assert!(!storage.dirty);
-        let LoadState::Ready(data) = &storage.state else {
-            panic!("storage should be ready");
-        };
-        assert_eq!(data.sessions.len(), 2);
-        assert_eq!(data.sessions[0].source_key, valid_snapshot.source_key);
-        assert_eq!(data.sessions[1].source_key, invalid_snapshot.source_key);
-    }
-
-    #[test]
-    fn load_error_falls_back() {
-        let mut storage = test_storage();
-
-        let error = storage.finish_load(Err(StorageError {
-            kind: StorageErrorKind::Parse,
-            message: "bad json".into(),
-        }));
-
-        assert!(matches!(
-            error,
-            Some(StorageError {
-                kind: StorageErrorKind::Parse,
-                ..
-            })
-        ));
-        assert!(!storage.dirty);
-        assert!(matches!(
-            storage.state,
-            LoadState::Ready(RecentSessionsData { sessions }) if sessions.is_empty()
-        ));
-    }
-
-    #[test]
-    fn save_data_requires_dirty_ready() {
-        let mut storage = test_storage();
-
-        assert!(storage.get_save_data().is_none());
-
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
-
-        let snapshot = storage.get_save_data();
-
-        assert!(snapshot.is_none());
-        assert!(!storage.dirty);
-    }
-
-    #[test]
-    fn loading_replays_registration() {
-        let mut storage = test_storage();
-        let snapshot = named_snapshot("pending");
-        let source_key = snapshot.source_key.clone();
-
-        storage.register_session(snapshot);
-
-        assert!(storage.get_save_data().is_none());
-        assert!(
-            storage
-                .finish_load(Ok(Box::new(RecentSessionsData::default())))
-                .is_none()
+        assert_eq!(storage.data.sessions.len(), 2);
+        assert_eq!(
+            storage.data.sessions[0].source_key,
+            valid_snapshot.source_key
         );
-        assert!(storage.dirty);
-
-        let LoadState::Ready(data) = &storage.state else {
-            panic!("storage should be ready");
-        };
-
-        assert_eq!(data.sessions.len(), 1);
-        assert_eq!(data.sessions[0].source_key, source_key);
+        assert_eq!(
+            storage.data.sessions[1].source_key,
+            invalid_snapshot.source_key
+        );
     }
 
     #[test]
-    fn load_error_replays_registration() {
-        let mut storage = test_storage();
-        let snapshot = named_snapshot("fallback");
-        let source_key = snapshot.source_key.clone();
+    fn save_data_requires_dirty_storage() {
+        let storage = test_storage();
 
-        storage.register_session(snapshot);
-
-        let error = storage.finish_load(Err(StorageError {
-            kind: StorageErrorKind::Parse,
-            message: "bad json".into(),
-        }));
-
-        assert!(matches!(
-            error,
-            Some(StorageError {
-                kind: StorageErrorKind::Parse,
-                ..
-            })
-        ));
-        assert!(storage.dirty);
-
-        let LoadState::Ready(data) = &storage.state else {
-            panic!("storage should be ready");
-        };
-
-        assert_eq!(data.sessions.len(), 1);
-        assert_eq!(data.sessions[0].source_key, source_key);
+        assert!(storage.get_save_data().is_none());
+        assert!(!storage.dirty);
     }
 
     #[test]
     fn register_overwrites_same_source() {
         let mut storage = test_storage();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
 
         let path = std::env::temp_dir().join("chipmunk-recent-storage-overwrite.log");
         let original = RecentSessionSnapshot::from_observe_options(
@@ -514,37 +377,31 @@ mod tests {
         storage.register_session(stream_snapshot("127.0.0.1:5555"));
         storage.register_session(replaced.clone());
 
-        let LoadState::Ready(data) = &storage.state else {
-            panic!("storage should be ready");
-        };
-
-        assert_eq!(data.sessions.len(), 2);
-        assert_eq!(data.sessions[0].source_key, original.source_key);
-        assert_eq!(data.sessions[0].title, "second title");
-        assert!(matches!(data.sessions[0].parser, ParserType::SomeIp(..)));
+        assert_eq!(storage.data.sessions.len(), 2);
+        assert_eq!(storage.data.sessions[0].source_key, original.source_key);
+        assert_eq!(storage.data.sessions[0].title, "second title");
+        assert!(matches!(
+            storage.data.sessions[0].parser,
+            ParserType::SomeIp(..)
+        ));
     }
 
     #[test]
     fn register_trims_tail() {
         let mut storage = test_storage();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
 
         for idx in 0..=MAX_RECENT_SESSIONS {
             storage.register_session(named_snapshot(&format!("session-{idx}")));
         }
 
-        let LoadState::Ready(data) = &storage.state else {
-            panic!("storage should be ready");
-        };
-
-        assert_eq!(data.sessions.len(), MAX_RECENT_SESSIONS);
+        assert_eq!(storage.data.sessions.len(), MAX_RECENT_SESSIONS);
         assert!(
-            data.sessions[0]
+            storage.data.sessions[0]
                 .title
                 .ends_with(&format!("session-{MAX_RECENT_SESSIONS}.log"))
         );
         assert!(
-            data.sessions[MAX_RECENT_SESSIONS - 1]
+            storage.data.sessions[MAX_RECENT_SESSIONS - 1]
                 .title
                 .ends_with("session-1.log")
         );
@@ -553,7 +410,6 @@ mod tests {
     #[test]
     fn remove_session_drops_snapshot() {
         let mut storage = test_storage();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
         let snapshot = named_snapshot("single");
         let source_key = snapshot.source_key.clone();
         storage.register_session(snapshot);
@@ -562,17 +418,13 @@ mod tests {
         storage.remove_session(&source_key);
 
         assert!(storage.dirty);
-        assert!(matches!(
-            storage.state,
-            LoadState::Ready(RecentSessionsData { sessions }) if sessions.is_empty()
-        ));
+        assert!(storage.data.sessions.is_empty());
     }
 
     #[test]
     fn save_success_clears_dirty() {
         let path = write_test_file("persisted.log");
         let mut storage = test_storage();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
         storage.register_session(file_snapshot(path));
 
         storage.apply_save_success();
@@ -583,7 +435,6 @@ mod tests {
     #[test]
     fn save_error_keeps_dirty() {
         let mut storage = test_storage();
-        storage.finish_load(Ok(Box::new(RecentSessionsData::default())));
 
         storage.apply_save_error();
 

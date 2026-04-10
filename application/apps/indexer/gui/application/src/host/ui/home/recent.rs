@@ -11,9 +11,7 @@ use crate::host::{
     common::parsers::ParserNames,
     ui::{
         UiActions,
-        storage::{
-            LoadState, RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionsStorage,
-        },
+        storage::{RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionsStorage},
     },
 };
 
@@ -45,14 +43,9 @@ impl RecentSessionsUi {
                 ui.add_space(5.0);
 
                 let remove_session = {
-                    let LoadState::Ready(data) = &recent_sessions.state else {
-                        ui.label("Loading recent sessions...");
-                        return;
-                    };
-
                     let mut remove_session = None;
 
-                    for session in &data.sessions {
+                    for session in &recent_sessions.data.sessions {
                         ui.group(|ui| {
                             ui.horizontal_wrapped(|ui| {
                                 ui.strong(session.title.as_str());
