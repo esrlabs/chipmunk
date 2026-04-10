@@ -56,7 +56,7 @@ impl Session {
     pub fn new(init: InitSessionParams, host_cmd_tx: Sender<HostCommand>) -> Self {
         let InitSessionParams {
             session_info,
-            session_config: _,
+            recent_session: _,
             communication,
             observe_op,
         } = init;
