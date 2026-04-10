@@ -16,8 +16,11 @@ use crate::host::{command::HostCommand, notification::AppNotification, ui::UiAct
 pub use file_explorer::{
     FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerData, FileExplorerStorage, FileUiInfo,
 };
-pub(crate) use recent::MAX_RECENT_SESSIONS;
-pub use recent::{RecentSession, RecentSessionsData, RecentSessionsStorage, SessionConfig};
+pub use recent::MAX_RECENT_SESSIONS;
+pub use recent::{
+    RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource, RecentSessionsData,
+    RecentSessionsStorage,
+};
 pub use types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
 mod file_explorer;
@@ -217,8 +220,8 @@ mod tests {
     use std::{thread, time::Duration};
 
     use super::{
-        FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionsData,
-        SessionConfig, StorageError, StorageErrorKind, StorageEvent,
+        FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionSnapshot,
+        RecentSessionsData, StorageError, StorageErrorKind, StorageEvent,
     };
     use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
@@ -241,15 +244,15 @@ mod tests {
         storage
             .recent_sessions
             .finish_load(Ok(Box::new(RecentSessionsData::default())));
-        let config = SessionConfig::from_observe_options(stypes::ObserveOptions::file(
-            std::env::temp_dir().join("chipmunk-storage-mod-test.log"),
-            stypes::FileFormat::Text,
-            stypes::ParserType::Text(()),
-        ))
-        .expect("session config should be created");
-        storage
-            .recent_sessions
-            .register_session("test".into(), config);
+        let snapshot = RecentSessionSnapshot::from_observe_options(
+            String::from("test"),
+            stypes::ObserveOptions::file(
+                std::env::temp_dir().join("chipmunk-storage-mod-test.log"),
+                stypes::FileFormat::Text,
+                stypes::ParserType::Text(()),
+            ),
+        );
+        storage.recent_sessions.register_session(snapshot);
     }
 
     fn make_file_explorer_dirty(storage: &mut HostStorage) {

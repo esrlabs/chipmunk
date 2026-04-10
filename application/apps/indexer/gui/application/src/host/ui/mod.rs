@@ -160,10 +160,8 @@ impl Host {
                 mut session_params,
                 session_setup_id,
             } => {
-                if let Some(config) = session_params.session_config.take() {
-                    self.storage
-                        .recent_sessions
-                        .register_session(session_params.session_info.title.clone(), config);
+                if let Some(snapshot) = session_params.recent_session.take() {
+                    self.storage.recent_sessions.register_session(snapshot);
                 }
 
                 self.state.add_session(

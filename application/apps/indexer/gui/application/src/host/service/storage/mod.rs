@@ -14,7 +14,7 @@ use tokio::sync::mpsc;
 use crate::host::ui::storage::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
 mod file_explorer;
-mod recent;
+pub mod recent;
 
 const CHANNEL_CAPACITY: usize = 16;
 const STORAGE_DIR: &str = "storage_2";
