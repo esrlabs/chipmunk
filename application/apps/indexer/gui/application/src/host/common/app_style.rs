@@ -7,5 +7,8 @@ pub fn global_styles(style: &mut Style) {
 
     //TODO AAZ: Workaround until issue with egui_table is fixed.
     // Issue Link: https://github.com/rerun-io/egui_table/issues/56
-    style.debug.warn_if_rect_changes_id = false;
+    #[cfg(debug_assertions)]
+    {
+        style.debug.warn_if_rect_changes_id = false;
+    }
 }
