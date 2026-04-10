@@ -128,7 +128,7 @@ fn get_path() -> Result<PathBuf, StorageError> {
 fn scan_folder(path: &Path) -> FavoriteFolder {
     let mut folder = FavoriteFolder::new(path.to_owned());
 
-    let entries = match std::fs::read_dir(&path) {
+    let entries = match std::fs::read_dir(path) {
         Ok(entries) => entries,
         Err(err) => {
             warn!("Failed to scan favorite folder {}: {err}", path.display());
@@ -299,7 +299,7 @@ mod tests {
         fs::create_dir(&nested_dir).expect("nested dir should be created");
         symlink(&visible, &symlink_path).expect("symlink should be created");
 
-        let scanned = scan_favorite_folders(&[dir.clone()]);
+        let scanned = scan_favorite_folders(std::slice::from_ref(&dir));
 
         assert_eq!(scanned.len(), 1);
         assert_eq!(scanned[0].path, dir);
@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn missing_folder_returns_empty_snapshot() {
         let missing = std::env::temp_dir().join("chipmunk-missing-favorite-folder");
-        let scanned = scan_favorite_folders(&[missing.clone()]);
+        let scanned = scan_favorite_folders(std::slice::from_ref(&missing));
 
         assert_eq!(scanned.len(), 1);
         assert_eq!(scanned[0].path, missing);

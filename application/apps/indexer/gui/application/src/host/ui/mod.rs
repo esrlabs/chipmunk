@@ -76,7 +76,7 @@ impl Host {
             Box::new(|ctx| {
                 let (ui_comm, service_comm) = super::communication::init(ctx.egui_ctx.clone());
 
-                let tokio_handle = HostService::spawn(service_comm);
+                let (tokio_handle, recent_sessions) = HostService::spawn(service_comm);
                 let cmd_tx = ui_comm.senders.cmd_tx.clone();
 
                 phosphor::init(&ctx.egui_ctx);
@@ -89,7 +89,7 @@ impl Host {
                     senders: ui_comm.senders,
                     notifications: NotificationUi::default(),
                     state,
-                    storage: HostStorage::new(cmd_tx),
+                    storage: HostStorage::new(cmd_tx, recent_sessions),
                     ui_actions: UiActions::new(tokio_handle),
                 };
 
