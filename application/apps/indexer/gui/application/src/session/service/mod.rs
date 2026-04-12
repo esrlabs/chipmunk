@@ -1,4 +1,4 @@
-use std::ops::ControlFlow;
+use std::{ops::ControlFlow, sync::Arc};
 
 use itertools::Itertools;
 use tokio::{select, sync::mpsc};
@@ -10,6 +10,7 @@ use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Tra
 
 use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
+    common::time::unix_timestamp_now,
     host::{
         message::HostMessage,
         notification::AppNotification,
@@ -20,11 +21,13 @@ use crate::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, StreamConfig},
             },
-            storage::RecentSessionSnapshot,
+            storage::{
+                RecentSessionRegistration, RecentSessionStateSnapshot, RecentSourceSnapshot,
+            },
         },
     },
     session::{
-        InitSessionError, InitSessionParams,
+        InitSessionError, InitSessionParams, SpawnedSession,
         command::AttachSource,
         communication::{self, ServiceSenders, SharedSenders},
         message::SessionMessage,
@@ -46,7 +49,8 @@ impl SessionService {
     pub async fn spawn(
         shared_senders: SharedSenders,
         options: ObserveOptions,
-    ) -> Result<InitSessionParams, InitSessionError> {
+        restore_state: Option<RecentSessionStateSnapshot>,
+    ) -> Result<SpawnedSession, InitSessionError> {
         let session_id = Uuid::new_v4();
 
         let (ui_handle, service_handle) = communication::init(shared_senders);
@@ -54,10 +58,15 @@ impl SessionService {
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
-        let recent_session = Some(RecentSessionSnapshot::from_observe_options(
+        let recent_source = RecentSourceSnapshot::from_observe_origin(options.origin.clone());
+        let supports_bookmarks = recent_source.supports_bookmarks();
+        let recent_registration = RecentSessionRegistration::new(
             session_info.title.clone(),
-            options.clone(),
-        ));
+            unix_timestamp_now(),
+            recent_source,
+            options.parser.clone(),
+        );
+        let recent_source_key = Arc::clone(&recent_registration.source_key);
 
         let observe_id = Uuid::new_v4();
         let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
@@ -77,14 +86,19 @@ impl SessionService {
             service.run().await;
         });
 
-        let info = InitSessionParams {
+        let params = InitSessionParams {
             session_info,
-            recent_session,
+            recent_source_key,
+            supports_bookmarks,
             communication: ui_handle,
             observe_op,
         };
 
-        Ok(info)
+        Ok(SpawnedSession {
+            params,
+            recent_registration,
+            restore_state,
+        })
     }
 
     #[inline]

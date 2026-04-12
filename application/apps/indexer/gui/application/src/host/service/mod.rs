@@ -39,7 +39,7 @@ use crate::{
                     TcpConfig, UdpConfig,
                 },
             },
-            storage::RecentSessionsData,
+            storage::{RecentSessionsData, StorageEvent},
         },
     },
     session::{InitSessionError, service::SessionService},
@@ -209,7 +209,7 @@ impl HostService {
         Ok(())
     }
 
-    async fn handle_storage_event(&self, event: crate::host::ui::storage::StorageEvent) {
+    async fn handle_storage_event(&self, event: StorageEvent) {
         self.communication
             .senders
             .send_message(HostMessage::Storage(event))
@@ -221,17 +221,21 @@ impl HostService {
         request: RecentSessionOpenRequest,
     ) -> Result<(), HostError> {
         match request {
-            RecentSessionOpenRequest::Restore(options) => {
-                let session_params = SessionService::spawn(
+            RecentSessionOpenRequest::Restore {
+                options,
+                restore_state,
+            } => {
+                let session = SessionService::spawn(
                     self.communication.senders.get_shared_senders(),
                     *options,
+                    restore_state,
                 )
                 .await?;
 
                 self.communication
                     .senders
                     .send_message(HostMessage::SessionCreated {
-                        session_params: Box::new(session_params),
+                        session: Box::new(session),
                         session_setup_id: None,
                     })
                     .await;
@@ -291,14 +295,17 @@ impl HostService {
             // Start sessions directly for text files.
             let origin = ObserveOptions::file(file_path, FileFormat::Text, ParserType::Text(()));
 
-            let session_params =
-                SessionService::spawn(self.communication.senders.get_shared_senders(), origin)
-                    .await?;
+            let session = SessionService::spawn(
+                self.communication.senders.get_shared_senders(),
+                origin,
+                None,
+            )
+            .await?;
 
             self.communication
                 .senders
                 .send_message(HostMessage::SessionCreated {
-                    session_params: Box::new(session_params),
+                    session: Box::new(session),
                     session_setup_id: None,
                 })
                 .await;
@@ -469,9 +476,10 @@ impl HostService {
                         parser: ParserType::Text(()),
                     };
 
-                    let session_params = match SessionService::spawn(
+                    let session = match SessionService::spawn(
                         self.communication.senders.get_shared_senders(),
                         origin,
+                        None,
                     )
                     .await
                     {
@@ -485,7 +493,7 @@ impl HostService {
                     self.communication
                         .senders
                         .send_message(HostMessage::SessionCreated {
-                            session_params: Box::new(session_params),
+                            session: Box::new(session),
                             session_setup_id: None,
                         })
                         .await;
@@ -775,13 +783,17 @@ impl HostService {
 
         let origin = ObserveOptions { origin, parser };
 
-        let session_params =
-            SessionService::spawn(self.communication.senders.get_shared_senders(), origin).await?;
+        let session = SessionService::spawn(
+            self.communication.senders.get_shared_senders(),
+            origin,
+            None,
+        )
+        .await?;
 
         self.communication
             .senders
             .send_message(HostMessage::SessionCreated {
-                session_params: Box::new(session_params),
+                session: Box::new(session),
                 session_setup_id,
             })
             .await;

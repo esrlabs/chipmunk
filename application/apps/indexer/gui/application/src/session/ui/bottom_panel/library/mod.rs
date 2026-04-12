@@ -317,9 +317,9 @@ impl LibraryUI {
 
         // Library rows represent session membership, not the enabled flag.
         if shared.filters.is_filter_applied(&id) {
-            shared.filters.unapply_filter(registry, &id);
+            shared.unapply_filter(registry, &id);
         } else {
-            shared.filters.apply_filter(registry, id);
+            shared.apply_filter(registry, id);
         }
 
         if was_enabled || shared.filters.is_filter_applied(&id) {
@@ -340,7 +340,7 @@ impl LibraryUI {
 
         let was_enabled = shared.filters.is_filter_enabled(&id);
         registry.remove_filter(&id);
-        shared.filters.unapply_filter(registry, &id);
+        shared.unapply_filter(registry, &id);
 
         // Removing a disabled or unapplied definition does not change the
         // active backend pipeline, so only enabled rows require a re-sync.
@@ -362,9 +362,9 @@ impl LibraryUI {
 
         // Library rows represent session membership, not the enabled flag.
         if shared.filters.is_search_value_applied(&id) {
-            shared.filters.unapply_search_value(registry, &id);
+            shared.unapply_search_value(registry, &id);
         } else {
-            shared.filters.apply_search_value(registry, id);
+            shared.apply_search_value(registry, id);
         }
 
         if was_enabled || shared.filters.is_search_value_applied(&id) {
@@ -385,7 +385,7 @@ impl LibraryUI {
 
         let was_enabled = shared.filters.is_search_value_enabled(&id);
         registry.remove_search_value(&id);
-        shared.filters.unapply_search_value(registry, &id);
+        shared.unapply_search_value(registry, &id);
 
         // Chart/search-value sync is needed only when the removed definition
         // was contributing to the active extraction pipeline.

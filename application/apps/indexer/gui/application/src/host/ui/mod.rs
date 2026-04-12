@@ -157,18 +157,32 @@ impl Host {
                 }
             }
             HostMessage::SessionCreated {
-                mut session_params,
+                session,
                 session_setup_id,
             } => {
-                if let Some(snapshot) = session_params.recent_session.take() {
-                    self.storage.recent_sessions.register_session(snapshot);
-                }
+                let crate::session::SpawnedSession {
+                    params,
+                    recent_registration,
+                    restore_state,
+                } = *session;
 
-                self.state.add_session(
-                    *session_params,
-                    session_setup_id,
-                    self.senders.cmd_tx.clone(),
-                )
+                let session_id =
+                    self.state
+                        .add_session(params, session_setup_id, self.senders.cmd_tx.clone());
+
+                let Some(session) = self.state.sessions.get_mut(&session_id) else {
+                    return;
+                };
+
+                let registry = &mut self.state.registry;
+
+                if let Some(restore_state) = restore_state {
+                    session.apply_recent_restore(restore_state, registry, &mut self.ui_actions);
+                }
+                let state = session.capture_opened_recent_state(&registry.filters);
+                let snapshot = recent_registration.into_snapshot(state);
+
+                self.storage.recent_sessions.register_session(snapshot);
             }
             HostMessage::MultiFilesSetup(state) => self
                 .state
@@ -309,6 +323,21 @@ impl Host {
         }
     }
 
+    /// Check for changes in session and update recent session storage.
+    fn handle_recent_sessions(&mut self) {
+        let Self { state, storage, .. } = self;
+
+        for session in state.sessions.values_mut() {
+            let Some(state) = session.take_recent_state_update(&state.registry.filters) else {
+                continue;
+            };
+
+            storage
+                .recent_sessions
+                .update_session_state(session.recent_source_key(), state);
+        }
+    }
+
     /// Renders a blocking modal to inform the user that a system file dialog
     /// is currently active.
     ///
@@ -373,6 +402,8 @@ impl eframe::App for Host {
             .sessions
             .iter_mut()
             .for_each(|(_id, session)| session.handle_messages(&mut self.ui_actions));
+
+        self.handle_recent_sessions();
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {

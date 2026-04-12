@@ -66,12 +66,13 @@ impl HostState {
         matches!(self.active_tab(), TabType::Session(_))
     }
 
+    /// Add session to state returning it's ID.
     pub fn add_session(
         &mut self,
         session: InitSessionParams,
         session_setup_id: Option<Uuid>,
         host_cmd_tx: Sender<HostCommand>,
-    ) {
+    ) -> Uuid {
         let session = Session::new(session, host_cmd_tx);
         let id = session.get_info().id;
 
@@ -90,6 +91,8 @@ impl HostState {
             self.tabs.push(TabType::Session(id));
             self.active_tab_idx = self.tabs.len() - 1;
         }
+
+        id
     }
 
     pub fn add_session_setup(
