@@ -516,7 +516,7 @@ mod tests {
     #[test]
     fn bookmarked_row_has_no_cell_highlight() {
         let mut shared = new_shared();
-        shared.logs.insert_bookmark(7);
+        shared.logs.bookmarked_rows.insert(7);
         let compiled = compile_regexes([SearchFilter::plain("warn")]);
 
         assert!(matched_filter_indices(&shared, 7).is_none());

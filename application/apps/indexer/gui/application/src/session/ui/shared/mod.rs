@@ -353,7 +353,7 @@ impl SessionShared {
 
     /// Inserts a bookmark row and tracks recent-session dirtiness.
     pub fn insert_bookmark(&mut self, row: u64) -> bool {
-        let changed = self.logs.insert_bookmark(row);
+        let changed = self.logs.bookmarked_rows.insert(row);
         if changed {
             self.bump_recent_revision();
         }
@@ -362,7 +362,7 @@ impl SessionShared {
 
     /// Removes a bookmark row and tracks recent-session dirtiness.
     pub fn remove_bookmark(&mut self, row: u64) -> bool {
-        let changed = self.logs.remove_bookmark(row);
+        let changed = self.logs.bookmarked_rows.remove(&row);
         if changed {
             self.bump_recent_revision();
         }

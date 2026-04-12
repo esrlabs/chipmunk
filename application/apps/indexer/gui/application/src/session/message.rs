@@ -37,8 +37,8 @@ pub enum SessionMessage {
     /// The nearest log index to jump to in search table.
     NearestPosition(Result<Option<NearestPosition>, SessionError>),
 
-    /// Confirmed bookmark mutation from the session backend.
-    BookmarkUpdated { row: u64, is_bookmarked: bool },
+    /// Confirmed bookmark mutations from the session backend.
+    BookmarkUpdated(Vec<BookmarkUpdate>),
 
     // --- Charts ---
     //
@@ -71,4 +71,11 @@ pub enum SessionMessage {
         attachment: AttachmentInfo,
         len: u64,
     },
+}
+
+/// Bookmark mutation confirmed by the session backend.
+#[derive(Debug)]
+pub struct BookmarkUpdate {
+    pub row: u64,
+    pub is_bookmarked: bool,
 }

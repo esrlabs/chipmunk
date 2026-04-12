@@ -30,7 +30,7 @@ use crate::{
         InitSessionError, InitSessionParams, SpawnedSession,
         command::AttachSource,
         communication::{self, ServiceSenders, SharedSenders},
-        message::SessionMessage,
+        message::{BookmarkUpdate, SessionMessage},
         types::{ObserveOperation, OperationPhase},
         ui::{SessionInfo, chart::ChartBar},
     },
@@ -248,22 +248,17 @@ impl SessionService {
                     .send_session_msg(SessionMessage::SelectedLog(selected_log))
                     .await;
             }
-            SessionCommand::AddBookmark(row) => {
-                self.session.add_bookmark(row).await?;
-                self.senders
-                    .send_session_msg(SessionMessage::BookmarkUpdated {
-                        row,
-                        is_bookmarked: true,
-                    })
-                    .await;
+            SessionCommand::AddBookmarks(rows) => {
+                self.add_bookmarks(rows).await?;
             }
             SessionCommand::RemoveBookmark(row) => {
                 self.session.remove_bookmark(row).await?;
+                let bookmark = vec![BookmarkUpdate {
+                    row,
+                    is_bookmarked: false,
+                }];
                 self.senders
-                    .send_session_msg(SessionMessage::BookmarkUpdated {
-                        row,
-                        is_bookmarked: false,
-                    })
+                    .send_session_msg(SessionMessage::BookmarkUpdated(bookmark))
                     .await;
             }
             SessionCommand::GetChartHistogram { dataset_len, range } => {
@@ -420,6 +415,42 @@ impl SessionService {
         }
 
         Ok(ControlFlow::Continue(()))
+    }
+
+    async fn add_bookmarks(&mut self, rows: Vec<u64>) -> Result<(), SessionError> {
+        let mut added = Vec::new();
+        let mut errors = Vec::new();
+
+        for row in rows {
+            match self.session.add_bookmark(row).await {
+                Ok(()) => added.push(BookmarkUpdate {
+                    row,
+                    is_bookmarked: true,
+                }),
+                Err(error) => errors.push((row, error)),
+            }
+        }
+
+        if !added.is_empty() {
+            self.senders
+                .send_session_msg(SessionMessage::BookmarkUpdated(added))
+                .await;
+        }
+
+        match errors.len() {
+            0 => Ok(()),
+            1 => Err(errors.pop().expect("one error must exist").1.into()),
+            _ => {
+                let details = errors
+                    .into_iter()
+                    .map(|(row, error)| format!("- row {row}: {error}"))
+                    .join("; ");
+                Err(
+                    ComputationError::Process(format!("Failed to add bookmarks:\n{details}"))
+                        .into(),
+                )
+            }
+        }
     }
 
     async fn handle_callbacks(&mut self, event: CallbackEvent) -> Result<(), SessionError> {

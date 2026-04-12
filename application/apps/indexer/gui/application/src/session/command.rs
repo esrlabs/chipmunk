@@ -40,8 +40,8 @@ pub enum SessionCommand {
     /// Request details for a specific log line.
     GetSelectedLog(u64),
 
-    /// Insert a bookmark for the provided stream row.
-    AddBookmark(u64),
+    /// Insert bookmarks for the provided stream rows.
+    AddBookmarks(Vec<u64>),
 
     /// Remove a bookmark from the provided stream row.
     RemoveBookmark(u64),
