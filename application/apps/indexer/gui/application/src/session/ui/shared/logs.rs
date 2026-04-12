@@ -144,18 +144,6 @@ impl LogsState {
     pub fn is_bookmarked(&self, row: u64) -> bool {
         self.bookmarked_rows.contains(&row)
     }
-
-    /// Marks `row` as bookmarked.
-    #[inline]
-    pub fn insert_bookmark(&mut self, row: u64) -> bool {
-        self.bookmarked_rows.insert(row)
-    }
-
-    /// Removes the bookmark for `row`.
-    #[inline]
-    pub fn remove_bookmark(&mut self, row: u64) -> bool {
-        self.bookmarked_rows.remove(&row)
-    }
 }
 
 #[cfg(test)]

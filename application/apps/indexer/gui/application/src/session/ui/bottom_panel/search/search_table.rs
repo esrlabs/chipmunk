@@ -165,7 +165,7 @@ impl<'a> LogsDelegate<'a> {
         let cmd = if self.shared.logs.is_bookmarked(pos) {
             SessionCommand::RemoveBookmark(pos)
         } else {
-            SessionCommand::AddBookmark(pos)
+            SessionCommand::AddBookmarks(vec![pos])
         };
         self.actions.try_send_command(&self.table.cmd_tx, cmd);
     }
