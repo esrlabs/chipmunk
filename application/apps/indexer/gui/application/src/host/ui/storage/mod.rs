@@ -18,8 +18,9 @@ pub use file_explorer::{
 };
 pub use recent::MAX_RECENT_SESSIONS;
 pub use recent::{
-    RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource, RecentSessionsData,
-    RecentSessionsStorage,
+    RecentSessionRegistration, RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource,
+    RecentSessionStateSnapshot, RecentSessionsData, RecentSessionsStorage, RecentSourceSnapshot,
+    SearchFilterSnapshot,
 };
 pub use types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
@@ -216,8 +217,9 @@ mod tests {
     use std::{thread, time::Duration};
 
     use super::{
-        FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionSnapshot,
-        RecentSessionsData, StorageError, StorageErrorKind, StorageEvent,
+        FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionRegistration,
+        RecentSessionSnapshot, RecentSessionsData, RecentSourceSnapshot, StorageError,
+        StorageErrorKind, StorageEvent,
     };
     use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
@@ -239,8 +241,21 @@ mod tests {
         (runtime, ui_actions)
     }
 
+    fn snapshot_from_observe_options(
+        title: String,
+        options: stypes::ObserveOptions,
+    ) -> RecentSessionSnapshot {
+        RecentSessionRegistration::new(
+            title,
+            0,
+            RecentSourceSnapshot::from_observe_origin(options.origin),
+            options.parser,
+        )
+        .into_snapshot(Default::default())
+    }
+
     fn make_dirty(storage: &mut HostStorage) {
-        let snapshot = RecentSessionSnapshot::from_observe_options(
+        let snapshot = snapshot_from_observe_options(
             String::from("test"),
             stypes::ObserveOptions::file(
                 std::env::temp_dir().join("chipmunk-storage-mod-test.log"),

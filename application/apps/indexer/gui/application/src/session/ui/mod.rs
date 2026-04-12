@@ -10,7 +10,12 @@ use crate::{
         command::HostCommand,
         common::parsers::ParserNames,
         notification::AppNotification,
-        ui::{HostAction, UiActions, registry::HostRegistry, state::PanelsVisibility},
+        ui::{
+            HostAction, UiActions,
+            registry::{HostRegistry, filters::FilterRegistry},
+            state::PanelsVisibility,
+            storage::RecentSessionStateSnapshot,
+        },
     },
     session::{
         InitSessionParams,
@@ -35,11 +40,13 @@ mod bottom_panel;
 mod common;
 mod definitions;
 mod logs_table;
+mod recent;
 mod shared;
 mod side_panel;
 mod status_bar;
 
 pub use bottom_panel::chart;
+pub use recent::RecentSessionRuntime;
 pub use shared::{SessionInfo, SessionShared};
 
 #[derive(Debug)]
@@ -47,6 +54,7 @@ pub struct Session {
     cmd_tx: Sender<SessionCommand>,
     receivers: UiReceivers,
     shared: SessionShared,
+    recent_session: RecentSessionRuntime,
     logs_table: LogsTable,
     bottom_panel: BottomPanelUI,
     side_panel: SidePanelUi,
@@ -56,7 +64,8 @@ impl Session {
     pub fn new(init: InitSessionParams, host_cmd_tx: Sender<HostCommand>) -> Self {
         let InitSessionParams {
             session_info,
-            recent_session: _,
+            recent_source_key,
+            supports_bookmarks,
             communication,
             observe_op,
         } = init;
@@ -74,6 +83,7 @@ impl Session {
             receivers,
             side_panel: SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone()),
             shared: SessionShared::new(session_info, observe_op),
+            recent_session: RecentSessionRuntime::new(recent_source_key, supports_bookmarks),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), host_cmd_tx, schema),
             cmd_tx: senders.cmd_tx,
@@ -82,6 +92,48 @@ impl Session {
 
     pub fn get_info(&self) -> &SessionInfo {
         self.shared.get_info()
+    }
+
+    /// Applies the restored recent-session state through the normal session and registry path.
+    ///
+    /// Any UI signals emitted while rebuilding that state are handled immediately so the first
+    /// render starts from a clean signal queue.
+    pub fn apply_recent_restore(
+        &mut self,
+        restore_state: RecentSessionStateSnapshot,
+        registry: &mut HostRegistry,
+        actions: &mut UiActions,
+    ) {
+        self.recent_session.apply_restore(
+            restore_state,
+            &mut self.shared,
+            actions,
+            &self.cmd_tx,
+            &mut registry.filters,
+        );
+        self.handle_signals();
+    }
+
+    /// Captures the canonical recent-session state after restore and establishes the update baseline.
+    pub fn capture_opened_recent_state(
+        &mut self,
+        registry: &FilterRegistry,
+    ) -> RecentSessionStateSnapshot {
+        self.recent_session
+            .capture_opened_state(&self.shared, registry)
+    }
+
+    /// Returns the next recent-session state update when tracked semantic state changed.
+    pub fn take_recent_state_update(
+        &mut self,
+        registry: &FilterRegistry,
+    ) -> Option<RecentSessionStateSnapshot> {
+        self.recent_session
+            .take_state_update(&self.shared, registry)
+    }
+
+    pub fn recent_source_key(&self) -> &str {
+        self.recent_session.source_key()
     }
 
     pub fn on_close_session(&self, actions: &mut UiActions) {
@@ -212,9 +264,9 @@ impl Session {
                 }
                 SessionMessage::BookmarkUpdated { row, is_bookmarked } => {
                     if is_bookmarked {
-                        self.shared.logs.insert_bookmark(row);
+                        self.shared.insert_bookmark(row);
                     } else {
-                        self.shared.logs.remove_bookmark(row);
+                        self.shared.remove_bookmark(row);
                     }
                 }
                 SessionMessage::ChartHistogram(map) => {
@@ -236,6 +288,7 @@ impl Session {
                     self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SourceAdded { observe_op } => {
+                    self.recent_session.disable_updates();
                     self.shared.add_operation(*observe_op);
                 }
                 SessionMessage::OperationUpdated {
@@ -247,7 +300,11 @@ impl Session {
                     }
                     // Potential components which keep track for operations can go here.
                 }
-                SessionMessage::FileReadCompleted => self.shared.observe.set_file_read_completed(),
+                SessionMessage::FileReadCompleted => {
+                    self.shared.observe.set_file_read_completed();
+                    self.recent_session
+                        .on_file_read_completed(&self.shared, actions, &self.cmd_tx);
+                }
                 SessionMessage::AttachmentsUpdated { attachment, len } => {
                     self.shared.attachments.add(attachment);
                     if self.shared.attachments.attachments().len() as u64 != len {

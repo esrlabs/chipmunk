@@ -46,6 +46,9 @@ pub struct SessionShared {
     pub observe: ObserveState,
 
     pub attachments: AttachmentsState,
+
+    /// Monotonic change marker for recent-session state updates.
+    recent_revision: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,6 +76,7 @@ impl SessionShared {
             logs: LogsState::default(),
             observe: ObserveState::new(observe_op),
             attachments: AttachmentsState::default(),
+            recent_revision: 0,
         }
     }
 
@@ -114,6 +118,7 @@ impl SessionShared {
             logs: _,
             observe,
             attachments: _,
+            recent_revision: _,
         } = self;
 
         if observe.update_operation(operation_id, phase).consumed() {
@@ -212,6 +217,156 @@ impl SessionShared {
             });
             commands
         }
+    }
+
+    /// Bumps the revision used to detect recent-session snapshot changes.
+    pub fn bump_recent_revision(&mut self) {
+        self.recent_revision = self.recent_revision.wrapping_add(1);
+    }
+
+    /// Returns the current revision used for recent-session update polling.
+    pub fn recent_revision(&self) -> u64 {
+        self.recent_revision
+    }
+
+    /// Updates one applied filter enabled flag and tracks recent-session dirtiness.
+    pub fn set_filter_enabled(&mut self, filter_id: &Uuid, enabled: bool) -> bool {
+        let changed = self.filters.set_filter_enabled(filter_id, enabled);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Updates one applied search value enabled flag and tracks recent-session dirtiness.
+    pub fn set_search_value_enabled(&mut self, value_id: &Uuid, enabled: bool) -> bool {
+        let changed = self.filters.set_search_value_enabled(value_id, enabled);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Pins the active temporary search as a filter and tracks recent-session dirtiness.
+    pub fn pin_temp_search(&mut self, registry: &mut FilterRegistry) -> bool {
+        let changed = self.filters.pin_temp_search(registry);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Pins the active temporary search as a search value and tracks recent-session dirtiness.
+    pub fn pin_temp_search_as_value(&mut self, registry: &mut FilterRegistry) -> bool {
+        let changed = self.filters.pin_temp_search_as_value(registry);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Applies a filter to this session and tracks recent-session dirtiness.
+    pub fn apply_filter(&mut self, registry: &mut FilterRegistry, filter_id: Uuid) -> bool {
+        let changed = self.filters.apply_filter(registry, filter_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Applies a filter with an explicit enabled state and tracks recent-session dirtiness.
+    pub fn apply_filter_with_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        filter_id: Uuid,
+        enabled: bool,
+    ) -> bool {
+        let changed = self
+            .filters
+            .apply_filter_with_state(registry, filter_id, enabled);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Removes a filter from this session and tracks recent-session dirtiness.
+    pub fn unapply_filter(&mut self, registry: &mut FilterRegistry, filter_id: &Uuid) -> bool {
+        let changed = self.filters.unapply_filter(registry, filter_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Rebinds an applied filter row to a new registry id and tracks recent-session dirtiness.
+    pub fn rebind_filter(&mut self, current_id: &Uuid, next_id: Uuid) -> bool {
+        let changed = self.filters.rebind_filter(current_id, next_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Applies a search value to this session and tracks recent-session dirtiness.
+    pub fn apply_search_value(&mut self, registry: &mut FilterRegistry, value_id: Uuid) -> bool {
+        let changed = self.filters.apply_search_value(registry, value_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Applies a search value with an explicit enabled state and tracks recent-session dirtiness.
+    pub fn apply_search_value_with_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        value_id: Uuid,
+        enabled: bool,
+    ) -> bool {
+        let changed = self
+            .filters
+            .apply_search_value_with_state(registry, value_id, enabled);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Removes a search value from this session and tracks recent-session dirtiness.
+    pub fn unapply_search_value(&mut self, registry: &mut FilterRegistry, value_id: &Uuid) -> bool {
+        let changed = self.filters.unapply_search_value(registry, value_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Rebinds an applied search-value row to a new registry id and tracks recent-session dirtiness.
+    pub fn rebind_search_value(&mut self, current_id: &Uuid, next_id: Uuid) -> bool {
+        let changed = self.filters.rebind_search_value(current_id, next_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Inserts a bookmark row and tracks recent-session dirtiness.
+    pub fn insert_bookmark(&mut self, row: u64) -> bool {
+        let changed = self.logs.insert_bookmark(row);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Removes a bookmark row and tracks recent-session dirtiness.
+    pub fn remove_bookmark(&mut self, row: u64) -> bool {
+        let changed = self.logs.remove_bookmark(row);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
     }
 }
 

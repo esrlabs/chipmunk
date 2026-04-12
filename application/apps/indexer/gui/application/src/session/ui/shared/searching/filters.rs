@@ -220,33 +220,42 @@ impl FiltersState {
     }
 
     /// Adds the filter to the session or updates its enabled state in place.
-    fn set_filter_entry(&mut self, registry: &mut FilterRegistry, id: Uuid, enabled: bool) {
+    fn set_filter_entry(&mut self, registry: &mut FilterRegistry, id: Uuid, enabled: bool) -> bool {
         if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == id) {
+            let changed = item.enabled != enabled;
             item.enabled = enabled;
-            return;
+            return changed;
         }
 
         let colors = self.next_filter_color_pair();
         self.filter_entries
             .push(AppliedFilterState::new(id, enabled, colors));
         registry.apply_filter_to_session(id, self.session_id);
+        true
     }
 
     /// Adds the search value to the session or updates its enabled state in place.
-    fn set_search_value_entry(&mut self, registry: &mut FilterRegistry, id: Uuid, enabled: bool) {
+    fn set_search_value_entry(
+        &mut self,
+        registry: &mut FilterRegistry,
+        id: Uuid,
+        enabled: bool,
+    ) -> bool {
         if let Some(item) = self
             .search_value_entries
             .iter_mut()
             .find(|item| item.id == id)
         {
+            let changed = item.enabled != enabled;
             item.enabled = enabled;
-            return;
+            return changed;
         }
 
         let color = self.next_search_value_color();
         self.search_value_entries
             .push(AppliedSearchValueState::new(id, enabled, color));
         registry.apply_search_value_to_session(id, self.session_id);
+        true
     }
 
     /// Updates the enabled flag for an existing filter and reports
@@ -278,8 +287,8 @@ impl FiltersState {
     }
 
     /// Adds a filter to the session in the enabled state.
-    pub fn apply_filter(&mut self, registry: &mut FilterRegistry, id: Uuid) {
-        self.set_filter_entry(registry, id, true);
+    pub fn apply_filter(&mut self, registry: &mut FilterRegistry, id: Uuid) -> bool {
+        self.set_filter_entry(registry, id, true)
     }
 
     /// Adds a filter to the session while preserving an explicit enabled state.
@@ -288,16 +297,19 @@ impl FiltersState {
         registry: &mut FilterRegistry,
         id: Uuid,
         enabled: bool,
-    ) {
-        self.set_filter_entry(registry, id, enabled);
+    ) -> bool {
+        self.set_filter_entry(registry, id, enabled)
     }
 
     /// Removes the filter from the session entirely.
-    pub fn unapply_filter(&mut self, registry: &mut FilterRegistry, id: &Uuid) {
+    pub fn unapply_filter(&mut self, registry: &mut FilterRegistry, id: &Uuid) -> bool {
         if self.is_filter_applied(id) {
             self.filter_entries.retain(|item| item.id != *id);
             registry.unapply_filter_from_session(*id, self.session_id);
+            return true;
         }
+
+        false
     }
 
     /// Swaps the registry definition behind an applied filter while keeping the
@@ -325,8 +337,8 @@ impl FiltersState {
     }
 
     /// Adds a search value to the session in the enabled state.
-    pub fn apply_search_value(&mut self, registry: &mut FilterRegistry, id: Uuid) {
-        self.set_search_value_entry(registry, id, true);
+    pub fn apply_search_value(&mut self, registry: &mut FilterRegistry, id: Uuid) -> bool {
+        self.set_search_value_entry(registry, id, true)
     }
 
     /// Adds a search value to the session while preserving an explicit enabled state.
@@ -335,16 +347,19 @@ impl FiltersState {
         registry: &mut FilterRegistry,
         id: Uuid,
         enabled: bool,
-    ) {
-        self.set_search_value_entry(registry, id, enabled);
+    ) -> bool {
+        self.set_search_value_entry(registry, id, enabled)
     }
 
     /// Removes the search value from the session entirely.
-    pub fn unapply_search_value(&mut self, registry: &mut FilterRegistry, id: &Uuid) {
+    pub fn unapply_search_value(&mut self, registry: &mut FilterRegistry, id: &Uuid) -> bool {
         if self.is_search_value_applied(id) {
             self.search_value_entries.retain(|item| item.id != *id);
             registry.unapply_search_value_from_session(*id, self.session_id);
+            return true;
         }
+
+        false
     }
 
     /// Swaps the registry definition behind an applied search value while

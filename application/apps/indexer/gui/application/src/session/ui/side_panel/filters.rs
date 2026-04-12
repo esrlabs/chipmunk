@@ -862,13 +862,14 @@ impl FiltersUi {
                     }
                     RegistryEditOutcome::EditedInPlace => {
                         self.clear_filter_edit_for(filter_id);
+                        shared.bump_recent_revision();
                         shared
                             .sync_search_pipelines(registry, SearchSyncTarget::Filter)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
                     RegistryEditOutcome::Reassigned(next_filter_id) => {
-                        if shared.filters.rebind_filter(&filter_id, next_filter_id) {
+                        if shared.rebind_filter(&filter_id, next_filter_id) {
                             self.replace_selection(
                                 SelectedSidebarItem::Filter(filter_id),
                                 SelectedSidebarItem::Filter(next_filter_id),
@@ -913,13 +914,14 @@ impl FiltersUi {
                     }
                     RegistryEditOutcome::EditedInPlace => {
                         self.clear_search_value_edit_for(value_id);
+                        shared.bump_recent_revision();
                         shared
                             .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
                     RegistryEditOutcome::Reassigned(next_value_id) => {
-                        if shared.filters.rebind_search_value(&value_id, next_value_id) {
+                        if shared.rebind_search_value(&value_id, next_value_id) {
                             self.replace_selection(
                                 SelectedSidebarItem::SearchValue(value_id),
                                 SelectedSidebarItem::SearchValue(next_value_id),
@@ -937,7 +939,7 @@ impl FiltersUi {
                 self.clear_search_value_edit_for(value_id);
             }
             FilterPanelAction::ToggleFilter(filter_id, enabled) => {
-                if shared.filters.set_filter_enabled(&filter_id, enabled) {
+                if shared.set_filter_enabled(&filter_id, enabled) {
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::Filter)
                         .into_iter()
@@ -970,13 +972,14 @@ impl FiltersUi {
                 match registry.edit_filter_for_session(filter_id, shared.get_id(), next_filter) {
                     RegistryEditOutcome::NotFound => {}
                     RegistryEditOutcome::EditedInPlace => {
+                        shared.bump_recent_revision();
                         shared
                             .sync_search_pipelines(registry, SearchSyncTarget::Filter)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
                     RegistryEditOutcome::Reassigned(next_filter_id) => {
-                        if shared.filters.rebind_filter(&filter_id, next_filter_id) {
+                        if shared.rebind_filter(&filter_id, next_filter_id) {
                             self.replace_selection(
                                 SelectedSidebarItem::Filter(filter_id),
                                 SelectedSidebarItem::Filter(next_filter_id),
@@ -993,7 +996,7 @@ impl FiltersUi {
             FilterPanelAction::RemoveFilter(filter_id) => {
                 self.clear_filter_edit_for(filter_id);
                 self.clear_selection_for(SelectedSidebarItem::Filter(filter_id));
-                shared.filters.unapply_filter(registry, &filter_id);
+                shared.unapply_filter(registry, &filter_id);
                 shared
                     .sync_search_pipelines(registry, SearchSyncTarget::Filter)
                     .into_iter()
@@ -1008,10 +1011,8 @@ impl FiltersUi {
                 if let Some(value_id) = converted_value
                     && was_applied
                 {
-                    shared.filters.unapply_filter(registry, &filter_id);
-                    shared
-                        .filters
-                        .apply_search_value_with_state(registry, value_id, was_enabled);
+                    shared.unapply_filter(registry, &filter_id);
+                    shared.apply_search_value_with_state(registry, value_id, was_enabled);
                     self.replace_selection(
                         SelectedSidebarItem::Filter(filter_id),
                         SelectedSidebarItem::SearchValue(value_id),
@@ -1023,7 +1024,7 @@ impl FiltersUi {
                 }
             }
             FilterPanelAction::ToggleSearchValue(value_id, enabled) => {
-                if shared.filters.set_search_value_enabled(&value_id, enabled) {
+                if shared.set_search_value_enabled(&value_id, enabled) {
                     shared
                         .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
                         .into_iter()
@@ -1033,7 +1034,7 @@ impl FiltersUi {
             FilterPanelAction::RemoveSearchValue(value_id) => {
                 self.clear_search_value_edit_for(value_id);
                 self.clear_selection_for(SelectedSidebarItem::SearchValue(value_id));
-                shared.filters.unapply_search_value(registry, &value_id);
+                shared.unapply_search_value(registry, &value_id);
                 shared
                     .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
                     .into_iter()
@@ -1048,10 +1049,8 @@ impl FiltersUi {
                 if let Some(filter_id) = converted_filter
                     && was_applied
                 {
-                    shared.filters.unapply_search_value(registry, &value_id);
-                    shared
-                        .filters
-                        .apply_filter_with_state(registry, filter_id, was_enabled);
+                    shared.unapply_search_value(registry, &value_id);
+                    shared.apply_filter_with_state(registry, filter_id, was_enabled);
                     self.replace_selection(
                         SelectedSidebarItem::SearchValue(value_id),
                         SelectedSidebarItem::Filter(filter_id),

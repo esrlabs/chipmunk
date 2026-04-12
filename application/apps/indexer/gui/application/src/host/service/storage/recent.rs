@@ -18,7 +18,8 @@ use crate::{
         error::HostError,
         ui::storage::{
             MAX_RECENT_SESSIONS, RecentSessionReopenMode, RecentSessionSnapshot,
-            RecentSessionSource, RecentSessionsData, StorageError, StorageErrorKind,
+            RecentSessionSource, RecentSessionStateSnapshot, RecentSessionsData, StorageError,
+            StorageErrorKind,
         },
     },
     session::InitSessionError,
@@ -30,7 +31,10 @@ const RECENT_SESSIONS_FILE: &str = "recent_sessions.json";
 #[derive(Debug)]
 pub enum RecentSessionOpenRequest {
     /// Restore the session directly from rebuilt observe options.
-    Restore(Box<stypes::ObserveOptions>),
+    Restore {
+        options: Box<stypes::ObserveOptions>,
+        restore_state: Option<RecentSessionStateSnapshot>,
+    },
     /// Reopen one or more files through the normal host open flow.
     OpenFiles(Vec<PathBuf>),
     /// Reopen a stream source by opening the setup flow with preselected types.
@@ -52,11 +56,23 @@ pub fn resolve_open_request(
     let OpenRecentSessionParam { snapshot, mode } = params;
 
     match mode {
-        RecentSessionReopenMode::RestoreSession
-        | RecentSessionReopenMode::RestoreParserConfiguration => snapshot
+        RecentSessionReopenMode::RestoreSession => snapshot
             .to_observe_options()
-            .map(Box::new)
-            .map(RecentSessionOpenRequest::Restore)
+            .map(|options| RecentSessionOpenRequest::Restore {
+                options: Box::new(options),
+                restore_state: Some(snapshot.state),
+            })
+            .ok_or_else(|| {
+                HostError::InitSessionError(InitSessionError::Other(
+                    "Recent session snapshot cannot be restored.".into(),
+                ))
+            }),
+        RecentSessionReopenMode::RestoreParserConfiguration => snapshot
+            .to_observe_options()
+            .map(|options| RecentSessionOpenRequest::Restore {
+                options: Box::new(options),
+                restore_state: None,
+            })
             .ok_or_else(|| {
                 HostError::InitSessionError(InitSessionError::Other(
                     "Recent session snapshot cannot be restored.".into(),
@@ -268,12 +284,20 @@ mod tests {
         time::{SystemTime, UNIX_EPOCH},
     };
 
+    use processor::search::filter::SearchFilter;
     use stypes::{ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig, Transport};
 
-    use crate::host::service::storage::{STORAGE_DIR, storage_path_from_home};
-    use crate::host::ui::storage::{
-        MAX_RECENT_SESSIONS, RecentSessionSnapshot, RecentSessionsData, RecentSessionsStorage,
-        StorageError, StorageErrorKind,
+    use crate::{
+        common::time::unix_timestamp_now,
+        host::{
+            command::OpenRecentSessionParam,
+            service::storage::{STORAGE_DIR, storage_path_from_home},
+            ui::storage::{
+                MAX_RECENT_SESSIONS, RecentSessionRegistration, RecentSessionReopenMode,
+                RecentSessionSnapshot, RecentSessionsData, RecentSessionsStorage,
+                RecentSourceSnapshot, SearchFilterSnapshot, StorageError, StorageErrorKind,
+            },
+        },
     };
 
     use super::*;
@@ -301,8 +325,21 @@ mod tests {
         save_to_path(&path, data)
     }
 
+    fn snapshot_from_observe_options(
+        title: String,
+        options: ObserveOptions,
+    ) -> RecentSessionSnapshot {
+        RecentSessionRegistration::new(
+            title,
+            unix_timestamp_now(),
+            RecentSourceSnapshot::from_observe_origin(options.origin),
+            options.parser,
+        )
+        .into_snapshot(Default::default())
+    }
+
     fn file_snapshot(path: PathBuf) -> RecentSessionSnapshot {
-        RecentSessionSnapshot::from_observe_options(
+        snapshot_from_observe_options(
             path.file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("file")
@@ -313,7 +350,7 @@ mod tests {
 
     fn stream_snapshot(bind_addr: impl Into<String>) -> RecentSessionSnapshot {
         let bind_addr = bind_addr.into();
-        RecentSessionSnapshot::from_observe_options(
+        snapshot_from_observe_options(
             bind_addr.clone(),
             ObserveOptions {
                 origin: ObserveOrigin::Stream(
@@ -479,7 +516,17 @@ mod tests {
         let config_path = home_dir.join("saved.log");
         fs::write(&config_path, "test").expect("config file should be written");
         let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
-        storage.register_session(file_snapshot(config_path));
+        let mut snapshot = file_snapshot(config_path);
+        snapshot.state.filters = vec![SearchFilterSnapshot {
+            filter: SearchFilter::plain("status=ok").ignore_case(true),
+            enabled: false,
+        }];
+        snapshot.state.search_values = vec![SearchFilterSnapshot {
+            filter: SearchFilter::plain("cpu=(\\d+)").regex(true),
+            enabled: true,
+        }];
+        snapshot.state.bookmarks = vec![2, 9];
+        storage.register_session(snapshot);
         let data = storage.get_save_data().expect("dirty storage should save");
 
         save_to_home(&home_dir, &data).expect("save should succeed");
@@ -493,6 +540,41 @@ mod tests {
         assert_eq!(loaded.sessions[0].title, data.sessions[0].title);
         assert_eq!(loaded.sessions[0].last_opened, data.sessions[0].last_opened);
         assert_eq!(loaded.sessions[0].source_key, data.sessions[0].source_key);
+        assert_eq!(loaded.sessions[0].state, data.sessions[0].state);
         let _ = fs::remove_dir_all(home_dir);
+    }
+
+    #[test]
+    fn restore_modes_split_state() {
+        let mut snapshot = stream_snapshot("127.0.0.1:5555");
+        snapshot.state.filters = vec![SearchFilterSnapshot {
+            filter: SearchFilter::plain("status=ok"),
+            enabled: true,
+        }];
+
+        let restore_request = resolve_open_request(OpenRecentSessionParam {
+            snapshot: snapshot.clone(),
+            mode: RecentSessionReopenMode::RestoreSession,
+        })
+        .expect("restore request should resolve");
+        let parser_request = resolve_open_request(OpenRecentSessionParam {
+            snapshot,
+            mode: RecentSessionReopenMode::RestoreParserConfiguration,
+        })
+        .expect("parser restore request should resolve");
+
+        match restore_request {
+            RecentSessionOpenRequest::Restore { restore_state, .. } => {
+                assert!(restore_state.is_some())
+            }
+            other => panic!("expected restore request, got {other:?}"),
+        }
+
+        match parser_request {
+            RecentSessionOpenRequest::Restore { restore_state, .. } => {
+                assert!(restore_state.is_none())
+            }
+            other => panic!("expected parser restore request, got {other:?}"),
+        }
     }
 }
