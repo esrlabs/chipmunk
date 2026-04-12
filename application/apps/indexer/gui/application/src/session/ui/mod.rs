@@ -195,15 +195,8 @@ impl Session {
                 side_panel.render_content(ui, shared, actions, registry);
             });
 
-        let panels_margin = Margin {
-            left: 2,
-            right: 0,
-            top: 0,
-            bottom: 0,
-        };
-
         Panel::bottom("bottom_panel")
-            .frame(Frame::side_top_panel(ui.style()).inner_margin(panels_margin))
+            .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::ZERO))
             .size_range(100.0..=700.0)
             .default_size(200.)
             .resizable(true)
@@ -213,7 +206,7 @@ impl Session {
             });
 
         CentralPanel::default()
-            .frame(Frame::central_panel(ui.style()).inner_margin(panels_margin))
+            .frame(Frame::central_panel(ui.style()).inner_margin(Margin::ZERO))
             .show_inside(ui, |ui| {
                 // We need to give a unique id for the direct parent of each table because
                 // they will be used as identifiers for table state to avoid ID clashes between
