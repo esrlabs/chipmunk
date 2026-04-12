@@ -1,14 +1,13 @@
 //! Storage domain state for recent sessions.
 
-use std::{
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{path::PathBuf, sync::Arc};
 
 use log::warn;
 use serde::{Deserialize, Serialize};
-use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 use uuid::Uuid;
+
+use processor::search::filter::SearchFilter;
+use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 
 mod source_key;
 
@@ -34,7 +33,7 @@ pub struct RecentSessionsData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecentSessionSnapshot {
     /// Stable logical identity for one ordered source snapshot.
-    pub source_key: String,
+    pub source_key: Arc<str>,
     /// Display title for the recent-session list.
     pub title: String,
     /// Unix timestamp used to keep the list newest-first.
@@ -45,6 +44,21 @@ pub struct RecentSessionSnapshot {
     pub parser: ParserType,
     /// Stored restorable session-state snapshot.
     pub state: RecentSessionStateSnapshot,
+}
+
+/// Static metadata used to register and update one live recent session.
+#[derive(Debug, Clone)]
+pub struct RecentSessionRegistration {
+    /// Stable logical identity for one ordered source snapshot.
+    pub source_key: Arc<str>,
+    /// Display title for the recent-session list.
+    pub title: String,
+    /// Unix timestamp used to keep the list newest-first.
+    pub last_opened: u64,
+    /// Ordered source snapshot used for reopen flows and identity.
+    pub source: RecentSourceSnapshot,
+    /// Stored parser configuration.
+    pub parser: ParserType,
 }
 
 /// Reopen intent for a recent-session snapshot.
@@ -68,9 +82,20 @@ pub enum RecentSessionSource {
     Stream { transport: Transport },
 }
 
-/// Step-1 placeholder for future restorable session state.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct RecentSessionStateSnapshot {}
+/// Stored semantic state for reopening a session.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RecentSessionStateSnapshot {
+    pub filters: Vec<SearchFilterSnapshot>,
+    pub search_values: Vec<SearchFilterSnapshot>,
+    pub bookmarks: Vec<u64>,
+}
+
+/// Stored semantic filter or search-value row.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SearchFilterSnapshot {
+    pub filter: SearchFilter,
+    pub enabled: bool,
+}
 
 impl RecentSessionsStorage {
     /// Creates the domain from already-loaded recent-session data.
@@ -83,9 +108,39 @@ impl RecentSessionsStorage {
         self.dirty.then(|| self.data.clone())
     }
 
-    /// Registers an opened session and keeps the list newest-first.
+    /// Registers a freshly opened session at the top of the recent list.
     pub fn register_session(&mut self, snapshot: RecentSessionSnapshot) {
-        register_loaded_session(&mut self.data.sessions, snapshot);
+        // Existing session => move it to the top of the list.
+        // Otherwise => insert it at the top to keep newest-first ordering.
+        if let Some(index) = self
+            .data
+            .sessions
+            .iter()
+            .position(|session| session.source_key == snapshot.source_key)
+        {
+            self.data.sessions.remove(index);
+        }
+
+        self.data.sessions.insert(0, snapshot);
+
+        // Newest-first ordering means the oldest entries are always at the tail.
+        self.data.sessions.truncate(MAX_RECENT_SESSIONS);
+        self.dirty = true;
+    }
+
+    /// Updates the stored state for an already-registered session.
+    pub fn update_session_state(&mut self, source_key: &str, state: RecentSessionStateSnapshot) {
+        let Some(existing) = self
+            .data
+            .sessions
+            .iter_mut()
+            .find(|session| session.source_key.as_ref() == source_key)
+        else {
+            warn!("Ignoring recent-session update for unknown source key: {source_key}");
+            return;
+        };
+
+        existing.state = state;
         self.dirty = true;
     }
 
@@ -94,7 +149,7 @@ impl RecentSessionsStorage {
         let initial_len = self.data.sessions.len();
         self.data
             .sessions
-            .retain(|session| session.source_key != source_key);
+            .retain(|session| session.source_key.as_ref() != source_key);
         self.dirty |= self.data.sessions.len() != initial_len;
     }
 
@@ -109,28 +164,47 @@ impl RecentSessionsStorage {
     }
 }
 
-impl RecentSessionSnapshot {
-    /// Builds a stored recent-session snapshot from observe options.
-    pub fn from_observe_options(title: String, options: ObserveOptions) -> Self {
-        let source = RecentSourceSnapshot::from_observe_origin(options.origin);
+impl RecentSessionRegistration {
+    /// Creates static recent-session metadata from explicit runtime parts.
+    pub fn new(
+        title: String,
+        last_opened: u64,
+        source: RecentSourceSnapshot,
+        parser: ParserType,
+    ) -> Self {
         let source_key = source.source_key();
 
         Self {
             source_key,
             title,
-            last_opened: unix_timestamp_now(),
+            last_opened,
             source,
-            parser: options.parser,
-            state: RecentSessionStateSnapshot::default(),
+            parser,
         }
     }
 
+    /// Converts this registration into a stored snapshot by attaching canonical runtime state.
+    pub fn into_snapshot(self, state: RecentSessionStateSnapshot) -> RecentSessionSnapshot {
+        RecentSessionSnapshot {
+            source_key: self.source_key,
+            title: self.title,
+            last_opened: self.last_opened,
+            source: self.source,
+            parser: self.parser,
+            state,
+        }
+    }
+}
+
+impl RecentSessionSnapshot {
     /// Rebuilds observe options for restore-style reopen flows.
     pub fn to_observe_options(&self) -> Option<ObserveOptions> {
-        Some(ObserveOptions {
+        let options = ObserveOptions {
             origin: self.source.to_observe_origin()?,
             parser: self.parser.clone(),
-        })
+        };
+
+        Some(options)
     }
 
     /// Returns whether the snapshot can be reopened through the normal open/setup flow.
@@ -140,7 +214,7 @@ impl RecentSessionSnapshot {
 }
 
 impl RecentSourceSnapshot {
-    fn from_observe_origin(origin: ObserveOrigin) -> Self {
+    pub fn from_observe_origin(origin: ObserveOrigin) -> Self {
         let sources = match origin {
             ObserveOrigin::File(_, format, path) => {
                 vec![RecentSessionSource::File { format, path }]
@@ -158,7 +232,7 @@ impl RecentSourceSnapshot {
     }
 
     /// Returns the compact hashed key for this ordered source collection.
-    pub fn source_key(&self) -> String {
+    pub fn source_key(&self) -> Arc<str> {
         source_key::from_snapshot(self)
     }
 
@@ -204,6 +278,11 @@ impl RecentSourceSnapshot {
         }
     }
 
+    /// Returns whether this source shape supports bookmark persistence.
+    pub fn supports_bookmarks(&self) -> bool {
+        matches!(self.sources.first(), Some(RecentSessionSource::File { .. }))
+    }
+
     /// Returns a short source summary for the recent-session prototype UI.
     pub fn summary(&self) -> String {
         match self.sources.first() {
@@ -230,37 +309,12 @@ impl RecentSourceSnapshot {
     }
 }
 
-fn unix_timestamp_now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or_default()
-}
-
-fn register_loaded_session(
-    sessions: &mut Vec<RecentSessionSnapshot>,
-    registration: RecentSessionSnapshot,
-) {
-    // Session exist => Move it to the top of list
-    // otherwise => Insert it to the top of list to keep ordering correct.
-    if let Some(index) = sessions
-        .iter()
-        .position(|session| session.source_key == registration.source_key)
-    {
-        sessions.remove(index);
-    }
-
-    sessions.insert(0, registration);
-
-    // Newest-first ordering means the oldest entries are always at the tail.
-    sessions.truncate(MAX_RECENT_SESSIONS);
-}
-
 #[cfg(test)]
 mod tests {
     use std::{
         fs,
         path::PathBuf,
+        sync::Arc,
         time::{SystemTime, UNIX_EPOCH},
     };
 
@@ -269,8 +323,11 @@ mod tests {
         UDPTransportConfig,
     };
 
+    use crate::common::time::unix_timestamp_now;
+
     use super::{
-        MAX_RECENT_SESSIONS, RecentSessionSnapshot, RecentSessionsData, RecentSessionsStorage,
+        MAX_RECENT_SESSIONS, RecentSessionRegistration, RecentSessionSnapshot,
+        RecentSessionStateSnapshot, RecentSessionsData, RecentSessionsStorage,
     };
     use crate::host::ui::storage::RecentSessionSource;
 
@@ -295,8 +352,21 @@ mod tests {
         path
     }
 
+    fn snapshot_from_observe_options(
+        title: String,
+        options: ObserveOptions,
+    ) -> RecentSessionSnapshot {
+        RecentSessionRegistration::new(
+            title,
+            unix_timestamp_now(),
+            super::RecentSourceSnapshot::from_observe_origin(options.origin),
+            options.parser,
+        )
+        .into_snapshot(Default::default())
+    }
+
     fn file_snapshot(path: PathBuf) -> RecentSessionSnapshot {
-        RecentSessionSnapshot::from_observe_options(
+        snapshot_from_observe_options(
             path.file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("file")
@@ -309,8 +379,14 @@ mod tests {
         file_snapshot(std::env::temp_dir().join(format!("chipmunk-recent-storage-test-{name}.log")))
     }
 
+    fn named_snapshot_at(name: &str, last_opened: u64) -> RecentSessionSnapshot {
+        let mut snapshot = named_snapshot(name);
+        snapshot.last_opened = last_opened;
+        snapshot
+    }
+
     fn stream_snapshot(bind_addr: &str) -> RecentSessionSnapshot {
-        RecentSessionSnapshot::from_observe_options(
+        snapshot_from_observe_options(
             bind_addr.to_owned(),
             ObserveOptions {
                 origin: ObserveOrigin::Stream(
@@ -354,15 +430,15 @@ mod tests {
     }
 
     #[test]
-    fn register_overwrites_same_source() {
+    fn register_overwrites_source() {
         let mut storage = test_storage();
 
         let path = std::env::temp_dir().join("chipmunk-recent-storage-overwrite.log");
-        let original = RecentSessionSnapshot::from_observe_options(
+        let original = snapshot_from_observe_options(
             "first title".into(),
             ObserveOptions::file(path.clone(), stypes::FileFormat::Text, ParserType::Text(())),
         );
-        let replaced = RecentSessionSnapshot::from_observe_options(
+        let mut replaced = snapshot_from_observe_options(
             "second title".into(),
             ObserveOptions::file(
                 path,
@@ -372,9 +448,14 @@ mod tests {
                 }),
             ),
         );
+        let mut stream = stream_snapshot("127.0.0.1:5555");
+        stream.last_opened = 2;
+        let mut original = original;
+        original.last_opened = 1;
+        replaced.last_opened = 3;
 
         storage.register_session(original.clone());
-        storage.register_session(stream_snapshot("127.0.0.1:5555"));
+        storage.register_session(stream);
         storage.register_session(replaced.clone());
 
         assert_eq!(storage.data.sessions.len(), 2);
@@ -387,11 +468,40 @@ mod tests {
     }
 
     #[test]
+    fn update_state_preserves_position() {
+        let mut storage = test_storage();
+        let newest = named_snapshot_at("newest", 3);
+        let middle = named_snapshot_at("middle", 2);
+        let oldest = named_snapshot_at("oldest", 1);
+        let oldest_title = oldest.title.clone();
+        let middle_title = middle.title.clone();
+        let middle_source_key = middle.source_key.clone();
+
+        storage.register_session(oldest);
+        storage.register_session(middle);
+        storage.register_session(newest.clone());
+
+        storage.update_session_state(
+            &middle_source_key,
+            RecentSessionStateSnapshot {
+                bookmarks: vec![7],
+                ..Default::default()
+            },
+        );
+
+        assert_eq!(storage.data.sessions.len(), 3);
+        assert_eq!(storage.data.sessions[0].title, newest.title);
+        assert_eq!(storage.data.sessions[1].title, middle_title);
+        assert_eq!(storage.data.sessions[1].state.bookmarks, vec![7]);
+        assert_eq!(storage.data.sessions[2].title, oldest_title);
+    }
+
+    #[test]
     fn register_trims_tail() {
         let mut storage = test_storage();
 
         for idx in 0..=MAX_RECENT_SESSIONS {
-            storage.register_session(named_snapshot(&format!("session-{idx}")));
+            storage.register_session(named_snapshot_at(&format!("session-{idx}"), idx as u64));
         }
 
         assert_eq!(storage.data.sessions.len(), MAX_RECENT_SESSIONS);
@@ -443,7 +553,7 @@ mod tests {
 
     #[test]
     fn restore_rebuilds_runtime_ids() {
-        let snapshot = RecentSessionSnapshot::from_observe_options(
+        let snapshot = snapshot_from_observe_options(
             "concat".into(),
             ObserveOptions {
                 origin: ObserveOrigin::Concat(vec![
@@ -476,7 +586,7 @@ mod tests {
 
     #[test]
     fn clean_open_support_matches_source_shape() {
-        let files = RecentSessionSnapshot::from_observe_options(
+        let files = snapshot_from_observe_options(
             "files".into(),
             ObserveOptions {
                 origin: ObserveOrigin::Concat(vec![
@@ -496,7 +606,7 @@ mod tests {
         );
         let stream = stream_snapshot("127.0.0.1:5556");
         let invalid_multi_stream = RecentSessionSnapshot {
-            source_key: String::from("multi-stream"),
+            source_key: Arc::<str>::from("multi-stream"),
             title: String::from("multi-stream"),
             last_opened: 1,
             source: super::RecentSourceSnapshot {

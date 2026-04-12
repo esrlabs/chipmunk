@@ -10,7 +10,7 @@ use crate::{
             session_setup::state::SessionSetupState, storage::StorageEvent,
         },
     },
-    session::InitSessionParams,
+    session::SpawnedSession,
 };
 
 /// Messages sent from the host service to the UI.
@@ -29,7 +29,7 @@ pub enum HostMessage {
     },
     /// A new session has been successfully created.
     SessionCreated {
-        session_params: Box<InitSessionParams>,
+        session: Box<SpawnedSession>,
         /// ID for session_setup used to create this session to replace its tab
         /// instead of creating a new tab for the session.
         session_setup_id: Option<Uuid>,

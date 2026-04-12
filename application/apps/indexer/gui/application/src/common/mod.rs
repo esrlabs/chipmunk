@@ -4,4 +4,5 @@ pub mod fixed_queue;
 pub mod logging;
 pub mod modal;
 pub mod phosphor;
+pub mod time;
 pub mod validation;

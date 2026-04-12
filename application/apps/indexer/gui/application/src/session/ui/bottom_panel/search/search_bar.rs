@@ -80,7 +80,7 @@ impl SearchBar {
             if !self.query.is_empty() {
                 self.apply_temp_search(shared, actions, registry);
             } else if shared.filters.active_temp_search.is_some()
-                && shared.filters.pin_temp_search(registry)
+                && shared.pin_temp_search(registry)
             {
                 shared
                     .sync_search_pipelines(registry, SearchSyncTarget::Filter)
@@ -232,7 +232,7 @@ impl SearchBar {
                                 });
                             }
 
-                            if add_btn.clicked() && shared.filters.pin_temp_search(registry) {
+                            if add_btn.clicked() && shared.pin_temp_search(registry) {
                                 // Re-apply search which now includes new filter and NO active_search
                                 shared
                                     .sync_search_pipelines(registry, SearchSyncTarget::Filter)
@@ -272,7 +272,7 @@ impl SearchBar {
                             }
 
                             if add_btn.clicked() {
-                                let success = shared.filters.pin_temp_search_as_value(registry);
+                                let success = shared.pin_temp_search_as_value(registry);
                                 if success {
                                     // We need to consider both targets (filters and search values)
                                     // because we are removed the current temp filter here.

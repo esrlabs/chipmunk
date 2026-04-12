@@ -707,9 +707,7 @@ impl PresetsUI {
                 continue;
             }
 
-            shared
-                .filters
-                .apply_filter(&mut registry.filters, filter_id);
+            shared.apply_filter(&mut registry.filters, filter_id);
             changed_filters = true;
         }
 
@@ -722,9 +720,7 @@ impl PresetsUI {
                 continue;
             }
 
-            shared
-                .filters
-                .apply_search_value(&mut registry.filters, value_id);
+            shared.apply_search_value(&mut registry.filters, value_id);
             changed_search_values = true;
         }
 

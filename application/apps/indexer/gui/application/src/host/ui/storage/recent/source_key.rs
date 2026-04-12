@@ -3,7 +3,7 @@
 //! The key is derived from the ordered source snapshot shape and encoded as a
 //! compact hex digest.
 
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use blake3::Hasher;
 use stypes::{
@@ -14,7 +14,7 @@ use stypes::{
 use super::{RecentSessionSource, RecentSourceSnapshot};
 
 /// Builds the persisted source key for one ordered source snapshot.
-pub fn from_snapshot(snapshot: &RecentSourceSnapshot) -> String {
+pub fn from_snapshot(snapshot: &RecentSourceSnapshot) -> Arc<str> {
     let RecentSourceSnapshot { sources } = snapshot;
 
     let mut hasher = Hasher::new();
@@ -25,7 +25,7 @@ pub fn from_snapshot(snapshot: &RecentSourceSnapshot) -> String {
         hash_source(&mut hasher, source);
     }
 
-    hasher.finalize().to_hex().to_string()
+    Arc::<str>::from(hasher.finalize().to_hex().as_str())
 }
 
 /// Feeds one source item into the digest, preserving source order and variant.
@@ -156,7 +156,7 @@ mod tests {
     use stypes::{TCPTransportConfig, Transport};
 
     use super::*;
-    use crate::host::ui::storage::RecentSessionSnapshot;
+    use crate::host::ui::storage::{RecentSessionRegistration, RecentSessionSnapshot};
 
     #[test]
     fn source_key_respects_order() {
@@ -206,10 +206,23 @@ mod tests {
         assert!(source_key.bytes().all(|byte| byte.is_ascii_hexdigit()));
     }
 
+    fn snapshot_from_observe_options(
+        title: String,
+        options: stypes::ObserveOptions,
+    ) -> RecentSessionSnapshot {
+        RecentSessionRegistration::new(
+            title,
+            0,
+            RecentSourceSnapshot::from_observe_origin(options.origin),
+            options.parser,
+        )
+        .into_snapshot(Default::default())
+    }
+
     #[test]
     fn source_key_ignores_parser() {
         let path = PathBuf::from("chipmunk-source-key-parser.log");
-        let text = RecentSessionSnapshot::from_observe_options(
+        let text = snapshot_from_observe_options(
             "text".into(),
             stypes::ObserveOptions::file(
                 path.clone(),
@@ -217,7 +230,7 @@ mod tests {
                 stypes::ParserType::Text(()),
             ),
         );
-        let someip = RecentSessionSnapshot::from_observe_options(
+        let someip = snapshot_from_observe_options(
             "someip".into(),
             stypes::ObserveOptions::file(
                 path,
