@@ -22,7 +22,7 @@ use crate::{
         command::SessionCommand,
         communication::{UiHandle, UiReceivers},
         error::SessionError,
-        message::SessionMessage,
+        message::{BookmarkUpdate, SessionMessage},
         ui::{
             definitions::schema::{
                 LogSchema, dlt::DltLogSchema, plugins::PluginsLogSchema, someip::SomeIpLogSchema,
@@ -262,11 +262,13 @@ impl Session {
                         self.bottom_panel.search.table.set_nearest_pos(pos);
                     }
                 }
-                SessionMessage::BookmarkUpdated { row, is_bookmarked } => {
-                    if is_bookmarked {
-                        self.shared.insert_bookmark(row);
-                    } else {
-                        self.shared.remove_bookmark(row);
+                SessionMessage::BookmarkUpdated(updates) => {
+                    for BookmarkUpdate { row, is_bookmarked } in updates {
+                        if is_bookmarked {
+                            self.shared.insert_bookmark(row);
+                        } else {
+                            self.shared.remove_bookmark(row);
+                        }
                     }
                 }
                 SessionMessage::ChartHistogram(map) => {

@@ -105,11 +105,11 @@ impl RecentSessionRuntime {
             .copied()
             .collect::<Vec<_>>();
 
-        for row in bookmarks {
-            // TODO AAZ: This will fill up the channels on bookmark commands. We need to change the signature
-            // of the command to make it always send a vector of bookmarks instead of one item
-            _ = actions.try_send_command(cmd_tx, SessionCommand::AddBookmark(row));
+        if bookmarks.is_empty() {
+            return;
         }
+
+        actions.try_send_command(cmd_tx, SessionCommand::AddBookmarks(bookmarks));
     }
 
     /// Disables further recent-session state updates for this live session.
@@ -419,15 +419,10 @@ mod tests {
 
         recent.on_file_read_completed(&shared, &mut actions, &cmd_tx);
 
-        let first = cmd_rx.try_recv();
-        let second = cmd_rx.try_recv();
-        let rows = [first, second]
-            .into_iter()
-            .map(|msg| match msg {
-                Ok(SessionCommand::AddBookmark(row)) => row,
-                other => panic!("expected AddBookmark command, got {other:?}"),
-            })
-            .collect::<Vec<_>>();
+        let rows = match cmd_rx.try_recv() {
+            Ok(SessionCommand::AddBookmarks(rows)) => rows,
+            other => panic!("expected AddBookmarks command, got {other:?}"),
+        };
 
         assert_eq!(rows.len(), 2);
         assert!(rows.contains(&2));
