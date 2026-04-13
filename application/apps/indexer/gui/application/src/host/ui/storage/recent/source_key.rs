@@ -188,7 +188,7 @@ mod tests {
             ],
         };
 
-        assert_ne!(left.source_key(), right.source_key());
+        assert_ne!(left.generate_source_key(), right.generate_source_key());
     }
 
     #[test]
@@ -201,7 +201,7 @@ mod tests {
             }],
         };
 
-        let source_key = snapshot.source_key();
+        let source_key = snapshot.generate_source_key();
         assert_eq!(source_key.len(), 64);
         assert!(source_key.bytes().all(|byte| byte.is_ascii_hexdigit()));
     }

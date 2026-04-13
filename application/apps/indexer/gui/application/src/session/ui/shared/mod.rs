@@ -375,7 +375,7 @@ mod tests {
     use std::path::PathBuf;
 
     use processor::search::filter::SearchFilter;
-    use stypes::{FileFormat, ObserveOrigin};
+    use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType};
 
     use crate::{
         host::{
@@ -400,6 +400,20 @@ mod tests {
             title: "test".to_owned(),
             parser: ParserNames::Text,
         };
+
+        SessionShared::new(session_info, observe_op)
+    }
+
+    fn new_shared_with_info_from_origin(origin: ObserveOrigin) -> SessionShared {
+        let session_id = Uuid::new_v4();
+        let observe_op = ObserveOperation::new(Uuid::new_v4(), origin.clone());
+        let session_info = SessionInfo::from_observe_options(
+            session_id,
+            &ObserveOptions {
+                origin,
+                parser: ParserType::Text(()),
+            },
+        );
 
         SessionShared::new(session_info, observe_op)
     }
@@ -445,6 +459,26 @@ mod tests {
         assert!(shared.search.current_matches_map().is_none());
         assert!(shared.search.search_operation_phase().is_none());
         assert_eq!(shared.signals, vec![SessionSignal::SearchDropped]);
+    }
+
+    #[test]
+    fn append_updates_single_file_title_to_concat() {
+        let mut shared = new_shared_with_info_from_origin(ObserveOrigin::File(
+            "source".to_owned(),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        ));
+
+        shared.add_operation(ObserveOperation::new(
+            Uuid::new_v4(),
+            ObserveOrigin::Concat(vec![(
+                "second".to_owned(),
+                FileFormat::Text,
+                PathBuf::from("second.log"),
+            )]),
+        ));
+
+        assert_eq!(shared.get_info().title, "Concating 2 files");
     }
 
     #[test]

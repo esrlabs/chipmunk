@@ -14,17 +14,18 @@ use crate::{
 use super::shared::{SearchSyncTarget, SessionShared};
 
 #[derive(Debug)]
+/// Runtime recent-session tracking for one live session.
 pub struct RecentSessionRuntime {
-    source_key: Arc<str>,
+    /// Current recent-session identity for this live session.
+    ///
+    /// When this is `None`, the session no longer participates in recent-session updates,
+    /// for example after an append could not rebind because the old recent entry was removed.
+    source_key: Option<Arc<str>>,
+    /// Whether this session source shape supports bookmark persistence.
     supports_bookmarks: bool,
-    //TODO AAZ:
-    /// # NOTE:
-    /// Temporary solution to stop recent session on adding new sources.
-    /// However, this should removed once We extend recent sessions once
-    /// new sources are added.
-    /// Stops recent-session state updates once the live source identity no longer matches recents.
-    updates_enabled: bool,
+    /// Last observed recent-state revision from the session.
     last_revision: u64,
+    /// True while restored bookmarks still need backend replay after file read completes.
     pending_bookmark_restore: bool,
 }
 
@@ -32,9 +33,8 @@ impl RecentSessionRuntime {
     /// Creates recent-session runtime tracking for one live session.
     pub fn new(source_key: Arc<str>, supports_bookmarks: bool) -> Self {
         Self {
-            source_key,
+            source_key: Some(source_key),
             supports_bookmarks,
-            updates_enabled: true,
             last_revision: 0,
             pending_bookmark_restore: false,
         }
@@ -112,15 +112,20 @@ impl RecentSessionRuntime {
         actions.try_send_command(cmd_tx, SessionCommand::AddBookmarks(bookmarks));
     }
 
-    /// Disables further recent-session state updates for this live session.
-    pub fn disable_updates(&mut self) {
-        self.updates_enabled = false;
+    /// Switches this live session to the provided recent-session source key.
+    pub fn set_source_key(&mut self, source_key: Arc<str>) {
+        self.source_key = Some(source_key);
+    }
+
+    /// Detaches this live session from recent-session tracking.
+    pub fn clear_source_key(&mut self) {
+        self.source_key = None;
         self.pending_bookmark_restore = false;
     }
 
     /// Returns the stable recent-session identity for this live session.
-    pub fn source_key(&self) -> &str {
-        &self.source_key
+    pub fn source_key(&self) -> Option<&Arc<str>> {
+        self.source_key.as_ref()
     }
 
     /// Captures the canonical recent-session state and establishes the update baseline.
@@ -139,11 +144,7 @@ impl RecentSessionRuntime {
         shared: &SessionShared,
         registry: &FilterRegistry,
     ) -> Option<RecentSessionStateSnapshot> {
-        if !self.updates_enabled {
-            return None;
-        }
-
-        if self.last_revision == shared.recent_revision() {
+        if self.source_key.is_none() || self.last_revision == shared.recent_revision() {
             return None;
         }
 
@@ -217,10 +218,11 @@ fn capture_state_snapshot(
 mod tests {
     use std::path::PathBuf;
 
-    use processor::search::filter::SearchFilter;
-    use stypes::{FileFormat, ObserveOrigin, TCPTransportConfig, Transport};
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
+
+    use processor::search::filter::SearchFilter;
+    use stypes::{FileFormat, ObserveOrigin, TCPTransportConfig, Transport};
 
     use crate::{
         host::{common::parsers::ParserNames, ui::UiActions},

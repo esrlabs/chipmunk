@@ -27,7 +27,8 @@ use crate::{
         },
     },
     session::{
-        InitSessionError, InitSessionParams, SpawnedSession,
+        InitSessionError, RecentSessionRuntimeInit, SessionUiInit, SpawnedRecentSession,
+        SpawnedSession,
         command::AttachSource,
         communication::{self, ServiceSenders, SharedSenders},
         message::{BookmarkUpdate, SessionMessage},
@@ -46,9 +47,11 @@ pub struct SessionService {
 
 impl SessionService {
     /// Spawn session service returning the session ID.
+    /// TODO AAZ: Extend docs here and in code blocks
     pub async fn spawn(
         shared_senders: SharedSenders,
         options: ObserveOptions,
+        additional_sources: Vec<ObserveOrigin>,
         restore_state: Option<RecentSessionStateSnapshot>,
     ) -> Result<SpawnedSession, InitSessionError> {
         let session_id = Uuid::new_v4();
@@ -58,20 +61,39 @@ impl SessionService {
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
-        let recent_source = RecentSourceSnapshot::from_observe_origin(options.origin.clone());
+        let mut recent_source = RecentSourceSnapshot::from_observe_origin(options.origin.clone());
+        let parser = options.parser.clone();
+
+        let observe_id = Uuid::new_v4();
+        let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
+        session.observe(observe_id, options)?;
+
+        let mut startup_observe_ops = Vec::with_capacity(additional_sources.len());
+        for origin in additional_sources {
+            recent_source
+                .sources
+                .extend(RecentSourceSnapshot::from_observe_origin(origin.clone()).sources);
+
+            let observe_id = Uuid::new_v4();
+            let observe_op = ObserveOperation::new(observe_id, origin.clone());
+            session.observe(
+                observe_id,
+                ObserveOptions {
+                    origin,
+                    parser: parser.clone(),
+                },
+            )?;
+            startup_observe_ops.push(observe_op);
+        }
+
         let supports_bookmarks = recent_source.supports_bookmarks();
         let recent_registration = RecentSessionRegistration::new(
             session_info.title.clone(),
             unix_timestamp_now(),
             recent_source,
-            options.parser.clone(),
+            parser,
         );
         let recent_source_key = Arc::clone(&recent_registration.source_key);
-
-        let observe_id = Uuid::new_v4();
-        let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
-
-        session.observe(observe_id, options)?;
 
         let ServiceHandle { cmd_rx, senders } = service_handle;
 
@@ -86,18 +108,23 @@ impl SessionService {
             service.run().await;
         });
 
-        let params = InitSessionParams {
+        let ui_init = SessionUiInit {
             session_info,
-            recent_source_key,
-            supports_bookmarks,
+            recent_runtime: RecentSessionRuntimeInit {
+                source_key: recent_source_key,
+                supports_bookmarks,
+                additional_observe_ops: startup_observe_ops,
+            },
             communication: ui_handle,
             observe_op,
         };
 
         Ok(SpawnedSession {
-            params,
-            recent_registration,
-            restore_state,
+            ui_init,
+            recent: SpawnedRecentSession {
+                registration: recent_registration,
+                restore_state,
+            },
         })
     }
 

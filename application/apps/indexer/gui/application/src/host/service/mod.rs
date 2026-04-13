@@ -223,11 +223,13 @@ impl HostService {
         match request {
             RecentSessionOpenRequest::Restore {
                 options,
+                additional_sources,
                 restore_state,
             } => {
                 let session = SessionService::spawn(
                     self.communication.senders.get_shared_senders(),
                     *options,
+                    additional_sources,
                     restore_state,
                 )
                 .await?;
@@ -298,6 +300,7 @@ impl HostService {
             let session = SessionService::spawn(
                 self.communication.senders.get_shared_senders(),
                 origin,
+                Vec::new(),
                 None,
             )
             .await?;
@@ -479,6 +482,7 @@ impl HostService {
                     let session = match SessionService::spawn(
                         self.communication.senders.get_shared_senders(),
                         origin,
+                        Vec::new(),
                         None,
                     )
                     .await
@@ -786,6 +790,7 @@ impl HostService {
         let session = SessionService::spawn(
             self.communication.senders.get_shared_senders(),
             origin,
+            Vec::new(),
             None,
         )
         .await?;
