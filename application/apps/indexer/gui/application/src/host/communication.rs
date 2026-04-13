@@ -1,10 +1,11 @@
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc};
 
 use crate::{
     common::comm_utls::evaluate_send_res,
     host::{command::HostCommand, message::HostMessage, notification::AppNotification},
     session::communication::SharedSenders,
 };
+use mcp::server::tasks::Tasks;
 
 const CHANNELS_CAPACITY: usize = 32;
 
@@ -36,6 +37,7 @@ pub struct ServiceHandle {
 /// Provide functions to send host messages and waking up the UI on them.
 #[derive(Debug, Clone)]
 pub struct ServiceSenders {
+    pub mcp_task_tx: broadcast::Sender<Tasks>,
     message_tx: mpsc::Sender<HostMessage>,
     notification_tx: mpsc::Sender<AppNotification>,
     egui_ctx: egui::Context,
@@ -68,6 +70,7 @@ impl ServiceSenders {
         SharedSenders::new(
             self.message_tx.clone(),
             self.notification_tx.clone(),
+            self.mcp_task_tx.clone(),
             self.egui_ctx.clone(),
         )
     }
@@ -78,6 +81,7 @@ pub fn init(egui_ctx: egui::Context) -> (UiHandle, ServiceHandle) {
     let (cmd_tx, cmd_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (message_tx, message_rx) = mpsc::channel(CHANNELS_CAPACITY);
     let (notification_tx, notification_rx) = mpsc::channel(CHANNELS_CAPACITY);
+    let (mcp_task_tx, _mcp_task_rx) = broadcast::channel(CHANNELS_CAPACITY);
 
     let ui_senders = UiSenders { cmd_tx };
 
@@ -92,6 +96,7 @@ pub fn init(egui_ctx: egui::Context) -> (UiHandle, ServiceHandle) {
     };
 
     let service_senders = ServiceSenders {
+        mcp_task_tx,
         message_tx,
         notification_tx,
         egui_ctx,

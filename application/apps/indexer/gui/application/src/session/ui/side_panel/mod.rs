@@ -5,16 +5,22 @@ use tokio::sync::mpsc;
 use crate::{
     common::phosphor::icons,
     host::ui::{UiActions, registry::HostRegistry},
-    session::{command::SessionCommand, types::ObserveOperation, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand, message::AiMessage, types::ObserveOperation,
+        ui::shared::SessionShared,
+    },
 };
 
 mod attachments;
+mod chat;
 mod filters;
 mod observing;
 mod types;
 
 use attachments::AttachmentsUi;
+use chat::ChatUi;
 use filters::FiltersUi;
+use mcp::types::Response;
 use observing::ObservingUi;
 
 pub use types::*;
@@ -24,6 +30,7 @@ pub struct SidePanelUi {
     observing: ObservingUi,
     attachments: AttachmentsUi,
     filters: FiltersUi,
+    chat: ChatUi,
 }
 
 impl SidePanelUi {
@@ -31,8 +38,20 @@ impl SidePanelUi {
         Self {
             observing: ObservingUi::new(observe_op, cmd_tx.clone()),
             attachments: AttachmentsUi::new(cmd_tx.clone()),
-            filters: FiltersUi::new(cmd_tx),
+            filters: FiltersUi::new(cmd_tx.clone()),
+            chat: ChatUi::new(cmd_tx),
         }
+    }
+
+    pub fn update_chat(&mut self, message: AiMessage) {
+        match &message {
+            AiMessage::Response(resp) => match resp {
+                Response::Progress(_) => {}
+                _ => self.chat.toggle_thinking(),
+            },
+            _ => {}
+        };
+        self.chat.add_message(message);
     }
 
     pub fn render_content(
@@ -70,6 +89,7 @@ impl SidePanelUi {
                 self.filters
                     .render_content(shared, actions, &mut registry.filters, ui)
             }
+            SideTabType::Chat => self.chat.render_content(shared, ui),
         });
     }
 }
@@ -79,6 +99,7 @@ fn render_tab_button(target: SideTabType, current_tab: &mut SideTabType, ui: &mu
         SideTabType::Observing => icons::regular::BROADCAST,
         SideTabType::Attachments => icons::regular::PAPERCLIP,
         SideTabType::Filters => icons::regular::FUNNEL,
+        SideTabType::Chat => icons::regular::CHAT,
     };
 
     let (rect, mut res) = ui.allocate_exact_size(vec2(33., 40.), Sense::click());

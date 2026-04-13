@@ -1,9 +1,16 @@
 use std::ops::ControlFlow;
 
 use itertools::Itertools;
-use tokio::{select, sync::mpsc};
+use tokio::{
+    select,
+    sync::{broadcast, mpsc},
+};
 use uuid::Uuid;
 
+use mcp::{
+    chat::Prompt, client::McpClient, errors::McpError, server::tasks::Tasks, tool_params::LogLine,
+    types::TaskResult,
+};
 use processor::grabber::LineRange;
 use session_core::session::Session;
 use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
@@ -39,6 +46,7 @@ pub struct SessionService {
     senders: ServiceSenders,
     session: Session,
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
+    mcp_task_rx: broadcast::Receiver<Tasks>,
 }
 
 impl SessionService {
@@ -47,6 +55,8 @@ impl SessionService {
         shared_senders: SharedSenders,
         options: ObserveOptions,
     ) -> Result<InitSessionParams, InitSessionError> {
+        let mcp_task_rx = shared_senders.get_mcp_task_subscriber();
+
         let session_id = Uuid::new_v4();
 
         let (ui_handle, service_handle) = communication::init(shared_senders);
@@ -68,6 +78,7 @@ impl SessionService {
             senders,
             session,
             callback_rx,
+            mcp_task_rx,
         };
 
         tokio::spawn(async move {
@@ -92,10 +103,17 @@ impl SessionService {
     async fn run(mut self) {
         log::trace!("Start Session Service {}", self.session_id());
 
+        let (client, prompt_tx, mut response_rx) = McpClient::new();
+        if let Err(err) = client.start().await {
+            log::error!(
+                "Failed to start MCP client for session {}: {err:?}",
+                self.session_id()
+            );
+        }
         loop {
             select! {
                 Some(cmd) = self.cmd_rx.recv() => {
-                    match self.handle_command(cmd).await {
+                    match self.handle_command(cmd, prompt_tx.clone()).await {
                         Ok(ControlFlow::Break(())) => break,
                         Ok(ControlFlow::Continue(())) => {},
                         Err(error) => {
@@ -104,13 +122,23 @@ impl SessionService {
                         }
                     }
                 },
+
+                Ok(task) = self.mcp_task_rx.recv() => {
+                    self.handle_mcp_task(task).await;
+                },
+
+                Some(response) = response_rx.recv() => {
+                    log::trace!("Received response from MCP client for session {}: {response:?}", self.session_id());
+                    self.senders.send_session_msg(SessionMessage::ChatResponseReceived(response)).await;
+                },
+
                 // Callback receiver won't be dropped when session is dropped.
                 Some(event) = self.callback_rx.recv() => {
                     if let Err(error)= self.handle_callbacks(event).await {
                         log::error!("Error while handling session callback event: {error:?}");
                         self.send_error(error).await;
                     }
-                }
+                },
                 else => { break; }
             }
         }
@@ -133,9 +161,236 @@ impl SessionService {
         self.senders.send_notification(notifi).await;
     }
 
+    async fn handle_mcp_task(&self, task: Tasks) {
+        match task {
+            Tasks::AnalyzeLogFile {
+                session_id,
+                range,
+                action,
+                filters,
+                jump_to_line,
+                note,
+                task_result_tx,
+            } => {
+                // Log the task details
+                println!(
+                    "Processing AnalyzeLogFile task for session {}: range={:?}, action={:?}, note={:?}",
+                    session_id, range, action, note
+                );
+
+                // Build task result
+                let result = self
+                    .process_analyze_log_task(
+                        range.clone(),
+                        action.clone(),
+                        filters.clone(),
+                        jump_to_line,
+                    )
+                    .await;
+
+                // Still send message to UI for visibility
+                let message = SessionMessage::MCPTaskReceived(Tasks::AnalyzeLogFile {
+                    session_id,
+                    range,
+                    action,
+                    filters,
+                    jump_to_line,
+                    note,
+                    task_result_tx: task_result_tx.clone(),
+                });
+                self.senders.send_session_msg(message).await;
+
+                // Send result back to MCP server
+                if let Err(e) = task_result_tx.send(result).await {
+                    log::error!("Failed to send analyze_log task result back to MCP server: {e:?}");
+                }
+            }
+            Tasks::ApplySearchFilter {
+                session_id,
+                filters,
+                task_result_tx,
+            } => {
+                log::debug!(
+                    "Processing ApplySearchFilter task for session {}",
+                    session_id
+                );
+                let message = SessionMessage::MCPTaskReceived(Tasks::ApplySearchFilter {
+                    session_id,
+                    filters: filters.clone(),
+                    task_result_tx: task_result_tx.clone(),
+                });
+                self.senders.send_session_msg(message).await;
+            }
+            Tasks::GetChartHistogram {
+                session_id,
+                dataset_len,
+                range,
+                task_result_tx,
+            } => {
+                log::debug!(
+                    "Processing GetChartHistogram task for session {}",
+                    session_id
+                );
+                // Chart data retrieval
+                let result = self
+                    .session
+                    .state
+                    .get_scaled_map(dataset_len, range.map(|r| (*r.start(), *r.end())))
+                    .await
+                    .map(|_| TaskResult::Complete("Chart data retrieved".to_string()))
+                    .map_err(|e| McpError::TaskExecutionFailed(format!("{:?}", e)));
+
+                let _ = task_result_tx.send(result);
+            }
+            Tasks::GetChartLinePlots {
+                session_id,
+                dataset_len,
+                range,
+                task_result_tx,
+            } => {
+                log::debug!(
+                    "Processing GetChartLinePlots task for session {}",
+                    session_id
+                );
+                // Line plot data retrieval
+                let result = self
+                    .session
+                    .state
+                    .get_search_values(range, dataset_len)
+                    .await
+                    .map(|_| TaskResult::Complete("Line plot data retrieved".to_string()))
+                    .map_err(|e| McpError::TaskExecutionFailed(format!("{:?}", e)));
+
+                let _ = task_result_tx.send(result);
+            }
+            Tasks::GenericTask {
+                session_id,
+                task_result_tx,
+            } => {
+                log::debug!("Processing GenericTask for session {}", session_id);
+                let result = Ok(TaskResult::Complete("Generic task completed".to_string()));
+                let _ = task_result_tx.send(result);
+            }
+            Tasks::GrabLines {
+                session_id,
+                range,
+                task_result_tx,
+            } => {
+                if self.session_id() == session_id {
+                    let mut lines: Vec<String> = vec![];
+                    if let Ok(result) = self
+                        .session
+                        .grab(processor::grabber::GrabRange::from(range))
+                        .await
+                        .map(|e| e.0)
+                        .map_err(SessionError::from)
+                    {
+                        result
+                            .into_iter()
+                            .for_each(|element| lines.push(element.content));
+                    }
+
+                    if let Err(err) = task_result_tx
+                        .send(Ok(TaskResult::RequestLines(lines)))
+                        .await
+                    {
+                        log::error!("Error while sending the result back: {err}");
+                    }
+                }
+            }
+            Tasks::CompleteChat {
+                session_id,
+                final_result,
+                task_result_tx,
+            } => {
+                if self.session_id() == session_id {
+                    if let Err(err) = task_result_tx
+                        .send(Ok(TaskResult::Complete(final_result)))
+                        .await
+                    {
+                        log::error!("Error while sending the result back: {err}");
+                    }
+                }
+            }
+        }
+    }
+
+    async fn process_analyze_log_task(
+        &self,
+        range: Option<std::ops::RangeInclusive<u64>>,
+        action: mcp::tool_params::AnalyzeAction,
+        filters: Vec<processor::search::filter::SearchFilter>,
+        jump_to_line: Option<u64>,
+    ) -> Result<TaskResult, McpError> {
+        use mcp::tool_params::{AnalyzeAction, AnalyzeLogsResult};
+
+        // Grab lines if range is provided
+        let lines = if let Some(ref range) = range {
+            let line_range = LineRange::from(range.clone());
+            match self.session.grab(line_range).await {
+                Ok(grabbed_elements) => grabbed_elements
+                    .0
+                    .into_iter()
+                    .map(|elem| LogLine {
+                        source_id: elem.source_id,
+                        pos: elem.pos as u64,
+                        nature: elem.nature,
+                        content: elem.content,
+                    })
+                    .collect(),
+                Err(e) => {
+                    return Err(McpError::TaskExecutionFailed(format!(
+                        "Failed to grab lines: {:?}",
+                        e
+                    )));
+                }
+            }
+        } else {
+            Vec::new()
+        };
+
+        // Handle action if provided
+        let action_status = match action {
+            AnalyzeAction::ApplyFilter => {
+                if !filters.is_empty() {
+                    match self
+                        .session
+                        .apply_search_filters(Uuid::new_v4(), filters.clone())
+                    {
+                        Ok(_) => Some(format!("Applied {} filter(s)", filters.len())),
+                        Err(e) => {
+                            return Err(McpError::TaskExecutionFailed(format!(
+                                "Failed to apply filters: {:?}",
+                                e
+                            )));
+                        }
+                    }
+                } else {
+                    Some("No filters to apply".to_string())
+                }
+            }
+            AnalyzeAction::JumpToLine => {
+                if let Some(line) = jump_to_line {
+                    Some(format!("Jumped to line {}", line))
+                } else {
+                    Some("No line specified for jump".to_string())
+                }
+            }
+            AnalyzeAction::None => None,
+        };
+
+        Ok(TaskResult::AnalyzeLogs(AnalyzeLogsResult {
+            requested_range: range,
+            lines,
+            action_status,
+            note: None,
+        }))
+    }
+
     async fn handle_command(
         &mut self,
         cmd: SessionCommand,
+        prompt_tx: mpsc::Sender<Prompt>,
     ) -> Result<ControlFlow<(), ()>, SessionError> {
         match cmd {
             SessionCommand::GrabLinesBlocking { range, sender } => {
@@ -389,6 +644,23 @@ impl SessionService {
             }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;
+            }
+            SessionCommand::SendChatMessage {
+                id,
+                message,
+                history: _,
+                ai_config,
+            } => {
+                if let Err(err) = prompt_tx
+                    .send(Prompt {
+                        id,
+                        message: message.clone(),
+                        config: ai_config.clone(),
+                    })
+                    .await
+                {
+                    log::error!("Failed to send chat message to MCP client: {err:?}");
+                }
             }
             SessionCommand::CloseSession => {
                 // Session UI can be already dropped at this point, therefore

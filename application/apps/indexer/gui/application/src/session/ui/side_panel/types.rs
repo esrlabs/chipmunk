@@ -7,6 +7,7 @@ pub enum SideTabType {
     Observing,
     Attachments,
     Filters,
+    Chat,
 }
 
 impl Display for SideTabType {
@@ -15,6 +16,7 @@ impl Display for SideTabType {
             SideTabType::Observing => "Observing",
             SideTabType::Attachments => "Attachments",
             SideTabType::Filters => "Filters",
+            SideTabType::Chat => "Chat",
         };
 
         f.write_str(content)

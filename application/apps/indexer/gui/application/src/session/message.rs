@@ -1,5 +1,8 @@
 use std::collections::HashMap;
+use std::convert::From;
 
+use mcp::server::tasks::Tasks;
+use mcp::types::Response;
 use stypes::{FilterMatch, GrabbedElement, NearestPosition};
 use uuid::Uuid;
 
@@ -21,12 +24,16 @@ pub enum SessionMessage {
     // --- Search ---
     //
     /// Total number of rows matched by the active search.
-    SearchResultCountUpdated { count: u64 },
+    SearchResultCountUpdated {
+        count: u64,
+    },
 
     /// Total number of rows currently exposed by the indexed lower table.
     /// This can include search results, bookmarked rows, and any other indexed-map entries
     /// currently materialized by the backend.
-    IndexedCountUpdated { count: u64 },
+    IndexedCountUpdated {
+        count: u64,
+    },
 
     /// Search matches found.
     SearchResults(Vec<FilterMatch>),
@@ -38,7 +45,10 @@ pub enum SessionMessage {
     NearestPosition(Result<Option<NearestPosition>, SessionError>),
 
     /// Confirmed bookmark mutation from the session backend.
-    BookmarkUpdated { row: u64, is_bookmarked: bool },
+    BookmarkUpdated {
+        row: u64,
+        is_bookmarked: bool,
+    },
 
     // --- Charts ---
     //
@@ -58,11 +68,24 @@ pub enum SessionMessage {
     },
 
     /// Source has been added to session.
-    SourceAdded { observe_op: Box<ObserveOperation> },
+    SourceAdded {
+        observe_op: Box<ObserveOperation>,
+    },
 
     /// Triggered when a file is opened within the session.
     /// Although `chipmunk` continues to monitor the file for changes,
     /// this event is triggered upon the completion of file reading.
     /// This event is not triggered for streams within a session.
     FileReadCompleted,
+
+    ChatResponseReceived(Response),
+
+    /// Process the task received from the MCP server
+    MCPTaskReceived(Tasks),
+}
+
+#[derive(Debug, Clone)]
+pub enum AiMessage {
+    Prompt(String),
+    Response(Response),
 }

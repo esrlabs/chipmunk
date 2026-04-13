@@ -158,7 +158,7 @@ dependencies = [
 
 [[package]]
 name = "bufread"
-version = "0.1.1"
+version = "4.0.0"
 
 [[package]]
 name = "bumpalo"
@@ -659,7 +659,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "indexer_base"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "log",
  "serde",
@@ -684,9 +684,9 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -715,15 +715,15 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.180"
+version = "0.2.182"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcc35a38544a891a5f7c865aca548a982ccb3b8650a5b06d0fd33a10283c56fc"
+checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
+checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "lock_api"
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "parsers"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "byteorder",
  "chrono",
@@ -1001,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "processor"
-version = "0.2.0"
+version = "4.0.0"
 dependencies = [
  "bincode",
  "bufread",
@@ -1162,9 +1162,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "1.1.3"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "146c9e247ccc180c1f61615433868c99f3de3ae256a30a43b49f67c2d9171f34"
+checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
 dependencies = [
  "bitflags 2.9.1",
  "errno",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "someip-tools"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "nom",
  "thiserror 2.0.12",
@@ -1339,7 +1339,7 @@ dependencies = [
 
 [[package]]
 name = "sources"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "bufread",
  "bytes",
@@ -1373,7 +1373,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stypes"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "anyhow",
  "bincode",
@@ -1399,7 +1399,7 @@ dependencies = [
 
 [[package]]
 name = "text_grep"
-version = "0.1.0"
+version = "4.0.0"
 dependencies = [
  "bufread",
  "grep-regex",
@@ -1662,9 +1662,9 @@ dependencies = [
 
 [[package]]
 name = "which"
-version = "8.0.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3fabb953106c3c8eea8306e4393700d7657561cb43122571b172bbfb7c7ba1d"
+checksum = "3a824aeba0fbb27264f815ada4cff43d65b1741b7a4ed7629ff9089148c4a4e0"
 dependencies = [
  "env_home",
  "rustix",

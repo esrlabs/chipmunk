@@ -9,6 +9,7 @@ use crate::{
 use uuid::Uuid;
 
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
+use mcp::config::{AiConfig, LlmProvider};
 
 mod info;
 mod logs;
@@ -42,6 +43,8 @@ pub struct SessionShared {
     pub logs: LogsState,
 
     pub observe: ObserveState,
+
+    pub ai_configuration: AiConfig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,6 +71,7 @@ impl SessionShared {
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
             observe: ObserveState::new(observe_op),
+            ai_configuration: AiConfig::default(),
         }
     }
 
@@ -108,6 +112,7 @@ impl SessionShared {
             search_values,
             logs: _,
             observe,
+            ai_configuration: _,
         } = self;
 
         if observe.update_operation(operation_id, phase).consumed() {
@@ -141,6 +146,23 @@ impl SessionShared {
                 commands
             }
         }
+    }
+
+    pub fn update_ai_configuration(
+        &mut self,
+        provider: LlmProvider,
+        model_name: String,
+        url: String,
+        api_key: Option<String>,
+    ) {
+        self.ai_configuration.provider = provider;
+        self.ai_configuration.model = model_name;
+        self.ai_configuration.url = if url.trim().is_empty() {
+            String::from("http://localhost:11434")
+        } else {
+            url
+        };
+        self.ai_configuration.api_key = api_key;
     }
 
     /// Synchronizes the logs search pipeline from current applied filters.
