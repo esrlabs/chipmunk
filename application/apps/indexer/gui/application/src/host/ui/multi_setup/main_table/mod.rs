@@ -26,6 +26,7 @@ pub fn render_content(ui: &mut Ui, state: &mut MultiFileState) {
 
 fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
     let available_height = ui.available_height();
+    let ctx = ui.ctx().clone();
     let table = TableBuilder::new(ui)
         .auto_shrink(true)
         .drag_to_scroll(false)
@@ -40,7 +41,7 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
         .column(Column::initial(130.0)) // modify date
         .min_scrolled_height(0.0)
         .max_scroll_height(available_height)
-        .sense(Sense::click());
+        .sense(Sense::click_and_drag());
 
     table
         .header(20.0, |mut header| {
@@ -66,8 +67,38 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
                 row.col(|ui| table_cell_text(ui, file.size_txt.to_owned().unwrap_or_default()));
                 row.col(|ui| table_cell_text(ui, file.last_modify.to_owned().unwrap_or_default()));
 
-                if row.response().clicked() {
+                let response = row.response();
+
+                if response.clicked() {
                     file.included = !file.included;
+                }
+
+                if response.drag_started() {
+                    if let Some(pointer_pos) = ctx.pointer_interact_pos() {
+                        if state.drag_index.is_none() {
+                            state.drag_index = Some(row.index());
+                            state.drag_start_y = Some(pointer_pos.y);
+                        }
+                    }
+                }
+
+                if response.drag_stopped() {
+                    if let (Some(from), Some(start_y)) = (state.drag_index, state.drag_start_y) {
+                        let final_y = ctx
+                            .input(|i| i.pointer.hover_pos())
+                            .map(|p| p.y)
+                            .unwrap_or(start_y);
+                        let delta_rows = ((final_y - start_y) / 20.0).round() as i32;
+                        let count = state.files.len() as i32;
+                        let to = ((from as i32 + delta_rows).clamp(0, count - 1)) as usize;
+                        if from != to {
+                            let item = state.files.remove(from);
+                            state.files.insert(to, item);
+                        }
+                    }
+                    state.drag_index = None;
+                    state.drag_start_y = None;
+                    state.drag_target = None;
                 }
             });
         });
