@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use egui::{CentralPanel, Frame, Margin, Panel, Ui};
 use log::warn;
@@ -14,11 +14,11 @@ use crate::{
             HostAction, UiActions,
             registry::{HostRegistry, filters::FilterRegistry},
             state::PanelsVisibility,
-            storage::RecentSessionStateSnapshot,
+            storage::{HostStorage, RecentSessionStateSnapshot, RecentSourceSnapshot},
         },
     },
     session::{
-        InitSessionParams,
+        RecentSessionRuntimeInit, SessionUiInit,
         command::SessionCommand,
         communication::{UiHandle, UiReceivers},
         error::SessionError,
@@ -61,14 +61,18 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(init: InitSessionParams, host_cmd_tx: Sender<HostCommand>) -> Self {
-        let InitSessionParams {
+    pub fn new(init: SessionUiInit, host_cmd_tx: Sender<HostCommand>) -> Self {
+        let SessionUiInit {
             session_info,
-            recent_source_key,
-            supports_bookmarks,
+            recent_runtime,
             communication,
             observe_op,
         } = init;
+        let RecentSessionRuntimeInit {
+            source_key: recent_source_key,
+            supports_bookmarks,
+            additional_observe_ops,
+        } = recent_runtime;
 
         let UiHandle { senders, receivers } = communication;
 
@@ -79,10 +83,17 @@ impl Session {
             ParserNames::Plugins => Rc::new(PluginsLogSchema),
         };
 
+        let side_panel =
+            SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone());
+        let mut shared = SessionShared::new(session_info, observe_op);
+        for observe_op in additional_observe_ops {
+            shared.add_operation(observe_op);
+        }
+
         Self {
             receivers,
-            side_panel: SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone()),
-            shared: SessionShared::new(session_info, observe_op),
+            side_panel,
+            shared,
             recent_session: RecentSessionRuntime::new(recent_source_key, supports_bookmarks),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), host_cmd_tx, schema),
@@ -132,7 +143,7 @@ impl Session {
             .take_state_update(&self.shared, registry)
     }
 
-    pub fn recent_source_key(&self) -> &str {
+    pub fn recent_source_key(&self) -> Option<&std::sync::Arc<str>> {
         self.recent_session.source_key()
     }
 
@@ -160,7 +171,7 @@ impl Session {
             "Signals leaked from previous frame."
         );
 
-        if shared.observe.is_initial_loading() {
+        if shared.observe.show_startup_spinner(shared.logs.logs_count) {
             show_busy_indicator(
                 ui.ctx(),
                 Some("Initializing Session"),
@@ -228,7 +239,12 @@ impl Session {
     }
 
     /// Check incoming messages and handle them.
-    pub fn handle_messages(&mut self, actions: &mut UiActions) {
+    pub fn handle_messages(
+        &mut self,
+        actions: &mut UiActions,
+        storage: &mut HostStorage,
+        registry: &FilterRegistry,
+    ) {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             match msg {
                 SessionMessage::LogsCount(count) => {
@@ -273,14 +289,14 @@ impl Session {
                 }
                 SessionMessage::ChartHistogram(map) => {
                     let Some(map) = self.ok_or_notify(map, actions) else {
-                        return;
+                        continue;
                     };
 
                     self.bottom_panel.chart.update_histogram(map);
                 }
                 SessionMessage::ChartLinePlots(values) => {
                     let Some(values) = self.ok_or_notify(values, actions) else {
-                        return;
+                        continue;
                     };
 
                     self.bottom_panel.chart.update_line_plots(values);
@@ -290,15 +306,39 @@ impl Session {
                     self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SourceAdded { observe_op } => {
-                    self.recent_session.disable_updates();
+                    let appended_source =
+                        RecentSourceSnapshot::from_observe_origin(observe_op.origin.clone());
                     self.shared.add_operation(*observe_op);
+
+                    let current_source_key = match self.recent_session.source_key() {
+                        Some(key) => Arc::clone(key),
+                        _ => continue,
+                    };
+
+                    // Rebind this live session to the appended source-set snapshot.
+                    let title = self.shared.get_info().title.clone();
+                    let recent_state = self
+                        .recent_session
+                        .capture_opened_state(&self.shared, registry);
+
+                    let rebind_res = storage.recent_sessions.rebind_after_append(
+                        current_source_key,
+                        appended_source,
+                        title,
+                        recent_state,
+                    );
+
+                    match rebind_res {
+                        Some(new_source_key) => self.recent_session.set_source_key(new_source_key),
+                        None => self.recent_session.clear_source_key(),
+                    }
                 }
                 SessionMessage::OperationUpdated {
                     operation_id,
                     phase,
                 } => {
                     if self.shared.update_operation(operation_id, phase).consumed() {
-                        return;
+                        continue;
                     }
                     // Potential components which keep track for operations can go here.
                 }

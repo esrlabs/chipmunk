@@ -30,9 +30,10 @@ const RECENT_SESSIONS_FILE: &str = "recent_sessions.json";
 /// Host-side execution request derived from a stored recent-session snapshot.
 #[derive(Debug)]
 pub enum RecentSessionOpenRequest {
-    /// Restore the session directly from rebuilt observe options.
+    /// Restore the session directly from rebuilt startup observe sources.
     Restore {
         options: Box<stypes::ObserveOptions>,
+        additional_sources: Vec<stypes::ObserveOrigin>,
         restore_state: Option<RecentSessionStateSnapshot>,
     },
     /// Reopen one or more files through the normal host open flow.
@@ -56,30 +57,31 @@ pub fn resolve_open_request(
     let OpenRecentSessionParam { snapshot, mode } = params;
 
     match mode {
-        RecentSessionReopenMode::RestoreSession => snapshot
-            .to_observe_options()
-            .map(|options| RecentSessionOpenRequest::Restore {
-                options: Box::new(options),
-                restore_state: Some(snapshot.state),
-            })
-            .ok_or_else(|| {
-                HostError::InitSessionError(InitSessionError::Other(
-                    "Recent session snapshot cannot be restored.".into(),
-                ))
-            }),
-        RecentSessionReopenMode::RestoreParserConfiguration => snapshot
-            .to_observe_options()
-            .map(|options| RecentSessionOpenRequest::Restore {
-                options: Box::new(options),
-                restore_state: None,
-            })
-            .ok_or_else(|| {
-                HostError::InitSessionError(InitSessionError::Other(
-                    "Recent session snapshot cannot be restored.".into(),
-                ))
-            }),
+        RecentSessionReopenMode::RestoreSession => resolve_restore_request(snapshot, true),
+        RecentSessionReopenMode::RestoreParserConfiguration => {
+            resolve_restore_request(snapshot, false)
+        }
         RecentSessionReopenMode::OpenClean => open_recent_session_clean(snapshot),
     }
+}
+
+fn resolve_restore_request(
+    snapshot: RecentSessionSnapshot,
+    restore_state: bool,
+) -> Result<RecentSessionOpenRequest, HostError> {
+    let (options, additional_sources) = snapshot.to_startup_restore_plan().ok_or_else(|| {
+        HostError::InitSessionError(InitSessionError::Other(
+            "Recent session snapshot cannot be restored.".into(),
+        ))
+    })?;
+
+    let restore = RecentSessionOpenRequest::Restore {
+        options: Box::new(options),
+        additional_sources,
+        restore_state: restore_state.then_some(snapshot.state),
+    };
+
+    Ok(restore)
 }
 
 fn open_recent_session_clean(
@@ -294,8 +296,9 @@ mod tests {
             service::storage::{STORAGE_DIR, storage_path_from_home},
             ui::storage::{
                 MAX_RECENT_SESSIONS, RecentSessionRegistration, RecentSessionReopenMode,
-                RecentSessionSnapshot, RecentSessionsData, RecentSessionsStorage,
-                RecentSourceSnapshot, SearchFilterSnapshot, StorageError, StorageErrorKind,
+                RecentSessionSnapshot, RecentSessionSource, RecentSessionsData,
+                RecentSessionsStorage, RecentSourceSnapshot, SearchFilterSnapshot, StorageError,
+                StorageErrorKind,
             },
         },
     };
@@ -564,17 +567,114 @@ mod tests {
         .expect("parser restore request should resolve");
 
         match restore_request {
-            RecentSessionOpenRequest::Restore { restore_state, .. } => {
-                assert!(restore_state.is_some())
+            RecentSessionOpenRequest::Restore {
+                additional_sources,
+                restore_state,
+                ..
+            } => {
+                assert!(additional_sources.is_empty());
+                assert!(restore_state.is_some());
             }
             other => panic!("expected restore request, got {other:?}"),
         }
 
         match parser_request {
-            RecentSessionOpenRequest::Restore { restore_state, .. } => {
-                assert!(restore_state.is_none())
+            RecentSessionOpenRequest::Restore {
+                additional_sources,
+                restore_state,
+                ..
+            } => {
+                assert!(additional_sources.is_empty());
+                assert!(restore_state.is_none());
             }
             other => panic!("expected parser restore request, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn multi_stream_restore_splits_sources() {
+        let snapshot = RecentSessionSnapshot {
+            source_key: "multi-stream".into(),
+            title: String::from("multi-stream"),
+            last_opened: unix_timestamp_now(),
+            source: RecentSourceSnapshot {
+                sources: vec![
+                    RecentSessionSource::Stream {
+                        transport: Transport::TCP(TCPTransportConfig {
+                            bind_addr: String::from("127.0.0.1:5000"),
+                        }),
+                    },
+                    RecentSessionSource::Stream {
+                        transport: Transport::TCP(TCPTransportConfig {
+                            bind_addr: String::from("127.0.0.1:5001"),
+                        }),
+                    },
+                ],
+            },
+            parser: ParserType::Text(()),
+            state: Default::default(),
+        };
+
+        let request = resolve_open_request(OpenRecentSessionParam {
+            snapshot,
+            mode: RecentSessionReopenMode::RestoreSession,
+        })
+        .expect("multi-stream restore should resolve");
+
+        match request {
+            RecentSessionOpenRequest::Restore {
+                options,
+                additional_sources,
+                ..
+            } => {
+                assert_eq!(additional_sources.len(), 1);
+                assert!(matches!(options.origin, ObserveOrigin::Stream(_, _)));
+                assert!(matches!(additional_sources[0], ObserveOrigin::Stream(_, _)));
+            }
+            other => panic!("expected restore request, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn multi_file_restore_uses_concat() {
+        let snapshot = snapshot_from_observe_options(
+            String::from("files"),
+            ObserveOptions {
+                origin: ObserveOrigin::Concat(vec![
+                    (
+                        String::from("first-id"),
+                        stypes::FileFormat::Text,
+                        PathBuf::from("first.log"),
+                    ),
+                    (
+                        String::from("second-id"),
+                        stypes::FileFormat::Text,
+                        PathBuf::from("second.log"),
+                    ),
+                ]),
+                parser: ParserType::Text(()),
+            },
+        );
+
+        let request = resolve_open_request(OpenRecentSessionParam {
+            snapshot,
+            mode: RecentSessionReopenMode::RestoreSession,
+        })
+        .expect("multi-file restore should resolve");
+
+        match request {
+            RecentSessionOpenRequest::Restore {
+                options,
+                additional_sources,
+                ..
+            } => {
+                assert!(additional_sources.is_empty());
+                let ObserveOrigin::Concat(files) = options.origin else {
+                    panic!("multi-file restore should use concat");
+                };
+                assert_eq!(files.len(), 2);
+            }
+            other => panic!("expected restore request, got {other:?}"),
         }
     }
 }

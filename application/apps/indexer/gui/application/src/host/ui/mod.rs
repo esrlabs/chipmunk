@@ -160,27 +160,30 @@ impl Host {
                 session,
                 session_setup_id,
             } => {
-                let crate::session::SpawnedSession {
-                    params,
-                    recent_registration,
+                let crate::session::SpawnedSession { ui_init, recent } = *session;
+                let crate::session::SpawnedRecentSession {
+                    registration: recent_registration,
                     restore_state,
-                } = *session;
+                } = recent;
 
                 let session_id =
                     self.state
-                        .add_session(params, session_setup_id, self.senders.cmd_tx.clone());
+                        .add_session(ui_init, session_setup_id, self.senders.cmd_tx.clone());
+
+                let registry = &mut self.state.registry;
 
                 let Some(session) = self.state.sessions.get_mut(&session_id) else {
                     return;
                 };
 
-                let registry = &mut self.state.registry;
-
                 if let Some(restore_state) = restore_state {
                     session.apply_recent_restore(restore_state, registry, &mut self.ui_actions);
                 }
-                let state = session.capture_opened_recent_state(&registry.filters);
-                let snapshot = recent_registration.into_snapshot(state);
+
+                let filters = &registry.filters;
+                let state = session.capture_opened_recent_state(filters);
+                let mut snapshot = recent_registration.into_snapshot(state);
+                snapshot.title = session.get_info().title.clone();
 
                 self.storage.recent_sessions.register_session(snapshot);
             }
@@ -331,10 +334,13 @@ impl Host {
             let Some(state) = session.take_recent_state_update(&state.registry.filters) else {
                 continue;
             };
+            let Some(source_key) = session.recent_source_key() else {
+                continue;
+            };
 
             storage
                 .recent_sessions
-                .update_session_state(session.recent_source_key(), state);
+                .update_session_state(source_key, state);
         }
     }
 
@@ -392,16 +398,25 @@ impl eframe::App for Host {
             self.handle_message(msg);
         }
 
-        while let Ok(notification) = self.receivers.notification_rx.try_recv() {
-            self.notifications.add(notification);
+        let Self {
+            receivers,
+            notifications,
+            storage,
+            ui_actions,
+            ..
+        } = self;
+
+        while let Ok(notification) = receivers.notification_rx.try_recv() {
+            notifications.add(notification);
         }
 
-        self.storage.poll_pending_save(&mut self.ui_actions);
+        storage.poll_pending_save(ui_actions);
 
+        let filters = &self.state.registry.filters;
         self.state
             .sessions
             .iter_mut()
-            .for_each(|(_id, session)| session.handle_messages(&mut self.ui_actions));
+            .for_each(|(_id, session)| session.handle_messages(ui_actions, storage, filters));
 
         self.handle_recent_sessions();
     }
