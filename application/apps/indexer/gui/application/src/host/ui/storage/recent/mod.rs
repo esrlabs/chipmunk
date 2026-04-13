@@ -2,12 +2,14 @@
 
 use std::{path::PathBuf, sync::Arc};
 
-use log::warn;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use processor::search::filter::SearchFilter;
 use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
+
+use crate::common::time::unix_timestamp_now;
 
 mod source_key;
 
@@ -144,6 +146,47 @@ impl RecentSessionsStorage {
         self.dirty = true;
     }
 
+    /// Clones the current snapshot, appends new sources, and re-registers it under the new key.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(new_source_key)` when the current recent snapshot exists.
+    /// - `None` when the old recent entry was already removed.
+    pub fn rebind_after_append(
+        &mut self,
+        source_key: Arc<str>,
+        mut appended_source: RecentSourceSnapshot,
+        title: String,
+        state: RecentSessionStateSnapshot,
+    ) -> Option<Arc<str>> {
+        let Some(current_snapshot) = self
+            .data
+            .sessions
+            .iter()
+            .find(|session| session.source_key == source_key)
+        else {
+            info!("Skipping recent-session append rebind for removed source key: {source_key}");
+            return None;
+        };
+
+        let mut source = current_snapshot.source.clone();
+        source.sources.append(&mut appended_source.sources);
+
+        let new_source_key = source.generate_source_key();
+
+        let new_snapshot = RecentSessionSnapshot {
+            source,
+            source_key: Arc::clone(&new_source_key),
+            title,
+            last_opened: unix_timestamp_now(),
+            parser: current_snapshot.parser.clone(),
+            state,
+        };
+
+        self.register_session(new_snapshot);
+        Some(new_source_key)
+    }
+
     /// Removes a recent session entry by source key.
     pub fn remove_session(&mut self, source_key: &str) {
         let initial_len = self.data.sessions.len();
@@ -172,7 +215,7 @@ impl RecentSessionRegistration {
         source: RecentSourceSnapshot,
         parser: ParserType,
     ) -> Self {
-        let source_key = source.source_key();
+        let source_key = source.generate_source_key();
 
         Self {
             source_key,
@@ -197,14 +240,60 @@ impl RecentSessionRegistration {
 }
 
 impl RecentSessionSnapshot {
-    /// Rebuilds observe options for restore-style reopen flows.
-    pub fn to_observe_options(&self) -> Option<ObserveOptions> {
+    /// Rebuilds the startup observe plan for restore-style reopen flows.
+    pub fn to_startup_restore_plan(&self) -> Option<(ObserveOptions, Vec<ObserveOrigin>)> {
+        // Source types can't be mixed in one session.
+        let first = self.source.sources.first()?;
+
+        let (origin, additional_sources) = match first {
+            RecentSessionSource::File { .. } => {
+                let mut files = Vec::with_capacity(self.source.sources.len());
+                for source in &self.source.sources {
+                    let RecentSessionSource::File { format, path } = source else {
+                        warn!(
+                            "Recent source snapshot contains mixed source types and cannot be restored"
+                        );
+                        return None;
+                    };
+                    files.push((Uuid::new_v4().to_string(), *format, path.clone()));
+                }
+
+                let origin = if files.len() == 1 {
+                    let (id, format, path) = files.pop()?;
+                    ObserveOrigin::File(id, format, path)
+                } else {
+                    ObserveOrigin::Concat(files)
+                };
+
+                (origin, Vec::new())
+            }
+            RecentSessionSource::Stream { .. } => {
+                let mut origins = Vec::with_capacity(self.source.sources.len());
+                for source in &self.source.sources {
+                    let RecentSessionSource::Stream { transport } = source else {
+                        warn!(
+                            "Recent source snapshot contains mixed source types and cannot be restored"
+                        );
+                        return None;
+                    };
+                    origins.push(ObserveOrigin::Stream(
+                        Uuid::new_v4().to_string(),
+                        transport.clone(),
+                    ));
+                }
+
+                let mut origins = origins.into_iter();
+                let initial = origins.next()?;
+                (initial, origins.collect())
+            }
+        };
+
         let options = ObserveOptions {
-            origin: self.source.to_observe_origin()?,
+            origin,
             parser: self.parser.clone(),
         };
 
-        Some(options)
+        Some((options, additional_sources))
     }
 
     /// Returns whether the snapshot can be reopened through the normal open/setup flow.
@@ -232,41 +321,8 @@ impl RecentSourceSnapshot {
     }
 
     /// Returns the compact hashed key for this ordered source collection.
-    pub fn source_key(&self) -> Arc<str> {
+    pub fn generate_source_key(&self) -> Arc<str> {
         source_key::from_snapshot(self)
-    }
-
-    /// Rebuilds an observe origin with fresh runtime source IDs.
-    pub fn to_observe_origin(&self) -> Option<ObserveOrigin> {
-        // Sources types can't be mixed in one session.
-        let first = self.sources.first()?;
-
-        match first {
-            RecentSessionSource::File { .. } => {
-                let mut files = Vec::with_capacity(self.sources.len());
-                for source in &self.sources {
-                    let RecentSessionSource::File { format, path } = source else {
-                        warn!(
-                            "Recent source snapshot contains mixed source types and cannot be restored"
-                        );
-                        return None;
-                    };
-                    files.push((Uuid::new_v4().to_string(), *format, path.clone()));
-                }
-
-                if files.len() == 1 {
-                    let (id, format, path) = files.pop()?;
-                    Some(ObserveOrigin::File(id, format, path))
-                } else {
-                    Some(ObserveOrigin::Concat(files))
-                }
-            }
-            RecentSessionSource::Stream { transport } if self.sources.len() == 1 => Some(
-                ObserveOrigin::Stream(Uuid::new_v4().to_string(), transport.clone()),
-            ),
-            //TODO AAZ: We Need to support restoring multiple sources.
-            RecentSessionSource::Stream { .. } => None,
-        }
     }
 
     /// Returns whether the source snapshot supports clean open through the setup flow.
@@ -518,6 +574,66 @@ mod tests {
     }
 
     #[test]
+    fn rebind_after_append_registers_new_snapshot() {
+        let mut storage = test_storage();
+        let first = write_test_file("rebind-first.log");
+        let second = write_test_file("rebind-second.log");
+        let original = file_snapshot(first);
+        let original_key = original.source_key.clone();
+        storage.register_session(original);
+        storage.apply_save_success();
+
+        let state = RecentSessionStateSnapshot {
+            bookmarks: vec![7],
+            ..Default::default()
+        };
+        let new_key = storage
+            .rebind_after_append(
+                original_key.clone(),
+                super::RecentSourceSnapshot {
+                    sources: vec![RecentSessionSource::File {
+                        format: stypes::FileFormat::Text,
+                        path: second,
+                    }],
+                },
+                String::from("Concating 2 files"),
+                state.clone(),
+            )
+            .expect("append rebind should create a new snapshot");
+
+        assert_ne!(new_key, original_key);
+        assert_eq!(storage.data.sessions.len(), 2);
+        assert_eq!(storage.data.sessions[0].source_key, new_key);
+        assert_eq!(storage.data.sessions[0].title, "Concating 2 files");
+        assert_eq!(storage.data.sessions[0].source.sources.len(), 2);
+        assert_eq!(storage.data.sessions[0].state, state);
+        assert_eq!(storage.data.sessions[1].source_key, original_key);
+        assert_eq!(storage.data.sessions[1].source.sources.len(), 1);
+        assert!(storage.dirty);
+    }
+
+    #[test]
+    fn rebind_after_append_returns_none_for_missing_snapshot() {
+        let mut storage = test_storage();
+
+        let result = storage.rebind_after_append(
+            Arc::<str>::from("missing"),
+            super::RecentSourceSnapshot {
+                sources: vec![RecentSessionSource::File {
+                    format: stypes::FileFormat::Text,
+                    path: PathBuf::from("ignored.log"),
+                }],
+            },
+            String::from("ignored"),
+            Default::default(),
+        );
+
+        assert!(result.is_none());
+        assert!(storage.data.sessions.is_empty());
+        assert!(!storage.dirty);
+    }
+
+    #[test]
     fn remove_session_drops_snapshot() {
         let mut storage = test_storage();
         let snapshot = named_snapshot("single");
@@ -572,10 +688,11 @@ mod tests {
             },
         );
 
-        let restored = snapshot
-            .to_observe_options()
-            .expect("observe options should be rebuilt");
+        let (restored, additional_sources) = snapshot
+            .to_startup_restore_plan()
+            .expect("startup restore plan should be rebuilt");
 
+        assert!(additional_sources.is_empty());
         let ObserveOrigin::Concat(items) = restored.origin else {
             panic!("concat origin should be restored");
         };

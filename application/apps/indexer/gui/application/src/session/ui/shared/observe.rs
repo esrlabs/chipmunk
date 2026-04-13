@@ -73,10 +73,20 @@ impl ObserveState {
         &self.operations
     }
 
-    /// Check if the session is still in the initial loading state before
-    /// producing any logs.
-    pub fn is_initial_loading(&self) -> bool {
-        self.operations.iter().all(ObserveOperation::initializing)
+    /// Returns whether the startup spinner should stay visible.
+    pub fn show_startup_spinner(&self, logs_count: u64) -> bool {
+        // Keep the original startup behavior while the backend has not started processing yet.
+        if self.operations.iter().all(ObserveOperation::initializing) {
+            return true;
+        }
+
+        // File restores can report processing before the first rows are visible.
+        let is_file_based = matches!(
+            self.operations.first().map(|operation| &operation.origin),
+            Some(ObserveOrigin::File(..) | ObserveOrigin::Concat(..))
+        );
+
+        is_file_based && !self.file_read_completed && logs_count == 0
     }
 
     /// Mark the initial file reading as completed.
@@ -87,5 +97,68 @@ impl ObserveState {
     /// Check if the initial file reading has completed.
     pub fn is_file_read_completed(&self) -> bool {
         self.file_read_completed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use stypes::{FileFormat, TCPTransportConfig, Transport};
+
+    use super::*;
+
+    #[test]
+    fn file_waits_for_first_logs() {
+        let operation_id = Uuid::new_v4();
+        let observe = ObserveOperation::new(
+            operation_id,
+            ObserveOrigin::File(
+                String::from("file"),
+                FileFormat::Text,
+                PathBuf::from("test.log"),
+            ),
+        );
+        let mut state = ObserveState::new(observe);
+        state.update_operation(operation_id, OperationPhase::Processing);
+
+        assert!(state.show_startup_spinner(0));
+        assert!(!state.show_startup_spinner(1));
+    }
+
+    #[test]
+    fn file_read_completion_stops_waiting() {
+        let operation_id = Uuid::new_v4();
+        let observe = ObserveOperation::new(
+            operation_id,
+            ObserveOrigin::Concat(vec![(
+                String::from("file"),
+                FileFormat::Text,
+                PathBuf::from("test.log"),
+            )]),
+        );
+        let mut state = ObserveState::new(observe);
+        state.update_operation(operation_id, OperationPhase::Processing);
+        state.set_file_read_completed();
+
+        assert!(!state.show_startup_spinner(0));
+    }
+
+    #[test]
+    fn stream_spinner_stops_after_processing() {
+        let operation_id = Uuid::new_v4();
+        let observe = ObserveOperation::new(
+            operation_id,
+            ObserveOrigin::Stream(
+                String::from("stream"),
+                Transport::TCP(TCPTransportConfig {
+                    bind_addr: String::from("127.0.0.1:9000"),
+                }),
+            ),
+        );
+        let mut state = ObserveState::new(observe);
+        state.update_operation(operation_id, OperationPhase::Processing);
+
+        assert!(!state.show_startup_spinner(0));
     }
 }

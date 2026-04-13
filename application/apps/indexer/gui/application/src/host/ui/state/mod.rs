@@ -16,7 +16,7 @@ use crate::{
             tabs::TabType,
         },
     },
-    session::{InitSessionParams, ui::Session},
+    session::{SessionUiInit, ui::Session},
 };
 
 pub const HOME_TAB_IDX: usize = 0;
@@ -69,7 +69,7 @@ impl HostState {
     /// Add session to state returning it's ID.
     pub fn add_session(
         &mut self,
-        session: InitSessionParams,
+        session: SessionUiInit,
         session_setup_id: Option<Uuid>,
         host_cmd_tx: Sender<HostCommand>,
     ) -> Uuid {

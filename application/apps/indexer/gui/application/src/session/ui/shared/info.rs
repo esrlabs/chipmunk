@@ -36,11 +36,12 @@ impl SessionInfo {
             return;
         };
 
+        let count = state.sources_count();
+
         match &first_op.origin {
-            ObserveOrigin::File(..) => {}
-            ObserveOrigin::Concat(..) => self.title = concat_title(state.sources_count()),
+            ObserveOrigin::File(..) if count == 1 => {}
+            ObserveOrigin::File(..) | ObserveOrigin::Concat(..) => self.title = concat_title(count),
             ObserveOrigin::Stream(_, transport) => {
-                let count = state.sources_count();
                 self.title = match transport {
                     Transport::Process(..) => format!("{count} Terminal Commands"),
                     Transport::TCP(..) => format!("{count} TCP Connections"),

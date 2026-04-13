@@ -27,28 +27,44 @@ pub enum InitSessionError {
     Other(String),
 }
 
+/// Session creation output sent from the service layer to the host UI.
+#[derive(Debug)]
+pub struct SpawnedSession {
+    /// UI initialization payload for the live session.
+    pub ui_init: SessionUiInit,
+    /// Recent-session metadata still handled by the host.
+    pub recent: SpawnedRecentSession,
+}
+
 /// Parameters required to construct one running session UI.
 #[derive(Debug)]
-pub struct InitSessionParams {
+pub struct SessionUiInit {
     /// Static session metadata used by the UI shell.
     pub session_info: SessionInfo,
-    /// Stable identity of the recent-session entry owned by this live session.
-    pub recent_source_key: Arc<str>,
-    /// Whether the current source shape supports bookmark persistence.
-    pub supports_bookmarks: bool,
+    /// Recent-session runtime state owned by the live session.
+    pub recent_runtime: RecentSessionRuntimeInit,
     /// UI-side communication handles for this session.
     pub communication: UiHandle,
     /// Initial observe operation started with the session.
     pub observe_op: ObserveOperation,
 }
 
-/// Session creation output sent from the service layer to the host UI.
+/// Recent-session runtime state needed by one live session.
 #[derive(Debug)]
-pub struct SpawnedSession {
-    /// Parameters used to construct the live session UI.
-    pub params: InitSessionParams,
+pub struct RecentSessionRuntimeInit {
+    /// Stable identity of the recent-session entry owned by this live session.
+    pub source_key: Arc<str>,
+    /// Whether this source shape supports recent bookmark persistence.
+    pub supports_bookmarks: bool,
+    /// Additional startup observe operations attached before first render.
+    pub additional_observe_ops: Vec<ObserveOperation>,
+}
+
+/// Host-owned recent-session data associated with a spawned session.
+#[derive(Debug)]
+pub struct SpawnedRecentSession {
     /// Static recent-session metadata owned by the host.
-    pub recent_registration: RecentSessionRegistration,
+    pub registration: RecentSessionRegistration,
     /// Optional session state to restore on startup.
     pub restore_state: Option<RecentSessionStateSnapshot>,
 }
