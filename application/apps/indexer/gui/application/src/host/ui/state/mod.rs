@@ -57,8 +57,8 @@ impl HostState {
         }
     }
 
-    pub fn active_tab(&self) -> TabType {
-        self.tabs[self.active_tab_idx]
+    pub fn active_tab(&self) -> &TabType {
+        &self.tabs[self.active_tab_idx]
     }
 
     /// Whether the tab bar should render the session panel visibility toggles.
@@ -221,38 +221,3 @@ impl Default for PanelsVisibility {
         }
     }
 }
-
-/* TODO Revive
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn panels_visibility_defaults_visible() {
-        let state = HostState::default();
-
-        assert!(state.session_panels_visibility.right);
-        assert!(state.session_panels_visibility.bottom);
-    }
-
-    #[test]
-    fn toggling_right_keeps_bottom() {
-        let mut state = HostState::default();
-
-        state.session_panels_visibility.right = !state.session_panels_visibility.right;
-
-        assert!(!state.session_panels_visibility.right);
-        assert!(state.session_panels_visibility.bottom);
-    }
-
-    #[test]
-    fn toggling_bottom_keeps_right() {
-        let mut state = HostState::default();
-
-        state.session_panels_visibility.bottom = !state.session_panels_visibility.bottom;
-
-        assert!(state.session_panels_visibility.right);
-        assert!(!state.session_panels_visibility.bottom);
-    }
-}
-*/

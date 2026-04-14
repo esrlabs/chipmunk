@@ -16,7 +16,7 @@ use crate::{
     },
     host::{
         command::{HostCommand, StartSessionParam},
-        common::app_style,
+        common::{app_style, colors},
         communication::{UiReceivers, UiSenders},
         message::HostMessage,
         service::HostService,
@@ -28,7 +28,7 @@ use crate::{
                 sources::{ByteSourceConfig, ProcessConfig, StreamConfig},
             },
             storage::HostStorage,
-            tabs::TabType,
+            tabs::{HOST_TAB_BAR_HEIGHT, HOST_TAB_CONTROL_HEIGHT, TabType, TabsUi},
         },
     },
 };
@@ -55,6 +55,7 @@ pub struct Host {
     receivers: UiReceivers,
     senders: UiSenders,
     menu: MainMenuBar,
+    tabs: TabsUi,
     notifications: NotificationUi,
     state: HostState,
     storage: HostStorage,
@@ -88,6 +89,7 @@ impl Host {
                     receivers: ui_comm.receivers,
                     senders: ui_comm.senders,
                     notifications: NotificationUi::default(),
+                    tabs: TabsUi::default(),
                     state,
                     storage: HostStorage::new(cmd_tx, recent_sessions),
                     ui_actions: UiActions::new(tokio_handle),
@@ -214,7 +216,12 @@ impl Host {
             });
 
         Panel::top("tab_bar")
-            .frame(Frame::side_top_panel(ui.style()))
+            .frame(
+                Frame::new()
+                    .inner_margin(0)
+                    .fill(colors::main_accent_background(ui.visuals().dark_mode)),
+            )
+            .show_separator_line(false)
             .show_inside(ui, |ui| {
                 self.render_tabs(ui);
             });
@@ -240,32 +247,27 @@ impl Host {
             ui_actions,
             ..
         } = self;
-        ui.horizontal_wrapped(|ui| {
-            // Tabs
-            tabs::render_all_tabs(state, ui_actions, ui);
 
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.add_space(3.);
-                // Notifications
-                notifications.render_content(ui);
+        ui.allocate_ui_with_layout(
+            vec2(ui.available_width(), HOST_TAB_BAR_HEIGHT),
+            Layout::right_to_left(Align::Max),
+            |ui| {
+                // Keep the tab strip gap explicit. The default item spacing would otherwise add a
+                // second horizontal gap next to the utilities.
+                ui.spacing_mut().item_spacing.x = 0.0;
 
-                // Session panels visibility
-                if state.show_session_panel_toggles() {
-                    render_session_panel_toggle(
-                        ui,
-                        &mut state.session_panels_visibility.right,
-                        icons::fill::SQUARE_HALF,
-                        "Right panel",
-                    );
-                    render_session_panel_toggle(
-                        ui,
-                        &mut state.session_panels_visibility.bottom,
-                        icons::fill::SQUARE_HALF_BOTTOM,
-                        "Bottom panel",
-                    );
-                }
-            });
-        });
+                render_tab_bar_utilities(state, notifications, ui);
+                ui.add_space(8.0);
+
+                ui.allocate_ui_with_layout(
+                    vec2(ui.available_width(), HOST_TAB_BAR_HEIGHT),
+                    Layout::left_to_right(Align::Max),
+                    |ui| {
+                        self.tabs.render_all_tabs(state, ui_actions, ui);
+                    },
+                );
+            },
+        );
     }
 
     fn render_main(&mut self, ui: &mut Ui) {
@@ -276,7 +278,7 @@ impl Host {
             ..
         } = self;
 
-        let active_tab = state.active_tab();
+        let active_tab = state.active_tab().clone();
 
         let HostState {
             sessions,
@@ -362,6 +364,36 @@ impl Host {
             })
         });
     }
+}
+
+fn render_tab_bar_utilities(
+    state: &mut HostState,
+    notifications: &mut NotificationUi,
+    ui: &mut Ui,
+) {
+    ui.scope(|ui| {
+        ui.spacing_mut().interact_size.y = HOST_TAB_CONTROL_HEIGHT;
+        ui.spacing_mut().button_padding.y = 0.0;
+
+        notifications.render_content(ui);
+
+        if state.show_session_panel_toggles() {
+            ui.add_space(6.0);
+
+            render_session_panel_toggle(
+                ui,
+                &mut state.session_panels_visibility.right,
+                icons::fill::SQUARE_HALF,
+                "Right panel",
+            );
+            render_session_panel_toggle(
+                ui,
+                &mut state.session_panels_visibility.bottom,
+                icons::fill::SQUARE_HALF_BOTTOM,
+                "Bottom panel",
+            );
+        }
+    });
 }
 
 fn render_session_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, panel_name: &str) {
