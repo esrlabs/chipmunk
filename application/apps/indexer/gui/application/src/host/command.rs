@@ -52,6 +52,9 @@ pub enum HostCommand {
         /// has finished its cleanup tasks.
         confirm_tx: StdSender<()>,
     },
+    CopyFiles {
+        copy_file_infos: Vec<CopyFileInfo>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -74,4 +77,10 @@ pub struct ExportPresetsParam {
     pub path: PathBuf,
     /// Preset snapshot to serialize, ignoring runtime-only registry ownership.
     pub presets: Vec<Preset>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CopyFileInfo {
+    pub source: PathBuf,
+    pub destination: PathBuf,
 }

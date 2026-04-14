@@ -106,6 +106,7 @@ pub const TEMP_SEARCH_COLORS: ColorPair = ColorPair::new(
 
 /// Foreground/background colors used for selected log rows.
 pub const SELECTED_LOG_COLORS: ColorPair = ColorPair::new(Color32::WHITE, Color32::DARK_GREEN);
+pub const DEFAULT_ATTACHMENT_EXT_COLOR: Color32 = egui::Color32::GRAY;
 
 /// Returns the source palette as an owned list for UI code that needs to iterate
 /// or display the available colors.

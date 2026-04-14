@@ -10,12 +10,14 @@ use uuid::Uuid;
 
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
+mod attachments;
 mod info;
 mod logs;
 mod observe;
 pub(crate) mod searching;
 mod signal;
 
+pub use attachments::AttachmentsState;
 pub use info::SessionInfo;
 pub use logs::{LogsState, SelectionIntent};
 pub use observe::ObserveState;
@@ -42,6 +44,8 @@ pub struct SessionShared {
     pub logs: LogsState,
 
     pub observe: ObserveState,
+
+    pub attachments: AttachmentsState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,6 +72,7 @@ impl SessionShared {
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
             observe: ObserveState::new(observe_op),
+            attachments: AttachmentsState::default(),
         }
     }
 
@@ -108,6 +113,7 @@ impl SessionShared {
             search_values,
             logs: _,
             observe,
+            attachments: _,
         } = self;
 
         if observe.update_operation(operation_id, phase).consumed() {

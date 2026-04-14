@@ -17,6 +17,7 @@ use crate::{
                 logs_tables::{grab_cmd_consts, should_stick_to_bottom},
             },
             definitions::{LogTableItem, schema::LogSchema},
+            logs_table::LogAttachmentInfo,
             shared::SessionShared,
         },
     },
@@ -184,22 +185,39 @@ impl<'a> LogsDelegate<'a> {
                 )
             })
             .unwrap_or_default();
-        let is_bookmarked = self
-            .get_log_item(cell)
-            .is_some_and(|item| self.shared.logs.is_bookmarked(item.element.pos as u64));
 
-        let bookmark_pos = self.get_log_item(cell).map(|item| item.element.pos as u64);
-        let response =
-            common::logs_tables::render_row_header(ui, text, color_idx, is_bookmarked, || {
-                if let Some(bookmark_pos) = bookmark_pos {
-                    self.toggle_row_bookmark(bookmark_pos);
+        let log_position: Option<usize> = self.get_log_item(cell).map(|item| item.element.pos);
+
+        let is_bookmarked = log_position
+            .is_some_and(|row_number| self.shared.logs.is_bookmarked(row_number as u64));
+
+        let attachment_info = self
+            .shared
+            .attachments
+            .attachment_by_log_position(cell.row_nr as usize)
+            .map_or(LogAttachmentInfo::NoAttachment, |attachment| {
+                LogAttachmentInfo::WithAttachment {
+                    color: self.shared.attachments.color_by_uuid(&attachment.uuid),
                 }
             });
 
-        if let Some(bookmark_pos) = bookmark_pos
+        let response = common::logs_tables::render_row_header(
+            ui,
+            text,
+            color_idx,
+            is_bookmarked,
+            || {
+                if let Some(log_position) = log_position {
+                    self.toggle_row_bookmark(log_position as u64);
+                }
+            },
+            attachment_info,
+        );
+
+        if let Some(bookmark_pos) = log_position
             && response.clicked()
         {
-            self.handle_selection_click(bookmark_pos, ui.input(|i| i.modifiers));
+            self.handle_selection_click(bookmark_pos as u64, ui.input(|i| i.modifiers));
         }
     }
 
