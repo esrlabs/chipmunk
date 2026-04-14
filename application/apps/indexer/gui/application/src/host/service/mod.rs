@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    fs,
     ops::Not,
     path::{Path, PathBuf},
     thread,
@@ -8,7 +7,7 @@ use std::{
 
 use anyhow::Result;
 use itertools::Itertools;
-use log::{error, trace};
+use log::trace;
 use tokio::runtime::Handle;
 use uuid::Uuid;
 
@@ -201,57 +200,10 @@ impl HostService {
                 // Cleanup on shutdown goes here.
                 let _ = confirm_tx.send(());
             }
-            HostCommand::CopyFiles { copy_file_infos } => {
-                for copy_file_info in copy_file_infos {
-                    self.copy_file(copy_file_info.source, copy_file_info.destination)
-                        .await?;
-                }
-            }
+            HostCommand::CopyFiles { copy_file_infos } => file::copy_files(copy_file_infos).await?,
         }
 
         Ok(())
-    }
-
-    async fn copy_file(&self, source: PathBuf, destination: PathBuf) -> Result<(), HostError> {
-        let source_clone = source.clone();
-        let destination_clone = destination.clone();
-
-        let copy_result =
-            tokio::task::spawn_blocking(move || fs::copy(&source, &destination)).await;
-
-        match copy_result {
-            Ok(Ok(_)) => Ok(()),
-            Ok(Err(error)) => {
-                let error_message = format!(
-                    "Failed to copy file '{}' from '{}' to '{}': {error}",
-                    source_clone.file_name().unwrap_or_default().display(),
-                    source_clone.display(),
-                    destination_clone.display(),
-                );
-
-                error!("{error_message}");
-                Err(HostError::NativeError(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(error_message),
-                }))
-            }
-            Err(join_error) => {
-                let error_message = format!(
-                    "Failed to copy file {} from '{}' to '{}': task failed: {join_error}",
-                    source_clone.file_name().unwrap_or_default().display(),
-                    source_clone.display(),
-                    destination_clone.display(),
-                );
-
-                error!("{error_message}");
-                Err(HostError::NativeError(NativeError {
-                    severity: Severity::ERROR,
-                    kind: NativeErrorKind::Io,
-                    message: Some(error_message),
-                }))
-            }
-        }
     }
 
     async fn open_single_file(&self, file_path: PathBuf) -> Result<(), HostError> {

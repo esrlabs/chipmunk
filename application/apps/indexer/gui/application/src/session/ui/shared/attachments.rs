@@ -1,4 +1,3 @@
-use log::error;
 use rustc_hash::FxHashMap;
 use stypes::AttachmentInfo;
 use uuid::Uuid;
@@ -7,8 +6,6 @@ use crate::host::common::colors;
 
 #[derive(Debug, Default)]
 pub struct AttachmentsState {
-    /// TODO: Evaluate other options of how we can store the attachment state without Vec and
-    /// multiple indices for lookups.
     /// NOTE: Ordered, index-accessible storage is required for egui::ScrollArea::show_rows()
     attachments: Vec<AttachmentInfo>,
     /// Index for lookups: attachment UUID -> attachments list index
@@ -22,32 +19,29 @@ pub struct AttachmentsState {
 impl AttachmentsState {
     pub fn add(&mut self, attachment: AttachmentInfo) {
         let uuid = attachment.uuid;
+        let index = self
+            .index_by_uuid
+            .get(&attachment.uuid)
+            .copied()
+            .unwrap_or(self.attachments.len());
 
-        // In case an attachment is already registered, avoid duplication.
+        for &position in &attachment.messages {
+            self.index_by_position.insert(position, index);
+        }
+
+        // Assumption: index_by_uuid and color_by_extension cannot change when a attachment is updated.
         if self.index_by_uuid.contains_key(&uuid) {
-            error!(
-                "Attachment with uuid {uuid} has already been registered; skipping attachment: {} {:?}",
-                attachment.name, attachment.filepath,
-            );
             return;
         }
 
-        let attachments_index = self.attachments.len();
-
-        for &position in &attachment.messages {
-            self.index_by_position.insert(position, attachments_index);
-        }
-
-        self.index_by_uuid.insert(uuid, attachments_index);
+        self.index_by_uuid.insert(uuid, index);
 
         if let Some(ext) = attachment.ext.as_deref()
             && !self.color_by_extension.contains_key(ext)
         {
-            let extensions_index = self.color_by_extension.len();
-
             self.color_by_extension.insert(
                 ext.to_string(),
-                colors::search_value_color(extensions_index),
+                colors::search_value_color(self.color_by_extension.len()),
             );
         }
 

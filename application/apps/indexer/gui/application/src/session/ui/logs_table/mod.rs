@@ -25,6 +25,7 @@ use crate::{
     },
 };
 
+/// This is used for storing some attachment state during rendering of the logs table only.
 pub enum LogAttachmentInfo {
     NoAttachment,
     WithAttachment { color: Option<egui::Color32> },

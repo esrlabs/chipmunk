@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use egui::{CentralPanel, Frame, Margin, Panel, Ui};
-use log::error;
+use log::warn;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -251,7 +251,7 @@ impl Session {
                 SessionMessage::AttachmentsUpdated { attachment, len } => {
                     self.shared.attachments.add(attachment);
                     if self.shared.attachments.attachments().len() as u64 != len {
-                        error!(
+                        warn!(
                             "Unexpected internal error: Attachment count mismatch: expected {} from backend, got {}.",
                             len,
                             self.shared.attachments.attachments().len()
