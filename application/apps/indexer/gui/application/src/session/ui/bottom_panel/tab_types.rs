@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use enum_iterator::Sequence;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Sequence)]
 pub enum BottomTabType {
     Search,
     Details,
@@ -11,15 +11,21 @@ pub enum BottomTabType {
     Chart,
 }
 
+impl BottomTabType {
+    pub const fn label(self) -> &'static str {
+        match self {
+            BottomTabType::Search => "Search",
+            BottomTabType::Details => "Details",
+            BottomTabType::Library => "Library",
+            BottomTabType::Presets => "Presets",
+            BottomTabType::Chart => "Chart",
+        }
+    }
+}
+
 impl Display for BottomTabType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BottomTabType::Search => f.write_str("Search"),
-            BottomTabType::Details => f.write_str("Details"),
-            BottomTabType::Library => f.write_str("Library"),
-            BottomTabType::Presets => f.write_str("Presets"),
-            BottomTabType::Chart => f.write_str("Chart"),
-        }
+        f.write_str(self.label())
     }
 }
 
