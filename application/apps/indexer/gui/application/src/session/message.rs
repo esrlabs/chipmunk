@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use stypes::{FilterMatch, GrabbedElement, NearestPosition};
+use stypes::{AttachmentInfo, FilterMatch, GrabbedElement, NearestPosition};
 use uuid::Uuid;
 
 use crate::session::{
@@ -65,4 +65,10 @@ pub enum SessionMessage {
     /// this event is triggered upon the completion of file reading.
     /// This event is not triggered for streams within a session.
     FileReadCompleted,
+
+    /// Triggered when attachments are updated
+    AttachmentsUpdated {
+        attachment: AttachmentInfo,
+        len: u64,
+    },
 }

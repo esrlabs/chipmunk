@@ -483,6 +483,11 @@ impl SessionService {
                     .send_session_msg(SessionMessage::FileReadCompleted)
                     .await;
             }
+            CallbackEvent::AttachmentsUpdated { attachment, len } => {
+                self.senders
+                    .send_session_msg(SessionMessage::AttachmentsUpdated { attachment, len })
+                    .await;
+            }
             event => {
                 println!("************** DEBUG: Received unhandled callback: {event:?}");
                 log::warn!("Unhandled callback: {event}");
