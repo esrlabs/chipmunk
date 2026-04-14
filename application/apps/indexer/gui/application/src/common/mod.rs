@@ -5,4 +5,5 @@ pub mod logging;
 pub mod modal;
 pub mod phosphor;
 pub mod time;
+pub mod ui;
 pub mod validation;
