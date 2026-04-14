@@ -200,6 +200,7 @@ impl HostService {
                 // Cleanup on shutdown goes here.
                 let _ = confirm_tx.send(());
             }
+            HostCommand::CopyFiles { copy_file_infos } => file::copy_files(copy_file_infos).await?,
         }
 
         Ok(())

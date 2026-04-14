@@ -4,11 +4,13 @@
 //! scan directories for specific file types, and format file sizes for user display.
 
 use std::{
-    io,
+    fs, io,
     path::{Path, PathBuf},
 };
 
-use stypes::FileFormat;
+use stypes::{FileFormat, NativeError, NativeErrorKind, Severity};
+
+use crate::host::{command::CopyFileInfo, error::HostError};
 
 /// Detects the [`FileFormat`] of a file at the given path.
 pub fn get_file_format(file_path: &Path) -> io::Result<FileFormat> {
@@ -59,4 +61,46 @@ pub fn scan_dir(dir_path: &Path, target_format: FileFormat) -> io::Result<Vec<Pa
         .collect();
 
     Ok(files)
+}
+
+pub async fn copy_files(copy_file_infos: Vec<CopyFileInfo>) -> Result<(), HostError> {
+    let mut errors = Vec::new();
+
+    for copy_file_info in copy_file_infos {
+        let source_display = copy_file_info.source.display().to_string();
+        let destination_display = copy_file_info.destination.display().to_string();
+
+        if let Err(error) = copy_file(copy_file_info.source, copy_file_info.destination).await {
+            errors.push(format!(
+                "from: {}, to: {}, error: {}",
+                source_display,
+                destination_display,
+                error.to_string()
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(HostError::NativeError(NativeError {
+            severity: Severity::ERROR,
+            kind: NativeErrorKind::Io,
+            message: Some(format!(
+                "Failed to copy {} files: {}\n ",
+                errors.len(),
+                errors.join("\n ")
+            )),
+        }))
+    }
+}
+
+pub async fn copy_file(source: PathBuf, destination: PathBuf) -> Result<(), io::Error> {
+    let copy_result = tokio::task::spawn_blocking(move || fs::copy(&source, &destination)).await;
+
+    match copy_result {
+        Ok(Ok(_)) => Ok(()),
+        Ok(Err(err)) => Err(err),
+        Err(join_err) => Err(io::Error::other(join_err)),
+    }
 }

@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use egui::{CentralPanel, Frame, Margin, Panel, Ui};
+use log::warn;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -71,7 +72,7 @@ impl Session {
 
         Self {
             receivers,
-            side_panel: SidePanelUi::new(&observe_op, senders.cmd_tx.clone()),
+            side_panel: SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone()),
             shared: SessionShared::new(session_info, observe_op),
             logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
             bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), host_cmd_tx, schema),
@@ -247,6 +248,16 @@ impl Session {
                     // Potential components which keep track for operations can go here.
                 }
                 SessionMessage::FileReadCompleted => self.shared.observe.set_file_read_completed(),
+                SessionMessage::AttachmentsUpdated { attachment, len } => {
+                    self.shared.attachments.add(attachment);
+                    if self.shared.attachments.attachments().len() as u64 != len {
+                        warn!(
+                            "Unexpected internal error: Attachment count mismatch: expected {} from backend, got {}.",
+                            len,
+                            self.shared.attachments.attachments().len()
+                        );
+                    }
+                }
             }
         }
     }
