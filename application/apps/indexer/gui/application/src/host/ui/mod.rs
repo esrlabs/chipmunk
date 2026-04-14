@@ -28,7 +28,7 @@ use crate::{
                 sources::{ByteSourceConfig, ProcessConfig, StreamConfig},
             },
             storage::HostStorage,
-            tabs::{HOST_TAB_BAR_HEIGHT, HOST_TAB_CONTROL_HEIGHT, TabType, TabsUi},
+            tabs::{HOST_TAB_CONTROL_HEIGHT, TabType, TabsUi, host_tab_bar_height},
         },
     },
 };
@@ -249,18 +249,19 @@ impl Host {
         } = self;
 
         ui.allocate_ui_with_layout(
-            vec2(ui.available_width(), HOST_TAB_BAR_HEIGHT),
-            Layout::right_to_left(Align::Max),
+            vec2(ui.available_width(), host_tab_bar_height()),
+            Layout::right_to_left(Align::Center),
             |ui| {
                 // Keep the tab strip gap explicit. The default item spacing would otherwise add a
                 // second horizontal gap next to the utilities.
                 ui.spacing_mut().item_spacing.x = 0.0;
 
+                ui.add_space(4.0);
                 render_tab_bar_utilities(state, notifications, ui);
                 ui.add_space(8.0);
 
                 ui.allocate_ui_with_layout(
-                    vec2(ui.available_width(), HOST_TAB_BAR_HEIGHT),
+                    vec2(ui.available_width(), host_tab_bar_height()),
                     Layout::left_to_right(Align::Max),
                     |ui| {
                         self.tabs.render_all_tabs(state, ui_actions, ui);

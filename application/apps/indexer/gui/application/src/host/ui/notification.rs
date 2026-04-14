@@ -97,10 +97,13 @@ impl NotificationUi {
     /// message in modal box when available.
     pub fn render_content(&mut self, ui: &mut Ui) {
         // Button.
+        let popup_open = Popup::is_id_open(ui.ctx(), self.popup_id);
         let bell_txt = RichText::new(icons::fill::BELL)
             .family(phosphor::fill_font_family())
             .size(16.);
-        let button = Button::new(bell_txt).frame(true).frame_when_inactive(false);
+        let button = Button::selectable(popup_open, bell_txt)
+            .frame(true)
+            .frame_when_inactive(false);
         let button_res = ui.add(button).on_hover_text("Notifications");
 
         // Check if modal window with notification message should show,
