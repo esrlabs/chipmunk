@@ -3,15 +3,17 @@
 //! This module defines the persisted recent-session snapshot, its source and
 //! state subtypes, and the reopen/display helpers derived from that snapshot.
 
-use std::{path::PathBuf, sync::Arc};
+use std::{fmt::Write as _, path::PathBuf, sync::Arc};
 
 use itertools::Itertools;
 use log::warn;
 use serde::{Deserialize, Serialize};
+
+use processor::search::filter::SearchFilter;
 use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 use uuid::Uuid;
 
-use processor::search::filter::SearchFilter;
+use crate::host::common::parsers::ParserNames;
 
 use super::source_key;
 
@@ -24,7 +26,7 @@ pub struct RecentSessionSnapshot {
     pub last_opened: u64,
     /// Ordered source snapshot used for reopen flows and identity.
     sources: Vec<RecentSessionSource>,
-    /// Cached recent-entry strings derived from `sources`.
+    /// Cached recent-entry strings derived from source, parser, and stored state.
     #[serde(skip, default)]
     cache: RecentEntryCache,
     /// Stored parser configuration.
@@ -33,11 +35,12 @@ pub struct RecentSessionSnapshot {
     pub state: RecentSessionStateSnapshot,
 }
 
-/// Cached recent-entry strings derived from ordered sources.
+/// Cached recent-entry strings derived from ordered sources and stored state.
 #[derive(Debug, Clone, Default)]
 struct RecentEntryCache {
     title: String,
     summary: String,
+    tooltip: String,
 }
 
 /// Static metadata used to register and update one live recent session.
@@ -115,10 +118,7 @@ impl RecentSessionSnapshot {
         state: RecentSessionStateSnapshot,
     ) -> Self {
         let source_key = source_key::from_sources(&sources);
-        let cache = RecentEntryCache {
-            title: build_title(&sources),
-            summary: build_summary(&sources),
-        };
+        let cache = build_cache(&sources, &parser, &state);
 
         Self {
             source_key,
@@ -138,6 +138,10 @@ impl RecentSessionSnapshot {
         &self.cache.summary
     }
 
+    pub fn tooltip(&self) -> &str {
+        &self.cache.tooltip
+    }
+
     pub fn sources(&self) -> &[RecentSessionSource] {
         &self.sources
     }
@@ -146,11 +150,8 @@ impl RecentSessionSnapshot {
         self.sources
     }
 
-    pub(super) fn update_title_and_summary(&mut self) {
-        self.cache = RecentEntryCache {
-            title: build_title(&self.sources),
-            summary: build_summary(&self.sources),
-        };
+    pub fn rebuild_cache(&mut self) {
+        self.cache = build_cache(&self.sources, &self.parser, &self.state);
     }
 
     /// Rebuilds the startup observe plan for restore-style reopen flows.
@@ -232,6 +233,18 @@ impl RecentSessionSource {
     }
 }
 
+fn build_cache(
+    sources: &[RecentSessionSource],
+    parser: &ParserType,
+    state: &RecentSessionStateSnapshot,
+) -> RecentEntryCache {
+    RecentEntryCache {
+        title: build_title(sources),
+        summary: build_summary(sources, parser),
+        tooltip: build_tooltip(sources, parser, state),
+    }
+}
+
 fn build_title(sources: &[RecentSessionSource]) -> String {
     if sources.is_empty() {
         return String::from("No sources");
@@ -255,17 +268,20 @@ fn build_title(sources: &[RecentSessionSource]) -> String {
         .join(" & ")
 }
 
-fn build_summary(sources: &[RecentSessionSource]) -> String {
+fn build_summary(sources: &[RecentSessionSource], parser: &ParserType) -> String {
+    let parser_name = ParserNames::from(parser);
+    format!("{} • {parser_name}", build_source_summary(sources))
+}
+
+fn build_source_summary(sources: &[RecentSessionSource]) -> String {
     match sources.first() {
-        Some(RecentSessionSource::File { path, .. }) if sources.len() == 1 => {
-            path.display().to_string()
-        }
+        Some(RecentSessionSource::File { .. }) if sources.len() == 1 => String::from("1 file"),
         Some(RecentSessionSource::File { .. }) => format!("{} files", sources.len()),
         Some(RecentSessionSource::Stream { transport }) if sources.len() == 1 => match transport {
-            Transport::Process(config) => config.command.clone(),
-            Transport::TCP(config) => config.bind_addr.clone(),
-            Transport::UDP(config) => config.bind_addr.clone(),
-            Transport::Serial(config) => config.path.clone(),
+            Transport::Process(_) => String::from("1 terminal command"),
+            Transport::TCP(_) => String::from("1 TCP connection"),
+            Transport::UDP(_) => String::from("1 UDP connection"),
+            Transport::Serial(_) => String::from("1 serial connection"),
         },
         Some(RecentSessionSource::Stream { transport }) => match transport {
             Transport::Process(_) => format!("{} terminal commands", sources.len()),
@@ -277,12 +293,135 @@ fn build_summary(sources: &[RecentSessionSource]) -> String {
     }
 }
 
-fn supports_clean_open(sources: &[RecentSessionSource]) -> bool {
-    match sources.first() {
-        Some(RecentSessionSource::File { .. }) => true,
-        Some(RecentSessionSource::Stream { .. }) => sources.len() == 1,
-        None => false,
+fn build_tooltip(
+    sources: &[RecentSessionSource],
+    parser: &ParserType,
+    state: &RecentSessionStateSnapshot,
+) -> String {
+    let mut tooltip = String::from("Sources:\n");
+    append_source_tooltip_lines(&mut tooltip, sources);
+    tooltip.push_str("\nParser:\n");
+    append_parser_tooltip_lines(&mut tooltip, parser);
+    tooltip.push_str("\nSaved state:\n");
+    let _ = writeln!(tooltip, "- Filters: {}", state.filters.len());
+    let _ = writeln!(tooltip, "- Charts: {}", state.search_values.len());
+    let _ = write!(tooltip, "- Bookmarks: {}", state.bookmarks.len());
+    tooltip
+}
+
+fn append_source_tooltip_lines(tooltip: &mut String, sources: &[RecentSessionSource]) {
+    if sources.is_empty() {
+        let _ = writeln!(tooltip, "- No sources");
+        return;
     }
+
+    for source in sources {
+        match source {
+            RecentSessionSource::File { format, path } => {
+                let _ = writeln!(tooltip, "- File: {} ({format})", path.display(),);
+            }
+            RecentSessionSource::Stream { transport } => match transport {
+                Transport::Process(config) => {
+                    let _ = writeln!(tooltip, "- Terminal command: {}", config.command);
+                    let _ = writeln!(tooltip, "  Working directory: {}", config.cwd.display());
+                    if let Some(shell) = &config.shell {
+                        let _ = writeln!(
+                            tooltip,
+                            "  Shell: {} ({})",
+                            shell.shell,
+                            shell.path.display()
+                        );
+                    }
+                }
+                Transport::TCP(config) => {
+                    let _ = writeln!(tooltip, "- TCP: {}", config.bind_addr);
+                }
+                Transport::UDP(config) => {
+                    let _ = writeln!(tooltip, "- UDP: {}", config.bind_addr);
+                    if !config.multicast.is_empty() {
+                        let _ = writeln!(tooltip, "  Multicast groups: {}", config.multicast.len());
+                        for multicast in &config.multicast {
+                            match &multicast.interface {
+                                Some(interface) => {
+                                    let _ = writeln!(
+                                        tooltip,
+                                        "    - {} via {}",
+                                        multicast.multiaddr, interface
+                                    );
+                                }
+                                None => {
+                                    let _ = writeln!(tooltip, "    - {}", multicast.multiaddr);
+                                }
+                            }
+                        }
+                    }
+                }
+                Transport::Serial(config) => {
+                    let _ = writeln!(tooltip, "- Serial port: {}", config.path);
+                    let _ = writeln!(tooltip, "  Baud rate: {}", config.baud_rate);
+                }
+            },
+        }
+    }
+}
+
+fn append_parser_tooltip_lines(tooltip: &mut String, parser: &ParserType) {
+    let parser_name = ParserNames::from(parser);
+    let _ = writeln!(tooltip, "- Name: {parser_name}");
+
+    match parser {
+        ParserType::Text(()) => {}
+        ParserType::Dlt(settings) => {
+            let storage_header = if settings.with_storage_header {
+                "Yes"
+            } else {
+                "No"
+            };
+            let _ = writeln!(tooltip, "- Storage header: {storage_header}");
+            let _ = writeln!(
+                tooltip,
+                "- Message filter: {}",
+                if settings.filter_config.is_some() {
+                    "configured"
+                } else {
+                    "none"
+                }
+            );
+            if let Some(timezone) = &settings.tz {
+                let _ = writeln!(tooltip, "- Timezone: {timezone}");
+            }
+            append_path_list(tooltip, "FIBEX files", settings.fibex_file_paths.as_deref());
+        }
+        ParserType::SomeIp(settings) => {
+            append_path_list(tooltip, "FIBEX files", settings.fibex_file_paths.as_deref());
+        }
+        ParserType::Plugin(settings) => {
+            let _ = writeln!(tooltip, "- Plugin: {}", settings.plugin_path.display());
+            let _ = writeln!(
+                tooltip,
+                "- Plugin configs: {}",
+                settings.plugin_configs.len()
+            );
+        }
+    }
+}
+
+fn append_path_list(tooltip: &mut String, label: &str, paths: Option<&[String]>) {
+    match paths {
+        Some(paths) if !paths.is_empty() => {
+            let _ = writeln!(tooltip, "- {label}: {}", paths.len());
+            for path in paths {
+                let _ = writeln!(tooltip, "  - {path}");
+            }
+        }
+        _ => {
+            let _ = writeln!(tooltip, "- {label}: 0");
+        }
+    }
+}
+
+fn supports_clean_open(sources: &[RecentSessionSource]) -> bool {
+    matches!(sources.first(), Some(RecentSessionSource::File { .. }))
 }
 
 fn supports_bookmarks(sources: &[RecentSessionSource]) -> bool {
@@ -294,13 +433,16 @@ mod tests {
     use std::path::PathBuf;
 
     use stypes::{
-        ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig, Transport,
-        UDPTransportConfig,
+        DltParserSettings, ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig,
+        Transport, UDPTransportConfig,
     };
 
     use crate::common::time::unix_timestamp_now;
 
-    use super::{RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource};
+    use super::{
+        RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource,
+        RecentSessionStateSnapshot, SearchFilterSnapshot,
+    };
 
     fn snapshot_from_observe_options(options: ObserveOptions) -> RecentSessionSnapshot {
         RecentSessionRegistration::new(
@@ -366,6 +508,78 @@ mod tests {
     }
 
     #[test]
+    fn summary_uses_counts_and_parser() {
+        let snapshot = snapshot_from_observe_options(ObserveOptions::file(
+            PathBuf::from("first.log"),
+            stypes::FileFormat::Text,
+            ParserType::Text(()),
+        ));
+
+        assert_eq!(snapshot.summary(), "1 file • Plain Text");
+    }
+
+    #[test]
+    fn tooltip_includes_details() {
+        let snapshot = RecentSessionSnapshot::new(
+            1,
+            vec![
+                RecentSessionSource::File {
+                    format: stypes::FileFormat::Text,
+                    path: PathBuf::from("/logs/first.log"),
+                },
+                RecentSessionSource::File {
+                    format: stypes::FileFormat::PcapNG,
+                    path: PathBuf::from("/logs/second.pcapng"),
+                },
+            ],
+            ParserType::Dlt(DltParserSettings {
+                filter_config: None,
+                fibex_file_paths: Some(vec![
+                    String::from("/fibex/a.xml"),
+                    String::from("/fibex/b.xml"),
+                ]),
+                with_storage_header: true,
+                tz: Some(String::from("UTC")),
+                fibex_metadata: None,
+            }),
+            RecentSessionStateSnapshot {
+                filters: vec![SearchFilterSnapshot {
+                    filter: processor::search::filter::SearchFilter::plain("level=warn"),
+                    enabled: true,
+                }],
+                search_values: vec![
+                    SearchFilterSnapshot {
+                        filter: processor::search::filter::SearchFilter::plain("cpu"),
+                        enabled: true,
+                    },
+                    SearchFilterSnapshot {
+                        filter: processor::search::filter::SearchFilter::plain("mem"),
+                        enabled: false,
+                    },
+                ],
+                bookmarks: vec![4, 9, 12],
+            },
+        );
+
+        assert!(snapshot.tooltip().contains("Sources:"));
+        assert!(
+            snapshot
+                .tooltip()
+                .contains("- File: /logs/first.log (Text)"),
+            "tooltip should include the full file path"
+        );
+        assert!(snapshot.tooltip().contains("Parser:"));
+        assert!(snapshot.tooltip().contains("- Name: Dlt"));
+        assert!(snapshot.tooltip().contains("- Storage header: Yes"));
+        assert!(snapshot.tooltip().contains("- Timezone: UTC"));
+        assert!(snapshot.tooltip().contains("- FIBEX files: 2"));
+        assert!(snapshot.tooltip().contains("Saved state:"));
+        assert!(snapshot.tooltip().contains("- Filters: 1"));
+        assert!(snapshot.tooltip().contains("- Charts: 2"));
+        assert!(snapshot.tooltip().contains("- Bookmarks: 3"));
+    }
+
+    #[test]
     fn restore_rebuilds_ids() {
         let snapshot = snapshot_from_observe_options(ObserveOptions {
             origin: ObserveOrigin::Concat(vec![
@@ -414,7 +628,7 @@ mod tests {
             parser: ParserType::Text(()),
         });
         let stream = stream_snapshot("127.0.0.1:5556");
-        let invalid_multi_stream = RecentSessionSnapshot::new(
+        let multi_stream = RecentSessionSnapshot::new(
             1,
             vec![
                 RecentSessionSource::Stream {
@@ -434,7 +648,7 @@ mod tests {
         );
 
         assert!(files.supports_clean_open());
-        assert!(stream.supports_clean_open());
-        assert!(!invalid_multi_stream.supports_clean_open());
+        assert!(!stream.supports_clean_open());
+        assert!(!multi_stream.supports_clean_open());
     }
 }

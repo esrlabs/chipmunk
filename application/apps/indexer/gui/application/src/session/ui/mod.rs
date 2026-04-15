@@ -83,8 +83,7 @@ impl Session {
             ParserNames::Plugins => Rc::new(PluginsLogSchema),
         };
 
-        let side_panel =
-            SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone());
+        let side_panel = SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone());
         let mut shared = SessionShared::new(session_info, observe_op);
         for observe_op in additional_observe_ops {
             shared.add_operation(observe_op);

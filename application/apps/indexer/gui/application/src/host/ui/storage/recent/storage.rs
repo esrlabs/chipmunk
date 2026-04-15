@@ -102,6 +102,7 @@ impl RecentSessionsStorage {
         };
 
         existing.state = state;
+        existing.rebuild_cache();
         self.dirty = true;
     }
 
@@ -159,7 +160,7 @@ impl RecentSessionsStorage {
     fn refresh_cached_fields(&mut self) {
         self.sessions
             .iter_mut()
-            .for_each(RecentSessionSnapshot::update_title_and_summary);
+            .for_each(RecentSessionSnapshot::rebuild_cache);
     }
 }
 
@@ -242,11 +243,18 @@ mod tests {
         })
     }
 
+    fn assert_cache_matches(actual: &RecentSessionSnapshot, expected: &RecentSessionSnapshot) {
+        assert_eq!(actual.title(), expected.title());
+        assert_eq!(actual.summary(), expected.summary());
+        assert_eq!(actual.tooltip(), expected.tooltip());
+    }
+
     #[test]
-    fn load_refreshes_titles() {
+    fn load_refreshes_cache() {
         let path = test_dir().join("recent.json");
+        let original = file_snapshot(PathBuf::from("cached-title.log"));
         let storage = RecentSessionsStorage {
-            sessions: vec![file_snapshot(PathBuf::from("cached-title.log"))],
+            sessions: vec![original.clone()],
             dirty: false,
         };
         let json = serde_json::to_string(&storage).expect("storage should serialize");
@@ -254,7 +262,7 @@ mod tests {
 
         let loaded = RecentSessionsStorage::load(&path).expect("storage should load");
 
-        assert_eq!(loaded.sessions[0].title(), "cached-title.log");
+        assert_cache_matches(&loaded.sessions[0], &original);
     }
 
     #[test]
@@ -310,10 +318,7 @@ mod tests {
 
         assert_eq!(storage.sessions.len(), 2);
         assert_eq!(storage.sessions[0].source_key, original.source_key);
-        assert_eq!(
-            storage.sessions[0].title(),
-            "chipmunk-recent-storage-overwrite.log"
-        );
+        assert_cache_matches(&storage.sessions[0], &replaced);
         assert!(matches!(storage.sessions[0].parser, ParserType::SomeIp(..)));
     }
 
@@ -326,23 +331,28 @@ mod tests {
         let middle_source_key = middle.source_key.clone();
         let oldest = named_snapshot_at("oldest", 1);
         let oldest_source_key = oldest.source_key.clone();
+        let updated_state = RecentSessionStateSnapshot {
+            bookmarks: vec![7],
+            ..Default::default()
+        };
+        let expected_middle = RecentSessionSnapshot::new(
+            middle.last_opened,
+            middle.sources().to_vec(),
+            middle.parser.clone(),
+            updated_state.clone(),
+        );
 
         storage.register_session(oldest);
         storage.register_session(middle);
         storage.register_session(newest.clone());
 
-        storage.update_session_state(
-            &middle_source_key,
-            RecentSessionStateSnapshot {
-                bookmarks: vec![7],
-                ..Default::default()
-            },
-        );
+        storage.update_session_state(&middle_source_key, updated_state);
 
         assert_eq!(storage.sessions.len(), 3);
         assert_eq!(storage.sessions[0].source_key, newest_source_key);
         assert_eq!(storage.sessions[1].source_key, middle_source_key);
         assert_eq!(storage.sessions[1].state.bookmarks, vec![7]);
+        assert_cache_matches(&storage.sessions[1], &expected_middle);
         assert_eq!(storage.sessions[2].source_key, oldest_source_key);
     }
 
@@ -354,14 +364,17 @@ mod tests {
             storage.register_session(named_snapshot_at(&format!("session-{idx}"), idx as u64));
         }
 
-        assert_eq!(storage.sessions.len(), MAX_RECENT_SESSIONS);
-        assert_eq!(
-            storage.sessions[0].title(),
-            format!("chipmunk-recent-storage-test-session-{MAX_RECENT_SESSIONS}.log")
+        let expected_newest = named_snapshot_at(
+            &format!("session-{MAX_RECENT_SESSIONS}"),
+            MAX_RECENT_SESSIONS as u64,
         );
+        let expected_oldest = named_snapshot_at("session-1", 1);
+
+        assert_eq!(storage.sessions.len(), MAX_RECENT_SESSIONS);
+        assert_eq!(storage.sessions[0].source_key, expected_newest.source_key);
         assert_eq!(
-            storage.sessions[MAX_RECENT_SESSIONS - 1].title(),
-            "chipmunk-recent-storage-test-session-1.log"
+            storage.sessions[MAX_RECENT_SESSIONS - 1].source_key,
+            expected_oldest.source_key
         );
     }
 
@@ -390,13 +403,17 @@ mod tests {
             )
             .expect("append rebind should create a new snapshot");
 
+        let expected_rebound = RecentSessionSnapshot::new(
+            storage.sessions[0].last_opened,
+            storage.sessions[0].sources().to_vec(),
+            storage.sessions[0].parser.clone(),
+            state.clone(),
+        );
+
         assert_ne!(new_key, original_key);
         assert_eq!(storage.sessions.len(), 2);
         assert_eq!(storage.sessions[0].source_key, new_key);
-        assert_eq!(
-            storage.sessions[0].title(),
-            "rebind-first.log & rebind-second.log"
-        );
+        assert_cache_matches(&storage.sessions[0], &expected_rebound);
         assert_eq!(storage.sessions[0].sources().len(), 2);
         assert_eq!(storage.sessions[0].state, state);
         assert_eq!(storage.sessions[1].source_key, original_key);
