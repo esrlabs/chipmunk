@@ -1,15 +1,18 @@
 use core::slice;
 
-use egui::{Align, Frame, Label, Layout, Margin, RichText, TextEdit, Ui, Widget as _};
+use egui::{Align, Label, Layout, Margin, RichText, TextEdit, Ui, Widget as _};
 
-use crate::host::ui::{
-    UiActions,
-    session_setup::{
-        RenderOutcome, start_session_on_enter,
-        state::{
-            SessionSetupState,
-            parsers::ParserConfig,
-            sources::{ByteSourceConfig, SourceFileInfo, StreamConfig},
+use crate::host::{
+    common::ui_utls::general_group_frame,
+    ui::{
+        UiActions,
+        session_setup::{
+            RenderOutcome, start_session_on_enter,
+            state::{
+                SessionSetupState,
+                parsers::ParserConfig,
+                sources::{ByteSourceConfig, SourceFileInfo, StreamConfig},
+            },
         },
     },
 };
@@ -51,8 +54,7 @@ fn render_files(
 /// Render main configuration for streams sources.
 fn render_stream(stream: &mut StreamConfig, actions: &mut UiActions, ui: &mut Ui) -> RenderOutcome {
     let get_frame = |ui: &mut Ui| {
-        Frame::group(ui.style())
-            .fill(ui.style().visuals.faint_bg_color)
+        general_group_frame(ui)
             .inner_margin(Margin::symmetric(10, 4))
             .outer_margin(Margin::symmetric(10, 4))
     };
