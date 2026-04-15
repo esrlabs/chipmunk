@@ -1,6 +1,6 @@
 use egui::{
-    Button, Frame, Id, Margin, RichText, ScrollArea, Sense, Sides, Ui, UiBuilder, Widget,
-    collapsing_header::CollapsingState, vec2,
+    Button, Frame, Id, Label, Margin, Response, RichText, ScrollArea, Sense, Sides, Ui, UiBuilder,
+    Widget, collapsing_header::CollapsingState, vec2,
 };
 use stypes::{ObserveOrigin, Transport};
 use tokio::sync::mpsc;
@@ -90,13 +90,14 @@ impl ObservingUi {
     }
 
     pub fn top_title(ui: &mut Ui, shared: &SessionShared) {
-        ui.horizontal_wrapped(|ui| {
-            ui.label(
+        ui.horizontal(|ui| {
+            Label::new(
                 RichText::new("Observing Sources")
                     .heading()
                     .size(TITLE_SIZE),
-            );
-
+            )
+            .truncate()
+            .ui(ui);
             let sources_count = shared.observe.sources_count();
             ui.label(
                 RichText::new(format!("({sources_count})"))
@@ -109,7 +110,9 @@ impl ObservingUi {
 }
 
 fn render_group_title(ui: &mut Ui, title: &str) {
-    ui.label(RichText::new(title).heading().size(TITLE_SIZE));
+    Label::new(RichText::new(title).heading().size(TITLE_SIZE))
+        .truncate()
+        .ui(ui);
 }
 
 fn render_observe_item(
@@ -120,7 +123,7 @@ fn render_observe_item(
     name_content: impl FnOnce(&mut Ui),
     button_content: impl FnOnce(&mut Ui, &mut UiActions),
     context_content: impl FnOnce(&mut Ui, &mut UiActions),
-) {
+) -> Response {
     let height = 35.0;
 
     let (rect, response) =
@@ -154,6 +157,8 @@ fn render_observe_item(
             },
         );
     });
+
+    response
 }
 
 fn get_item_button(content: &str) -> Button<'_> {
