@@ -3,7 +3,13 @@
   "appId": "com.esrlabs.chipmunk",
   "productName": "chipmunk",
   "copyright": "Copyright © 2022 year ESR Labs",
-  "files": ["./dist/**", "./resources/**"],
+  "files": [
+    "./dist/**",
+    "./resources/**",
+    "!**/node_modules/electron/**",
+    "!**/node_modules/rustcore/{src,spec,.yarn}/**",
+    "!**/node_modules/rustcore/{.yarnrc.yml,.eslintrc.json,eslint.config.mjs,launch.json,tsconfig.json}"
+  ],
   "extraFiles": [
     {
       "from": "../apps/precompiled/updater/target/release",
@@ -19,6 +25,6 @@
   "npmRebuild": true,
   "win": {
     "icon": "resources/win/chipmunk.ico",
-    "target": [],
+    "target": []
   }
 }
