@@ -28,7 +28,15 @@ single_paths = [
     "chipmunk.app",
 ]
 # Patterns to be used with glob to retrieve all matching files under that patterns.
-glob_patterns = ["chipmunk.app/Contents/Frameworks/*.framework/Versions/A/**/*"]
+glob_patterns = [
+    # Frameworks
+    "chipmunk.app/Contents/Frameworks/**/*.framework/**",
+    "chipmunk.app/Contents/Frameworks/**/*.dylib",
+    "chipmunk.app/Contents/Frameworks/**/*.app",
+    "chipmunk.app/Contents/Frameworks/**/Resources/ShipIt",
+    # Unpacked asar resources
+    "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.node",
+]
 
 # Represents the components for the final sign command (Command for deep and strict code signing)
 [final_sign_command]
