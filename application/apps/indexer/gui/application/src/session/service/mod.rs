@@ -44,8 +44,12 @@ pub struct SessionService {
 }
 
 impl SessionService {
-    /// Spawn session service returning the session ID.
-    /// TODO AAZ: Extend docs here and in code blocks
+    /// Spawns the session service and returns the UI/session startup payload.
+    ///
+    /// * `shared_senders`: Senders to communicate with host UI.
+    /// * `options`: defines the primary source
+    /// * `additional_sources`: Additional sources to be attached to session during startup.
+    /// * `restore_state`: State to be restored once session is loaded.
     pub async fn spawn(
         shared_senders: SharedSenders,
         options: ObserveOptions,
@@ -56,6 +60,7 @@ impl SessionService {
 
         let (ui_handle, service_handle) = communication::init(shared_senders);
 
+        // Initial session with the primary source.
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
@@ -66,6 +71,7 @@ impl SessionService {
         let observe_op = ObserveOperation::new(observe_id, options.origin.clone());
         session.observe(observe_id, options)?;
 
+        // Attach additional sources.
         let mut startup_observe_ops = Vec::with_capacity(additional_sources.len());
         for origin in additional_sources {
             recent_sources.extend(RecentSessionSource::from_observe_origin(origin.clone()));
@@ -82,6 +88,7 @@ impl SessionService {
             startup_observe_ops.push(observe_op);
         }
 
+        // Build register to track session changes in recent session storage.
         let recent_registration =
             RecentSessionRegistration::new(unix_timestamp_now(), recent_sources, parser);
         let supports_bookmarks = recent_registration.supports_bookmarks();

@@ -1,9 +1,13 @@
 use egui::{Align, Frame, Margin, TextBuffer, TextEdit, TextStyle, Ui, Vec2};
 
+/// Frame used for neutral grouped content blocks across application UI.
+pub fn general_group_frame(ui: &Ui) -> Frame {
+    Frame::group(ui.style()).fill(ui.style().visuals.faint_bg_color)
+}
+
 /// Frame used to group controls in side views.
-pub fn side_panel_group_frame(ui: &mut Ui) -> Frame {
-    Frame::group(ui.style())
-        .fill(ui.style().visuals.faint_bg_color)
+pub fn side_panel_group_frame(ui: &Ui) -> Frame {
+    general_group_frame(ui)
         .inner_margin(Margin::symmetric(10, 8))
         .outer_margin(Margin::symmetric(0, 4))
 }
