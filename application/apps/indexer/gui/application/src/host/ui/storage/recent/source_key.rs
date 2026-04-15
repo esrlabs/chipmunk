@@ -1,7 +1,7 @@
 //! Source-key generation for recent-session source snapshots.
 //!
-//! The key is derived from the ordered source snapshot shape and encoded as a
-//! compact hex digest.
+//! This module derives the stable recent-session identity from the ordered
+//! source snapshot shape and encodes it as a compact hex digest.
 
 use std::{path::Path, sync::Arc};
 
