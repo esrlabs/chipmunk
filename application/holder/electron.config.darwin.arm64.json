@@ -3,7 +3,12 @@
   "appId": "com.esrlabs.chipmunk",
   "productName": "chipmunk",
   "copyright": "Copyright © 2022 year ESR Labs",
-  "files": ["./dist/**", "./resources/**"],
+  "files": [
+    "./dist/**",
+    "./resources/**",
+    "!**/node_modules/electron",
+    "!**/node_modules/electron/**"
+  ],
   "extraFiles": [
     {
       "from": "../apps/precompiled/updater/target/release",
