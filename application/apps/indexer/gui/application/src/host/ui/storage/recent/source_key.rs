@@ -11,12 +11,10 @@ use stypes::{
     ShellType, TCPTransportConfig, Transport, UDPTransportConfig,
 };
 
-use super::{RecentSessionSource, RecentSourceSnapshot};
+use super::RecentSessionSource;
 
-/// Builds the persisted source key for one ordered source snapshot.
-pub fn from_snapshot(snapshot: &RecentSourceSnapshot) -> Arc<str> {
-    let RecentSourceSnapshot { sources } = snapshot;
-
+/// Builds the persisted source key for one ordered source collection.
+pub fn from_sources(sources: &[RecentSessionSource]) -> Arc<str> {
     let mut hasher = Hasher::new();
     hasher.update(&(sources.len() as u64).to_le_bytes());
 
@@ -163,57 +161,47 @@ mod tests {
         let first = PathBuf::from("first.log");
         let second = PathBuf::from("second.log");
 
-        let left = RecentSourceSnapshot {
-            sources: vec![
-                RecentSessionSource::File {
-                    format: FileFormat::Text,
-                    path: first.clone(),
-                },
-                RecentSessionSource::File {
-                    format: FileFormat::Text,
-                    path: second.clone(),
-                },
-            ],
-        };
-        let right = RecentSourceSnapshot {
-            sources: vec![
-                RecentSessionSource::File {
-                    format: FileFormat::Text,
-                    path: second,
-                },
-                RecentSessionSource::File {
-                    format: FileFormat::Text,
-                    path: first,
-                },
-            ],
-        };
+        let left = vec![
+            RecentSessionSource::File {
+                format: FileFormat::Text,
+                path: first.clone(),
+            },
+            RecentSessionSource::File {
+                format: FileFormat::Text,
+                path: second.clone(),
+            },
+        ];
+        let right = vec![
+            RecentSessionSource::File {
+                format: FileFormat::Text,
+                path: second,
+            },
+            RecentSessionSource::File {
+                format: FileFormat::Text,
+                path: first,
+            },
+        ];
 
-        assert_ne!(left.generate_source_key(), right.generate_source_key());
+        assert_ne!(from_sources(&left), from_sources(&right));
     }
 
     #[test]
     fn source_key_is_hex_digest() {
-        let snapshot = RecentSourceSnapshot {
-            sources: vec![RecentSessionSource::Stream {
-                transport: Transport::TCP(TCPTransportConfig {
-                    bind_addr: String::from("127.0.0.1:5556"),
-                }),
-            }],
-        };
+        let sources = vec![RecentSessionSource::Stream {
+            transport: Transport::TCP(TCPTransportConfig {
+                bind_addr: String::from("127.0.0.1:5556"),
+            }),
+        }];
 
-        let source_key = snapshot.generate_source_key();
+        let source_key = from_sources(&sources);
         assert_eq!(source_key.len(), 64);
         assert!(source_key.bytes().all(|byte| byte.is_ascii_hexdigit()));
     }
 
-    fn snapshot_from_observe_options(
-        title: String,
-        options: stypes::ObserveOptions,
-    ) -> RecentSessionSnapshot {
+    fn snapshot_from_observe_options(options: stypes::ObserveOptions) -> RecentSessionSnapshot {
         RecentSessionRegistration::new(
-            title,
             0,
-            RecentSourceSnapshot::from_observe_origin(options.origin),
+            RecentSessionSource::from_observe_origin(options.origin),
             options.parser,
         )
         .into_snapshot(Default::default())
@@ -222,24 +210,18 @@ mod tests {
     #[test]
     fn source_key_ignores_parser() {
         let path = PathBuf::from("chipmunk-source-key-parser.log");
-        let text = snapshot_from_observe_options(
-            "text".into(),
-            stypes::ObserveOptions::file(
-                path.clone(),
-                FileFormat::Text,
-                stypes::ParserType::Text(()),
-            ),
-        );
-        let someip = snapshot_from_observe_options(
-            "someip".into(),
-            stypes::ObserveOptions::file(
-                path,
-                FileFormat::Text,
-                stypes::ParserType::SomeIp(stypes::SomeIpParserSettings {
-                    fibex_file_paths: None,
-                }),
-            ),
-        );
+        let text = snapshot_from_observe_options(stypes::ObserveOptions::file(
+            path.clone(),
+            FileFormat::Text,
+            stypes::ParserType::Text(()),
+        ));
+        let someip = snapshot_from_observe_options(stypes::ObserveOptions::file(
+            path,
+            FileFormat::Text,
+            stypes::ParserType::SomeIp(stypes::SomeIpParserSettings {
+                fibex_file_paths: None,
+            }),
+        ));
 
         assert_eq!(text.source_key, someip.source_key);
     }

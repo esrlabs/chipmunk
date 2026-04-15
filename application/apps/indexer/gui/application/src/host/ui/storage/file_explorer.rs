@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{LoadState, StorageError};
+use super::{LoadState, SaveOutcome, StorageError};
 
 /// UI-side storage state for file-explorer favorite folders.
 #[derive(Debug)]
@@ -10,7 +10,7 @@ pub struct FileExplorerStorage {
     /// Current loaded file-explorer snapshot.
     pub state: LoadState<FileExplorerData>,
     /// True when the favorite-folder path list still needs to be saved.
-    pub dirty: bool,
+    dirty: bool,
     next_scan_request_id: u64,
     /// Request currently waiting for a scan result.
     pub active_scan_request_id: Option<u64>,
@@ -185,14 +185,11 @@ impl FileExplorerStorage {
         self.dirty |= data.favorite_folders.len() != initial_len;
     }
 
-    /// Marks the current ready snapshot as persisted.
-    pub fn apply_save_success(&mut self) {
-        self.dirty = false;
-    }
-
-    /// Keeps the snapshot dirty so a later save can retry it.
-    pub fn apply_save_error(&mut self) {
-        self.dirty = true;
+    pub(super) fn apply_save_outcome(&mut self, outcome: SaveOutcome) {
+        self.dirty = match outcome {
+            SaveOutcome::Succeeded => false,
+            SaveOutcome::Failed => true,
+        };
     }
 }
 
