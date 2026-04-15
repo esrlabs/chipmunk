@@ -19,8 +19,7 @@ pub use file_explorer::{
 pub use recent::MAX_RECENT_SESSIONS;
 pub use recent::{
     RecentSessionRegistration, RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource,
-    RecentSessionStateSnapshot, RecentSessionsData, RecentSessionsStorage, RecentSourceSnapshot,
-    SearchFilterSnapshot,
+    RecentSessionStateSnapshot, RecentSessionsStorage, SearchFilterSnapshot,
 };
 pub use types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
@@ -49,11 +48,11 @@ enum SaveOutcome {
 
 impl HostStorage {
     /// Creates the host-side storage coordinator.
-    pub fn new(cmd_tx: mpsc::Sender<HostCommand>, recent_sessions: RecentSessionsData) -> Self {
+    pub fn new(cmd_tx: mpsc::Sender<HostCommand>, recent_sessions: RecentSessionsStorage) -> Self {
         Self {
             cmd_tx,
             file_explorer: FileExplorerStorage::new(),
-            recent_sessions: RecentSessionsStorage::new(recent_sessions),
+            recent_sessions,
             pending_save: None,
         }
     }
@@ -112,16 +111,8 @@ impl HostStorage {
 
     /// Applies the aggregate save result back to child storage domains.
     fn finish_save(&mut self, outcome: SaveOutcome) {
-        match outcome {
-            SaveOutcome::Succeeded => {
-                self.file_explorer.apply_save_success();
-                self.recent_sessions.apply_save_success();
-            }
-            SaveOutcome::Failed => {
-                self.file_explorer.apply_save_error();
-                self.recent_sessions.apply_save_error();
-            }
-        }
+        self.file_explorer.apply_save_outcome(outcome);
+        self.recent_sessions.apply_save_outcome(outcome);
     }
 
     fn send_save_cmd(&mut self, data: Box<StorageSaveData>, ui_actions: &mut UiActions) -> bool {
@@ -218,15 +209,15 @@ mod tests {
 
     use super::{
         FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionRegistration,
-        RecentSessionSnapshot, RecentSessionsData, RecentSourceSnapshot, StorageError,
-        StorageErrorKind, StorageEvent,
+        RecentSessionSnapshot, RecentSessionSource, RecentSessionsStorage, SaveOutcome,
+        StorageError, StorageErrorKind, StorageEvent,
     };
     use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
     fn test_storage() -> (HostStorage, tokio::sync::mpsc::Receiver<HostCommand>) {
         let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(1);
         (
-            HostStorage::new(cmd_tx, RecentSessionsData::default()),
+            HostStorage::new(cmd_tx, RecentSessionsStorage::default()),
             cmd_rx,
         )
     }
@@ -241,28 +232,21 @@ mod tests {
         (runtime, ui_actions)
     }
 
-    fn snapshot_from_observe_options(
-        title: String,
-        options: stypes::ObserveOptions,
-    ) -> RecentSessionSnapshot {
+    fn snapshot_from_observe_options(options: stypes::ObserveOptions) -> RecentSessionSnapshot {
         RecentSessionRegistration::new(
-            title,
             0,
-            RecentSourceSnapshot::from_observe_origin(options.origin),
+            RecentSessionSource::from_observe_origin(options.origin),
             options.parser,
         )
         .into_snapshot(Default::default())
     }
 
     fn make_dirty(storage: &mut HostStorage) {
-        let snapshot = snapshot_from_observe_options(
-            String::from("test"),
-            stypes::ObserveOptions::file(
-                std::env::temp_dir().join("chipmunk-storage-mod-test.log"),
-                stypes::FileFormat::Text,
-                stypes::ParserType::Text(()),
-            ),
-        );
+        let snapshot = snapshot_from_observe_options(stypes::ObserveOptions::file(
+            std::env::temp_dir().join("chipmunk-storage-mod-test.log"),
+            stypes::FileFormat::Text,
+            stypes::ParserType::Text(()),
+        ));
         storage.recent_sessions.register_session(snapshot);
     }
 
@@ -272,7 +256,9 @@ mod tests {
             .finish_load(Ok(Box::new(FileExplorerData {
                 favorite_folders: vec![FavoriteFolder::new(std::env::temp_dir())],
             })));
-        storage.file_explorer.dirty = true;
+        storage
+            .file_explorer
+            .apply_save_outcome(SaveOutcome::Failed);
     }
 
     #[test]
@@ -343,8 +329,8 @@ mod tests {
         storage.poll_pending_save(&mut ui_actions);
 
         assert!(storage.pending_save.is_none());
-        assert!(!storage.file_explorer.dirty);
-        assert!(!storage.recent_sessions.dirty);
+        assert!(storage.file_explorer.get_save_data().is_none());
+        assert!(storage.recent_sessions.get_save_data().is_none());
     }
 
     #[test]
@@ -371,8 +357,8 @@ mod tests {
         storage.poll_pending_save(&mut ui_actions);
 
         assert!(storage.pending_save.is_none());
-        assert!(storage.file_explorer.dirty);
-        assert!(storage.recent_sessions.dirty);
+        assert!(storage.file_explorer.get_save_data().is_some());
+        assert!(storage.recent_sessions.get_save_data().is_some());
         assert!(matches!(
             ui_actions.drain_notifications().next(),
             Some(AppNotification::Error(message)) if message.contains("disk full")
@@ -405,8 +391,8 @@ mod tests {
         sender.join().expect("save sender should finish");
 
         assert!(storage.pending_save.is_none());
-        assert!(!storage.file_explorer.dirty);
-        assert!(!storage.recent_sessions.dirty);
+        assert!(storage.file_explorer.get_save_data().is_none());
+        assert!(storage.recent_sessions.get_save_data().is_none());
     }
 
     #[test]
@@ -443,8 +429,8 @@ mod tests {
         sender.join().expect("save sender should finish");
 
         assert!(storage.pending_save.is_none());
-        assert!(!storage.file_explorer.dirty);
-        assert!(!storage.recent_sessions.dirty);
+        assert!(storage.file_explorer.get_save_data().is_none());
+        assert!(storage.recent_sessions.get_save_data().is_none());
     }
 
     #[test]

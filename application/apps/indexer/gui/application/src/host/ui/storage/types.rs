@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-use super::{FavoriteFolder, FileExplorerData, RecentSessionsData};
+use super::{FavoriteFolder, FileExplorerData, RecentSessionsStorage};
 
 /// Represents the loading state of storage domain.
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub enum StorageEvent {
 /// Data sent from the UI to the storage service.
 #[derive(Debug, Clone, Default)]
 pub struct StorageSaveData {
-    pub recent_sessions: Option<RecentSessionsData>,
+    pub recent_sessions: Option<RecentSessionsStorage>,
     pub file_explorer: Option<FileExplorerData>,
 }
 

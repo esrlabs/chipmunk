@@ -45,13 +45,13 @@ impl RecentSessionsUi {
                 let remove_session = {
                     let mut remove_session = None;
 
-                    for session in &recent_sessions.data.sessions {
+                    for session in &recent_sessions.sessions {
                         ui.group(|ui| {
                             ui.horizontal_wrapped(|ui| {
-                                ui.strong(session.title.as_str());
+                                ui.strong(session.title());
                                 ui.label(format!("({})", ParserNames::from(&session.parser)));
                             });
-                            ui.label(session.source.summary());
+                            ui.label(session.summary());
 
                             ui.horizontal(|ui| {
                                 if ui.small_button("Restore").clicked() {

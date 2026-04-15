@@ -182,8 +182,7 @@ impl Host {
 
                 let filters = &registry.filters;
                 let state = session.capture_opened_recent_state(filters);
-                let mut snapshot = recent_registration.into_snapshot(state);
-                snapshot.title = session.get_info().title.clone();
+                let snapshot = recent_registration.into_snapshot(state);
 
                 self.storage.recent_sessions.register_session(snapshot);
             }

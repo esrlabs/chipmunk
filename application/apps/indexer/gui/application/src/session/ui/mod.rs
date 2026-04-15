@@ -14,7 +14,7 @@ use crate::{
             HostAction, UiActions,
             registry::{HostRegistry, filters::FilterRegistry},
             state::PanelsVisibility,
-            storage::{HostStorage, RecentSessionStateSnapshot, RecentSourceSnapshot},
+            storage::{HostStorage, RecentSessionSource, RecentSessionStateSnapshot},
         },
     },
     session::{
@@ -306,8 +306,8 @@ impl Session {
                     self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SourceAdded { observe_op } => {
-                    let appended_source =
-                        RecentSourceSnapshot::from_observe_origin(observe_op.origin.clone());
+                    let appended_sources =
+                        RecentSessionSource::from_observe_origin(observe_op.origin.clone());
                     self.shared.add_operation(*observe_op);
 
                     let current_source_key = match self.recent_session.source_key() {
@@ -316,15 +316,13 @@ impl Session {
                     };
 
                     // Rebind this live session to the appended source-set snapshot.
-                    let title = self.shared.get_info().title.clone();
                     let recent_state = self
                         .recent_session
                         .capture_opened_state(&self.shared, registry);
 
                     let rebind_res = storage.recent_sessions.rebind_after_append(
                         current_source_key,
-                        appended_source,
-                        title,
+                        appended_sources,
                         recent_state,
                     );
 
