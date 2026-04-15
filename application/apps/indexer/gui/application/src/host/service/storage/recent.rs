@@ -2,11 +2,11 @@
 
 use std::{
     fs::File,
-    io::{BufReader, BufWriter},
+    io::BufWriter,
     path::{Path, PathBuf},
 };
 
-use log::{trace, warn};
+use log::warn;
 
 use stypes::Transport;
 
@@ -18,7 +18,7 @@ use crate::{
         error::HostError,
         ui::storage::{
             MAX_RECENT_SESSIONS, RecentSessionReopenMode, RecentSessionSnapshot,
-            RecentSessionSource, RecentSessionStateSnapshot, RecentSessionsData, StorageError,
+            RecentSessionSource, RecentSessionStateSnapshot, RecentSessionsStorage, StorageError,
             StorageErrorKind,
         },
     },
@@ -46,7 +46,7 @@ pub enum RecentSessionOpenRequest {
 }
 
 /// Loads and normalizes recent sessions.
-pub fn load_sessions() -> Result<Box<RecentSessionsData>, StorageError> {
+pub fn load_sessions() -> Result<Box<RecentSessionsStorage>, StorageError> {
     let path = get_path()?;
     load_and_normalize(&path)
 }
@@ -87,7 +87,11 @@ fn resolve_restore_request(
 fn open_recent_session_clean(
     snapshot: RecentSessionSnapshot,
 ) -> Result<RecentSessionOpenRequest, HostError> {
-    let Some(first_source) = snapshot.source.sources.first() else {
+    let parser = ParserNames::from(&snapshot.parser);
+    let sources = snapshot.into_sources();
+    let source_count = sources.len();
+
+    let Some(first_source) = sources.first().cloned() else {
         return Err(HostError::InitSessionError(InitSessionError::Other(
             "Recent session snapshot has no sources.".into(),
         )));
@@ -95,9 +99,7 @@ fn open_recent_session_clean(
 
     match first_source {
         RecentSessionSource::File { .. } => {
-            let paths = snapshot
-                .source
-                .sources
+            let paths = sources
                 .into_iter()
                 .map(|source| match source {
                     RecentSessionSource::File { path, .. } => Some(path),
@@ -112,14 +114,13 @@ fn open_recent_session_clean(
 
             Ok(RecentSessionOpenRequest::OpenFiles(paths))
         }
-        RecentSessionSource::Stream { transport } if snapshot.source.sources.len() == 1 => {
+        RecentSessionSource::Stream { transport } if source_count == 1 => {
             let stream = match transport {
                 Transport::Process(_) => StreamNames::Process,
                 Transport::TCP(_) => StreamNames::Tcp,
                 Transport::UDP(_) => StreamNames::Udp,
                 Transport::Serial(_) => StreamNames::Serial,
             };
-            let parser = ParserNames::from(&snapshot.parser);
             Ok(RecentSessionOpenRequest::OpenStreamSetup { stream, parser })
         }
         RecentSessionSource::Stream { .. } => {
@@ -130,11 +131,11 @@ fn open_recent_session_clean(
     }
 }
 
-fn load_and_normalize(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
-    let mut data = load(path)?;
+fn load_and_normalize(path: &Path) -> Result<Box<RecentSessionsStorage>, StorageError> {
+    let mut storage = load(path)?;
 
-    if normalize_recent_sessions(&mut data.sessions)
-        && let Err(err) = save_to_path(path, &data)
+    if normalize_recent_sessions(&mut storage.sessions)
+        && let Err(err) = save_to_path(path, &storage)
     {
         warn!(
             "Failed to persist normalized recent-sessions storage to {}: {err}",
@@ -142,43 +143,13 @@ fn load_and_normalize(path: &Path) -> Result<Box<RecentSessionsData>, StorageErr
         );
     }
 
-    Ok(data)
+    Ok(storage)
 }
 
-fn load(path: &Path) -> Result<Box<RecentSessionsData>, StorageError> {
-    let file = match File::open(path) {
-        Ok(file) => file,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            trace!(
-                "Recent-sessions storage file does not exist: {}",
-                path.display()
-            );
-            return Ok(Box::<RecentSessionsData>::default());
-        }
-        Err(err) => {
-            warn!(
-                "Failed to read recent-sessions storage from {}: {err}",
-                path.display()
-            );
-            return Err(StorageError {
-                kind: StorageErrorKind::Read,
-                message: format!("Failed to read '{}': {err}", path.display()),
-            });
-        }
-    };
+fn load(path: &Path) -> Result<Box<RecentSessionsStorage>, StorageError> {
+    let storage = RecentSessionsStorage::load(path)?;
 
-    serde_json::from_reader::<_, RecentSessionsData>(BufReader::new(file))
-        .map(Box::new)
-        .map_err(|err| {
-            warn!(
-                "Failed to parse recent-sessions storage from {}: {err}",
-                path.display()
-            );
-            StorageError {
-                kind: StorageErrorKind::Parse,
-                message: format!("Failed to parse '{}': {err}", path.display()),
-            }
-        })
+    Ok(Box::new(storage))
 }
 
 fn normalize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
@@ -200,7 +171,8 @@ fn sanitize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
         Err(err) => {
             warn!(
                 "Removed invalid recent session \"{}\" ({}): {err}",
-                session.title, session.source_key
+                session.title(),
+                session.source_key
             );
             false
         }
@@ -232,14 +204,14 @@ fn trim_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
 }
 
 fn validate_source_snapshot(session: &RecentSessionSnapshot) -> std::io::Result<()> {
-    if session.source.sources.is_empty() {
+    if session.sources().is_empty() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "Recent session has no sources",
         ));
     }
 
-    for source in &session.source.sources {
+    for source in session.sources() {
         match source {
             RecentSessionSource::File { path, .. } => {
                 if !path.exists() {
@@ -257,12 +229,12 @@ fn validate_source_snapshot(session: &RecentSessionSnapshot) -> std::io::Result<
 }
 
 /// Persists the current recent-sessions snapshot to its storage file.
-pub fn save(data: &RecentSessionsData) -> Result<(), StorageError> {
+pub fn save(data: &RecentSessionsStorage) -> Result<(), StorageError> {
     let path = get_path()?;
     save_to_path(&path, data)
 }
 
-fn save_to_path(path: &Path, data: &RecentSessionsData) -> Result<(), StorageError> {
+fn save_to_path(path: &Path, data: &RecentSessionsStorage) -> Result<(), StorageError> {
     let file = File::create(path).map_err(|err| StorageError {
         kind: StorageErrorKind::Write,
         message: format!("Failed to write '{}': {err}", path.display()),
@@ -296,9 +268,8 @@ mod tests {
             service::storage::{STORAGE_DIR, storage_path_from_home},
             ui::storage::{
                 MAX_RECENT_SESSIONS, RecentSessionRegistration, RecentSessionReopenMode,
-                RecentSessionSnapshot, RecentSessionSource, RecentSessionsData,
-                RecentSessionsStorage, RecentSourceSnapshot, SearchFilterSnapshot, StorageError,
-                StorageErrorKind,
+                RecentSessionSnapshot, RecentSessionSource, RecentSessionsStorage,
+                SearchFilterSnapshot, StorageError, StorageErrorKind,
             },
         },
     };
@@ -322,51 +293,52 @@ mod tests {
 
     fn save_to_home(
         home_dir: &std::path::Path,
-        data: &RecentSessionsData,
+        data: &RecentSessionsStorage,
     ) -> Result<(), StorageError> {
         let path = path_from_home(home_dir)?;
         save_to_path(&path, data)
     }
 
-    fn snapshot_from_observe_options(
-        title: String,
-        options: ObserveOptions,
-    ) -> RecentSessionSnapshot {
+    fn write_sessions_to_home(home_dir: &std::path::Path, sessions: Vec<RecentSessionSnapshot>) {
+        let path = path_from_home(home_dir).expect("path should resolve");
+        let json = serde_json::json!({ "sessions": sessions });
+        fs::write(
+            path,
+            serde_json::to_vec_pretty(&json).expect("json should serialize"),
+        )
+        .expect("sessions should be written");
+    }
+
+    fn snapshot_from_observe_options(options: ObserveOptions) -> RecentSessionSnapshot {
         RecentSessionRegistration::new(
-            title,
             unix_timestamp_now(),
-            RecentSourceSnapshot::from_observe_origin(options.origin),
+            RecentSessionSource::from_observe_origin(options.origin),
             options.parser,
         )
         .into_snapshot(Default::default())
     }
 
     fn file_snapshot(path: PathBuf) -> RecentSessionSnapshot {
-        snapshot_from_observe_options(
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or("file")
-                .to_owned(),
-            ObserveOptions::file(path, stypes::FileFormat::Text, ParserType::Text(())),
-        )
+        snapshot_from_observe_options(ObserveOptions::file(
+            path,
+            stypes::FileFormat::Text,
+            ParserType::Text(()),
+        ))
     }
 
     fn stream_snapshot(bind_addr: impl Into<String>) -> RecentSessionSnapshot {
         let bind_addr = bind_addr.into();
-        snapshot_from_observe_options(
-            bind_addr.clone(),
-            ObserveOptions {
-                origin: ObserveOrigin::Stream(
-                    String::new(),
-                    Transport::TCP(TCPTransportConfig { bind_addr }),
-                ),
-                parser: ParserType::Text(()),
-            },
-        )
+        snapshot_from_observe_options(ObserveOptions {
+            origin: ObserveOrigin::Stream(
+                String::new(),
+                Transport::TCP(TCPTransportConfig { bind_addr }),
+            ),
+            parser: ParserType::Text(()),
+        })
     }
 
-    fn recent_session(title: impl Into<String>, last_opened: u64) -> RecentSessionSnapshot {
-        let mut session = stream_snapshot(title.into());
+    fn recent_session(bind_addr: impl Into<String>, last_opened: u64) -> RecentSessionSnapshot {
+        let mut session = stream_snapshot(bind_addr.into());
         session.last_opened = last_opened;
         session
     }
@@ -435,7 +407,7 @@ mod tests {
         let invalid_path = home_dir.join("missing.log");
         let valid_snapshot = file_snapshot(valid_path);
         let invalid_snapshot = file_snapshot(invalid_path);
-        let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
+        let mut storage = RecentSessionsStorage::default();
         storage.register_session(valid_snapshot.clone());
         let mut data = storage.get_save_data().expect("dirty storage should save");
         data.sessions.push(invalid_snapshot);
@@ -455,7 +427,7 @@ mod tests {
         let home_dir = test_home_dir();
         let config_path = home_dir.join("saved.log");
         fs::write(&config_path, "test").expect("config file should be written");
-        let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
+        let mut storage = RecentSessionsStorage::default();
         storage.register_session(file_snapshot(config_path));
         let data = storage.get_save_data().expect("dirty storage should save");
 
@@ -471,45 +443,46 @@ mod tests {
     #[test]
     fn load_and_normalize_sorts_sessions() {
         let home_dir = test_home_dir();
-        let data = RecentSessionsData {
-            sessions: vec![
+        write_sessions_to_home(
+            &home_dir,
+            vec![
                 recent_session("oldest", 1),
                 recent_session("newest", 3),
                 recent_session("middle", 2),
             ],
-        };
-
-        save_to_home(&home_dir, &data).expect("save should succeed");
+        );
 
         let path = path_from_home(&home_dir).expect("path should resolve");
         let loaded = load_and_normalize(&path).expect("load should succeed");
 
-        assert_eq!(loaded.sessions[0].title, "newest");
-        assert_eq!(loaded.sessions[1].title, "middle");
-        assert_eq!(loaded.sessions[2].title, "oldest");
+        assert_eq!(loaded.sessions[0].title(), "newest");
+        assert_eq!(loaded.sessions[1].title(), "middle");
+        assert_eq!(loaded.sessions[2].title(), "oldest");
         let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
     fn load_and_normalize_trims_sessions() {
         let home_dir = test_home_dir();
-        let data = RecentSessionsData {
-            sessions: (0..=MAX_RECENT_SESSIONS)
+        write_sessions_to_home(
+            &home_dir,
+            (0..=MAX_RECENT_SESSIONS)
                 .map(|idx| recent_session(format!("session-{idx}"), idx as u64))
                 .collect(),
-        };
-
-        save_to_home(&home_dir, &data).expect("save should succeed");
+        );
 
         let path = path_from_home(&home_dir).expect("path should resolve");
         let loaded = load_and_normalize(&path).expect("load should succeed");
 
         assert_eq!(loaded.sessions.len(), MAX_RECENT_SESSIONS);
         assert_eq!(
-            loaded.sessions[0].title,
+            loaded.sessions[0].title(),
             format!("session-{MAX_RECENT_SESSIONS}")
         );
-        assert_eq!(loaded.sessions[MAX_RECENT_SESSIONS - 1].title, "session-1");
+        assert_eq!(
+            loaded.sessions[MAX_RECENT_SESSIONS - 1].title(),
+            "session-1"
+        );
         let _ = fs::remove_dir_all(home_dir);
     }
 
@@ -518,7 +491,7 @@ mod tests {
         let home_dir = test_home_dir();
         let config_path = home_dir.join("saved.log");
         fs::write(&config_path, "test").expect("config file should be written");
-        let mut storage = RecentSessionsStorage::new(RecentSessionsData::default());
+        let mut storage = RecentSessionsStorage::default();
         let mut snapshot = file_snapshot(config_path);
         snapshot.state.filters = vec![SearchFilterSnapshot {
             filter: SearchFilter::plain("status=ok").ignore_case(true),
@@ -535,12 +508,14 @@ mod tests {
         save_to_home(&home_dir, &data).expect("save should succeed");
         let saved_path = home_dir.join(STORAGE_DIR).join(RECENT_SESSIONS_FILE);
         assert!(saved_path.exists());
+        let saved_json = fs::read_to_string(&saved_path).expect("saved file should be readable");
+        assert!(!saved_json.contains("\"title\""));
 
         let path = path_from_home(&home_dir).expect("path should resolve");
         let loaded = load(&path).expect("load should succeed");
 
         assert_eq!(loaded.sessions.len(), 1);
-        assert_eq!(loaded.sessions[0].title, data.sessions[0].title);
+        assert_eq!(loaded.sessions[0].title(), data.sessions[0].title());
         assert_eq!(loaded.sessions[0].last_opened, data.sessions[0].last_opened);
         assert_eq!(loaded.sessions[0].source_key, data.sessions[0].source_key);
         assert_eq!(loaded.sessions[0].state, data.sessions[0].state);
@@ -593,27 +568,23 @@ mod tests {
 
     #[test]
     fn multi_stream_restore_splits_sources() {
-        let snapshot = RecentSessionSnapshot {
-            source_key: "multi-stream".into(),
-            title: String::from("multi-stream"),
-            last_opened: unix_timestamp_now(),
-            source: RecentSourceSnapshot {
-                sources: vec![
-                    RecentSessionSource::Stream {
-                        transport: Transport::TCP(TCPTransportConfig {
-                            bind_addr: String::from("127.0.0.1:5000"),
-                        }),
-                    },
-                    RecentSessionSource::Stream {
-                        transport: Transport::TCP(TCPTransportConfig {
-                            bind_addr: String::from("127.0.0.1:5001"),
-                        }),
-                    },
-                ],
-            },
-            parser: ParserType::Text(()),
-            state: Default::default(),
-        };
+        let snapshot = RecentSessionRegistration::new(
+            unix_timestamp_now(),
+            vec![
+                RecentSessionSource::Stream {
+                    transport: Transport::TCP(TCPTransportConfig {
+                        bind_addr: String::from("127.0.0.1:5000"),
+                    }),
+                },
+                RecentSessionSource::Stream {
+                    transport: Transport::TCP(TCPTransportConfig {
+                        bind_addr: String::from("127.0.0.1:5001"),
+                    }),
+                },
+            ],
+            ParserType::Text(()),
+        )
+        .into_snapshot(Default::default());
 
         let request = resolve_open_request(OpenRecentSessionParam {
             snapshot,
@@ -637,24 +608,21 @@ mod tests {
 
     #[test]
     fn multi_file_restore_uses_concat() {
-        let snapshot = snapshot_from_observe_options(
-            String::from("files"),
-            ObserveOptions {
-                origin: ObserveOrigin::Concat(vec![
-                    (
-                        String::from("first-id"),
-                        stypes::FileFormat::Text,
-                        PathBuf::from("first.log"),
-                    ),
-                    (
-                        String::from("second-id"),
-                        stypes::FileFormat::Text,
-                        PathBuf::from("second.log"),
-                    ),
-                ]),
-                parser: ParserType::Text(()),
-            },
-        );
+        let snapshot = snapshot_from_observe_options(ObserveOptions {
+            origin: ObserveOrigin::Concat(vec![
+                (
+                    String::from("first-id"),
+                    stypes::FileFormat::Text,
+                    PathBuf::from("first.log"),
+                ),
+                (
+                    String::from("second-id"),
+                    stypes::FileFormat::Text,
+                    PathBuf::from("second.log"),
+                ),
+            ]),
+            parser: ParserType::Text(()),
+        });
 
         let request = resolve_open_request(OpenRecentSessionParam {
             snapshot,

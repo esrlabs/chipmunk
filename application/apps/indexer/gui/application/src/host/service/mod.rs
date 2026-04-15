@@ -39,7 +39,7 @@ use crate::{
                     TcpConfig, UdpConfig,
                 },
             },
-            storage::{RecentSessionsData, StorageEvent},
+            storage::{RecentSessionsStorage, StorageEvent},
         },
     },
     session::{InitSessionError, service::SessionService},
@@ -61,7 +61,7 @@ pub struct HostService {
 impl HostService {
     /// Spawns tokio runtime to run host services and loads recent sessions for startup.
     #[must_use]
-    pub fn spawn(communication: ServiceHandle) -> (Handle, RecentSessionsData) {
+    pub fn spawn(communication: ServiceHandle) -> (Handle, RecentSessionsStorage) {
         let (handle_tx, handle_rx) = std::sync::mpsc::channel();
 
         thread::spawn(move || {
@@ -79,7 +79,7 @@ impl HostService {
                             .senders
                             .send_notification(AppNotification::Error(err.to_string()))
                             .await;
-                        RecentSessionsData::default()
+                        RecentSessionsStorage::default()
                     }
                 };
 

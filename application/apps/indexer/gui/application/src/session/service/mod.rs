@@ -21,9 +21,7 @@ use crate::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, StreamConfig},
             },
-            storage::{
-                RecentSessionRegistration, RecentSessionStateSnapshot, RecentSourceSnapshot,
-            },
+            storage::{RecentSessionRegistration, RecentSessionSource, RecentSessionStateSnapshot},
         },
     },
     session::{
@@ -61,7 +59,7 @@ impl SessionService {
         let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
-        let mut recent_source = RecentSourceSnapshot::from_observe_origin(options.origin.clone());
+        let mut recent_sources = RecentSessionSource::from_observe_origin(options.origin.clone());
         let parser = options.parser.clone();
 
         let observe_id = Uuid::new_v4();
@@ -70,9 +68,7 @@ impl SessionService {
 
         let mut startup_observe_ops = Vec::with_capacity(additional_sources.len());
         for origin in additional_sources {
-            recent_source
-                .sources
-                .extend(RecentSourceSnapshot::from_observe_origin(origin.clone()).sources);
+            recent_sources.extend(RecentSessionSource::from_observe_origin(origin.clone()));
 
             let observe_id = Uuid::new_v4();
             let observe_op = ObserveOperation::new(observe_id, origin.clone());
@@ -86,13 +82,9 @@ impl SessionService {
             startup_observe_ops.push(observe_op);
         }
 
-        let supports_bookmarks = recent_source.supports_bookmarks();
-        let recent_registration = RecentSessionRegistration::new(
-            session_info.title.clone(),
-            unix_timestamp_now(),
-            recent_source,
-            parser,
-        );
+        let recent_registration =
+            RecentSessionRegistration::new(unix_timestamp_now(), recent_sources, parser);
+        let supports_bookmarks = recent_registration.supports_bookmarks();
         let recent_source_key = Arc::clone(&recent_registration.source_key);
 
         let ServiceHandle { cmd_rx, senders } = service_handle;
