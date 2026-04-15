@@ -67,16 +67,8 @@ pub async fn copy_files(copy_file_infos: Vec<CopyFileInfo>) -> Result<(), HostEr
     let mut errors = Vec::new();
 
     for copy_file_info in copy_file_infos {
-        let source_display = copy_file_info.source.display().to_string();
-        let destination_display = copy_file_info.destination.display().to_string();
-
         if let Err(error) = copy_file(copy_file_info.source, copy_file_info.destination).await {
-            errors.push(format!(
-                "from: {}, to: {}, error: {}",
-                source_display,
-                destination_display,
-                error.to_string()
-            ));
+            errors.push(format!("Error while copying file: {error}",));
         }
     }
 

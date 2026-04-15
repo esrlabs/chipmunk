@@ -1,4 +1,6 @@
-use egui::{Align, Button, ComboBox, DragValue, Id, Layout, RichText, Ui, Widget};
+use egui::{
+    Align, Button, ComboBox, DragValue, Id, Label, Layout, RichText, TextEdit, Ui, Widget, vec2,
+};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -70,7 +72,10 @@ impl SerialObserveUi {
                 |ui| {
                     ui.add_space(4.0);
                     if ui
-                        .add_enabled(self.config.is_valid(), Button::new("Connect"))
+                        .add_enabled(
+                            self.config.is_valid(),
+                            Button::new("Connect").min_size(vec2(80.0, 24.0)),
+                        )
                         .clicked()
                     {
                         let cmd = SessionCommand::AttachSource {
@@ -107,10 +112,6 @@ impl SerialObserveUi {
                 ui.vertical(|ui| {
                     ui.label(RichText::new(&config.path).strong());
                     ui.label(format!("{} baud", config.baud_rate));
-                    ui.label(format!(
-                        "{} data bits | parity {} | stop bits {}",
-                        config.data_bits, config.parity, config.stop_bits
-                    ));
                 });
             },
             |ui, actions| {
@@ -160,7 +161,14 @@ impl SerialObserveUi {
                     super::open_in_new_tab(source_uuid, actions, &self.cmd_tx);
                 }
             },
-        );
+        )
+        .on_hover_ui(|ui| {
+            ui.set_max_width(ui.spacing().tooltip_width);
+            ui.label(format!(
+                "{} data bits | parity {} | stop bits {}",
+                config.data_bits, config.parity, config.stop_bits
+            ));
+        });
     }
 
     fn render_serial_form(&mut self, ui: &mut Ui) {
@@ -169,40 +177,51 @@ impl SerialObserveUi {
         ui.add_space(4.0);
         ui.label(RichText::new("Type a custom path").small());
 
-        ui.horizontal(|ui| {
-            let height = ui.spacing().interact_size.y;
-            let button_width = height;
-            let text_width = (ui.available_width() - button_width)
-                                .min(FIELD_WIDTH)
-                                .max(80.0);
+        let row_height = 25.0;
 
-            ui.add_sized(
-                [text_width, height],
-                egui::TextEdit::singleline(&mut self.config.path),
-            );
+        ui.allocate_ui_with_layout(
+            vec2(ui.available_width(), row_height),
+            Layout::right_to_left(Align::TOP),
+            |ui| {
+                let response = ui
+                    .scope(|ui| {
+                        ui.menu_button(icons::regular::DOTS_THREE_VERTICAL, |ui| {
+                            for port in &self.config.available_ports {
+                                if ui
+                                    .selectable_label(self.config.path == *port, port)
+                                    .clicked()
+                                {
+                                    self.config.path = port.clone();
+                                    ui.close();
+                                }
+                            }
+                        })
+                    })
+                    .inner
+                    .response;
 
-            let response = ui.scope(|ui| {
-                ui.set_min_size(egui::vec2(height, height));
+                response.on_hover_text("Available ports");
 
-                ui.menu_button(icons::regular::DOTS_THREE_VERTICAL, |ui| {
-                    for port in &self.config.available_ports {
-                        if ui
-                            .selectable_label(self.config.path == *port, port)
-                            .clicked()
-                        {
-                            self.config.path = port.clone();
-                            ui.close();
-                        }
-                    }
-                })
-            }).inner.response;
+                ui.add(TextEdit::singleline(&mut self.config.path));
+            },
+        );
 
-            response.on_hover_text("Available ports");
-        });
-
-        if let Some(err) = self.config.port_validation_err() {
-            ui.label(RichText::new(err).color(egui::Color32::RED));
-        }
+        // Preserve the space for the validation message so the controls below stay stable.
+        ui.allocate_ui_with_layout(
+            vec2(ui.available_width(), 15.0),
+            Layout::left_to_right(Align::TOP),
+            |ui| {
+                if let Some(err) = self.config.port_validation_err() {
+                    Label::new(
+                        RichText::new(err)
+                            .color(ui.visuals().warn_fg_color)
+                            .size(12.0),
+                    )
+                    .truncate()
+                    .ui(ui);
+                }
+            },
+        );
 
         ui.add_space(8.0);
 
@@ -210,7 +229,7 @@ impl SerialObserveUi {
         ComboBox::from_id_salt("serial_baud_select")
             .width(FIELD_WIDTH.min(ui.available_width()))
             .truncate()
-            .selected_text(&self.config.baud_rate.ui_text())
+            .selected_text(self.config.baud_rate.ui_text())
             .show_ui(ui, |ui| {
                 for baud in &self.config.available_bauds {
                     let selected = self.config.baud_rate == *baud;
@@ -301,6 +320,7 @@ impl SerialObserveUi {
 
 const FIELD_WIDTH: f32 = 180.0;
 
+/// Renders a combo box for selecting one of the predefined named values.
 fn render_named_value_combo<T: Copy + PartialEq>(
     ui: &mut Ui,
     id: impl std::hash::Hash,
