@@ -1,4 +1,6 @@
-use egui::{Align, Frame, Margin, TextBuffer, TextEdit, TextStyle, Ui, Vec2};
+use egui::{
+    Align, Frame, Label, Margin, RichText, TextBuffer, TextEdit, TextStyle, Ui, Vec2, Widget as _,
+};
 
 /// Frame used for neutral grouped content blocks across application UI.
 pub fn general_group_frame(ui: &Ui) -> Frame {
@@ -25,6 +27,28 @@ pub fn main_panel_group_frame(ui: &mut Ui) -> Frame {
         .fill(ui.style().visuals.faint_bg_color)
         .inner_margin(Margin::symmetric(12, 12))
         .outer_margin(Margin::symmetric(0, 4))
+}
+
+/// Show a validation message while preserving the vertical layout slot.
+pub fn show_validation_message(ui: &mut Ui, message: Option<&str>) {
+    const VALIDATION_MESSAGE_HEIGHT: f32 = 15.0;
+    const VALIDATION_MESSAGE_FONT_SIZE: f32 = 10.5;
+
+    ui.vertical(|ui| {
+        ui.set_height(VALIDATION_MESSAGE_HEIGHT);
+
+        if let Some(message) = message {
+            Label::new(
+                RichText::new(message)
+                    .size(VALIDATION_MESSAGE_FONT_SIZE)
+                    .small()
+                    .color(ui.visuals().warn_fg_color),
+            )
+            .selectable(true)
+            .truncate()
+            .ui(ui);
+        }
+    });
 }
 
 /// Build a single-line [`TextEdit`] that approximates the provided outer size.

@@ -103,7 +103,7 @@ impl TcpObserveUi {
             ui,
             actions,
             idx,
-            "TCP",
+            icons::regular::PLUGS_CONNECTED,
             |ui| {
                 ui.label(RichText::new(&config.bind_addr).strong());
             },

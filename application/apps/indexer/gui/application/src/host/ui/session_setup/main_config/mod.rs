@@ -1,9 +1,9 @@
 use core::slice;
 
-use egui::{Align, Label, Layout, Margin, RichText, TextEdit, Ui, Widget as _};
+use egui::{Align, Layout, Margin, TextEdit, Ui};
 
 use crate::host::{
-    common::ui_utls::general_group_frame,
+    common::ui_utls::{general_group_frame, show_validation_message},
     ui::{
         UiActions,
         session_setup::{
@@ -108,16 +108,7 @@ pub fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) 
 
         start_session_on_enter(&ip_txt_res, || config.is_valid(), &mut outcome);
 
-        ui.vertical(|ui| {
-            ui.set_height(20.);
-            if let Some(err_msg) = config.bind_err_msg() {
-                let err_txt = RichText::new(err_msg)
-                    .size(10.5)
-                    .small()
-                    .color(ui.style().visuals.warn_fg_color);
-                Label::new(err_txt).selectable(true).ui(ui);
-            }
-        });
+        show_validation_message(ui, config.bind_err_msg());
     });
 
     outcome

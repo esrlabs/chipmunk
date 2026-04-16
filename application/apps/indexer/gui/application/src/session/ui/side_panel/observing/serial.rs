@@ -1,15 +1,16 @@
-use egui::{
-    Align, Button, ComboBox, DragValue, Id, Label, Layout, RichText, TextEdit, Ui, Widget, vec2,
-};
+use egui::{Align, Button, ComboBox, DragValue, Id, Layout, RichText, TextEdit, Ui, Widget, vec2};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
-    host::ui::{
-        UiActions,
-        session_setup::state::sources::{BaudRate, NamedValue, SerialConfig, StreamConfig},
+    host::{
+        common::ui_utls::show_validation_message,
+        ui::{
+            UiActions,
+            session_setup::state::sources::{BaudRate, NamedValue, SerialConfig, StreamConfig},
+        },
     },
     session::{
         command::{AttachSource, SessionCommand},
@@ -66,28 +67,49 @@ impl SerialObserveUi {
 
             ui.add_space(10.0);
             let row_height = 30.0;
+            let can_connect = self.config.is_valid();
+            let mut reset_to_defaults = false;
+            let mut connect = false;
+
             ui.allocate_ui_with_layout(
                 egui::vec2(ui.available_width(), row_height),
-                Layout::right_to_left(Align::Center),
+                Layout::left_to_right(Align::Center),
                 |ui| {
-                    ui.add_space(4.0);
-                    if ui
-                        .add_enabled(
-                            self.config.is_valid(),
-                            Button::new("Connect").min_size(vec2(80.0, 24.0)),
-                        )
-                        .clicked()
-                    {
-                        let cmd = SessionCommand::AttachSource {
-                            source: AttachSource::Stream(Box::new(StreamConfig::Serial(
-                                self.config.clone(),
-                            ))),
-                        };
-
-                        actions.try_send_command(&self.cmd_tx, cmd);
-                    }
+                    egui::Sides::new().shrink_left().truncate().show(
+                        ui,
+                        |ui| {
+                            let width = ui.available_width().min(100.0);
+                            reset_to_defaults = ui
+                                .add(Button::new("Defaut Settings").min_size(vec2(width, 24.0)))
+                                .on_hover_text("Drop Settings to Defaults")
+                                .clicked();
+                        },
+                        |ui| {
+                            connect = ui
+                                .add_enabled(
+                                    can_connect,
+                                    Button::new("Connect").min_size(vec2(80.0, 24.0)),
+                                )
+                                .clicked();
+                        },
+                    );
                 },
             );
+
+            if reset_to_defaults {
+                self.config.set_default_settings();
+            }
+
+            if connect {
+                let cmd = SessionCommand::AttachSource {
+                    source: AttachSource::Stream(Box::new(StreamConfig::Serial(
+                        self.config.clone(),
+                    ))),
+                };
+
+                actions.try_send_command(&self.cmd_tx, cmd);
+                self.config.reset_connection_input();
+            }
         });
     }
 
@@ -107,7 +129,7 @@ impl SerialObserveUi {
             ui,
             actions,
             idx,
-            "SERIAL",
+            icons::regular::USB,
             |ui| {
                 ui.vertical(|ui| {
                     ui.label(RichText::new(&config.path).strong());
@@ -207,21 +229,7 @@ impl SerialObserveUi {
         );
 
         // Preserve the space for the validation message so the controls below stay stable.
-        ui.allocate_ui_with_layout(
-            vec2(ui.available_width(), 15.0),
-            Layout::left_to_right(Align::TOP),
-            |ui| {
-                if let Some(err) = self.config.port_validation_err() {
-                    Label::new(
-                        RichText::new(err)
-                            .color(ui.visuals().warn_fg_color)
-                            .size(12.0),
-                    )
-                    .truncate()
-                    .ui(ui);
-                }
-            },
-        );
+        show_validation_message(ui, self.config.port_validation_err());
 
         ui.add_space(8.0);
 

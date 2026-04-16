@@ -119,7 +119,7 @@ fn render_observe_item(
     ui: &mut Ui,
     actions: &mut UiActions,
     color_idx: usize,
-    title: &str,
+    icon: &str,
     name_content: impl FnOnce(&mut Ui),
     button_content: impl FnOnce(&mut Ui, &mut UiActions),
     context_content: impl FnOnce(&mut Ui, &mut UiActions),
@@ -149,7 +149,7 @@ fn render_observe_item(
                     ui.allocate_painter(vec2(10.0, ui.available_height()), Sense::hover());
                 painter.rect_filled(res.rect, 0.0, color);
 
-                ui.label(RichText::new(title).strong());
+                ui.label(RichText::new(icon).size(17.0));
                 name_content(ui);
             },
             |ui| {
