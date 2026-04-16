@@ -44,7 +44,7 @@ impl HomeView {
         ui: &mut Ui,
     ) {
         Panel::right("favorite folders")
-            .size_range(250.0..=750.0)
+            .size_range(100.0..=750.0)
             .default_size(350.)
             .resizable(true)
             .show_inside(ui, |ui| {

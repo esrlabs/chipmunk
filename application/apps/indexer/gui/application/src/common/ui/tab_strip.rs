@@ -458,23 +458,17 @@ fn render_tab(
     let dark_mode = ui.visuals().dark_mode;
     let inactive_fg = ui.visuals().widgets.inactive.fg_stroke.color;
     let accent_stroke = colors::main_accent_stroke(dark_mode);
-    let close_hovered = close_response
-        .as_ref()
-        .is_some_and(|response| response.hovered());
-    let close_pressed = close_response
-        .as_ref()
-        .is_some_and(|response| response.is_pointer_button_down_on());
     let bg_fill = if selected {
         ui.visuals().panel_fill
     } else {
         let accent_bg = colors::main_accent_background(dark_mode);
-        if body_response.is_pointer_button_down_on() || close_pressed {
+        if body_response.is_pointer_button_down_on() {
             if dark_mode {
                 accent_bg.gamma_multiply(1.18)
             } else {
                 accent_bg.gamma_multiply(0.9)
             }
-        } else if body_response.hovered() || body_response.has_focus() || close_hovered {
+        } else if body_response.hovered() || body_response.has_focus() {
             if dark_mode {
                 accent_bg.gamma_multiply(1.08)
             } else {
@@ -484,11 +478,21 @@ fn render_tab(
             Color32::TRANSPARENT
         }
     };
-    let fg = if selected || body_response.hovered() || body_response.has_focus() || close_hovered {
+    let fg = if selected || body_response.hovered() || body_response.has_focus() {
         accent_stroke
     } else {
         inactive_fg
     };
+    let close_fg = close_response
+        .as_ref()
+        .map(|response| {
+            if response.hovered() || response.is_pointer_button_down_on() || response.has_focus() {
+                ui.style().interact(response).fg_stroke.color
+            } else {
+                fg
+            }
+        })
+        .unwrap_or(fg);
 
     if ui.is_rect_visible(rect) {
         // Tab chrome and close icons must respect the logical strip viewport so they do not paint
@@ -521,7 +525,7 @@ fn render_tab(
                 Align2::CENTER_CENTER,
                 icons::regular::X,
                 FontId::proportional(CLOSE_ICON_SIZE),
-                fg,
+                close_fg,
             );
         }
     }
