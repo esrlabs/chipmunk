@@ -54,7 +54,7 @@ impl FileUiState {
             .map(DateTime::<Local>::from)
             .map(|dt| dt.format("%d/%m/%Y, %H:%M:%S").to_string());
 
-        let parent_path = path.parent().map(|p| p.to_string_lossy().to_string());
+        let parent_path = path.parent().map(|p| p.display().to_string());
 
         Self {
             name,

@@ -165,7 +165,7 @@ fn scan_folder(path: &Path) -> FavoriteFolder {
             continue;
         }
 
-        let file_name = entry.file_name().to_string_lossy().to_string();
+        let file_name = entry.file_name().display().to_string();
         if file_name.starts_with('.') {
             continue;
         }
