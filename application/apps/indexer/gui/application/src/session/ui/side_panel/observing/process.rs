@@ -1,15 +1,18 @@
-use egui::{Align, Id, Label, Layout, RichText, Ui, Widget, vec2};
+use egui::{Align, Id, Label, Layout, RichText, TextStyle, Ui, Widget, vec2};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
-    host::ui::{
-        UiActions,
-        session_setup::{
-            self,
-            state::sources::{ProcessConfig, StreamConfig},
+    host::{
+        common::ui_utls::truncate_path_to_width,
+        ui::{
+            UiActions,
+            session_setup::{
+                self,
+                state::sources::{ProcessConfig, StreamConfig},
+            },
         },
     },
     session::{
@@ -120,7 +123,22 @@ impl ProcessObserveUi {
             |ui| {
                 ui.vertical(|ui| {
                     ui.label(RichText::new(&config.command).strong());
-                    Label::new(config.cwd.to_string_lossy()).truncate().ui(ui);
+                    let cwd_label = truncate_path_to_width(
+                        ui,
+                        &config.cwd,
+                        ui.available_width(),
+                        TextStyle::Body,
+                    );
+                    let response = Label::new(cwd_label.text)
+                        .truncate()
+                        .show_tooltip_when_elided(false)
+                        .ui(ui);
+                    if cwd_label.truncated {
+                        response.on_hover_ui(|ui| {
+                            ui.set_max_width(ui.spacing().tooltip_width);
+                            ui.label(config.cwd.to_string_lossy());
+                        });
+                    }
                 });
             },
             |ui, actions| {

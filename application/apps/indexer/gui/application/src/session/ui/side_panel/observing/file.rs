@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::{Align, Id, Label, Layout, RichText, ScrollArea, Ui, Widget};
+use egui::{Align, Id, Label, Layout, RichText, ScrollArea, TextStyle, Ui, Widget};
 use stypes::{FileFormat, ObserveOrigin};
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{
     common::phosphor::icons,
     host::{
-        common::parsers::ParserNames,
+        common::{parsers::ParserNames, ui_utls::truncate_path_to_width},
         ui::{
             UiActions,
             actions::{FileDialogFilter, FileDialogOptions},
@@ -193,11 +193,26 @@ impl FilesObserveUi {
                 ui.vertical(|ui| {
                     let file_name = path
                         .file_name()
-                        .map(|name| name.to_string_lossy().to_string())
+                        .map(|name| name.to_string_lossy())
                         .unwrap_or_default();
                     ui.label(RichText::new(file_name).strong());
                     if let Some(parent) = path.parent() {
-                        Label::new(parent.to_string_lossy()).truncate().ui(ui);
+                        let parent_label = truncate_path_to_width(
+                            ui,
+                            parent,
+                            ui.available_width(),
+                            TextStyle::Body,
+                        );
+                        let response = Label::new(parent_label.text)
+                            .truncate()
+                            .show_tooltip_when_elided(false)
+                            .ui(ui);
+                        if parent_label.truncated {
+                            response.on_hover_ui(|ui| {
+                                ui.set_max_width(ui.spacing().tooltip_width);
+                                ui.label(parent.to_string_lossy());
+                            });
+                        }
                     }
                 });
             },

@@ -1,5 +1,8 @@
+use std::path::{Component, Path};
+
 use egui::{
-    Align, Frame, Label, Margin, RichText, TextBuffer, TextEdit, TextStyle, Ui, Vec2, Widget as _,
+    Align, Color32, Frame, Label, Margin, RichText, TextBuffer, TextEdit, TextStyle, Ui, Vec2,
+    Widget as _,
 };
 
 /// Frame used for neutral grouped content blocks across application UI.
@@ -49,6 +52,83 @@ pub fn show_validation_message(ui: &mut Ui, message: Option<&str>) {
             .ui(ui);
         }
     });
+}
+
+/// Display text for a path after width-aware truncation.
+pub struct TruncatedPath {
+    /// Text to render in the UI.
+    pub text: String,
+    /// Whether the original path had to be shortened.
+    pub truncated: bool,
+}
+
+/// Truncate a path to fit the available width while preferring trailing segments.
+/// Example output: `…/logs/app.log`.
+pub fn truncate_path_to_width(
+    ui: &Ui,
+    path: &Path,
+    max_width: f32,
+    text_style: TextStyle,
+) -> TruncatedPath {
+    let measure = |text: String| {
+        ui.painter()
+            .layout_no_wrap(text, text_style.resolve(ui.style()), Color32::TRANSPARENT)
+            .size()
+            .x
+    };
+
+    let full_label = path.display().to_string();
+    if measure(full_label.clone()) <= max_width {
+        return TruncatedPath {
+            text: full_label,
+            truncated: false,
+        };
+    }
+
+    let segments: Vec<String> = path
+        .components()
+        .filter_map(|component| match component {
+            Component::Prefix(_) | Component::RootDir => None,
+            Component::CurDir => Some(".".to_owned()),
+            Component::ParentDir => Some("..".to_owned()),
+            Component::Normal(segment) => Some(segment.to_string_lossy().into_owned()),
+        })
+        .collect();
+
+    if segments.is_empty() {
+        return TruncatedPath {
+            text: full_label,
+            truncated: false,
+        };
+    }
+
+    let mut candidate = String::new();
+    for start in 1..segments.len() {
+        candidate.clear();
+        candidate.push('…');
+
+        for seg in &segments[start..] {
+            candidate.push(std::path::MAIN_SEPARATOR);
+            candidate.push_str(&seg);
+        }
+
+        if measure(candidate.clone()) <= max_width {
+            return TruncatedPath {
+                text: candidate,
+                truncated: true,
+            };
+        }
+    }
+
+    let text = segments
+        .into_iter()
+        .rev()
+        .next()
+        .unwrap_or_else(|| full_label.clone());
+
+    let truncated = text != full_label;
+
+    TruncatedPath { text, truncated }
 }
 
 /// Build a single-line [`TextEdit`] that approximates the provided outer size.

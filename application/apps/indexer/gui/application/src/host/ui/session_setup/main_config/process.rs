@@ -1,8 +1,8 @@
-use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, Ui, Widget, vec2};
+use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, TextStyle, Ui, Widget, vec2};
 
 use super::RenderOutcome;
 use crate::host::{
-    common::ui_utls::sized_singleline_text_edit,
+    common::ui_utls::{sized_singleline_text_edit, truncate_path_to_width},
     ui::{
         UiActions,
         actions::FileDialogOptions,
@@ -101,8 +101,7 @@ pub fn working_dir(
     }
 
     let height = ui.available_height() - 2.;
-
-    let path_txt = format!("{}", config.cwd.display());
+    let current_cwd = config.cwd.clone();
 
     egui::Sides::new().shrink_left().truncate().show(
         ui,
@@ -110,7 +109,19 @@ pub fn working_dir(
             if show_label {
                 ui.label("Working Folder:");
             }
-            Label::new(path_txt).selectable(true).ui(ui);
+            let path_txt =
+                truncate_path_to_width(ui, &current_cwd, ui.available_width(), TextStyle::Body);
+            let response = Label::new(path_txt.text)
+                .truncate()
+                .show_tooltip_when_elided(false)
+                .selectable(true)
+                .ui(ui);
+            if path_txt.truncated {
+                response.on_hover_ui(|ui| {
+                    ui.set_max_width(ui.spacing().tooltip_width);
+                    ui.label(current_cwd.to_string_lossy());
+                });
+            }
         },
         |ui| {
             let btn_size = vec2(12., height);

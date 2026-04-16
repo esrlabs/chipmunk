@@ -1,9 +1,11 @@
-use egui::{Align, Label, Layout, RichText, ScrollArea, Sense, Ui, Widget, vec2};
+use std::path::Path;
+
+use egui::{Align, Label, Layout, RichText, ScrollArea, Sense, TextStyle, Ui, Widget, vec2};
 use egui_extras::{Column, TableBuilder};
 use enum_iterator::all;
 
 use crate::host::{
-    common::ui_utls::main_panel_group_frame,
+    common::ui_utls::{main_panel_group_frame, truncate_path_to_width},
     ui::multi_setup::{main_table::table_columns::TableColumn, state::MultiFileState},
 };
 
@@ -60,7 +62,7 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
 
                 row.col(|ui| table_cell_text(ui, file.format.to_string()));
                 row.col(|ui| table_cell_text(ui, file.name.to_owned()));
-                row.col(|ui| table_cell_text(ui, file.parent_path.to_owned().unwrap_or_default()));
+                row.col(|ui| table_cell_path(ui, file.parent_path.as_deref().unwrap_or_default()));
                 row.col(|ui| table_cell_text(ui, file.size_txt.to_owned().unwrap_or_default()));
                 row.col(|ui| table_cell_text(ui, file.last_modify.to_owned().unwrap_or_default()));
 
@@ -77,4 +79,19 @@ fn table_header(ui: &mut Ui, column: TableColumn) {
 
 fn table_cell_text(ui: &mut Ui, content: String) {
     Label::new(content).truncate().ui(ui);
+}
+
+fn table_cell_path(ui: &mut Ui, path: &str) {
+    let path_txt =
+        truncate_path_to_width(ui, Path::new(path), ui.available_width(), TextStyle::Body);
+    let response = Label::new(path_txt.text)
+        .truncate()
+        .show_tooltip_when_elided(false)
+        .ui(ui);
+    if path_txt.truncated {
+        response.on_hover_ui(|ui| {
+            ui.set_max_width(ui.spacing().tooltip_width);
+            ui.label(path);
+        });
+    }
 }
