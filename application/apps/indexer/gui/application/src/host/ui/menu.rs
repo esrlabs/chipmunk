@@ -87,69 +87,7 @@ impl MainMenuBar {
             });
 
             ui.menu_button("Connections", |ui| {
-                if ui.button("DLT on UDP").clicked() {
-                    actions.try_send_command(
-                        &self.cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Udp,
-                            parser: ParserNames::Dlt,
-                        },
-                    );
-                }
-
-                if ui.button("DLT on TCP").clicked() {
-                    actions.try_send_command(
-                        &self.cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Tcp,
-                            parser: ParserNames::Dlt,
-                        },
-                    );
-                }
-
-                if ui.button("DLT on Serial Port").clicked() {
-                    actions.try_send_command(
-                        &self.cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Serial,
-                            parser: ParserNames::Dlt,
-                        },
-                    );
-                }
-
-                ui.separator();
-
-                if ui.button("Plain Text on Serial Port").clicked() {
-                    actions.try_send_command(
-                        &self.cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Serial,
-                            parser: ParserNames::Text,
-                        },
-                    );
-                }
-
-                ui.separator();
-
-                if ui.button("Select Source for Plain Text").clicked() {
-                    actions.try_send_command(
-                        &self.cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Process,
-                            parser: ParserNames::Text,
-                        },
-                    );
-                }
-
-                if ui.button("Select Source for DLT").clicked() {
-                    actions.try_send_command(
-                        &self.cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Udp,
-                            parser: ParserNames::Dlt,
-                        },
-                    );
-                }
+                render_connections_menu(ui, actions, &self.cmd_tx);
             });
 
             ui.menu_button("Terminal", |ui| {
@@ -219,6 +157,71 @@ const fn all_file_dialog_ids() -> &'static [&'static str] {
         PCAPNG_FILES_FROM_DIR,
         PCAP_FILES_FROM_DIR,
     ]
+}
+pub fn render_connections_menu(ui: &mut Ui, actions: &mut UiActions, cmd_tx: &Sender<HostCommand>) {
+    if ui.button("DLT on UDP").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Udp,
+                parser: ParserNames::Dlt,
+            },
+        );
+    }
+
+    if ui.button("DLT on TCP").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Tcp,
+                parser: ParserNames::Dlt,
+            },
+        );
+    }
+
+    if ui.button("DLT on Serial Port").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Serial,
+                parser: ParserNames::Dlt,
+            },
+        );
+    }
+
+    ui.separator();
+
+    if ui.button("Plain Text on Serial Port").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Serial,
+                parser: ParserNames::Text,
+            },
+        );
+    }
+
+    ui.separator();
+
+    if ui.button("Select Source for Plain Text").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Process,
+                parser: ParserNames::Text,
+            },
+        );
+    }
+
+    if ui.button("Select Source for DLT").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Udp,
+                parser: ParserNames::Dlt,
+            },
+        );
+    }
 }
 
 const fn id_from_file_format(format: FileFormat) -> &'static str {
