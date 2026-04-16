@@ -4,6 +4,10 @@
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "package.json"
+  ],
   "scripts": {
     "build": "node_modules/.bin/tsc -p tsconfig.json",
     "prod": "node_modules/.bin/tsc -p tsconfig.json",

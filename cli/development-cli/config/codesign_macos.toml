@@ -35,10 +35,10 @@ glob_patterns = [
     "chipmunk.app/Contents/Frameworks/**/*.app",
     "chipmunk.app/Contents/Frameworks/**/Resources/ShipIt",
     # Unpacked asar resources
-    "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.node",
-    "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.dylib",
-    "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.so",
-    "chipmunk.app/Contents/Resources/app.asar.unpacked/**/MacOS/*",
+    # "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.node",
+    # "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.dylib",
+    # "chipmunk.app/Contents/Resources/app.asar.unpacked/**/*.so",
+    # "chipmunk.app/Contents/Resources/app.asar.unpacked/**/MacOS/*",
 ]
 
 # Represents the components for the final sign command (Command for deep and strict code signing)
