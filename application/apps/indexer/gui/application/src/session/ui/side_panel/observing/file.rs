@@ -184,16 +184,11 @@ impl FilesObserveUi {
         source_uuid: &str,
         actions: &mut UiActions,
     ) {
-        let title = path
-            .extension()
-            .map(|ext| format!(".{}", ext.to_string_lossy()))
-            .unwrap_or_default();
-
         super::render_observe_item(
             ui,
             actions,
             idx,
-            &title,
+            icons::regular::FILE,
             |ui| {
                 ui.vertical(|ui| {
                     let file_name = path

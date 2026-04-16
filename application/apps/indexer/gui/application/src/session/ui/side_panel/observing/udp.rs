@@ -115,7 +115,7 @@ impl UdpObserveUi {
             ui,
             actions,
             idx,
-            "UDP",
+            icons::regular::BROADCAST,
             |ui| {
                 ui.label(RichText::new(&config.bind_addr).strong());
             },
