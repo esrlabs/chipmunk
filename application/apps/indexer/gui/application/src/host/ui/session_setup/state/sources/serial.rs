@@ -149,6 +149,11 @@ impl SerialConfig {
         *send_data_delay = Self::DELAY[0].to_owned();
     }
 
+    pub fn reset_connection_input(&mut self) {
+        self.path.clear();
+        self.validate();
+    }
+
     pub fn validate(&mut self) {
         self.path_err = self
             .path
