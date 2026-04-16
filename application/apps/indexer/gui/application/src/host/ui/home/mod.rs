@@ -1,13 +1,14 @@
 //! Home-screen layout and panel composition.
 
-use egui::{CentralPanel, Panel, Ui};
+use egui::{Align, CentralPanel, Layout, Margin, Panel, Ui, vec2};
 use tokio::sync::mpsc::Sender;
 
 use self::{file_explorer::FileExplorerUi, recent::RecentSessionsUi};
+use super::menu::render_connections_menu;
 use crate::common::phosphor::icons;
 use crate::host::{
     command::HostCommand,
-    common::{parsers::ParserNames, sources::StreamNames},
+    common::{parsers::ParserNames, sources::StreamNames, ui_utls::general_group_frame},
     ui::{UiActions, actions::FileDialogOptions, storage::HostStorage},
 };
 
@@ -15,6 +16,7 @@ mod file_explorer;
 mod recent;
 
 const ACTION_FILES_ID: &str = "action_files";
+const QUICK_ACTIONS_WIDTH: f32 = 45.0;
 
 #[derive(Debug)]
 pub struct HomeView {
@@ -41,14 +43,6 @@ impl HomeView {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        Panel::left("quick actions")
-            .size_range(50.0..=150.0)
-            .default_size(100.)
-            .resizable(true)
-            .show_inside(ui, |ui| {
-                render_quick_actions(ui, actions, &self.cmd_tx);
-            });
-
         Panel::right("favorite folders")
             .size_range(250.0..=750.0)
             .default_size(350.)
@@ -59,8 +53,38 @@ impl HomeView {
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
-            self.recent_sessions
-                .render_content(actions, &mut storage.recent_sessions, ui);
+            let available_height = ui.available_height();
+
+            ui.horizontal_top(|ui| {
+                ui.allocate_ui_with_layout(
+                    vec2(QUICK_ACTIONS_WIDTH, available_height),
+                    Layout::top_down(Align::Center),
+                    |ui| {
+                        general_group_frame(ui)
+                            .inner_margin(Margin::symmetric(0, 2))
+                            .show(ui, |ui| {
+                                ui.take_available_height();
+                                ui.set_width(ui.available_width());
+                                render_quick_actions(ui, actions, &self.cmd_tx);
+                            });
+                    },
+                );
+
+                ui.allocate_ui_with_layout(
+                    vec2(ui.available_width(), available_height),
+                    Layout::top_down(Align::Min),
+                    |ui| {
+                        general_group_frame(ui).show(ui, |ui| {
+                            ui.take_available_width();
+                            self.recent_sessions.render_content(
+                                actions,
+                                &mut storage.recent_sessions,
+                                ui,
+                            );
+                        });
+                    },
+                );
+            });
         });
     }
 }
@@ -72,7 +96,7 @@ fn render_quick_actions(ui: &mut egui::Ui, actions: &mut UiActions, cmd_tx: &Sen
         actions.try_send_command(cmd_tx, HostCommand::OpenFiles(paths));
     }
 
-    let item_size = egui::vec2(ui.available_width(), 60.0);
+    let item_size = egui::vec2(ui.available_width(), 44.0);
 
     egui::ScrollArea::vertical()
         .id_salt("quick_actions_scroll")
@@ -84,21 +108,17 @@ fn render_quick_actions(ui: &mut egui::Ui, actions: &mut UiActions, cmd_tx: &Sen
                 );
             });
 
-            action_button(
+            let connections_button = action_button(
                 ui,
                 item_size,
                 icons::regular::PLUGS_CONNECTED,
                 "Connections",
-                || {
-                    actions.try_send_command(
-                        cmd_tx,
-                        HostCommand::ConnectionSessionSetup {
-                            stream: StreamNames::Udp,
-                            parser: ParserNames::Dlt,
-                        },
-                    );
-                },
+                || {},
             );
+
+            egui::Popup::menu(&connections_button).show(|ui| {
+                render_connections_menu(ui, actions, cmd_tx);
+            });
 
             action_button(ui, item_size, icons::regular::TERMINAL, "Terminal", || {
                 actions.try_send_command(
@@ -118,7 +138,7 @@ fn action_button(
     icon: &str,
     label: &str,
     on_click: impl FnOnce(),
-) {
+) -> egui::Response {
     ui.push_id(format!("quick_action_{}", label.to_lowercase()), |ui| {
         let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
 
@@ -137,18 +157,18 @@ fn action_button(
                 |ui| {
                     ui.add_space(2.0);
                     ui.label(egui::RichText::new(icon).size(22.0));
-                    ui.add(
-                        egui::Label::new(egui::RichText::new(label).small())
-                            .wrap_mode(egui::TextWrapMode::Truncate),
-                    );
                 },
             );
         });
+
+        let response = response.on_hover_text(label);
 
         if response.clicked() {
             on_click();
         }
 
         ui.add_space(4.0);
-    });
+        response
+    })
+    .inner
 }

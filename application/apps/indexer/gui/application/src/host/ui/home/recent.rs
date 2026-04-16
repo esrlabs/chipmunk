@@ -12,7 +12,6 @@ use crate::{
     common::phosphor::icons,
     host::{
         command::{HostCommand, OpenRecentSessionParam},
-        common::ui_utls::general_group_frame,
         ui::{
             UiActions,
             storage::{
@@ -42,36 +41,34 @@ impl RecentSessionsUi {
         recent_sessions: &mut RecentSessionsStorage,
         ui: &mut Ui,
     ) {
-        general_group_frame(ui).show(ui, |ui| {
-            ui.heading("Recently opened");
+        ui.heading("Recently opened");
 
-            egui::ScrollArea::vertical()
-                .id_salt("recent_files_scroll")
-                .show(ui, |ui| {
-                    ui.label("List of recently opened sessions.");
-                    ui.add_space(5.0);
+        egui::ScrollArea::vertical()
+            .id_salt("recent_files_scroll")
+            .show(ui, |ui| {
+                ui.label("List of recently opened sessions.");
+                ui.add_space(5.0);
 
-                    if recent_sessions.sessions.is_empty() {
-                        ui.weak("No recent sessions yet.");
-                        return;
+                if recent_sessions.sessions.is_empty() {
+                    ui.weak("No recent sessions yet.");
+                    return;
+                }
+
+                let remove_session = {
+                    let mut remove_session = None;
+
+                    for session in &recent_sessions.sessions {
+                        self.render_recent_item(ui, actions, session, &mut remove_session);
+                        ui.add_space(4.0);
                     }
 
-                    let remove_session = {
-                        let mut remove_session = None;
+                    remove_session
+                };
 
-                        for session in &recent_sessions.sessions {
-                            self.render_recent_item(ui, actions, session, &mut remove_session);
-                            ui.add_space(4.0);
-                        }
-
-                        remove_session
-                    };
-
-                    if let Some(source_key) = remove_session {
-                        recent_sessions.remove_session(&source_key);
-                    }
-                });
-        });
+                if let Some(source_key) = remove_session {
+                    recent_sessions.remove_session(&source_key);
+                }
+            });
     }
 
     fn render_recent_item(
