@@ -1,10 +1,13 @@
-use egui::{Align, Button, CentralPanel, Frame, Layout, Panel, Ui, Widget};
+use egui::{Align, CentralPanel, Frame, Layout, Panel, Ui};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use crate::host::{
-    command::HostCommand,
-    ui::{UiActions, multi_setup::state::MultiFileState},
+use crate::{
+    common::ui::buttons,
+    host::{
+        command::HostCommand,
+        ui::{UiActions, multi_setup::state::MultiFileState},
+    },
 };
 
 use side_panel::MultiSidePanel;
@@ -63,7 +66,7 @@ impl MultiFileSetup {
     }
 
     fn top_panel(&mut self, actions: &mut UiActions, ui: &mut Ui) {
-        if Button::new("Cancel").ui(ui).clicked() {
+        if ui.add(buttons::session_setup("Cancel", None)).clicked() {
             self.close(actions);
         }
 
@@ -76,7 +79,7 @@ impl MultiFileSetup {
             .count();
 
         if ui
-            .add_enabled(active_count > 1, Button::new("Concat"))
+            .add_enabled(active_count > 1, buttons::session_setup("Concat", None))
             .clicked()
         {
             let files = self
@@ -95,7 +98,7 @@ impl MultiFileSetup {
         }
 
         if ui
-            .add_enabled(active_count > 0, Button::new("Open Each"))
+            .add_enabled(active_count > 0, buttons::session_setup("Open Each", None))
             .clicked()
         {
             let files = self

@@ -1,12 +1,12 @@
 use std::path::Path;
 
-use egui::{Align, Id, Label, Layout, RichText, ScrollArea, TextStyle, Ui, Widget};
+use egui::{Align, Id, Label, Layout, RichText, ScrollArea, TextStyle, Ui, Widget, vec2};
 use stypes::{FileFormat, ObserveOrigin};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::{
         common::{parsers::ParserNames, ui_utls::truncate_path_to_width},
         ui::{
@@ -92,37 +92,46 @@ impl FilesObserveUi {
                 ObserveOrigin::Stream(..) => return,
             };
 
-            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                if ui.button("Attach Files").clicked() {
-                    let (title, filters) = match file_format {
-                        FileFormat::PcapNG => (
-                            "Attach PcapNG Files",
-                            vec![FileDialogFilter::new(
-                                "PcapNG",
-                                vec![String::from("pcapng")],
-                            )],
-                        ),
-                        FileFormat::PcapLegacy => (
-                            "Attach Pcap Files",
-                            vec![FileDialogFilter::new("Pcap", vec![String::from("pcap")])],
-                        ),
-                        FileFormat::Text => ("Attach Files", Vec::new()),
-                        FileFormat::Binary => match parser {
-                            ParserNames::Dlt => (
-                                "Attach DLT Files",
-                                vec![FileDialogFilter::new("DLT", vec![String::from("dlt")])],
+            ui.allocate_ui_with_layout(
+                vec2(ui.available_width(), 24.0),
+                Layout::right_to_left(Align::Center),
+                |ui| {
+                    if ui
+                        .add(buttons::side_panel_primary("Attach Files"))
+                        .clicked()
+                    {
+                        let (title, filters) = match file_format {
+                            FileFormat::PcapNG => (
+                                "Attach PcapNG Files",
+                                vec![FileDialogFilter::new(
+                                    "PcapNG",
+                                    vec![String::from("pcapng")],
+                                )],
                             ),
-                            ParserNames::SomeIP | ParserNames::Text => ("Attach Files", Vec::new()),
-                            ParserNames::Plugins => todo!("Plugins not supported yet"),
-                        },
-                    };
+                            FileFormat::PcapLegacy => (
+                                "Attach Pcap Files",
+                                vec![FileDialogFilter::new("Pcap", vec![String::from("pcap")])],
+                            ),
+                            FileFormat::Text => ("Attach Files", Vec::new()),
+                            FileFormat::Binary => match parser {
+                                ParserNames::Dlt => (
+                                    "Attach DLT Files",
+                                    vec![FileDialogFilter::new("DLT", vec![String::from("dlt")])],
+                                ),
+                                ParserNames::SomeIP | ParserNames::Text => {
+                                    ("Attach Files", Vec::new())
+                                }
+                                ParserNames::Plugins => todo!("Plugins not supported yet"),
+                            },
+                        };
 
-                    actions.file_dialog.pick_files(
-                        ATTATCH_FILE_ID,
-                        FileDialogOptions::new().title(title).filters(filters),
-                    );
-                }
-            });
+                        actions.file_dialog.pick_files(
+                            ATTATCH_FILE_ID,
+                            FileDialogOptions::new().title(title).filters(filters),
+                        );
+                    }
+                },
+            );
         });
     }
 

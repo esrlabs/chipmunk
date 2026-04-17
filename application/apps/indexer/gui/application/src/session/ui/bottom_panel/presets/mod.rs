@@ -1,13 +1,11 @@
-use egui::{
-    Align, Button, Frame, Layout, Margin, RichText, ScrollArea, Ui, UiBuilder, Widget, vec2,
-};
+use egui::{Align, Frame, Layout, Margin, RichText, ScrollArea, Ui, UiBuilder, Widget, vec2};
 use processor::search::filter::SearchFilter;
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::{
         command::{ExportPresetsParam, HostCommand},
         common::ui_utls::sized_singleline_text_edit,
@@ -164,7 +162,9 @@ impl PresetsUI {
                     if ui
                         .add_enabled(
                             can_create_preset,
-                            Button::new(RichText::new(icons::regular::PLUS).size(icons_size)),
+                            buttons::bottom_panel_icon(
+                                RichText::new(icons::regular::PLUS).size(icons_size),
+                            ),
                         )
                         .on_hover_text("Add preset from session")
                         .clicked()
@@ -176,7 +176,9 @@ impl PresetsUI {
                     let mut export_button = ui
                         .add_enabled(
                             can_export_presets && self.edit_state.is_none(),
-                            Button::new(RichText::new(icons::regular::EXPORT).size(icons_size)),
+                            buttons::bottom_panel_icon(
+                                RichText::new(icons::regular::EXPORT).size(icons_size),
+                            ),
                         )
                         .on_hover_text("Select named presets to export");
 
@@ -188,10 +190,12 @@ impl PresetsUI {
                         self.start_export_mode(registry);
                     }
 
-                    if Button::new(RichText::new(icons::regular::DOWNLOAD_SIMPLE).size(icons_size))
-                        .ui(ui)
-                        .on_hover_text("Import named presets")
-                        .clicked()
+                    if buttons::bottom_panel_icon(
+                        RichText::new(icons::regular::DOWNLOAD_SIMPLE).size(icons_size),
+                    )
+                    .ui(ui)
+                    .on_hover_text("Import named presets")
+                    .clicked()
                     {
                         actions.file_dialog.pick_file(
                             IMPORT_PRESETS_DIALOG_ID,
@@ -292,7 +296,7 @@ impl PresetsUI {
                 ui.horizontal(|ui| {
                     let button_size = vec2(100.0, 20.0);
 
-                    let cancel = Button::new("Cancel")
+                    let cancel = buttons::bottom_panel("Cancel")
                         .min_size(button_size)
                         .ui(ui)
                         .on_hover_text("Exit export mode");
@@ -301,8 +305,8 @@ impl PresetsUI {
                         self.cancel_export_mode();
                     }
 
-                    let export_btn =
-                        Button::new(format!("Export ({selected_count})")).min_size(button_size);
+                    let export_btn = buttons::bottom_panel(format!("Export ({selected_count})"))
+                        .min_size(button_size);
 
                     if ui
                         .add_enabled(selected_count > 0, export_btn)
@@ -319,7 +323,7 @@ impl PresetsUI {
                         );
                     }
 
-                    let clear_btn = Button::new("Clear").min_size(button_size);
+                    let clear_btn = buttons::bottom_panel("Clear").min_size(button_size);
                     if ui
                         .add_enabled(selected_count > 0, clear_btn)
                         .on_disabled_hover_text("All export selections are already cleared")
@@ -329,7 +333,7 @@ impl PresetsUI {
                         self.clear_export_selection();
                     }
 
-                    let select_all = Button::new("Select All").min_size(button_size);
+                    let select_all = buttons::bottom_panel("Select All").min_size(button_size);
                     if ui
                         .add_enabled(can_select_filtered, select_all)
                         .on_disabled_hover_text("No presets match the current filter")

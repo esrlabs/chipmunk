@@ -1,17 +1,19 @@
 use std::{borrow::Cow, ops::Deref};
 
 use egui::{
-    Align, Button, CentralPanel, ComboBox, Key, Label, Layout, Panel, Response, RichText, Ui,
-    Widget,
+    Align, CentralPanel, ComboBox, Key, Label, Layout, Panel, Response, RichText, Ui, Widget,
 };
 use enum_iterator::all;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-use crate::host::{
-    command::HostCommand,
-    common::{file_utls, parsers::ParserNames, sources::StreamNames},
-    ui::UiActions,
+use crate::{
+    common::ui::buttons,
+    host::{
+        command::HostCommand,
+        common::{file_utls, parsers::ParserNames, sources::StreamNames},
+        ui::UiActions,
+    },
 };
 use state::{SessionSetupState, sources::ByteSourceConfig};
 
@@ -69,9 +71,8 @@ impl SessionSetup {
             .default_size(250.)
             .resizable(true)
             .show_inside(ui, |ui| {
-                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                    side_config::render_content(&mut self.state, actions, ui);
-                });
+                ui.take_available_width();
+                side_config::render_content(&mut self.state, actions, ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
@@ -95,12 +96,12 @@ impl SessionSetup {
     }
 
     fn top_bar(&mut self, actions: &mut UiActions, ui: &mut Ui) {
-        if Button::new("Cancel").ui(ui).clicked() {
+        if ui.add(buttons::session_setup("Cancel", None)).clicked() {
             self.close(actions);
         }
 
         if ui
-            .add_enabled(self.state.is_valid(), Button::new("Open"))
+            .add_enabled(self.state.is_valid(), buttons::session_setup("Open", None))
             .clicked()
         {
             self.state.start_session(&self.cmd_tx, actions);
