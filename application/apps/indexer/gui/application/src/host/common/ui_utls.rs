@@ -122,8 +122,7 @@ pub fn truncate_path_to_width(
 
     let text = segments
         .into_iter()
-        .rev()
-        .next()
+        .next_back()
         .unwrap_or_else(|| full_label.clone());
 
     let truncated = text != full_label;
