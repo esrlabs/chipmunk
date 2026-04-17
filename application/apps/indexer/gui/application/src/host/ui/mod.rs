@@ -11,6 +11,7 @@ use log::{info, trace, warn};
 use crate::{
     cli::CliCommand,
     common::{
+        fonts,
         modal::show_modal,
         phosphor::{self, icons},
     },
@@ -80,7 +81,7 @@ impl Host {
                 let (tokio_handle, recent_sessions) = HostService::spawn(service_comm);
                 let cmd_tx = ui_comm.senders.cmd_tx.clone();
 
-                phosphor::init(&ctx.egui_ctx);
+                fonts::setup(&ctx.egui_ctx);
 
                 let menu = MainMenuBar::new(cmd_tx.clone());
                 let state = HostState::new(cmd_tx.clone());
