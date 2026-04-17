@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use egui::FontFamily;
+use egui::{FontDefinitions, FontFamily};
 
 /// Module contains the keys for phosphor fonts in the application.
 pub mod keys {
@@ -28,10 +28,7 @@ pub mod icons {
 }
 
 /// Add phosphor icons to app fonts.
-pub fn init(egui_ctx: &egui::Context) {
-    // Add phosphor icons to app fonts.
-    let mut fonts = egui::FontDefinitions::default();
-
+pub fn init(fonts: &mut FontDefinitions) {
     fonts.font_data.insert(
         keys::REGULAR.into(),
         Arc::new(egui_phosphor::Variant::Regular.font_data()),
@@ -44,7 +41,7 @@ pub fn init(egui_ctx: &egui::Context) {
 
     let prop_keys = fonts
         .families
-        .get_mut(&egui::FontFamily::Proportional)
+        .get_mut(&FontFamily::Proportional)
         .expect("Proportional fonts must exist");
 
     let mut fill_keys = prop_keys.to_vec();
@@ -52,14 +49,12 @@ pub fn init(egui_ctx: &egui::Context) {
     // Use regular by default.
     prop_keys.insert(1, keys::REGULAR.into());
 
-    // Use fill with its own font family
+    // Use fill with its own font family.
     fill_keys.insert(1, keys::FILL.into());
 
     fonts
         .families
         .insert(FontFamily::Name(keys::FILL.into()), fill_keys);
-
-    egui_ctx.set_fonts(fonts);
 }
 
 #[inline]
