@@ -1,4 +1,4 @@
-use egui::{Label, RichText, Ui, Widget};
+use egui::{Frame, Label, Margin, RichText, Ui, Widget};
 
 use stypes::GrabbedElement;
 
@@ -25,26 +25,28 @@ impl DetailsUI {
             return;
         };
 
-        let Some(log) = self
-            .loaded_log
-            .as_ref()
-            .filter(|log| log.pos == selected_row as usize)
-        else {
+        Frame::NONE.inner_margin(Margin::same(4)).show(ui, |ui| {
+            let Some(log) = self
+                .loaded_log
+                .as_ref()
+                .filter(|log| log.pos == selected_row as usize)
+            else {
+                ui.add_space(10.);
+                Label::new("Loading...").selectable(true).ui(ui);
+                return;
+            };
+
             ui.add_space(10.);
-            Label::new("Loading...").selectable(true).ui(ui);
-            return;
-        };
 
-        ui.add_space(10.);
+            Label::new(format!("Row #: {}", log.pos))
+                .selectable(true)
+                .ui(ui);
 
-        Label::new(format!("Row #: {}", log.pos))
-            .selectable(true)
-            .ui(ui);
+            ui.add_space(10.);
 
-        ui.add_space(10.);
-
-        let content = RichText::new(&log.content).monospace().strong();
-        Label::new(content).selectable(true).ui(ui);
+            let content = RichText::new(&log.content).monospace().strong();
+            Label::new(content).selectable(true).ui(ui);
+        });
     }
 }
 

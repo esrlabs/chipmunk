@@ -109,7 +109,7 @@ pub fn truncate_path_to_width(
 
         for seg in &segments[start..] {
             candidate.push(std::path::MAIN_SEPARATOR);
-            candidate.push_str(&seg);
+            candidate.push_str(seg);
         }
 
         if measure(candidate.clone()) <= max_width {

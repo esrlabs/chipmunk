@@ -1,4 +1,6 @@
-use egui::{FontFamily, FontId, Style, TextStyle};
+use egui::{FontFamily, FontId, Style, TextStyle, Visuals};
+
+use crate::host::common::colors;
 
 /// Applies global style settings to the provided `style` object.
 pub fn global_styles(style: &mut Style) {
@@ -17,10 +19,43 @@ pub fn global_styles(style: &mut Style) {
         );
     }
 
+    apply_global_color_styles(&mut style.visuals);
+
     //TODO AAZ: Workaround until issue with egui_table is fixed.
     // Issue Link: https://github.com/rerun-io/egui_table/issues/56
     #[cfg(debug_assertions)]
     {
         style.debug.warn_if_rect_changes_id = false;
     }
+}
+
+fn apply_global_color_styles(visuals: &mut Visuals) {
+    let dark_mode = visuals.dark_mode;
+    let accent_bg = colors::main_accent_background(dark_mode);
+    let accent_stroke = colors::main_accent_stroke(dark_mode);
+    let hovered_fill = if dark_mode {
+        accent_bg.gamma_multiply(1.08)
+    } else {
+        accent_bg.gamma_multiply(0.96)
+    };
+    let active_fill = if dark_mode {
+        accent_bg.gamma_multiply(1.18)
+    } else {
+        accent_bg.gamma_multiply(0.9)
+    };
+
+    visuals.selection.bg_fill = active_fill;
+    visuals.selection.stroke.color = accent_stroke;
+
+    visuals.widgets.hovered.weak_bg_fill = hovered_fill;
+    visuals.widgets.hovered.bg_fill = hovered_fill;
+    visuals.widgets.hovered.bg_stroke.color = accent_stroke;
+
+    visuals.widgets.active.weak_bg_fill = active_fill;
+    visuals.widgets.active.bg_fill = active_fill;
+    visuals.widgets.active.bg_stroke.color = accent_stroke;
+
+    visuals.widgets.open.weak_bg_fill = active_fill;
+    visuals.widgets.open.bg_fill = active_fill;
+    visuals.widgets.open.bg_stroke.color = accent_stroke;
 }

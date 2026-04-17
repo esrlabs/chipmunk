@@ -7,6 +7,7 @@ use egui::{
     Align, Button, Label, Layout, Response, RichText, Sense, Sides, Ui, UiBuilder, Widget, vec2,
 };
 use tokio::sync::mpsc::Sender;
+use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
@@ -25,12 +26,17 @@ use crate::{
 #[derive(Debug)]
 pub struct RecentSessionsUi {
     cmd_tx: Sender<HostCommand>,
+    /// Arbitrary value to avoid persisting scroll state after app restart.
+    scroll_salt: Uuid,
 }
 
 impl RecentSessionsUi {
     /// Creates the home-screen recent-sessions UI controller.
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
-        Self { cmd_tx }
+        Self {
+            cmd_tx,
+            scroll_salt: Uuid::new_v4(),
+        }
     }
 
     /// Renders the recent-sessions panel and applies list actions to the
@@ -44,7 +50,7 @@ impl RecentSessionsUi {
         ui.heading("Recently opened");
 
         egui::ScrollArea::vertical()
-            .id_salt("recent_files_scroll")
+            .id_salt(("recent_files_scroll", self.scroll_salt))
             .show(ui, |ui| {
                 ui.label("List of recently opened sessions.");
                 ui.add_space(5.0);

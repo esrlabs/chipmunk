@@ -1,6 +1,6 @@
 use std::{ops::RangeInclusive, time::Duration};
 
-use egui::{Direction, Label, Layout, Spinner, Ui, Vec2, Widget};
+use egui::{Direction, Frame, Label, Layout, Margin, Spinner, Ui, Vec2, Widget};
 use egui_plot::{Bar, BarChart, Legend, Line, Plot, PlotBounds};
 use tokio::sync::mpsc::Sender;
 
@@ -110,19 +110,21 @@ impl ChartUI {
         registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
-        match Self::render_state(shared) {
-            ChartRenderState::Spinner => {
-                ui.centered_and_justified(|ui| {
-                    Spinner::new().size(20.0).ui(ui);
-                });
-            }
-            ChartRenderState::Chart => {
-                self.chart(shared, actions, registry, ui);
-            }
-            ChartRenderState::Placeholder => {
-                Self::place_holder(ui);
-            }
-        }
+        Frame::NONE
+            .inner_margin(Margin::symmetric(4, 2))
+            .show(ui, |ui| match Self::render_state(shared) {
+                ChartRenderState::Spinner => {
+                    ui.centered_and_justified(|ui| {
+                        Spinner::new().size(20.0).ui(ui);
+                    });
+                }
+                ChartRenderState::Chart => {
+                    self.chart(shared, actions, registry, ui);
+                }
+                ChartRenderState::Placeholder => {
+                    Self::place_holder(ui);
+                }
+            });
     }
 
     /// Selects chart rendering state based on running operations phases.

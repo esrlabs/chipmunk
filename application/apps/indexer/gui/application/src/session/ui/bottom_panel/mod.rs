@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use tokio::sync::mpsc::Sender;
 
-use egui::{Align, Label, RichText, Sense, TextStyle, Ui, vec2};
+use egui::{Align, Frame, Label, Margin, RichText, Sense, TextStyle, Ui, vec2};
 
 use crate::{
     common::ui::tab_strip::{TabEvent, TabSpec, TabStrip, TabWidth},
@@ -77,7 +77,13 @@ impl BottomPanelUI {
                 self.library
                     .render_content(shared, actions, &mut registry.filters, ui)
             }
-            BottomTabType::Presets => self.presets.render_content(shared, actions, registry, ui),
+            BottomTabType::Presets => {
+                Frame::NONE
+                    .inner_margin(Margin::symmetric(4, 2))
+                    .show(ui, |ui| {
+                        self.presets.render_content(shared, actions, registry, ui)
+                    });
+            }
             BottomTabType::Chart => {
                 self.chart
                     .render_content(shared, actions, &registry.filters, ui)

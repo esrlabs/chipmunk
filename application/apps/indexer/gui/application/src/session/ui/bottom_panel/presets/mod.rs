@@ -226,7 +226,7 @@ impl PresetsUI {
                 });
             },
         );
-        ui.add_space(8.0);
+        ui.add_space(4.0);
 
         if registry.presets.presets().is_empty() {
             ui.label(
