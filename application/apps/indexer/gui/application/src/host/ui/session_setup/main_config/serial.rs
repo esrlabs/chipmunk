@@ -3,11 +3,14 @@ use egui::{
     Widget, vec2,
 };
 
-use crate::host::{
-    common::ui_utls::sized_singleline_text_edit,
-    ui::session_setup::{
-        start_session_on_enter,
-        state::sources::{BaudRate, SerialConfig, serial::DEFAULT_BAUD_RATE},
+use crate::{
+    common::ui::buttons,
+    host::{
+        common::ui_utls::sized_singleline_text_edit,
+        ui::session_setup::{
+            start_session_on_enter,
+            state::sources::{BaudRate, SerialConfig, serial::DEFAULT_BAUD_RATE},
+        },
     },
 };
 
@@ -136,9 +139,10 @@ pub fn render_connection(config: &mut SerialConfig, ui: &mut Ui) -> RenderOutcom
         vec2(ui.available_width(), 30.),
         Layout::right_to_left(Align::Center),
         |ui| {
-            let btn_res = Button::new("Drop Settings to Defaults")
-                .min_size(vec2(150., 25.))
-                .ui(ui);
+            let btn_res = ui.add(buttons::session_setup(
+                "Drop Settings to Defaults",
+                Some(160.0),
+            ));
             if btn_res.clicked() {
                 config.set_default_settings();
             }

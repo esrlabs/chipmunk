@@ -1,10 +1,10 @@
-use egui::{Align, Button, ComboBox, DragValue, Id, Layout, RichText, TextEdit, Ui, Widget, vec2};
+use egui::{Align, ComboBox, DragValue, Id, Layout, RichText, TextEdit, Ui, Widget, vec2};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::{
         common::ui_utls::show_validation_message,
         ui::{
@@ -80,7 +80,10 @@ impl SerialObserveUi {
                         |ui| {
                             let width = ui.available_width().min(100.0);
                             reset_to_defaults = ui
-                                .add(Button::new("Defaut Settings").min_size(vec2(width, 24.0)))
+                                .add(
+                                    buttons::side_panel_primary("Defaut Settings")
+                                        .min_size(vec2(width, 24.0)),
+                                )
                                 .on_hover_text("Drop Settings to Defaults")
                                 .clicked();
                         },
@@ -88,7 +91,8 @@ impl SerialObserveUi {
                             connect = ui
                                 .add_enabled(
                                     can_connect,
-                                    Button::new("Connect").min_size(vec2(80.0, 24.0)),
+                                    buttons::side_panel_primary("Connect")
+                                        .min_size(vec2(80.0, 24.0)),
                                 )
                                 .clicked();
                         },

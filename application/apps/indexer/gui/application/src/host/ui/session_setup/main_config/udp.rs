@@ -1,7 +1,7 @@
 use egui::{Align, Button, Label, Layout, Response, RichText, Sides, TextEdit, Ui, Widget, vec2};
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::ui::session_setup::state::sources::{MulticastItem, UdpConfig},
 };
 
@@ -36,9 +36,7 @@ pub fn render_connection(config: &mut UdpConfig, ui: &mut Ui) -> RenderOutcome {
         vec2(ui.available_width(), 30.),
         Layout::right_to_left(Align::Center),
         |ui| {
-            let multi_res = Button::new("Add Multicast")
-                .min_size(vec2(100., 20.))
-                .ui(ui);
+            let multi_res = ui.add(buttons::session_setup("Add Multicast", Some(100.0)));
 
             if multi_res.clicked() {
                 config.multicasts.push(MulticastItem::new());

@@ -1,14 +1,15 @@
 //! Preset card rendering for browse and edit modes.
 
 use egui::{
-    Align, Button, Frame, Key, Layout, Margin, RichText, ScrollArea, Sense, Sides, StrokeKind,
-    TextEdit, Ui, UiBuilder, vec2,
+    Align, Frame, Key, Layout, Margin, RichText, ScrollArea, Sense, Sides, StrokeKind, TextEdit,
+    Ui, UiBuilder, vec2,
 };
 
 use super::{
     HostRegistry, Preset, PresetAction, PresetBrowseSection, PresetItemRow, PresetsUI,
     SearchFilter, card_metrics, icons,
 };
+use crate::common::ui::buttons;
 
 impl PresetsUI {
     /// Renders a single fixed-size preset card in browse or edit mode.
@@ -124,21 +125,27 @@ impl PresetsUI {
             ui.label(RichText::new(preset.name.as_str()).strong());
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if ui
-                    .button(RichText::new(icons::regular::TRASH).size(14.0))
+                    .add(buttons::bottom_panel_icon(
+                        RichText::new(icons::regular::TRASH).size(14.0),
+                    ))
                     .on_hover_text("Delete preset")
                     .clicked()
                 {
                     *pending_action = Some(PresetAction::Delete(preset.id));
                 }
                 if ui
-                    .button(RichText::new(icons::regular::PENCIL_SIMPLE).size(14.0))
+                    .add(buttons::bottom_panel_icon(
+                        RichText::new(icons::regular::PENCIL_SIMPLE).size(14.0),
+                    ))
                     .on_hover_text("Edit preset")
                     .clicked()
                 {
                     self.start_edit_from_preset(preset);
                 }
                 if ui
-                    .button(RichText::new(icons::regular::PLAY).size(14.0))
+                    .add(buttons::bottom_panel_icon(
+                        RichText::new(icons::regular::PLAY).size(14.0),
+                    ))
                     .on_hover_text("Apply preset")
                     .clicked()
                 {
@@ -280,7 +287,9 @@ impl PresetsUI {
             Layout::right_to_left(Align::Center),
             |ui| {
                 if ui
-                    .button(RichText::new(icons::regular::CHECK).size(14.0))
+                    .add(buttons::bottom_panel_icon(
+                        RichText::new(icons::regular::CHECK).size(14.0),
+                    ))
                     .on_hover_text("Save preset")
                     .clicked()
                     || enter_pressed
@@ -289,7 +298,9 @@ impl PresetsUI {
                 }
 
                 let mut cancel_edit = ui
-                    .button(RichText::new(icons::regular::X).size(14.0))
+                    .add(buttons::bottom_panel_icon(
+                        RichText::new(icons::regular::X).size(14.0),
+                    ))
                     .on_hover_text("Cancel edit")
                     .clicked();
 
@@ -444,7 +455,7 @@ impl PresetsUI {
                             let response = ui
                                 .add_enabled(
                                     !already_added,
-                                    Button::new(definition.filter.value.as_str()),
+                                    buttons::bottom_panel(definition.filter.value.as_str()),
                                 )
                                 .on_disabled_hover_text("Already in preset");
                             if response.clicked() {
@@ -503,10 +514,10 @@ impl PresetsUI {
                 // Mutations are deferred until after rendering so the
                 // immediate-mode traversal does not edit the active list in place.
                 if ui
-                    .button(
+                    .add(buttons::bottom_panel_icon(
                         RichText::new(icons::regular::TRASH)
                             .size(card_metrics::PRESET_EDIT_ITEM_ICON_SIZE),
-                    )
+                    ))
                     .on_hover_text("Remove from preset")
                     .clicked()
                 {
@@ -517,7 +528,7 @@ impl PresetsUI {
                 if ui
                     .add_enabled(
                         can_move_down,
-                        Button::new(
+                        buttons::bottom_panel_icon(
                             RichText::new(icons::regular::CARET_DOWN)
                                 .size(card_metrics::PRESET_EDIT_ITEM_ICON_SIZE),
                         ),
@@ -532,7 +543,7 @@ impl PresetsUI {
                 if ui
                     .add_enabled(
                         can_move_up,
-                        Button::new(
+                        buttons::bottom_panel_icon(
                             RichText::new(icons::regular::CARET_UP)
                                 .size(card_metrics::PRESET_EDIT_ITEM_ICON_SIZE),
                         ),
