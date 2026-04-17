@@ -282,20 +282,21 @@ impl Host {
         let active_tab = state.active_tab().clone();
 
         let HostState {
+            home_view,
             sessions,
             session_setups,
             multi_setups,
-            session_panels_visibility,
+            panels_visibility,
             registry,
             ..
         } = state;
 
         match active_tab {
-            TabType::Home => self.state.home_view.render_content(storage, ui_actions, ui),
+            TabType::Home => home_view.render_content(storage, ui_actions, panels_visibility, ui),
             TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")
-                .render_content(ui_actions, registry, session_panels_visibility, ui),
+                .render_content(ui_actions, registry, panels_visibility, ui),
             TabType::SessionSetup(id) => session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
@@ -378,18 +379,21 @@ fn render_tab_bar_utilities(
 
         notifications.render_content(ui);
 
-        if state.show_session_panel_toggles() {
+        if state.show_right_panel_toggle() {
             ui.add_space(6.0);
 
-            render_session_panel_toggle(
+            render_panel_toggle(
                 ui,
-                &mut state.session_panels_visibility.right,
+                &mut state.panels_visibility.right,
                 icons::fill::SQUARE_HALF,
                 "Right panel",
             );
-            render_session_panel_toggle(
+        }
+
+        if state.show_bottom_panel_toggle() {
+            render_panel_toggle(
                 ui,
-                &mut state.session_panels_visibility.bottom,
+                &mut state.panels_visibility.bottom,
                 icons::fill::SQUARE_HALF_BOTTOM,
                 "Bottom panel",
             );
@@ -397,7 +401,7 @@ fn render_tab_bar_utilities(
     });
 }
 
-fn render_session_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, panel_name: &str) {
+fn render_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, panel_name: &str) {
     let button = Button::selectable(
         *visible,
         RichText::new(icon)

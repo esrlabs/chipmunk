@@ -9,7 +9,7 @@ use crate::common::phosphor::icons;
 use crate::host::{
     command::HostCommand,
     common::{parsers::ParserNames, sources::StreamNames, ui_utls::general_group_frame},
-    ui::{UiActions, actions::FileDialogOptions, storage::HostStorage},
+    ui::{UiActions, actions::FileDialogOptions, state::PanelsVisibility, storage::HostStorage},
 };
 
 mod file_explorer;
@@ -41,13 +41,14 @@ impl HomeView {
         &mut self,
         storage: &mut HostStorage,
         actions: &mut UiActions,
+        panels_visibility: &PanelsVisibility,
         ui: &mut Ui,
     ) {
         Panel::right("favorite folders")
             .size_range(100.0..=750.0)
             .default_size(350.)
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show_animated_inside(ui, panels_visibility.right, |ui| {
                 self.file_explorer
                     .render_content(actions, &mut storage.file_explorer, ui);
             });

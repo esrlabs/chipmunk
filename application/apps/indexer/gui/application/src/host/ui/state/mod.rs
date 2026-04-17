@@ -29,15 +29,15 @@ pub struct HostState {
     pub sessions: FxHashMap<Uuid, Session>,
     pub session_setups: FxHashMap<Uuid, SessionSetup>,
     pub multi_setups: FxHashMap<Uuid, MultiFileSetup>,
-    /// Shared visibility for the session-only auxiliary panels in the main layout.
-    pub session_panels_visibility: PanelsVisibility,
+    /// Shared visibility for the host right panel and session auxiliary panels.
+    pub panels_visibility: PanelsVisibility,
     pub registry: HostRegistry,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Shared visibility state for the session right and bottom panels.
+/// Shared visibility state for the host right panel and session auxiliary panels.
 pub struct PanelsVisibility {
-    /// Controls the session right-side panel visibility.
+    /// Controls the right-side panel visibility in home and session views.
     pub right: bool,
     /// Controls the session bottom panel visibility.
     pub bottom: bool,
@@ -52,7 +52,7 @@ impl HostState {
             sessions: FxHashMap::default(),
             session_setups: FxHashMap::default(),
             multi_setups: FxHashMap::default(),
-            session_panels_visibility: PanelsVisibility::default(),
+            panels_visibility: PanelsVisibility::default(),
             registry: HostRegistry::default(),
         }
     }
@@ -61,8 +61,13 @@ impl HostState {
         &self.tabs[self.active_tab_idx]
     }
 
-    /// Whether the tab bar should render the session panel visibility toggles.
-    pub fn show_session_panel_toggles(&self) -> bool {
+    /// Whether the tab bar should render a right-side panel visibility toggle.
+    pub fn show_right_panel_toggle(&self) -> bool {
+        matches!(self.active_tab(), TabType::Home | TabType::Session(_))
+    }
+
+    /// Whether the tab bar should render the bottom panel visibility toggle.
+    pub fn show_bottom_panel_toggle(&self) -> bool {
         matches!(self.active_tab(), TabType::Session(_))
     }
 
