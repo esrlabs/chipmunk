@@ -1,13 +1,16 @@
 //! Tests for parsers returning single value always
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, io::Cursor};
 
 use super::mock_byte_source::*;
 use super::mock_parser::*;
 use super::*;
 
-use parsers::{Error as ParseError, ParseYield};
-use sources::Error;
+use parsers::{
+    Error as ParseError, ParseYield,
+    text::{StringMessage, StringTokenizer},
+};
+use sources::{Error, binary::raw::BinaryByteSource};
 
 use crate::producer::MessageProducer;
 
@@ -44,6 +47,38 @@ async fn byte_source_fail() {
     assert!(res.is_err_and(|err| matches!(err, ProduceError::SourceError(..))));
 
     assert!(collector.get_records().is_empty());
+}
+
+#[tokio::test]
+async fn text_keeps_unterminated_line() {
+    let parser = StringTokenizer {};
+    let source = BinaryByteSource::new(Cursor::new(b"{\"key\":\"value\"}".to_vec()));
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::<StringMessage>::default();
+
+    let summary = producer.produce_next(&mut collector).await.unwrap();
+    match summary {
+        ProduceSummary::Processed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(messages_count, 1);
+            assert_eq!(bytes_consumed, 15);
+            assert_eq!(skipped_bytes, 0);
+        }
+        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+            panic!("Summary should be Processed but got {summary:?}");
+        }
+    }
+
+    let records = collector.get_records();
+    assert_eq!(records.len(), 1);
+    let ParseYield::Message(message) = &records[0] else {
+        panic!("Expected one text message");
+    };
+    assert_eq!(message.to_string(), "{\"key\":\"value\"}");
 }
 
 #[tokio::test]

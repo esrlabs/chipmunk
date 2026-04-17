@@ -43,10 +43,11 @@ impl SingleParser for StringTokenizer {
             };
             ParseOutput::new(msg_size + 1, Some(string_msg.into()))
         } else {
+            let content = String::from_utf8_lossy(input);
             ParseOutput::new(
                 input.len(),
                 Some(ParseYield::from(StringMessage {
-                    content: String::new(),
+                    content: content.to_string(),
                 })),
             )
         };
@@ -103,5 +104,20 @@ mod tests {
             _ => panic!("Second message did not match"),
         }
         assert!(items_iter.next().is_none());
+    }
+
+    #[test]
+    fn trailing_line_without_newline() {
+        let mut parser = StringTokenizer {};
+        let content = b"{\"key\":\"value\"}";
+
+        let out = parser.parse_item(content, None).unwrap();
+
+        match out.message {
+            Some(ParseYield::Message(StringMessage { content }))
+                if content.eq("{\"key\":\"value\"}") => {}
+            _ => panic!("Trailing line did not match"),
+        }
+        assert_eq!(out.consumed, content.len());
     }
 }
