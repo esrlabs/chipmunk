@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use tokio::sync::mpsc::Sender;
 
-use egui::Ui;
+use egui::{Frame, Margin, Ui};
 
 use crate::{
     host::ui::{UiActions, registry::filters::FilterRegistry},
@@ -39,7 +39,11 @@ impl SearchUI {
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
-        self.bar.render_content(shared, actions, registry, ui);
+        Frame::NONE
+            .inner_margin(Margin::symmetric(4, 1))
+            .show(ui, |ui| {
+                self.bar.render_content(shared, actions, registry, ui);
+            });
 
         if shared
             .search
