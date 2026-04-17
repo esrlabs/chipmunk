@@ -1,7 +1,10 @@
-use egui::RichText;
+use egui::{Button, RichText, Widget};
 
 use crate::{
-    common::phosphor::{self, icons},
+    common::{
+        phosphor::{self, icons},
+        ui::buttons,
+    },
     host::ui::{
         UiActions,
         actions::{FileDialogFilter, FileDialogOptions},
@@ -29,14 +32,17 @@ pub fn fibex_file_selector(
         icons::fill::FILE_PLUS,
         0.0,
         egui::text::TextFormat {
-            font_id: egui::FontId::new(17.0, phosphor::fill_font_family()),
+            font_id: egui::FontId::new(15.0, phosphor::fill_font_family()),
             ..Default::default()
         },
     );
 
     add_txt.append("Add", 3.0, egui::text::TextFormat::default());
 
-    if ui.button(add_txt).clicked() {
+    if ui
+        .add(buttons::session_setup(add_txt, Some(60.0)))
+        .clicked()
+    {
         actions.file_dialog.pick_files(
             file_dialog_id,
             FileDialogOptions::new()
@@ -55,7 +61,12 @@ pub fn fibex_file_selector(
                 ui.label(format!("{}", fibex.path.display()));
             });
 
-            if ui.button("❌").on_hover_text("Remove File").clicked() {
+            if Button::new(icons::regular::X)
+                .frame(false)
+                .ui(ui)
+                .on_hover_text("Remove File")
+                .clicked()
+            {
                 to_remove = Some(idx);
             }
         });

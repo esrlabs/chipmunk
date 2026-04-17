@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
+    common::ui::buttons,
     common::validation::ValidationEligibility,
     common::validation::validate_filter,
     common::validation::validate_search_value_filter,
@@ -580,14 +581,18 @@ impl FiltersUi {
                 let mut action = None;
 
                 let move_btn = ui
-                    .button(RichText::new(icons::regular::FUNNEL).size(14.0))
+                    .add(buttons::side_panel_row_icon(
+                        RichText::new(icons::regular::FUNNEL).size(14.0),
+                    ))
                     .on_hover_text("Move to Filter");
                 if move_btn.clicked() {
                     action = Some(FilterPanelAction::MoveValueToFilter(row.id));
                 }
 
                 let remove_btn = ui
-                    .button(RichText::new(icons::regular::TRASH).size(14.0))
+                    .add(buttons::side_panel_row_icon(
+                        RichText::new(icons::regular::TRASH).size(14.0),
+                    ))
                     .on_hover_text("Remove chart from session");
                 if remove_btn.clicked() {
                     action = Some(FilterPanelAction::RemoveSearchValue(row.id));

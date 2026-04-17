@@ -1,10 +1,10 @@
-use egui::{Align, Button, Id, Layout, RichText, Ui, Widget, vec2};
+use egui::{Align, Id, Layout, RichText, Ui, Widget, vec2};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::ui::{
         UiActions,
         session_setup::{
@@ -73,13 +73,18 @@ impl UdpObserveUi {
                 vec2(ui.available_width(), 30.),
                 Layout::right_to_left(Align::Center),
                 |ui| {
-                    let connect_btn =
-                        ui.add_enabled(self.config.is_valid(), Button::new("Connect"));
+                    let connect_btn = ui.add_enabled(
+                        self.config.is_valid(),
+                        buttons::side_panel_primary("Connect"),
+                    );
                     if connect_btn.clicked() {
                         outcome = RenderOutcome::StartSession;
                     }
 
-                    if ui.button("Add Multicast").clicked() {
+                    if ui
+                        .add(buttons::side_panel_primary("Add Multicast"))
+                        .clicked()
+                    {
                         self.config.multicasts.push(MulticastItem::new());
                     }
                 },

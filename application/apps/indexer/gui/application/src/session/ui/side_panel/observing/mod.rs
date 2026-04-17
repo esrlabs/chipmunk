@@ -6,7 +6,7 @@ use stypes::{ObserveOrigin, Transport};
 use tokio::sync::mpsc;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::ui::UiActions,
     session::{
         command::SessionCommand,
@@ -161,10 +161,8 @@ fn render_observe_item(
     response
 }
 
-fn get_item_button(content: &str) -> Button<'_> {
-    Button::new(RichText::new(content).size(18.0))
-        .frame(false)
-        .frame_when_inactive(false)
+fn get_item_button(content: &str) -> Button<'static> {
+    buttons::side_panel_row_icon(RichText::new(content).size(18.0))
 }
 
 fn render_attach_source(ui: &mut Ui, id: Id, title: &str, collaps_content: impl FnOnce(&mut Ui)) {

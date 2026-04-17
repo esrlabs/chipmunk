@@ -1,10 +1,10 @@
-use egui::{Align, Button, Id, Layout, RichText, Ui, Widget};
+use egui::{Align, Id, Layout, RichText, Ui, Widget};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::buttons},
     host::ui::{
         UiActions,
         session_setup::{
@@ -66,7 +66,10 @@ impl TcpObserveUi {
             let mut outcome = main_config::render_socket_address(&mut self.config, ui);
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 if ui
-                    .add_enabled(self.config.is_valid(), Button::new("Connect"))
+                    .add_enabled(
+                        self.config.is_valid(),
+                        buttons::side_panel_primary("Connect"),
+                    )
                     .clicked()
                 {
                     outcome = RenderOutcome::StartSession;
