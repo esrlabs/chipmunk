@@ -187,7 +187,7 @@ fn sort_recent_sessions(sessions: &mut [RecentSessionSnapshot]) -> bool {
         .any(|pair| pair[0].last_opened < pair[1].last_opened);
 
     if changed {
-        sessions.sort_unstable_by(|left, right| right.last_opened.cmp(&left.last_opened));
+        sessions.sort_unstable_by_key(|right| std::cmp::Reverse(right.last_opened));
     }
 
     changed
