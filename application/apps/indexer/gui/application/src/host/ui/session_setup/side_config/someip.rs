@@ -5,6 +5,7 @@ use crate::host::ui::{UiActions, session_setup::state::parsers::someip::SomeIpPa
 use super::shared::fibex_file_selector;
 
 pub fn render_content(config: &mut SomeIpParserConfig, actions: &mut UiActions, ui: &mut Ui) {
+    ui.take_available_width();
     fibex_file_selector(
         "someip_fibex_dialog",
         "Select SomeIP FIBEX Files",

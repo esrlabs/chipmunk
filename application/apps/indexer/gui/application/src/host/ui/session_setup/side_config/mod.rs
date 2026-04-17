@@ -41,6 +41,8 @@ fn validation_errors(state: &SessionSetupState, ui: &mut Ui) {
     }
 
     side_panel_group_frame(ui).show(ui, |ui| {
+        ui.take_available_width();
+
         ui.heading("Error(s)");
 
         for err in errors {
