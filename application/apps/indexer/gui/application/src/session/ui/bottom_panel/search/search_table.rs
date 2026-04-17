@@ -259,7 +259,7 @@ impl<'a> LogsDelegate<'a> {
                 self.shared.search.compiled_filters(),
             ) {
                 Some(job) => ui.label(job),
-                None => ui.label(content),
+                None => ui.monospace(content),
             };
 
             if response.clicked() {

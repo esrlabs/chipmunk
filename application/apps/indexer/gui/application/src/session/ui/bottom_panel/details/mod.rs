@@ -43,7 +43,7 @@ impl DetailsUI {
 
         ui.add_space(10.);
 
-        let content = RichText::new(&log.content).strong();
+        let content = RichText::new(&log.content).monospace().strong();
         Label::new(content).selectable(true).ui(ui);
     }
 }

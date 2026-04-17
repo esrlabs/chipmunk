@@ -44,6 +44,7 @@ pub mod grab_cmd_consts {
 
 pub const ROW_HEADER_SOURCE_COLOR_WIDTH: f32 = 5.0;
 pub const ROW_HEADER_BOOKMARK_WIDTH: f32 = 8.0;
+pub const LOG_TEXT_STYLE: TextStyle = TextStyle::Monospace;
 
 // This overlay is only painted for rows the backend already marked as matched,
 // so it sits on top of the row-level match tint instead of the plain table background.
@@ -107,7 +108,7 @@ pub fn render_row_header(
             let color = ObserveState::source_color(color_idx);
             painter.rect_filled(res.rect, 0.0, color);
         }
-        let text_res = ui.label(text);
+        let text_res = ui.monospace(text);
 
         if let LogAttachmentInfo::WithAttachment { color } = attachment_info {
             ui.colored_label(
@@ -274,7 +275,7 @@ fn build_highlighted_layout_job(
 ) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
     let base_format = egui::text::TextFormat {
-        font_id: TextStyle::Body.resolve(ui.style()),
+        font_id: LOG_TEXT_STYLE.resolve(ui.style()),
         color: ui
             .style()
             .visuals
