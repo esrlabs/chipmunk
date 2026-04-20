@@ -7,6 +7,7 @@ nav:
   - Overview: index.md
   - Installation: installation.md
   - Search: search.md
+  - Export Logs: export_logs.md
   - Charts: charts.md
   - Navigation: navigation.md
   - Teamwork: teamwork.md
