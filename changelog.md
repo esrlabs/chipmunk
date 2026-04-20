@@ -1,7 +1,9 @@
-# 3.19.5 (19.03.2026)
+# 3.19.5 (20.04.2026)
 
 ## Fixes
 - Fix construction of arguments for DLT non-verbose messages.
+- Fix missing DLT timestamps when importing legacy PCAP files.
+- Fix text parser skipping the last line when available bytes do not end with a newline.
 - Fix Chrome sandbox/AppArmor startup issue on Ubuntu 24.
 
 # 3.19.4 (13.01.2026)
