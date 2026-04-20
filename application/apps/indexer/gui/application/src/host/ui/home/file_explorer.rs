@@ -12,7 +12,7 @@ use egui::{
 };
 use tokio::sync::mpsc::Sender;
 
-use crate::common::phosphor::icons;
+use crate::common::{phosphor::icons, ui::substring_matcher::SubstringMatcher};
 use crate::host::common::ui_utls::{sized_singleline_text_edit, truncate_path_to_width};
 use crate::host::{
     command::{HostCommand, ScanFavoriteFoldersParam},
@@ -28,6 +28,7 @@ const FAVORITES_FOLDER_ID: &str = "favorites_folder";
 #[derive(Debug)]
 pub struct FileExplorerUi {
     favorite_search: String,
+    favorite_search_matcher: SubstringMatcher,
     cmd_tx: Sender<HostCommand>,
 }
 
@@ -36,6 +37,7 @@ impl FileExplorerUi {
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
         Self {
             favorite_search: String::new(),
+            favorite_search_matcher: SubstringMatcher::default(),
             cmd_tx,
         }
     }
@@ -50,8 +52,6 @@ impl FileExplorerUi {
     ) {
         let busy_label = favorite_folders_busy_label(file_explorer);
         let busy = busy_label.is_some();
-        let search_filter = self.favorite_search.to_lowercase();
-        let has_search_filter = !search_filter.is_empty();
 
         ui.add_space(5.0);
         Label::new(RichText::new("Favorite folders").heading())
@@ -128,10 +128,16 @@ impl FileExplorerUi {
                     )
                     .hint_text("Type to filter...");
 
-                    ui.add_enabled(!busy, txt_input);
+                    let response = ui.add_enabled(!busy, txt_input);
+                    if response.changed() {
+                        self.favorite_search_matcher
+                            .build_query(&self.favorite_search);
+                    }
                 });
             },
         );
+
+        let has_search_filter = self.favorite_search_matcher.has_query();
 
         ui.add_space(2.0);
 
@@ -229,7 +235,7 @@ impl FileExplorerUi {
                     folder_state.show_body_indented(&header_response, ui, |ui| {
                         for file in &folder.files {
                             if has_search_filter
-                                && !file.name.to_lowercase().contains(&search_filter)
+                                && !self.favorite_search_matcher.matches(file.name.as_str())
                             {
                                 continue;
                             }

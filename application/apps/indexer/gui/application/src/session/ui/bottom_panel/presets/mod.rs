@@ -5,7 +5,10 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::{phosphor::icons, ui::buttons},
+    common::{
+        phosphor::icons,
+        ui::{buttons, substring_matcher::SubstringMatcher},
+    },
     host::{
         command::{ExportPresetsParam, HostCommand},
         common::ui_utls::sized_singleline_text_edit,
@@ -63,6 +66,7 @@ pub struct PresetsUI {
 #[derive(Debug, Default)]
 struct PresetQueryState {
     query: String,
+    matcher: SubstringMatcher,
     // `None` means the query is empty and every preset stays visible.
     matching_ids: Option<rustc_hash::FxHashSet<Uuid>>,
     cached_revision: u64,
@@ -219,7 +223,7 @@ impl PresetsUI {
                     self.query_state.update_with_revision(
                         registry.presets.definitions_revision(),
                         query_changed,
-                        |query| collect_matching_preset_ids(query, registry),
+                        |matcher| collect_matching_preset_ids(matcher, registry),
                     );
 
                     ui.add_space(10.0);
@@ -958,7 +962,7 @@ mod tests {
         presets.query_state.update_with_revision(
             registry.presets.definitions_revision(),
             true,
-            |query| collect_matching_preset_ids(query, &registry),
+            |matcher| collect_matching_preset_ids(matcher, &registry),
         );
 
         presets.select_filtered_for_export(&registry);
