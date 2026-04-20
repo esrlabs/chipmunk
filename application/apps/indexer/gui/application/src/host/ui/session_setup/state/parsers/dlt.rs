@@ -9,7 +9,10 @@ use chrono_tz::Tz;
 use itertools::Itertools;
 
 use super::FibexFileInfo;
-use crate::host::common::dlt_stats::{DltStatistics, LevelDistribution};
+use crate::{
+    common::ui::substring_matcher::SubstringMatcher,
+    host::common::dlt_stats::{DltStatistics, LevelDistribution},
+};
 
 /// DLT Configurations to be used in front-end
 #[derive(Debug, Clone)]
@@ -20,6 +23,7 @@ pub struct DltParserConfig {
     pub fibex_files: Vec<FibexFileInfo>,
     pub timezone: Option<String>,
     pub timezone_filter: String,
+    pub timezone_matcher: SubstringMatcher,
     pub timezone_list: Vec<(String, i32)>,
     pub dlt_statistics: Option<Box<DltStatistics>>,
     pub dlt_summary: Box<DltSummary>,
@@ -35,6 +39,7 @@ impl DltParserConfig {
             fibex_files: Vec::new(),
             timezone: None,
             timezone_filter: String::new(),
+            timezone_matcher: SubstringMatcher::default(),
             timezone_list: Self::timezone_list(),
             dlt_statistics: None,
             dlt_summary: Box::new(DltSummary::default()),
@@ -77,6 +82,7 @@ impl DltParserConfig {
             timezone: settings.tz.to_owned(),
             timezone_list: Self::timezone_list(),
             timezone_filter: String::default(),
+            timezone_matcher: SubstringMatcher::default(),
             dlt_statistics: None,
             dlt_summary: Box::new(DltSummary::default()),
             dlt_tables: Box::new(DltTables::default()),

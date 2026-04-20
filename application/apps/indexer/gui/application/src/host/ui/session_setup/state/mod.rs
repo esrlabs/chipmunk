@@ -34,15 +34,18 @@ impl SessionSetupState {
     pub fn update_parser(&mut self, parser: ParserNames) {
         self.parser = match parser {
             ParserNames::Dlt => match &self.source {
-                ByteSourceConfig::File(file) => {
-                    ParserConfig::Dlt(DltParserConfig::new(true, Some(vec![file.path.clone()])))
-                }
-                ByteSourceConfig::Concat(files) => ParserConfig::Dlt(DltParserConfig::new(
+                ByteSourceConfig::File(file) => ParserConfig::Dlt(Box::new(DltParserConfig::new(
                     true,
-                    Some(files.iter().map(|f| f.path.clone()).collect()),
-                )),
+                    Some(vec![file.path.clone()]),
+                ))),
+                ByteSourceConfig::Concat(files) => {
+                    ParserConfig::Dlt(Box::new(DltParserConfig::new(
+                        true,
+                        Some(files.iter().map(|f| f.path.clone()).collect()),
+                    )))
+                }
                 ByteSourceConfig::Stream(..) => {
-                    ParserConfig::Dlt(DltParserConfig::new(false, None))
+                    ParserConfig::Dlt(Box::new(DltParserConfig::new(false, None)))
                 }
             },
             ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::new()),

@@ -11,7 +11,7 @@ use crate::host::ui::session_setup::state::parsers::someip::SomeIpParserConfig;
 /// Parser Configurations to be used in the front-end.
 #[derive(Debug, Clone)]
 pub enum ParserConfig {
-    Dlt(DltParserConfig),
+    Dlt(Box<DltParserConfig>),
     SomeIP(SomeIpParserConfig),
     Text,
     Plugins,
@@ -20,9 +20,8 @@ pub enum ParserConfig {
 impl ParserConfig {
     pub fn from_observe_options(options: &ObserveOptions) -> Self {
         match &options.parser {
-            stypes::ParserType::Dlt(settings) => Self::Dlt(DltParserConfig::from_observe_options(
-                settings,
-                &options.origin,
+            stypes::ParserType::Dlt(settings) => Self::Dlt(Box::new(
+                DltParserConfig::from_observe_options(settings, &options.origin),
             )),
             stypes::ParserType::SomeIp(settings) => {
                 Self::SomeIP(SomeIpParserConfig::from_parser_settings(settings))

@@ -79,6 +79,7 @@ chrono-tz = "0.8"
 serialport = "4.8"
 rustc-hash = "2.1"
 enum-iterator = "2"
+nucleo-matcher = "0.3"
 
 clap = { version = "4", features = ["derive"] }
 
