@@ -44,6 +44,11 @@ fn apply_global_color_styles(visuals: &mut Visuals) {
         accent_bg.gamma_multiply(0.9)
     };
 
+    // `faint_bg_color` should be darker than the general background in light mode.
+    if !dark_mode {
+        visuals.faint_bg_color = egui::Color32::from_gray(246);
+    }
+
     visuals.selection.bg_fill = active_fill;
     visuals.selection.stroke.color = accent_stroke;
 
