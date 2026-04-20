@@ -13,7 +13,7 @@ use processor::search::filter::SearchFilter;
 use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 use uuid::Uuid;
 
-use crate::host::common::parsers::ParserNames;
+use crate::host::common::{parsers::ParserNames, sources::StreamNames};
 
 use super::source_key;
 
@@ -152,6 +152,27 @@ impl RecentSessionSnapshot {
 
     pub fn rebuild_cache(&mut self) {
         self.cache = build_cache(&self.sources, &self.parser, &self.state);
+    }
+
+    pub fn parser_kind(&self) -> ParserNames {
+        ParserNames::from(&self.parser)
+    }
+
+    /// Sessions only persist one stream kind, so the first stream source defines the kind.
+    pub fn stream_kind(&self) -> Option<StreamNames> {
+        match self.sources.first()? {
+            RecentSessionSource::File { .. } => None,
+            RecentSessionSource::Stream { transport } => {
+                let stream_name = match transport {
+                    Transport::Process(_) => StreamNames::Process,
+                    Transport::TCP(_) => StreamNames::Tcp,
+                    Transport::UDP(_) => StreamNames::Udp,
+                    Transport::Serial(_) => StreamNames::Serial,
+                };
+
+                Some(stream_name)
+            }
+        }
     }
 
     /// Rebuilds the startup observe plan for restore-style reopen flows.
@@ -516,6 +537,65 @@ mod tests {
         ));
 
         assert_eq!(snapshot.summary(), "1 file • Plain Text");
+    }
+
+    #[test]
+    fn parser_kind_ignores_configuration_details() {
+        let snapshot = snapshot_from_observe_options(ObserveOptions {
+            origin: ObserveOrigin::Stream(
+                String::new(),
+                Transport::TCP(TCPTransportConfig {
+                    bind_addr: String::from("127.0.0.1:5556"),
+                }),
+            ),
+            parser: ParserType::SomeIp(stypes::SomeIpParserSettings {
+                fibex_file_paths: Some(vec![String::from("/tmp/one.xml")]),
+            }),
+        });
+
+        assert_eq!(
+            snapshot.parser_kind(),
+            crate::host::common::parsers::ParserNames::SomeIP
+        );
+    }
+
+    #[test]
+    fn stream_kind_uses_first_stream_source() {
+        let snapshot = RecentSessionSnapshot::new(
+            1,
+            vec![
+                RecentSessionSource::Stream {
+                    transport: Transport::UDP(UDPTransportConfig {
+                        bind_addr: String::from("127.0.0.1:5000"),
+                        multicast: Vec::new(),
+                    }),
+                },
+                RecentSessionSource::Stream {
+                    transport: Transport::UDP(UDPTransportConfig {
+                        bind_addr: String::from("127.0.0.1:5001"),
+                        multicast: Vec::new(),
+                    }),
+                },
+            ],
+            ParserType::Text(()),
+            Default::default(),
+        );
+
+        assert_eq!(
+            snapshot.stream_kind(),
+            Some(crate::host::common::sources::StreamNames::Udp)
+        );
+    }
+
+    #[test]
+    fn file_snapshot_has_no_stream_kind() {
+        let snapshot = snapshot_from_observe_options(ObserveOptions::file(
+            PathBuf::from("first.log"),
+            stypes::FileFormat::Text,
+            ParserType::Text(()),
+        ));
+
+        assert!(snapshot.stream_kind().is_none());
     }
 
     #[test]

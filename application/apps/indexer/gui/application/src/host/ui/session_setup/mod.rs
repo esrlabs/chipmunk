@@ -12,7 +12,7 @@ use crate::{
     host::{
         command::HostCommand,
         common::{file_utls, parsers::ParserNames, sources::StreamNames},
-        ui::UiActions,
+        ui::{UiActions, storage::RecentSessionsStorage},
     },
 };
 use state::{SessionSetupState, sources::ByteSourceConfig};
@@ -57,7 +57,12 @@ impl SessionSetup {
         actions.try_send_command(&self.cmd_tx, HostCommand::CloseSessionSetup(self.id()));
     }
 
-    pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        actions: &mut UiActions,
+        recent_sessions: &mut RecentSessionsStorage,
+        ui: &mut Ui,
+    ) {
         Panel::top("selection_panel")
             .exact_size(40.)
             .show_inside(ui, |ui| {
@@ -77,7 +82,13 @@ impl SessionSetup {
 
         CentralPanel::default().show_inside(ui, |ui| {
             ui.centered_and_justified(|ui| {
-                let outcome = main_config::render_content(&mut self.state, actions, ui);
+                let outcome = main_config::render_content(
+                    &mut self.state,
+                    recent_sessions,
+                    &self.cmd_tx,
+                    actions,
+                    ui,
+                );
                 match outcome {
                     RenderOutcome::CollectStatistics => {
                         if self.state.is_valid() {
