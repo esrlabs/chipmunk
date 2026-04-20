@@ -7,7 +7,9 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::{phosphor::icons, validation::ValidationEligibility},
+    common::{
+        phosphor::icons, ui::substring_matcher::SubstringMatcher, validation::ValidationEligibility,
+    },
     host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{
         command::SessionCommand,
@@ -32,6 +34,7 @@ pub struct LibraryUI {
 #[derive(Debug, Default)]
 struct DefinitionQueryState {
     query: String,
+    matcher: SubstringMatcher,
     matching_ids: Option<FxHashSet<Uuid>>,
     cached_revision: u64,
 }
@@ -117,7 +120,7 @@ impl LibraryUI {
             self.filter_state.update_with_revision(
                 registry.filter_definitions_revision(),
                 query_changed,
-                |query| collect_matching_filter_ids(query, registry),
+                |matcher| collect_matching_filter_ids(matcher, registry),
             );
 
             ScrollArea::vertical()
@@ -218,7 +221,7 @@ impl LibraryUI {
             self.chart_state.update_with_revision(
                 registry.search_value_definitions_revision(),
                 query_changed,
-                |query| collect_matching_search_value_ids(query, registry),
+                |matcher| collect_matching_search_value_ids(matcher, registry),
             );
 
             ScrollArea::vertical()
@@ -568,10 +571,14 @@ impl DefinitionQueryState {
         &mut self,
         revision: u64,
         query_changed: bool,
-        recompute_matches: impl FnOnce(&str) -> Option<FxHashSet<Uuid>>,
+        recompute_matches: impl FnOnce(&mut SubstringMatcher) -> Option<FxHashSet<Uuid>>,
     ) {
+        if query_changed {
+            self.matcher.build_query(self.query.trim());
+        }
+
         if query_changed || self.cached_revision != revision {
-            self.matching_ids = recompute_matches(&self.query);
+            self.matching_ids = recompute_matches(&mut self.matcher);
             self.cached_revision = revision;
         }
     }
@@ -585,9 +592,11 @@ impl DefinitionQueryState {
     }
 }
 
-fn collect_matching_filter_ids(query: &str, registry: &FilterRegistry) -> Option<FxHashSet<Uuid>> {
-    let normalized_query = normalized_query(query);
-    if normalized_query.is_empty() {
+fn collect_matching_filter_ids(
+    matcher: &mut SubstringMatcher,
+    registry: &FilterRegistry,
+) -> Option<FxHashSet<Uuid>> {
+    if !matcher.has_query() {
         return None;
     }
 
@@ -595,19 +604,16 @@ fn collect_matching_filter_ids(query: &str, registry: &FilterRegistry) -> Option
         registry
             .filters_map()
             .iter()
-            .filter_map(|(id, def)| {
-                matches_name_query(def.filter.value.as_str(), &normalized_query).then_some(*id)
-            })
+            .filter_map(|(id, def)| matcher.matches(def.filter.value.as_str()).then_some(*id))
             .collect(),
     )
 }
 
 fn collect_matching_search_value_ids(
-    query: &str,
+    matcher: &mut SubstringMatcher,
     registry: &FilterRegistry,
 ) -> Option<FxHashSet<Uuid>> {
-    let normalized_query = normalized_query(query);
-    if normalized_query.is_empty() {
+    if !matcher.has_query() {
         return None;
     }
 
@@ -615,19 +621,9 @@ fn collect_matching_search_value_ids(
         registry
             .search_value_map()
             .iter()
-            .filter_map(|(id, def)| {
-                matches_name_query(def.filter.value.as_str(), &normalized_query).then_some(*id)
-            })
+            .filter_map(|(id, def)| matcher.matches(def.filter.value.as_str()).then_some(*id))
             .collect(),
     )
-}
-
-fn normalized_query(query: &str) -> String {
-    query.trim().to_ascii_lowercase()
-}
-
-fn matches_name_query(text: &str, normalized_query: &str) -> bool {
-    normalized_query.is_empty() || text.to_ascii_lowercase().contains(normalized_query)
 }
 
 #[cfg(test)]
@@ -695,10 +691,19 @@ mod tests {
         id
     }
 
+    fn build_matcher(query: &str) -> SubstringMatcher {
+        let mut matcher = SubstringMatcher::default();
+        matcher.build_query(query.trim());
+        matcher
+    }
+
     #[test]
     fn empty_query_matches_all() {
-        assert!(matches_name_query("status=ok", &normalized_query("")));
-        assert!(matches_name_query("status=ok", &normalized_query("   ")));
+        let mut matcher = build_matcher("");
+        assert!(matcher.matches("status=ok"));
+
+        let mut matcher = build_matcher("   ");
+        assert!(matcher.matches("status=ok"));
     }
 
     #[test]
@@ -706,17 +711,17 @@ mod tests {
         let mut registry = FilterRegistry::default();
         add_filter_definition(&mut registry, "status=ok");
 
-        assert!(collect_matching_filter_ids("   ", &registry).is_none());
-        assert!(collect_matching_search_value_ids("   ", &registry).is_none());
+        assert!(collect_matching_filter_ids(&mut build_matcher("   "), &registry).is_none());
+        assert!(collect_matching_search_value_ids(&mut build_matcher("   "), &registry).is_none());
     }
 
     #[test]
     fn query_matches_case_insensitively() {
-        assert!(matches_name_query("Status=Ok", &normalized_query("status")));
-        assert!(matches_name_query(
-            "duration=(\\d+)",
-            &normalized_query("DUR")
-        ));
+        let mut matcher = build_matcher("status");
+        assert!(matcher.matches("Status=Ok"));
+
+        let mut matcher = build_matcher("DUR");
+        assert!(matcher.matches("duration=(\\d+)"));
     }
 
     #[test]
@@ -724,7 +729,8 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let matching_id = add_filter_definition(&mut registry, "Status=Ok");
         let non_matching_id = add_filter_definition(&mut registry, "warn");
-        let matching_ids = collect_matching_filter_ids(" status ", &registry).unwrap();
+        let matching_ids =
+            collect_matching_filter_ids(&mut build_matcher(" status "), &registry).unwrap();
 
         assert!(matching_ids.contains(&matching_id));
         assert!(!matching_ids.contains(&non_matching_id));
@@ -735,7 +741,8 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let matching_id = add_search_value_definition(&mut registry, "duration=(\\d+)");
         let non_matching_id = add_search_value_definition(&mut registry, "latency=(\\d+)");
-        let matching_ids = collect_matching_search_value_ids(" DUR ", &registry).unwrap();
+        let matching_ids =
+            collect_matching_search_value_ids(&mut build_matcher(" DUR "), &registry).unwrap();
 
         assert!(matching_ids.contains(&matching_id));
         assert!(!matching_ids.contains(&non_matching_id));
@@ -743,7 +750,8 @@ mod tests {
 
     #[test]
     fn query_rejects_non_matches() {
-        assert!(!matches_name_query("status=ok", &normalized_query("warn")));
+        let mut matcher = build_matcher("warn");
+        assert!(!matcher.matches("status=ok"));
     }
 
     #[test]
@@ -755,8 +763,8 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let first_id = add_filter_definition(&mut registry, "warn");
 
-        state.update_with_revision(registry.filter_definitions_revision(), true, |query| {
-            collect_matching_filter_ids(query, &registry)
+        state.update_with_revision(registry.filter_definitions_revision(), true, |matcher| {
+            collect_matching_filter_ids(matcher, &registry)
         });
         assert_eq!(
             state.matching_ids.as_ref(),
@@ -764,8 +772,8 @@ mod tests {
         );
 
         let second_id = add_filter_definition(&mut registry, "warning");
-        state.update_with_revision(registry.filter_definitions_revision(), false, |query| {
-            collect_matching_filter_ids(query, &registry)
+        state.update_with_revision(registry.filter_definitions_revision(), false, |matcher| {
+            collect_matching_filter_ids(matcher, &registry)
         });
 
         assert_eq!(
@@ -774,8 +782,8 @@ mod tests {
         );
 
         state.query = "   ".to_owned();
-        state.update_with_revision(registry.filter_definitions_revision(), true, |query| {
-            collect_matching_filter_ids(query, &registry)
+        state.update_with_revision(registry.filter_definitions_revision(), true, |matcher| {
+            collect_matching_filter_ids(matcher, &registry)
         });
         assert!(state.matching_ids.is_none());
     }

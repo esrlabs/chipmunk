@@ -3,6 +3,8 @@
 use rustc_hash::FxHashSet;
 use uuid::Uuid;
 
+use crate::common::ui::substring_matcher::SubstringMatcher;
+
 use super::{HostRegistry, Preset, PresetQueryState};
 
 impl PresetQueryState {
@@ -11,10 +13,14 @@ impl PresetQueryState {
         &mut self,
         revision: u64,
         query_changed: bool,
-        recompute_matches: impl FnOnce(&str) -> Option<FxHashSet<Uuid>>,
+        recompute_matches: impl FnOnce(&mut SubstringMatcher) -> Option<FxHashSet<Uuid>>,
     ) {
+        if query_changed {
+            self.matcher.build_query(self.query.trim());
+        }
+
         if query_changed || self.cached_revision != revision {
-            self.matching_ids = recompute_matches(&self.query);
+            self.matching_ids = recompute_matches(&mut self.matcher);
             self.cached_revision = revision;
         }
     }
@@ -27,19 +33,9 @@ impl PresetQueryState {
     }
 }
 
-/// Normalizes user-entered query text for case-insensitive matching.
-fn normalized_query(query: &str) -> String {
-    query.trim().to_ascii_lowercase()
-}
-
-/// Returns `true` when the normalized query is empty or present in the text.
-fn matches_name_query(text: &str, normalized_query: &str) -> bool {
-    normalized_query.is_empty() || text.to_ascii_lowercase().contains(normalized_query)
-}
-
 /// Matches presets by name only; item contents do not participate in filtering.
-fn matches_preset_query(preset: &Preset, normalized_query: &str) -> bool {
-    matches_name_query(preset.name.as_str(), normalized_query)
+fn matches_preset_query(preset: &Preset, matcher: &mut SubstringMatcher) -> bool {
+    matcher.matches(preset.name.as_str())
 }
 
 /// Collects the visible preset ids for the current query.
@@ -47,11 +43,10 @@ fn matches_preset_query(preset: &Preset, normalized_query: &str) -> bool {
 /// Returns `None` for an empty normalized query so the caller can treat that
 /// as "show everything" without storing a full-id snapshot.
 pub(super) fn collect_matching_preset_ids(
-    query: &str,
+    matcher: &mut SubstringMatcher,
     registry: &HostRegistry,
 ) -> Option<FxHashSet<Uuid>> {
-    let normalized_query = normalized_query(query);
-    if normalized_query.is_empty() {
+    if !matcher.has_query() {
         return None;
     }
 
@@ -60,9 +55,7 @@ pub(super) fn collect_matching_preset_ids(
             .presets
             .presets()
             .iter()
-            .filter_map(|preset| {
-                matches_preset_query(preset, &normalized_query).then_some(preset.id)
-            })
+            .filter_map(|preset| matches_preset_query(preset, matcher).then_some(preset.id))
             .collect(),
     )
 }
@@ -83,19 +76,25 @@ mod tests {
         }
     }
 
+    fn build_matcher(query: &str) -> SubstringMatcher {
+        let mut matcher = SubstringMatcher::default();
+        matcher.build_query(query.trim());
+        matcher
+    }
+
     #[test]
     fn empty_query_matches_all() {
         let preset = preset("Errors");
 
-        assert!(matches_preset_query(&preset, &normalized_query("")));
-        assert!(matches_preset_query(&preset, &normalized_query("   ")));
+        assert!(matches_preset_query(&preset, &mut build_matcher("")));
+        assert!(matches_preset_query(&preset, &mut build_matcher("   ")));
     }
 
     #[test]
     fn query_matches_name() {
         let preset = preset("Error Group");
 
-        assert!(matches_preset_query(&preset, &normalized_query("error")));
+        assert!(matches_preset_query(&preset, &mut build_matcher("error")));
     }
 
     #[test]
@@ -103,7 +102,7 @@ mod tests {
         let mut registry = HostRegistry::default();
         registry.presets.add_preset("Errors", vec![], vec![]);
 
-        assert!(collect_matching_preset_ids("   ", &registry).is_none());
+        assert!(collect_matching_preset_ids(&mut build_matcher("   "), &registry).is_none());
     }
 
     #[test]
@@ -111,7 +110,8 @@ mod tests {
         let mut registry = HostRegistry::default();
         let matching_id = registry.presets.add_preset("Status Errors", vec![], vec![]);
         let non_matching_id = registry.presets.add_preset("Warnings", vec![], vec![]);
-        let matching_ids = collect_matching_preset_ids(" status ", &registry).unwrap();
+        let matching_ids =
+            collect_matching_preset_ids(&mut build_matcher(" status "), &registry).unwrap();
 
         assert!(matching_ids.contains(&matching_id));
         assert!(!matching_ids.contains(&non_matching_id));
@@ -124,7 +124,7 @@ mod tests {
             ..preset("Alpha")
         };
 
-        assert!(!matches_preset_query(&preset, &normalized_query("error")));
+        assert!(!matches_preset_query(&preset, &mut build_matcher("error")));
     }
 
     #[test]
@@ -136,8 +136,8 @@ mod tests {
         let mut registry = HostRegistry::default();
         let first_id = registry.presets.add_preset("warn", vec![], vec![]);
 
-        state.update_with_revision(registry.presets.definitions_revision(), true, |query| {
-            collect_matching_preset_ids(query, &registry)
+        state.update_with_revision(registry.presets.definitions_revision(), true, |matcher| {
+            collect_matching_preset_ids(matcher, &registry)
         });
         assert!(state.matches(&first_id));
 
@@ -145,8 +145,8 @@ mod tests {
 
         assert!(!state.matches(&second_id));
 
-        state.update_with_revision(registry.presets.definitions_revision(), false, |query| {
-            collect_matching_preset_ids(query, &registry)
+        state.update_with_revision(registry.presets.definitions_revision(), false, |matcher| {
+            collect_matching_preset_ids(matcher, &registry)
         });
         assert!(state.matches(&second_id));
     }

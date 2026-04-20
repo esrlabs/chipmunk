@@ -43,26 +43,32 @@ fn timezone_selector(config: &mut DltParserConfig, ui: &mut Ui) {
     ui.label(RichText::new("Select the utc timezone (optional)").small());
     ui.add_space(5.0);
 
-    ui.text_edit_singleline(&mut config.timezone_filter);
+    let response = ui.text_edit_singleline(&mut config.timezone_filter);
+    if response.changed() {
+        config.timezone_matcher.build_query(&config.timezone_filter);
+    }
 
-    ScrollArea::vertical().max_height(100.0).show(ui, |ui| {
-        for (name, offset) in config
-            .timezone_list
-            .iter()
-            .filter(|(name, _)| name.to_lowercase().contains(&config.timezone_filter))
-        {
-            let hours = *offset as f32 / (60.0 * 60.0);
-            let rounded = (hours * 10.0).round() / 10.0;
-            let display = format!("{name} ({:+.1})", rounded);
-
-            if ui
-                .selectable_label(config.timezone.as_ref().is_some_and(|t| t == name), display)
-                .clicked()
+    ScrollArea::vertical()
+        .max_height(100.0)
+        .auto_shrink([false, true])
+        .show(ui, |ui| {
+            for (name, offset) in config
+                .timezone_list
+                .iter()
+                .filter(|(name, _)| config.timezone_matcher.matches(name))
             {
-                config.timezone = Some(name.to_owned());
+                let hours = *offset as f32 / (60.0 * 60.0);
+                let rounded = (hours * 10.0).round() / 10.0;
+                let display = format!("{name} ({:+.1})", rounded);
+
+                if ui
+                    .selectable_label(config.timezone.as_ref().is_some_and(|t| t == name), display)
+                    .clicked()
+                {
+                    config.timezone = Some(name.to_owned());
+                }
             }
-        }
-    });
+        });
 
     ui.add_space(5.0);
     let content = if let Some(tz) = config.timezone.as_ref() {
