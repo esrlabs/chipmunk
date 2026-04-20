@@ -43,6 +43,7 @@ pub mod home;
 mod menu;
 pub mod multi_setup;
 mod notification;
+mod recent_session;
 pub mod registry;
 pub mod session_setup;
 pub mod state;
@@ -301,7 +302,7 @@ impl Host {
             TabType::SessionSetup(id) => session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
-                .render_content(ui_actions, ui),
+                .render_content(ui_actions, &mut storage.recent_sessions, ui),
             TabType::MultiFileSetup(id) => multi_setups
                 .get_mut(&id)
                 .expect("Multiple files setups with provided ID from active tab must exist")
