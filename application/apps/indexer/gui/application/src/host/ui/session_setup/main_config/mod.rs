@@ -44,6 +44,7 @@ pub fn render_content(
         ByteSourceConfig::File(file) => render_files(slice::from_ref(file), parser, ui),
         ByteSourceConfig::Concat(files) => render_files(files, parser, ui),
         ByteSourceConfig::Stream(stream) => {
+            let session_setup_id = *id;
             let current_stream = StreamNames::from(&*stream);
             let current_parser = ParserNames::from(&*parser);
             let get_frame = |ui: &mut Ui| {
@@ -65,9 +66,10 @@ pub fn render_content(
                     ui.add_space(10.);
 
                     ScrollArea::vertical()
-                        .id_salt(("stream_setup_recent", id))
+                        .id_salt(("stream_setup_recent", session_setup_id))
                         .show(ui, |ui| {
                             recent::render_matching_recent_sessions(
+                                session_setup_id,
                                 current_stream,
                                 current_parser,
                                 recent_sessions,

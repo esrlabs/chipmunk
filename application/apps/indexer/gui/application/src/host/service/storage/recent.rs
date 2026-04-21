@@ -54,7 +54,11 @@ pub fn load_sessions() -> Result<Box<RecentSessionsStorage>, StorageError> {
 pub fn resolve_open_request(
     params: OpenRecentSessionParam,
 ) -> Result<RecentSessionOpenRequest, HostError> {
-    let OpenRecentSessionParam { snapshot, mode } = params;
+    let OpenRecentSessionParam {
+        snapshot,
+        mode,
+        session_setup_id: _,
+    } = params;
 
     match mode {
         RecentSessionReopenMode::RestoreSession => resolve_restore_request(snapshot, true),
@@ -533,11 +537,13 @@ mod tests {
         let restore_request = resolve_open_request(OpenRecentSessionParam {
             snapshot: snapshot.clone(),
             mode: RecentSessionReopenMode::RestoreSession,
+            session_setup_id: None,
         })
         .expect("restore request should resolve");
         let parser_request = resolve_open_request(OpenRecentSessionParam {
             snapshot,
             mode: RecentSessionReopenMode::RestoreParserConfiguration,
+            session_setup_id: None,
         })
         .expect("parser restore request should resolve");
 
@@ -589,6 +595,7 @@ mod tests {
         let request = resolve_open_request(OpenRecentSessionParam {
             snapshot,
             mode: RecentSessionReopenMode::RestoreSession,
+            session_setup_id: None,
         })
         .expect("multi-stream restore should resolve");
 
@@ -627,6 +634,7 @@ mod tests {
         let request = resolve_open_request(OpenRecentSessionParam {
             snapshot,
             mode: RecentSessionReopenMode::RestoreSession,
+            session_setup_id: None,
         })
         .expect("multi-file restore should resolve");
 
