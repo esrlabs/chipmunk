@@ -22,7 +22,7 @@ pub fn render_connection(
     ui.allocate_ui_with_layout(
         vec2(ui.available_width(), row_height),
         Layout::right_to_left(Align::Center),
-        |ui| command_and_shell(config, &mut outcome, ui),
+        |ui| command_and_shell(config, &mut outcome, None, ui),
     );
 
     ui.add_space(10.);
@@ -37,21 +37,38 @@ pub fn render_connection(
 }
 
 /// Renders the area to specify the command and the shell to run on it.
-pub fn command_and_shell(config: &mut ProcessConfig, outcome: &mut RenderOutcome, ui: &mut Ui) {
+///
+/// `shell_max_width` caps the shell picker button width and truncates the inline shell label.
+pub fn command_and_shell(
+    config: &mut ProcessConfig,
+    outcome: &mut RenderOutcome,
+    shell_max_width: Option<f32>,
+    ui: &mut Ui,
+) {
     let height = ui.available_height();
+    let shell_name = config
+        .shell
+        .as_ref()
+        .map(|s| s.shell.to_string())
+        .unwrap_or_else(|| String::from("Default Shell"));
 
     let shell_txt = RichText::new(format!(
         "{} {}",
         egui_phosphor::regular::TERMINAL,
-        config
-            .shell
-            .as_ref()
-            .map(|s| s.shell.to_string())
-            .unwrap_or_else(|| String::from("Default Shell"))
+        shell_name
     ))
     .text_style(egui::TextStyle::Button);
+    let button = Button::new(shell_txt).min_size(vec2(0., height)).truncate();
 
-    let button_res = Button::new(shell_txt).min_size(vec2(0., height)).ui(ui);
+    let button_res = if let Some(shell_max_width) = shell_max_width {
+        ui.add_sized(vec2(shell_max_width, height), button)
+            .on_hover_ui(|ui| {
+                ui.set_max_width(ui.spacing().tooltip_width);
+                ui.label(format!("Current shell: {shell_name}"));
+            })
+    } else {
+        button.ui(ui)
+    };
 
     let pop_id = egui::Id::new("shells");
 
