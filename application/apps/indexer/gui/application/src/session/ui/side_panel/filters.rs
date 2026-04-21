@@ -1,6 +1,6 @@
 use egui::{
-    Align, Button, Frame, Key, Layout, Modifiers, RichText, ScrollArea, Sense, Sides, TextEdit, Ui,
-    UiBuilder, vec2,
+    Align, Button, Frame, Grid, Key, Layout, Modifiers, RichText, ScrollArea, Sense, Sides,
+    TextEdit, Ui, UiBuilder, vec2,
 };
 use processor::search::filter::SearchFilter;
 use tokio::sync::mpsc;
@@ -746,10 +746,9 @@ impl FiltersUi {
     }
 
     fn render_color_picker_row(ui: &mut Ui, label: &str, color: &mut egui::Color32) {
-        ui.horizontal(|ui| {
-            ui.label(label);
-            ui.color_edit_button_srgba(color);
-        });
+        ui.label(label);
+        ui.color_edit_button_srgba(color);
+        ui.end_row();
     }
 
     fn render_color_swatch(ui: &mut Ui, color: egui::Color32) {
@@ -813,15 +812,19 @@ impl FiltersUi {
         ui.heading(RichText::new("Filter Details").size(16.0));
         ui.add_space(10.0);
 
-        Self::render_color_picker_row(ui, "Foreground", &mut colors.fg);
-        Self::render_color_picker_row(ui, "Background", &mut colors.bg);
+        Grid::new("filter_editor_colors").show(ui, |ui| {
+            Self::render_color_picker_row(ui, "Foreground", &mut colors.fg);
+            Self::render_color_picker_row(ui, "Background", &mut colors.bg);
+        });
     }
 
     fn render_search_value_editor(ui: &mut Ui, color: &mut egui::Color32) {
         ui.heading(RichText::new("Chart Details").size(16.0));
         ui.add_space(10.0);
 
-        Self::render_color_picker_row(ui, "Color", color);
+        Grid::new("search_value_editor_colors").show(ui, |ui| {
+            Self::render_color_picker_row(ui, "Color", color);
+        });
     }
 
     /// Applies the queued sidebar mutation and dispatches any required pipeline sync commands.

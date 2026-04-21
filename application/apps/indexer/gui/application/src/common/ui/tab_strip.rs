@@ -525,9 +525,7 @@ fn render_tab(
             add_content,
         );
 
-        if show_close_button
-            && let Some(close_rect) = rects.close_rect
-        {
+        if show_close_button && let Some(close_rect) = rects.close_rect {
             painter.text(
                 close_rect.center(),
                 Align2::CENTER_CENTER,

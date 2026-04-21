@@ -79,7 +79,7 @@ impl ProcessObserveUi {
             ui.allocate_ui_with_layout(
                 vec2(ui.available_width(), row_height),
                 Layout::right_to_left(Align::Center),
-                |ui| host_setup::command_and_shell(config, &mut outcome, ui),
+                |ui| host_setup::command_and_shell(config, &mut outcome, Some(60.0), ui),
             );
 
             ui.add_space(10.);
