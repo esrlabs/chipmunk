@@ -4,7 +4,7 @@ use itertools::Itertools;
 use log::error;
 use rustc_hash::FxHashSet;
 
-use egui::{Modifiers, RichText, Ui};
+use egui::{Frame, Label, Layout, Modifiers, RichText, Ui, UiBuilder, Widget, vec2};
 use stypes::AttachmentInfo;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -12,22 +12,25 @@ use uuid::Uuid;
 use crate::{
     host::{
         command::{CopyFileInfo, HostCommand},
-        common::{colors::DEFAULT_ATTACHMENT_EXT_COLOR, file_utls},
+        common::{colors::DEFAULT_ATTACHMENT_EXT_COLOR, file_utls, ui_utls::show_side_panel_group},
         ui::{UiActions, actions::FileDialogOptions},
     },
     session::{
         command::SessionCommand,
-        ui::shared::{AttachmentsState, SessionShared},
+        ui::{
+            shared::{AttachmentsState, SessionShared},
+            side_panel::TITLE_SIZE,
+        },
     },
 };
 const ATTACHMENTS_DIALOG_ID_SAVE_SELECTED: &str = "save_selected_attachments";
 const ATTACHMENTS_DIALOG_ID_SAVE_AS: &str = "save_attachment_as";
 
-const ATTACHMENTS_LIST_MINIMUM_HEIGHT: f32 = 200.0;
-const ATTACHMENTS_PREVIEW_MINIMUM_HEIGHT: f32 = 100.0;
 const EXT_COLUMN_WIDTH: f32 = 40.0;
 const ROW_VERTICAL_PADDING: f32 = 8.0;
 const ROW_HORIZONTAL_PADDING: f32 = 12.0;
+
+const SUBTITLE_SIZE: f32 = TITLE_SIZE - 1.0;
 
 #[derive(Debug)]
 pub struct AttachmentsUi {
@@ -69,40 +72,36 @@ impl AttachmentsUi {
 
         let attachments = shared.attachments.attachments();
 
-        egui::Panel::top("attachments_header")
-            .resizable(false)
-            .show_inside(ui, |ui| {
-                self.render_attachments_header(ui, attachments.len());
-            });
+        self.render_attachments_header(ui, attachments.len());
 
         // Details panel located at the bottom but needs to be rendered before the attachments list.
         if self.selected_rows.len() == 1 {
             egui::Panel::bottom("attachments_details")
-                .resizable(true)
-                .default_size(200.0)
-                .size_range(
-                    ATTACHMENTS_PREVIEW_MINIMUM_HEIGHT
-                        ..=(ui.available_height() - ATTACHMENTS_LIST_MINIMUM_HEIGHT),
-                )
+                .frame(Frame::NONE)
+                .resizable(false)
+                .show_separator_line(false)
+                .exact_size(200.0)
                 .show_inside(ui, |ui| {
-                    egui::ScrollArea::vertical()
-                        .auto_shrink(false)
-                        .show(ui, |ui| {
-                            self.render_attachment_preview(ui);
-                        });
+                    show_side_panel_group(ui, |ui| self.render_attachment_preview(ui));
                 });
         }
 
-        // NOTE: CentralPanel should be added last as per egui documentation.
-        egui::CentralPanel::default().show_inside(ui, |ui| {
-            self.render_attachments_list(&shared.attachments, ui_actions, ui);
-        });
+        egui::CentralPanel::default()
+            .frame(Frame::NONE)
+            .show_inside(ui, |ui| {
+                show_side_panel_group(ui, |ui| {
+                    self.render_attachments_list(&shared.attachments, ui_actions, ui)
+                });
+            });
     }
 
     fn render_attachments_header(&self, ui: &mut egui::Ui, attachments_count: usize) {
         egui::Sides::new().show(
             ui,
-            |ui| ui.label(format!("Attachments ({})", attachments_count)),
+            |ui| {
+                let title = format!("Attachments ({})", attachments_count);
+                Label::new(RichText::new(title).heading().size(TITLE_SIZE)).ui(ui);
+            },
             |ui| {
                 ui.menu_button(
                     egui::RichText::new(egui_phosphor::regular::FUNNEL).size(16.0),
@@ -122,12 +121,11 @@ impl AttachmentsUi {
 
     // TODO [TOOL-741]: Implement attachments preview.
     fn render_attachment_preview(&self, ui: &mut egui::Ui) {
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.add_space(ui.spacing().item_spacing.y);
-            ui.label("Preview");
-            ui.centered_and_justified(|ui| {
-                ui.label(RichText::new("Attachment preview not implemented yet."));
-            });
+        Label::new(RichText::new("Preview").heading().size(SUBTITLE_SIZE))
+            .truncate()
+            .ui(ui);
+        ui.centered_and_justified(|ui| {
+            ui.label(RichText::new("Attachment preview not implemented yet."));
         });
     }
 
@@ -138,71 +136,64 @@ impl AttachmentsUi {
         ui: &mut egui::Ui,
     ) {
         let attachments = attachments_state.attachments();
-        ui.spacing_mut().item_spacing.y = 0.0;
-        let row_height = 2.0 * ui.text_style_height(&egui::TextStyle::Body)
-            + ui.spacing().item_spacing.y
-            + ROW_VERTICAL_PADDING;
+        let row_height = 2.0 * ui.text_style_height(&egui::TextStyle::Body) + ROW_VERTICAL_PADDING;
 
-        egui::Frame::default()
-            .fill(ui.visuals().widgets.inactive.bg_fill)
-            .corner_radius(6.0)
-            .show(ui, |ui| {
-                ui.add_space(row_height / 2.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(ROW_HORIZONTAL_PADDING);
-                    ui.label(
-                        egui::RichText::new("Received attachments")
-                            .size(12.0)
-                            .strong(),
-                    );
-                });
-                ui.add_space(row_height / 2.0);
+        Label::new(
+            RichText::new("Received Attachments")
+                .heading()
+                .size(SUBTITLE_SIZE),
+        )
+        .truncate()
+        .ui(ui);
+        ui.add_space(5.0);
 
-                egui::ScrollArea::vertical().show_rows(
-                    ui,
-                    row_height,
-                    attachments.len(),
-                    |ui, row_range| {
-                        for current_row in row_range {
-                            let is_selected = self.selected_rows.contains(&current_row);
-                            let attachment = &attachments[current_row];
+        if attachments.is_empty() {
+            ui.label(RichText::new("No attachments").weak());
+            return;
+        }
 
-                            let extension_color = attachment
-                                .ext
-                                .as_deref()
-                                .and_then(|ext| attachments_state.color_by_extension(ext))
-                                .unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR);
+        ui.scope(|ui| {
+            ui.spacing_mut().item_spacing.y = 0.0;
+            egui::ScrollArea::vertical().show_rows(
+                ui,
+                row_height,
+                attachments.len(),
+                |ui, row_range| {
+                    for current_row in row_range {
+                        let is_selected = self.selected_rows.contains(&current_row);
+                        let attachment = &attachments[current_row];
 
-                            let response = self.render_attachment_row(
-                                ui,
-                                attachment,
-                                extension_color,
-                                row_height,
-                                is_selected,
-                            );
+                        let extension_color = attachment
+                            .ext
+                            .as_deref()
+                            .and_then(|ext| attachments_state.color_by_extension(ext))
+                            .unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR);
 
-                            if response.clicked() {
-                                self.clicked_row = Some(current_row);
-                                self.handle_row_click(current_row, ui.input(|i| i.modifiers));
-                            }
+                        let response = self.render_attachment_row(
+                            ui,
+                            attachment,
+                            extension_color,
+                            row_height,
+                            is_selected,
+                        );
 
-                            // TODO [TOOL-756]: Reevaluate secondary click logic
-                            if response.secondary_clicked() {
-                                self.clicked_row = Some(current_row);
-                            }
-
-                            response.context_menu(|ui| {
-                                self.render_attachments_list_context_menu(
-                                    ui,
-                                    ui_actions,
-                                    attachments,
-                                );
-                            });
+                        if response.clicked() {
+                            self.clicked_row = Some(current_row);
+                            self.handle_row_click(current_row, ui.input(|i| i.modifiers));
                         }
-                        ui.add_space(row_height / 2.0);
-                    },
-                );
-            });
+
+                        // TODO [TOOL-756]: Reevaluate secondary click logic
+                        if response.secondary_clicked() {
+                            self.clicked_row = Some(current_row);
+                        }
+
+                        response.context_menu(|ui| {
+                            self.render_attachments_list_context_menu(ui, ui_actions, attachments);
+                        });
+                    }
+                },
+            );
+        });
     }
 
     fn render_attachment_row(
@@ -219,55 +210,42 @@ impl AttachmentsUi {
         );
 
         let row_background_color = match (is_selected, response.hovered()) {
-            (true, true) => ui.visuals().selection.bg_fill.gamma_multiply(0.6),
+            (true, true) => ui.visuals().selection.bg_fill.gamma_multiply(0.85),
             (true, false) => ui.visuals().selection.bg_fill,
             (false, true) => ui.visuals().widgets.hovered.bg_fill,
-            (false, false) => ui.visuals().widgets.inactive.bg_fill,
+            (false, false) => egui::Color32::TRANSPARENT,
         };
-        ui.painter()
-            .rect_filled(row_rectangle, 0, row_background_color);
-
-        if is_selected {
-            ui.painter().rect_filled(
-                egui::Rect::from_min_size(
-                    row_rectangle.min,
-                    egui::vec2(4.0, row_rectangle.height()),
-                ),
-                egui::CornerRadius::same(0),
-                ui.visuals().selection.stroke.color,
-            );
+        if row_background_color != egui::Color32::TRANSPARENT {
+            ui.painter()
+                .rect_filled(row_rectangle, 4.0, row_background_color);
         }
 
+        ui.painter().rect_filled(
+            egui::Rect::from_min_size(row_rectangle.min, egui::vec2(4.0, row_rectangle.height())),
+            0.0,
+            extension_color,
+        );
+
+        let formatted_size = file_utls::format_file_size(attachment.size as u64);
         ui.scope_builder(
-            egui::UiBuilder::new()
+            UiBuilder::new()
                 .max_rect(row_rectangle)
-                .layout(egui::Layout::left_to_right(egui::Align::LEFT)),
+                .layout(Layout::left_to_right(egui::Align::LEFT)),
             |ui| {
-                // Extra padding from the left
                 ui.add_space(ROW_HORIZONTAL_PADDING);
 
                 ui.add_sized(
-                    egui::vec2(EXT_COLUMN_WIDTH, row_height),
-                    egui::Label::new(
-                        egui::RichText::new(
-                            attachment.ext.as_deref().unwrap_or("—").to_uppercase(),
-                        )
-                        .strong()
-                        .color(extension_color),
+                    vec2(EXT_COLUMN_WIDTH, row_height),
+                    Label::new(
+                        RichText::new(attachment.ext.as_deref().unwrap_or("—").to_uppercase())
+                            .strong()
+                            .color(extension_color),
                     ),
                 );
                 ui.vertical(|ui| {
                     ui.add_space(ROW_VERTICAL_PADDING / 2.0);
-                    ui.add(egui::Label::new(&attachment.name).truncate());
-                    ui.add(
-                        egui::Label::new(
-                            egui::RichText::new(file_utls::format_file_size(
-                                attachment.size as u64,
-                            ))
-                            .weak(),
-                        )
-                        .truncate(),
-                    );
+                    ui.add(Label::new(RichText::new(&attachment.name)).truncate());
+                    ui.add(Label::new(RichText::new(formatted_size).weak()).truncate());
                 });
             },
         );

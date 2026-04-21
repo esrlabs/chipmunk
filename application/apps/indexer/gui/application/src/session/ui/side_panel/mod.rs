@@ -25,6 +25,8 @@ use observing::ObservingUi;
 
 pub use types::*;
 
+const TITLE_SIZE: f32 = 16.0;
+
 #[derive(Debug)]
 pub struct SidePanelUi {
     observing: ObservingUi,

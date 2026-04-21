@@ -11,7 +11,10 @@ use crate::{
     session::{
         command::SessionCommand,
         types::ObserveOperation,
-        ui::shared::{ObserveState, SessionShared},
+        ui::{
+            shared::{ObserveState, SessionShared},
+            side_panel::TITLE_SIZE,
+        },
     },
 };
 
@@ -27,7 +30,6 @@ mod serial;
 mod tcp;
 mod udp;
 
-const TITLE_SIZE: f32 = 16.0;
 const SPACE_BETWEEN_GROUPS: f32 = 5.0;
 
 #[derive(Debug)]
