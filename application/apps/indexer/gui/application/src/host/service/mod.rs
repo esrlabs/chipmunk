@@ -168,8 +168,9 @@ impl HostService {
                 self.start_session(source, parser, session_setup_id).await?;
             }
             HostCommand::OpenRecentSession(params) => {
+                let session_setup_id = params.session_setup_id;
                 let request = storage::recent::resolve_open_request(*params)?;
-                self.open_recent_session(request).await?;
+                self.open_recent_session(request, session_setup_id).await?;
             }
             HostCommand::ImportPresets(path) => {
                 self.import_presets(path).await?;
@@ -219,6 +220,7 @@ impl HostService {
     async fn open_recent_session(
         &self,
         request: RecentSessionOpenRequest,
+        session_setup_id: Option<Uuid>,
     ) -> Result<(), HostError> {
         match request {
             RecentSessionOpenRequest::Restore {
@@ -238,7 +240,7 @@ impl HostService {
                     .senders
                     .send_message(HostMessage::SessionCreated {
                         session: Box::new(session),
-                        session_setup_id: None,
+                        session_setup_id,
                     })
                     .await;
             }

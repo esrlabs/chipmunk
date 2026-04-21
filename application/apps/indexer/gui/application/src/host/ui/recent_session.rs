@@ -38,6 +38,7 @@ pub fn render_recent_session_row(
         ui.allocate_exact_size(vec2(ui.available_width(), ROW_HEIGHT), Sense::click());
     let mut action = None;
 
+    let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
     response.context_menu(|ui| render_row_menu(ui, session, options, &mut action));
 
     if response.hovered() {
@@ -78,7 +79,7 @@ pub fn render_recent_session_row(
             );
     });
 
-    if response.double_clicked() && action.is_none() {
+    if response.clicked() && action.is_none() {
         action = Some(RecentSessionRowAction::RestoreSession);
     }
 
@@ -94,7 +95,7 @@ fn render_row_actions(
     ui.horizontal_centered(|ui| {
         if recent_action_button(icons::regular::ARROW_COUNTER_CLOCKWISE)
             .ui(ui)
-            .on_hover_text("Restore session")
+            .on_hover_text("Open with all saved session settings, including filters and charts")
             .clicked()
         {
             *action = Some(RecentSessionRowAction::RestoreSession);
@@ -102,7 +103,9 @@ fn render_row_actions(
 
         if recent_action_button(icons::regular::SLIDERS_HORIZONTAL)
             .ui(ui)
-            .on_hover_text("Open with saved parser configuration")
+            .on_hover_text(
+                "Open with only the saved parser settings. Filters, charts, and other session settings will not be restored",
+            )
             .clicked()
         {
             *action = Some(RecentSessionRowAction::RestoreParserConfiguration);
@@ -115,7 +118,9 @@ fn render_row_actions(
                     recent_action_button(icons::regular::ARROW_SQUARE_OUT),
                 )
                 .on_hover_text("Open as a fresh session without restoring saved state")
-                .on_disabled_hover_text("Clean open is currently only available for file sessions");
+                .on_disabled_hover_text(
+                    "Open fresh session is currently only available for file sessions",
+                );
 
             if clean_open.clicked() {
                 *action = Some(RecentSessionRowAction::OpenClean);

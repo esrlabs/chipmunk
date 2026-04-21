@@ -1,14 +1,14 @@
 use tokio::sync::mpsc::Sender;
 
 use egui::{
-    Align, Frame, Id, Key, Layout, Margin, Modifiers, RichText, Stroke, TextEdit, Ui, Widget, vec2,
+    Align, Button, Frame, Id, Key, Layout, Margin, Modifiers, RichText, Stroke, TextEdit, Ui,
+    Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
 
 use crate::{
     common::{
         phosphor::{self, icons},
-        ui::buttons,
         validation::{ValidationEligibility, validate_filter},
     },
     host::{
@@ -222,10 +222,7 @@ impl SearchBar {
                                 });
 
                             let mut add_btn = ui
-                                .add_enabled(
-                                    disabled_reason.is_none(),
-                                    buttons::bottom_panel_icon(save_txt),
-                                )
+                                .add_enabled(disabled_reason.is_none(), Button::new(save_txt))
                                 .on_hover_text("Add to Filters");
 
                             if let Some(reason) = disabled_reason {
@@ -263,7 +260,7 @@ impl SearchBar {
                             let mut add_btn = ui
                                 .add_enabled(
                                     disabled_reason.is_none(),
-                                    buttons::bottom_panel_icon(icons::regular::CHART_LINE),
+                                    Button::new(icons::regular::CHART_LINE),
                                 )
                                 .on_hover_text("Add to Search Values");
 
@@ -291,7 +288,7 @@ impl SearchBar {
                             }
                         }
 
-                        if buttons::bottom_panel_icon(icons::regular::X)
+                        if Button::new(icons::regular::X)
                             .ui(ui)
                             .on_hover_text("Remove filter")
                             .clicked()

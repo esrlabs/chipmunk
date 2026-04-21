@@ -493,6 +493,12 @@ fn render_tab(
             }
         })
         .unwrap_or(fg);
+    let show_close_button = selected
+        || body_response.hovered()
+        || body_response.has_focus()
+        || close_response.as_ref().is_some_and(|response| {
+            response.hovered() || response.is_pointer_button_down_on() || response.has_focus()
+        });
 
     if ui.is_rect_visible(rect) {
         // Tab chrome and close icons must respect the logical strip viewport so they do not paint
@@ -519,7 +525,9 @@ fn render_tab(
             add_content,
         );
 
-        if let Some(close_rect) = rects.close_rect {
+        if show_close_button
+            && let Some(close_rect) = rects.close_rect
+        {
             painter.text(
                 close_rect.center(),
                 Align2::CENTER_CENTER,

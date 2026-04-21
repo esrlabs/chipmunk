@@ -74,6 +74,7 @@ pub struct StartSessionParam {
 pub struct OpenRecentSessionParam {
     pub snapshot: RecentSessionSnapshot,
     pub mode: RecentSessionReopenMode,
+    pub session_setup_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone)]

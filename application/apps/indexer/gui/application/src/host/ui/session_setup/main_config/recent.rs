@@ -16,6 +16,7 @@ use crate::host::{
 };
 
 pub fn render_matching_recent_sessions(
+    session_setup_id: uuid::Uuid,
     current_stream: StreamNames,
     current_parser: ParserNames,
     recent_sessions: &mut RecentSessionsStorage,
@@ -48,6 +49,7 @@ pub fn render_matching_recent_sessions(
                         actions,
                         session.clone(),
                         RecentSessionReopenMode::RestoreSession,
+                        Some(session_setup_id),
                     );
                 }
                 RecentSessionRowAction::RestoreParserConfiguration => {
@@ -56,6 +58,7 @@ pub fn render_matching_recent_sessions(
                         actions,
                         session.clone(),
                         RecentSessionReopenMode::RestoreParserConfiguration,
+                        Some(session_setup_id),
                     );
                 }
                 RecentSessionRowAction::OpenClean => {
@@ -86,7 +89,12 @@ fn open_recent_session(
     actions: &mut UiActions,
     snapshot: RecentSessionSnapshot,
     mode: RecentSessionReopenMode,
+    session_setup_id: Option<uuid::Uuid>,
 ) {
-    let cmd = HostCommand::OpenRecentSession(Box::new(OpenRecentSessionParam { snapshot, mode }));
+    let cmd = HostCommand::OpenRecentSession(Box::new(OpenRecentSessionParam {
+        snapshot,
+        mode,
+        session_setup_id,
+    }));
     actions.try_send_command(cmd_tx, cmd);
 }
