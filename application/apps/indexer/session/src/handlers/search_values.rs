@@ -39,7 +39,7 @@ struct ValueSearchResults {
 async fn wait_until_search_values_dropped(
     state: &SessionStateAPI,
 ) -> Result<(), stypes::NativeError> {
-    const RETRY_ATTEMPTS: u8 = 10;
+    const RETRY_ATTEMPTS: u8 = 30;
     const RETRY_DELAY_MS: u64 = 15;
 
     for attempt in 0..RETRY_ATTEMPTS {

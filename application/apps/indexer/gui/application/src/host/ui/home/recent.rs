@@ -143,6 +143,7 @@ impl RecentSessionsUi {
         let cmd = HostCommand::OpenRecentSession(Box::new(OpenRecentSessionParam {
             snapshot: snapshot.clone(),
             mode,
+            session_setup_id: None,
         }));
         actions.try_send_command(&self.cmd_tx, cmd);
     }

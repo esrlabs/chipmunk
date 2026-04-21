@@ -24,6 +24,7 @@ use crate::host::{
 };
 
 const FAVORITES_FOLDER_ID: &str = "favorites_folder";
+const TEXT_EDIT_HEIGHT: f32 = 25.0;
 
 #[derive(Debug)]
 pub struct FileExplorerUi {
@@ -70,7 +71,7 @@ impl FileExplorerUi {
         }
 
         ui.allocate_ui_with_layout(
-            vec2(ui.available_width(), 20.),
+            vec2(ui.available_width(), TEXT_EDIT_HEIGHT),
             Layout::right_to_left(Align::Center),
             |ui| {
                 let icon_size = 15.0;
@@ -123,8 +124,8 @@ impl FileExplorerUi {
                     let txt_input = sized_singleline_text_edit(
                         ui,
                         &mut self.favorite_search,
-                        ui.available_size(),
-                        3,
+                        vec2(ui.available_width(), TEXT_EDIT_HEIGHT),
+                        7,
                     )
                     .hint_text("Type to filter...");
 
@@ -292,7 +293,7 @@ impl FileExplorerUi {
             }
         });
 
-        if !busy && response.double_clicked() {
+        if !busy && response.clicked() {
             self.open_favorite_file(actions, folder_path.join(&file.name));
         }
 

@@ -2,8 +2,8 @@
 
 use tokio::sync::mpsc::error::SendError;
 
-/// Evaluate send results waking up the UI when successful returning `true`
-/// Otherwise, it will log the error and return `false`
+/// Evaluate send results waking up the UI when successful and returning `true`.
+/// Otherwise, log the dropped delivery at trace level and return `false`.
 pub fn evaluate_send_res<T>(
     egui_ctx: &egui::Context,
     send_result: Result<(), SendError<T>>,
@@ -14,7 +14,7 @@ pub fn evaluate_send_res<T>(
             true
         }
         Err(error) => {
-            log::error!("Communication Error. {error}");
+            log::trace!("UI channel delivery dropped: {error}");
             false
         }
     }

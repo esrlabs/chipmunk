@@ -45,7 +45,7 @@ struct SearchOutput {
 /// though release is still progressing. We bound retries to keep this handover
 /// window tolerant without risking an unbounded wait.
 async fn wait_until_search_dropped(state: &SessionStateAPI) -> Result<(), stypes::NativeError> {
-    const RETRY_ATTEMPTS: u8 = 10;
+    const RETRY_ATTEMPTS: u8 = 30;
     const RETRY_DELAY_MS: u64 = 15;
 
     for attempt in 0..RETRY_ATTEMPTS {
