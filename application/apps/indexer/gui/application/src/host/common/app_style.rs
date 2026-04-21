@@ -7,6 +7,9 @@ pub fn global_styles(style: &mut Style) {
     // We expect the labels to be not selectable by default.
     style.interaction.selectable_labels = false;
 
+    // Do not immediately open the next tooltip after another one was just shown.
+    style.interaction.tooltip_grace_time = 0.0;
+
     // Reduce monospace fonts default size.
     const MONOSPACE_FONT_SIZE_DELTA: f32 = 1.5;
     if let Some(body_font) = style.text_styles.get(&TextStyle::Body) {
