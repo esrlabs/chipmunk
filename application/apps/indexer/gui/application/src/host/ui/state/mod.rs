@@ -3,6 +3,7 @@ use rustc_hash::FxHashMap;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+pub mod info;
 mod presets;
 
 use crate::{
@@ -19,6 +20,8 @@ use crate::{
     session::{SessionUiInit, ui::Session},
 };
 
+use self::info::AppInfoState;
+
 pub const HOME_TAB_IDX: usize = 0;
 
 #[derive(Debug)]
@@ -32,6 +35,7 @@ pub struct HostState {
     /// Shared visibility for the host right panel and session auxiliary panels.
     pub panels_visibility: PanelsVisibility,
     pub registry: HostRegistry,
+    pub app_info: AppInfoState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,6 +58,7 @@ impl HostState {
             multi_setups: FxHashMap::default(),
             panels_visibility: PanelsVisibility::default(),
             registry: HostRegistry::default(),
+            app_info: AppInfoState::default(),
         }
     }
 

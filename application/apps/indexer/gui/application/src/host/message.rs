@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use semver::Version;
 use uuid::Uuid;
 
 use crate::{
@@ -40,6 +41,8 @@ pub enum HostMessage {
     PresetsImported(Box<PresetsImported>),
     /// Presets were exported successfully to the provided file path.
     PresetsExported { path: PathBuf, count: usize },
+    /// A newer application version is available.
+    AppVersionUpdate(Box<AppVersionUpdate>),
     /// Storage-related async events.
     Storage(StorageEvent),
 }
@@ -53,4 +56,17 @@ pub struct PresetsImported {
     pub presets: Vec<Preset>,
     /// True when the file was parsed through the legacy compatibility path.
     pub used_legacy_format: bool,
+}
+
+/// Message payload for a newer application version.
+#[derive(Debug)]
+pub struct AppVersionUpdate {
+    /// Newer version returned by the release source.
+    pub latest_version: Version,
+    /// Release notes associated with the newer version.
+    //TODO AAZ:
+    #[allow(unused)]
+    pub release_notes: Option<String>,
+    /// Release page URL.
+    pub release_url: String,
 }
