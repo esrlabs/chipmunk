@@ -4,7 +4,7 @@ use egui::{
 };
 
 use crate::{
-    common::ui::buttons,
+    common::ui::{buttons, visibility_tracker::VisibilityTracker},
     host::{
         common::ui_utls::sized_singleline_text_edit,
         ui::session_setup::{
@@ -20,7 +20,11 @@ const CONTROL_GROUP_WIDTH: f32 = 160.0;
 const CONTROL_GROUP_SIDE_MARGIN: i8 = 5;
 const CONTROL_WIDTH: f32 = CONTROL_GROUP_WIDTH - (CONTROL_GROUP_SIDE_MARGIN as f32 * 2.);
 
-pub fn render_connection(config: &mut SerialConfig, ui: &mut Ui) -> RenderOutcome {
+pub fn render_connection(
+    config: &mut SerialConfig,
+    input_visibility: &mut VisibilityTracker,
+    ui: &mut Ui,
+) -> RenderOutcome {
     config.check_update_ports();
 
     let mut outcome = RenderOutcome::None;
@@ -29,7 +33,7 @@ pub fn render_connection(config: &mut SerialConfig, ui: &mut Ui) -> RenderOutcom
     ui.allocate_ui_with_layout(
         vec2(ui.available_width(), row_height),
         Layout::right_to_left(egui::Align::Center),
-        |ui| render_port_path(config, &mut outcome, ui),
+        |ui| render_port_path(config, input_visibility, &mut outcome, ui),
     );
 
     ui.separator();
@@ -155,7 +159,12 @@ pub fn render_connection(config: &mut SerialConfig, ui: &mut Ui) -> RenderOutcom
 }
 
 /// Renders the port selection menu and manual input field, handling validation and session startup triggers.
-fn render_port_path(config: &mut SerialConfig, outcome: &mut RenderOutcome, ui: &mut Ui) {
+fn render_port_path(
+    config: &mut SerialConfig,
+    input_visibility: &mut VisibilityTracker,
+    outcome: &mut RenderOutcome,
+    ui: &mut Ui,
+) {
     let height = ui.available_height();
 
     let ports_txt = format!("Detected ports ({})", config.available_ports.len());
@@ -184,6 +193,10 @@ fn render_port_path(config: &mut SerialConfig, outcome: &mut RenderOutcome, ui: 
             .hint_text("Port path")
             .show(ui)
             .response;
+
+    if input_visibility.is_newly_visible(ui) {
+        path_res.request_focus();
+    }
 
     if path_res.changed() {
         path_changed = true;

@@ -8,7 +8,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::ui::substring_matcher::SubstringMatcher,
+    common::ui::{substring_matcher::SubstringMatcher, visibility_tracker::VisibilityTracker},
     host::{
         command::{HostCommand, OpenRecentSessionParam},
         common::ui_utls::sized_singleline_text_edit,
@@ -27,6 +27,8 @@ pub struct RecentSessionsUi {
     query: String,
     matcher: SubstringMatcher,
     cmd_tx: Sender<HostCommand>,
+    // Used to focus the recent-sessions filter when the home panel becomes visible again.
+    visibility_tracker: VisibilityTracker,
     /// Arbitrary value to avoid persisting scroll state after app restart.
     scroll_salt: Uuid,
 }
@@ -38,6 +40,7 @@ impl RecentSessionsUi {
             query: String::new(),
             matcher: SubstringMatcher::default(),
             cmd_tx,
+            visibility_tracker: VisibilityTracker::default(),
             scroll_salt: Uuid::new_v4(),
         }
     }
@@ -53,11 +56,15 @@ impl RecentSessionsUi {
         ui.heading("Recently opened");
         ui.add_space(4.0);
 
-        let query_changed =
+        let focus_filter = self.visibility_tracker.is_newly_visible(ui);
+        let query_response =
             sized_singleline_text_edit(ui, &mut self.query, vec2(ui.available_width(), 27.0), 7)
                 .hint_text("Filter recent sessions")
-                .ui(ui)
-                .changed();
+                .ui(ui);
+        if focus_filter {
+            query_response.request_focus();
+        }
+        let query_changed = query_response.changed();
         if query_changed {
             self.matcher.build_query(self.query.trim());
         }

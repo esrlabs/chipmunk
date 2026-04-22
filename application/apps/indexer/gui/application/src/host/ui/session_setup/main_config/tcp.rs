@@ -1,6 +1,9 @@
 use egui::Ui;
 
-use crate::host::ui::session_setup::state::sources::TcpConfig;
+use crate::{
+    common::ui::visibility_tracker::VisibilityTracker,
+    host::ui::session_setup::state::sources::TcpConfig,
+};
 
 use super::{ConfigBindAddress, RenderOutcome, render_socket_address};
 
@@ -22,6 +25,10 @@ impl ConfigBindAddress for TcpConfig {
     }
 }
 
-pub fn render_connection(config: &mut TcpConfig, ui: &mut Ui) -> RenderOutcome {
-    render_socket_address(config, ui)
+pub fn render_connection(
+    config: &mut TcpConfig,
+    input_visibility: &mut VisibilityTracker,
+    ui: &mut Ui,
+) -> RenderOutcome {
+    render_socket_address(config, input_visibility, ui)
 }

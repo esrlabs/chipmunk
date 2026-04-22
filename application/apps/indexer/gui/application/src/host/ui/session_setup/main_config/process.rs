@@ -1,5 +1,7 @@
 use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, TextStyle, Ui, Widget, vec2};
 
+use crate::common::ui::visibility_tracker::VisibilityTracker;
+
 use super::RenderOutcome;
 use crate::host::{
     common::ui_utls::{sized_singleline_text_edit, truncate_path_to_width},
@@ -14,6 +16,7 @@ const CWD_DIALOG_ID: &str = "cwd_for_shell";
 
 pub fn render_connection(
     config: &mut ProcessConfig,
+    input_visibility: &mut VisibilityTracker,
     actions: &mut UiActions,
     ui: &mut Ui,
 ) -> RenderOutcome {
@@ -22,7 +25,7 @@ pub fn render_connection(
     ui.allocate_ui_with_layout(
         vec2(ui.available_width(), row_height),
         Layout::right_to_left(Align::Center),
-        |ui| command_and_shell(config, &mut outcome, None, ui),
+        |ui| command_and_shell(config, input_visibility, &mut outcome, None, ui),
     );
 
     ui.add_space(10.);
@@ -36,11 +39,16 @@ pub fn render_connection(
     outcome
 }
 
-/// Renders the area to specify the command and the shell to run on it.
+/// Renders the process command input together with the shell picker.
 ///
-/// `shell_max_width` caps the shell picker button width and truncates the inline shell label.
+/// - `config` stores the editable command text, selected shell, and validation state.
+/// - `input_visibility` tracks when this form becomes visible so the command field can be focused.
+/// - `outcome` is updated when pressing Enter should start the session.
+/// - `shell_max_width` optionally caps the shell picker width and truncates its inline label.
+/// - `ui` is the current egui scope used to render the controls.
 pub fn command_and_shell(
     config: &mut ProcessConfig,
+    input_visibility: &mut VisibilityTracker,
     outcome: &mut RenderOutcome,
     shell_max_width: Option<f32>,
     ui: &mut Ui,
@@ -96,6 +104,10 @@ pub fn command_and_shell(
     .hint_text("Terminal command")
     .show(ui)
     .response;
+
+    if input_visibility.is_newly_visible(ui) {
+        text_res.request_focus();
+    }
 
     if text_res.changed() {
         config.validate();

@@ -4,7 +4,10 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::{phosphor::icons, ui::buttons},
+    common::{
+        phosphor::icons,
+        ui::{buttons, visibility_tracker::VisibilityTracker},
+    },
     host::ui::{
         UiActions,
         session_setup::{
@@ -24,6 +27,8 @@ pub struct TcpObserveUi {
     id: Id,
     cmd_tx: mpsc::Sender<SessionCommand>,
     config: TcpConfig,
+    // Used to focus the address input when the attach-TCP form is shown again.
+    input_visibility: VisibilityTracker,
 }
 
 impl TcpObserveUi {
@@ -33,6 +38,7 @@ impl TcpObserveUi {
             id,
             cmd_tx,
             config: TcpConfig::new(),
+            input_visibility: VisibilityTracker::default(),
         }
     }
 
@@ -63,7 +69,11 @@ impl TcpObserveUi {
 
     fn attach_tcp(&mut self, ui: &mut Ui, actions: &mut UiActions) {
         super::render_attach_source(ui, self.id, "New Connection", |ui| {
-            let mut outcome = main_config::render_socket_address(&mut self.config, ui);
+            let mut outcome = main_config::render_socket_address(
+                &mut self.config,
+                &mut self.input_visibility,
+                ui,
+            );
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 if ui
                     .add_enabled(
