@@ -5,7 +5,10 @@ use tokio::sync::mpsc::Sender;
 use crate::host::{
     command::HostCommand,
     common::{app_style, parsers::ParserNames, sources::StreamNames},
-    ui::actions::{FileDialogOptions, UiActions},
+    ui::{
+        actions::{FileDialogOptions, UiActions},
+        state::info::AppInfoState,
+    },
 };
 
 #[derive(Debug)]
@@ -24,7 +27,7 @@ impl MainMenuBar {
         Self { cmd_tx }
     }
 
-    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions) {
+    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions, app_info: &mut AppInfoState) {
         self.handle_file_dialog(actions);
 
         MenuBar::new().ui(ui, |ui| {
@@ -39,6 +42,13 @@ impl MainMenuBar {
 
                     ui.separator();
                 }
+
+                if ui.button("About").clicked() {
+                    app_info.about_open = true;
+                    ui.close();
+                }
+
+                ui.separator();
 
                 if ui.button("Close").clicked() {
                     ui.send_viewport_cmd(egui::ViewportCommand::Close);

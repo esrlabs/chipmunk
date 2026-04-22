@@ -40,6 +40,7 @@ pub use actions::{HostAction, UiActions};
 
 pub mod actions;
 pub mod home;
+mod info;
 mod menu;
 pub mod multi_setup;
 mod notification;
@@ -202,6 +203,9 @@ impl Host {
                 self.state
                     .handle_presets_exported(path, count, &mut self.ui_actions)
             }
+            HostMessage::AppVersionUpdate(update) => {
+                self.state.app_info.set_update_info(*update);
+            }
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
         }
     }
@@ -232,14 +236,25 @@ impl Host {
             .frame(Frame::central_panel(ui.style()).inner_margin(0))
             .show_inside(ui, |ui| {
                 self.render_main(ui);
+
+                if self.state.app_info.show_update_banner {
+                    info::render_update_banner(&mut self.state.app_info, ui);
+                }
             });
+
+        if self.state.app_info.about_open {
+            info::render_about_modal(&mut self.state.app_info, ui.ctx());
+        }
     }
 
     fn render_menu(&mut self, ui: &mut Ui) {
         let Self {
-            menu, ui_actions, ..
+            menu,
+            ui_actions,
+            state,
+            ..
         } = self;
-        menu.render(ui, ui_actions);
+        menu.render(ui, ui_actions, &mut state.app_info);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
@@ -349,11 +364,6 @@ impl Host {
         }
     }
 
-    /// Renders a blocking modal to inform the user that a system file dialog
-    /// is currently active.
-    ///
-    /// This overlay prevents interaction with the main app and provides hints to
-    /// locate the external dialog window.
     fn file_dialog_overlay(&mut self, ctx: &Context) {
         show_modal(ctx, "file dialog overlay", 350.0, |ui| {
             ui.vertical_centered(|ui| {
