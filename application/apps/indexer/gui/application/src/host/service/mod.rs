@@ -50,6 +50,7 @@ use storage::StorageService;
 
 pub mod file;
 mod presets_io;
+mod release_info;
 mod storage;
 
 #[derive(Debug)]
@@ -94,6 +95,7 @@ impl HostService {
                     storage,
                 };
 
+                release_info::spawn_update_check(host.communication.senders.clone());
                 host.run().await;
             });
         });
