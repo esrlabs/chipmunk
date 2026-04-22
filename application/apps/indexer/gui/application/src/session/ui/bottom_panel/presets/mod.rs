@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::{
     common::{
         phosphor::icons,
-        ui::{buttons, substring_matcher::SubstringMatcher},
+        ui::{buttons, substring_matcher::SubstringMatcher, visibility_tracker::VisibilityTracker},
     },
     host::{
         command::{ExportPresetsParam, HostCommand},
@@ -58,6 +58,8 @@ pub struct PresetsUI {
     cmd_tx: Sender<SessionCommand>,
     host_cmd_tx: Sender<HostCommand>,
     query_state: PresetQueryState,
+    // Used to focus the preset filter when the presets tab becomes visible again.
+    query_visibility: VisibilityTracker,
     edit_state: Option<PresetEditState>,
     export_state: Option<ExportSelectionState>,
 }
@@ -135,6 +137,7 @@ impl PresetsUI {
             cmd_tx,
             host_cmd_tx,
             query_state: PresetQueryState::default(),
+            query_visibility: VisibilityTracker::default(),
             edit_state: None,
             export_state: None,
         }
@@ -211,18 +214,22 @@ impl PresetsUI {
                 }
 
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    let query_changed = sized_singleline_text_edit(
+                    let focus_query = self.query_visibility.is_newly_visible(ui);
+                    let query_response = sized_singleline_text_edit(
                         ui,
                         &mut self.query_state.query,
                         ui.available_size(),
                         7,
                     )
                     .hint_text("Filter presets by name")
-                    .ui(ui)
-                    .changed();
+                    .ui(ui);
+                    if focus_query {
+                        query_response.request_focus();
+                    }
+
                     self.query_state.update_with_revision(
                         registry.presets.definitions_revision(),
-                        query_changed,
+                        query_response.changed(),
                         |matcher| collect_matching_preset_ids(matcher, registry),
                     );
 

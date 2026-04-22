@@ -1,7 +1,10 @@
 use egui::{Align, Button, Label, Layout, Response, RichText, Sides, TextEdit, Ui, Widget, vec2};
 
 use crate::{
-    common::{phosphor::icons, ui::buttons},
+    common::{
+        phosphor::icons,
+        ui::{buttons, visibility_tracker::VisibilityTracker},
+    },
     host::ui::session_setup::state::sources::{MulticastItem, UdpConfig},
 };
 
@@ -25,8 +28,12 @@ impl ConfigBindAddress for UdpConfig {
     }
 }
 
-pub fn render_connection(config: &mut UdpConfig, ui: &mut Ui) -> RenderOutcome {
-    let outcome = render_socket_address(config, ui);
+pub fn render_connection(
+    config: &mut UdpConfig,
+    input_visibility: &mut VisibilityTracker,
+    ui: &mut Ui,
+) -> RenderOutcome {
+    let outcome = render_socket_address(config, input_visibility, ui);
 
     if !config.multicasts.is_empty() {
         render_multicasts(config, ui);

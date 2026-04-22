@@ -3,24 +3,27 @@ use core::slice;
 use egui::{Align, Layout, Margin, ScrollArea, TextEdit, Ui};
 use tokio::sync::mpsc::Sender;
 
-use crate::host::{
-    command::HostCommand,
-    common::{
-        parsers::ParserNames,
-        sources::StreamNames,
-        ui_utls::{general_group_frame, show_validation_message},
-    },
-    ui::{
-        UiActions,
-        session_setup::{
-            RenderOutcome, start_session_on_enter,
-            state::{
-                SessionSetupState,
-                parsers::ParserConfig,
-                sources::{ByteSourceConfig, SourceFileInfo, StreamConfig},
-            },
+use crate::{
+    common::ui::visibility_tracker::VisibilityTracker,
+    host::{
+        command::HostCommand,
+        common::{
+            parsers::ParserNames,
+            sources::StreamNames,
+            ui_utls::{general_group_frame, show_validation_message},
         },
-        storage::RecentSessionsStorage,
+        ui::{
+            UiActions,
+            session_setup::{
+                RenderOutcome, start_session_on_enter,
+                state::{
+                    SessionSetupState,
+                    parsers::ParserConfig,
+                    sources::{ByteSourceConfig, SourceFileInfo, StreamConfig},
+                },
+            },
+            storage::RecentSessionsStorage,
+        },
     },
 };
 
@@ -33,6 +36,7 @@ pub mod udp;
 
 pub fn render_content(
     state: &mut SessionSetupState,
+    input_visibility: &mut VisibilityTracker,
     recent_sessions: &mut RecentSessionsStorage,
     cmd_tx: &Sender<HostCommand>,
     actions: &mut UiActions,
@@ -58,7 +62,7 @@ pub fn render_content(
                 get_frame(ui).show(ui, |ui| {
                     ui.heading("Connection");
                     ui.add_space(10.);
-                    output = render_stream_connection(stream, actions, ui);
+                    output = render_stream_connection(stream, input_visibility, actions, ui);
                 });
 
                 get_frame(ui).show(ui, |ui| {
@@ -102,14 +106,17 @@ fn render_files(
 
 fn render_stream_connection(
     stream: &mut StreamConfig,
+    input_visibility: &mut VisibilityTracker,
     actions: &mut UiActions,
     ui: &mut Ui,
 ) -> RenderOutcome {
     match stream {
-        StreamConfig::Process(config) => process::render_connection(config, actions, ui),
-        StreamConfig::Tcp(config) => tcp::render_connection(config, ui),
-        StreamConfig::Udp(config) => udp::render_connection(config, ui),
-        StreamConfig::Serial(config) => serial::render_connection(config, ui),
+        StreamConfig::Process(config) => {
+            process::render_connection(config, input_visibility, actions, ui)
+        }
+        StreamConfig::Tcp(config) => tcp::render_connection(config, input_visibility, ui),
+        StreamConfig::Udp(config) => udp::render_connection(config, input_visibility, ui),
+        StreamConfig::Serial(config) => serial::render_connection(config, input_visibility, ui),
     }
 }
 
@@ -121,8 +128,16 @@ pub trait ConfigBindAddress {
     fn bind_err_msg(&self) -> Option<&str>;
 }
 
-/// General function to render the binding address for TCP & UDP.
-pub fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) -> RenderOutcome {
+/// Renders the primary socket-address input shared by TCP and UDP setup forms.
+///
+/// - `config` provides the editable address string plus validation hooks.
+/// - `input_visibility` tracks when this form becomes visible so the address field can be focused.
+/// - `ui` is the current egui scope used to render the controls.
+pub fn render_socket_address<C: ConfigBindAddress>(
+    config: &mut C,
+    input_visibility: &mut VisibilityTracker,
+    ui: &mut Ui,
+) -> RenderOutcome {
     let mut outcome = RenderOutcome::None;
 
     ui.vertical(|ui| {
@@ -134,6 +149,10 @@ pub fn render_socket_address<C: ConfigBindAddress>(config: &mut C, ui: &mut Ui) 
             .hint_text("127.0.0.1:8080")
             .show(ui)
             .response;
+
+        if input_visibility.is_newly_visible(ui) {
+            ip_txt_res.request_focus();
+        }
 
         if ip_txt_res.changed() {
             config.validate();

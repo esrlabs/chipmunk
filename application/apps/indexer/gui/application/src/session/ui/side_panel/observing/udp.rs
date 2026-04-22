@@ -4,7 +4,10 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::{phosphor::icons, ui::buttons},
+    common::{
+        phosphor::icons,
+        ui::{buttons, visibility_tracker::VisibilityTracker},
+    },
     host::ui::{
         UiActions,
         session_setup::{
@@ -24,6 +27,8 @@ pub struct UdpObserveUi {
     id: Id,
     cmd_tx: mpsc::Sender<SessionCommand>,
     config: UdpConfig,
+    // Used to focus the address input when the attach-UDP form is shown again.
+    input_visibility: VisibilityTracker,
 }
 
 impl UdpObserveUi {
@@ -34,6 +39,7 @@ impl UdpObserveUi {
             id,
             cmd_tx,
             config: UdpConfig::new(),
+            input_visibility: VisibilityTracker::default(),
         }
     }
 
@@ -64,7 +70,11 @@ impl UdpObserveUi {
 
     fn attach_udp(&mut self, ui: &mut Ui, actions: &mut UiActions) {
         super::render_attach_source(ui, self.id, "New Connection", |ui| {
-            let mut outcome = main_config::render_socket_address(&mut self.config, ui);
+            let mut outcome = main_config::render_socket_address(
+                &mut self.config,
+                &mut self.input_visibility,
+                ui,
+            );
             if !self.config.multicasts.is_empty() {
                 main_config::udp::render_multicasts(&mut self.config, ui);
             }
