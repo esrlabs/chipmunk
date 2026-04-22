@@ -9,6 +9,7 @@ use processor::search::filter::SearchFilter;
 use crate::{
     common::{
         phosphor::{self, icons},
+        ui::visibility_tracker::VisibilityTracker,
         validation::{ValidationEligibility, validate_filter},
     },
     host::{
@@ -29,6 +30,8 @@ pub struct SearchBar {
     pub is_regex: bool,
     pub match_case: bool,
     pub is_word: bool,
+    // Used to focus the search input when the search bar becomes visible again.
+    visibility_tracker: VisibilityTracker,
 }
 
 impl SearchBar {
@@ -39,6 +42,7 @@ impl SearchBar {
             is_regex: true,
             match_case: false,
             is_word: false,
+            visibility_tracker: VisibilityTracker::default(),
         }
     }
     pub fn render_content(
@@ -93,6 +97,7 @@ impl SearchBar {
 
         // Text id is needed to keep track if the text control is focused.
         let text_id = ui.id().with("search_text");
+        let became_visible = self.visibility_tracker.is_newly_visible(ui);
 
         ui.allocate_ui_with_layout(
             vec2(ui.available_width(), 25.),
@@ -143,8 +148,10 @@ impl SearchBar {
                                     text_output.state.cursor.set_char_range(None);
                                     text_output.state.store(ui.ctx(), text_output.response.id);
                                 }
-                                ////TODO AAZ: Request focus on start session or tab switch only.
-                                //input_res.request_focus();
+
+                                if became_visible {
+                                    text_output.response.request_focus();
+                                }
                             })
                     },
                 );

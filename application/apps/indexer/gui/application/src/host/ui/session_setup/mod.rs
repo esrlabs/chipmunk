@@ -8,7 +8,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::ui::buttons,
+    common::ui::{buttons, visibility_tracker::VisibilityTracker},
     host::{
         command::HostCommand,
         common::{file_utls, parsers::ParserNames, sources::StreamNames},
@@ -25,6 +25,8 @@ pub mod state;
 pub struct SessionSetup {
     pub state: SessionSetupState,
     cmd_tx: Sender<HostCommand>,
+    // Used to focus the active stream input when the selected transport changes.
+    input_visibility: VisibilityTracker,
 }
 
 /// The outcome of render routines in children components of this view.
@@ -37,7 +39,11 @@ pub enum RenderOutcome {
 
 impl SessionSetup {
     pub fn new(state: SessionSetupState, cmd_tx: Sender<HostCommand>) -> Self {
-        Self { state, cmd_tx }
+        Self {
+            state,
+            cmd_tx,
+            input_visibility: VisibilityTracker::default(),
+        }
     }
 
     #[inline]
@@ -84,6 +90,7 @@ impl SessionSetup {
             ui.centered_and_justified(|ui| {
                 let outcome = main_config::render_content(
                     &mut self.state,
+                    &mut self.input_visibility,
                     recent_sessions,
                     &self.cmd_tx,
                     actions,
@@ -185,6 +192,8 @@ impl SessionSetup {
 
                 if original_stream != selected_stream {
                     self.state.update_stream(selected_stream);
+                    // Focus input text on switching stream type.
+                    self.input_visibility = VisibilityTracker::default();
                 }
 
                 ui.label("Stream From:");

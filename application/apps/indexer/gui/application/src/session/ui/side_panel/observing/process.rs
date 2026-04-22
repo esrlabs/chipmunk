@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{phosphor::icons, ui::visibility_tracker::VisibilityTracker},
     host::{
         common::ui_utls::truncate_path_to_width,
         ui::{
@@ -28,6 +28,8 @@ pub struct ProcessObserveUi {
     cmd_tx: mpsc::Sender<SessionCommand>,
     /// Process config is being lazy loaded since it has initialization process.
     config: Option<Box<ProcessConfig>>,
+    // Used to focus the command input when the attach-command form is shown again.
+    input_visibility: VisibilityTracker,
 }
 
 impl ProcessObserveUi {
@@ -37,6 +39,7 @@ impl ProcessObserveUi {
             id,
             cmd_tx,
             config: None,
+            input_visibility: VisibilityTracker::default(),
         }
     }
 
@@ -79,7 +82,15 @@ impl ProcessObserveUi {
             ui.allocate_ui_with_layout(
                 vec2(ui.available_width(), row_height),
                 Layout::right_to_left(Align::Center),
-                |ui| host_setup::command_and_shell(config, &mut outcome, Some(60.0), ui),
+                |ui| {
+                    host_setup::command_and_shell(
+                        config,
+                        &mut self.input_visibility,
+                        &mut outcome,
+                        Some(60.0),
+                        ui,
+                    )
+                },
             );
 
             ui.add_space(10.);
