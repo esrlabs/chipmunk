@@ -2,6 +2,8 @@ use enum_iterator::all;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+use stypes::FileFormat;
+
 use crate::host::{
     command::{DltStatisticsParam, HostCommand, StartSessionParam},
     common::{parsers::ParserNames, sources::StreamNames},
@@ -35,12 +37,15 @@ impl SessionSetupState {
         self.parser = match parser {
             ParserNames::Dlt => match &self.source {
                 ByteSourceConfig::File(file) => ParserConfig::Dlt(Box::new(DltParserConfig::new(
-                    true,
+                    Self::with_dlt_storage_header(file.format),
                     Some(vec![file.path.clone()]),
                 ))),
                 ByteSourceConfig::Concat(files) => {
+                    let with_storage_header = files
+                        .first()
+                        .is_none_or(|file| Self::with_dlt_storage_header(file.format));
                     ParserConfig::Dlt(Box::new(DltParserConfig::new(
-                        true,
+                        with_storage_header,
                         Some(files.iter().map(|f| f.path.clone()).collect()),
                     )))
                 }
@@ -52,6 +57,12 @@ impl SessionSetupState {
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => ParserConfig::Plugins,
         };
+    }
+
+    fn with_dlt_storage_header(format: FileFormat) -> bool {
+        // Only DLT files (still called Binary here) supports pcap header.
+        // Network traces in PCAP files don't support it.
+        matches!(format, FileFormat::Binary)
     }
 
     pub fn update_stream(&mut self, stream: StreamNames) {
@@ -124,5 +135,73 @@ impl SessionSetupState {
         let cmd = HostCommand::StartSession(Box::new(param));
 
         actions.try_send_command(cmd_tx, cmd);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+    use crate::host::ui::session_setup::state::sources::SourceFileInfo;
+
+    fn file(path: &str, format: FileFormat) -> SourceFileInfo {
+        SourceFileInfo {
+            path: PathBuf::from(path),
+            name: String::from(path),
+            size_byte: None,
+            format,
+        }
+    }
+
+    #[test]
+    fn update_parser_disables_storage_header_for_pcap_files() {
+        let mut state = SessionSetupState::new(
+            Uuid::new_v4(),
+            ByteSourceConfig::File(file("trace.pcapng", FileFormat::PcapNG)),
+            ParserConfig::SomeIP(SomeIpParserConfig::new()),
+        );
+
+        state.update_parser(ParserNames::Dlt);
+
+        let ParserConfig::Dlt(config) = &state.parser else {
+            panic!("expected dlt parser config");
+        };
+        assert!(!config.with_storage_header);
+    }
+
+    #[test]
+    fn update_parser_keeps_storage_header_for_binary_dlt_files() {
+        let mut state = SessionSetupState::new(
+            Uuid::new_v4(),
+            ByteSourceConfig::File(file("trace.dlt", FileFormat::Binary)),
+            ParserConfig::SomeIP(SomeIpParserConfig::new()),
+        );
+
+        state.update_parser(ParserNames::Dlt);
+
+        let ParserConfig::Dlt(config) = &state.parser else {
+            panic!("expected dlt parser config");
+        };
+        assert!(config.with_storage_header);
+    }
+
+    #[test]
+    fn update_parser_disables_storage_header_for_pcap_concat() {
+        let mut state = SessionSetupState::new(
+            Uuid::new_v4(),
+            ByteSourceConfig::Concat(vec![
+                file("first.pcap", FileFormat::PcapLegacy),
+                file("second.pcap", FileFormat::PcapLegacy),
+            ]),
+            ParserConfig::SomeIP(SomeIpParserConfig::new()),
+        );
+
+        state.update_parser(ParserNames::Dlt);
+
+        let ParserConfig::Dlt(config) = &state.parser else {
+            panic!("expected dlt parser config");
+        };
+        assert!(!config.with_storage_header);
     }
 }
