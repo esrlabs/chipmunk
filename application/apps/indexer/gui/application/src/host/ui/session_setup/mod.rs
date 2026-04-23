@@ -155,9 +155,13 @@ impl SessionSetup {
                         .selectable(true)
                         .ui(ui);
                 }
-                Label::new(RichText::new(source_file_info.name.as_str()).strong())
-                    .selectable(true)
-                    .ui(ui);
+                ui.scope(|ui| {
+                    ui.set_max_width(200.0);
+                    Label::new(RichText::new(source_file_info.name.as_str()).strong())
+                        .truncate()
+                        .selectable(true)
+                        .ui(ui);
+                });
             }
             ByteSourceConfig::Concat(files) => {
                 let size = files.iter().filter_map(|f| f.size_byte).sum();

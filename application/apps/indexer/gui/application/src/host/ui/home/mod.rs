@@ -60,7 +60,7 @@ impl HomeView {
         self.handle_pending_file_dialog(actions);
 
         Panel::right("favorite folders")
-            .size_range(100.0..=750.0)
+            .size_range(180.0..=750.0)
             .default_size(350.)
             .resizable(true)
             .show_animated_inside(ui, panels_visibility.right, |ui| {

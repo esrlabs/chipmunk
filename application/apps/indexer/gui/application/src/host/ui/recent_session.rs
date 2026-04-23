@@ -63,10 +63,12 @@ pub fn render_recent_session_row(
                             ui.add_space(TEXT_BLOCK_TOP_SPACING);
                             Label::new(RichText::new(session.title()).strong())
                                 .truncate()
+                                .show_tooltip_when_elided(false)
                                 .ui(ui);
 
                             Label::new(RichText::new(session.summary()).size(13.0))
                                 .truncate()
+                                .show_tooltip_when_elided(false)
                                 .ui(ui);
                         });
                     });
