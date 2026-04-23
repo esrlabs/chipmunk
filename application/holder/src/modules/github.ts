@@ -42,6 +42,12 @@ export interface IReleaseData {
     id: number;
     tag_name: string;
     body: string;
+    // Required by updater alpha-awareness. `tag_name` stays the source of truth,
+    // while `html_url` is used for the notification action target.
+    html_url: string;
+    prerelease: boolean;
+    draft: boolean;
+    published_at?: string;
 }
 
 export class GitHubAsset {
@@ -136,13 +142,15 @@ export class GitHubClient {
 
     public getReleases(opt: IGitHubOptions, filter?: { tag?: string }): Promise<IReleaseData[]> {
         return new Promise((resolve, reject) => {
-            let uri = `${CSettings.uri}${opt.user !== undefined ? opt.repo : CSettings.user}/${
+            let uri = `${CSettings.uri}${opt.user !== undefined ? opt.user : CSettings.user}/${
                 opt.repo
             }/releases`;
-            if (filter !== undefined) {
-                if (filter.tag !== undefined) {
-                    uri += `/tags/${filter.tag}`;
-                }
+            if (filter !== undefined && filter.tag !== undefined) {
+                uri += `/tags/${encodeURIComponent(filter.tag)}`;
+            } else {
+                // The updater scans the release list for alpha announcements, so use a wider
+                // page here instead of relying on GitHub's smaller default response.
+                uri += `?per_page=100`;
             }
             net.getRaw(uri, {
                 Accept: 'application/vnd.github.v3+json',

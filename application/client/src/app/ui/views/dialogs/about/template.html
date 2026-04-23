@@ -2,6 +2,10 @@
 <div class="content">
     <p class="name t-large color-scheme-0">CHIPMUNK</p>
     <p class="t-medium color-scheme-2">version: <b class="color-scheme-0">{{version}}</b></p>
+    <p *ngIf="alphaRelease !== undefined" class="alpha t-medium color-scheme-2">
+        Chipmunk 4 alpha:
+        <button class="alpha-link color-scheme-0" (click)="open(alphaRelease.url)">{{alphaRelease.version}}</button>
+    </p>
     <div class="controlls" >
         <button mat-stroked-button (click)="open('https://github.com/esrlabs/chipmunk')">GitHub</button>
         <button mat-stroked-button (click)="open('https://github.com/esrlabs/chipmunk')">Star</button>
