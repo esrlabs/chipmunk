@@ -13,21 +13,24 @@ import { Initial } from '@env/decorators/initial';
 @Ilc()
 export class About extends ChangesDetector implements AfterViewInit {
     @Input() public version: string = '';
+    @Input() public alphaRelease: { version: string; url: string } | undefined;
 
     constructor(cdRef: ChangeDetectorRef) {
         super(cdRef);
     }
 
     ngAfterViewInit(): void {
-        this.ilc()
-            .services.system.bridge.app()
-            .version()
-            .then((version: string) => {
+        Promise.all([
+            this.ilc().services.system.bridge.app().version(),
+            this.ilc().services.system.bridge.app().alphaRelease(),
+        ])
+            .then(([version, alphaRelease]) => {
                 this.version = version;
+                this.alphaRelease = alphaRelease;
                 this.detectChanges();
             })
             .catch((err: Error) => {
-                this.log().error(`Fail to get application version: ${err.message}`);
+                this.log().error(`Fail to get about dialog data: ${err.message}`);
             });
     }
 

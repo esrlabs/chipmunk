@@ -4,6 +4,17 @@
 
 `chipmunk` is one of the fastest desktop applications for viewing log files, with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space - nothing more. With no caching and no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.
 
+## Chipmunk 4 Alpha
+
+Chipmunk 4 Alpha is now available as a preview of the next generation of Chipmunk: a native Rust application built for high-volume logs, traces, and live streams.
+
+During the alpha phase, Chipmunk 4 lives on the `native-ui` branch and will continue to evolve there. Alpha builds are published as pre-releases.
+
+- [Read the Chipmunk 4 Alpha README](https://github.com/esrlabs/chipmunk/blob/native-ui/application/apps/indexer/gui/application/README.md)
+- [Download Chipmunk 4 Alpha builds](https://github.com/esrlabs/chipmunk/releases)
+
+Look for release versions such as `4.0.0-alpha.*` on the releases page. The current stable Chipmunk documentation continues below.
+
 ## Automotive and Network Traces
 
 Out of the box, `chipmunk` supports several formats critical for the automotive industry, including DLT and SomeIp. Unlike many alternatives, `chipmunk` offers full trace inspection capabilities for DLT, including support for embedded attachments. Media files (images, video, audio) and text can be viewed directly within `chipmunk` or exported to disk.
