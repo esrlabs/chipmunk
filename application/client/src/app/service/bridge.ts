@@ -626,6 +626,7 @@ export class Service extends Implementation {
 
     public app(): {
         version(): Promise<string>;
+        alphaRelease(): Promise<{ version: string; url: string } | undefined>;
         changelogs(version?: string): Promise<{ markdown: string; version: string }>;
     } {
         return {
@@ -640,6 +641,27 @@ export class Service extends Implementation {
                                 return reject(new Error(response.error));
                             }
                             resolve(response.version);
+                        })
+                        .catch(reject);
+                });
+            },
+            alphaRelease: (): Promise<{ version: string; url: string } | undefined> => {
+                return new Promise((resolve, reject) => {
+                    Requests.IpcRequest.send(
+                        Requests.App.AlphaRelease.Response,
+                        new Requests.App.AlphaRelease.Request(),
+                    )
+                        .then((response) => {
+                            if (response.error !== undefined) {
+                                return reject(new Error(response.error));
+                            }
+                            if (response.version === undefined || response.url === undefined) {
+                                return resolve(undefined);
+                            }
+                            resolve({
+                                version: response.version,
+                                url: response.url,
+                            });
                         })
                         .catch(reject);
                 });

@@ -10,6 +10,7 @@ import { paths } from '@service/paths';
 import { settings } from '@service/settings';
 import { production } from '@service/production';
 import { notifications } from '@service/notifications';
+import { storage } from '@service/storage';
 import { GitHubClient, IReleaseData, IReleaseAsset } from '@module/github';
 import { Version } from './updater/version';
 import { ReleaseFile } from './updater/releasefile';
@@ -23,9 +24,11 @@ import { Update } from '@loader/exitcases/update';
 import { electron } from '@service/electron';
 import { CancelablePromise } from 'platform/env/promise';
 import { getCustomPlatform } from './updater/metadata';
+import { getAlphaRelease, getLatestAlphaRelease } from './updater/alpha';
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { shell } from 'electron';
 import * as Events from 'platform/ipc/event';
 import * as Requests from 'platform/ipc/request';
 
@@ -34,6 +37,9 @@ declare const global: ChipmunkGlobal;
 const UPDATER = 'updater';
 const AUTO = { key: 'autoUpdateCheck', path: 'general' };
 const PRERELEASE = { key: 'allowUpdateFromPrerelease', path: 'general' };
+// Internal storage for the last alpha tag we already announced in the UI.
+const ALPHA_RELEASE_NOTIFICATION_STATE_KEY = 'updater_alpha';
+const ALPHA_RELEASE_NOTIFICATION_ENTRY = 'last_announced_alpha_tag';
 
 export const REPO = 'chipmunk';
 
@@ -54,14 +60,35 @@ enum LatestReleaseNotFound {
     Skipped,
 }
 
+// Keep updater decision-making explicit. The old string-only result was fine for the
+// manual dialog, but too ambiguous once the automatic flow also needed alpha fallback.
+enum CandidateResultState {
+    Candidate,
+    NoUpdates,
+    Skipped,
+    Unavailable,
+    Alpha,
+}
+
 interface ICandidate {
     release: IReleaseData;
     version: Version;
 }
 
+interface IDownloadCandidate extends ICandidate {
+    compressed: string;
+}
+
+interface ICandidateResult {
+    state: CandidateResultState;
+    candidate?: IDownloadCandidate;
+    report: string;
+}
+
 @DependOn(paths)
 @DependOn(settings)
 @DependOn(notifications)
+@DependOn(storage)
 @DependOn(electron)
 @SetupService(services['updater'])
 export class Service extends Implementation {
@@ -92,8 +119,8 @@ export class Service extends Implementation {
                         _request: Requests.System.CheckUpdates.Request,
                     ): CancelablePromise<Requests.System.CheckUpdates.Request> => {
                         return new CancelablePromise((resolve) => {
-                            this.find(false)
-                                .candidate()
+                            this.find(true)
+                                .candidate(true)
                                 .then((candidate) => {
                                     resolve(
                                         new Requests.System.CheckUpdates.Response({
@@ -125,10 +152,11 @@ export class Service extends Implementation {
         skiping(): boolean;
         night(): Promise<ICandidate | undefined>;
         latest(): Promise<ICandidate | LatestReleaseNotFound>;
-        candidate(): Promise<
-            { release: IReleaseData; version: Version; compressed: string } | string
-        >;
+        result(reportAlphaInsteadOfDownload?: boolean): Promise<ICandidateResult>;
+        candidate(reportAlphaInsteadOfDownload?: boolean): Promise<IDownloadCandidate | string>;
     } {
+        // `result()` is the internal API used by the automatic flow.
+        // `candidate()` keeps the older manual-check contract unchanged.
         return {
             skiping: (): boolean => {
                 const auto = settings.get().value<boolean>(AUTO.path, AUTO.key);
@@ -215,16 +243,13 @@ export class Service extends Implementation {
                 }
                 return candidate === undefined ? LatestReleaseNotFound.NoUpdates : candidate;
             },
-            candidate: async (): Promise<
-                { release: IReleaseData; version: Version; compressed: string } | string
-            > => {
+            result: async (reportAlphaInsteadOfDownload = false): Promise<ICandidateResult> => {
                 let candidate: ICandidate | undefined;
                 const latest = await this.find(force).latest();
                 if (latest === LatestReleaseNotFound.NoUpdates) {
                     const night = settings.get().value<boolean>(PRERELEASE.path, PRERELEASE.key);
                     if (!night) {
                         this.log().debug(`No updates has been found in latest release.`);
-                        return Promise.resolve(`No updates has been found.`);
                     } else {
                         this.log().debug(
                             `No updates has been found in latest release. Checking pre-releases`,
@@ -232,12 +257,37 @@ export class Service extends Implementation {
                         candidate = await this.find(force).night();
                     }
                 } else if (latest === LatestReleaseNotFound.Skipped) {
-                    return Promise.resolve(this.log().debug(`Checking of updates is skipped`));
+                    return {
+                        state: CandidateResultState.Skipped,
+                        report: `Checking of updates is skipped`,
+                    };
                 } else {
                     candidate = latest;
                 }
                 if (candidate === undefined) {
-                    return Promise.resolve(this.log().debug(`No updates has been found.`));
+                    const alphaReport = reportAlphaInsteadOfDownload
+                        ? await this._getManualAlphaReleaseReport()
+                        : undefined;
+                    if (alphaReport !== undefined) {
+                        return {
+                            state: CandidateResultState.Alpha,
+                            report: alphaReport,
+                        };
+                    }
+                    this.log().debug(`No updates has been found.`);
+                    return {
+                        state: CandidateResultState.NoUpdates,
+                        report: `No updates has been found.`,
+                    };
+                }
+                if (reportAlphaInsteadOfDownload) {
+                    const alphaRelease = getAlphaRelease(candidate.release);
+                    if (alphaRelease !== undefined) {
+                        return {
+                            state: CandidateResultState.Alpha,
+                            report: this._getManualAlphaReleaseReportText(),
+                        };
+                    }
                 }
                 const customPlatform = await getCustomPlatform();
 
@@ -254,29 +304,45 @@ export class Service extends Implementation {
                     }
                 });
                 if (compressed === undefined) {
-                    this.log().warn(
-                        `Fail to find archive-file with release for current platform. `,
-                    );
-                    return Promise.resolve(
-                        `Fail to find archive-file with release for current platform. `,
-                    );
+                    this.log().warn(`Fail to find archive-file with release for current platform. `);
+                    return {
+                        state: CandidateResultState.Unavailable,
+                        report: `Fail to find archive-file with release for current platform. `,
+                    };
                 }
                 return {
-                    release: candidate.release,
-                    version: candidate.version,
-                    compressed,
+                    state: CandidateResultState.Candidate,
+                    report: `Found release ${candidate.release.name}. Downloading is started`,
+                    candidate: {
+                        release: candidate.release,
+                        version: candidate.version,
+                        compressed,
+                    },
                 };
+            },
+            candidate: async (
+                reportAlphaInsteadOfDownload = false,
+            ): Promise<IDownloadCandidate | string> => {
+                const result = await this.find(force).result(reportAlphaInsteadOfDownload);
+                return result.state === CandidateResultState.Candidate && result.candidate !== undefined
+                    ? result.candidate
+                    : result.report;
             },
         };
     }
 
     public async check(force: boolean): Promise<void> {
-        const candidate = await this.find(force).candidate();
-        if (typeof candidate === 'string') {
-            this.log().debug(`No updates has been found.`);
+        const result = await this.find(force).result();
+        if (result.state !== CandidateResultState.Candidate || result.candidate === undefined) {
+            // Alpha announcements are automatic-check only and must never compete with a real
+            // updater candidate, including the testing prerelease path.
+            if (!force && result.state === CandidateResultState.NoUpdates) {
+                await this._checkForAlphaReleaseAnnouncement();
+            }
             return Promise.resolve();
         }
 
+        const candidate = result.candidate;
         const customPlatform = await getCustomPlatform();
         const release: ReleaseFile = new ReleaseFile(
             getCleanVersion(candidate.release.name),
@@ -329,11 +395,12 @@ export class Service extends Implementation {
                         description: !hasAccess
                             ? `Unable to update`
                             : `Update to ${this.candidate.release.name}`,
-                        disabled: !hasAccess, // Disable the button if access is not available
+                        disabled: !hasAccess,
                     },
                     handler: () => {
-                        if (!hasAccess)
+                        if (!hasAccess) {
                             return Promise.reject(new Error('No access to the current folder'));
+                        }
                         return this._delivery().then((updater: string) => {
                             global.application
                                 .shutdown('Updating')
@@ -357,6 +424,84 @@ export class Service extends Implementation {
                 },
             ],
         );
+    }
+
+    private async _checkForAlphaReleaseAnnouncement(): Promise<void> {
+        const github = new GitHubClient();
+        const releases = await github.getReleases({ repo: REPO });
+        const latestAlpha = getLatestAlphaRelease(releases);
+        // This branch never downloads assets. It only advertises the separate 4.0.0 alpha track.
+        if (latestAlpha === undefined) {
+            return;
+        }
+        const lastAnnouncedTag = await this._getLastAnnouncedAlphaTag();
+        if (lastAnnouncedTag === latestAlpha.tag) {
+            return;
+        }
+        const releasePageUrl = latestAlpha.release.html_url;
+        notifications.send(
+            `Chipmunk's next major release is now in alpha.`,
+            [
+                {
+                    action: {
+                        uuid: unique(),
+                        name: 'Open Release Page',
+                        description: releasePageUrl,
+                        disabled: false,
+                    },
+                    handler: () => {
+                        return shell.openExternal(releasePageUrl);
+                    },
+                },
+                {
+                    action: {
+                        uuid: unique(),
+                        name: 'Dismiss',
+                        description: '',
+                        disabled: false,
+                    },
+                    handler: () => Promise.resolve(),
+                },
+            ],
+        );
+        await this._setLastAnnouncedAlphaTag(latestAlpha.tag);
+    }
+
+    private async _getManualAlphaReleaseReport(): Promise<string | undefined> {
+        const github = new GitHubClient();
+        const releases = await github.getReleases({ repo: REPO });
+        const latestAlpha = getLatestAlphaRelease(releases);
+        if (latestAlpha === undefined) {
+            return undefined;
+        }
+        return this._getManualAlphaReleaseReportText();
+    }
+
+    private _getManualAlphaReleaseReportText(): string {
+        return 'The next major release of Chipmunk is available as an alpha release.\nPlease download it manually from the Chipmunk GitHub releases page.';
+    }
+
+    private async _getLastAnnouncedAlphaTag(): Promise<string | undefined> {
+        try {
+            const entries = await storage.entries.get(ALPHA_RELEASE_NOTIFICATION_STATE_KEY);
+            return entries.get(ALPHA_RELEASE_NOTIFICATION_ENTRY)?.content;
+        } catch (_err) {
+            // Missing state just means nothing has been announced yet.
+            return undefined;
+        }
+    }
+
+    private async _setLastAnnouncedAlphaTag(tag: string): Promise<void> {
+        try {
+            await storage.entries.overwrite(ALPHA_RELEASE_NOTIFICATION_STATE_KEY, [
+                {
+                    uuid: ALPHA_RELEASE_NOTIFICATION_ENTRY,
+                    content: tag,
+                },
+            ]);
+        } catch (err) {
+            this.log().warn(`Fail to save alpha release notification state: ${error(err)}`);
+        }
     }
 
     // Function to check access to the current folder
