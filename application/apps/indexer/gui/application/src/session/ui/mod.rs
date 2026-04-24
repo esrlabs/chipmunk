@@ -22,7 +22,7 @@ use crate::{
         communication::{UiHandle, UiReceivers},
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
-        ui::{definitions::schema, shared::SessionSignal},
+        ui::shared::SessionSignal,
     },
 };
 use bottom_panel::BottomPanelUI;
@@ -31,7 +31,7 @@ use side_panel::SidePanelUi;
 
 mod bottom_panel;
 mod common;
-pub mod definitions;
+mod definitions;
 mod logs_table;
 mod recent;
 mod shared;
@@ -69,21 +69,26 @@ impl Session {
 
         let UiHandle { senders, receivers } = communication;
 
-        let schema = schema::from_parser(session_info.parser);
-
         let side_panel = SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone());
-        let mut shared = SessionShared::new(session_info, observe_op, schema.as_ref());
+        let mut shared = SessionShared::new(session_info, observe_op);
         for observe_op in additional_observe_ops {
             shared.add_operation(observe_op);
         }
+
+        let logs_table = LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&shared.schema));
+        let bottom_panel = BottomPanelUI::new(
+            senders.cmd_tx.clone(),
+            host_cmd_tx,
+            Rc::clone(&shared.schema),
+        );
 
         Self {
             receivers,
             side_panel,
             shared,
             recent_session: RecentSessionRuntime::new(recent_source_key, supports_bookmarks),
-            logs_table: LogsTable::new(senders.cmd_tx.clone(), Rc::clone(&schema)),
-            bottom_panel: BottomPanelUI::new(senders.cmd_tx.clone(), host_cmd_tx, schema),
+            logs_table,
+            bottom_panel,
             cmd_tx: senders.cmd_tx,
         }
     }
@@ -236,7 +241,9 @@ impl Session {
                     self.shared.search.set_indexed_result_count(count);
                 }
                 SessionMessage::SelectedLog(log_element) => {
-                    if let Some(selected) = self.ok_or_notify(log_element, actions) {
+                    if let Some(mut selected) = self.ok_or_notify(log_element, actions) {
+                        self.shared.schema.prepare_log(&mut selected);
+
                         let selected_row = self.shared.logs.single_selected_row();
                         self.bottom_panel
                             .details

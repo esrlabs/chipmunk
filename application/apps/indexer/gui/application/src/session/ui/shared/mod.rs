@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     host::ui::registry::filters::FilterRegistry,
     session::{
@@ -5,7 +7,10 @@ use crate::{
         types::{ObserveOperation, OperationPhase},
         ui::{
             common::logs_tables,
-            definitions::{UpdateOperationOutcome, schema::LogSchema},
+            definitions::{
+                UpdateOperationOutcome,
+                schema::{self, LogSchema},
+            },
         },
     },
 };
@@ -54,6 +59,8 @@ pub struct SessionShared {
 
     pub attachments: AttachmentsState,
 
+    pub schema: Rc<dyn LogSchema>,
+
     /// Monotonic change marker for recent-session state updates.
     recent_revision: u64,
 }
@@ -70,12 +77,9 @@ pub(crate) enum SearchSyncTarget {
 }
 
 impl SessionShared {
-    pub fn new(
-        session_info: SessionInfo,
-        observe_op: ObserveOperation,
-        schema: &dyn LogSchema,
-    ) -> Self {
+    pub fn new(session_info: SessionInfo, observe_op: ObserveOperation) -> Self {
         let session_id = session_info.id;
+        let schema = schema::from_parser(session_info.parser);
         Self {
             session_info,
             signals: Vec::new(),
@@ -86,10 +90,11 @@ impl SessionShared {
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
             layout: UiLayoutState {
-                log_columns: logs_tables::create_table_columns(schema),
+                log_columns: logs_tables::create_table_columns(schema.as_ref()),
             },
             observe: ObserveState::new(observe_op),
             attachments: AttachmentsState::default(),
+            schema,
             recent_revision: 0,
         }
     }
@@ -133,6 +138,7 @@ impl SessionShared {
             layout: _,
             observe,
             attachments: _,
+            schema: _,
             recent_revision: _,
         } = self;
 
@@ -397,7 +403,7 @@ mod tests {
             common::parsers::ParserNames,
             ui::registry::filters::{FilterDefinition, SearchValueDefinition},
         },
-        session::{command::SessionCommand, ui::definitions::schema},
+        session::command::SessionCommand,
     };
 
     use super::*;
@@ -416,8 +422,7 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        let schema = schema::from_parser(session_info.parser);
-        SessionShared::new(session_info, observe_op, schema.as_ref())
+        SessionShared::new(session_info, observe_op)
     }
 
     fn new_shared_with_info_from_origin(origin: ObserveOrigin) -> SessionShared {
@@ -431,8 +436,7 @@ mod tests {
             },
         );
 
-        let schema = schema::from_parser(session_info.parser);
-        SessionShared::new(session_info, observe_op, schema.as_ref())
+        SessionShared::new(session_info, observe_op)
     }
 
     fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {

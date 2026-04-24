@@ -375,10 +375,7 @@ mod tests {
 
     use crate::{
         host::{common::parsers::ParserNames, notification::AppNotification, ui::UiActions},
-        session::{
-            types::ObserveOperation,
-            ui::{definitions::schema, shared::SessionInfo},
-        },
+        session::{types::ObserveOperation, ui::shared::SessionInfo},
     };
 
     use super::*;
@@ -398,8 +395,7 @@ mod tests {
             ),
         );
 
-        let schema = schema::from_parser(session_info.parser);
-        SessionShared::new(session_info, observe_op, schema.as_ref())
+        SessionShared::new(session_info, observe_op)
     }
 
     #[test]

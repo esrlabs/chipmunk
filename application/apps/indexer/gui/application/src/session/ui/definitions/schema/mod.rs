@@ -1,5 +1,7 @@
 use std::{fmt::Debug, ops::Range, rc::Rc};
 
+use stypes::GrabbedElement;
+
 use crate::host::common::parsers::ParserNames;
 
 pub mod dlt;
@@ -20,8 +22,11 @@ pub trait LogSchema: Debug {
     /// Returns the definitions for the table columns.
     fn columns(&self) -> &[ColumnInfo];
 
-    /// Segments a single log line into column ranges.
-    fn map_columns(&self, log: &str) -> Vec<Range<usize>>;
+    /// Prepares a grabbed log for UI use and returns the prepared content's column ranges.
+    ///
+    /// Implementations may mutate `GrabbedElement.content` for UI-local normalization or
+    /// sanitization. Returned ranges are byte ranges into the prepared content.
+    fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>>;
 }
 
 #[derive(Debug, Clone)]

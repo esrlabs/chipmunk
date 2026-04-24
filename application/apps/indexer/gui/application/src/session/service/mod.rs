@@ -159,12 +159,6 @@ impl SessionService {
         }
 
         log::trace!("Session Service {} has been dropped", self.session_id());
-
-        //TODO AAZ: Keep this to make sure that session are dropped.
-        println!(
-            "****** DEBUG: Session Service {} has been dropped",
-            self.session_id()
-        );
     }
 
     async fn send_error(&self, error: SessionError) {

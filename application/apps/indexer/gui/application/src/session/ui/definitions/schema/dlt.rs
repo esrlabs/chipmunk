@@ -1,7 +1,8 @@
 use std::ops::Range;
 
 use egui_table::Column;
-use parsers::dlt::fmt::DLT_COLUMN_SENTINAL;
+use parsers::dlt::fmt::{DLT_ARGUMENT_SENTINAL, DLT_COLUMN_SENTINAL};
+use stypes::GrabbedElement;
 
 use super::{ColumnInfo, LogSchema, map_columns_with_separator};
 
@@ -46,10 +47,61 @@ impl LogSchema for DltLogSchema {
         &self.columns
     }
 
-    fn map_columns(&self, log: &str) -> Vec<Range<usize>> {
+    fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>> {
+        // Replace DLT special payload arguments with simple white spaces in UI.
+        element.content = element.content.replace(DLT_ARGUMENT_SENTINAL, " ");
+
         let mut ranges = Vec::with_capacity(self.columns.len());
-        map_columns_with_separator(log, &mut ranges, DLT_COLUMN_SENTINAL);
+        map_columns_with_separator(&element.content, &mut ranges, DLT_COLUMN_SENTINAL);
 
         ranges
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn element(content: String) -> GrabbedElement {
+        GrabbedElement {
+            source_id: 0,
+            content,
+            pos: 0,
+            nature: 0,
+        }
+    }
+
+    fn slices<'a>(content: &'a str, ranges: &[Range<usize>]) -> Vec<&'a str> {
+        ranges.iter().map(|range| &content[range.clone()]).collect()
+    }
+
+    #[test]
+    fn prepare_log_replaces_argument_markers() {
+        let schema = DltLogSchema::default();
+        let mut element = element(format!("prefix{DLT_ARGUMENT_SENTINAL}arg"));
+
+        let ranges = schema.prepare_log(&mut element);
+
+        assert_eq!(element.content, "prefix arg");
+        assert_eq!(slices(&element.content, &ranges), vec!["prefix arg"]);
+    }
+
+    #[test]
+    fn prepare_log_keeps_column_markers_for_mapping() {
+        let schema = DltLogSchema::default();
+        let mut element = element(format!(
+            "header{DLT_COLUMN_SENTINAL}payload{DLT_ARGUMENT_SENTINAL}value"
+        ));
+
+        let ranges = schema.prepare_log(&mut element);
+
+        assert_eq!(
+            element.content,
+            format!("header{DLT_COLUMN_SENTINAL}payload value")
+        );
+        assert_eq!(
+            slices(&element.content, &ranges),
+            vec!["header", "payload value"]
+        );
     }
 }

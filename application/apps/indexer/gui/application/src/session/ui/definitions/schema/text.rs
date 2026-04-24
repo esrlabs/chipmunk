@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use egui_table::Column;
+use stypes::GrabbedElement;
 
 use super::{ColumnInfo, LogSchema};
 
@@ -26,12 +27,9 @@ impl LogSchema for TextLogSchema {
         &self.columns
     }
 
-    // Clippy false positive because it thinks here that we want to
-    // initialize Vec<usize> with the given range.
-    // TODO: Remove when GitHub issue is resolved.
-    // Issue link: https://github.com/rust-lang/rust-clippy/issues/11086.
-    #[allow(clippy::single_range_in_vec_init)]
-    fn map_columns(&self, log: &str) -> Vec<Range<usize>> {
-        vec![0..log.len()]
+    fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>> {
+        let full_rng = 0..element.content.len();
+
+        vec![full_rng]
     }
 }

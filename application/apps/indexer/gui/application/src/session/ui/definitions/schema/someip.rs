@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use egui_table::Column;
+use stypes::GrabbedElement;
 
 use super::{ColumnInfo, LogSchema, map_columns_with_separator};
 
@@ -44,11 +45,11 @@ impl LogSchema for SomeIpLogSchema {
         &self.columns
     }
 
-    fn map_columns(&self, log: &str) -> Vec<Range<usize>> {
+    fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>> {
         use parsers::someip::COLUMN_SEP as SOMEIP_COLUMN_SEP;
 
         let mut ranges = Vec::with_capacity(self.columns.len());
-        map_columns_with_separator(log, &mut ranges, SOMEIP_COLUMN_SEP);
+        map_columns_with_separator(&element.content, &mut ranges, SOMEIP_COLUMN_SEP);
         ranges
     }
 }
