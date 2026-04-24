@@ -3,7 +3,10 @@ use crate::{
     session::{
         command::SessionCommand,
         types::{ObserveOperation, OperationPhase},
-        ui::definitions::UpdateOperationOutcome,
+        ui::{
+            common::logs_tables,
+            definitions::{UpdateOperationOutcome, schema::LogSchema},
+        },
     },
 };
 use uuid::Uuid;
@@ -12,6 +15,7 @@ use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
 mod attachments;
 mod info;
+mod layout;
 mod logs;
 mod observe;
 pub(crate) mod searching;
@@ -19,6 +23,7 @@ mod signal;
 
 pub use attachments::AttachmentsState;
 pub use info::SessionInfo;
+pub use layout::UiLayoutState;
 pub use logs::{LogsState, SelectionIntent};
 pub use observe::ObserveState;
 pub use signal::SessionSignal;
@@ -43,6 +48,8 @@ pub struct SessionShared {
 
     pub logs: LogsState,
 
+    pub layout: UiLayoutState,
+
     pub observe: ObserveState,
 
     pub attachments: AttachmentsState,
@@ -63,7 +70,11 @@ pub(crate) enum SearchSyncTarget {
 }
 
 impl SessionShared {
-    pub fn new(session_info: SessionInfo, observe_op: ObserveOperation) -> Self {
+    pub fn new(
+        session_info: SessionInfo,
+        observe_op: ObserveOperation,
+        schema: &dyn LogSchema,
+    ) -> Self {
         let session_id = session_info.id;
         Self {
             session_info,
@@ -74,6 +85,9 @@ impl SessionShared {
             search: SearchState::new(session_id),
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
+            layout: UiLayoutState {
+                log_columns: logs_tables::create_table_columns(schema),
+            },
             observe: ObserveState::new(observe_op),
             attachments: AttachmentsState::default(),
             recent_revision: 0,
@@ -116,6 +130,7 @@ impl SessionShared {
             search,
             search_values,
             logs: _,
+            layout: _,
             observe,
             attachments: _,
             recent_revision: _,
@@ -382,7 +397,7 @@ mod tests {
             common::parsers::ParserNames,
             ui::registry::filters::{FilterDefinition, SearchValueDefinition},
         },
-        session::command::SessionCommand,
+        session::{command::SessionCommand, ui::definitions::schema},
     };
 
     use super::*;
@@ -401,7 +416,8 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     fn new_shared_with_info_from_origin(origin: ObserveOrigin) -> SessionShared {
@@ -415,7 +431,8 @@ mod tests {
             },
         );
 
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {

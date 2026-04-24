@@ -8,7 +8,6 @@ use crate::{
     common::modal::show_busy_indicator,
     host::{
         command::HostCommand,
-        common::parsers::ParserNames,
         notification::AppNotification,
         ui::{
             HostAction, UiActions,
@@ -23,13 +22,7 @@ use crate::{
         communication::{UiHandle, UiReceivers},
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
-        ui::{
-            definitions::schema::{
-                LogSchema, dlt::DltLogSchema, plugins::PluginsLogSchema, someip::SomeIpLogSchema,
-                text::TextLogSchema,
-            },
-            shared::SessionSignal,
-        },
+        ui::{definitions::schema, shared::SessionSignal},
     },
 };
 use bottom_panel::BottomPanelUI;
@@ -38,7 +31,7 @@ use side_panel::SidePanelUi;
 
 mod bottom_panel;
 mod common;
-mod definitions;
+pub mod definitions;
 mod logs_table;
 mod recent;
 mod shared;
@@ -76,15 +69,10 @@ impl Session {
 
         let UiHandle { senders, receivers } = communication;
 
-        let schema: Rc<dyn LogSchema> = match &session_info.parser {
-            ParserNames::Dlt => Rc::new(DltLogSchema::default()),
-            ParserNames::SomeIP => Rc::new(SomeIpLogSchema::default()),
-            ParserNames::Text => Rc::new(TextLogSchema::default()),
-            ParserNames::Plugins => Rc::new(PluginsLogSchema),
-        };
+        let schema = schema::from_parser(session_info.parser);
 
         let side_panel = SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone());
-        let mut shared = SessionShared::new(session_info, observe_op);
+        let mut shared = SessionShared::new(session_info, observe_op, schema.as_ref());
         for observe_op in additional_observe_ops {
             shared.add_operation(observe_op);
         }

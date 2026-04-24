@@ -1,4 +1,6 @@
-use std::{fmt::Debug, ops::Range};
+use std::{fmt::Debug, ops::Range, rc::Rc};
+
+use crate::host::common::parsers::ParserNames;
 
 pub mod dlt;
 pub mod plugins;
@@ -40,6 +42,16 @@ impl ColumnInfo {
             column,
             header_tooltip: header_tooltip.into(),
         }
+    }
+}
+
+/// Creates the UI log schema for a parser kind.
+pub fn from_parser(parser: ParserNames) -> Rc<dyn LogSchema> {
+    match parser {
+        ParserNames::Dlt => Rc::new(dlt::DltLogSchema::default()),
+        ParserNames::SomeIP => Rc::new(someip::SomeIpLogSchema::default()),
+        ParserNames::Text => Rc::new(text::TextLogSchema::default()),
+        ParserNames::Plugins => Rc::new(plugins::PluginsLogSchema),
     }
 }
 
