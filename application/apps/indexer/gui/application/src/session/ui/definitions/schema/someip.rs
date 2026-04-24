@@ -4,6 +4,9 @@ use egui_table::Column;
 
 use super::{ColumnInfo, LogSchema, map_columns_with_separator};
 
+const MIN_COLUMN_WIDTH: f32 = 30.0;
+const MAX_COLUMN_WIDTH: f32 = 600.0;
+
 #[derive(Debug)]
 pub struct SomeIpLogSchema {
     columns: [ColumnInfo; 10],
@@ -12,20 +15,24 @@ pub struct SomeIpLogSchema {
 impl Default for SomeIpLogSchema {
     fn default() -> Self {
         let columns = [
-            ColumnInfo::new("SOME/IP", "The Message-Kind.", Column::default()),
-            ColumnInfo::new("SERV", "The Service-ID", Column::default()),
-            ColumnInfo::new("METH", "The Method-ID", Column::default()),
-            ColumnInfo::new("LENG", "The Length-Field", Column::default()),
-            ColumnInfo::new("CLID", "The Client-ID", Column::default()),
-            ColumnInfo::new("SEID", "The Session-ID", Column::default()),
-            ColumnInfo::new("IVER", "The Interface-Version", Column::default()),
-            ColumnInfo::new("MSTP", "The Message-Type", Column::default()),
-            ColumnInfo::new("RETC", "The Return-Code", Column::default()),
+            ColumnInfo::new("SOME/IP", "The Message-Kind.", someip_column(50.0)),
+            ColumnInfo::new("SERV", "The Service-ID", someip_column(50.0)),
+            ColumnInfo::new("METH", "The Method-ID", someip_column(50.0)),
+            ColumnInfo::new("LENG", "The Length-Field", someip_column(30.0)),
+            ColumnInfo::new("CLID", "The Client-ID", someip_column(30.0)),
+            ColumnInfo::new("SEID", "The Session-ID", someip_column(30.0)),
+            ColumnInfo::new("IVER", "The Interface-Version", someip_column(30.0)),
+            ColumnInfo::new("MSTP", "The Message-Type", someip_column(30.0)),
+            ColumnInfo::new("RETC", "The Return-Code", someip_column(30.0)),
             ColumnInfo::new("PAYLOAD", "Payload", Column::default()),
         ];
 
         Self { columns }
     }
+}
+
+fn someip_column(width: f32) -> Column {
+    Column::new(width).range(MIN_COLUMN_WIDTH..=MAX_COLUMN_WIDTH)
 }
 
 impl LogSchema for SomeIpLogSchema {

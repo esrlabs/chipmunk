@@ -5,6 +5,9 @@ use parsers::dlt::fmt::DLT_COLUMN_SENTINAL;
 
 use super::{ColumnInfo, LogSchema, map_columns_with_separator};
 
+const MIN_COLUMN_WIDTH: f32 = 30.0;
+const MAX_COLUMN_WIDTH: f32 = 600.0;
+
 #[derive(Debug)]
 pub struct DltLogSchema {
     columns: [ColumnInfo; 11],
@@ -13,21 +16,25 @@ pub struct DltLogSchema {
 impl Default for DltLogSchema {
     fn default() -> Self {
         let columns = [
-            ColumnInfo::new("Datetime", "Datetime", Column::default()),
-            ColumnInfo::new("ECUID", "ECU", Column::default()),
-            ColumnInfo::new("VERS", "Dlt Protocol Version (VERS)", Column::default()),
-            ColumnInfo::new("SID", "Session ID (SEID)", Column::default()),
-            ColumnInfo::new("MCNT", "Message counter (MCNT)", Column::default()),
-            ColumnInfo::new("TMS", "Timestamp (TMSP)", Column::default()),
-            ColumnInfo::new("EID", "ECU", Column::default()),
-            ColumnInfo::new("APID", "Application ID (APID)", Column::default()),
-            ColumnInfo::new("CTID", "Context ID (CTID)", Column::default()),
-            ColumnInfo::new("MSTP", "Message Type (MSTP)", Column::default()),
+            ColumnInfo::new("Datetime", "Datetime", dlt_column(150.0)),
+            ColumnInfo::new("ECUID", "ECU", dlt_column(30.0)),
+            ColumnInfo::new("VERS", "Dlt Protocol Version (VERS)", dlt_column(30.0)),
+            ColumnInfo::new("SID", "Session ID (SEID)", dlt_column(30.0)),
+            ColumnInfo::new("MCNT", "Message counter (MCNT)", dlt_column(30.0)),
+            ColumnInfo::new("TMS", "Timestamp (TMSP)", dlt_column(30.0)),
+            ColumnInfo::new("EID", "ECU", dlt_column(30.0)),
+            ColumnInfo::new("APID", "Application ID (APID)", dlt_column(30.0)),
+            ColumnInfo::new("CTID", "Context ID (CTID)", dlt_column(30.0)),
+            ColumnInfo::new("MSTP", "Message Type (MSTP)", dlt_column(30.0)),
             ColumnInfo::new("PAYLOAD", "Payload", Column::default()),
         ];
 
         Self { columns }
     }
+}
+
+fn dlt_column(width: f32) -> Column {
+    Column::new(width).range(MIN_COLUMN_WIDTH..=MAX_COLUMN_WIDTH)
 }
 
 impl LogSchema for DltLogSchema {
