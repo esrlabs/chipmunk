@@ -524,10 +524,7 @@ mod tests {
         host::common::parsers::ParserNames,
         session::{
             types::{ObserveOperation, OperationPhase},
-            ui::{
-                definitions::schema,
-                shared::{SessionInfo, SessionShared},
-            },
+            ui::shared::{SessionInfo, SessionShared},
         },
     };
 
@@ -550,8 +547,7 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        let schema = schema::from_parser(session_info.parser);
-        let mut shared = SessionShared::new(session_info, observe_op, schema.as_ref());
+        let mut shared = SessionShared::new(session_info, observe_op);
         shared.logs.logs_count = logs_count;
         shared
     }

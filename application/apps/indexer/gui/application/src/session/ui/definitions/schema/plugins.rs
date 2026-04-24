@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use stypes::GrabbedElement;
+
 use super::LogSchema;
 
 #[derive(Debug)]
@@ -14,7 +16,7 @@ impl LogSchema for PluginsLogSchema {
         todo!("Plugins are not implemented yet");
     }
 
-    fn map_columns(&self, _log: &str) -> Vec<Range<usize>> {
+    fn prepare_log(&self, _element: &mut GrabbedElement) -> Vec<Range<usize>> {
         todo!("Plugins are not implemented yet");
     }
 }

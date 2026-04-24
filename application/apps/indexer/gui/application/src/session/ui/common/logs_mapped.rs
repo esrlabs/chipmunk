@@ -56,7 +56,7 @@ impl LogsMapped {
 
         let mut last_source_id = None;
 
-        indexed_items.for_each(|(idx, element)| {
+        indexed_items.for_each(|(idx, mut element)| {
             if has_multi_sources {
                 match &mut last_source_id {
                     Some(source_id) if *source_id != element.source_id => {
@@ -67,7 +67,7 @@ impl LogsMapped {
                 }
             }
 
-            let column_ranges = self.schema.map_columns(&element.content);
+            let column_ranges = self.schema.prepare_log(&mut element);
             let item = LogTableItem {
                 element,
                 column_ranges,
