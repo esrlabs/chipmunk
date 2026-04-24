@@ -1,3 +1,4 @@
+use egui::Color32;
 use std::{path::PathBuf, sync::mpsc::Sender as StdSender};
 use stypes::FileFormat;
 use uuid::Uuid;
@@ -29,7 +30,7 @@ pub enum HostCommand {
     /// Concatenate the provided files grouping them via their format.
     /// This will start a session for text files directly or will open
     /// session setup for other file formats.
-    ConcatFiles(Vec<(PathBuf, FileFormat)>),
+    ConcatFiles(Vec<(Color32, PathBuf, FileFormat)>),
     /// Opens sessions setup for connection sources.
     ConnectionSessionSetup {
         stream: StreamNames,

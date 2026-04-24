@@ -89,7 +89,7 @@ impl MultiFileSetup {
                 .files
                 .iter()
                 .filter(|f| f.included)
-                .map(|f| (f.path.to_owned(), f.format))
+                .map(|f| (f.color, f.path.to_owned(), f.format))
                 .collect();
 
             let cmd = HostCommand::ConcatFiles(files);
