@@ -817,7 +817,11 @@ mod tests {
                 filters::{FilterDefinition, SearchValueDefinition},
             },
         },
-        session::{command::SessionCommand, types::ObserveOperation, ui::SessionInfo},
+        session::{
+            command::SessionCommand,
+            types::ObserveOperation,
+            ui::{SessionInfo, definitions::schema},
+        },
     };
     use stypes::{FileFormat, ObserveOrigin};
 
@@ -845,7 +849,8 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     fn new_actions(runtime: &Runtime) -> UiActions {

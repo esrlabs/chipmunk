@@ -1,7 +1,7 @@
 use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver};
 
 use egui::{Sense, Ui};
-use egui_table::{CellInfo, Column, PrefetchInfo, TableDelegate};
+use egui_table::{CellInfo, PrefetchInfo, TableDelegate};
 use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
 
@@ -14,7 +14,9 @@ use crate::{
             common::{
                 self,
                 logs_mapped::LogsMapped,
-                logs_tables::{grab_cmd_consts, should_stick_to_bottom},
+                logs_tables::{
+                    apply_columns_to_table_state, grab_cmd_consts, should_stick_to_bottom,
+                },
             },
             definitions::{LogTableItem, schema::LogSchema},
             logs_table::LogAttachmentInfo,
@@ -22,6 +24,8 @@ use crate::{
         },
     },
 };
+
+const TABLE_ID_SALT: &str = "search_table";
 
 #[derive(Debug)]
 pub struct SearchTable {
@@ -33,20 +37,16 @@ pub struct SearchTable {
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
     /// The indexed lower-table row to make the table scroll toward.
     scroll_nearest_pos: Option<NearestPosition>,
-    columns: Box<[Column]>,
 }
 
 impl SearchTable {
     pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
-        let columns = common::logs_tables::create_table_columns(schema.as_ref());
-
         Self {
             cmd_tx,
             last_visible_rows: None,
             indexed_logs: LogsMapped::new(schema),
             pending_logs_rx: None,
             scroll_nearest_pos: None,
-            columns,
         }
     }
 
@@ -63,11 +63,25 @@ impl SearchTable {
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
+        let columns = shared
+            .layout
+            .log_columns
+            .iter()
+            .map(|column| {
+                let width = column.range.clamp(column.current);
+                // Do not use resizable(false): egui_table skips painting vertical
+                // column borders for non-resizable columns. Keep resize handles
+                // enabled, but lock the range to the main table width.
+                column.range(width..=width)
+            })
+            .collect::<Vec<_>>();
+        apply_columns_to_table_state(ui, TABLE_ID_SALT, &columns);
+
         let mut table = egui_table::Table::new()
-            .id_salt("search_table")
+            .id_salt(TABLE_ID_SALT)
             .num_rows(shared.search.indexed_result_count())
             .headers(Vec::new())
-            .columns(self.columns.as_ref())
+            .columns(columns)
             .num_sticky_cols(1)
             .stick_to_bottom(should_stick_to_bottom(shared));
 
@@ -94,7 +108,6 @@ impl SearchTable {
             indexed_logs,
             pending_logs_rx,
             scroll_nearest_pos,
-            columns: _,
         } = self;
 
         *last_visible_rows = None;

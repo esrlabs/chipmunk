@@ -1,7 +1,7 @@
 use std::{ops::Range, rc::Rc};
 
 use egui::{Sense, TextBuffer, Ui};
-use egui_table::{CellInfo, Column, HeaderCellInfo, PrefetchInfo, TableDelegate};
+use egui_table::{CellInfo, HeaderCellInfo, PrefetchInfo, TableDelegate};
 use processor::grabber::LineRange;
 use std::sync::mpsc::Receiver as StdReceiver;
 use stypes::GrabbedElement;
@@ -17,13 +17,18 @@ use crate::{
             common::{
                 self,
                 logs_mapped::LogsMapped,
-                logs_tables::{grab_cmd_consts, should_stick_to_bottom},
+                logs_tables::{
+                    columns_filling_last, grab_cmd_consts, should_stick_to_bottom,
+                    sync_column_widths,
+                },
             },
             definitions::schema::LogSchema,
             shared::SessionShared,
         },
     },
 };
+
+const TABLE_ID_SALT: &str = "logs_table";
 
 /// This is used for storing some attachment state during rendering of the logs table only.
 pub enum LogAttachmentInfo {
@@ -40,20 +45,16 @@ pub struct LogsTable {
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
     schema: Rc<dyn LogSchema>,
-    columns: Box<[Column]>,
 }
 
 impl LogsTable {
     pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
-        let columns = common::logs_tables::create_table_columns(schema.as_ref());
-
         Self {
             cmd_tx,
             last_visible_rows: Default::default(),
             logs: LogsMapped::new(Rc::clone(&schema)),
             pending_logs_rx: None,
             schema,
-            columns,
         }
     }
 
@@ -66,10 +67,13 @@ impl LogsTable {
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
+        // Ensure the border of last column isn't visible.
+        let columns = columns_filling_last(ui, TABLE_ID_SALT, &shared.layout.log_columns);
+
         let mut table = egui_table::Table::new()
-            .id_salt("logs_table")
+            .id_salt(TABLE_ID_SALT)
             .num_rows(shared.logs.logs_count)
-            .columns(self.columns.as_ref())
+            .columns(columns)
             .num_sticky_cols(1)
             .stick_to_bottom(should_stick_to_bottom(shared));
 
@@ -84,10 +88,11 @@ impl LogsTable {
 
         let mut delegate = LogsDelegate::new(self, shared, actions);
         table.show(ui, &mut delegate);
-
         if delegate.request_repaint {
             ui.request_repaint();
         }
+
+        sync_column_widths(ui, TABLE_ID_SALT, &mut shared.layout.log_columns);
     }
 }
 

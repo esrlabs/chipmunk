@@ -226,7 +226,10 @@ mod tests {
 
     use crate::{
         host::{common::parsers::ParserNames, ui::UiActions},
-        session::{types::ObserveOperation, ui::SessionInfo},
+        session::{
+            types::ObserveOperation,
+            ui::{SessionInfo, definitions::schema},
+        },
     };
 
     use super::*;
@@ -238,7 +241,8 @@ mod tests {
             parser: ParserNames::Text,
         };
         let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     fn file_runtime() -> RecentSessionRuntime {

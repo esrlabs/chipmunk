@@ -7,7 +7,7 @@ use egui::{
     Align, Color32, CursorIcon, Frame, Layout, Margin, Response, Sense, Shape, Stroke, TextStyle,
     Ui, vec2,
 };
-use egui_table::Column;
+use egui_table::{Column, TableState};
 use regex::Regex;
 use stypes::ObserveOrigin;
 use tokio::sync::mpsc::Sender;
@@ -50,17 +50,131 @@ pub const LOG_TEXT_STYLE: TextStyle = TextStyle::Monospace;
 // so it sits on top of the row-level match tint instead of the plain table background.
 // A single translucent white highlight stays visible in both themes on that base.
 const FILTER_MATCH_HIGHLIGHT_BG: Color32 = Color32::from_rgba_unmultiplied_const(255, 255, 255, 60);
+const COLUMN_WIDTH_EPSILON: f32 = 0.25;
 
 /// Creates the columns for logs table based on the provided `schema`,
 /// inserting the row header column into them.
-pub fn create_table_columns(schema: &dyn LogSchema) -> Box<[Column]> {
+pub fn create_table_columns(schema: &dyn LogSchema) -> Vec<Column> {
     let mut columns = Vec::with_capacity(schema.columns().len() + 1);
     let row_header_col = Column::new(100.0).range(50.0..=500.0).resizable(true);
 
     columns.push(row_header_col);
     columns.extend(schema.columns().iter().map(|col| col.column));
 
-    columns.into_boxed_slice()
+    columns
+}
+
+/// Applies shared application column widths to an existing egui table state.
+///
+/// If the table has not rendered yet, the passed columns are enough for the first frame.
+pub fn apply_columns_to_table_state(ui: &Ui, table_id_salt: &str, columns: &[Column]) {
+    let table_id = TableState::id(ui, egui::Id::new(table_id_salt));
+    let Some(mut state) = TableState::load(ui.ctx(), table_id) else {
+        return;
+    };
+
+    let mut changed = false;
+    for (col_idx, column) in columns.iter().enumerate() {
+        let width = column.range.clamp(column.current);
+        let column_id = column.id_for(col_idx);
+        let should_update = state
+            .col_widths
+            .get(&column_id)
+            .is_none_or(|current| (current - width).abs() > COLUMN_WIDTH_EPSILON);
+
+        if should_update {
+            state.col_widths.insert(column_id, width);
+            changed = true;
+        }
+    }
+
+    if changed {
+        state.store(ui.ctx(), table_id);
+    }
+}
+
+/// Copies persisted egui table widths back into the shared application columns.
+pub fn sync_column_widths(ui: &Ui, table_id_salt: &str, columns: &mut [Column]) {
+    let table_id = TableState::id(ui, egui::Id::new(table_id_salt));
+    let Some(state) = TableState::load(ui.ctx(), table_id) else {
+        return;
+    };
+
+    for (col_idx, column) in columns.iter_mut().enumerate() {
+        let Some(width) = state.col_widths.get(&column.id_for(col_idx)).copied() else {
+            continue;
+        };
+
+        column.current = column.range.clamp(width);
+    }
+}
+
+/// Returns table columns with the last column widened to fill the available table width.
+///
+/// The adjustment is applied once per available width and then persisted through
+/// `egui_table::TableState`, so normal table state handles later frames.
+pub fn columns_filling_last(ui: &Ui, table_id_salt: &str, columns: &[Column]) -> Vec<Column> {
+    let available_width = ui.available_width();
+    // Put the final resize handle beyond the table container edge so its
+    // expanded interaction rect does not steal surrounding splitter drags.
+    let fill_width = available_width + 2.0 * ui.style().interaction.resize_grab_radius_side;
+    let table_id = TableState::id(ui, egui::Id::new(table_id_salt));
+    // egui_table updates TableState::parent_width on every show, even before this
+    // adjustment is applied. Track the widths we already filled separately.
+    let filled_width_id = table_id.with("last_column_filled_width");
+
+    if ui
+        .ctx()
+        .data_mut(|data| data.get_temp::<f32>(filled_width_id))
+        == Some(available_width)
+    {
+        return columns.to_vec();
+    }
+
+    let mut columns = columns.to_vec();
+    let Some(last_col_idx) = columns.len().checked_sub(1) else {
+        return columns;
+    };
+
+    let state = TableState::load(ui.ctx(), table_id);
+    let used_width = columns[..last_col_idx]
+        .iter()
+        .enumerate()
+        .map(|(col_idx, column)| {
+            let column_id = column.id_for(col_idx);
+            let current = state
+                .as_ref()
+                .and_then(|state| state.col_widths.get(&column_id).copied())
+                .unwrap_or(column.current);
+
+            column.range.clamp(current)
+        })
+        .sum::<f32>();
+
+    let min_last_width = (fill_width - used_width).max(0.0);
+    let last_column = &mut columns[last_col_idx];
+    last_column.range.min = last_column.range.min.max(min_last_width);
+    last_column.range.max = last_column.range.max.max(last_column.range.min);
+
+    if let Some(mut state) = state {
+        // The last column may not be visible, so egui_table might not persist its
+        // computed width this frame. Store it explicitly before marking it filled.
+        let column_id = last_column.id_for(last_col_idx);
+        let current = state
+            .col_widths
+            .get(&column_id)
+            .copied()
+            .unwrap_or(last_column.current);
+        state.col_widths.insert(
+            column_id,
+            last_column.range.clamp(current.max(min_last_width)),
+        );
+        state.store(ui.ctx(), table_id);
+        ui.ctx()
+            .data_mut(|data| data.insert_temp(filled_width_id, available_width));
+    }
+
+    columns
 }
 
 /// Draw border line on the top of a log cell indicating that its
@@ -398,7 +512,10 @@ mod tests {
         },
         session::{
             types::ObserveOperation,
-            ui::shared::{SessionInfo, SessionShared},
+            ui::{
+                definitions::schema,
+                shared::{SessionInfo, SessionShared},
+            },
         },
     };
 
@@ -421,7 +538,8 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     fn apply_filter(

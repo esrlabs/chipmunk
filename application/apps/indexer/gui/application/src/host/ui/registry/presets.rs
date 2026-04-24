@@ -197,7 +197,10 @@ mod tests {
             common::parsers::ParserNames,
             ui::registry::filters::{FilterDefinition, RegistryEditOutcome, SearchValueDefinition},
         },
-        session::{types::ObserveOperation, ui::SessionInfo},
+        session::{
+            types::ObserveOperation,
+            ui::{SessionInfo, definitions::schema},
+        },
     };
 
     use super::*;
@@ -224,7 +227,8 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     fn add_filter_definition(registry: &mut FilterRegistry, value: &str) -> Uuid {

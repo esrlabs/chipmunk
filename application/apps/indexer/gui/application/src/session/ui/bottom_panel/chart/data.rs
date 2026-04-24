@@ -176,7 +176,10 @@ mod tests {
         },
         session::{
             types::ObserveOperation,
-            ui::shared::{SessionInfo, SessionShared},
+            ui::{
+                definitions::schema,
+                shared::{SessionInfo, SessionShared},
+            },
         },
     };
 
@@ -199,7 +202,8 @@ mod tests {
             parser: ParserNames::Text,
         };
 
-        SessionShared::new(session_info, observe_op)
+        let schema = schema::from_parser(session_info.parser);
+        SessionShared::new(session_info, observe_op, schema.as_ref())
     }
 
     #[test]
