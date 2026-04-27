@@ -1,5 +1,5 @@
 pub mod action_throttle;
-pub mod app_version;
+pub mod app_info;
 pub mod comm_utls;
 pub mod fixed_queue;
 pub mod fonts;

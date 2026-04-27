@@ -11,7 +11,7 @@ use log::{info, trace, warn};
 use crate::{
     cli::CliCommand,
     common::{
-        fonts,
+        app_info, fonts,
         modal::show_modal,
         phosphor::{self, icons},
     },
@@ -51,8 +51,6 @@ pub mod state;
 pub mod storage;
 mod tabs;
 
-const APP_TITLE: &str = "Chipmunk";
-
 #[derive(Debug)]
 pub struct Host {
     receivers: UiReceivers,
@@ -69,13 +67,14 @@ impl Host {
     pub fn run(cli_cmds: Vec<CliCommand>) -> eframe::Result<()> {
         let native_options = NativeOptions {
             viewport: egui::ViewportBuilder::default()
-                .with_title(APP_TITLE)
+                .with_title(app_info::TITLE)
+                .with_icon(app_info::icon())
                 .with_inner_size(vec2(1200., 900.)),
             ..Default::default()
         };
 
         eframe::run_native(
-            APP_TITLE,
+            app_info::TITLE,
             native_options,
             Box::new(|ctx| {
                 let (ui_comm, service_comm) = super::communication::init(ctx.egui_ctx.clone());
