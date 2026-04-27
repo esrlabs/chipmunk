@@ -343,8 +343,7 @@ impl ChartUI {
 
         match plot_res.inner {
             PlotResponse::JumpToLog(log_nr) => {
-                shared.logs.scroll_main_row = Some(log_nr);
-                shared.logs.replace_selection_with(log_nr);
+                shared.logs.focus_main_row(log_nr);
                 actions.try_send_command(&self.cmd_tx, SessionCommand::GetSelectedLog(log_nr));
             }
             PlotResponse::RequestForRange(bound_x) => {

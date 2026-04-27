@@ -5,7 +5,7 @@ pub struct LogsState {
     pub logs_count: u64,
     /// The stream position of the log which the main logs table
     /// should scroll into.
-    pub scroll_main_row: Option<u64>,
+    scroll_main_row: Option<u64>,
     /// Selected rows keyed by original stream position.
     selected_rows: FxHashSet<u64>,
     /// Most recent row explicitly selected by the user.
@@ -78,6 +78,31 @@ impl LogsState {
         self.selected_rows.insert(row);
         self.last_selected_row = Some(row);
         self.selection_change(SelectionIntent::Exclusive)
+    }
+
+    /// Replaces the current selection with `rows`.
+    pub fn replace_selection_with_rows(&mut self, rows: &[u64]) -> SelectionChange {
+        self.selected_rows.clear();
+        self.selected_rows.extend(rows.iter().copied());
+        self.last_selected_row = rows.last().copied();
+        self.selection_change(SelectionIntent::Exclusive)
+    }
+
+    /// Selects `row` and requests the main logs table to scroll to it.
+    pub fn focus_main_row(&mut self, row: u64) -> SelectionChange {
+        self.scroll_main_row = Some(row);
+        self.replace_selection_with(row)
+    }
+
+    /// Selects `rows` and requests the main logs table to scroll to the first one.
+    pub fn focus_main_rows(&mut self, rows: &[u64]) -> SelectionChange {
+        self.scroll_main_row = rows.first().copied();
+        self.replace_selection_with_rows(rows)
+    }
+
+    /// Takes the pending main-table scroll request.
+    pub fn take_main_scroll_row(&mut self) -> Option<u64> {
+        self.scroll_main_row.take()
     }
 
     /// Applies a click mode and returns the resulting selection side effects.
@@ -345,5 +370,73 @@ mod tests {
 
         state.select_from_click(14, TOGGLE_ROW);
         assert_eq!(state.single_selected_row(), None);
+    }
+
+    #[test]
+    fn focus_main_row_selects_row_and_requests_scroll() {
+        let mut state = LogsState::default();
+
+        let change = state.focus_main_row(13);
+
+        assert_eq!(state.take_main_scroll_row(), Some(13));
+        assert_eq!(state.take_main_scroll_row(), None);
+        assert_eq!(state.single_selected_row(), Some(13));
+        assert_eq!(change.details_row, Some(13));
+        assert_eq!(change.jump_to_row, Some(13));
+    }
+
+    #[test]
+    fn focus_main_rows_selects_rows_and_requests_scroll_to_first() {
+        let mut state = LogsState::default();
+
+        let change = state.focus_main_rows(&[8, 13, 21]);
+
+        assert_eq!(state.take_main_scroll_row(), Some(8));
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [8, 13, 21].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(21));
+    }
+
+    #[test]
+    fn multi_row_replacement_selects_all_rows() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        let change = state.replace_selection_with_rows(&[8, 13, 21]);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [8, 13, 21].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(21));
+    }
+
+    #[test]
+    fn multi_row_replacement_with_one_row_keeps_single_selection_effects() {
+        let mut state = LogsState::default();
+
+        let change = state.replace_selection_with_rows(&[8]);
+
+        assert_eq!(state.single_selected_row(), Some(8));
+        assert_eq!(change.details_row, Some(8));
+        assert_eq!(change.jump_to_row, Some(8));
+        assert_eq!(state.selected_rows, [8].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(8));
+    }
+
+    #[test]
+    fn multi_row_replacement_with_empty_rows_clears_selection() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with_rows(&[8, 13]);
+        let change = state.replace_selection_with_rows(&[]);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert!(state.selected_rows.is_empty());
+        assert_eq!(state.last_selected_row, None);
     }
 }
