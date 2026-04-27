@@ -162,7 +162,7 @@ impl<'a> LogsDelegate<'a> {
             return;
         };
 
-        self.shared.logs.scroll_main_row = Some(selected_row);
+        self.shared.logs.focus_main_row(selected_row);
     }
 
     fn handle_selection_click(&mut self, pos: u64, modifiers: egui::Modifiers) {

@@ -39,8 +39,6 @@ pub struct AttachmentsUi {
     session_cmd_tx: mpsc::Sender<SessionCommand>,
     /// Indices of currently selected rows in the attachments list.
     selected_rows: FxHashSet<usize>,
-    /// Index of the clicked row, used for context menu actions.
-    clicked_row: Option<usize>,
     /// Index of the previously clicked row, used as the anchor for shift-click multi-selection.
     previously_clicked_row: Option<usize>,
     /// Uuids of attachments that are pending to be saved after file dialog completion.
@@ -57,7 +55,6 @@ impl AttachmentsUi {
             session_cmd_tx,
             selected_rows: FxHashSet::default(),
             previously_clicked_row: None,
-            clicked_row: None,
             pending_attachment_save: FxHashSet::default(),
         }
     }
@@ -72,7 +69,7 @@ impl AttachmentsUi {
 
         let attachments = shared.attachments.attachments();
 
-        self.render_attachments_header(ui, attachments.len());
+        self.render_header(ui, attachments.len());
 
         // Details panel located at the bottom but needs to be rendered before the attachments list.
         if self.selected_rows.len() == 1 {
@@ -82,20 +79,18 @@ impl AttachmentsUi {
                 .show_separator_line(false)
                 .exact_size(200.0)
                 .show_inside(ui, |ui| {
-                    show_side_panel_group(ui, |ui| self.render_attachment_preview(ui));
+                    show_side_panel_group(ui, |ui| self.render_preview(ui));
                 });
         }
 
         egui::CentralPanel::default()
             .frame(Frame::NONE)
             .show_inside(ui, |ui| {
-                show_side_panel_group(ui, |ui| {
-                    self.render_attachments_list(&shared.attachments, ui_actions, ui)
-                });
+                show_side_panel_group(ui, |ui| self.render_list(shared, ui_actions, ui));
             });
     }
 
-    fn render_attachments_header(&self, ui: &mut egui::Ui, attachments_count: usize) {
+    fn render_header(&self, ui: &mut egui::Ui, attachments_count: usize) {
         egui::Sides::new().show(
             ui,
             |ui| {
@@ -120,7 +115,7 @@ impl AttachmentsUi {
     }
 
     // TODO [TOOL-741]: Implement attachments preview.
-    fn render_attachment_preview(&self, ui: &mut egui::Ui) {
+    fn render_preview(&self, ui: &mut egui::Ui) {
         Label::new(RichText::new("Preview").heading().size(SUBTITLE_SIZE))
             .truncate()
             .ui(ui);
@@ -129,13 +124,13 @@ impl AttachmentsUi {
         });
     }
 
-    fn render_attachments_list(
+    fn render_list(
         &mut self,
-        attachments_state: &AttachmentsState,
+        shared: &mut SessionShared,
         ui_actions: &mut UiActions,
         ui: &mut egui::Ui,
     ) {
-        let attachments = attachments_state.attachments();
+        let attachments_count = shared.attachments.attachments().len();
         let row_height = 2.0 * ui.text_style_height(&egui::TextStyle::Body) + ROW_VERTICAL_PADDING;
 
         Label::new(
@@ -147,7 +142,7 @@ impl AttachmentsUi {
         .ui(ui);
         ui.add_space(5.0);
 
-        if attachments.is_empty() {
+        if attachments_count == 0 {
             ui.label(RichText::new("No attachments").weak());
             return;
         }
@@ -157,19 +152,22 @@ impl AttachmentsUi {
             egui::ScrollArea::vertical().show_rows(
                 ui,
                 row_height,
-                attachments.len(),
+                attachments_count,
                 |ui, row_range| {
                     for current_row in row_range {
                         let is_selected = self.selected_rows.contains(&current_row);
-                        let attachment = &attachments[current_row];
+                        let Some(attachment) = shared.attachments.attachments().get(current_row)
+                        else {
+                            continue;
+                        };
 
                         let extension_color = attachment
                             .ext
                             .as_deref()
-                            .and_then(|ext| attachments_state.color_by_extension(ext))
+                            .and_then(|ext| shared.attachments.color_by_extension(ext))
                             .unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR);
 
-                        let response = self.render_attachment_row(
+                        let response = self.render_row(
                             ui,
                             attachment,
                             extension_color,
@@ -178,17 +176,11 @@ impl AttachmentsUi {
                         );
 
                         if response.clicked() {
-                            self.clicked_row = Some(current_row);
                             self.handle_row_click(current_row, ui.input(|i| i.modifiers));
                         }
 
-                        // TODO [TOOL-756]: Reevaluate secondary click logic
-                        if response.secondary_clicked() {
-                            self.clicked_row = Some(current_row);
-                        }
-
                         response.context_menu(|ui| {
-                            self.render_attachments_list_context_menu(ui, ui_actions, attachments);
+                            self.render_context_menu(current_row, shared, ui_actions, ui);
                         });
                     }
                 },
@@ -196,7 +188,7 @@ impl AttachmentsUi {
         });
     }
 
-    fn render_attachment_row(
+    fn render_row(
         &mut self,
         ui: &mut egui::Ui,
         attachment: &AttachmentInfo,
@@ -253,14 +245,20 @@ impl AttachmentsUi {
         response
     }
 
-    fn render_attachments_list_context_menu(
+    fn render_context_menu(
         &mut self,
-        ui: &mut egui::Ui,
+        attachment_idx: usize,
+        shared: &mut SessionShared,
         ui_actions: &mut UiActions,
-        attachments: &[AttachmentInfo],
+        ui: &mut egui::Ui,
     ) {
+        let attachments = shared.attachments.attachments();
+        let Some(attachment) = attachments.get(attachment_idx) else {
+            return;
+        };
         let attachment_count = attachments.len();
 
+        // ** Attachments Selection **
         if ui.button("Select all").clicked() {
             self.selected_rows.clear();
             self.selected_rows.extend(0..attachment_count);
@@ -273,9 +271,34 @@ impl AttachmentsUi {
         }
         ui.separator();
 
-        if ui.button(RichText::new("Save as")).clicked()
-            && let Some(attachment) = self.clicked_row.and_then(|r| attachments.get(r))
-        {
+        // ** Jump & Select matching Logs **
+        if let [first_position, ..] = attachment.messages.as_slice() {
+            let response = ui
+                .button(RichText::new("Jump to related row"))
+                .on_hover_text("Jumps to the first related row");
+            if response.clicked() {
+                shared.logs.focus_main_row(*first_position as u64);
+                ui.close();
+            }
+
+            if ui
+                .button(RichText::new("Select all related rows"))
+                .clicked()
+            {
+                let rows = attachment
+                    .messages
+                    .iter()
+                    .map(|&position| position as u64)
+                    .collect::<Vec<_>>();
+                shared.logs.focus_main_rows(&rows);
+                ui.close();
+            }
+
+            ui.separator();
+        }
+
+        // ** Save Attachments **
+        if ui.button(RichText::new("Save as")).clicked() {
             self.pending_attachment_save.clear();
             self.pending_attachment_save.insert(attachment.uuid);
 

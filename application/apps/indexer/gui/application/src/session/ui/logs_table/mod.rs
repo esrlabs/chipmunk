@@ -81,7 +81,7 @@ impl LogsTable {
             table = table.headers(Vec::new());
         }
 
-        if let Some(row) = shared.logs.scroll_main_row.take() {
+        if let Some(row) = shared.logs.take_main_scroll_row() {
             const OFFSET: u64 = 3;
             table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
         }
