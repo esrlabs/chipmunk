@@ -12,7 +12,11 @@ use uuid::Uuid;
 use crate::{
     host::{
         command::{CopyFileInfo, HostCommand},
-        common::{colors::DEFAULT_ATTACHMENT_EXT_COLOR, file_utls, ui_utls::show_side_panel_group},
+        common::{
+            colors::{self, DEFAULT_ATTACHMENT_EXT_COLOR},
+            file_utls,
+            ui_utls::show_side_panel_group,
+        },
         ui::{UiActions, actions::FileDialogOptions},
     },
     session::{
@@ -45,6 +49,13 @@ pub struct AttachmentsUi {
     pending_attachment_save: FxHashSet<Uuid>,
 }
 
+/// Deferred filter mutation collected while rendering the filter menu.
+#[derive(Debug)]
+enum FilterChange {
+    Clear,
+    Set(String),
+}
+
 impl AttachmentsUi {
     pub fn new(
         host_cmd_tx: mpsc::Sender<HostCommand>,
@@ -67,9 +78,7 @@ impl AttachmentsUi {
     ) {
         self.handle_pending_dialogs(ui_actions, &shared.attachments);
 
-        let attachments = shared.attachments.attachments();
-
-        self.render_header(ui, attachments.len());
+        self.render_header(ui, &mut shared.attachments);
 
         // Details panel located at the bottom but needs to be rendered before the attachments list.
         if self.selected_rows.len() == 1 {
@@ -90,27 +99,88 @@ impl AttachmentsUi {
             });
     }
 
-    fn render_header(&self, ui: &mut egui::Ui, attachments_count: usize) {
+    fn render_header(&mut self, ui: &mut egui::Ui, attachments: &mut AttachmentsState) {
+        let mut filter_change = None;
+        let active_filter = attachments.active_filter();
+        let active_extension = active_filter.map(|filter| filter.extension().to_string());
+        let filtered_count = active_filter.map(|filter| filter.indices().len());
+        let attachments_count = attachments.attachments().len();
+
         egui::Sides::new().show(
             ui,
             |ui| {
-                let title = format!("Attachments ({})", attachments_count);
+                let count = filtered_count.map_or_else(
+                    || attachments_count.to_string(),
+                    |filtered_count| format!("{filtered_count}/{attachments_count}"),
+                );
+                let title = format!("Attachments ({count})");
                 Label::new(RichText::new(title).heading().size(TITLE_SIZE)).ui(ui);
             },
             |ui| {
-                ui.menu_button(
+                let response = ui.menu_button(
                     egui::RichText::new(egui_phosphor::regular::FUNNEL).size(16.0),
                     |ui| {
-                        if ui
-                            .button("Attachment filters not implemented yet")
-                            .clicked()
-                        {
+                        ui.set_min_width(80.0);
+
+                        let all_label = if active_extension.is_none() {
+                            format!("{} All", egui_phosphor::regular::CHECK)
+                        } else {
+                            "  All".to_string()
+                        };
+                        if ui.button(all_label).clicked() {
+                            filter_change = Some(FilterChange::Clear);
                             ui.close();
                         }
+
+                        if !attachments.extensions().is_empty() {
+                            ui.separator();
+                        }
+
+                        for extension in attachments.extensions() {
+                            let is_active = active_extension.as_deref() == Some(extension.as_str());
+                            let label = if is_active {
+                                format!("{} *.{extension}", egui_phosphor::regular::CHECK)
+                            } else {
+                                format!("  *.{extension}")
+                            };
+
+                            if ui.button(label).clicked() {
+                                if !is_active {
+                                    filter_change = Some(FilterChange::Set(extension.clone()));
+                                }
+                                ui.close();
+                            }
+                        }
                     },
-                )
+                );
+
+                if let Some(extension) = active_extension.as_deref() {
+                    let dot_center = response.response.rect.right_top() + egui::vec2(-0.5, 0.5);
+                    ui.painter().circle_filled(
+                        dot_center,
+                        3.5,
+                        colors::main_accent_stroke(ui.visuals().dark_mode),
+                    );
+                    let filtered_count = filtered_count.unwrap_or(attachments_count);
+                    response.response.on_hover_text(format!(
+                        "Filtered by *.{extension}: {filtered_count} of {attachments_count}"
+                    ));
+                }
             },
         );
+
+        match filter_change {
+            Some(FilterChange::Set(extension)) => {
+                attachments.set_extension_filter(extension);
+                // Narrowing/changing the visible set drops hidden selections and the shift anchor.
+                self.selected_rows.clear();
+                self.previously_clicked_row = None;
+            }
+            // Clearing expands the visible set, so existing selections remain valid.
+            Some(FilterChange::Clear) => attachments.clear_filter(),
+            None => {}
+        }
+
         ui.add_space(ui.spacing().item_spacing.y);
     }
 
@@ -131,6 +201,10 @@ impl AttachmentsUi {
         ui: &mut egui::Ui,
     ) {
         let attachments_count = shared.attachments.attachments().len();
+        let visible_count = shared
+            .attachments
+            .active_filter()
+            .map_or(attachments_count, |filter| filter.indices().len());
         let row_height = 2.0 * ui.text_style_height(&egui::TextStyle::Body) + ROW_VERTICAL_PADDING;
 
         Label::new(
@@ -147,16 +221,30 @@ impl AttachmentsUi {
             return;
         }
 
+        if visible_count == 0 {
+            ui.label(RichText::new("No attachments match the active filter").weak());
+            return;
+        }
+
         ui.scope(|ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
             egui::ScrollArea::vertical().show_rows(
                 ui,
                 row_height,
-                attachments_count,
+                visible_count,
                 |ui, row_range| {
-                    for current_row in row_range {
-                        let is_selected = self.selected_rows.contains(&current_row);
-                        let Some(attachment) = shared.attachments.attachments().get(current_row)
+                    for visible_row in row_range {
+                        // show_rows emits visible row numbers. Filtered rows map back to the
+                        // full attachments list because selection and save actions use that index.
+                        let attachment_idx = match shared.attachments.active_filter() {
+                            Some(filter) => match filter.indices().get(visible_row).copied() {
+                                Some(index) => index,
+                                None => continue,
+                            },
+                            None => visible_row,
+                        };
+                        let is_selected = self.selected_rows.contains(&attachment_idx);
+                        let Some(attachment) = shared.attachments.attachments().get(attachment_idx)
                         else {
                             continue;
                         };
@@ -176,11 +264,18 @@ impl AttachmentsUi {
                         );
 
                         if response.clicked() {
-                            self.handle_row_click(current_row, ui.input(|i| i.modifiers));
+                            self.handle_row_click(
+                                attachment_idx,
+                                shared
+                                    .attachments
+                                    .active_filter()
+                                    .map(|filter| filter.indices()),
+                                ui.input(|i| i.modifiers),
+                            );
                         }
 
                         response.context_menu(|ui| {
-                            self.render_context_menu(current_row, shared, ui_actions, ui);
+                            self.render_context_menu(attachment_idx, shared, ui_actions, ui);
                         });
                     }
                 },
@@ -261,11 +356,20 @@ impl AttachmentsUi {
         // ** Attachments Selection **
         if ui.button("Select all").clicked() {
             self.selected_rows.clear();
-            self.selected_rows.extend(0..attachment_count);
+            if let Some(filter) = shared.attachments.active_filter() {
+                self.selected_rows.extend(filter.indices().iter().copied());
+            } else {
+                self.selected_rows.extend(0..attachment_count);
+            }
             ui.close();
         }
         if ui.button("Invert selection").clicked() {
-            let all_rows: FxHashSet<usize> = (0..attachment_count).collect();
+            let all_rows: FxHashSet<usize> =
+                if let Some(filter) = shared.attachments.active_filter() {
+                    filter.indices().iter().copied().collect()
+                } else {
+                    (0..attachment_count).collect()
+                };
             self.selected_rows = all_rows.difference(&self.selected_rows).copied().collect();
             ui.close();
         }
@@ -414,37 +518,82 @@ impl AttachmentsUi {
         }
     }
 
-    fn handle_row_click(&mut self, clicked_row: usize, modifiers: egui::Modifiers) {
+    fn handle_row_click(
+        &mut self,
+        clicked_attachment_idx: usize,
+        filtered_indices: Option<&[usize]>,
+        modifiers: egui::Modifiers,
+    ) {
         if modifiers.matches_exact(Modifiers::CTRL) {
-            if self.selected_rows.contains(&clicked_row) {
-                self.selected_rows.remove(&clicked_row);
+            if self.selected_rows.contains(&clicked_attachment_idx) {
+                self.selected_rows.remove(&clicked_attachment_idx);
             } else {
-                self.selected_rows.insert(clicked_row);
+                self.selected_rows.insert(clicked_attachment_idx);
             }
         }
 
         if modifiers.matches_exact(Modifiers::SHIFT)
             && let Some(previously_clicked_row) = self.previously_clicked_row
         {
-            let shift_range = match previously_clicked_row.cmp(&clicked_row) {
-                Ordering::Less => previously_clicked_row..=clicked_row,
-                Ordering::Greater => clicked_row..=previously_clicked_row,
-                Ordering::Equal => clicked_row..=clicked_row,
-            };
-
-            for row in shift_range {
-                self.selected_rows.insert(row);
-            }
+            self.select_shift_range(
+                previously_clicked_row,
+                clicked_attachment_idx,
+                filtered_indices,
+            );
         }
 
         if modifiers.matches_exact(Modifiers::NONE) {
-            if self.selected_rows.len() == 1 && self.selected_rows.contains(&clicked_row) {
+            if self.selected_rows.len() == 1 && self.selected_rows.contains(&clicked_attachment_idx)
+            {
                 self.selected_rows.clear();
             } else {
                 self.selected_rows.clear();
-                self.selected_rows.insert(clicked_row);
+                self.selected_rows.insert(clicked_attachment_idx);
             }
         }
-        self.previously_clicked_row = Some(clicked_row);
+        self.previously_clicked_row = Some(clicked_attachment_idx);
+    }
+
+    fn select_shift_range(
+        &mut self,
+        previous_attachment_idx: usize,
+        clicked_attachment_idx: usize,
+        filtered_indices: Option<&[usize]>,
+    ) {
+        // Without a filter, visible row indices and attachment indices are identical.
+        let Some(filtered_indices) = filtered_indices else {
+            let shift_range = match previous_attachment_idx.cmp(&clicked_attachment_idx) {
+                Ordering::Less => previous_attachment_idx..=clicked_attachment_idx,
+                Ordering::Greater => clicked_attachment_idx..=previous_attachment_idx,
+                Ordering::Equal => clicked_attachment_idx..=clicked_attachment_idx,
+            };
+
+            self.selected_rows.extend(shift_range);
+            return;
+        };
+
+        // With a filter, shift selection must use visible positions to avoid selecting hidden rows.
+        let Some(previous_visible_idx) = filtered_indices
+            .iter()
+            .position(|&index| index == previous_attachment_idx)
+        else {
+            return;
+        };
+        let Some(clicked_visible_idx) = filtered_indices
+            .iter()
+            .position(|&index| index == clicked_attachment_idx)
+        else {
+            return;
+        };
+
+        let visible_range = match previous_visible_idx.cmp(&clicked_visible_idx) {
+            Ordering::Less => previous_visible_idx..=clicked_visible_idx,
+            Ordering::Greater => clicked_visible_idx..=previous_visible_idx,
+            Ordering::Equal => clicked_visible_idx..=clicked_visible_idx,
+        };
+
+        // Store selected rows as attachment indices so save/context actions stay filter-agnostic.
+        self.selected_rows
+            .extend(visible_range.map(|visible_idx| filtered_indices[visible_idx]));
     }
 }
