@@ -2,12 +2,15 @@ use egui::{MenuBar, Theme, Ui};
 use stypes::FileFormat;
 use tokio::sync::mpsc::Sender;
 
-use crate::host::{
-    command::HostCommand,
-    common::{app_style, parsers::ParserNames, sources::StreamNames},
-    ui::{
-        actions::{FileDialogOptions, UiActions},
-        state::info::AppInfoState,
+use crate::{
+    common::app_info,
+    host::{
+        command::HostCommand,
+        common::{app_style, parsers::ParserNames, sources::StreamNames},
+        ui::{
+            actions::{FileDialogOptions, UiActions},
+            state::info::AppInfoState,
+        },
     },
 };
 
@@ -31,7 +34,7 @@ impl MainMenuBar {
         self.handle_file_dialog(actions);
 
         MenuBar::new().ui(ui, |ui| {
-            ui.menu_button("Chipmunk", |ui| {
+            ui.menu_button(app_info::TITLE, |ui| {
                 if cfg!(debug_assertions) {
                     ui.menu_button("Development", |ui| {
                         if ui.button("Reset egui memory").clicked() {

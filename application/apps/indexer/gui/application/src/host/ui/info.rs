@@ -3,7 +3,7 @@ use egui::{
 };
 
 use crate::{
-    common::{app_version, modal::show_modal},
+    common::{app_info, modal::show_modal},
     host::{common::colors, ui::state::info::AppInfoState},
 };
 
@@ -13,8 +13,8 @@ const ABOUT_GITHUB_URL: &str = "https://github.com/esrlabs/chipmunk";
 const ABOUT_REPORT_ISSUE_URL: &str = "https://github.com/esrlabs/chipmunk/issues/new/choose";
 const ACTION_BUTTON_SIZE: egui::Vec2 = vec2(100.0, 25.0);
 
-pub fn render_update_banner(app_info: &mut AppInfoState, ui: &mut Ui) {
-    let Some(update) = app_info.update_info() else {
+pub fn render_update_banner(info_state: &mut AppInfoState, ui: &mut Ui) {
+    let Some(update) = info_state.update_info() else {
         return;
     };
 
@@ -48,7 +48,7 @@ pub fn render_update_banner(app_info: &mut AppInfoState, ui: &mut Ui) {
                         .num_columns(2)
                         .show(ui, |ui| {
                             ui.strong("Current:");
-                            ui.label(app_version::current_version().to_string());
+                            ui.label(app_info::current_version().to_string());
                             ui.end_row();
 
                             ui.strong("Latest:");
@@ -95,12 +95,12 @@ pub fn render_update_banner(app_info: &mut AppInfoState, ui: &mut Ui) {
     }
 
     if dismiss {
-        app_info.show_update_banner = false;
+        info_state.show_update_banner = false;
     }
 }
 
-pub fn render_about_modal(app_info: &mut AppInfoState, ctx: &Context) {
-    let current_version = app_version::current_version().to_string();
+pub fn render_about_modal(info_state: &mut AppInfoState, ctx: &Context) {
+    let current_version = app_info::current_version().to_string();
 
     let mut open_github = false;
     let mut open_report_issue = false;
@@ -108,13 +108,13 @@ pub fn render_about_modal(app_info: &mut AppInfoState, ctx: &Context) {
 
     let modal = show_modal(ctx, "about", 360.0, |ui| {
         ui.vertical_centered(|ui| {
-            ui.heading("Chipmunk");
+            ui.heading(app_info::TITLE);
             ui.add_space(8.0);
             ui.label("Built for fast, scalable log and trace analysis.");
             ui.add_space(8.0);
             ui.label(format!("Version: {current_version}"));
 
-            if let Some(update_info) = app_info.update_info() {
+            if let Some(update_info) = info_state.update_info() {
                 ui.add_space(4.0);
                 if ui
                     .hyperlink_to(
@@ -175,6 +175,6 @@ pub fn render_about_modal(app_info: &mut AppInfoState, ctx: &Context) {
     }
 
     if modal.should_close() {
-        app_info.about_open = false;
+        info_state.about_open = false;
     }
 }

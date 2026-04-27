@@ -4,7 +4,7 @@ use semver::Version;
 use serde::Deserialize;
 
 use crate::{
-    common::app_version,
+    common::app_info,
     host::{
         communication::ServiceSenders,
         message::{AppVersionUpdate, HostMessage},
@@ -38,7 +38,7 @@ async fn check_for_updates(senders: ServiceSenders) {
         }
     };
 
-    let current_version = app_version::current_version().clone();
+    let current_version = app_info::current_version();
 
     let Some((latest_version, release)) =
         latest_current_major_release(releases, current_version.major)
@@ -50,7 +50,7 @@ async fn check_for_updates(senders: ServiceSenders) {
         return;
     };
 
-    if latest_version <= current_version {
+    if latest_version <= *current_version {
         info!(
             "Application is up to date for the current major version. \
             current_version={current_version}, latest_version={latest_version}"
