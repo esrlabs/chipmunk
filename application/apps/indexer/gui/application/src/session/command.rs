@@ -7,7 +7,7 @@ use stypes::GrabbedElement;
 use uuid::Uuid;
 
 use crate::host::ui::session_setup::state::sources::StreamConfig;
-use crate::session::error::SessionError;
+use crate::session::{error::SessionError, types::attachment};
 
 /// Represents session specific commands to be sent from UI to session service.
 ///
@@ -39,6 +39,9 @@ pub enum SessionCommand {
 
     /// Request details for a specific log line.
     GetSelectedLog(u64),
+
+    /// Request preview content for one attachment.
+    PreviewAttachment(attachment::PreviewRequest),
 
     /// Insert bookmarks for the provided stream rows.
     AddBookmarks(Vec<u64>),

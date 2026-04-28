@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::session::{
     error::SessionError,
+    types::attachment,
     types::{ObserveOperation, OperationPhase},
     ui::chart::ChartBar,
 };
@@ -70,6 +71,12 @@ pub enum SessionMessage {
     AttachmentsUpdated {
         attachment: AttachmentInfo,
         len: u64,
+    },
+
+    /// Preview result for one attachment.
+    AttachmentPreview {
+        uuid: Uuid,
+        preview: Result<attachment::PreviewContent, SessionError>,
     },
 }
 

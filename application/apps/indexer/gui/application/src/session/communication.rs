@@ -66,6 +66,11 @@ pub struct ServiceSenders {
 }
 
 impl ServiceSenders {
+    /// Returns a handle to [`egui::Context`]
+    pub fn egui_ctx(&self) -> &egui::Context {
+        &self.egui_ctx
+    }
+
     /// Send session message to the session UI and wake it up.
     ///
     /// # Return
