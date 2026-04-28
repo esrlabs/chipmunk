@@ -39,6 +39,7 @@ use state::HostState;
 pub use actions::{HostAction, UiActions};
 
 pub mod actions;
+mod dnd_paths;
 pub mod home;
 mod info;
 mod menu;
@@ -470,6 +471,9 @@ impl eframe::App for Host {
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
         self.render_ui(ui, frame);
+
+        dnd_paths::handle_path_drops(ui, &mut self.ui_actions, &self.senders.cmd_tx);
+
         self.handle_ui_actions(ui.ctx());
     }
 
