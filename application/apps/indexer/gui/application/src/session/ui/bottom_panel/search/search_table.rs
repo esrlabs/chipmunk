@@ -13,8 +13,11 @@ use crate::{
         ui::{
             common::{
                 self,
-                log_table::table::{
-                    apply_columns_to_table_state, grab_cmd_consts, should_stick_to_bottom,
+                log_table::{
+                    table::{
+                        apply_columns_to_table_state, grab_cmd_consts, should_stick_to_bottom,
+                    },
+                    text::render_log_cell_text,
                 },
                 logs_mapped::LogsMapped,
             },
@@ -258,22 +261,8 @@ impl<'a> LogsDelegate<'a> {
                     .source_change_positions()
                     .contains(&log_item.element.pos);
 
-            let content = log_item
-                .column_ranges
-                .get(cell.col_nr.saturating_sub(1))
-                .and_then(|rng| log_item.element.content.get(rng.to_owned()))
-                .unwrap_or_default();
-
-            let response = match common::log_table::text::log_cell_layout_job(
-                ui,
-                content,
-                log_item.element.pos as u64,
-                self.shared,
-                self.shared.search.compiled_filters(),
-            ) {
-                Some(job) => ui.label(job),
-                None => ui.monospace(content),
-            };
+            let col_idx = cell.col_nr.saturating_sub(1);
+            let response = render_log_cell_text(ui, log_item, col_idx, self.shared);
 
             if response.clicked() {
                 self.handle_selection_click(log_item.element.pos as u64, ui.input(|i| i.modifiers));

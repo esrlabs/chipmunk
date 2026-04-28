@@ -6,12 +6,12 @@
 
 use std::ops::Range;
 
-use egui::{Color32, TextStyle, Ui};
-use memchr::memchr;
+use egui::{Color32, Response, TextStyle, Ui};
 use regex::Regex;
 
 use crate::session::ui::{
-    common::ansi_text::{AnsiSpan, parse_ansi_text},
+    common::ansi_text::{AnsiSpan, AnsiText},
+    definitions::{LogTableCell, LogTableItem},
     shared::{
         SessionShared,
         searching::{FilterIndex, LogMainIndex},
@@ -25,41 +25,73 @@ const LOG_TEXT_STYLE: TextStyle = TextStyle::Monospace;
 // A single translucent white highlight stays visible in both themes on that base.
 const FILTER_MATCH_HIGHLIGHT_BG: Color32 = Color32::from_rgba_unmultiplied_const(255, 255, 255, 60);
 
-/// Builds a monospace layout job for a log cell when plain rendering is not enough.
-///
-/// Returns `None` for the common plain case so callers can keep using
-/// `ui.monospace(content)` without constructing a custom layout job. ANSI escape
-/// sequences are stripped before filter matches are calculated, because match
-/// ranges must refer to the text visible to the user.
-pub fn log_cell_layout_job(
-    ui: &Ui,
+/// Renders a monospace log-table cell with cached ANSI spans and match highlights.
+pub fn render_log_cell_text(
+    ui: &mut Ui,
+    item: &LogTableItem,
+    col_idx: usize,
+    shared: &SessionShared,
+) -> Response {
+    let Some(cell) = item.cells.get(col_idx) else {
+        return ui.monospace("");
+    };
+
+    let main_log_pos = item.element.pos as u64;
+    match cell {
+        LogTableCell::Plain(range) => {
+            let content = item.element.content.get(range.clone()).unwrap_or_default();
+            render_plain_cell(ui, content, main_log_pos, shared)
+        }
+        LogTableCell::Ansi(ansi_text) => render_ansi_cell(ui, ansi_text, main_log_pos, shared),
+    }
+}
+
+fn render_plain_cell(
+    ui: &mut Ui,
     content: &str,
     main_log_pos: u64,
     shared: &SessionShared,
-    compiled_filters: &[Regex],
-) -> Option<egui::text::LayoutJob> {
-    if memchr(0x1b, content.as_bytes()).is_none() {
-        // Most cells are plain text. Keep this path close to the old search-only behavior.
-        let match_spans = matched_cell_spans(content, main_log_pos, shared, compiled_filters);
-        if match_spans.is_empty() {
-            return None;
-        }
+) -> Response {
+    let match_spans = matched_cell_spans(
+        content,
+        main_log_pos,
+        shared,
+        shared.search.compiled_filters(),
+    );
+    if match_spans.is_empty() {
+        ui.monospace(content)
+    } else {
+        let content_job = build_match_layout_job(ui, content, &match_spans);
 
-        let job = build_match_layout_job(ui, content, &match_spans);
-
-        return Some(job);
+        ui.label(content_job)
     }
+}
 
-    // ANSI parsing returns visible text plus style ranges in that visible text.
-    let ansi_text = parse_ansi_text(content);
-    let match_spans = matched_cell_spans(&ansi_text.text, main_log_pos, shared, compiled_filters);
-
-    Some(build_log_layout_job(
-        ui,
+fn render_ansi_cell(
+    ui: &mut Ui,
+    ansi_text: &AnsiText,
+    main_log_pos: u64,
+    shared: &SessionShared,
+) -> Response {
+    let match_spans = matched_cell_spans(
         &ansi_text.text,
-        &ansi_text.spans,
-        &match_spans,
-    ))
+        main_log_pos,
+        shared,
+        shared.search.compiled_filters(),
+    );
+    if ansi_text.spans.is_empty() {
+        if match_spans.is_empty() {
+            ui.monospace(&ansi_text.text)
+        } else {
+            let job = build_match_layout_job(ui, &ansi_text.text, &match_spans);
+
+            ui.label(job)
+        }
+    } else {
+        let job = build_log_layout_job(ui, &ansi_text.text, &ansi_text.spans, &match_spans);
+
+        ui.label(job)
+    }
 }
 
 /// Returns the backend-reported filter indices for one main-log position, if that row matched.
