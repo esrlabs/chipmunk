@@ -183,6 +183,20 @@ fn build_match_layout_job(ui: &Ui, content: &str, spans: &[Range<usize>]) -> egu
     job
 }
 
+/// Builds a layout for ANSI-styled text without search highlighting.
+pub fn ansi_layout_job(
+    ui: &Ui,
+    ansi_text: &AnsiText,
+    base_color: Color32,
+) -> egui::text::LayoutJob {
+    build_styled_layout_job(
+        &ansi_text.text,
+        &ansi_text.spans,
+        &[],
+        text_format(ui, base_color),
+    )
+}
+
 /// Builds a layout where ANSI spans and search-highlight spans can overlap.
 ///
 /// The input spans must use byte ranges in `content`. Search highlighting wins
@@ -193,8 +207,16 @@ fn build_log_layout_job(
     ansi_spans: &[AnsiSpan],
     match_spans: &[Range<usize>],
 ) -> egui::text::LayoutJob {
+    build_styled_layout_job(content, ansi_spans, match_spans, base_log_format(ui))
+}
+
+fn build_styled_layout_job(
+    content: &str,
+    ansi_spans: &[AnsiSpan],
+    match_spans: &[Range<usize>],
+    base_format: egui::text::TextFormat,
+) -> egui::text::LayoutJob {
     let mut job = egui::text::LayoutJob::default();
-    let base_format = base_log_format(ui);
 
     // A LayoutJob segment can have only one final TextFormat. ANSI styling and
     // search highlighting are represented as independent ranges, so first split
@@ -279,13 +301,19 @@ fn build_log_layout_job(
 
 /// Returns the base text format shared by ANSI and search-highlight jobs.
 fn base_log_format(ui: &Ui) -> egui::text::TextFormat {
-    egui::text::TextFormat {
-        font_id: LOG_TEXT_STYLE.resolve(ui.style()),
-        color: ui
-            .style()
+    text_format(
+        ui,
+        ui.style()
             .visuals
             .override_text_color
             .unwrap_or_else(|| ui.visuals().text_color()),
+    )
+}
+
+fn text_format(ui: &Ui, color: Color32) -> egui::text::TextFormat {
+    egui::text::TextFormat {
+        font_id: LOG_TEXT_STYLE.resolve(ui.style()),
+        color,
         ..Default::default()
     }
 }
