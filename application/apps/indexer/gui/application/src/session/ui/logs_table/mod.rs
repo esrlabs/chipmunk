@@ -16,9 +16,12 @@ use crate::{
             bottom_panel::BottomTabType,
             common::{
                 self,
-                log_table::table::{
-                    columns_filling_last, grab_cmd_consts, should_stick_to_bottom,
-                    sync_column_widths,
+                log_table::{
+                    table::{
+                        self, columns_filling_last, grab_cmd_consts, should_stick_to_bottom,
+                        sync_column_widths,
+                    },
+                    text::render_log_cell_text,
                 },
                 logs_mapped::LogsMapped,
             },
@@ -207,40 +210,28 @@ impl<'a> LogsDelegate<'a> {
         let &CellInfo { col_nr, row_nr, .. } = cell;
 
         common::log_table::table::get_cell_frame().show(ui, |ui| {
-            let content = match self.table.logs.get_log_item(&row_nr) {
-                Some(item) => {
-                    source_changed = self.has_multi_sources
-                        && self
-                            .table
-                            .logs
-                            .source_change_positions()
-                            .contains(&item.element.pos);
-                    let col_idx = col_nr.saturating_sub(1);
-                    item.column_ranges
-                        .get(col_idx)
-                        .and_then(|rng| item.element.content.get(rng.clone()))
-                        .unwrap_or_default()
+            let Some(item) = self.table.logs.get_log_item(&row_nr) else {
+                // Ensure data will be requested on next frame.
+                if self.table.pending_logs_rx.is_none() {
+                    self.table.last_visible_rows = None;
                 }
-                None => {
-                    // Ensure data will be requested on next frame.
-                    if self.table.pending_logs_rx.is_none() {
-                        self.table.last_visible_rows = None;
-                    }
 
-                    "Loading..."
+                let response = ui.monospace("Loading...");
+                if response.clicked() {
+                    self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
                 }
+                return;
             };
 
-            let response = match common::log_table::text::log_cell_layout_job(
-                ui,
-                content,
-                row_nr,
-                self.shared,
-                self.shared.search.compiled_filters(),
-            ) {
-                Some(job) => ui.label(job),
-                None => ui.monospace(content),
-            };
+            source_changed = self.has_multi_sources
+                && self
+                    .table
+                    .logs
+                    .source_change_positions()
+                    .contains(&item.element.pos);
+
+            let col_idx = col_nr.saturating_sub(1);
+            let response = render_log_cell_text(ui, item, col_idx, self.shared);
 
             if response.clicked() {
                 self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
@@ -248,7 +239,7 @@ impl<'a> LogsDelegate<'a> {
         });
 
         if source_changed {
-            common::log_table::table::render_upper_bound(ui);
+            table::render_upper_bound(ui);
         }
     }
 }

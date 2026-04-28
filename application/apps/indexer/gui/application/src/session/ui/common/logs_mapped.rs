@@ -3,7 +3,7 @@ use std::rc::Rc;
 use rustc_hash::{FxHashMap, FxHashSet};
 use stypes::GrabbedElement;
 
-use crate::session::ui::definitions::{LogTableItem, schema::LogSchema};
+use crate::session::ui::definitions::{LogTableCell, LogTableItem, schema::LogSchema};
 
 /// Simple implementation for displaying a window of the logs to be used
 /// inside the log viewers (e.g., Main Table, Search Table).
@@ -67,11 +67,12 @@ impl LogsMapped {
                 }
             }
 
-            let column_ranges = self.schema.prepare_log(&mut element);
-            let item = LogTableItem {
-                element,
-                column_ranges,
-            };
+            let ranges = self.schema.prepare_log(&mut element);
+            let cells = ranges
+                .into_iter()
+                .map(|range| LogTableCell::from_range(&element.content, range))
+                .collect();
+            let item = LogTableItem { element, cells };
             self.logs.insert(idx, item);
         });
     }
@@ -103,5 +104,89 @@ impl LogsMapped {
     /// logs from different sources.
     pub fn source_change_positions(&self) -> &FxHashSet<usize> {
         &self.source_change_positions
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{ops::Range, rc::Rc};
+
+    use egui::Color32;
+    use egui_table::Column;
+    use stypes::GrabbedElement;
+
+    use crate::session::ui::definitions::{
+        LogTableCell,
+        schema::{ColumnInfo, LogSchema, map_columns_with_separator},
+    };
+
+    use super::LogsMapped;
+
+    #[derive(Debug)]
+    struct PipeSchema {
+        columns: [ColumnInfo; 2],
+    }
+
+    impl Default for PipeSchema {
+        fn default() -> Self {
+            Self {
+                columns: [
+                    ColumnInfo::new("first", "first", Column::default()),
+                    ColumnInfo::new("second", "second", Column::default()),
+                ],
+            }
+        }
+    }
+
+    impl LogSchema for PipeSchema {
+        fn has_headers(&self) -> bool {
+            true
+        }
+
+        fn columns(&self) -> &[ColumnInfo] {
+            &self.columns
+        }
+
+        fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>> {
+            let mut ranges = Vec::with_capacity(self.columns.len());
+            map_columns_with_separator(&element.content, &mut ranges, '|');
+            ranges
+        }
+    }
+
+    fn element(content: &str) -> GrabbedElement {
+        GrabbedElement {
+            source_id: 0,
+            content: content.to_owned(),
+            pos: 0,
+            nature: 0,
+        }
+    }
+
+    #[test]
+    fn append_prepares_ansi_cells_per_column() {
+        let mut logs = LogsMapped::new(Rc::new(PipeSchema::default()));
+
+        logs.append([(7, element("plain|\x1b[31mred"))].into_iter(), false);
+
+        let item = logs.get_log_item(&7).unwrap();
+        assert_eq!(item.cells.len(), 2);
+
+        let LogTableCell::Plain(range) = &item.cells[0] else {
+            panic!("expected plain cell");
+        };
+        assert_eq!(item.element.content.get(range.clone()), Some("plain"));
+
+        let LogTableCell::Ansi(ansi_text) = &item.cells[1] else {
+            panic!("expected ANSI cell");
+        };
+        assert_eq!(ansi_text.text, "red");
+        assert_eq!(ansi_text.spans.len(), 1);
+        assert_eq!(ansi_text.spans[0].range, 0..3);
+        assert_eq!(
+            ansi_text.spans[0].style.fg,
+            Some(Color32::from_rgb(0x80, 0x00, 0x00))
+        );
+        assert_eq!(ansi_text.spans[0].style.bg, None);
     }
 }
