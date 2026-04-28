@@ -66,6 +66,7 @@ eframe = { workspace = true, default-features = false, features = [
 ] }
 
 egui_extras.workspace = true
+image = { workspace = true, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 egui_table.workspace = true
 egui_plot.workspace = true
 egui-phosphor = { workspace = true, features = ["regular", "fill"] }

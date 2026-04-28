@@ -4,7 +4,7 @@ use itertools::Itertools;
 use log::error;
 use rustc_hash::FxHashSet;
 
-use egui::{Frame, Label, Layout, Modifiers, RichText, Ui, UiBuilder, Widget, vec2};
+use egui::{Frame, Label, Layout, Modifiers, RichText, Spinner, Ui, UiBuilder, Widget, vec2};
 use stypes::AttachmentInfo;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -17,10 +17,13 @@ use crate::{
             file_utls,
             ui_utls::show_side_panel_group,
         },
+        notification::AppNotification,
         ui::{UiActions, actions::FileDialogOptions},
     },
     session::{
         command::SessionCommand,
+        error::SessionError,
+        types::attachment::{PreviewContent, PreviewKind, PreviewRequest, kind_for_mime},
         ui::{
             shared::{AttachmentsState, SessionShared},
             side_panel::TITLE_SIZE,
@@ -39,7 +42,6 @@ const SUBTITLE_SIZE: f32 = TITLE_SIZE - 1.0;
 #[derive(Debug)]
 pub struct AttachmentsUi {
     host_cmd_tx: mpsc::Sender<HostCommand>,
-    #[allow(unused)]
     session_cmd_tx: mpsc::Sender<SessionCommand>,
     /// Indices of currently selected rows in the attachments list.
     selected_rows: FxHashSet<usize>,
@@ -47,6 +49,22 @@ pub struct AttachmentsUi {
     previously_clicked_row: Option<usize>,
     /// Uuids of attachments that are pending to be saved after file dialog completion.
     pending_attachment_save: FxHashSet<Uuid>,
+    preview_state: PreviewState,
+}
+
+#[derive(Debug)]
+enum PreviewState {
+    NoAttach,
+    Pending {
+        attachment_id: Uuid,
+    },
+    Content {
+        attachment_id: Uuid,
+        content: PreviewContent,
+    },
+    NotSupported {
+        attachment_id: Uuid,
+    },
 }
 
 /// Deferred filter mutation collected while rendering the filter menu.
@@ -67,6 +85,7 @@ impl AttachmentsUi {
             selected_rows: FxHashSet::default(),
             previously_clicked_row: None,
             pending_attachment_save: FxHashSet::default(),
+            preview_state: PreviewState::NoAttach,
         }
     }
 
@@ -80,22 +99,45 @@ impl AttachmentsUi {
 
         self.render_header(ui, &mut shared.attachments);
 
-        // Details panel located at the bottom but needs to be rendered before the attachments list.
-        if self.selected_rows.len() == 1 {
-            egui::Panel::bottom("attachments_details")
-                .frame(Frame::NONE)
-                .resizable(false)
-                .show_separator_line(false)
-                .exact_size(200.0)
-                .show_inside(ui, |ui| {
-                    show_side_panel_group(ui, |ui| self.render_preview(ui));
-                });
-        }
+        self.render_preview_panel(&shared.attachments, ui);
 
         egui::CentralPanel::default()
             .frame(Frame::NONE)
             .show_inside(ui, |ui| {
                 show_side_panel_group(ui, |ui| self.render_list(shared, ui_actions, ui));
+            });
+    }
+
+    fn render_preview_panel(&mut self, attachments: &AttachmentsState, ui: &mut egui::Ui) {
+        if self.selected_rows.len() != 1 {
+            self.clear_preview();
+            return;
+        }
+
+        let selected_idx = *self.selected_rows.iter().next().expect("len checked above");
+        let Some(attachment) = attachments.attachments().get(selected_idx) else {
+            return;
+        };
+
+        match self.preview_state {
+            PreviewState::Pending { attachment_id }
+            | PreviewState::Content { attachment_id, .. }
+            | PreviewState::NotSupported { attachment_id } => {
+                if attachment_id != attachment.uuid {
+                    return;
+                }
+            }
+            PreviewState::NoAttach => return,
+        }
+
+        // Details panel located at the bottom but needs to be rendered before the attachments list.
+        egui::Panel::bottom("attachments_details")
+            .frame(Frame::NONE)
+            .resizable(false)
+            .show_separator_line(false)
+            .exact_size(200.0)
+            .show_inside(ui, |ui| {
+                show_side_panel_group(ui, |ui| self.render_preview(attachment, ui));
             });
     }
 
@@ -184,14 +226,112 @@ impl AttachmentsUi {
         ui.add_space(ui.spacing().item_spacing.y);
     }
 
-    // TODO [TOOL-741]: Implement attachments preview.
-    fn render_preview(&self, ui: &mut egui::Ui) {
+    fn render_preview(&self, attachment: &AttachmentInfo, ui: &mut egui::Ui) {
         Label::new(RichText::new("Preview").heading().size(SUBTITLE_SIZE))
             .truncate()
             .ui(ui);
-        ui.centered_and_justified(|ui| {
-            ui.label(RichText::new("Attachment preview not implemented yet."));
-        });
+        ui.add_space(5.0);
+
+        match &self.preview_state {
+            PreviewState::Pending { attachment_id } if *attachment_id == attachment.uuid => {
+                ui.centered_and_justified(|ui| {
+                    Spinner::new().size(17.0).ui(ui);
+                });
+            }
+            PreviewState::Content {
+                attachment_id,
+                content,
+            } if *attachment_id == attachment.uuid => match content {
+                PreviewContent::Text(content) => {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        Label::new(RichText::new(content).monospace())
+                            .selectable(true)
+                            .ui(ui);
+                    });
+                }
+                PreviewContent::Image(texture) => render_image_preview(texture, ui),
+            },
+            PreviewState::NotSupported { attachment_id } if *attachment_id == attachment.uuid => {
+                ui.centered_and_justified(|ui| {
+                    ui.label(RichText::new("Preview unavailable for this attachment type.").weak());
+                });
+            }
+            _ => {}
+        }
+    }
+
+    pub fn handle_preview_response(
+        &mut self,
+        session_id: Uuid,
+        attachment_id: Uuid,
+        preview: Result<PreviewContent, SessionError>,
+        actions: &mut UiActions,
+    ) {
+        let PreviewState::Pending {
+            attachment_id: pending_id,
+        } = &self.preview_state
+        else {
+            return;
+        };
+
+        if *pending_id != attachment_id {
+            return;
+        }
+
+        match preview {
+            Ok(content) => {
+                self.preview_state = PreviewState::Content {
+                    attachment_id,
+                    content,
+                };
+            }
+            Err(error) => {
+                self.clear_preview();
+                error!("Session Error: Session ID: {session_id}, error: {error}");
+                actions.add_notification(AppNotification::SessionError { session_id, error });
+            }
+        }
+    }
+
+    fn select_preview(&mut self, attachment: &AttachmentInfo, ui_actions: &mut UiActions) {
+        match &self.preview_state {
+            PreviewState::Pending { attachment_id }
+            | PreviewState::Content { attachment_id, .. }
+            | PreviewState::NotSupported { attachment_id } => {
+                if *attachment_id == attachment.uuid {
+                    return;
+                }
+            }
+            PreviewState::NoAttach => {}
+        }
+
+        let preview_kind = kind_for_mime(attachment.mime.as_deref());
+        if preview_kind == PreviewKind::Unsupported {
+            self.preview_state = PreviewState::NotSupported {
+                attachment_id: attachment.uuid,
+            };
+            return;
+        }
+
+        self.preview_state = PreviewState::Pending {
+            attachment_id: attachment.uuid,
+        };
+
+        let request = PreviewRequest {
+            uuid: attachment.uuid,
+            filepath: attachment.filepath.clone(),
+            kind: preview_kind,
+        };
+        if !ui_actions.try_send_command(
+            &self.session_cmd_tx,
+            SessionCommand::PreviewAttachment(request),
+        ) {
+            self.clear_preview();
+        }
+    }
+
+    fn clear_preview(&mut self) {
+        self.preview_state = PreviewState::NoAttach;
     }
 
     fn render_list(
@@ -272,6 +412,12 @@ impl AttachmentsUi {
                                     .map(|filter| filter.indices()),
                                 ui.input(|i| i.modifiers),
                             );
+
+                            if self.selected_rows.len() == 1
+                                && self.selected_rows.contains(&attachment_idx)
+                            {
+                                self.select_preview(attachment, ui_actions);
+                            }
                         }
 
                         response.context_menu(|ui| {
@@ -361,6 +507,7 @@ impl AttachmentsUi {
             } else {
                 self.selected_rows.extend(0..attachment_count);
             }
+            self.clear_preview();
             ui.close();
         }
         if ui.button("Invert selection").clicked() {
@@ -371,6 +518,7 @@ impl AttachmentsUi {
                     (0..attachment_count).collect()
                 };
             self.selected_rows = all_rows.difference(&self.selected_rows).copied().collect();
+            self.clear_preview();
             ui.close();
         }
         ui.separator();
@@ -596,4 +744,17 @@ impl AttachmentsUi {
         self.selected_rows
             .extend(visible_range.map(|visible_idx| filtered_indices[visible_idx]));
     }
+}
+
+fn render_image_preview(texture: &egui::TextureHandle, ui: &mut egui::Ui) {
+    let image_size = texture.size_vec2();
+    let available_size = ui.available_size();
+    let scale = (available_size.x / image_size.x)
+        .min(available_size.y / image_size.y)
+        .min(1.0);
+    let preview_size = image_size * scale.max(0.0);
+
+    egui::ScrollArea::both().show(ui, |ui| {
+        ui.add(egui::Image::new((texture.id(), preview_size)));
+    });
 }

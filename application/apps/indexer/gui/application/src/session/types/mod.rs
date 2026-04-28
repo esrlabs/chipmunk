@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+pub mod attachment;
+
 use uuid::Uuid;
 
 use stypes::ObserveOrigin;

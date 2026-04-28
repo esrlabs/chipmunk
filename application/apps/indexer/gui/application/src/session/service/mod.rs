@@ -1,7 +1,8 @@
-use std::{ops::ControlFlow, sync::Arc};
+use std::{ops::ControlFlow, path::Path, sync::Arc};
 
+use image::ImageError;
 use itertools::Itertools;
-use tokio::{select, sync::mpsc};
+use tokio::{select, sync::mpsc, task};
 use uuid::Uuid;
 
 use processor::grabber::LineRange;
@@ -30,7 +31,10 @@ use crate::{
         command::AttachSource,
         communication::{self, ServiceSenders, SharedSenders},
         message::{BookmarkUpdate, SessionMessage},
-        types::{ObserveOperation, OperationPhase},
+        types::{
+            ObserveOperation, OperationPhase,
+            attachment::{PreviewContent, PreviewKind, PreviewRequest},
+        },
         ui::{SessionInfo, chart::ChartBar},
     },
 };
@@ -268,6 +272,9 @@ impl SessionService {
                     .send_session_msg(SessionMessage::SelectedLog(selected_log))
                     .await;
             }
+            SessionCommand::PreviewAttachment(request) => {
+                self.preview_attachment(request).await;
+            }
             SessionCommand::AddBookmarks(rows) => {
                 self.add_bookmarks(rows).await?;
             }
@@ -437,6 +444,48 @@ impl SessionService {
         Ok(ControlFlow::Continue(()))
     }
 
+    async fn preview_attachment(&self, request: PreviewRequest) {
+        let uuid = request.uuid;
+        let preview = self.load_preview(request).await;
+
+        self.senders
+            .send_session_msg(SessionMessage::AttachmentPreview { uuid, preview })
+            .await;
+    }
+
+    async fn load_preview(&self, request: PreviewRequest) -> Result<PreviewContent, SessionError> {
+        let PreviewRequest {
+            uuid,
+            filepath,
+            kind,
+        } = request;
+
+        match kind {
+            PreviewKind::Text => {
+                let content = tokio::fs::read_to_string(&filepath)
+                    .await
+                    .map_err(|error| ComputationError::IoOperation(error.to_string()))?;
+                Ok(PreviewContent::Text(content))
+            }
+            PreviewKind::Image => {
+                let color_image = task::spawn_blocking(move || decode_image(&filepath))
+                    .await
+                    .map_err(|error| ComputationError::Decoding(error.to_string()))?
+                    .map_err(|error| ComputationError::Decoding(error.to_string()))?;
+                let texture = self.senders.egui_ctx().load_texture(
+                    format!("attachment-preview-{uuid}"),
+                    color_image,
+                    egui::TextureOptions::LINEAR,
+                );
+                Ok(PreviewContent::Image(texture))
+            }
+            PreviewKind::Unsupported => Err(ComputationError::OperationNotSupported(
+                "attachment preview".to_string(),
+            )
+            .into()),
+        }
+    }
+
     async fn add_bookmarks(&mut self, rows: Vec<u64>) -> Result<(), SessionError> {
         let mut added = Vec::new();
         let mut errors = Vec::new();
@@ -564,4 +613,16 @@ impl SessionService {
 
         Ok(())
     }
+}
+
+fn decode_image(path: &Path) -> Result<egui::ColorImage, ImageError> {
+    let image = image::ImageReader::open(path)?.decode()?;
+    let size = [image.width() as _, image.height() as _];
+    let image_buffer = image.to_rgba8();
+    let pixels = image_buffer.as_flat_samples();
+
+    Ok(egui::ColorImage::from_rgba_unmultiplied(
+        size,
+        pixels.as_slice(),
+    ))
 }

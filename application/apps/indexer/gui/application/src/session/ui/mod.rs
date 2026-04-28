@@ -342,6 +342,14 @@ impl Session {
                         );
                     }
                 }
+                SessionMessage::AttachmentPreview { uuid, preview } => {
+                    self.side_panel.handle_attachment_preview(
+                        self.shared.get_id(),
+                        uuid,
+                        preview,
+                        actions,
+                    );
+                }
             }
         }
     }
