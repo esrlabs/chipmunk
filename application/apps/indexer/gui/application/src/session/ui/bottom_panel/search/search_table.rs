@@ -13,10 +13,10 @@ use crate::{
         ui::{
             common::{
                 self,
-                logs_mapped::LogsMapped,
-                logs_tables::{
+                log_table::table::{
                     apply_columns_to_table_state, grab_cmd_consts, should_stick_to_bottom,
                 },
+                logs_mapped::LogsMapped,
             },
             definitions::{LogTableItem, schema::LogSchema},
             logs_table::LogAttachmentInfo,
@@ -152,7 +152,7 @@ impl<'a> LogsDelegate<'a> {
     }
 
     fn select_row(&mut self, pos: u64, modifiers: egui::Modifiers) {
-        let Some(selected_row) = common::logs_tables::apply_selection_click(
+        let Some(selected_row) = common::log_table::table::apply_selection_click(
             self.shared,
             self.actions,
             &self.table.cmd_tx,
@@ -214,7 +214,7 @@ impl<'a> LogsDelegate<'a> {
                 }
             });
 
-        let response = common::logs_tables::render_row_header(
+        let response = common::log_table::table::render_row_header(
             ui,
             text,
             color_idx,
@@ -237,7 +237,7 @@ impl<'a> LogsDelegate<'a> {
     fn render_log_cell(&mut self, ui: &mut Ui, cell: &CellInfo) {
         let mut source_changed = false;
 
-        common::logs_tables::get_cell_frame().show(ui, |ui| {
+        common::log_table::table::get_cell_frame().show(ui, |ui| {
             let log_item = match self.get_log_item(cell) {
                 Some(log) => log,
                 None => {
@@ -264,7 +264,7 @@ impl<'a> LogsDelegate<'a> {
                 .and_then(|rng| log_item.element.content.get(rng.to_owned()))
                 .unwrap_or_default();
 
-            let response = match common::logs_tables::highlighted_cell_layout_job(
+            let response = match common::log_table::text::log_cell_layout_job(
                 ui,
                 content,
                 log_item.element.pos as u64,
@@ -281,7 +281,7 @@ impl<'a> LogsDelegate<'a> {
         });
 
         if source_changed {
-            common::logs_tables::render_upper_bound(ui);
+            common::log_table::table::render_upper_bound(ui);
         }
     }
 }
@@ -345,7 +345,7 @@ impl TableDelegate for LogsDelegate<'_> {
                         .append(combined, self.has_multi_sources);
                 }
                 Err(error) => {
-                    common::logs_tables::handle_grab_errors(
+                    common::log_table::table::handle_grab_errors(
                         error,
                         self.shared.get_id(),
                         self.actions,
@@ -370,7 +370,7 @@ impl TableDelegate for LogsDelegate<'_> {
 
         let is_selected = self.is_row_selected(log_item);
         let main_log_pos = log_item.map(|item| item.element.pos as u64);
-        common::logs_tables::apply_log_row_colors(ui, self.shared, main_log_pos, is_selected);
+        common::log_table::table::apply_log_row_colors(ui, self.shared, main_log_pos, is_selected);
 
         if ui.response().interact(Sense::click()).clicked()
             && let Some(log_item) = log_item
