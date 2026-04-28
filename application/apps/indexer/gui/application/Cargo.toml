@@ -31,6 +31,7 @@ clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true
+memchr.workspace = true
 tokio.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 semver.workspace = true
@@ -48,6 +49,7 @@ regex-syntax.workspace = true
 enum-iterator.workspace = true
 blake3.workspace = true
 nucleo-matcher.workspace = true
+anstyle-parse.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true

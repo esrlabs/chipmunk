@@ -14,7 +14,7 @@ dlt-core = { workspace = true, features = ["serialization", "fibex"] }
 lazy_static.workspace = true
 log.workspace = true
 regex.workspace = true
-memchr = "2.7"
+memchr.workspace = true
 serde = { workspace = true , features = ["derive"] }
 thiserror.workspace = true
 rand.workspace = true

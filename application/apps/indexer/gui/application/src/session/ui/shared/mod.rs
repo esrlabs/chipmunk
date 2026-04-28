@@ -6,7 +6,7 @@ use crate::{
         command::SessionCommand,
         types::{ObserveOperation, OperationPhase},
         ui::{
-            common::logs_tables,
+            common::log_table,
             definitions::{
                 UpdateOperationOutcome,
                 schema::{self, LogSchema},
@@ -90,7 +90,7 @@ impl SessionShared {
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
             layout: UiLayoutState {
-                log_columns: logs_tables::create_table_columns(schema.as_ref()),
+                log_columns: log_table::table::create_table_columns(schema.as_ref()),
             },
             observe: ObserveState::new(observe_op),
             attachments: AttachmentsState::default(),
