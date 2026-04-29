@@ -3,7 +3,6 @@ use egui::{
 };
 use enum_iterator::all;
 use tokio::sync::mpsc;
-use uuid::Uuid;
 
 use crate::{
     common::phosphor::icons,
@@ -12,12 +11,7 @@ use crate::{
         common::colors,
         ui::{UiActions, registry::HostRegistry},
     },
-    session::{
-        command::SessionCommand,
-        error::SessionError,
-        types::{ObserveOperation, attachment::PreviewContent},
-        ui::shared::SessionShared,
-    },
+    session::{command::SessionCommand, types::ObserveOperation, ui::shared::SessionShared},
 };
 
 mod attachments;
@@ -35,9 +29,9 @@ const TITLE_SIZE: f32 = 16.0;
 
 #[derive(Debug)]
 pub struct SidePanelUi {
-    observing: ObservingUi,
-    attachments: AttachmentsUi,
-    filters: FiltersUi,
+    pub observing: ObservingUi,
+    pub attachments: AttachmentsUi,
+    pub filters: FiltersUi,
 }
 
 impl SidePanelUi {
@@ -51,17 +45,6 @@ impl SidePanelUi {
             attachments: AttachmentsUi::new(host_command_tx.clone(), session_cmd_tx.clone()),
             filters: FiltersUi::new(session_cmd_tx),
         }
-    }
-
-    pub fn handle_attachment_preview(
-        &mut self,
-        session_id: Uuid,
-        attachment_id: Uuid,
-        preview: Result<PreviewContent, SessionError>,
-        actions: &mut UiActions,
-    ) {
-        self.attachments
-            .handle_preview_response(session_id, attachment_id, preview, actions);
     }
 
     pub fn render_content(

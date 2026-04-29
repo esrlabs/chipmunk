@@ -2,7 +2,7 @@ use rustc_hash::FxHashMap;
 use stypes::AttachmentInfo;
 use uuid::Uuid;
 
-use crate::host::common::colors;
+use crate::{host::common::colors, session::types::attachment::PreviewContent};
 
 #[derive(Debug, Default)]
 pub struct AttachmentsState {
@@ -18,6 +18,23 @@ pub struct AttachmentsState {
     color_by_extension: FxHashMap<String, egui::Color32>,
     /// Active extension filter and its cached attachment indices.
     filter: Option<AttachmentFilter>,
+    modal: AttachmentModalState,
+}
+
+#[derive(Debug, Default)]
+pub enum AttachmentModalState {
+    #[default]
+    Closed,
+    Pending {
+        attachment: AttachmentInfo,
+    },
+    Content {
+        attachment: AttachmentInfo,
+        content: PreviewContent,
+    },
+    NotSupported {
+        attachment: AttachmentInfo,
+    },
 }
 
 /// Cached attachment indices for the active extension filter.
@@ -66,6 +83,56 @@ impl AttachmentsState {
         }
 
         self.attachments.push(attachment);
+    }
+
+    pub fn show_preview_content(&mut self, attachment: AttachmentInfo, content: PreviewContent) {
+        self.modal = AttachmentModalState::Content {
+            attachment,
+            content,
+        };
+    }
+
+    pub fn show_preview_pending(&mut self, attachment: AttachmentInfo) {
+        self.modal = AttachmentModalState::Pending { attachment };
+    }
+
+    pub fn show_preview_unsupported(&mut self, attachment: AttachmentInfo) {
+        self.modal = AttachmentModalState::NotSupported { attachment };
+    }
+
+    pub fn close_preview_modal(&mut self) {
+        self.modal = AttachmentModalState::Closed;
+    }
+
+    pub fn handle_modal_preview(&mut self, attachment_id: Uuid, content: PreviewContent) {
+        let AttachmentModalState::Pending { attachment } = &self.modal else {
+            return;
+        };
+
+        if attachment.uuid != attachment_id {
+            return;
+        }
+
+        self.modal = AttachmentModalState::Content {
+            attachment: attachment.clone(),
+            content,
+        };
+    }
+
+    pub fn close_pending_modal(&mut self, attachment_id: Uuid) {
+        let AttachmentModalState::Pending { attachment } = &self.modal else {
+            return;
+        };
+
+        if attachment.uuid != attachment_id {
+            return;
+        }
+
+        self.close_preview_modal();
+    }
+
+    pub fn preview_modal(&self) -> &AttachmentModalState {
+        &self.modal
     }
 
     /// Get all attachments in order.
@@ -131,6 +198,12 @@ impl AttachmentsState {
             .and_then(|attachment| attachment.ext.as_deref())
             .and_then(|ext| self.color_by_extension.get(ext))
             .copied()
+    }
+}
+
+impl AttachmentModalState {
+    pub fn closed(&self) -> bool {
+        matches!(self, AttachmentModalState::Closed)
     }
 }
 

@@ -26,11 +26,22 @@ pub enum PreviewContent {
 #[derive(Debug)]
 pub struct PreviewRequest {
     /// Attachment identifier used to match service responses with UI selection.
-    pub uuid: Uuid,
+    pub attachment_id: Uuid,
     /// Attachment file path read by the service.
     pub filepath: PathBuf,
     /// Preview conversion selected by the UI from MIME metadata.
     pub kind: PreviewKind,
+    /// UI destination that should receive the preview response.
+    pub target: PreviewTarget,
+}
+
+/// UI destination waiting for an attachment preview response.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreviewTarget {
+    /// Compact preview in the attachments side panel.
+    SidePanel,
+    /// Larger attachment preview modal.
+    Modal,
 }
 
 /// Returns the preview kind supported for the provided MIME type.
