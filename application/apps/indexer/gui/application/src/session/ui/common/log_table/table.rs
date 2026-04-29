@@ -5,7 +5,8 @@
 //! search-result table.
 
 use egui::{
-    Align, Color32, CursorIcon, Frame, Layout, Margin, Response, Sense, Shape, Stroke, Ui, vec2,
+    Align, Color32, CursorIcon, Frame, Label, Layout, Margin, Response, RichText, Sense, Shape,
+    Stroke, Ui, Widget as _, vec2,
 };
 use egui_table::{Column, TableState};
 use stypes::ObserveOrigin;
@@ -186,6 +187,16 @@ pub fn render_upper_bound(ui: &mut Ui) {
     ));
 }
 
+/// Result of rendering a log table row header.
+pub struct RowHeaderResponse {
+    /// Combined response for row-header selection behavior.
+    pub response: Response,
+    /// Whether the attachment icon was clicked.
+    pub attachment_clicked: bool,
+    /// Whether the bookmark affordance was clicked.
+    pub bookmark_clicked: bool,
+}
+
 /// Render the row header for log tables.
 ///
 /// The header contains three parts:
@@ -193,73 +204,87 @@ pub fn render_upper_bound(ui: &mut Ui) {
 /// - the row text,
 /// - a right-side bookmark affordance that owns its own hover/click behavior.
 ///
-/// `on_toggle_bookmark` is invoked only when the bookmark area is clicked.
 pub fn render_row_header(
     ui: &mut Ui,
     text: String,
-    color_idx: Option<usize>,
+    source_color_idx: Option<usize>,
     is_bookmarked: bool,
-    on_toggle_bookmark: impl FnOnce(),
     attachment_info: LogAttachmentInfo,
-) -> Response {
-    ui.horizontal(|ui| {
-        let (res, painter) = ui.allocate_painter(
-            vec2(ROW_HEADER_SOURCE_COLOR_WIDTH, ui.available_height()),
-            Sense::click(),
-        );
-
-        if let Some(color_idx) = color_idx {
-            let color = ObserveState::source_color(color_idx);
-            painter.rect_filled(res.rect, 0.0, color);
-        }
-        let text_res = ui.monospace(text);
-
-        if let LogAttachmentInfo::WithAttachment { color } = attachment_info {
-            ui.colored_label(
-                color.unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR),
-                egui::RichText::new(egui_phosphor::fill::FILE),
-            );
-            ui.add_space(ui.spacing().item_spacing.x);
-        }
-
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            ui.add_space(3.0);
-            let (mut bookmark_res, painter) = ui.allocate_painter(
-                vec2(ROW_HEADER_BOOKMARK_WIDTH, ui.available_height()),
+) -> RowHeaderResponse {
+    let mut attachment_clicked = false;
+    let mut bookmark_clicked = false;
+    let response = ui
+        .horizontal(|ui| {
+            // Data Source Color.
+            let (res, painter) = ui.allocate_painter(
+                vec2(ROW_HEADER_SOURCE_COLOR_WIDTH, ui.available_height()),
                 Sense::click(),
             );
-            if bookmark_res.hovered() {
-                ui.ctx().set_cursor_icon(CursorIcon::PointingHand);
+
+            if let Some(color_idx) = source_color_idx {
+                let color = ObserveState::source_color(color_idx);
+                painter.rect_filled(res.rect, 0.0, color);
             }
 
-            let fill = if is_bookmarked {
-                ui.visuals().selection.bg_fill
-            } else if bookmark_res.hovered() {
-                ui.visuals().widgets.hovered.bg_fill
-            } else {
-                Color32::TRANSPARENT
-            };
-            painter.rect_filled(bookmark_res.rect, 0.0, fill);
+            // Header text
+            let text_res = ui.monospace(text);
 
-            bookmark_res = bookmark_res.on_hover_ui(|ui| {
-                ui.set_max_width(ui.spacing().tooltip_width);
+            // Attachments
+            if let LogAttachmentInfo::WithAttachment { color } = attachment_info {
+                let icon = Label::new(
+                    RichText::new(egui_phosphor::fill::FILE)
+                        .color(color.unwrap_or(DEFAULT_ATTACHMENT_EXT_COLOR)),
+                )
+                .selectable(false)
+                .sense(Sense::click());
+                let icon_response = icon.ui(ui).on_hover_cursor(CursorIcon::PointingHand);
+                attachment_clicked = icon_response.clicked();
+                ui.add_space(ui.spacing().item_spacing.x);
+            }
 
-                let text = if is_bookmarked {
-                    "Remove line bookmark"
+            // Bookmarks
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.add_space(3.0);
+                let (mut bookmark_res, painter) = ui.allocate_painter(
+                    vec2(ROW_HEADER_BOOKMARK_WIDTH, ui.available_height()),
+                    Sense::click(),
+                );
+                if bookmark_res.hovered() {
+                    ui.ctx().set_cursor_icon(CursorIcon::PointingHand);
+                }
+
+                let fill = if is_bookmarked {
+                    ui.visuals().selection.bg_fill
+                } else if bookmark_res.hovered() {
+                    ui.visuals().widgets.hovered.bg_fill
                 } else {
-                    "Add line bookmark"
+                    Color32::TRANSPARENT
                 };
-                ui.label(text);
+                painter.rect_filled(bookmark_res.rect, 0.0, fill);
+
+                bookmark_res = bookmark_res.on_hover_ui(|ui| {
+                    ui.set_max_width(ui.spacing().tooltip_width);
+
+                    let text = if is_bookmarked {
+                        "Remove line bookmark"
+                    } else {
+                        "Add line bookmark"
+                    };
+                    ui.label(text);
+                });
+
+                bookmark_clicked = bookmark_res.clicked();
             });
 
-            if bookmark_res.clicked() {
-                on_toggle_bookmark();
-            }
-        });
+            res.union(text_res)
+        })
+        .inner;
 
-        res.union(text_res)
-    })
-    .inner
+    RowHeaderResponse {
+        response,
+        attachment_clicked,
+        bookmark_clicked,
+    }
 }
 
 /// Frame for table content cells.

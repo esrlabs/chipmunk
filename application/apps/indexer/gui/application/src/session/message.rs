@@ -75,7 +75,8 @@ pub enum SessionMessage {
 
     /// Preview result for one attachment.
     AttachmentPreview {
-        uuid: Uuid,
+        attachment_id: Uuid,
+        target: attachment::PreviewTarget,
         preview: Result<attachment::PreviewContent, SessionError>,
     },
 }

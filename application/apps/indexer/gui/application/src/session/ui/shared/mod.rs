@@ -26,7 +26,7 @@ mod observe;
 pub(crate) mod searching;
 mod signal;
 
-pub use attachments::AttachmentsState;
+pub use attachments::{AttachmentModalState, AttachmentsState};
 pub use info::SessionInfo;
 pub use layout::UiLayoutState;
 pub use logs::{LogsState, SelectionIntent};

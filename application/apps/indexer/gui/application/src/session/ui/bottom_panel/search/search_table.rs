@@ -10,12 +10,14 @@ use crate::{
     session::{
         command::SessionCommand,
         error::SessionError,
+        types::attachment::{PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime},
         ui::{
             common::{
                 self,
                 log_table::{
                     table::{
-                        apply_columns_to_table_state, grab_cmd_consts, should_stick_to_bottom,
+                        apply_columns_to_table_state, grab_cmd_consts, render_row_header,
+                        should_stick_to_bottom,
                     },
                     text::render_log_cell_text,
                 },
@@ -191,49 +193,73 @@ impl<'a> LogsDelegate<'a> {
     }
 
     fn render_row_header(&mut self, ui: &mut Ui, cell: &CellInfo) {
-        let (text, color_idx) = self
-            .get_log_item(cell)
-            .map(|item| {
-                (
-                    item.element.pos.to_string(),
-                    self.has_multi_sources
-                        .then_some(item.element.source_id as usize),
-                )
-            })
-            .unwrap_or_default();
+        let Some(log_item) = self.get_log_item(cell) else {
+            return;
+        };
 
-        let log_position: Option<usize> = self.get_log_item(cell).map(|item| item.element.pos);
+        let log_position = log_item.element.pos;
+        let source_color_idx = self
+            .has_multi_sources
+            .then_some(log_item.element.source_id as usize);
+        let is_bookmarked = self.shared.logs.is_bookmarked(log_position as u64);
 
-        let is_bookmarked = log_position
-            .is_some_and(|row_number| self.shared.logs.is_bookmarked(row_number as u64));
-
-        let attachment_info = self
+        let attachment_id = self
             .shared
             .attachments
-            .attachment_by_log_position(cell.row_nr as usize)
-            .map_or(LogAttachmentInfo::NoAttachment, |attachment| {
+            .attachment_by_log_position(log_position)
+            .map(|attachment| attachment.uuid);
+        let attachment_info =
+            attachment_id.map_or(LogAttachmentInfo::NoAttachment, |attachment_id| {
                 LogAttachmentInfo::WithAttachment {
-                    color: self.shared.attachments.color_by_uuid(&attachment.uuid),
+                    color: self.shared.attachments.color_by_uuid(&attachment_id),
                 }
             });
 
-        let response = common::log_table::table::render_row_header(
+        let header = render_row_header(
             ui,
-            text,
-            color_idx,
+            log_position.to_string(),
+            source_color_idx,
             is_bookmarked,
-            || {
-                if let Some(log_position) = log_position {
-                    self.toggle_row_bookmark(log_position as u64);
-                }
-            },
             attachment_info,
         );
 
-        if let Some(bookmark_pos) = log_position
-            && response.clicked()
-        {
-            self.handle_selection_click(bookmark_pos as u64, ui.input(|i| i.modifiers));
+        if header.attachment_clicked {
+            if let Some(attachment_id) = attachment_id
+                && let Some(attachment) = self
+                    .shared
+                    .attachments
+                    .attachment_by_uuid(&attachment_id)
+                    .cloned()
+            {
+                let kind = kind_for_mime(attachment.mime.as_deref());
+                match kind {
+                    PreviewKind::Unsupported => {
+                        self.shared.attachments.show_preview_unsupported(attachment);
+                    }
+                    PreviewKind::Text | PreviewKind::Image => {
+                        self.shared
+                            .attachments
+                            .show_preview_pending(attachment.clone());
+
+                        let request = PreviewRequest {
+                            attachment_id,
+                            filepath: attachment.filepath.clone(),
+                            kind,
+                            target: PreviewTarget::Modal,
+                        };
+                        if !self.actions.try_send_command(
+                            &self.table.cmd_tx,
+                            SessionCommand::PreviewAttachment(request),
+                        ) {
+                            self.shared.attachments.close_pending_modal(attachment_id);
+                        }
+                    }
+                }
+            }
+        } else if header.bookmark_clicked {
+            self.toggle_row_bookmark(log_position as u64);
+        } else if header.response.clicked() {
+            self.handle_selection_click(log_position as u64, ui.input(|i| i.modifiers));
         }
     }
 

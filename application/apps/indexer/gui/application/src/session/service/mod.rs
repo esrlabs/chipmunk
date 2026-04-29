@@ -445,19 +445,25 @@ impl SessionService {
     }
 
     async fn preview_attachment(&self, request: PreviewRequest) {
-        let uuid = request.uuid;
+        let attachment_id = request.attachment_id;
+        let target = request.target;
         let preview = self.load_preview(request).await;
 
         self.senders
-            .send_session_msg(SessionMessage::AttachmentPreview { uuid, preview })
+            .send_session_msg(SessionMessage::AttachmentPreview {
+                attachment_id,
+                target,
+                preview,
+            })
             .await;
     }
 
     async fn load_preview(&self, request: PreviewRequest) -> Result<PreviewContent, SessionError> {
         let PreviewRequest {
-            uuid,
+            attachment_id,
             filepath,
             kind,
+            target: _,
         } = request;
 
         match kind {
@@ -473,7 +479,7 @@ impl SessionService {
                     .map_err(|error| ComputationError::Decoding(error.to_string()))?
                     .map_err(|error| ComputationError::Decoding(error.to_string()))?;
                 let texture = self.senders.egui_ctx().load_texture(
-                    format!("attachment-preview-{uuid}"),
+                    format!("attachment-preview-{attachment_id}"),
                     color_image,
                     egui::TextureOptions::LINEAR,
                 );

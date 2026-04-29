@@ -22,6 +22,7 @@ use crate::{
         communication::{UiHandle, UiReceivers},
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
+        types::attachment::PreviewTarget,
         ui::shared::SessionSignal,
     },
 };
@@ -29,6 +30,7 @@ use bottom_panel::BottomPanelUI;
 use logs_table::LogsTable;
 use side_panel::SidePanelUi;
 
+mod attachment_modal;
 mod bottom_panel;
 mod common;
 mod definitions;
@@ -51,6 +53,7 @@ pub struct Session {
     logs_table: LogsTable,
     bottom_panel: BottomPanelUI,
     side_panel: SidePanelUi,
+    attachment_modal: attachment_modal::AttachmentModalUi,
 }
 
 impl Session {
@@ -89,6 +92,7 @@ impl Session {
             recent_session: RecentSessionRuntime::new(recent_source_key, supports_bookmarks),
             logs_table,
             bottom_panel,
+            attachment_modal: attachment_modal::AttachmentModalUi::new(),
             cmd_tx: senders.cmd_tx,
         }
     }
@@ -208,6 +212,9 @@ impl Session {
                     logs_table.render_content(shared, actions, ui);
                 });
             });
+
+        self.attachment_modal
+            .render_content(&mut shared.attachments, ui.ctx());
 
         self.handle_signals();
     }
@@ -342,14 +349,34 @@ impl Session {
                         );
                     }
                 }
-                SessionMessage::AttachmentPreview { uuid, preview } => {
-                    self.side_panel.handle_attachment_preview(
-                        self.shared.get_id(),
-                        uuid,
-                        preview,
-                        actions,
-                    );
-                }
+                SessionMessage::AttachmentPreview {
+                    attachment_id,
+                    target,
+                    preview,
+                } => match self.ok_or_notify(preview, actions) {
+                    Some(content) => match target {
+                        PreviewTarget::SidePanel => {
+                            self.side_panel
+                                .attachments
+                                .handle_preview_response(attachment_id, content);
+                        }
+                        PreviewTarget::Modal => {
+                            self.shared
+                                .attachments
+                                .handle_modal_preview(attachment_id, content);
+                        }
+                    },
+                    None => match target {
+                        PreviewTarget::SidePanel => {
+                            self.side_panel
+                                .attachments
+                                .clear_pending_preview(attachment_id);
+                        }
+                        PreviewTarget::Modal => {
+                            self.shared.attachments.close_pending_modal(attachment_id);
+                        }
+                    },
+                },
             }
         }
     }
