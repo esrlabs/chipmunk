@@ -1,0 +1,119 @@
+name: BuildAndReleaseChipmunkAlpha
+
+on:
+  push:
+    tags:
+      - "*.*.*-alpha.*"
+
+permissions:
+  contents: write
+
+jobs:
+  create_release:
+    name: Create app release
+    if: ${{ contains(github.ref_name, '-alpha.') }}
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    env:
+      PUBLISH_FOR_PULL_REQUEST: true
+      CSC_FOR_PULL_REQUEST: true
+    steps:
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          prerelease: true
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+
+  build_release:
+    name: Build app release
+    needs: create_release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-15-intel, macOS-latest]
+        rust: [stable]
+    env:
+      APPLEID: ${{ secrets.APPLEID }}
+      APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+      SIGNING_ID: ${{ secrets.SIGNING_ID }}
+      TEAMID: ${{ secrets.TEAMID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libgtk-3-dev \
+            libudev-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcb-xkb-dev \
+            pkg-config
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            application/apps/indexer -> target
+      - name: Setup keychain for signing and notarizing
+        if: runner.os == 'macOS'
+        run: |
+          security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+          security default-keychain -s build.keychain
+          certfile="${HOME}/buildcert.p12"
+          echo "$CSC_LINK" | base64 -d > "$certfile"
+          security import \
+            "$certfile" \
+            -P "$CSC_KEY_PASSWORD" \
+            -A \
+            -k build.keychain
+          rm "$certfile"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$KEYCHAIN_PWD" \
+            build.keychain
+          security set-keychain-settings build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+      - name: Build app release
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            python3 scripts/release_app.py --code-sign
+          else
+            python3 scripts/release_app.py
+          fi
+      - name: List app release files
+        working-directory: ./application/apps/indexer/gui/application/release
+        run: ls
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chipmunk-alpha-${{ matrix.os }}
+          path: |
+            ./application/apps/indexer/gui/application/release/*.tgz
+            ./application/apps/indexer/gui/application/release/*.zip
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ./application/apps/indexer/gui/application/release/*.tgz
+            ./application/apps/indexer/gui/application/release/*.zip
