@@ -47,7 +47,7 @@ mod status_bar;
 
 pub use bottom_panel::chart;
 pub use recent::RecentSessionRuntime;
-pub use shared::{SessionInfo, SessionShared};
+pub use shared::{ObserveState, SessionInfo, SessionShared};
 pub use shortcuts::shortcut_defs;
 
 #[derive(Debug)]
