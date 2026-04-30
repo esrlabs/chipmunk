@@ -1767,8 +1767,7 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 [[package]]
 name = "ecolor"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "137c0ce4ce4152ff7e223a7ce22ee1057cdff61fce0a45c32459c3ccec64868d"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "bytemuck",
  "emath",
@@ -1778,8 +1777,7 @@ dependencies = [
 [[package]]
 name = "eframe"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6e995b8e434d65aefd12c4519221be3e8f38efd77804ef39ca10553f4ad7063"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1817,8 +1815,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f34aaf627da598dfadd64b0fee6101d22e9c451d1e5348157312720b7f459f0f"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "accesskit",
  "ahash",
@@ -1846,8 +1843,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71033ff78b041c9c363450f4498ff95468ef3ecbcc71a62f67036a6207d98fa4"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1866,8 +1862,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11a2881b2bf1a305e413e644af63f836737a33d85077705ff808e88f902ff742"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "accesskit_winit",
  "arboard",
@@ -1889,8 +1884,7 @@ dependencies = [
 [[package]]
 name = "egui_extras"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62bfc6870c68d3f254e33aca8200095d422e09edacb0f365f79fe23a5ba10963"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "ahash",
  "egui",
@@ -1902,8 +1896,7 @@ dependencies = [
 [[package]]
 name = "egui_glow"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b28d39ab6c0cac238190e6cb1e8c9047d02cb470ab942a7a3302e4cb3a8e74"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "bytemuck",
  "egui",
@@ -1947,8 +1940,7 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 [[package]]
 name = "emath"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a05cd8bdf3b598488c627ca97c7fe8909448ffa26278dd3c7e535cdb554d721"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "bytemuck",
  "serde",
@@ -2094,8 +2086,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04f3017dd67f147a697ee0c8484fb568fd9553e2a0c114be5020dbbc11962841"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -2118,8 +2109,7 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e3b85a2bb775a3ab02d077a65cc31575c11b2584581913253cc11ce49f48bba"
+source = "git+https://github.com/AmmarAbouZor/egui?rev=a9f3a3e4ce95e014d46bae8ab49021b3e77213c8#a9f3a3e4ce95e014d46bae8ab49021b3e77213c8"
 
 [[package]]
 name = "equivalent"
