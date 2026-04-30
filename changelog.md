@@ -1,3 +1,9 @@
+# 3.19.6 (30.04.2026)
+
+## Added
+- Chipmunk 4 alpha release announcement.
+- Notifications for Chipmunk 4 alpha releases.
+
 # 3.19.5 (20.04.2026)
 
 ## Fixes
