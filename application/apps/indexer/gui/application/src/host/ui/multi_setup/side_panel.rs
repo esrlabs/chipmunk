@@ -17,12 +17,11 @@ pub struct MultiSidePanel {
 #[derive(Debug, Clone)]
 struct FileSegment {
     pub size: u64,
-    pub color: Color32,
 }
 
 impl FileSegment {
-    fn new(size: u64, color: Color32) -> Self {
-        Self { size, color }
+    fn new(size: u64) -> Self {
+        Self { size }
     }
 }
 
@@ -66,7 +65,7 @@ impl MultiSidePanel {
             .extend(state.files.iter().filter(|f| f.included).map(|f| {
                 let size = f.size_bytes.unwrap_or_default();
                 total_size += size;
-                FileSegment::new(size, f.color)
+                FileSegment::new(size)
             }));
 
         if self.segments_cache.is_empty() {

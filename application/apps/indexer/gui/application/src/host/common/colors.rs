@@ -131,12 +131,6 @@ pub fn main_accent_stroke(dark_mode: bool) -> Color32 {
     }
 }
 
-/// Returns the source palette as an owned list for UI code that needs to iterate
-/// or display the available colors.
-pub fn source_highlighting_colors() -> Vec<Color32> {
-    SOURCE_HIGHLIGHT_COLORS.to_vec()
-}
-
 /// Returns the first unused filter color pair from the fixed filter palette.
 ///
 /// # Note:

@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::Result;
-use egui::Color32;
 use itertools::Itertools;
 use log::trace;
 use tokio::{runtime::Handle, select};
@@ -396,13 +395,10 @@ impl HostService {
         Ok(())
     }
 
-    async fn concatenate_files(
-        &self,
-        files: Vec<(Color32, PathBuf, FileFormat)>,
-    ) -> Result<(), HostError> {
+    async fn concatenate_files(&self, files: Vec<(PathBuf, FileFormat)>) -> Result<(), HostError> {
         let mut file_groups = HashMap::new();
 
-        for (color, path, format) in files {
+        for (path, format) in files {
             file_groups
                 .entry(format)
                 .or_insert_with(Vec::new)

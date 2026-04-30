@@ -87,13 +87,12 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
                     }
                 }
 
-                if response.drag_started() {
-                    if let Some(pointer_pos) = ctx.pointer_interact_pos() {
-                        if state.drag_index.is_none() {
-                            state.drag_index = Some(row.index());
-                            state.drag_start_y = Some(pointer_pos.y);
-                        }
-                    }
+                if let Some(pointer_pos) = ctx.pointer_interact_pos()
+                    && response.drag_started()
+                    && state.drag_index.is_none()
+                {
+                    state.drag_index = Some(row.index());
+                    state.drag_start_y = Some(pointer_pos.y);
                 }
 
                 if let (Some(from), Some(start_y)) = (state.drag_index, state.drag_start_y) {
@@ -114,7 +113,7 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
                             egui::Id::new("drag_line"),
                         ));
                         let mut range = rect.x_range();
-                        range.max = range.max - 130.0;
+                        range.max -= 130.0;
                         painter.hline(range, line_y, stroke);
                     }
                 }

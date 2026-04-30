@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
-use egui::Color32;
 
 use stypes::FileFormat;
 
@@ -16,12 +15,11 @@ pub struct FileUiState {
     pub size_bytes: Option<u64>,
     pub size_txt: Option<String>,
     pub last_modify: Option<String>,
-    pub color: Color32,
     pub included: bool,
 }
 
 impl FileUiState {
-    pub fn new(path: PathBuf, format: FileFormat, color: Color32) -> Self {
+    pub fn new(path: PathBuf, format: FileFormat) -> Self {
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
@@ -64,7 +62,6 @@ impl FileUiState {
             size_bytes,
             size_txt,
             last_modify,
-            color,
             included: true,
         }
     }
