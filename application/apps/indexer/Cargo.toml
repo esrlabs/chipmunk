@@ -109,6 +109,11 @@ proptest = "1.6"
 
 [patch.crates-io]
 # Dependencies patches before they are released can be defined here.
+# These batches are used until PR is included in egui main stream `https://github.com/emilk/egui/pull/8033`
+eframe = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+egui = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+egui_extras = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+emath = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
 
 [workspace.lints.clippy]
 undocumented_unsafe_blocks = "deny"
