@@ -70,7 +70,8 @@ impl Host {
             viewport: egui::ViewportBuilder::default()
                 .with_title(app_info::TITLE)
                 .with_icon(app_info::icon())
-                .with_inner_size(vec2(1200., 900.)),
+                .with_inner_size(vec2(1200., 900.))
+                .with_min_inner_size(vec2(700.0, 550.0)),
             ..Default::default()
         };
 

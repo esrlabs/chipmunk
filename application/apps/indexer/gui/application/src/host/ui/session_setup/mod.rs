@@ -8,7 +8,10 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::ui::{buttons, visibility_tracker::VisibilityTracker},
+    common::ui::{
+        RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE, buttons,
+        visibility_tracker::VisibilityTracker,
+    },
     host::{
         command::HostCommand,
         common::{file_utls, parsers::ParserNames, sources::StreamNames},
@@ -78,8 +81,8 @@ impl SessionSetup {
             });
 
         Panel::right("side options")
-            .size_range(200.0..=350.0)
-            .default_size(250.)
+            .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
+            .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.take_available_width();

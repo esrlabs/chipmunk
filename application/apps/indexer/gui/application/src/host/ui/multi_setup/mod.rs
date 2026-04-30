@@ -3,7 +3,9 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
-    common::ui::buttons,
+    common::ui::{
+        RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE, buttons,
+    },
     host::{
         command::HostCommand,
         ui::{UiActions, multi_setup::state::MultiFileState},
@@ -51,8 +53,8 @@ impl MultiFileSetup {
 
         Panel::right("side info")
             .frame(Frame::central_panel(ui.style()))
-            .size_range(200.0..=350.0)
-            .default_size(250.)
+            .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
+            .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {

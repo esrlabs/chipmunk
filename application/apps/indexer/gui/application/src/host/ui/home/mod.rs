@@ -5,7 +5,10 @@ use tokio::sync::mpsc::Sender;
 
 use self::{file_explorer::FileExplorerUi, recent::RecentSessionsUi};
 use super::menu::render_connections_menu;
-use crate::common::phosphor::icons;
+use crate::common::{
+    phosphor::icons,
+    ui::{RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE},
+};
 use crate::host::{
     command::HostCommand,
     common::{parsers::ParserNames, sources::StreamNames, ui_utls::general_group_frame},
@@ -60,8 +63,8 @@ impl HomeView {
         self.handle_pending_file_dialog(actions);
 
         Panel::right("favorite folders")
-            .size_range(180.0..=750.0)
-            .default_size(350.)
+            .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
+            .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
             .show_animated_inside(ui, panels_visibility.right, |ui| {
                 self.file_explorer

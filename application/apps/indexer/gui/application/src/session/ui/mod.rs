@@ -5,7 +5,10 @@ use log::warn;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    common::modal::show_busy_indicator,
+    common::{
+        modal::show_busy_indicator,
+        ui::{RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE},
+    },
     host::{
         command::HostCommand,
         notification::AppNotification,
@@ -184,8 +187,8 @@ impl Session {
 
         Panel::right("side_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::same(0)))
-            .size_range(200.0..=500.0)
-            .default_size(250.0)
+            .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
+            .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
             .show_animated_inside(ui, panels_visibility.right, |ui| {
                 ui.take_available_width();
@@ -194,8 +197,8 @@ impl Session {
 
         Panel::bottom("bottom_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::ZERO))
-            .size_range(100.0..=700.0)
-            .default_size(200.)
+            .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
+            .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
             .show_animated_inside(ui, panels_visibility.bottom, |ui| {
                 ui.take_available_height();
