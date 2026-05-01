@@ -48,6 +48,7 @@ mod notification;
 mod recent_session;
 pub mod registry;
 pub mod session_setup;
+pub mod shortcuts;
 pub mod state;
 pub mod storage;
 mod tabs;
@@ -471,6 +472,8 @@ impl eframe::App for Host {
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        shortcuts::handle(self, ui.ctx());
+
         self.render_ui(ui, frame);
 
         dnd_paths::handle_path_drops(ui, &mut self.ui_actions, &self.senders.cmd_tx);

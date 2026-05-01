@@ -19,7 +19,7 @@ pub struct MainMenuBar {
     cmd_tx: Sender<HostCommand>,
 }
 
-const OPEN_FILES_ID: &str = "menu_open_files";
+pub const OPEN_FILES_ID: &str = "menu_open_files";
 const TEXT_FILES_FROM_DIR: &str = "menu_text_files";
 const BINARY_DLT_FILES_FROM_DIR: &str = "menu_binary_dlt_files";
 const PCAPNG_FILES_FROM_DIR: &str = "menu_pacpng_files";

@@ -1,4 +1,7 @@
-use std::{ops::Range, rc::Rc};
+use std::{
+    ops::{Range, RangeInclusive},
+    rc::Rc,
+};
 
 use egui::{Sense, TextBuffer, Ui};
 use egui_table::{CellInfo, HeaderCellInfo, PrefetchInfo, TableDelegate};
@@ -19,8 +22,8 @@ use crate::{
                 self,
                 log_table::{
                     table::{
-                        self, columns_filling_last, grab_cmd_consts, render_row_header,
-                        should_stick_to_bottom, sync_column_widths,
+                        self, TableScroll, columns_filling_last, grab_cmd_consts,
+                        render_row_header, should_stick_to_bottom, sync_column_widths,
                     },
                     text::render_log_cell_text,
                 },
@@ -44,6 +47,7 @@ pub enum LogAttachmentInfo {
 pub struct LogsTable {
     logs: LogsMapped,
     last_visible_rows: Option<Range<u64>>,
+    pending_scroll: Option<RangeInclusive<u64>>,
     cmd_tx: Sender<SessionCommand>,
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
@@ -56,6 +60,7 @@ impl LogsTable {
         Self {
             cmd_tx,
             last_visible_rows: Default::default(),
+            pending_scroll: None,
             logs: LogsMapped::new(Rc::clone(&schema)),
             pending_logs_rx: None,
             schema,
@@ -90,6 +95,10 @@ impl LogsTable {
             table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
         }
 
+        if let Some(rows) = self.pending_scroll.take() {
+            table = table.scroll_to_rows(rows, None);
+        }
+
         let mut delegate = LogsDelegate::new(self, shared, actions);
         table.show(ui, &mut delegate);
         if delegate.request_repaint {
@@ -97,6 +106,15 @@ impl LogsTable {
         }
 
         sync_column_widths(ui, TABLE_ID_SALT, &mut shared.layout.log_columns);
+    }
+
+    /// Queues a vertical table scroll for the next render pass.
+    pub fn scroll(&mut self, action: TableScroll, row_count: u64) {
+        if let Some(target) =
+            table::scroll_target(action, self.last_visible_rows.as_ref(), row_count)
+        {
+            self.pending_scroll = Some(target);
+        }
     }
 }
 

@@ -76,6 +76,32 @@ impl HostState {
         matches!(self.active_tab(), TabType::Session(_))
     }
 
+    pub fn activate_tab(&mut self, index: usize) {
+        if index < self.tabs.len() {
+            self.active_tab_idx = index;
+        }
+    }
+
+    pub fn activate_next_tab(&mut self) {
+        if self.tabs.len() <= 1 {
+            return;
+        }
+
+        self.active_tab_idx = (self.active_tab_idx + 1) % self.tabs.len();
+    }
+
+    pub fn activate_previous_tab(&mut self) {
+        if self.tabs.len() <= 1 {
+            return;
+        }
+
+        self.active_tab_idx = if self.active_tab_idx == 0 {
+            self.tabs.len() - 1
+        } else {
+            self.active_tab_idx - 1
+        };
+    }
+
     /// Add session to state returning it's ID.
     pub fn add_session(
         &mut self,

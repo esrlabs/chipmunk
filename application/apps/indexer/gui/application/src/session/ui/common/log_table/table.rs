@@ -4,6 +4,8 @@
 //! and shared backend-grab constants used by both the main log table and the
 //! search-result table.
 
+use std::ops::{Range, RangeInclusive};
+
 use egui::{
     Align, Color32, CursorIcon, Frame, Label, Layout, Margin, Response, RichText, Sense, Shape,
     Stroke, Ui, Widget as _, vec2,
@@ -42,6 +44,59 @@ pub mod grab_cmd_consts {
 const ROW_HEADER_SOURCE_COLOR_WIDTH: f32 = 5.0;
 const ROW_HEADER_BOOKMARK_WIDTH: f32 = 8.0;
 const COLUMN_WIDTH_EPSILON: f32 = 0.25;
+
+/// Vertical scroll command for log-like tables.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TableScroll {
+    /// Scroll up by roughly one visible page.
+    PageUp,
+    /// Scroll down by roughly one visible page.
+    PageDown,
+    /// Scroll to the first row.
+    Top,
+    /// Scroll to the last row.
+    Bottom,
+}
+
+/// Returns the row range to bring into view for a table scroll action.
+pub fn scroll_target(
+    action: TableScroll,
+    last_visible_rows: Option<&Range<u64>>,
+    row_count: u64,
+) -> Option<RangeInclusive<u64>> {
+    if row_count == 0 {
+        return None;
+    }
+
+    let last_row = row_count - 1;
+    match action {
+        TableScroll::Top => Some(0..=0),
+        TableScroll::Bottom => Some(last_row..=last_row),
+        TableScroll::PageUp => {
+            let visible_rows = last_visible_rows?;
+            let page_size = visible_rows.end.saturating_sub(visible_rows.start);
+            if page_size == 0 {
+                return None;
+            }
+
+            // Page-up targets a single row. A full-page range near row 0 can already be
+            // partially visible, causing `scroll_to_rows(..., None)` to stop before top.
+            let row = visible_rows.start.saturating_sub(page_size).min(last_row);
+            Some(row..=row)
+        }
+        TableScroll::PageDown => {
+            let visible_rows = last_visible_rows?;
+            let page_size = visible_rows.end.saturating_sub(visible_rows.start);
+            if page_size == 0 {
+                return None;
+            }
+
+            let first_row = visible_rows.start.saturating_add(page_size).min(last_row);
+            let final_row = first_row.saturating_add(page_size - 1).min(last_row);
+            Some(first_row..=final_row)
+        }
+    }
+}
 
 /// Creates the columns for logs table based on the provided `schema`,
 /// inserting the row header column into them.
@@ -397,7 +452,7 @@ pub fn should_stick_to_bottom(shared: &SessionShared) -> bool {
 mod tests {
     use egui::Modifiers;
 
-    use super::selection_intent;
+    use super::{TableScroll, scroll_target, selection_intent};
     use crate::session::ui::shared::SelectionIntent;
 
     #[test]
@@ -440,5 +495,30 @@ mod tests {
             }),
             SelectionIntent::ExtendRange,
         );
+    }
+
+    #[test]
+    fn page_scroll_uses_visible_page_size() {
+        assert_eq!(
+            scroll_target(TableScroll::PageDown, Some(&(10..20)), 100),
+            Some(20..=29)
+        );
+        assert_eq!(
+            scroll_target(TableScroll::PageUp, Some(&(10..20)), 100),
+            Some(0..=0)
+        );
+    }
+
+    #[test]
+    fn edge_scrolls_require_rows() {
+        assert_eq!(
+            scroll_target(TableScroll::Top, Some(&(10..20)), 100),
+            Some(0..=0)
+        );
+        assert_eq!(
+            scroll_target(TableScroll::Bottom, Some(&(10..20)), 100),
+            Some(99..=99)
+        );
+        assert_eq!(scroll_target(TableScroll::Top, None, 0), None);
     }
 }
