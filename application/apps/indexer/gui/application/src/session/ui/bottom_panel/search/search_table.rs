@@ -1,4 +1,8 @@
-use std::{ops::Range, rc::Rc, sync::mpsc::Receiver as StdReceiver};
+use std::{
+    ops::{Range, RangeInclusive},
+    rc::Rc,
+    sync::mpsc::Receiver as StdReceiver,
+};
 
 use egui::{Sense, Ui};
 use egui_table::{CellInfo, PrefetchInfo, TableDelegate};
@@ -16,8 +20,8 @@ use crate::{
                 self,
                 log_table::{
                     table::{
-                        apply_columns_to_table_state, grab_cmd_consts, render_row_header,
-                        should_stick_to_bottom,
+                        TableScroll, apply_columns_to_table_state, grab_cmd_consts,
+                        render_row_header, should_stick_to_bottom,
                     },
                     text::render_log_cell_text,
                 },
@@ -36,6 +40,7 @@ const TABLE_ID_SALT: &str = "search_table";
 pub struct SearchTable {
     cmd_tx: Sender<SessionCommand>,
     last_visible_rows: Option<Range<u64>>,
+    pending_scroll: Option<RangeInclusive<u64>>,
     indexed_logs: LogsMapped,
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
@@ -49,6 +54,7 @@ impl SearchTable {
         Self {
             cmd_tx,
             last_visible_rows: None,
+            pending_scroll: None,
             indexed_logs: LogsMapped::new(schema),
             pending_logs_rx: None,
             scroll_nearest_pos: None,
@@ -98,6 +104,10 @@ impl SearchTable {
             table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
         }
 
+        if let Some(rows) = self.pending_scroll.take() {
+            table = table.scroll_to_rows(rows, None);
+        }
+
         let mut delegate = LogsDelegate::new(self, shared, actions);
         table.show(ui, &mut delegate);
 
@@ -110,15 +120,28 @@ impl SearchTable {
         let Self {
             cmd_tx: _,
             last_visible_rows,
+            pending_scroll,
             indexed_logs,
             pending_logs_rx,
             scroll_nearest_pos,
         } = self;
 
         *last_visible_rows = None;
+        *pending_scroll = None;
         indexed_logs.clear();
         *scroll_nearest_pos = None;
         *pending_logs_rx = None;
+    }
+
+    /// Queues a vertical table scroll for the next render pass.
+    pub fn scroll(&mut self, action: TableScroll, row_count: u64) {
+        if let Some(target) = common::log_table::table::scroll_target(
+            action,
+            self.last_visible_rows.as_ref(),
+            row_count,
+        ) {
+            self.pending_scroll = Some(target);
+        }
     }
 }
 

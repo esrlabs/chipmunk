@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
-use egui::{CentralPanel, Frame, Margin, Panel, Ui};
+use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
 use tokio::sync::mpsc::Sender;
 
@@ -29,9 +29,10 @@ use crate::{
         ui::shared::SessionSignal,
     },
 };
-use bottom_panel::BottomPanelUI;
+use bottom_panel::{BottomPanelUI, BottomTabType};
+use common::log_table::table::TableScroll;
 use logs_table::LogsTable;
-use side_panel::SidePanelUi;
+use side_panel::{SidePanelUi, SideTabType};
 
 mod attachment_modal;
 mod bottom_panel;
@@ -40,6 +41,7 @@ mod definitions;
 mod logs_table;
 mod recent;
 mod shared;
+mod shortcuts;
 mod side_panel;
 mod status_bar;
 
@@ -148,6 +150,52 @@ impl Session {
 
     pub fn on_close_session(&self, actions: &mut UiActions) {
         actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
+    }
+
+    pub fn handle_shortcuts(
+        &mut self,
+        panels_visibility: &mut PanelsVisibility,
+        ctx: &Context,
+    ) -> bool {
+        shortcuts::handle(self, panels_visibility, ctx)
+    }
+
+    fn activate_search_tab(&mut self, panels_visibility: &mut PanelsVisibility) {
+        if self.shared.bottom_tab == BottomTabType::Search {
+            self.bottom_panel.search.bar.request_focus();
+        }
+
+        self.activate_bottom_tab(BottomTabType::Search, panels_visibility);
+    }
+
+    fn activate_bottom_tab(
+        &mut self,
+        tab: BottomTabType,
+        panels_visibility: &mut PanelsVisibility,
+    ) {
+        panels_visibility.bottom = true;
+        self.shared.bottom_tab = tab;
+    }
+
+    fn activate_side_tab(&mut self, tab: SideTabType, panels_visibility: &mut PanelsVisibility) {
+        panels_visibility.right = true;
+        self.shared.side_tab = tab;
+    }
+
+    fn scroll_main_table(&mut self, action: TableScroll) {
+        self.logs_table.scroll(action, self.shared.logs.logs_count);
+    }
+
+    fn scroll_search_table(&mut self, action: TableScroll, panels_visibility: &PanelsVisibility) {
+        // Don't scroll if search table isn't visible.
+        if !panels_visibility.bottom || self.shared.bottom_tab != BottomTabType::Search {
+            return;
+        }
+
+        self.bottom_panel
+            .search
+            .table
+            .scroll(action, self.shared.search.indexed_result_count());
     }
 
     pub fn render_content(

@@ -30,6 +30,7 @@ pub struct SearchBar {
     pub is_regex: bool,
     pub match_case: bool,
     pub is_word: bool,
+    focus_requested: bool,
     // Used to focus the search input when the search bar becomes visible again.
     visibility_tracker: VisibilityTracker,
 }
@@ -42,9 +43,15 @@ impl SearchBar {
             is_regex: true,
             match_case: false,
             is_word: false,
+            focus_requested: false,
             visibility_tracker: VisibilityTracker::default(),
         }
     }
+
+    pub fn request_focus(&mut self) {
+        self.focus_requested = true;
+    }
+
     pub fn render_content(
         &mut self,
         shared: &mut SessionShared,
@@ -97,7 +104,8 @@ impl SearchBar {
 
         // Text id is needed to keep track if the text control is focused.
         let text_id = ui.id().with("search_text");
-        let became_visible = self.visibility_tracker.is_newly_visible(ui);
+        let should_focus = self.visibility_tracker.is_newly_visible(ui) || self.focus_requested;
+        self.focus_requested = false;
 
         ui.allocate_ui_with_layout(
             vec2(ui.available_width(), 25.),
@@ -149,7 +157,7 @@ impl SearchBar {
                                     text_output.state.store(ui.ctx(), text_output.response.id);
                                 }
 
-                                if became_visible {
+                                if should_focus {
                                     text_output.response.request_focus();
                                 }
                             })

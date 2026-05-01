@@ -32,6 +32,7 @@ impl SearchUI {
             table: SearchTable::new(cmd_tx, schema),
         }
     }
+
     pub fn render_content(
         &mut self,
         shared: &mut SessionShared,
