@@ -6,6 +6,11 @@
 
 use egui::{Button, WidgetText, vec2};
 
+/// Shared framed button for general command actions, such as modal footer buttons.
+pub fn command(text: impl Into<WidgetText>, min_width: Option<f32>) -> Button<'static> {
+    Button::new(text.into()).min_size(vec2(min_width.unwrap_or(100.0), 25.0))
+}
+
 /// Shared framed button used across the session setup surfaces.
 ///
 /// `min_width` overrides the default setup width when a view needs extra label padding.

@@ -1,14 +1,16 @@
 use std::f32::consts::FRAC_PI_2;
 
 use egui::{
-    Button, Context, Frame, Id, Label, Layout, Margin, Rect, RichText, Sense, Spinner, Ui,
-    UiBuilder, Widget as _, pos2, vec2,
+    Button, Label, Layout, Rect, RichText, Sense, Spinner, Ui, UiBuilder, Widget as _, pos2, vec2,
 };
 use stypes::AttachmentInfo;
 use uuid::Uuid;
 
 use crate::{
-    common::phosphor::icons,
+    common::{
+        modal::{ModalSize, ResponsiveModalSize, show_modal},
+        phosphor::icons,
+    },
     session::{
         types::attachment::PreviewContent,
         ui::shared::{AttachmentModalState, AttachmentsState},
@@ -18,6 +20,13 @@ use crate::{
 const HEADER_HEIGHT: f32 = 32.0;
 const HEADER_SPACING: f32 = 8.0;
 const FRAME_INNER_MARGIN: f32 = 8.0;
+const ATTACHMENT_MODAL_SIZE: ResponsiveModalSize = ResponsiveModalSize {
+    width_ratio: 0.60,
+    height_ratio: 0.60,
+    min_size: vec2(600.0, 360.0),
+    max_size: vec2(1100.0, 800.0),
+    window_padding: vec2(20.0, 40.0),
+};
 
 #[derive(Debug, Default)]
 pub struct AttachmentModalUi {
@@ -31,22 +40,20 @@ impl AttachmentModalUi {
         Self::default()
     }
 
-    pub fn render_content(&mut self, attachments: &mut AttachmentsState, ctx: &Context) {
+    pub fn render_content(&mut self, attachments: &mut AttachmentsState, ui: &Ui) {
         if attachments.preview_modal().closed() {
             return;
         }
 
         self.sync_image_state(attachments.preview_modal());
 
-        let modal_size = modal_size(ctx);
         let mut close = false;
 
-        let modal = egui::Modal::new(Id::new("attachment-preview"))
-            .frame(Frame::window(ctx.global_style().as_ref()).inner_margin(Margin::same(8)))
-            .show(ctx, |ui| {
-                ui.set_width(modal_size.x);
-                ui.set_height(modal_size.y);
-
+        let modal = show_modal(
+            ui,
+            "attachment-preview",
+            ModalSize::Responsive(ATTACHMENT_MODAL_SIZE),
+            |ui, modal_size| {
                 if self.render_header(attachments.preview_modal(), ui) {
                     close = true;
                 }
@@ -58,7 +65,8 @@ impl AttachmentModalUi {
                     (modal_size.y - HEADER_HEIGHT - HEADER_SPACING).max(0.0),
                 );
                 self.render_body(attachments.preview_modal(), body_size, ui);
-            });
+            },
+        );
 
         if close || modal.should_close() {
             self.image_attachment = None;
@@ -185,25 +193,6 @@ impl AttachmentModalUi {
     fn rotate_clockwise(&mut self) {
         self.image_quarter_turns = (self.image_quarter_turns + 1) % 4;
     }
-}
-
-fn modal_size(ctx: &Context) -> egui::Vec2 {
-    const MODAL_WIDTH_RATIO: f32 = 0.60;
-    const MODAL_HEIGHT_RATIO: f32 = 0.60;
-    const MODAL_MIN_SIZE: egui::Vec2 = vec2(600.0, 360.0);
-    const MODAL_MAX_SIZE: egui::Vec2 = vec2(1100.0, 800.0);
-    const MODAL_WINDOW_PADDING: egui::Vec2 = vec2(20.0, 40.0);
-
-    let app_size = ctx.content_rect().size();
-    let available = (app_size - MODAL_WINDOW_PADDING).max(vec2(20.0, 20.0));
-    vec2(
-        (app_size.x * MODAL_WIDTH_RATIO)
-            .clamp(MODAL_MIN_SIZE.x, MODAL_MAX_SIZE.x)
-            .min(available.x),
-        (app_size.y * MODAL_HEIGHT_RATIO)
-            .clamp(MODAL_MIN_SIZE.y, MODAL_MAX_SIZE.y)
-            .min(available.y),
-    )
 }
 
 fn modal_title(state: &AttachmentModalState) -> Option<&str> {

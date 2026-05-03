@@ -1,7 +1,7 @@
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
 
 use crate::host::ui::{
-    shortcuts::{Shortcut, consume_shortcut},
+    shortcuts::{definitions::Shortcut, matching::consume_shortcut},
     state::PanelsVisibility,
 };
 
@@ -65,93 +65,110 @@ const SEARCH_BOTTOM_BINDINGS: &[KeyboardShortcut] = &[
     KeyboardShortcut::new(Modifiers::ALT, Key::E),
 ];
 
-const SHORTCUTS: SessionShortcuts = SessionShortcuts {
+static SHORTCUTS: SessionShortcuts = SessionShortcuts {
     activate_search_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::F)],
+        description: "Focus search",
     },
     activate_filters_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::F,
         )],
+        description: "Open filters panel",
     },
     activate_observing_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::O,
         )],
+        description: "Open observing panel",
     },
     activate_attachments_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Y,
         )],
+        description: "Open attachments panel",
     },
     activate_bottom_search_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num1,
         )],
+        description: "Open bottom search panel",
     },
     activate_details_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num2,
         )],
+        description: "Open details panel",
     },
     activate_library_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num3,
         )],
+        description: "Open library panel",
     },
     activate_presets_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num4,
         )],
+        description: "Open presets panel",
     },
     activate_chart_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num5,
         )],
+        description: "Open chart panel",
     },
     main_page_up: Shortcut {
         bindings: &[
             KeyboardShortcut::new(Modifiers::CTRL, Key::PageUp),
             KeyboardShortcut::new(Modifiers::CTRL, Key::U),
         ],
+        description: "Scroll main table one page up",
     },
     main_page_down: Shortcut {
         bindings: &[
             KeyboardShortcut::new(Modifiers::CTRL, Key::PageDown),
             KeyboardShortcut::new(Modifiers::CTRL, Key::D),
         ],
+        description: "Scroll main table one page down",
     },
     main_top: Shortcut {
         bindings: &[
             KeyboardShortcut::new(Modifiers::CTRL, Key::Home),
             KeyboardShortcut::new(Modifiers::CTRL, Key::T),
         ],
+        description: "Scroll main table to top",
     },
     main_bottom: Shortcut {
         bindings: &[
             KeyboardShortcut::new(Modifiers::CTRL, Key::End),
             KeyboardShortcut::new(Modifiers::CTRL, Key::E),
         ],
+        description: "Scroll main table to bottom",
     },
     search_page_up: Shortcut {
         bindings: SEARCH_PAGE_UP_BINDINGS,
+        description: "Scroll search results one page up",
     },
     search_page_down: Shortcut {
         bindings: SEARCH_PAGE_DOWN_BINDINGS,
+        description: "Scroll search results one page down",
     },
     search_top: Shortcut {
         bindings: SEARCH_TOP_BINDINGS,
+        description: "Scroll search results to top",
     },
     search_bottom: Shortcut {
         bindings: SEARCH_BOTTOM_BINDINGS,
+        description: "Scroll search results to bottom",
     },
 };
 
@@ -173,6 +190,48 @@ struct SessionShortcuts {
     search_page_down: Shortcut,
     search_top: Shortcut,
     search_bottom: Shortcut,
+}
+
+pub fn shortcut_defs() -> [&'static Shortcut; 17] {
+    let SessionShortcuts {
+        activate_search_tab,
+        activate_filters_tab,
+        activate_observing_tab,
+        activate_attachments_tab,
+        activate_bottom_search_tab,
+        activate_details_tab,
+        activate_library_tab,
+        activate_presets_tab,
+        activate_chart_tab,
+        main_page_up,
+        main_page_down,
+        main_top,
+        main_bottom,
+        search_page_up,
+        search_page_down,
+        search_top,
+        search_bottom,
+    } = &SHORTCUTS;
+
+    [
+        activate_search_tab,
+        activate_filters_tab,
+        activate_observing_tab,
+        activate_attachments_tab,
+        activate_bottom_search_tab,
+        activate_details_tab,
+        activate_library_tab,
+        activate_presets_tab,
+        activate_chart_tab,
+        main_page_up,
+        main_page_down,
+        main_top,
+        main_bottom,
+        search_page_up,
+        search_page_down,
+        search_top,
+        search_bottom,
+    ]
 }
 
 pub fn handle(

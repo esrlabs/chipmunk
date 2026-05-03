@@ -9,7 +9,7 @@ use crate::{
         common::{app_style, parsers::ParserNames, sources::StreamNames},
         ui::{
             actions::{FileDialogOptions, UiActions},
-            state::info::AppInfoState,
+            state::HostModal,
         },
     },
 };
@@ -30,7 +30,12 @@ impl MainMenuBar {
         Self { cmd_tx }
     }
 
-    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions, app_info: &mut AppInfoState) {
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        actions: &mut UiActions,
+        active_modal: &mut Option<HostModal>,
+    ) {
         self.handle_file_dialog(actions);
 
         MenuBar::new().ui(ui, |ui| {
@@ -46,8 +51,13 @@ impl MainMenuBar {
                     ui.separator();
                 }
 
+                if ui.button("Keyboard Shortcuts").clicked() {
+                    *active_modal = Some(HostModal::Shortcuts);
+                    ui.close();
+                }
+
                 if ui.button("About").clicked() {
-                    app_info.about_open = true;
+                    *active_modal = Some(HostModal::About);
                     ui.close();
                 }
 

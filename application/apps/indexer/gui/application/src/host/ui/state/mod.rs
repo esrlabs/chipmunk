@@ -36,6 +36,8 @@ pub struct HostState {
     pub panels_visibility: PanelsVisibility,
     pub registry: HostRegistry,
     pub app_info: AppInfoState,
+    /// Modal currently owned by the host UI.
+    pub active_modal: Option<HostModal>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +47,15 @@ pub struct PanelsVisibility {
     pub right: bool,
     /// Controls the session bottom panel visibility.
     pub bottom: bool,
+}
+
+/// Host-level modal dialogs that should be exclusive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HostModal {
+    /// Application metadata and links.
+    About,
+    /// Keyboard shortcuts overview.
+    Shortcuts,
 }
 
 impl HostState {
@@ -59,6 +70,7 @@ impl HostState {
             panels_visibility: PanelsVisibility::default(),
             registry: HostRegistry::default(),
             app_info: AppInfoState::default(),
+            active_modal: None,
         }
     }
 
