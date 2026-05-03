@@ -52,7 +52,8 @@ impl<R: Read + Send + Sync> ByteSource for PcapLegacyByteSource<R> {
                         PcapBlockOwned::Legacy(ref b) => {
                             raw_data = &b.data[..b.origlen as usize];
                             // legacy pcap files will contain nanos in ts_usec field!
-                            let ts_ms = (b.ts_sec as u64) * 1_000 + (b.ts_usec as u64) / (1_000 * 1_000);
+                            let ts_ms =
+                                (b.ts_sec as u64) * 1_000 + (b.ts_usec as u64) / (1_000 * 1_000);
                             self.last_know_timestamp = Some(ts_ms);
                             break;
                         }
