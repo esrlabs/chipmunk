@@ -7,7 +7,6 @@ use crate::host::message::AppVersionUpdate;
 pub struct AppInfoState {
     update_info: Option<AppVersionUpdate>,
     pub show_update_banner: bool,
-    pub about_open: bool,
 }
 
 impl AppInfoState {

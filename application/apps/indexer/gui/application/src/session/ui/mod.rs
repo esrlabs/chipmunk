@@ -48,6 +48,7 @@ mod status_bar;
 pub use bottom_panel::chart;
 pub use recent::RecentSessionRuntime;
 pub use shared::{SessionInfo, SessionShared};
+pub use shortcuts::shortcut_defs;
 
 #[derive(Debug)]
 pub struct Session {
@@ -220,7 +221,7 @@ impl Session {
 
         if shared.observe.show_startup_spinner(shared.logs.logs_count) {
             show_busy_indicator(
-                ui.ctx(),
+                ui,
                 Some("Initializing Session"),
                 Some(|| actions.add_host_action(HostAction::CloseSession(shared.get_id()))),
             );
@@ -265,7 +266,7 @@ impl Session {
             });
 
         self.attachment_modal
-            .render_content(&mut shared.attachments, ui.ctx());
+            .render_content(&mut shared.attachments, ui);
 
         self.handle_signals();
     }

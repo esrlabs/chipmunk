@@ -12,7 +12,7 @@ use crate::{
     cli::CliCommand,
     common::{
         app_info, fonts,
-        modal::show_modal,
+        modal::{ModalSize, show_modal},
         phosphor::{self, icons},
     },
     host::{
@@ -214,7 +214,7 @@ impl Host {
 
     fn render_ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         if self.ui_actions.file_dialog.poll_dialog_task().is_pending() {
-            self.file_dialog_overlay(ui.ctx());
+            self.file_dialog_overlay(ui);
         }
 
         Panel::top("menu_bar")
@@ -244,8 +244,21 @@ impl Host {
                 }
             });
 
-        if self.state.app_info.about_open {
-            info::render_about_modal(&mut self.state.app_info, ui.ctx());
+        self.render_active_modal(ui);
+    }
+
+    fn render_active_modal(&mut self, ui: &Ui) {
+        let Some(active_modal) = self.state.active_modal else {
+            return;
+        };
+
+        let should_close = match active_modal {
+            state::HostModal::About => info::render_about_modal(&mut self.state.app_info, ui),
+            state::HostModal::Shortcuts => shortcuts::modal::render_modal(ui),
+        };
+
+        if should_close {
+            self.state.active_modal = None;
         }
     }
 
@@ -256,7 +269,7 @@ impl Host {
             state,
             ..
         } = self;
-        menu.render(ui, ui_actions, &mut state.app_info);
+        menu.render(ui, ui_actions, &mut state.active_modal);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
@@ -366,19 +379,24 @@ impl Host {
         }
     }
 
-    fn file_dialog_overlay(&mut self, ctx: &Context) {
-        show_modal(ctx, "file dialog overlay", 350.0, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.heading("File Dialog Open");
+    fn file_dialog_overlay(&mut self, parent_ui: &Ui) {
+        show_modal(
+            parent_ui,
+            "file dialog overlay",
+            ModalSize::MaxWidth(350.0),
+            |ui, _size| {
+                ui.vertical_centered(|ui| {
+                    ui.heading("File Dialog Open");
 
-                ui.add_space(6.);
+                    ui.add_space(6.);
 
-                ui.label(
-                    "A file picker is currently open.\
+                    ui.label(
+                        "A file picker is currently open.\
                     If you don't see it, please check your taskbar or move this window",
-                );
-            })
-        });
+                    );
+                })
+            },
+        );
     }
 }
 
@@ -472,7 +490,7 @@ impl eframe::App for Host {
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
-        shortcuts::handle(self, ui.ctx());
+        shortcuts::handler::handle(self, ui.ctx());
 
         self.render_ui(ui, frame);
 
