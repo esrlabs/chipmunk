@@ -8,7 +8,6 @@ use crate::host::{
     common::ui_utls::{main_panel_group_frame, truncate_path_to_width},
     ui::multi_setup::{main_table::table_columns::TableColumn, state::MultiFileState},
 };
-use crate::session::ui::ObserveState;
 
 mod table_columns;
 
@@ -53,14 +52,13 @@ fn render_table(ui: &mut Ui, state: &mut MultiFileState) {
         .body(|body| {
             body.rows(20.0, state.files.len(), |mut row| {
                 let file = &mut state.files[row.index()];
-                let color = ObserveState::source_color(row.index());
 
                 row.set_selected(file.included);
 
                 row.col(|ui| {
                     let (res, paint) =
                         ui.allocate_painter(vec2(10.0, ui.available_height()), Sense::hover());
-                    paint.rect_filled(res.rect, 0, color);
+                    paint.rect_filled(res.rect, 0, file.color);
                 });
 
                 row.col(|ui| table_cell_text(ui, file.format.to_string()));

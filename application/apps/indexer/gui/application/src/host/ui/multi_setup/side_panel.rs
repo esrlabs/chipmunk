@@ -7,7 +7,6 @@ use crate::host::{
     common::{file_utls::format_file_size, ui_utls::side_panel_group_frame},
     ui::multi_setup::state::MultiFileState,
 };
-use crate::session::ui::ObserveState;
 
 #[derive(Debug, Default)]
 pub struct MultiSidePanel {
@@ -17,11 +16,12 @@ pub struct MultiSidePanel {
 #[derive(Debug, Clone)]
 struct FileSegment {
     pub size: u64,
+    pub color: Color32,
 }
 
 impl FileSegment {
-    fn new(size: u64) -> Self {
-        Self { size }
+    fn new(size: u64, color: Color32) -> Self {
+        Self { size, color }
     }
 }
 
@@ -65,7 +65,7 @@ impl MultiSidePanel {
             .extend(state.files.iter().filter(|f| f.included).map(|f| {
                 let size = f.size_bytes.unwrap_or_default();
                 total_size += size;
-                FileSegment::new(size)
+                FileSegment::new(size, f.color)
             }));
 
         if self.segments_cache.is_empty() {
@@ -95,7 +95,6 @@ impl MultiSidePanel {
         for (i, file) in self.segments_cache.iter().enumerate() {
             let ratio = file.size as f32 / total_size as f32;
             let seg_width = total_width_px * ratio;
-            let color = ObserveState::source_color(i);
 
             let seg_rect = Rect::from_min_size(
                 Pos2::new(current_x, rect.min.y),
@@ -120,7 +119,7 @@ impl MultiSidePanel {
                 _ => CornerRadius::ZERO,
             };
 
-            painter.rect_filled(seg_rect, corner_radius, color);
+            painter.rect_filled(seg_rect, corner_radius, file.color);
 
             current_x += seg_width;
         }
