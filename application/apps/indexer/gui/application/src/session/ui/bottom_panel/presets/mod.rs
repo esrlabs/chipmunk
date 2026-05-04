@@ -208,7 +208,11 @@ impl PresetsUI {
                             IMPORT_PRESETS_DIALOG_ID,
                             FileDialogOptions::new()
                                 .title("Import Presets")
-                                .filters(preset_file_filters()),
+                                .filters(vec![
+                                    FileDialogFilter::new("JSON (*.json)", vec!["json".to_owned()]),
+                                    FileDialogFilter::new("Text (*.txt)", vec!["txt".to_owned()]),
+                                    FileDialogFilter::new("All files (*)", vec!["*".to_owned()]),
+                                ]),
                         );
                     }
                 }
@@ -330,7 +334,10 @@ impl PresetsUI {
                             FileDialogOptions::new()
                                 .title("Export Presets")
                                 .file_name(PRESETS_EXPORT_FILE_NAME)
-                                .filters(preset_file_filters()),
+                                .filters(vec![FileDialogFilter::new(
+                                    "JSON (*.json)",
+                                    vec!["json".to_owned()],
+                                )]),
                         );
                     }
 
@@ -782,10 +789,6 @@ fn move_item<T>(items: &mut Vec<T>, from: usize, to: usize) -> bool {
 fn can_create_preset_from_session(shared: &SessionShared) -> bool {
     // Capture snapshots the full session items, not just enabled ones.
     !shared.filters.filter_entries.is_empty() || !shared.filters.search_value_entries.is_empty()
-}
-
-fn preset_file_filters() -> Vec<FileDialogFilter> {
-    vec![FileDialogFilter::new("JSON", vec!["json".to_owned()])]
 }
 
 impl PresetEditState {

@@ -45,9 +45,10 @@ pub fn fibex_file_selector(
     {
         actions.file_dialog.pick_files(
             file_dialog_id,
-            FileDialogOptions::new()
-                .title(dialog_title)
-                .filter(FileDialogFilter::new("FIBEX", vec![String::from("xml")])),
+            FileDialogOptions::new().title(dialog_title).filters(vec![
+                FileDialogFilter::new("FIBEX (*.xml)", vec![String::from("xml")]),
+                FileDialogFilter::new("All files (*)", vec![String::from("*")]),
+            ]),
         );
     }
 

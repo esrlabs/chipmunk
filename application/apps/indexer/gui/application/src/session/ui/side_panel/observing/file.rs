@@ -104,19 +104,25 @@ impl FilesObserveUi {
                             FileFormat::PcapNG => (
                                 "Attach PcapNG Files",
                                 vec![FileDialogFilter::new(
-                                    "PcapNG",
+                                    "PcapNG (*.pcapng)",
                                     vec![String::from("pcapng")],
                                 )],
                             ),
                             FileFormat::PcapLegacy => (
                                 "Attach Pcap Files",
-                                vec![FileDialogFilter::new("Pcap", vec![String::from("pcap")])],
+                                vec![FileDialogFilter::new(
+                                    "Pcap (*.pcap)",
+                                    vec![String::from("pcap")],
+                                )],
                             ),
                             FileFormat::Text => ("Attach Files", Vec::new()),
                             FileFormat::Binary => match parser {
                                 ParserNames::Dlt => (
                                     "Attach DLT Files",
-                                    vec![FileDialogFilter::new("DLT", vec![String::from("dlt")])],
+                                    vec![FileDialogFilter::new(
+                                        "DLT (*.dlt)",
+                                        vec![String::from("dlt")],
+                                    )],
                                 ),
                                 ParserNames::SomeIP | ParserNames::Text => {
                                     ("Attach Files", Vec::new())
