@@ -51,16 +51,10 @@ impl SearchValuesState {
     }
 
     /// Returns the current operation id while it is still running.
-    ///
-    /// `Done` operations are treated as non-running and return `None`.
     pub fn processing_operation(&self) -> Option<Uuid> {
-        self.operation.as_ref().and_then(|op| {
-            if op.phase != OperationPhase::Done {
-                Some(op.id)
-            } else {
-                None
-            }
-        })
+        self.operation
+            .as_ref()
+            .and_then(|op| op.phase.is_running().then_some(op.id))
     }
 
     pub fn operation_phase(&self) -> Option<OperationPhase> {
@@ -140,10 +134,10 @@ mod tests {
         let mut state = SearchValuesState::default();
         state.set_operation(operation_id);
 
-        let outcome = state.update_operation(operation_id, OperationPhase::Done);
+        let outcome = state.update_operation(operation_id, OperationPhase::Success);
 
         assert!(matches!(outcome, UpdateOperationOutcome::Consumed));
         assert!(state.processing_operation().is_none());
-        assert_eq!(state.operation_phase(), Some(OperationPhase::Done));
+        assert_eq!(state.operation_phase(), Some(OperationPhase::Success));
     }
 }

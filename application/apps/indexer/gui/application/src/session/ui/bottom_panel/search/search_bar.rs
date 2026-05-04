@@ -399,6 +399,7 @@ mod tests {
             id: Uuid::new_v4(),
             title: "test".to_owned(),
             parser: ParserNames::Text,
+            raw_export_supported: false,
         };
         let observe_op = ObserveOperation::new(
             Uuid::new_v4(),

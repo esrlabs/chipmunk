@@ -662,6 +662,7 @@ mod tests {
             id: session_id,
             title: "test".to_owned(),
             parser: ParserNames::Text,
+            raw_export_supported: false,
         };
 
         SessionShared::new(session_info, observe_op)

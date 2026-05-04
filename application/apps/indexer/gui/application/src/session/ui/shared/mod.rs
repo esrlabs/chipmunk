@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    host::ui::registry::filters::FilterRegistry,
+    host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{
         command::SessionCommand,
         types::{ObserveOperation, OperationPhase},
@@ -16,6 +16,7 @@ use uuid::Uuid;
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
 mod attachments;
+mod export;
 mod info;
 mod logs;
 mod observe;
@@ -24,6 +25,7 @@ mod signal;
 mod view;
 
 pub use attachments::{AttachmentModalState, AttachmentsState};
+pub use export::ExportState;
 pub use info::SessionInfo;
 pub use logs::{BookmarkNavigation, LogsState, SearchTableSync, SelectionChange, SelectionIntent};
 pub use observe::ObserveState;
@@ -55,6 +57,8 @@ pub struct SessionShared {
     pub observe: ObserveState,
 
     pub attachments: AttachmentsState,
+
+    pub exports: ExportState,
 
     pub schema: Rc<dyn LogSchema>,
 
@@ -89,6 +93,7 @@ impl SessionShared {
             view: UiViewState::new(schema.as_ref()),
             observe: ObserveState::new(observe_op),
             attachments: AttachmentsState::default(),
+            exports: ExportState::default(),
             schema,
             recent_revision: 0,
         }
@@ -119,6 +124,7 @@ impl SessionShared {
         &mut self,
         operation_id: Uuid,
         phase: OperationPhase,
+        actions: &mut UiActions,
     ) -> UpdateOperationOutcome {
         // Ensure to update this method when new fields are added.
         let Self {
@@ -133,6 +139,7 @@ impl SessionShared {
             view: _,
             observe,
             attachments: _,
+            exports,
             schema: _,
             recent_revision: _,
         } = self;
@@ -145,7 +152,14 @@ impl SessionShared {
             return UpdateOperationOutcome::Consumed;
         }
 
-        search_values.update_operation(operation_id, phase)
+        if search_values
+            .update_operation(operation_id, phase)
+            .consumed()
+        {
+            return UpdateOperationOutcome::Consumed;
+        }
+
+        exports.handle_phase(operation_id, phase, actions)
     }
 
     /// Synchronizes UI state with backend search pipelines and returns the commands to dispatch.
@@ -415,6 +429,7 @@ mod tests {
             id: session_id,
             title: "test".to_owned(),
             parser: ParserNames::Text,
+            raw_export_supported: false,
         };
 
         SessionShared::new(session_info, observe_op)

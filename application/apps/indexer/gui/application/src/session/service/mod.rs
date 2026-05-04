@@ -439,6 +439,47 @@ impl SessionService {
 
                 return Err(ComputationError::SessionCreatingFail.into());
             }
+            SessionCommand::ExportIndexedRaw {
+                operation_id,
+                destination,
+            } => {
+                let ranges = match self.session.get_indexed_ranges().await {
+                    Ok(ranges) => ranges
+                        .0
+                        .into_iter()
+                        .map(|range| range.start..=range.end)
+                        .collect_vec(),
+                    Err(error) => {
+                        self.senders
+                            .send_session_msg(SessionMessage::OperationUpdated {
+                                operation_id,
+                                phase: OperationPhase::Failed,
+                            })
+                            .await;
+                        return Err(error.into());
+                    }
+                };
+
+                if ranges.is_empty() {
+                    self.senders
+                        .send_session_msg(SessionMessage::OperationUpdated {
+                            operation_id,
+                            phase: OperationPhase::Skipped,
+                        })
+                        .await;
+                    return Ok(ControlFlow::Continue(()));
+                }
+
+                if let Err(error) = self.session.export_raw(operation_id, destination, ranges) {
+                    self.senders
+                        .send_session_msg(SessionMessage::OperationUpdated {
+                            operation_id,
+                            phase: OperationPhase::Failed,
+                        })
+                        .await;
+                    return Err(error.into());
+                }
+            }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;
             }
@@ -585,7 +626,7 @@ impl SessionService {
                 self.senders
                     .send_session_msg(SessionMessage::OperationUpdated {
                         operation_id: uuid,
-                        phase: OperationPhase::Done,
+                        phase: OperationPhase::Failed,
                     })
                     .await;
                 self.send_error(SessionError::NativeError(error)).await;
@@ -610,7 +651,7 @@ impl SessionService {
                 self.senders
                     .send_session_msg(SessionMessage::OperationUpdated {
                         operation_id: done.uuid,
-                        phase: OperationPhase::Done,
+                        phase: OperationPhase::Success,
                     })
                     .await;
             }
