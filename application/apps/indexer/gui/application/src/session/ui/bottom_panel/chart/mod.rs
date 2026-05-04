@@ -137,16 +137,16 @@ impl ChartUI {
         let search_values_phase = shared.search_values.operation_phase();
 
         match (filter_phase, search_values_phase) {
-            // Any have values
-            (Some(OperationPhase::Processing | OperationPhase::Done), _)
-            | (_, Some(OperationPhase::Processing | OperationPhase::Done)) => {
-                ChartRenderState::Chart
-            }
-            // Else if any is still Initializing
-            (Some(OperationPhase::Initializing), _) | (_, Some(OperationPhase::Initializing)) => {
+            (None, None) => ChartRenderState::Placeholder,
+            (Some(filter_phase), Some(search_values_phase))
+                if filter_phase.is_initializing() && search_values_phase.is_initializing() =>
+            {
                 ChartRenderState::Spinner
             }
-            (None, None) => ChartRenderState::Placeholder,
+            (Some(phase), None) | (None, Some(phase)) if phase.is_initializing() => {
+                ChartRenderState::Spinner
+            }
+            _ => ChartRenderState::Chart,
         }
     }
 
@@ -547,6 +547,7 @@ mod tests {
             id: session_id,
             title: "test".to_owned(),
             parser: ParserNames::Text,
+            raw_export_supported: false,
         };
 
         let mut shared = SessionShared::new(session_info, observe_op);

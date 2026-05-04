@@ -98,6 +98,12 @@ pub enum SessionCommand {
     /// configuration of the current session as basis
     StartSessionWithSource { source_uuid: String },
 
+    /// Export the current indexed lower-table rows as raw source data.
+    ExportIndexedRaw {
+        operation_id: Uuid,
+        destination: PathBuf,
+    },
+
     /// Cancel the running operation with the given id.
     CancelOperation { id: Uuid },
     /// Gracefully terminate the session service.

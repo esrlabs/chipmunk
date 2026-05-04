@@ -9,11 +9,16 @@ use stypes::ObserveOrigin;
 /// Represents a running observe operations with its info.
 #[derive(Debug, Clone)]
 pub struct ObserveOperation {
+    /// Backend operation identifier.
     pub id: Uuid,
+    /// Current lifecycle phase.
     phase: OperationPhase,
+    /// Source being observed.
     pub origin: ObserveOrigin,
+    /// Time when tracking started.
     started: Instant,
-    duration: Option<Duration>,
+    /// Elapsed time once the operation reaches a terminal phase.
+    run_duration: Option<Duration>,
 }
 
 impl ObserveOperation {
@@ -23,15 +28,15 @@ impl ObserveOperation {
             phase: OperationPhase::Initializing,
             origin,
             started: Instant::now(),
-            duration: None,
+            run_duration: None,
         }
     }
 
     pub fn set_phase(&mut self, phase: OperationPhase) {
         match phase {
             OperationPhase::Initializing | OperationPhase::Processing => {}
-            OperationPhase::Done => {
-                self.duration = Some(self.started.elapsed());
+            OperationPhase::Success | OperationPhase::Failed | OperationPhase::Skipped => {
+                self.run_duration = Some(self.started.elapsed());
             }
         }
 
@@ -43,8 +48,8 @@ impl ObserveOperation {
         self.phase
     }
 
-    pub fn total_run_duration(&self) -> Option<Duration> {
-        self.duration
+    pub fn run_duration(&self) -> Option<Duration> {
+        self.run_duration
     }
 
     pub fn processing(&self) -> bool {
@@ -52,7 +57,7 @@ impl ObserveOperation {
     }
 
     pub fn done(&self) -> bool {
-        self.phase == OperationPhase::Done
+        !self.phase.is_running()
     }
 
     pub fn initializing(&self) -> bool {
@@ -61,21 +66,37 @@ impl ObserveOperation {
 }
 
 /// Represents a running operation phase.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperationPhase {
     /// Operation is started and waiting to start processing it's data.
     Initializing,
     /// Operation is processing data.
     Processing,
-    /// Operation is done.
-    Done,
+    /// Operation completed successfully.
+    Success,
+    /// Operation failed.
+    Failed,
+    /// Operation was skipped before processing work.
+    Skipped,
 }
 
 impl OperationPhase {
+    /// Returns whether the operation is currently running and not terminal yet.
     pub fn is_running(self) -> bool {
         match self {
             OperationPhase::Initializing | OperationPhase::Processing => true,
-            OperationPhase::Done => false,
+            OperationPhase::Success | OperationPhase::Failed | OperationPhase::Skipped => false,
+        }
+    }
+
+    /// Returns whether the operation is in initializing phase.
+    pub fn is_initializing(self) -> bool {
+        match self {
+            OperationPhase::Initializing => true,
+            OperationPhase::Processing
+            | OperationPhase::Success
+            | OperationPhase::Failed
+            | OperationPhase::Skipped => false,
         }
     }
 }

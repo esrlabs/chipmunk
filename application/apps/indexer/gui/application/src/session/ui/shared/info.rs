@@ -1,3 +1,4 @@
+use session_core::state::is_raw_export_available_for;
 use stypes::{ObserveOptions, ObserveOrigin, Transport};
 use uuid::Uuid;
 
@@ -8,6 +9,7 @@ pub struct SessionInfo {
     pub id: Uuid,
     pub title: String,
     pub parser: ParserNames,
+    pub raw_export_supported: bool,
 }
 
 impl SessionInfo {
@@ -27,8 +29,18 @@ impl SessionInfo {
         };
 
         let parser = ParserNames::from(&options.parser);
+        let raw_export_supported = is_raw_export_available_for(std::slice::from_ref(options));
 
-        Self { title, id, parser }
+        Self {
+            title,
+            id,
+            parser,
+            raw_export_supported,
+        }
+    }
+
+    pub fn raw_export_supported(&self) -> bool {
+        self.raw_export_supported
     }
 
     pub fn update_title(&mut self, state: &ObserveState) {

@@ -176,7 +176,7 @@ impl SearchState {
     /// Returns the active operation ID while the search is still running.
     pub fn processing_search_operation(&self) -> Option<Uuid> {
         self.search_op.as_ref().and_then(|op| {
-            if op.phase != OperationPhase::Done {
+            if op.phase.is_running() {
                 Some(op.id)
             } else {
                 None
@@ -214,7 +214,7 @@ impl SearchState {
             return;
         };
 
-        operation.phase = OperationPhase::Done;
+        operation.phase = OperationPhase::Success;
 
         let matches_map = self.matches_map.get_or_insert_default();
 
@@ -309,7 +309,10 @@ mod tests {
         state.clear_matches();
 
         assert!(state.processing_search_operation().is_none());
-        assert_eq!(state.search_operation_phase(), Some(OperationPhase::Done));
+        assert_eq!(
+            state.search_operation_phase(),
+            Some(OperationPhase::Success)
+        );
         assert_eq!(state.search_result_count(), 0);
         assert_eq!(state.indexed_result_count(), 5);
         assert!(state.current_matches_map().is_none());

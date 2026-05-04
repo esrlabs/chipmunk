@@ -46,8 +46,10 @@ pub use indexes::{
 };
 use observed::Observed;
 use searchers::{SearchRequest, SearchResponse};
-pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 use stypes::{FilterMatch, GrabbedElement};
+
+pub use observed::is_raw_export_available_for;
+pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 pub use values::{Values, ValuesError};
 
 /// Status of session state.

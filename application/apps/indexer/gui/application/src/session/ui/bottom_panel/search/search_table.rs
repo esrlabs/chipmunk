@@ -8,16 +8,17 @@ use egui::{Sense, Ui};
 use egui_table::{CellInfo, PrefetchInfo, TableDelegate};
 use stypes::{GrabbedElement, NearestPosition};
 use tokio::sync::mpsc::Sender;
+use uuid::Uuid;
 
 use crate::{
-    host::ui::UiActions,
+    host::ui::{UiActions, actions::FileDialogOptions},
     session::{
         command::SessionCommand,
         error::SessionError,
         types::attachment::{PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime},
         ui::{
             common::{
-                self,
+                self, export_logs,
                 log_table::{
                     LogTableKind,
                     table::{
@@ -37,6 +38,7 @@ use crate::{
 };
 
 const TABLE_ID_SALT: &str = "search_table";
+const RAW_EXPORT_DIALOG_ID: &str = "search_table_raw_export";
 
 #[derive(Debug)]
 pub struct SearchTable {
@@ -73,6 +75,8 @@ impl SearchTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
+        self.handle_pending_dialog(shared, actions);
+
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
@@ -112,6 +116,11 @@ impl SearchTable {
 
         let mut delegate = LogsDelegate::new(self, shared, actions);
         let response = table.show(ui, &mut delegate);
+        response.context_menu(|ui| {
+            delegate
+                .table
+                .render_context_menu(delegate.shared, delegate.actions, ui);
+        });
 
         if delegate.request_repaint {
             ui.request_repaint();
@@ -136,6 +145,62 @@ impl SearchTable {
         indexed_logs.clear();
         *scroll_nearest_pos = None;
         *pending_logs_rx = None;
+    }
+
+    fn handle_pending_dialog(&self, shared: &mut SessionShared, actions: &mut UiActions) {
+        let Some(selected_paths) = actions.file_dialog.take_output(RAW_EXPORT_DIALOG_ID) else {
+            return;
+        };
+
+        let mut destinations = selected_paths.into_iter();
+        let Some(destination) = destinations.next() else {
+            return;
+        };
+
+        if destinations.next().is_some() {
+            log::error!("Expected exactly one destination from raw export dialog");
+            return;
+        }
+
+        let operation_id = Uuid::new_v4();
+        shared
+            .exports
+            .pending_op
+            .insert(operation_id, destination.clone());
+
+        if !actions.try_send_command(
+            &self.cmd_tx,
+            SessionCommand::ExportIndexedRaw {
+                operation_id,
+                destination,
+            },
+        ) {
+            shared.exports.pending_op.remove(&operation_id);
+        }
+    }
+
+    fn render_context_menu(
+        &mut self,
+        shared: &SessionShared,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) {
+        let can_export =
+            shared.get_info().raw_export_supported() && shared.search.indexed_result_count() > 0;
+
+        if ui
+            .add_enabled(
+                can_export,
+                egui::Button::new("Export All Search Results as Raw"),
+            )
+            .clicked()
+        {
+            let options = FileDialogOptions::new()
+                .file_name(export_logs::default_raw_file_name(shared))
+                .title("Export All Search Results as Raw");
+            actions.file_dialog.save_file(RAW_EXPORT_DIALOG_ID, options);
+            ui.close();
+        }
     }
 
     /// Queues a vertical table scroll for the next render pass.
@@ -252,6 +317,11 @@ impl<'a> LogsDelegate<'a> {
             attachment_info,
         );
 
+        header.response.context_menu(|ui| {
+            self.table
+                .render_context_menu(self.shared, self.actions, ui)
+        });
+
         if header.attachment_clicked {
             if let Some(attachment_id) = attachment_id
                 && let Some(attachment) = self
@@ -304,7 +374,10 @@ impl<'a> LogsDelegate<'a> {
                         self.table.last_visible_rows = None;
                     }
 
-                    ui.label("Loading...");
+                    ui.label("Loading...").context_menu(|ui| {
+                        self.table
+                            .render_context_menu(self.shared, self.actions, ui)
+                    });
                     return;
                 }
             };
@@ -322,6 +395,11 @@ impl<'a> LogsDelegate<'a> {
             if response.clicked() {
                 self.handle_selection_click(log_item.element.pos as u64, ui.input(|i| i.modifiers));
             }
+
+            response.context_menu(|ui| {
+                self.table
+                    .render_context_menu(self.shared, self.actions, ui)
+            });
         });
 
         if source_changed {
@@ -416,11 +494,16 @@ impl TableDelegate for LogsDelegate<'_> {
         let main_log_pos = log_item.map(|item| item.element.pos as u64);
         common::log_table::table::apply_log_row_colors(ui, self.shared, main_log_pos, is_selected);
 
-        if ui.response().interact(Sense::click()).clicked()
+        let response = ui.response().interact(Sense::click());
+        if response.clicked()
             && let Some(log_item) = log_item
         {
             self.handle_selection_click(log_item.element.pos as u64, ui.input(|i| i.modifiers));
         }
+        response.context_menu(|ui| {
+            self.table
+                .render_context_menu(self.shared, self.actions, ui)
+        });
     }
 
     fn cell_ui(&mut self, ui: &mut Ui, cell: &CellInfo) {

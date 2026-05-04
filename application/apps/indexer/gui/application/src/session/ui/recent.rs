@@ -236,6 +236,7 @@ mod tests {
             id: Uuid::new_v4(),
             title: String::from("test"),
             parser: ParserNames::Text,
+            raw_export_supported: false,
         };
         let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
         SessionShared::new(session_info, observe_op)
