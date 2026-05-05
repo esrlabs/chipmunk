@@ -19,9 +19,11 @@ use crate::{
             common::{
                 self,
                 log_table::{
+                    LogTableKind,
                     table::{
-                        TableScroll, apply_columns_to_table_state, grab_cmd_consts,
-                        render_row_header, should_stick_to_bottom,
+                        TableScroll, activate_table_on_click, apply_columns_to_table_state,
+                        grab_cmd_consts, render_active_table_indicator, render_row_header,
+                        should_stick_to_bottom,
                     },
                     text::render_log_cell_text,
                 },
@@ -75,7 +77,7 @@ impl SearchTable {
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
         let columns = shared
-            .layout
+            .view
             .log_columns
             .iter()
             .map(|column| {
@@ -109,11 +111,14 @@ impl SearchTable {
         }
 
         let mut delegate = LogsDelegate::new(self, shared, actions);
-        table.show(ui, &mut delegate);
+        let response = table.show(ui, &mut delegate);
 
         if delegate.request_repaint {
             ui.request_repaint();
         }
+
+        activate_table_on_click(ui, &response.rect, &mut shared.view, LogTableKind::Search);
+        render_active_table_indicator(ui, &response.rect, &shared.view, LogTableKind::Search);
     }
 
     pub fn clear(&mut self) {

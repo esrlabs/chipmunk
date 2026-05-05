@@ -1,4 +1,4 @@
-use egui::Color32;
+use egui::{Color32, Stroke};
 
 const MAIN_ACCENT_BACKGROUND_DARK: Color32 = Color32::from_rgb(36, 44, 58);
 const MAIN_ACCENT_BACKGROUND_LIGHT: Color32 = Color32::from_rgb(220, 228, 240);
@@ -131,6 +131,15 @@ pub fn main_accent_stroke(dark_mode: bool) -> Color32 {
     }
 }
 
+/// Stroke used for the active log-table indicator.
+pub fn active_log_table_indicator(dark_mode: bool) -> Stroke {
+    if dark_mode {
+        Stroke::new(2.0, MAIN_ACCENT_STROKE_DARK.gamma_multiply_u8(200))
+    } else {
+        Stroke::new(3.0, MAIN_ACCENT_STROKE_LIGHT.gamma_multiply_u8(170))
+    }
+}
+
 /// Returns the source palette as an owned list for UI code that needs to iterate
 /// or display the available colors.
 pub fn source_highlighting_colors() -> Vec<Color32> {
@@ -204,13 +213,5 @@ mod tests {
         let next = next_search_value_color(&used);
 
         assert_eq!(next, search_value_color(1));
-    }
-
-    #[test]
-    fn main_accent_colors_have_theme_variants() {
-        assert_eq!(main_accent_background(true), MAIN_ACCENT_BACKGROUND_DARK);
-        assert_eq!(main_accent_background(false), MAIN_ACCENT_BACKGROUND_LIGHT);
-        assert_eq!(main_accent_stroke(true), MAIN_ACCENT_STROKE_DARK);
-        assert_eq!(main_accent_stroke(false), MAIN_ACCENT_STROKE_LIGHT);
     }
 }

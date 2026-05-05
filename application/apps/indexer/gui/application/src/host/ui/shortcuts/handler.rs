@@ -13,11 +13,13 @@ use crate::host::ui::{
 use super::{
     definitions::{AppShortcuts, OPEN_SHORTCUTS_F1, app_shortcuts},
     matching::{consume_binding, consume_questionmark, consume_shortcut},
+    state::LastShortcutKey,
 };
 
 /// Handles host and active-tab shortcuts, returning true when a shortcut is consumed.
 pub fn handle(host: &mut Host, ctx: &Context) -> bool {
     if ctx.memory(|memory| memory.top_modal_layer().is_some()) {
+        host.state.shortcuts.clear_last_key();
         return false;
     }
 
@@ -25,14 +27,23 @@ pub fn handle(host: &mut Host, ctx: &Context) -> bool {
         return false;
     }
 
+    // Take last key when on new key press regardless if it will be used or not.
+    // The new key will be stored in case it's not consumed.
+    let last_key = host.state.shortcuts.take_last_key(ctx);
+
     if handle_app_shortcuts(host, ctx) {
         return true;
     }
 
-    if handle_active_tab_shortcuts(host, ctx) {
+    if handle_active_tab_shortcuts(host, ctx, last_key.as_ref()) {
         return true;
     }
 
+    if ctx.text_edit_focused() {
+        return false;
+    }
+
+    host.state.shortcuts.store_last_key(ctx);
     false
 }
 
@@ -150,10 +161,6 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
         return true;
     }
 
-    // question mark stills a special case, as it should be invoked only if there is no
-    // text-edit in focus. We kept the special handling for now as it's the only case.
-    // However, we should consider a proper handling if we introduce other focus-depending
-    // keybindings.
     if consume_binding(ctx, &OPEN_SHORTCUTS_F1) || consume_questionmark(ctx) {
         host.state.active_modal = Some(HostModal::Shortcuts);
         return true;
@@ -162,7 +169,11 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     false
 }
 
-fn handle_active_tab_shortcuts(host: &mut Host, ctx: &Context) -> bool {
+fn handle_active_tab_shortcuts(
+    host: &mut Host,
+    ctx: &Context,
+    last_key: Option<&LastShortcutKey>,
+) -> bool {
     let TabType::Session(session_id) = host.state.active_tab().clone() else {
         return false;
     };
@@ -171,7 +182,7 @@ fn handle_active_tab_shortcuts(host: &mut Host, ctx: &Context) -> bool {
         return false;
     };
 
-    session.handle_shortcuts(&mut host.state.panels_visibility, ctx)
+    session.handle_shortcuts(&mut host.state.panels_visibility, ctx, last_key)
 }
 
 fn close_active_tab(host: &mut Host) {

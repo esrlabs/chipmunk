@@ -7,8 +7,8 @@
 use std::ops::{Range, RangeInclusive};
 
 use egui::{
-    Align, Color32, CursorIcon, Frame, Label, Layout, Margin, Response, RichText, Sense, Shape,
-    Stroke, Ui, Widget as _, vec2,
+    Align, Color32, CursorIcon, Frame, Label, Layout, Margin, Rect, Response, RichText, Sense,
+    Shape, Stroke, Ui, Widget as _, vec2,
 };
 use egui_table::{Column, TableState};
 use stypes::ObserveOrigin;
@@ -17,7 +17,10 @@ use uuid::Uuid;
 
 use crate::{
     host::{
-        common::colors::{DEFAULT_ATTACHMENT_EXT_COLOR, SELECTED_LOG_COLORS, TEMP_SEARCH_COLORS},
+        common::colors::{
+            DEFAULT_ATTACHMENT_EXT_COLOR, SELECTED_LOG_COLORS, TEMP_SEARCH_COLORS,
+            active_log_table_indicator,
+        },
         notification::AppNotification,
         ui::UiActions,
     },
@@ -27,10 +30,14 @@ use crate::{
         ui::{
             definitions::schema::LogSchema,
             logs_table::LogAttachmentInfo,
-            shared::{ObserveState, SelectionIntent, SessionShared, searching::LogMainIndex},
+            shared::{
+                ObserveState, SelectionIntent, SessionShared, UiViewState, searching::LogMainIndex,
+            },
         },
     },
 };
+
+use super::LogTableKind;
 
 /// Constants needed when sending grab logs commands.
 pub mod grab_cmd_consts {
@@ -372,6 +379,56 @@ fn selection_intent(modifiers: egui::Modifiers) -> SelectionIntent {
         SelectionIntent::ToggleRow
     } else {
         SelectionIntent::Exclusive
+    }
+}
+
+/// Selects the provided log table as active when the table area is clicked.
+///
+/// # Arguments
+///
+/// * `ui` - egi::UI.
+/// * `rect` - Table response rectangle used to test click position.
+/// * `view` - Session view state that stores the active log table.
+/// * `table_kind` - Log-table kind to store when the table is clicked.
+pub fn activate_table_on_click(
+    ui: &Ui,
+    rect: &Rect,
+    view: &mut UiViewState,
+    table_kind: LogTableKind,
+) {
+    if ui.input(|input| {
+        input.pointer.any_click()
+            && input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pos| rect.contains(pos))
+    }) {
+        view.active_log_table = table_kind;
+    }
+}
+
+/// Paints a visual indicator on the provided log table if it is currently active.
+///
+/// # Arguments
+///
+/// * `ui` - egi::UI.
+/// * `rect` - Table response rectangle to draw the indicator against.
+/// * `view` - Session view state that stores the active log table.
+/// * `table_kind` - Log-table kind to compare with the active table state.
+pub fn render_active_table_indicator(
+    ui: &Ui,
+    rect: &Rect,
+    view: &UiViewState,
+    table_kind: LogTableKind,
+) {
+    if view
+        .log_table_target(ui.ctx())
+        .is_some_and(|target| target == table_kind)
+    {
+        ui.painter().line_segment(
+            [rect.left_top(), rect.left_bottom()],
+            active_log_table_indicator(ui.visuals().dark_mode),
+        );
     }
 }
 

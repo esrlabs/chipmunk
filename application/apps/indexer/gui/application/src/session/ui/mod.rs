@@ -15,6 +15,7 @@ use crate::{
         ui::{
             HostAction, UiActions,
             registry::{HostRegistry, filters::FilterRegistry},
+            shortcuts::state::LastShortcutKey,
             state::PanelsVisibility,
             storage::{HostStorage, RecentSessionSource, RecentSessionStateSnapshot},
         },
@@ -30,7 +31,7 @@ use crate::{
     },
 };
 use bottom_panel::{BottomPanelUI, BottomTabType};
-use common::log_table::table::TableScroll;
+use common::log_table::{LogTableKind, table::TableScroll};
 use logs_table::LogsTable;
 use side_panel::{SidePanelUi, SideTabType};
 
@@ -55,7 +56,7 @@ pub struct Session {
     cmd_tx: Sender<SessionCommand>,
     receivers: UiReceivers,
     shared: SessionShared,
-    recent_session: RecentSessionRuntime,
+    pub recent_session: RecentSessionRuntime,
     logs_table: LogsTable,
     bottom_panel: BottomPanelUI,
     side_panel: SidePanelUi,
@@ -105,98 +106,6 @@ impl Session {
 
     pub fn get_info(&self) -> &SessionInfo {
         self.shared.get_info()
-    }
-
-    /// Applies the restored recent-session state through the normal session and registry path.
-    ///
-    /// Any UI signals emitted while rebuilding that state are handled immediately so the first
-    /// render starts from a clean signal queue.
-    pub fn apply_recent_restore(
-        &mut self,
-        restore_state: RecentSessionStateSnapshot,
-        registry: &mut HostRegistry,
-        actions: &mut UiActions,
-    ) {
-        self.recent_session.apply_restore(
-            restore_state,
-            &mut self.shared,
-            actions,
-            &self.cmd_tx,
-            &mut registry.filters,
-        );
-        self.handle_signals();
-    }
-
-    /// Captures the canonical recent-session state after restore and establishes the update baseline.
-    pub fn capture_opened_recent_state(
-        &mut self,
-        registry: &FilterRegistry,
-    ) -> RecentSessionStateSnapshot {
-        self.recent_session
-            .capture_opened_state(&self.shared, registry)
-    }
-
-    /// Returns the next recent-session state update when tracked semantic state changed.
-    pub fn take_recent_state_update(
-        &mut self,
-        registry: &FilterRegistry,
-    ) -> Option<RecentSessionStateSnapshot> {
-        self.recent_session
-            .take_state_update(&self.shared, registry)
-    }
-
-    pub fn recent_source_key(&self) -> Option<&std::sync::Arc<str>> {
-        self.recent_session.source_key()
-    }
-
-    pub fn on_close_session(&self, actions: &mut UiActions) {
-        actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
-    }
-
-    pub fn handle_shortcuts(
-        &mut self,
-        panels_visibility: &mut PanelsVisibility,
-        ctx: &Context,
-    ) -> bool {
-        shortcuts::handle(self, panels_visibility, ctx)
-    }
-
-    fn activate_search_tab(&mut self, panels_visibility: &mut PanelsVisibility) {
-        if self.shared.bottom_tab == BottomTabType::Search {
-            self.bottom_panel.search.bar.request_focus();
-        }
-
-        self.activate_bottom_tab(BottomTabType::Search, panels_visibility);
-    }
-
-    fn activate_bottom_tab(
-        &mut self,
-        tab: BottomTabType,
-        panels_visibility: &mut PanelsVisibility,
-    ) {
-        panels_visibility.bottom = true;
-        self.shared.bottom_tab = tab;
-    }
-
-    fn activate_side_tab(&mut self, tab: SideTabType, panels_visibility: &mut PanelsVisibility) {
-        panels_visibility.right = true;
-        self.shared.side_tab = tab;
-    }
-
-    fn scroll_main_table(&mut self, action: TableScroll) {
-        self.logs_table.scroll(action, self.shared.logs.logs_count);
-    }
-
-    fn scroll_search_table(&mut self, action: TableScroll, panels_visibility: &PanelsVisibility) {
-        // Don't scroll if search table isn't visible.
-        if !panels_visibility.bottom || self.shared.bottom_tab != BottomTabType::Search {
-            return;
-        }
-
-        self.bottom_panel
-            .search
-            .table
-            .scroll(action, self.shared.search.indexed_result_count());
     }
 
     pub fn render_content(
@@ -261,7 +170,7 @@ impl Session {
                 // they will be used as identifiers for table state to avoid ID clashes between
                 // tables from different tabs (different sessions).
                 ui.push_id(shared.get_id(), |ui| {
-                    logs_table.render_content(shared, actions, ui);
+                    logs_table.render_content(shared, actions, panels_visibility, ui);
                 });
             });
 
@@ -433,6 +342,133 @@ impl Session {
         }
     }
 
+    /// Applies the restored recent-session state through the normal session and registry path.
+    ///
+    /// Any UI signals emitted while rebuilding that state are handled immediately so the first
+    /// render starts from a clean signal queue.
+    pub fn apply_recent_restore(
+        &mut self,
+        restore_state: RecentSessionStateSnapshot,
+        registry: &mut HostRegistry,
+        actions: &mut UiActions,
+    ) {
+        self.recent_session.apply_restore(
+            restore_state,
+            &mut self.shared,
+            actions,
+            &self.cmd_tx,
+            &mut registry.filters,
+        );
+        self.handle_signals();
+    }
+
+    /// Captures the canonical recent-session state after restore and establishes the update baseline.
+    pub fn capture_opened_recent_state(
+        &mut self,
+        registry: &FilterRegistry,
+    ) -> RecentSessionStateSnapshot {
+        self.recent_session
+            .capture_opened_state(&self.shared, registry)
+    }
+
+    /// Returns the next recent-session state update when tracked semantic state changed.
+    pub fn take_recent_state_update(
+        &mut self,
+        registry: &FilterRegistry,
+    ) -> Option<RecentSessionStateSnapshot> {
+        self.recent_session
+            .take_state_update(&self.shared, registry)
+    }
+
+    pub fn on_close_session(&self, actions: &mut UiActions) {
+        actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
+    }
+
+    pub fn handle_shortcuts(
+        &mut self,
+        panels_visibility: &mut PanelsVisibility,
+        ctx: &Context,
+        last_key: Option<&LastShortcutKey>,
+    ) -> bool {
+        shortcuts::handle(self, panels_visibility, ctx, last_key)
+    }
+
+    fn activate_search_tab(&mut self, panels_visibility: &mut PanelsVisibility) {
+        self.bottom_panel.search.bar.request_focus();
+        self.activate_bottom_tab(BottomTabType::Search, panels_visibility);
+    }
+
+    fn activate_main_logs_table(&mut self, ctx: &Context) {
+        self.shared.view.active_log_table = LogTableKind::Main;
+        clear_text_edit_focus(ctx);
+    }
+
+    fn activate_search_results_table(
+        &mut self,
+        panels_visibility: &mut PanelsVisibility,
+        ctx: &Context,
+    ) {
+        self.activate_bottom_tab(BottomTabType::Search, panels_visibility);
+        self.shared.view.active_log_table = LogTableKind::Search;
+        clear_text_edit_focus(ctx);
+    }
+
+    fn activate_bottom_tab(
+        &mut self,
+        tab: BottomTabType,
+        panels_visibility: &mut PanelsVisibility,
+    ) {
+        panels_visibility.bottom = true;
+        self.shared.bottom_tab = tab;
+    }
+
+    fn activate_side_tab(&mut self, tab: SideTabType, panels_visibility: &mut PanelsVisibility) {
+        panels_visibility.right = true;
+        self.shared.side_tab = tab;
+    }
+
+    fn scroll_main_table(&mut self, action: TableScroll) {
+        self.logs_table.scroll(action, self.shared.logs.logs_count);
+    }
+
+    fn scroll_active_table(
+        &mut self,
+        action: TableScroll,
+        panels_visibility: &PanelsVisibility,
+        ctx: &Context,
+    ) {
+        let active_target = match self.shared.view.log_table_target(ctx) {
+            Some(LogTableKind::Search) => {
+                let search_table_visible =
+                    panels_visibility.bottom && self.shared.bottom_tab == BottomTabType::Search;
+                if search_table_visible {
+                    LogTableKind::Search
+                } else {
+                    self.shared.view.active_log_table = LogTableKind::Main;
+                    LogTableKind::Main
+                }
+            }
+            Some(LogTableKind::Main) | None => LogTableKind::Main,
+        };
+
+        match active_target {
+            LogTableKind::Main => self.scroll_main_table(action),
+            LogTableKind::Search => self.scroll_search_table(action, panels_visibility),
+        }
+    }
+
+    fn scroll_search_table(&mut self, action: TableScroll, panels_visibility: &PanelsVisibility) {
+        // Don't scroll if search table isn't visible.
+        if !panels_visibility.bottom || self.shared.bottom_tab != BottomTabType::Search {
+            return;
+        }
+
+        self.bottom_panel
+            .search
+            .table
+            .scroll(action, self.shared.search.indexed_result_count());
+    }
+
     /// Converts the Result to Option and handle errors by adding them as a notification
     /// to the provided `actions`
     fn ok_or_notify<T>(&self, res: Result<T, SessionError>, actions: &mut UiActions) -> Option<T> {
@@ -449,5 +485,11 @@ impl Session {
                 None
             }
         }
+    }
+}
+
+fn clear_text_edit_focus(ctx: &Context) {
+    if ctx.text_edit_focused() {
+        ctx.memory_mut(|memory| memory.stop_text_input());
     }
 }

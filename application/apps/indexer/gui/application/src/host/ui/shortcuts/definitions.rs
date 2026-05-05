@@ -2,19 +2,6 @@
 
 use egui::{Key, KeyboardShortcut, Modifiers};
 
-/// Creates a shortcut bound to both Cmd/Ctrl+key and Alt+key.
-macro_rules! cmd_alt {
-    ($key:expr, $description:expr) => {
-        Shortcut {
-            bindings: &[
-                KeyboardShortcut::new(Modifiers::COMMAND, $key),
-                KeyboardShortcut::new(Modifiers::ALT, $key),
-            ],
-            description: $description,
-        }
-    };
-}
-
 #[cfg(target_os = "macos")]
 const CLOSE_TAB_BINDINGS: &[KeyboardShortcut] =
     &[KeyboardShortcut::new(Modifiers::COMMAND, Key::W)];
@@ -31,10 +18,8 @@ const OPEN_SHORTCUTS_QUESTIONMARK: KeyboardShortcut =
 
 static SHORTCUTS: AppShortcuts = AppShortcuts {
     home_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::N)],
-        // Home is currently the new-session entry point. Present this shortcut as starting a
-        // new session, not as generic Home navigation.
-        description: "Start a new session",
+        bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::T)],
+        description: "Home",
     },
     open_files: Shortcut {
         bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::O)],
@@ -58,15 +43,42 @@ static SHORTCUTS: AppShortcuts = AppShortcuts {
         ],
         description: "Activate next tab",
     },
-    tab_1: cmd_alt!(Key::Num1, "Activate tab 1"),
-    tab_2: cmd_alt!(Key::Num2, "Activate tab 2"),
-    tab_3: cmd_alt!(Key::Num3, "Activate tab 3"),
-    tab_4: cmd_alt!(Key::Num4, "Activate tab 4"),
-    tab_5: cmd_alt!(Key::Num5, "Activate tab 5"),
-    tab_6: cmd_alt!(Key::Num6, "Activate tab 6"),
-    tab_7: cmd_alt!(Key::Num7, "Activate tab 7"),
-    tab_8: cmd_alt!(Key::Num8, "Activate tab 8"),
-    tab_9: cmd_alt!(Key::Num9, "Activate tab 9"),
+    tab_1: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num1)],
+        description: "Activate tab 1",
+    },
+    tab_2: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num2)],
+        description: "Activate tab 2",
+    },
+    tab_3: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num3)],
+        description: "Activate tab 3",
+    },
+    tab_4: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num4)],
+        description: "Activate tab 4",
+    },
+    tab_5: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num5)],
+        description: "Activate tab 5",
+    },
+    tab_6: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num6)],
+        description: "Activate tab 6",
+    },
+    tab_7: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num7)],
+        description: "Activate tab 7",
+    },
+    tab_8: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num8)],
+        description: "Activate tab 8",
+    },
+    tab_9: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::ALT, Key::Num9)],
+        description: "Activate tab 9",
+    },
     toggle_right_panel: Shortcut {
         bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::B)],
         description: "Toggle right panel",

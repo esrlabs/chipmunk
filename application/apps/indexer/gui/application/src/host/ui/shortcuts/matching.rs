@@ -16,6 +16,15 @@ pub fn consume_shortcut(ctx: &Context, shortcut: &Shortcut) -> bool {
         .any(|binding| consume_binding(ctx, binding))
 }
 
+/// Consumes one matching shortcut press only when no text edit is focused.
+pub fn consume_outside_text(ctx: &Context, shortcut: &Shortcut) -> bool {
+    if ctx.text_edit_focused() {
+        return false;
+    }
+
+    consume_shortcut(ctx, shortcut)
+}
+
 /// Consumes one press for a single keyboard binding using exact modifier matching.
 pub fn consume_binding(ctx: &Context, binding: &KeyboardShortcut) -> bool {
     ctx.input_mut(|input| {
