@@ -57,12 +57,6 @@ impl FileDialogOptions {
         self
     }
 
-    /// Appends a single extension filter to the dialog.
-    pub fn filter(mut self, filter: FileDialogFilter) -> Self {
-        self.filters.push(filter);
-        self
-    }
-
     /// Replaces all dialog filters with the provided set.
     pub fn filters(mut self, filters: Vec<FileDialogFilter>) -> Self {
         self.filters = filters;
