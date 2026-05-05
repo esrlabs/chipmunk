@@ -6,7 +6,7 @@ use crate::{
     host::ui::{
         UiActions,
         shortcuts::{
-            definitions::Shortcut,
+            definitions::{Shortcut, ShortcutDisplay},
             matching::{consume_outside_text, consume_shortcut},
             state::LastShortcutKey,
         },
@@ -20,169 +20,149 @@ use super::{
     shared::BookmarkNavigation, side_panel::SideTabType,
 };
 
-const CTRL_SHIFT: Modifiers = Modifiers::CTRL.plus(Modifiers::SHIFT);
+const ACTIVE_PAGE_UP_BINDINGS: &[KeyboardShortcut] = &[
+    KeyboardShortcut::new(Modifiers::CTRL, Key::U),
+    KeyboardShortcut::new(Modifiers::CTRL, Key::PageUp),
+];
 
-const SEARCH_PAGE_UP_BINDINGS: &[KeyboardShortcut] =
-    &[KeyboardShortcut::new(CTRL_SHIFT, Key::PageUp)];
+const ACTIVE_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] = &[
+    KeyboardShortcut::new(Modifiers::CTRL, Key::D),
+    KeyboardShortcut::new(Modifiers::CTRL, Key::PageDown),
+];
 
-const SEARCH_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] =
-    &[KeyboardShortcut::new(CTRL_SHIFT, Key::PageDown)];
+const ACTIVE_TOP_DIRECT_BINDINGS: &[KeyboardShortcut] =
+    &[KeyboardShortcut::new(Modifiers::CTRL, Key::Home)];
 
-const SEARCH_TOP_BINDINGS: &[KeyboardShortcut] = &[KeyboardShortcut::new(CTRL_SHIFT, Key::Home)];
+const ACTIVE_BOTTOM_DIRECT_BINDINGS: &[KeyboardShortcut] =
+    &[KeyboardShortcut::new(Modifiers::CTRL, Key::End)];
 
 #[cfg(target_os = "macos")]
-const SEARCH_BOTTOM_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::End),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::E),
-];
-
+const ACTIVE_TOP_DISPLAY: &str = "gg / Cmd+Home";
 #[cfg(not(target_os = "macos"))]
-const SEARCH_BOTTOM_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::End),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::E),
-    KeyboardShortcut::new(Modifiers::ALT, Key::E),
-];
+const ACTIVE_TOP_DISPLAY: &str = "gg / Ctrl+Home";
+
+#[cfg(target_os = "macos")]
+const ACTIVE_BOTTOM_DISPLAY: &str = "Shift+G / Cmd+End";
+#[cfg(not(target_os = "macos"))]
+const ACTIVE_BOTTOM_DISPLAY: &str = "Shift+G / Ctrl+End";
+
+#[cfg(target_os = "macos")]
+const SEARCH_FOCUS_DISPLAY: &str = "Slash / Cmd+F";
+#[cfg(not(target_os = "macos"))]
+const SEARCH_FOCUS_DISPLAY: &str = "Slash / Ctrl+F";
 
 static SHORTCUTS: SessionShortcuts = SessionShortcuts {
-    activate_main_output: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num1)],
-        description: "Focus main logs table",
-    },
-    activate_search_output: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num2)],
-        description: "Focus search results table",
-    },
-    active_page_up: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::U)],
-        description: "Scroll active table one page up",
-    },
-    active_page_down: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::D)],
-        description: "Scroll active table one page down",
-    },
-    active_top: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::G)],
-        description: "Scroll active table to top",
-    },
-    active_bottom: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::SHIFT, Key::G)],
-        description: "Scroll active table to bottom",
-    },
-    activate_search_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::F)],
-        description: "Focus search",
-    },
-    activate_search_tab_outside_text: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::Slash)],
-        description: "Focus search",
-    },
-    activate_filters_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+    activate_main_output: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num1)],
+        "Focus main logs table",
+    ),
+    activate_search_output: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num2)],
+        "Focus search results table",
+    ),
+    active_page_up: Shortcut::new(ACTIVE_PAGE_UP_BINDINGS, "Scroll active table one page up"),
+    active_page_down: Shortcut::new(
+        ACTIVE_PAGE_DOWN_BINDINGS,
+        "Scroll active table one page down",
+    ),
+    active_top: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::NONE, Key::G)],
+        "Scroll active table to top",
+    ),
+    active_top_direct: Shortcut::new(ACTIVE_TOP_DIRECT_BINDINGS, "Scroll active table to top")
+        .with_display(ShortcutDisplay::OverrideText(ACTIVE_TOP_DISPLAY)),
+    active_bottom: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::SHIFT, Key::G)],
+        "Scroll active table to bottom",
+    )
+    .with_display(ShortcutDisplay::OverrideText(ACTIVE_BOTTOM_DISPLAY)),
+    active_bottom_direct: Shortcut::new(
+        ACTIVE_BOTTOM_DIRECT_BINDINGS,
+        "Scroll active table to bottom",
+    )
+    .with_display(ShortcutDisplay::Skip),
+    activate_search_tab: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::COMMAND, Key::F)],
+        "Focus search",
+    )
+    .with_display(ShortcutDisplay::OverrideText(SEARCH_FOCUS_DISPLAY)),
+    activate_search_tab_outside_text: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::NONE, Key::Slash)],
+        "Focus search",
+    )
+    .with_display(ShortcutDisplay::Skip),
+    activate_filters_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::F,
         )],
-        description: "Open filters panel",
-    },
-    activate_observing_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open filters panel",
+    ),
+    activate_observing_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::O,
         )],
-        description: "Open observing panel",
-    },
-    activate_attachments_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open observing panel",
+    ),
+    activate_attachments_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Y,
         )],
-        description: "Open attachments panel",
-    },
-    activate_bottom_search_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open attachments panel",
+    ),
+    activate_bottom_search_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num1,
         )],
-        description: "Open bottom search panel",
-    },
-    activate_details_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open bottom search panel",
+    ),
+    activate_details_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num2,
         )],
-        description: "Open details panel",
-    },
-    activate_library_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open details panel",
+    ),
+    activate_library_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num3,
         )],
-        description: "Open library panel",
-    },
-    activate_presets_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open library panel",
+    ),
+    activate_presets_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num4,
         )],
-        description: "Open presets panel",
-    },
-    activate_chart_tab: Shortcut {
-        bindings: &[KeyboardShortcut::new(
+        "Open presets panel",
+    ),
+    activate_chart_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::Num5,
         )],
-        description: "Open chart panel",
-    },
-    main_page_up: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::PageUp)],
-        description: "Scroll main table one page up",
-    },
-    main_page_down: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::PageDown)],
-        description: "Scroll main table one page down",
-    },
-    main_top: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::Home)],
-        description: "Scroll main table to top",
-    },
-    main_bottom: Shortcut {
-        bindings: &[
-            KeyboardShortcut::new(Modifiers::CTRL, Key::End),
-            KeyboardShortcut::new(Modifiers::CTRL, Key::E),
-        ],
-        description: "Scroll main table to bottom",
-    },
-    previous_indexed_row: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::OpenBracket)],
-        description: "Select previous indexed row",
-    },
-    next_indexed_row: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::CloseBracket)],
-        description: "Select next indexed row",
-    },
-    next_bookmark: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::J)],
-        description: "Select next bookmarked row",
-    },
-    previous_bookmark: Shortcut {
-        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::K)],
-        description: "Select previous bookmarked row",
-    },
-    search_page_up: Shortcut {
-        bindings: SEARCH_PAGE_UP_BINDINGS,
-        description: "Scroll search results one page up",
-    },
-    search_page_down: Shortcut {
-        bindings: SEARCH_PAGE_DOWN_BINDINGS,
-        description: "Scroll search results one page down",
-    },
-    search_top: Shortcut {
-        bindings: SEARCH_TOP_BINDINGS,
-        description: "Scroll search results to top",
-    },
-    search_bottom: Shortcut {
-        bindings: SEARCH_BOTTOM_BINDINGS,
-        description: "Scroll search results to bottom",
-    },
+        "Open chart panel",
+    ),
+    previous_indexed_row: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::NONE, Key::OpenBracket)],
+        "Select previous indexed row",
+    ),
+    next_indexed_row: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::NONE, Key::CloseBracket)],
+        "Select next indexed row",
+    ),
+    next_bookmark: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::NONE, Key::J)],
+        "Select next bookmarked row",
+    ),
+    previous_bookmark: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::NONE, Key::K)],
+        "Select previous bookmarked row",
+    ),
 };
 
 struct SessionShortcuts {
@@ -191,7 +171,9 @@ struct SessionShortcuts {
     active_page_up: Shortcut,
     active_page_down: Shortcut,
     active_top: Shortcut,
+    active_top_direct: Shortcut,
     active_bottom: Shortcut,
+    active_bottom_direct: Shortcut,
     activate_search_tab: Shortcut,
     activate_search_tab_outside_text: Shortcut,
     activate_filters_tab: Shortcut,
@@ -202,28 +184,22 @@ struct SessionShortcuts {
     activate_library_tab: Shortcut,
     activate_presets_tab: Shortcut,
     activate_chart_tab: Shortcut,
-    main_page_up: Shortcut,
-    main_page_down: Shortcut,
-    main_top: Shortcut,
-    main_bottom: Shortcut,
     previous_indexed_row: Shortcut,
     next_indexed_row: Shortcut,
     next_bookmark: Shortcut,
     previous_bookmark: Shortcut,
-    search_page_up: Shortcut,
-    search_page_down: Shortcut,
-    search_top: Shortcut,
-    search_bottom: Shortcut,
 }
 
-pub fn shortcut_defs() -> [&'static Shortcut; 27] {
+pub fn shortcut_defs() -> [&'static Shortcut; 21] {
     let SessionShortcuts {
         activate_main_output,
         activate_search_output,
         active_page_up,
         active_page_down,
         active_top: _,
+        active_top_direct,
         active_bottom,
+        active_bottom_direct,
         activate_search_tab,
         activate_search_tab_outside_text,
         activate_filters_tab,
@@ -234,28 +210,26 @@ pub fn shortcut_defs() -> [&'static Shortcut; 27] {
         activate_library_tab,
         activate_presets_tab,
         activate_chart_tab,
-        main_page_up,
-        main_page_down,
-        main_top,
-        main_bottom,
         previous_indexed_row,
         next_indexed_row,
         next_bookmark,
         previous_bookmark,
-        search_page_up,
-        search_page_down,
-        search_top,
-        search_bottom,
     } = &SHORTCUTS;
 
     [
+        activate_search_tab,
+        activate_search_tab_outside_text,
         activate_main_output,
         activate_search_output,
         active_page_up,
         active_page_down,
+        active_top_direct,
         active_bottom,
-        activate_search_tab,
-        activate_search_tab_outside_text,
+        active_bottom_direct,
+        previous_indexed_row,
+        next_indexed_row,
+        next_bookmark,
+        previous_bookmark,
         activate_filters_tab,
         activate_observing_tab,
         activate_attachments_tab,
@@ -264,18 +238,6 @@ pub fn shortcut_defs() -> [&'static Shortcut; 27] {
         activate_library_tab,
         activate_presets_tab,
         activate_chart_tab,
-        main_page_up,
-        main_page_down,
-        main_top,
-        main_bottom,
-        previous_indexed_row,
-        next_indexed_row,
-        next_bookmark,
-        previous_bookmark,
-        search_page_up,
-        search_page_down,
-        search_top,
-        search_bottom,
     ]
 }
 
@@ -292,7 +254,9 @@ pub fn handle(
         active_page_up,
         active_page_down,
         active_top,
+        active_top_direct,
         active_bottom,
+        active_bottom_direct,
         activate_search_tab,
         activate_search_tab_outside_text,
         activate_filters_tab,
@@ -303,18 +267,10 @@ pub fn handle(
         activate_library_tab,
         activate_presets_tab,
         activate_chart_tab,
-        main_page_up,
-        main_page_down,
-        main_top,
-        main_bottom,
         previous_indexed_row,
         next_indexed_row,
         next_bookmark,
         previous_bookmark,
-        search_page_up,
-        search_page_down,
-        search_top,
-        search_bottom,
     } = &SHORTCUTS;
 
     if consume_shortcut(ctx, activate_main_output) {
@@ -345,7 +301,12 @@ pub fn handle(
         return true;
     }
 
-    if consume_outside_text(ctx, active_bottom) {
+    if consume_shortcut(ctx, active_top_direct) {
+        session.scroll_active_table(TableScroll::Top, panels_visibility, ctx);
+        return true;
+    }
+
+    if consume_outside_text(ctx, active_bottom) || consume_shortcut(ctx, active_bottom_direct) {
         session.scroll_active_table(TableScroll::Bottom, panels_visibility, ctx);
         return true;
     }
@@ -397,26 +358,6 @@ pub fn handle(
         return true;
     }
 
-    if consume_shortcut(ctx, main_page_up) {
-        session.scroll_main_table(TableScroll::PageUp);
-        return true;
-    }
-
-    if consume_shortcut(ctx, main_page_down) {
-        session.scroll_main_table(TableScroll::PageDown);
-        return true;
-    }
-
-    if consume_shortcut(ctx, main_top) {
-        session.scroll_main_table(TableScroll::Top);
-        return true;
-    }
-
-    if consume_shortcut(ctx, main_bottom) {
-        session.scroll_main_table(TableScroll::Bottom);
-        return true;
-    }
-
     if consume_outside_text(ctx, previous_indexed_row) {
         let anchor = session.shared.logs.single_selected_row().unwrap_or(0);
         actions.try_send_command(
@@ -454,26 +395,6 @@ pub fn handle(
             .shared
             .logs
             .focus_bookmark_neighbor(BookmarkNavigation::Previous);
-        return true;
-    }
-
-    if consume_shortcut(ctx, search_page_up) {
-        session.scroll_search_table(TableScroll::PageUp, panels_visibility);
-        return true;
-    }
-
-    if consume_shortcut(ctx, search_page_down) {
-        session.scroll_search_table(TableScroll::PageDown, panels_visibility);
-        return true;
-    }
-
-    if consume_shortcut(ctx, search_top) {
-        session.scroll_search_table(TableScroll::Top, panels_visibility);
-        return true;
-    }
-
-    if consume_shortcut(ctx, search_bottom) {
-        session.scroll_search_table(TableScroll::Bottom, panels_visibility);
         return true;
     }
 
