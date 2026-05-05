@@ -29,7 +29,7 @@ use crate::{
             PreviewContent, PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime,
         },
         ui::{
-            shared::{AttachmentsState, SessionShared},
+            shared::{AttachmentsState, SearchTableSync, SessionShared},
             side_panel::TITLE_SIZE,
         },
     },
@@ -605,7 +605,9 @@ impl AttachmentsUi {
                 .button(RichText::new("Jump to related row"))
                 .on_hover_text("Jumps to the first related row");
             if response.clicked() {
-                shared.logs.focus_main_row(*first_position as u64);
+                shared
+                    .logs
+                    .focus_main_row(*first_position as u64, SearchTableSync::Sync);
                 ui.close();
             }
 

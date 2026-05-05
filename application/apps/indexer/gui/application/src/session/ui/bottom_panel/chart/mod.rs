@@ -7,7 +7,11 @@ use tokio::sync::mpsc::Sender;
 use crate::{
     common::action_throttle::ActionThrottle,
     host::ui::{UiActions, registry::filters::FilterRegistry},
-    session::{command::SessionCommand, types::OperationPhase, ui::shared::SessionShared},
+    session::{
+        command::SessionCommand,
+        types::OperationPhase,
+        ui::shared::{SearchTableSync, SessionShared},
+    },
 };
 
 pub use data::{ChartBar, ChartsData};
@@ -343,8 +347,7 @@ impl ChartUI {
 
         match plot_res.inner {
             PlotResponse::JumpToLog(log_nr) => {
-                shared.logs.focus_main_row(log_nr);
-                actions.try_send_command(&self.cmd_tx, SessionCommand::GetSelectedLog(log_nr));
+                shared.logs.focus_main_row(log_nr, SearchTableSync::Sync);
             }
             PlotResponse::RequestForRange(bound_x) => {
                 self.update_throttle_config(shared.logs.logs_count);

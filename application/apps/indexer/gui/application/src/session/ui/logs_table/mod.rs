@@ -32,7 +32,7 @@ use crate::{
                 logs_mapped::LogsMapped,
             },
             definitions::schema::LogSchema,
-            shared::SessionShared,
+            shared::{SearchTableSync, SessionShared},
         },
     },
 };
@@ -93,17 +93,36 @@ impl LogsTable {
             table = table.headers(Vec::new());
         }
 
-        if let Some(row) = shared.logs.take_main_scroll_row() {
+        let search_table_visible =
+            panels_visibility.bottom && shared.bottom_tab == BottomTabType::Search;
+
+        if let Some(focus) = shared.logs.take_main_row_focus() {
             const OFFSET: u64 = 3;
-            table = table.scroll_to_rows(row.saturating_sub(OFFSET)..=(row + OFFSET), None);
+            table = table.scroll_to_rows(
+                focus.row.saturating_sub(OFFSET)..=focus.row.saturating_add(OFFSET),
+                None,
+            );
+
+            let details_row = shared
+                .logs
+                .single_selected_row()
+                .is_some_and(|row| row == focus.row)
+                .then_some(focus.row);
+            let search_row =
+                (focus.search_table_sync == SearchTableSync::Sync).then_some(focus.row);
+
+            sync_focused_row(
+                actions,
+                &self.cmd_tx,
+                details_row,
+                search_row,
+                search_table_visible,
+            );
         }
 
         if let Some(rows) = self.pending_scroll.take() {
             table = table.scroll_to_rows(rows, None);
         }
-
-        let search_table_visible =
-            panels_visibility.bottom && shared.bottom_tab == BottomTabType::Search;
         let mut delegate = LogsDelegate::new(self, shared, actions, search_table_visible);
         let response = table.show(ui, &mut delegate);
 
@@ -124,6 +143,23 @@ impl LogsTable {
         {
             self.pending_scroll = Some(target);
         }
+    }
+}
+
+/// Applies side effects for a main row focus produced by clicks or external jump requests.
+fn sync_focused_row(
+    actions: &mut UiActions,
+    cmd_tx: &Sender<SessionCommand>,
+    details_row: Option<u64>,
+    search_row: Option<u64>,
+    search_table_visible: bool,
+) {
+    if let Some(details_row) = details_row {
+        actions.try_send_command(cmd_tx, SessionCommand::GetSelectedLog(details_row));
+    }
+
+    if search_table_visible && let Some(search_row) = search_row {
+        actions.try_send_command(cmd_tx, SessionCommand::GetNearestPosition(search_row));
     }
 }
 
@@ -163,22 +199,16 @@ impl<'a> LogsDelegate<'a> {
     }
 
     fn select_row(&mut self, row_nr: u64, modifiers: egui::Modifiers) {
-        let Some(selected_row) = common::log_table::table::apply_selection_click(
-            self.shared,
+        let change =
+            common::log_table::table::apply_selection_click(self.shared, row_nr, modifiers);
+
+        sync_focused_row(
             self.actions,
             &self.table.cmd_tx,
-            row_nr,
-            modifiers,
-        ) else {
-            return;
-        };
-
-        // Keep the search table aligned only while it is visible.
-        if self.search_table_visible {
-            let nearest_cmd = SessionCommand::GetNearestPosition(selected_row);
-            self.actions
-                .try_send_command(&self.table.cmd_tx, nearest_cmd);
-        }
+            change.details_row,
+            change.jump_to_row,
+            self.search_table_visible,
+        );
     }
 
     fn handle_selection_click(&mut self, row_nr: u64, modifiers: egui::Modifiers) {
