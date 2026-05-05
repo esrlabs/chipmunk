@@ -3,9 +3,8 @@ use rustc_hash::FxHashSet;
 #[derive(Debug, Default)]
 pub struct LogsState {
     pub logs_count: u64,
-    /// The stream position of the log which the main logs table
-    /// should scroll into.
-    scroll_main_row: Option<u64>,
+    /// Pending request for the main logs table to bring a row into view.
+    main_row_focus: Option<MainRowFocus>,
     /// Selected rows keyed by original stream position.
     selected_rows: FxHashSet<u64>,
     /// Most recent row explicitly selected by the user.
@@ -24,6 +23,24 @@ pub struct SelectionChange {
     pub details_row: Option<u64>,
     /// Single row to align in the peer table after an exclusive selection.
     pub jump_to_row: Option<u64>,
+}
+
+/// Request consumed by the main logs table to focus a row and apply table-owned side effects.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MainRowFocus {
+    /// Stream row to bring into view in the main logs table.
+    pub row: u64,
+    /// Whether the search table should align to this row when it is visible.
+    pub search_table_sync: SearchTableSync,
+}
+
+/// Controls whether focusing a main row also aligns the search table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchTableSync {
+    /// Do not request search-table alignment.
+    Skip,
+    /// Align the visible search table to the focused main row.
+    Sync,
 }
 
 /// Describes how a row should affect the current selection.
@@ -88,21 +105,36 @@ impl LogsState {
         self.selection_change(SelectionIntent::Exclusive)
     }
 
-    /// Selects `row` and requests the main logs table to scroll to it.
-    pub fn focus_main_row(&mut self, row: u64) -> SelectionChange {
-        self.scroll_main_row = Some(row);
+    /// Selects `row` and requests the main logs table to focus it.
+    pub fn focus_main_row(
+        &mut self,
+        row: u64,
+        search_table_sync: SearchTableSync,
+    ) -> SelectionChange {
+        self.request_main_row_focus(row, search_table_sync);
         self.replace_selection_with(row)
+    }
+
+    /// Requests main-table focus without changing the current selection.
+    pub fn request_main_row_focus(&mut self, row: u64, search_table_sync: SearchTableSync) {
+        self.main_row_focus = Some(MainRowFocus {
+            row,
+            search_table_sync,
+        });
     }
 
     /// Selects `rows` and requests the main logs table to scroll to the first one.
     pub fn focus_main_rows(&mut self, rows: &[u64]) -> SelectionChange {
-        self.scroll_main_row = rows.first().copied();
+        self.main_row_focus = rows.first().map(|&row| MainRowFocus {
+            row,
+            search_table_sync: SearchTableSync::Skip,
+        });
         self.replace_selection_with_rows(rows)
     }
 
-    /// Takes the pending main-table scroll request.
-    pub fn take_main_scroll_row(&mut self) -> Option<u64> {
-        self.scroll_main_row.take()
+    /// Takes the pending main-table focus request.
+    pub fn take_main_row_focus(&mut self) -> Option<MainRowFocus> {
+        self.main_row_focus.take()
     }
 
     /// Applies a click mode and returns the resulting selection side effects.
@@ -173,7 +205,7 @@ impl LogsState {
 
 #[cfg(test)]
 mod tests {
-    use super::{LogsState, SelectionIntent};
+    use super::{LogsState, MainRowFocus, SearchTableSync, SelectionIntent};
 
     const EXCLUSIVE: SelectionIntent = SelectionIntent::Exclusive;
     const TOGGLE_ROW: SelectionIntent = SelectionIntent::ToggleRow;
@@ -376,10 +408,16 @@ mod tests {
     fn focus_main_row_selects_row_and_requests_scroll() {
         let mut state = LogsState::default();
 
-        let change = state.focus_main_row(13);
+        let change = state.focus_main_row(13, SearchTableSync::Sync);
 
-        assert_eq!(state.take_main_scroll_row(), Some(13));
-        assert_eq!(state.take_main_scroll_row(), None);
+        assert_eq!(
+            state.take_main_row_focus(),
+            Some(MainRowFocus {
+                row: 13,
+                search_table_sync: SearchTableSync::Sync,
+            })
+        );
+        assert_eq!(state.take_main_row_focus(), None);
         assert_eq!(state.single_selected_row(), Some(13));
         assert_eq!(change.details_row, Some(13));
         assert_eq!(change.jump_to_row, Some(13));
@@ -391,7 +429,13 @@ mod tests {
 
         let change = state.focus_main_rows(&[8, 13, 21]);
 
-        assert_eq!(state.take_main_scroll_row(), Some(8));
+        assert_eq!(
+            state.take_main_row_focus(),
+            Some(MainRowFocus {
+                row: 8,
+                search_table_sync: SearchTableSync::Skip,
+            })
+        );
         assert_eq!(state.single_selected_row(), None);
         assert_eq!(change.details_row, None);
         assert_eq!(change.jump_to_row, None);

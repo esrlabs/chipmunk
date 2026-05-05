@@ -31,7 +31,7 @@ use crate::{
             },
             definitions::{LogTableItem, schema::LogSchema},
             logs_table::LogAttachmentInfo,
-            shared::SessionShared,
+            shared::{SearchTableSync, SessionShared},
         },
     },
 };
@@ -185,17 +185,13 @@ impl<'a> LogsDelegate<'a> {
     }
 
     fn select_row(&mut self, pos: u64, modifiers: egui::Modifiers) {
-        let Some(selected_row) = common::log_table::table::apply_selection_click(
-            self.shared,
-            self.actions,
-            &self.table.cmd_tx,
-            pos,
-            modifiers,
-        ) else {
-            return;
-        };
+        let change = common::log_table::table::apply_selection_click(self.shared, pos, modifiers);
 
-        self.shared.logs.focus_main_row(selected_row);
+        if let Some(details_row) = change.details_row {
+            self.shared
+                .logs
+                .request_main_row_focus(details_row, SearchTableSync::Skip);
+        }
     }
 
     fn handle_selection_click(&mut self, pos: u64, modifiers: egui::Modifiers) {

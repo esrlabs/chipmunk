@@ -12,7 +12,6 @@ use egui::{
 };
 use egui_table::{Column, TableState};
 use stypes::ObserveOrigin;
-use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
@@ -25,13 +24,13 @@ use crate::{
         ui::UiActions,
     },
     session::{
-        command::SessionCommand,
         error::SessionError,
         ui::{
             definitions::schema::LogSchema,
             logs_table::LogAttachmentInfo,
             shared::{
-                ObserveState, SelectionIntent, SessionShared, UiViewState, searching::LogMainIndex,
+                ObserveState, SelectionChange, SelectionIntent, SessionShared, UiViewState,
+                searching::LogMainIndex,
             },
         },
     },
@@ -356,19 +355,11 @@ pub fn get_cell_frame() -> Frame {
 
 pub fn apply_selection_click(
     shared: &mut SessionShared,
-    actions: &mut UiActions,
-    cmd_tx: &Sender<SessionCommand>,
     row: u64,
     modifiers: egui::Modifiers,
-) -> Option<u64> {
+) -> SelectionChange {
     let selection_intent = selection_intent(modifiers);
-    let change = shared.logs.select_from_click(row, selection_intent);
-
-    if let Some(details_row) = change.details_row {
-        actions.try_send_command(cmd_tx, SessionCommand::GetSelectedLog(details_row));
-    }
-
-    change.jump_to_row
+    shared.logs.select_from_click(row, selection_intent)
 }
 
 /// Get selection intent based on modifier pressed while clicking on log item.
