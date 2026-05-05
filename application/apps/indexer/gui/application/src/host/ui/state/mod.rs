@@ -14,6 +14,7 @@ use crate::{
             multi_setup::{MultiFileSetup, state::MultiFileState},
             registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
+            shortcuts::state::ShortcutState,
             tabs::TabType,
         },
     },
@@ -36,6 +37,7 @@ pub struct HostState {
     pub panels_visibility: PanelsVisibility,
     pub registry: HostRegistry,
     pub app_info: AppInfoState,
+    pub shortcuts: ShortcutState,
     /// Modal currently owned by the host UI.
     pub active_modal: Option<HostModal>,
 }
@@ -70,6 +72,7 @@ impl HostState {
             panels_visibility: PanelsVisibility::default(),
             registry: HostRegistry::default(),
             app_info: AppInfoState::default(),
+            shortcuts: ShortcutState::default(),
             active_modal: None,
         }
     }

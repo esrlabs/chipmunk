@@ -1,7 +1,11 @@
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
 
 use crate::host::ui::{
-    shortcuts::{definitions::Shortcut, matching::consume_shortcut},
+    shortcuts::{
+        definitions::Shortcut,
+        matching::{consume_outside_text, consume_shortcut},
+        state::LastShortcutKey,
+    },
     state::PanelsVisibility,
 };
 
@@ -12,45 +16,13 @@ use super::{
 
 const CTRL_SHIFT: Modifiers = Modifiers::CTRL.plus(Modifiers::SHIFT);
 
-// Alt aliases avoid Linux Ctrl+Shift+U Unicode input, but macOS Option+letter is text input.
-#[cfg(target_os = "macos")]
-const SEARCH_PAGE_UP_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::PageUp),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::U),
-];
+const SEARCH_PAGE_UP_BINDINGS: &[KeyboardShortcut] =
+    &[KeyboardShortcut::new(CTRL_SHIFT, Key::PageUp)];
 
-#[cfg(not(target_os = "macos"))]
-const SEARCH_PAGE_UP_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::PageUp),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::U),
-    KeyboardShortcut::new(Modifiers::ALT, Key::U),
-];
+const SEARCH_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] =
+    &[KeyboardShortcut::new(CTRL_SHIFT, Key::PageDown)];
 
-#[cfg(target_os = "macos")]
-const SEARCH_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::PageDown),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::D),
-];
-
-#[cfg(not(target_os = "macos"))]
-const SEARCH_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::PageDown),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::D),
-    KeyboardShortcut::new(Modifiers::ALT, Key::D),
-];
-
-#[cfg(target_os = "macos")]
-const SEARCH_TOP_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::Home),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::T),
-];
-
-#[cfg(not(target_os = "macos"))]
-const SEARCH_TOP_BINDINGS: &[KeyboardShortcut] = &[
-    KeyboardShortcut::new(CTRL_SHIFT, Key::Home),
-    KeyboardShortcut::new(CTRL_SHIFT, Key::T),
-    KeyboardShortcut::new(Modifiers::ALT, Key::T),
-];
+const SEARCH_TOP_BINDINGS: &[KeyboardShortcut] = &[KeyboardShortcut::new(CTRL_SHIFT, Key::Home)];
 
 #[cfg(target_os = "macos")]
 const SEARCH_BOTTOM_BINDINGS: &[KeyboardShortcut] = &[
@@ -66,8 +38,36 @@ const SEARCH_BOTTOM_BINDINGS: &[KeyboardShortcut] = &[
 ];
 
 static SHORTCUTS: SessionShortcuts = SessionShortcuts {
+    activate_main_output: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num1)],
+        description: "Focus main logs table",
+    },
+    activate_search_output: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num2)],
+        description: "Focus search results table",
+    },
+    active_page_up: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::U)],
+        description: "Scroll active table one page up",
+    },
+    active_page_down: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::D)],
+        description: "Scroll active table one page down",
+    },
+    active_top: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::G)],
+        description: "Scroll active table to top",
+    },
+    active_bottom: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::SHIFT, Key::G)],
+        description: "Scroll active table to bottom",
+    },
     activate_search_tab: Shortcut {
         bindings: &[KeyboardShortcut::new(Modifiers::COMMAND, Key::F)],
+        description: "Focus search",
+    },
+    activate_search_tab_outside_text: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::Slash)],
         description: "Focus search",
     },
     activate_filters_tab: Shortcut {
@@ -127,24 +127,15 @@ static SHORTCUTS: SessionShortcuts = SessionShortcuts {
         description: "Open chart panel",
     },
     main_page_up: Shortcut {
-        bindings: &[
-            KeyboardShortcut::new(Modifiers::CTRL, Key::PageUp),
-            KeyboardShortcut::new(Modifiers::CTRL, Key::U),
-        ],
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::PageUp)],
         description: "Scroll main table one page up",
     },
     main_page_down: Shortcut {
-        bindings: &[
-            KeyboardShortcut::new(Modifiers::CTRL, Key::PageDown),
-            KeyboardShortcut::new(Modifiers::CTRL, Key::D),
-        ],
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::PageDown)],
         description: "Scroll main table one page down",
     },
     main_top: Shortcut {
-        bindings: &[
-            KeyboardShortcut::new(Modifiers::CTRL, Key::Home),
-            KeyboardShortcut::new(Modifiers::CTRL, Key::T),
-        ],
+        bindings: &[KeyboardShortcut::new(Modifiers::CTRL, Key::Home)],
         description: "Scroll main table to top",
     },
     main_bottom: Shortcut {
@@ -173,7 +164,14 @@ static SHORTCUTS: SessionShortcuts = SessionShortcuts {
 };
 
 struct SessionShortcuts {
+    activate_main_output: Shortcut,
+    activate_search_output: Shortcut,
+    active_page_up: Shortcut,
+    active_page_down: Shortcut,
+    active_top: Shortcut,
+    active_bottom: Shortcut,
     activate_search_tab: Shortcut,
+    activate_search_tab_outside_text: Shortcut,
     activate_filters_tab: Shortcut,
     activate_observing_tab: Shortcut,
     activate_attachments_tab: Shortcut,
@@ -192,9 +190,16 @@ struct SessionShortcuts {
     search_bottom: Shortcut,
 }
 
-pub fn shortcut_defs() -> [&'static Shortcut; 17] {
+pub fn shortcut_defs() -> [&'static Shortcut; 23] {
     let SessionShortcuts {
+        activate_main_output,
+        activate_search_output,
+        active_page_up,
+        active_page_down,
+        active_top: _,
+        active_bottom,
         activate_search_tab,
+        activate_search_tab_outside_text,
         activate_filters_tab,
         activate_observing_tab,
         activate_attachments_tab,
@@ -214,7 +219,13 @@ pub fn shortcut_defs() -> [&'static Shortcut; 17] {
     } = &SHORTCUTS;
 
     [
+        activate_main_output,
+        activate_search_output,
+        active_page_up,
+        active_page_down,
+        active_bottom,
         activate_search_tab,
+        activate_search_tab_outside_text,
         activate_filters_tab,
         activate_observing_tab,
         activate_attachments_tab,
@@ -238,9 +249,17 @@ pub fn handle(
     session: &mut Session,
     panels_visibility: &mut PanelsVisibility,
     ctx: &Context,
+    last_key: Option<&LastShortcutKey>,
 ) -> bool {
     let SessionShortcuts {
+        activate_main_output,
+        activate_search_output,
+        active_page_up,
+        active_page_down,
+        active_top,
+        active_bottom,
         activate_search_tab,
+        activate_search_tab_outside_text,
         activate_filters_tab,
         activate_observing_tab,
         activate_attachments_tab,
@@ -259,7 +278,42 @@ pub fn handle(
         search_bottom,
     } = &SHORTCUTS;
 
-    if consume_shortcut(ctx, activate_search_tab) {
+    if consume_shortcut(ctx, activate_main_output) {
+        session.activate_main_logs_table(ctx);
+        return true;
+    }
+
+    if consume_shortcut(ctx, activate_search_output) {
+        session.activate_search_results_table(panels_visibility, ctx);
+        return true;
+    }
+
+    if consume_shortcut(ctx, active_page_up) {
+        session.scroll_active_table(TableScroll::PageUp, panels_visibility, ctx);
+        return true;
+    }
+
+    if consume_shortcut(ctx, active_page_down) {
+        session.scroll_active_table(TableScroll::PageDown, panels_visibility, ctx);
+        return true;
+    }
+
+    // Scroll to top with `gg`.
+    if last_key.is_some_and(|last_key| last_key.matches_key(Modifiers::NONE, Key::G))
+        && consume_outside_text(ctx, active_top)
+    {
+        session.scroll_active_table(TableScroll::Top, panels_visibility, ctx);
+        return true;
+    }
+
+    if consume_outside_text(ctx, active_bottom) {
+        session.scroll_active_table(TableScroll::Bottom, panels_visibility, ctx);
+        return true;
+    }
+
+    if consume_shortcut(ctx, activate_search_tab)
+        || consume_outside_text(ctx, activate_search_tab_outside_text)
+    {
         session.activate_search_tab(panels_visibility);
         return true;
     }

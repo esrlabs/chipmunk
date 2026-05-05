@@ -5,12 +5,9 @@ use crate::{
     session::{
         command::SessionCommand,
         types::{ObserveOperation, OperationPhase},
-        ui::{
-            common::log_table,
-            definitions::{
-                UpdateOperationOutcome,
-                schema::{self, LogSchema},
-            },
+        ui::definitions::{
+            UpdateOperationOutcome,
+            schema::{self, LogSchema},
         },
     },
 };
@@ -20,18 +17,18 @@ use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
 mod attachments;
 mod info;
-mod layout;
 mod logs;
 mod observe;
 pub(crate) mod searching;
 mod signal;
+mod view;
 
 pub use attachments::{AttachmentModalState, AttachmentsState};
 pub use info::SessionInfo;
-pub use layout::UiLayoutState;
 pub use logs::{LogsState, SelectionIntent};
 pub use observe::ObserveState;
 pub use signal::SessionSignal;
+pub use view::UiViewState;
 
 use self::searching::{FiltersState, SearchState, SearchValuesState};
 
@@ -53,7 +50,7 @@ pub struct SessionShared {
 
     pub logs: LogsState,
 
-    pub layout: UiLayoutState,
+    pub view: UiViewState,
 
     pub observe: ObserveState,
 
@@ -89,9 +86,7 @@ impl SessionShared {
             search: SearchState::new(session_id),
             search_values: SearchValuesState::default(),
             logs: LogsState::default(),
-            layout: UiLayoutState {
-                log_columns: log_table::table::create_table_columns(schema.as_ref()),
-            },
+            view: UiViewState::new(schema.as_ref()),
             observe: ObserveState::new(observe_op),
             attachments: AttachmentsState::default(),
             schema,
@@ -135,7 +130,7 @@ impl SessionShared {
             search,
             search_values,
             logs: _,
-            layout: _,
+            view: _,
             observe,
             attachments: _,
             schema: _,

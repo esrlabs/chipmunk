@@ -11,7 +11,7 @@ use stypes::GrabbedElement;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::ui::UiActions,
+    host::ui::{UiActions, state::PanelsVisibility},
     session::{
         command::SessionCommand,
         error::SessionError,
@@ -21,9 +21,11 @@ use crate::{
             common::{
                 self,
                 log_table::{
+                    LogTableKind,
                     table::{
-                        self, TableScroll, columns_filling_last, grab_cmd_consts,
-                        render_row_header, should_stick_to_bottom, sync_column_widths,
+                        self, TableScroll, activate_table_on_click, columns_filling_last,
+                        grab_cmd_consts, render_active_table_indicator, render_row_header,
+                        should_stick_to_bottom, sync_column_widths,
                     },
                     text::render_log_cell_text,
                 },
@@ -71,13 +73,14 @@ impl LogsTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        panels_visibility: &PanelsVisibility,
         ui: &mut Ui,
     ) {
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
         // Ensure the border of last column isn't visible.
-        let columns = columns_filling_last(ui, TABLE_ID_SALT, &shared.layout.log_columns);
+        let columns = columns_filling_last(ui, TABLE_ID_SALT, &shared.view.log_columns);
 
         let mut table = egui_table::Table::new()
             .id_salt(TABLE_ID_SALT)
@@ -99,13 +102,19 @@ impl LogsTable {
             table = table.scroll_to_rows(rows, None);
         }
 
-        let mut delegate = LogsDelegate::new(self, shared, actions);
-        table.show(ui, &mut delegate);
+        let search_table_visible =
+            panels_visibility.bottom && shared.bottom_tab == BottomTabType::Search;
+        let mut delegate = LogsDelegate::new(self, shared, actions, search_table_visible);
+        let response = table.show(ui, &mut delegate);
+
         if delegate.request_repaint {
             ui.request_repaint();
         }
 
-        sync_column_widths(ui, TABLE_ID_SALT, &mut shared.layout.log_columns);
+        activate_table_on_click(ui, &response.rect, &mut shared.view, LogTableKind::Main);
+        render_active_table_indicator(ui, &response.rect, &shared.view, LogTableKind::Main);
+
+        sync_column_widths(ui, TABLE_ID_SALT, &mut shared.view.log_columns);
     }
 
     /// Queues a vertical table scroll for the next render pass.
@@ -125,6 +134,7 @@ struct LogsDelegate<'a> {
     actions: &'a mut UiActions,
     request_repaint: bool,
     has_multi_sources: bool,
+    search_table_visible: bool,
     /// One physical click can be reported twice for the same row: once by the row-wide
     /// background response in `row_ui`, and once by a child widget response from the
     /// header or cell content. Selection updates are not idempotent for toggle and range
@@ -138,6 +148,7 @@ impl<'a> LogsDelegate<'a> {
         table: &'a mut LogsTable,
         shared: &'a mut SessionShared,
         actions: &'a mut UiActions,
+        search_table_visible: bool,
     ) -> Self {
         let has_multi_sources = shared.observe.sources_count() > 1;
         Self {
@@ -146,6 +157,7 @@ impl<'a> LogsDelegate<'a> {
             actions,
             request_repaint: false,
             has_multi_sources,
+            search_table_visible,
             handled_selection_click_row: None,
         }
     }
@@ -162,7 +174,7 @@ impl<'a> LogsDelegate<'a> {
         };
 
         // Keep the search table aligned only while it is visible.
-        if self.shared.bottom_tab == BottomTabType::Search {
+        if self.search_table_visible {
             let nearest_cmd = SessionCommand::GetNearestPosition(selected_row);
             self.actions
                 .try_send_command(&self.table.cmd_tx, nearest_cmd);

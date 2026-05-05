@@ -369,7 +369,7 @@ impl Host {
             let Some(state) = session.take_recent_state_update(&state.registry.filters) else {
                 continue;
             };
-            let Some(source_key) = session.recent_source_key() else {
+            let Some(source_key) = session.recent_session.source_key() else {
                 continue;
             };
 

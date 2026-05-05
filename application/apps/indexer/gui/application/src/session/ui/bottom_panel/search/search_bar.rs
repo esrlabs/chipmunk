@@ -19,7 +19,10 @@ use crate::{
     session::{
         command::SessionCommand,
         types::OperationPhase,
-        ui::shared::{SearchSyncTarget, SessionShared},
+        ui::{
+            common::log_table::LogTableKind,
+            shared::{SearchSyncTarget, SessionShared},
+        },
     },
 };
 
@@ -104,7 +107,10 @@ impl SearchBar {
 
         // Text id is needed to keep track if the text control is focused.
         let text_id = ui.id().with("search_text");
-        let should_focus = self.visibility_tracker.is_newly_visible(ui) || self.focus_requested;
+        let newly_visible = self.visibility_tracker.is_newly_visible(ui);
+        // Don't focus search input on switching tabs if search table is focused.
+        let should_focus = self.focus_requested
+            || (newly_visible && shared.view.active_log_table != LogTableKind::Search);
         self.focus_requested = false;
 
         ui.allocate_ui_with_layout(
