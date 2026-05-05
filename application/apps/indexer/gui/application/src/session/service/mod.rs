@@ -252,6 +252,19 @@ impl SessionService {
                     .send_session_msg(SessionMessage::NearestPosition(nearest))
                     .await;
             }
+            SessionCommand::GetIndexedNeighbor { anchor, direction } => {
+                if let Some(row) = self
+                    .session
+                    .state
+                    .get_indexed_neighbor(anchor, direction)
+                    .await
+                    .map_err(SessionError::NativeError)?
+                {
+                    self.senders
+                        .send_session_msg(SessionMessage::IndexedNeighbor(row))
+                        .await;
+                }
+            }
             SessionCommand::GetSelectedLog(pos) => {
                 let rng = LineRange::from(pos..=pos);
 

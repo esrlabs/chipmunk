@@ -27,7 +27,7 @@ use crate::{
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
         types::attachment::PreviewTarget,
-        ui::shared::SessionSignal,
+        ui::shared::{SearchTableSync, SessionSignal},
     },
 };
 use bottom_panel::{BottomPanelUI, BottomTabType};
@@ -233,6 +233,9 @@ impl Session {
                         self.bottom_panel.search.table.set_nearest_pos(pos);
                     }
                 }
+                SessionMessage::IndexedNeighbor(row) => {
+                    self.shared.logs.focus_main_row(row, SearchTableSync::Sync);
+                }
                 SessionMessage::BookmarkUpdated(updates) => {
                     for BookmarkUpdate { row, is_bookmarked } in updates {
                         if is_bookmarked {
@@ -386,11 +389,12 @@ impl Session {
 
     pub fn handle_shortcuts(
         &mut self,
+        actions: &mut UiActions,
         panels_visibility: &mut PanelsVisibility,
         ctx: &Context,
         last_key: Option<&LastShortcutKey>,
     ) -> bool {
-        shortcuts::handle(self, panels_visibility, ctx, last_key)
+        shortcuts::handle(self, actions, panels_visibility, ctx, last_key)
     }
 
     fn activate_search_tab(&mut self, panels_visibility: &mut PanelsVisibility) {

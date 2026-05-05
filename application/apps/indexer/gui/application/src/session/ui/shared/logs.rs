@@ -43,6 +43,13 @@ pub enum SearchTableSync {
     Sync,
 }
 
+/// Direction for navigating bookmarked rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BookmarkNavigation {
+    Previous,
+    Next,
+}
+
 /// Describes how a row should affect the current selection.
 ///
 /// The UI layer maps raw input state such as keyboard modifiers into one of these
@@ -201,11 +208,55 @@ impl LogsState {
     pub fn is_bookmarked(&self, row: u64) -> bool {
         self.bookmarked_rows.contains(&row)
     }
+
+    pub fn focus_bookmark_neighbor(&mut self, direction: BookmarkNavigation) -> bool {
+        let Some(row) = self.bookmark_neighbor(direction) else {
+            return false;
+        };
+
+        self.focus_main_row(row, SearchTableSync::Sync);
+        true
+    }
+
+    pub fn bookmark_neighbor(&self, direction: BookmarkNavigation) -> Option<u64> {
+        if self.bookmarked_rows.is_empty() {
+            return None;
+        }
+
+        let mut bookmarks: Vec<u64> = self.bookmarked_rows.iter().copied().collect();
+        bookmarks.sort_unstable();
+
+        let Some(anchor) = self.single_selected_row() else {
+            return bookmarks.first().copied();
+        };
+
+        match direction {
+            BookmarkNavigation::Next => {
+                let index = match bookmarks.binary_search(&anchor) {
+                    Ok(index) => index + 1,
+                    Err(index) => index,
+                };
+                bookmarks
+                    .get(index)
+                    .copied()
+                    .or_else(|| bookmarks.first().copied())
+            }
+            BookmarkNavigation::Previous => {
+                let index = match bookmarks.binary_search(&anchor) {
+                    Ok(index) | Err(index) => index,
+                };
+                index
+                    .checked_sub(1)
+                    .and_then(|index| bookmarks.get(index).copied())
+                    .or_else(|| bookmarks.last().copied())
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{LogsState, MainRowFocus, SearchTableSync, SelectionIntent};
+    use super::{BookmarkNavigation, LogsState, MainRowFocus, SearchTableSync, SelectionIntent};
 
     const EXCLUSIVE: SelectionIntent = SelectionIntent::Exclusive;
     const TOGGLE_ROW: SelectionIntent = SelectionIntent::ToggleRow;
@@ -482,5 +533,80 @@ mod tests {
         assert_eq!(change.jump_to_row, None);
         assert!(state.selected_rows.is_empty());
         assert_eq!(state.last_selected_row, None);
+    }
+
+    #[test]
+    fn bookmark_neighbor_empty_returns_none() {
+        let state = LogsState::default();
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), None);
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Previous), None);
+    }
+
+    #[test]
+    fn bookmark_neighbor_without_selection_returns_first_for_both_directions() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([9, 1, 5]);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(1));
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn bookmark_neighbor_next_from_middle() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(5);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(9));
+    }
+
+    #[test]
+    fn bookmark_neighbor_previous_from_middle() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(5);
+
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn bookmark_neighbor_next_wraps_to_first() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(9);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(1));
+    }
+
+    #[test]
+    fn bookmark_neighbor_previous_wraps_to_last() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(1);
+
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(9)
+        );
+    }
+
+    #[test]
+    fn bookmark_neighbor_uses_unbookmarked_selection_as_anchor() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(4);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(5));
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(1)
+        );
     }
 }
