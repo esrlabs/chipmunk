@@ -1,8 +1,10 @@
 use super::values::graph::CandlePoint;
 use crate::{
     state::{
-        indexes::controller::Mode as IndexesMode, observed::Observed,
-        session_file::SessionFileOrigin, values::ValuesError,
+        indexes::{IndexedNavigation, controller::Mode as IndexesMode},
+        observed::Observed,
+        session_file::SessionFileOrigin,
+        values::ValuesError,
     },
     tracker::OperationTrackerAPI,
 };
@@ -106,6 +108,15 @@ pub enum Api {
         ),
     ),
     GetIndexedMapLen(oneshot::Sender<usize>),
+    /// Finds the neighboring indexed row around an anchor row.
+    GetIndexedNeighbor {
+        /// Main-log row used as the exclusive starting point for navigation.
+        anchor: u64,
+        /// Direction to search from the anchor, with wraparound at map boundaries.
+        direction: IndexedNavigation,
+        /// Receives the matching indexed row, or `None` when the indexed map is empty.
+        tx_response: oneshot::Sender<Option<u64>>,
+    },
     #[allow(clippy::type_complexity)]
     GetDistancesAroundIndex(
         (
@@ -236,6 +247,7 @@ impl Display for Api {
                 Self::GrabIndexed(_) => "GrabIndexed",
                 Self::SetIndexingMode(_) => "SetIndexingMode",
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
+                Self::GetIndexedNeighbor { .. } => "GetIndexedNeighbor",
                 Self::GetDistancesAroundIndex(_) => "GetDistancesAroundIndex",
                 Self::AddBookmark(_) => "AddBookmark",
                 Self::SetBookmarks(_) => "SetBookmarks",
@@ -323,6 +335,23 @@ impl SessionStateAPI {
     pub async fn get_indexed_len(&self) -> Result<usize, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetIndexedMapLen(tx), rx).await
+    }
+
+    pub async fn get_indexed_neighbor(
+        &self,
+        anchor: u64,
+        direction: IndexedNavigation,
+    ) -> Result<Option<u64>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(
+            Api::GetIndexedNeighbor {
+                anchor,
+                direction,
+                tx_response: tx,
+            },
+            rx,
+        )
+        .await
     }
 
     pub async fn get_around_indexes(

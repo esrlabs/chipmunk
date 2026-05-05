@@ -1,17 +1,23 @@
 use egui::{Context, Key, KeyboardShortcut, Modifiers};
 
-use crate::host::ui::{
-    shortcuts::{
-        definitions::Shortcut,
-        matching::{consume_outside_text, consume_shortcut},
-        state::LastShortcutKey,
+use session_core::state::IndexedNavigation;
+
+use crate::{
+    host::ui::{
+        UiActions,
+        shortcuts::{
+            definitions::Shortcut,
+            matching::{consume_outside_text, consume_shortcut},
+            state::LastShortcutKey,
+        },
+        state::PanelsVisibility,
     },
-    state::PanelsVisibility,
+    session::command::SessionCommand,
 };
 
 use super::{
     Session, bottom_panel::BottomTabType, common::log_table::table::TableScroll,
-    side_panel::SideTabType,
+    shared::BookmarkNavigation, side_panel::SideTabType,
 };
 
 const CTRL_SHIFT: Modifiers = Modifiers::CTRL.plus(Modifiers::SHIFT);
@@ -145,6 +151,22 @@ static SHORTCUTS: SessionShortcuts = SessionShortcuts {
         ],
         description: "Scroll main table to bottom",
     },
+    previous_indexed_row: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::OpenBracket)],
+        description: "Select previous indexed row",
+    },
+    next_indexed_row: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::CloseBracket)],
+        description: "Select next indexed row",
+    },
+    next_bookmark: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::J)],
+        description: "Select next bookmarked row",
+    },
+    previous_bookmark: Shortcut {
+        bindings: &[KeyboardShortcut::new(Modifiers::NONE, Key::K)],
+        description: "Select previous bookmarked row",
+    },
     search_page_up: Shortcut {
         bindings: SEARCH_PAGE_UP_BINDINGS,
         description: "Scroll search results one page up",
@@ -184,13 +206,17 @@ struct SessionShortcuts {
     main_page_down: Shortcut,
     main_top: Shortcut,
     main_bottom: Shortcut,
+    previous_indexed_row: Shortcut,
+    next_indexed_row: Shortcut,
+    next_bookmark: Shortcut,
+    previous_bookmark: Shortcut,
     search_page_up: Shortcut,
     search_page_down: Shortcut,
     search_top: Shortcut,
     search_bottom: Shortcut,
 }
 
-pub fn shortcut_defs() -> [&'static Shortcut; 23] {
+pub fn shortcut_defs() -> [&'static Shortcut; 27] {
     let SessionShortcuts {
         activate_main_output,
         activate_search_output,
@@ -212,6 +238,10 @@ pub fn shortcut_defs() -> [&'static Shortcut; 23] {
         main_page_down,
         main_top,
         main_bottom,
+        previous_indexed_row,
+        next_indexed_row,
+        next_bookmark,
+        previous_bookmark,
         search_page_up,
         search_page_down,
         search_top,
@@ -238,6 +268,10 @@ pub fn shortcut_defs() -> [&'static Shortcut; 23] {
         main_page_down,
         main_top,
         main_bottom,
+        previous_indexed_row,
+        next_indexed_row,
+        next_bookmark,
+        previous_bookmark,
         search_page_up,
         search_page_down,
         search_top,
@@ -247,6 +281,7 @@ pub fn shortcut_defs() -> [&'static Shortcut; 23] {
 
 pub fn handle(
     session: &mut Session,
+    actions: &mut UiActions,
     panels_visibility: &mut PanelsVisibility,
     ctx: &Context,
     last_key: Option<&LastShortcutKey>,
@@ -272,6 +307,10 @@ pub fn handle(
         main_page_down,
         main_top,
         main_bottom,
+        previous_indexed_row,
+        next_indexed_row,
+        next_bookmark,
+        previous_bookmark,
         search_page_up,
         search_page_down,
         search_top,
@@ -375,6 +414,46 @@ pub fn handle(
 
     if consume_shortcut(ctx, main_bottom) {
         session.scroll_main_table(TableScroll::Bottom);
+        return true;
+    }
+
+    if consume_outside_text(ctx, previous_indexed_row) {
+        let anchor = session.shared.logs.single_selected_row().unwrap_or(0);
+        actions.try_send_command(
+            &session.cmd_tx,
+            SessionCommand::GetIndexedNeighbor {
+                anchor,
+                direction: IndexedNavigation::Previous,
+            },
+        );
+        return true;
+    }
+
+    if consume_outside_text(ctx, next_indexed_row) {
+        let anchor = session.shared.logs.single_selected_row().unwrap_or(0);
+        actions.try_send_command(
+            &session.cmd_tx,
+            SessionCommand::GetIndexedNeighbor {
+                anchor,
+                direction: IndexedNavigation::Next,
+            },
+        );
+        return true;
+    }
+
+    if consume_outside_text(ctx, next_bookmark) {
+        session
+            .shared
+            .logs
+            .focus_bookmark_neighbor(BookmarkNavigation::Next);
+        return true;
+    }
+
+    if consume_outside_text(ctx, previous_bookmark) {
+        session
+            .shared
+            .logs
+            .focus_bookmark_neighbor(BookmarkNavigation::Previous);
         return true;
     }
 

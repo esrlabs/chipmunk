@@ -174,15 +174,19 @@ fn handle_active_tab_shortcuts(
     ctx: &Context,
     last_key: Option<&LastShortcutKey>,
 ) -> bool {
-    let TabType::Session(session_id) = host.state.active_tab().clone() else {
+    let Host {
+        state, ui_actions, ..
+    } = host;
+
+    let TabType::Session(session_id) = state.active_tab().clone() else {
         return false;
     };
 
-    let Some(session) = host.state.sessions.get_mut(&session_id) else {
+    let Some(session) = state.sessions.get_mut(&session_id) else {
         return false;
     };
 
-    session.handle_shortcuts(&mut host.state.panels_visibility, ctx, last_key)
+    session.handle_shortcuts(ui_actions, &mut state.panels_visibility, ctx, last_key)
 }
 
 fn close_active_tab(host: &mut Host) {

@@ -38,6 +38,7 @@ pub(crate) mod values;
 pub use api::{Api, SessionStateAPI};
 pub use attachments::{Attachments, AttachmentsError};
 pub use indexes::{
+    IndexedNavigation,
     controller::{Controller as Indexes, Mode as IndexesMode},
     frame::Frame,
     map::Map,
@@ -687,6 +688,17 @@ async fn handle_api_msg(
             tx_response.send(state.indexes.len()).map_err(|_| {
                 stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
             })?;
+        }
+        Api::GetIndexedNeighbor {
+            anchor,
+            direction,
+            tx_response,
+        } => {
+            tx_response
+                .send(state.indexes.indexed_neighbor(anchor, direction))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetIndexedNeighbor")
+                })?;
         }
         Api::GetDistancesAroundIndex((position, tx_response)) => {
             tx_response

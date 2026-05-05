@@ -38,6 +38,9 @@ pub enum SessionMessage {
     /// The nearest log index to jump to in search table.
     NearestPosition(Result<Option<NearestPosition>, SessionError>),
 
+    /// Adjacent indexed main-log row resolved by the backend.
+    IndexedNeighbor(u64),
+
     /// Confirmed bookmark mutations from the session backend.
     BookmarkUpdated(Vec<BookmarkUpdate>),
 

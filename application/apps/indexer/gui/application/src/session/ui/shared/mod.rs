@@ -25,7 +25,7 @@ mod view;
 
 pub use attachments::{AttachmentModalState, AttachmentsState};
 pub use info::SessionInfo;
-pub use logs::{LogsState, SearchTableSync, SelectionChange, SelectionIntent};
+pub use logs::{BookmarkNavigation, LogsState, SearchTableSync, SelectionChange, SelectionIntent};
 pub use observe::ObserveState;
 pub use signal::SessionSignal;
 pub use view::UiViewState;

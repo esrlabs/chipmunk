@@ -3,6 +3,7 @@ use std::{ops::RangeInclusive, path::PathBuf};
 use std::sync::mpsc::Sender;
 
 use processor::{grabber::LineRange, search::filter::SearchFilter};
+use session_core::state::IndexedNavigation;
 use stypes::GrabbedElement;
 use uuid::Uuid;
 
@@ -36,6 +37,14 @@ pub enum SessionCommand {
     DropSearchValues { operation_id: Option<Uuid> },
     /// Request the nearest index in the search view for a given main-log index.
     GetNearestPosition(u64),
+
+    /// Request the adjacent indexed row in the main logs table.
+    GetIndexedNeighbor {
+        /// Main-log row used as the exclusive starting point for navigation.
+        anchor: u64,
+        /// Direction to search from the anchor, with wraparound at indexed-map boundaries.
+        direction: IndexedNavigation,
+    },
 
     /// Request details for a specific log line.
     GetSelectedLog(u64),
