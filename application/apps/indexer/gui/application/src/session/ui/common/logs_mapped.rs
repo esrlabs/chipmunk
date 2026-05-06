@@ -149,7 +149,7 @@ mod tests {
 
         fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>> {
             let mut ranges = Vec::with_capacity(self.columns.len());
-            map_columns_with_separator(&element.content, &mut ranges, '|');
+            map_columns_with_separator(&element.content, &mut ranges, "|");
             ranges
         }
     }

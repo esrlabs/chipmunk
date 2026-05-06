@@ -1,26 +1,29 @@
 use std::{
     ops::{Range, RangeInclusive},
     rc::Rc,
+    sync::mpsc::Receiver as StdReceiver,
 };
 
 use egui::{Sense, TextBuffer, Ui};
 use egui_table::{CellInfo, HeaderCellInfo, PrefetchInfo, TableDelegate};
-use processor::grabber::LineRange;
-use std::sync::mpsc::Receiver as StdReceiver;
-use stypes::GrabbedElement;
 use tokio::sync::mpsc::Sender;
-use uuid::Uuid;
+
+use processor::grabber::LineRange;
+use stypes::GrabbedElement;
 
 use crate::{
-    host::ui::{UiActions, actions::FileDialogOptions, state::PanelsVisibility},
+    host::{
+        common::parsers::ParserNames,
+        ui::{UiActions, state::PanelsVisibility},
+    },
     session::{
-        command::{RawExportTarget, SessionCommand},
+        command::{ExportTarget, SessionCommand},
         error::SessionError,
         types::attachment::{PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime},
         ui::{
             bottom_panel::BottomTabType,
             common::{
-                self, export_logs,
+                self,
                 log_table::{
                     LogTableKind,
                     table::{
@@ -33,13 +36,13 @@ use crate::{
                 logs_mapped::LogsMapped,
             },
             definitions::schema::LogSchema,
-            shared::{SearchTableSync, SessionShared},
+            shared::{SearchTableSync, SessionShared, export},
         },
     },
 };
 
 const TABLE_ID_SALT: &str = "logs_table";
-const RAW_EXPORT_DIALOG_ID: &str = "logs_table_raw_export";
+const EXPORT_DIALOG_ID: &str = "logs_table_export";
 
 /// This is used for storing some attachment state during rendering of the logs table only.
 pub enum LogAttachmentInfo {
@@ -56,9 +59,6 @@ pub struct LogsTable {
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
-    /// Save-file dialogs return asynchronously, so the selected export target must be
-    /// kept until the chosen destination arrives.
-    pending_export_target: Option<RawExportTarget>,
     schema: Rc<dyn LogSchema>,
 }
 
@@ -70,7 +70,6 @@ impl LogsTable {
             pending_scroll: None,
             logs: LogsMapped::new(Rc::clone(&schema)),
             pending_logs_rx: None,
-            pending_export_target: None,
             schema,
         }
     }
@@ -82,8 +81,6 @@ impl LogsTable {
         panels_visibility: &PanelsVisibility,
         ui: &mut Ui,
     ) {
-        self.handle_pending_dialog(shared, actions);
-
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
@@ -149,55 +146,74 @@ impl LogsTable {
         sync_column_widths(ui, TABLE_ID_SALT, &mut shared.view.log_columns);
     }
 
-    fn handle_pending_dialog(&mut self, shared: &mut SessionShared, actions: &mut UiActions) {
-        let Some(selected_paths) = actions.file_dialog.take_output(RAW_EXPORT_DIALOG_ID) else {
-            return;
-        };
-
-        let Some(target) = self.pending_export_target.take() else {
-            log::error!("Missing raw export target for logs table dialog");
-            return;
-        };
-
-        let mut destinations = selected_paths.into_iter();
-        let Some(destination) = destinations.next() else {
-            return;
-        };
-
-        if destinations.next().is_some() {
-            log::error!("Expected exactly one destination from raw export dialog");
-            return;
-        }
-
-        let operation_id = Uuid::new_v4();
-        shared
-            .exports
-            .pending_op
-            .insert(operation_id, destination.clone());
-
-        if !actions.try_send_command(
-            &self.cmd_tx,
-            SessionCommand::ExportRaw {
-                operation_id,
-                destination,
-                target,
-            },
-        ) {
-            shared.exports.pending_op.remove(&operation_id);
-        }
-    }
-
     fn render_context_menu(
         &mut self,
-        shared: &SessionShared,
+        shared: &mut SessionShared,
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
         let selected_count = shared.logs.selected_count();
-        let can_export_selected = shared.get_info().raw_export_supported()
-            && self.pending_export_target.is_none()
-            && selected_count > 0;
+        let can_start_export = shared.exports.can_start();
 
+        match shared.get_info().parser {
+            ParserNames::Text | ParserNames::Plugins => {
+                let selected_label = if selected_count == 0 {
+                    String::from("Export Selected")
+                } else {
+                    format!("Export {selected_count} row(s)")
+                };
+
+                if ui
+                    .add_enabled(
+                        can_start_export && selected_count > 0,
+                        egui::Button::new(selected_label),
+                    )
+                    .clicked()
+                {
+                    let target = ExportTarget::Rows(shared.logs.selected_rows());
+                    let file_name = export::default_text_file_name(shared);
+                    shared.exports.open_text_dialog(
+                        actions,
+                        target,
+                        export::full_row_text_options(),
+                        EXPORT_DIALOG_ID,
+                        "Export Selected",
+                        file_name,
+                    );
+                    ui.close();
+                }
+            }
+            ParserNames::Dlt | ParserNames::SomeIP => {
+                let selected_label = if selected_count == 0 {
+                    String::from("Export Selected as Table")
+                } else {
+                    format!("Export {selected_count} row(s) as Table")
+                };
+
+                if ui
+                    .add_enabled(
+                        can_start_export && selected_count > 0,
+                        egui::Button::new(selected_label),
+                    )
+                    .clicked()
+                {
+                    let schema = Rc::clone(&self.schema);
+                    let target = ExportTarget::Rows(shared.logs.selected_rows());
+                    let file_name = export::default_text_file_name(shared);
+                    shared.exports.open_text_modal(
+                        target,
+                        "Export Selected as Table",
+                        schema.as_ref(),
+                        EXPORT_DIALOG_ID,
+                        file_name,
+                    );
+                    ui.close();
+                }
+            }
+        }
+
+        let can_export_raw =
+            shared.get_info().raw_export_supported() && can_start_export && selected_count > 0;
         let selected_export_label = if selected_count == 0 {
             String::from("Export Selected as Raw")
         } else {
@@ -205,33 +221,63 @@ impl LogsTable {
         };
 
         if ui
-            .add_enabled(
-                can_export_selected,
-                egui::Button::new(selected_export_label),
-            )
+            .add_enabled(can_export_raw, egui::Button::new(selected_export_label))
             .clicked()
         {
-            self.open_raw_export_dialog(
-                shared,
+            let target = ExportTarget::Rows(shared.logs.selected_rows());
+            let file_name = export::default_raw_file_name(shared);
+            shared.exports.open_raw_dialog(
                 actions,
-                RawExportTarget::Rows(shared.logs.selected_rows()),
+                target,
+                EXPORT_DIALOG_ID,
+                "Export Selected as Raw",
+                file_name,
             );
             ui.close();
         }
-    }
 
-    fn open_raw_export_dialog(
-        &mut self,
-        shared: &SessionShared,
-        actions: &mut UiActions,
-        target: RawExportTarget,
-    ) {
-        self.pending_export_target = Some(target);
-        let title = "Export Selected as Raw";
-        let options = FileDialogOptions::new()
-            .file_name(export_logs::default_raw_file_name(shared))
-            .title(title);
-        actions.file_dialog.save_file(RAW_EXPORT_DIALOG_ID, options);
+        match shared.get_info().parser {
+            ParserNames::Text | ParserNames::Plugins => {
+                if ui
+                    .add_enabled(
+                        can_start_export && shared.logs.logs_count > 0,
+                        egui::Button::new("Export All Logs"),
+                    )
+                    .clicked()
+                {
+                    let file_name = export::default_text_file_name(shared);
+                    shared.exports.open_text_dialog(
+                        actions,
+                        ExportTarget::All,
+                        export::full_row_text_options(),
+                        EXPORT_DIALOG_ID,
+                        "Export All Logs",
+                        file_name,
+                    );
+                    ui.close();
+                }
+            }
+            ParserNames::Dlt | ParserNames::SomeIP => {
+                if ui
+                    .add_enabled(
+                        can_start_export && shared.logs.logs_count > 0,
+                        egui::Button::new("Export All as Table"),
+                    )
+                    .clicked()
+                {
+                    let schema = Rc::clone(&self.schema);
+                    let file_name = export::default_text_file_name(shared);
+                    shared.exports.open_text_modal(
+                        ExportTarget::All,
+                        "Export All as Table",
+                        schema.as_ref(),
+                        EXPORT_DIALOG_ID,
+                        file_name,
+                    );
+                    ui.close();
+                }
+            }
+        }
     }
 
     /// Queues a vertical table scroll for the next render pass.

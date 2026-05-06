@@ -22,7 +22,7 @@ use regex::Regex;
 use serde::Serialize;
 
 /// Marker for a column separator in the output string.
-pub const COLUMN_SEP: char = '\u{0004}'; // EOT
+pub const COLUMN_SEP: &str = crate::COLUMN_SEPARATOR; // EOT
 /// Marker for a newline in the output string.
 pub const LINE_SEP: &str = "\u{0006}"; // ACK
 

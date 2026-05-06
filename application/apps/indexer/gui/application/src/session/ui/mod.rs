@@ -39,6 +39,7 @@ mod attachment_modal;
 mod bottom_panel;
 mod common;
 mod definitions;
+mod export_modal;
 mod logs_table;
 mod recent;
 mod shared;
@@ -116,6 +117,7 @@ impl Session {
         ui: &mut Ui,
     ) {
         let Self {
+            cmd_tx,
             logs_table,
             bottom_panel,
             side_panel,
@@ -127,6 +129,8 @@ impl Session {
             shared.signals.is_empty(),
             "Signals leaked from previous frame."
         );
+
+        shared.exports.handle_dialogs(actions, cmd_tx);
 
         if shared.observe.show_startup_spinner(shared.logs.logs_count) {
             show_busy_indicator(
@@ -173,6 +177,8 @@ impl Session {
                     logs_table.render_content(shared, actions, panels_visibility, ui);
                 });
             });
+
+        export_modal::render_content(&mut shared.exports, actions, ui);
 
         self.attachment_modal
             .render_content(&mut shared.attachments, ui);

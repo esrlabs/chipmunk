@@ -38,7 +38,7 @@ use std::{
 };
 
 /// Separator to used between the columns in DLT [`FormattableMessage`].
-pub const DLT_COLUMN_SENTINAL: char = '\u{0004}';
+pub const DLT_COLUMN_SENTINAL: &str = crate::COLUMN_SEPARATOR;
 /// Separator to used between the arguments in the payload of DLT [`FormattableMessage`].
 pub const DLT_ARGUMENT_SENTINAL: char = '\u{0005}';
 
