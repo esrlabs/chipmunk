@@ -9,17 +9,18 @@ use processor::grabber::LineRange;
 use std::sync::mpsc::Receiver as StdReceiver;
 use stypes::GrabbedElement;
 use tokio::sync::mpsc::Sender;
+use uuid::Uuid;
 
 use crate::{
-    host::ui::{UiActions, state::PanelsVisibility},
+    host::ui::{UiActions, actions::FileDialogOptions, state::PanelsVisibility},
     session::{
-        command::SessionCommand,
+        command::{RawExportTarget, SessionCommand},
         error::SessionError,
         types::attachment::{PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime},
         ui::{
             bottom_panel::BottomTabType,
             common::{
-                self,
+                self, export_logs,
                 log_table::{
                     LogTableKind,
                     table::{
@@ -38,6 +39,7 @@ use crate::{
 };
 
 const TABLE_ID_SALT: &str = "logs_table";
+const RAW_EXPORT_DIALOG_ID: &str = "logs_table_raw_export";
 
 /// This is used for storing some attachment state during rendering of the logs table only.
 pub enum LogAttachmentInfo {
@@ -54,6 +56,9 @@ pub struct LogsTable {
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
+    /// Save-file dialogs return asynchronously, so the selected export target must be
+    /// kept until the chosen destination arrives.
+    pending_export_target: Option<RawExportTarget>,
     schema: Rc<dyn LogSchema>,
 }
 
@@ -65,6 +70,7 @@ impl LogsTable {
             pending_scroll: None,
             logs: LogsMapped::new(Rc::clone(&schema)),
             pending_logs_rx: None,
+            pending_export_target: None,
             schema,
         }
     }
@@ -76,6 +82,8 @@ impl LogsTable {
         panels_visibility: &PanelsVisibility,
         ui: &mut Ui,
     ) {
+        self.handle_pending_dialog(shared, actions);
+
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
@@ -125,6 +133,11 @@ impl LogsTable {
         }
         let mut delegate = LogsDelegate::new(self, shared, actions, search_table_visible);
         let response = table.show(ui, &mut delegate);
+        response.context_menu(|ui| {
+            delegate
+                .table
+                .render_context_menu(delegate.shared, delegate.actions, ui);
+        });
 
         if delegate.request_repaint {
             ui.request_repaint();
@@ -134,6 +147,91 @@ impl LogsTable {
         render_active_table_indicator(ui, &response.rect, &shared.view, LogTableKind::Main);
 
         sync_column_widths(ui, TABLE_ID_SALT, &mut shared.view.log_columns);
+    }
+
+    fn handle_pending_dialog(&mut self, shared: &mut SessionShared, actions: &mut UiActions) {
+        let Some(selected_paths) = actions.file_dialog.take_output(RAW_EXPORT_DIALOG_ID) else {
+            return;
+        };
+
+        let Some(target) = self.pending_export_target.take() else {
+            log::error!("Missing raw export target for logs table dialog");
+            return;
+        };
+
+        let mut destinations = selected_paths.into_iter();
+        let Some(destination) = destinations.next() else {
+            return;
+        };
+
+        if destinations.next().is_some() {
+            log::error!("Expected exactly one destination from raw export dialog");
+            return;
+        }
+
+        let operation_id = Uuid::new_v4();
+        shared
+            .exports
+            .pending_op
+            .insert(operation_id, destination.clone());
+
+        if !actions.try_send_command(
+            &self.cmd_tx,
+            SessionCommand::ExportRaw {
+                operation_id,
+                destination,
+                target,
+            },
+        ) {
+            shared.exports.pending_op.remove(&operation_id);
+        }
+    }
+
+    fn render_context_menu(
+        &mut self,
+        shared: &SessionShared,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) {
+        let selected_count = shared.logs.selected_count();
+        let can_export_selected = shared.get_info().raw_export_supported()
+            && self.pending_export_target.is_none()
+            && selected_count > 0;
+
+        let selected_export_label = if selected_count == 0 {
+            String::from("Export Selected as Raw")
+        } else {
+            format!("Export Selected Rows ({selected_count}) as Raw")
+        };
+
+        if ui
+            .add_enabled(
+                can_export_selected,
+                egui::Button::new(selected_export_label),
+            )
+            .clicked()
+        {
+            self.open_raw_export_dialog(
+                shared,
+                actions,
+                RawExportTarget::Rows(shared.logs.selected_rows()),
+            );
+            ui.close();
+        }
+    }
+
+    fn open_raw_export_dialog(
+        &mut self,
+        shared: &SessionShared,
+        actions: &mut UiActions,
+        target: RawExportTarget,
+    ) {
+        self.pending_export_target = Some(target);
+        let title = "Export Selected as Raw";
+        let options = FileDialogOptions::new()
+            .file_name(export_logs::default_raw_file_name(shared))
+            .title(title);
+        actions.file_dialog.save_file(RAW_EXPORT_DIALOG_ID, options);
     }
 
     /// Queues a vertical table scroll for the next render pass.
@@ -261,6 +359,11 @@ impl<'a> LogsDelegate<'a> {
             attachment_info,
         );
 
+        header.response.context_menu(|ui| {
+            self.table
+                .render_context_menu(self.shared, self.actions, ui)
+        });
+
         if header.attachment_clicked {
             if let Some(attachment_id) = attachment_id
                 && let Some(attachment) = self
@@ -314,6 +417,10 @@ impl<'a> LogsDelegate<'a> {
                 }
 
                 let response = ui.monospace("Loading...");
+                response.context_menu(|ui| {
+                    self.table
+                        .render_context_menu(self.shared, self.actions, ui)
+                });
                 if response.clicked() {
                     self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
                 }
@@ -333,6 +440,11 @@ impl<'a> LogsDelegate<'a> {
             if response.clicked() {
                 self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
             }
+
+            response.context_menu(|ui| {
+                self.table
+                    .render_context_menu(self.shared, self.actions, ui)
+            });
         });
 
         if source_changed {
@@ -427,9 +539,14 @@ impl TableDelegate for LogsDelegate<'_> {
         let is_selected = self.shared.logs.is_selected(row_nr);
         common::log_table::table::apply_log_row_colors(ui, self.shared, Some(row_nr), is_selected);
 
-        if ui.response().interact(Sense::click()).clicked() {
+        let response = ui.response().interact(Sense::click());
+        if response.clicked() {
             self.handle_selection_click(row_nr, ui.input(|i| i.modifiers));
         }
+        response.context_menu(|ui| {
+            self.table
+                .render_context_menu(self.shared, self.actions, ui)
+        });
     }
 
     fn cell_ui(&mut self, ui: &mut egui::Ui, cell: &egui_table::CellInfo) {

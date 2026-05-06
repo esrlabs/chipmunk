@@ -9,7 +9,6 @@ use crate::{
     host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{
         command::SessionCommand,
-        types::OperationPhase,
         ui::shared::{SearchTableSync, SessionShared},
     },
 };

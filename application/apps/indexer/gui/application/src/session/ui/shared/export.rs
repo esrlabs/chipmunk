@@ -48,9 +48,8 @@ impl ExportState {
             }
             OperationPhase::Skipped => {
                 self.pending_op.remove(&operation_id);
-                actions.add_notification(AppNotification::Warning(String::from(
-                    "No indexed rows to export.",
-                )));
+                actions
+                    .add_notification(AppNotification::Warning(String::from("No rows to export.")));
                 UpdateOperationOutcome::Consumed
             }
         }
