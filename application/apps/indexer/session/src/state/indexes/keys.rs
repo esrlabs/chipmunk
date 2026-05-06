@@ -147,12 +147,16 @@ impl Keys {
         Ok((before, after))
     }
 
-    pub fn neighbor(&mut self, anchor: u64, direction: IndexedNavigation) -> Option<u64> {
+    pub fn neighbor(&mut self, anchor: Option<u64>, direction: IndexedNavigation) -> Option<u64> {
         if self.keys.is_empty() {
             return None;
         }
 
         self.sort();
+
+        let Some(anchor) = anchor else {
+            return self.keys.first().copied();
+        };
 
         match direction {
             IndexedNavigation::Next => {
@@ -304,43 +308,52 @@ mod test {
     fn neighbor_empty_returns_none() {
         let mut keys = Keys::new();
 
-        assert_eq!(keys.neighbor(10, IndexedNavigation::Next), None);
-        assert_eq!(keys.neighbor(10, IndexedNavigation::Previous), None);
+        assert_eq!(keys.neighbor(Some(10), IndexedNavigation::Next), None);
+        assert_eq!(keys.neighbor(Some(10), IndexedNavigation::Previous), None);
+        assert_eq!(keys.neighbor(None, IndexedNavigation::Next), None);
+    }
+
+    #[test]
+    fn neighbor_without_anchor_returns_first_for_both_directions() {
+        let mut keys = keys_with_rows([9, 1, 5]);
+
+        assert_eq!(keys.neighbor(None, IndexedNavigation::Next), Some(1));
+        assert_eq!(keys.neighbor(None, IndexedNavigation::Previous), Some(1));
     }
 
     #[test]
     fn neighbor_next_from_middle() {
         let mut keys = keys_with_rows([1, 5, 9]);
 
-        assert_eq!(keys.neighbor(5, IndexedNavigation::Next), Some(9));
+        assert_eq!(keys.neighbor(Some(5), IndexedNavigation::Next), Some(9));
     }
 
     #[test]
     fn neighbor_previous_from_middle() {
         let mut keys = keys_with_rows([1, 5, 9]);
 
-        assert_eq!(keys.neighbor(5, IndexedNavigation::Previous), Some(1));
+        assert_eq!(keys.neighbor(Some(5), IndexedNavigation::Previous), Some(1));
     }
 
     #[test]
     fn neighbor_next_wraps_to_first() {
         let mut keys = keys_with_rows([1, 5, 9]);
 
-        assert_eq!(keys.neighbor(9, IndexedNavigation::Next), Some(1));
+        assert_eq!(keys.neighbor(Some(9), IndexedNavigation::Next), Some(1));
     }
 
     #[test]
     fn neighbor_previous_wraps_to_last() {
         let mut keys = keys_with_rows([1, 5, 9]);
 
-        assert_eq!(keys.neighbor(1, IndexedNavigation::Previous), Some(9));
+        assert_eq!(keys.neighbor(Some(1), IndexedNavigation::Previous), Some(9));
     }
 
     #[test]
     fn neighbor_anchor_not_present_uses_adjacent_rows() {
         let mut keys = keys_with_rows([1, 5, 9]);
 
-        assert_eq!(keys.neighbor(4, IndexedNavigation::Next), Some(5));
-        assert_eq!(keys.neighbor(4, IndexedNavigation::Previous), Some(1));
+        assert_eq!(keys.neighbor(Some(4), IndexedNavigation::Next), Some(5));
+        assert_eq!(keys.neighbor(Some(4), IndexedNavigation::Previous), Some(1));
     }
 }

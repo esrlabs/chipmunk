@@ -182,7 +182,7 @@ impl Controller {
 
     pub(crate) fn indexed_neighbor(
         &mut self,
-        anchor: u64,
+        anchor: Option<u64>,
         direction: IndexedNavigation,
     ) -> Option<u64> {
         self.map.indexed_neighbor(anchor, direction)

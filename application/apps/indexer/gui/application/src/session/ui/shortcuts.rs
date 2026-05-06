@@ -22,19 +22,19 @@ use super::{
 
 const ACTIVE_PAGE_UP_BINDINGS: &[KeyboardShortcut] = &[
     KeyboardShortcut::new(Modifiers::CTRL, Key::U),
-    KeyboardShortcut::new(Modifiers::CTRL, Key::PageUp),
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::PageUp),
 ];
 
 const ACTIVE_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] = &[
     KeyboardShortcut::new(Modifiers::CTRL, Key::D),
-    KeyboardShortcut::new(Modifiers::CTRL, Key::PageDown),
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::PageDown),
 ];
 
 const ACTIVE_TOP_DIRECT_BINDINGS: &[KeyboardShortcut] =
-    &[KeyboardShortcut::new(Modifiers::CTRL, Key::Home)];
+    &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Home)];
 
 const ACTIVE_BOTTOM_DIRECT_BINDINGS: &[KeyboardShortcut] =
-    &[KeyboardShortcut::new(Modifiers::CTRL, Key::End)];
+    &[KeyboardShortcut::new(Modifiers::COMMAND, Key::End)];
 
 #[cfg(target_os = "macos")]
 const ACTIVE_TOP_DISPLAY: &str = "gg / Cmd+Home";
@@ -53,11 +53,11 @@ const SEARCH_FOCUS_DISPLAY: &str = "Slash / Ctrl+F";
 
 static SHORTCUTS: SessionShortcuts = SessionShortcuts {
     activate_main_output: Shortcut::new(
-        &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num1)],
+        &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Num1)],
         "Focus main logs table",
     ),
     activate_search_output: Shortcut::new(
-        &[KeyboardShortcut::new(Modifiers::CTRL, Key::Num2)],
+        &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Num2)],
         "Focus search results table",
     ),
     active_page_up: Shortcut::new(ACTIVE_PAGE_UP_BINDINGS, "Scroll active table one page up"),
@@ -359,11 +359,10 @@ pub fn handle(
     }
 
     if consume_outside_text(ctx, previous_indexed_row) {
-        let anchor = session.shared.logs.single_selected_row().unwrap_or(0);
         actions.try_send_command(
             &session.cmd_tx,
             SessionCommand::GetIndexedNeighbor {
-                anchor,
+                anchor: session.shared.logs.single_selected_row(),
                 direction: IndexedNavigation::Previous,
             },
         );
@@ -371,11 +370,10 @@ pub fn handle(
     }
 
     if consume_outside_text(ctx, next_indexed_row) {
-        let anchor = session.shared.logs.single_selected_row().unwrap_or(0);
         actions.try_send_command(
             &session.cmd_tx,
             SessionCommand::GetIndexedNeighbor {
-                anchor,
+                anchor: session.shared.logs.single_selected_row(),
                 direction: IndexedNavigation::Next,
             },
         );

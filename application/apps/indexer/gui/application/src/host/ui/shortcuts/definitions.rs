@@ -24,17 +24,14 @@ static SHORTCUTS: AppShortcuts = AppShortcuts {
     ),
     close_tab: Shortcut::new(CLOSE_TAB_BINDINGS, "Close active tab"),
     previous_tab: Shortcut::new(
-        &[
-            KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::Tab),
-            KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Tab),
-        ],
+        &[KeyboardShortcut::new(
+            Modifiers::COMMAND.plus(Modifiers::SHIFT),
+            Key::Tab,
+        )],
         "Activate previous tab",
     ),
     next_tab: Shortcut::new(
-        &[
-            KeyboardShortcut::new(Modifiers::COMMAND, Key::Tab),
-            KeyboardShortcut::new(Modifiers::CTRL, Key::Tab),
-        ],
+        &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Tab)],
         "Activate next tab",
     ),
     // The modal lists this once as Alt+1..9 instead of repeating every tab position.

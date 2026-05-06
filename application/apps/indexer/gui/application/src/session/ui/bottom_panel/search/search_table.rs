@@ -187,10 +187,15 @@ impl<'a> LogsDelegate<'a> {
     fn select_row(&mut self, pos: u64, modifiers: egui::Modifiers) {
         let change = common::log_table::table::apply_selection_click(self.shared, pos, modifiers);
 
-        if let Some(details_row) = change.details_row {
+        if let Some(jump_to_row) = change.jump_to_row {
             self.shared
                 .logs
-                .request_main_row_focus(details_row, SearchTableSync::Skip);
+                .request_main_row_focus(jump_to_row, SearchTableSync::Skip);
+        } else if let Some(details_row) = change.details_row {
+            self.actions.try_send_command(
+                &self.table.cmd_tx,
+                SessionCommand::GetSelectedLog(details_row),
+            );
         }
     }
 
