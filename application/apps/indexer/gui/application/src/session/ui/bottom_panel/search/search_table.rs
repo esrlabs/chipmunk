@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     host::ui::{UiActions, actions::FileDialogOptions},
     session::{
-        command::SessionCommand,
+        command::{RawExportTarget, SessionCommand},
         error::SessionError,
         types::attachment::{PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime},
         ui::{
@@ -51,6 +51,9 @@ pub struct SearchTable {
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
     /// The indexed lower-table row to make the table scroll toward.
     scroll_nearest_pos: Option<NearestPosition>,
+    /// Save-file dialogs return asynchronously, so the selected export target must be
+    /// kept until the chosen destination arrives.
+    pending_export_target: Option<RawExportTarget>,
 }
 
 impl SearchTable {
@@ -62,6 +65,7 @@ impl SearchTable {
             indexed_logs: LogsMapped::new(schema),
             pending_logs_rx: None,
             scroll_nearest_pos: None,
+            pending_export_target: None,
         }
     }
 
@@ -138,6 +142,7 @@ impl SearchTable {
             indexed_logs,
             pending_logs_rx,
             scroll_nearest_pos,
+            pending_export_target: _,
         } = self;
 
         *last_visible_rows = None;
@@ -147,8 +152,13 @@ impl SearchTable {
         *pending_logs_rx = None;
     }
 
-    fn handle_pending_dialog(&self, shared: &mut SessionShared, actions: &mut UiActions) {
+    fn handle_pending_dialog(&mut self, shared: &mut SessionShared, actions: &mut UiActions) {
         let Some(selected_paths) = actions.file_dialog.take_output(RAW_EXPORT_DIALOG_ID) else {
+            return;
+        };
+
+        let Some(target) = self.pending_export_target.take() else {
+            log::error!("Missing raw export target for search table dialog");
             return;
         };
 
@@ -170,9 +180,10 @@ impl SearchTable {
 
         if !actions.try_send_command(
             &self.cmd_tx,
-            SessionCommand::ExportIndexedRaw {
+            SessionCommand::ExportRaw {
                 operation_id,
                 destination,
+                target,
             },
         ) {
             shared.exports.pending_op.remove(&operation_id);
@@ -185,22 +196,63 @@ impl SearchTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        let can_export =
-            shared.get_info().raw_export_supported() && shared.search.indexed_result_count() > 0;
+        let can_start_export =
+            shared.get_info().raw_export_supported() && self.pending_export_target.is_none();
+        let selected_count = shared.logs.selected_count();
+        let can_export_selected = can_start_export && selected_count > 0;
+        let can_export_all = can_start_export && shared.search.indexed_result_count() > 0;
+
+        let selected_export_label = if selected_count == 0 {
+            String::from("Export Selected as Raw")
+        } else {
+            format!("Export Selected Rows ({selected_count}) as Raw")
+        };
 
         if ui
             .add_enabled(
-                can_export,
+                can_export_selected,
+                egui::Button::new(selected_export_label),
+            )
+            .clicked()
+        {
+            self.open_raw_export_dialog(
+                shared,
+                actions,
+                RawExportTarget::Rows(shared.logs.selected_rows()),
+                "Export Selected as Raw",
+            );
+            ui.close();
+        }
+
+        if ui
+            .add_enabled(
+                can_export_all,
                 egui::Button::new("Export All Search Results as Raw"),
             )
             .clicked()
         {
-            let options = FileDialogOptions::new()
-                .file_name(export_logs::default_raw_file_name(shared))
-                .title("Export All Search Results as Raw");
-            actions.file_dialog.save_file(RAW_EXPORT_DIALOG_ID, options);
+            self.open_raw_export_dialog(
+                shared,
+                actions,
+                RawExportTarget::Indexed,
+                "Export All Search Results as Raw",
+            );
             ui.close();
         }
+    }
+
+    fn open_raw_export_dialog(
+        &mut self,
+        shared: &SessionShared,
+        actions: &mut UiActions,
+        target: RawExportTarget,
+        title: &'static str,
+    ) {
+        self.pending_export_target = Some(target);
+        let options = FileDialogOptions::new()
+            .file_name(export_logs::default_raw_file_name(shared))
+            .title(title);
+        actions.file_dialog.save_file(RAW_EXPORT_DIALOG_ID, options);
     }
 
     /// Queues a vertical table scroll for the next render pass.

@@ -87,6 +87,13 @@ impl LogsState {
         self.selected_rows.len()
     }
 
+    /// Returns selected stream positions without export-specific normalization.
+    pub fn selected_rows(&self) -> Vec<u64> {
+        // Export range preparation sorts and dedups in the session service.
+        // No need to sort in UI thread.
+        self.selected_rows.iter().copied().collect()
+    }
+
     /// Returns the selected row only when the selection is singular.
     pub fn single_selected_row(&self) -> Option<u64> {
         if self.selected_rows.len() == 1 {

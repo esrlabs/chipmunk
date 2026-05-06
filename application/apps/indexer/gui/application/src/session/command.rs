@@ -98,10 +98,11 @@ pub enum SessionCommand {
     /// configuration of the current session as basis
     StartSessionWithSource { source_uuid: String },
 
-    /// Export the current indexed lower-table rows as raw source data.
-    ExportIndexedRaw {
+    /// Export raw source data for the selected target.
+    ExportRaw {
         operation_id: Uuid,
         destination: PathBuf,
+        target: RawExportTarget,
     },
 
     /// Cancel the running operation with the given id.
@@ -114,4 +115,12 @@ pub enum SessionCommand {
 pub enum AttachSource {
     Files(Vec<PathBuf>),
     Stream(Box<StreamConfig>),
+}
+
+#[derive(Debug)]
+pub enum RawExportTarget {
+    /// Current indexed lower-table rows.
+    Indexed,
+    /// Original stream row positions selected by the UI.
+    Rows(Vec<u64>),
 }

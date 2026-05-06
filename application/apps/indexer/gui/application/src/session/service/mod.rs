@@ -1,4 +1,8 @@
-use std::{ops::ControlFlow, path::Path, sync::Arc};
+use std::{
+    ops::{ControlFlow, RangeInclusive},
+    path::Path,
+    sync::Arc,
+};
 
 use image::ImageError;
 use itertools::Itertools;
@@ -9,7 +13,11 @@ use processor::grabber::LineRange;
 use session_core::session::Session;
 use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
 
-use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
+use super::{
+    command::{RawExportTarget, SessionCommand},
+    communication::ServiceHandle,
+    error::SessionError,
+};
 use crate::{
     common::time::unix_timestamp_now,
     host::{
@@ -439,25 +447,29 @@ impl SessionService {
 
                 return Err(ComputationError::SessionCreatingFail.into());
             }
-            SessionCommand::ExportIndexedRaw {
+            SessionCommand::ExportRaw {
                 operation_id,
                 destination,
+                target,
             } => {
-                let ranges = match self.session.get_indexed_ranges().await {
-                    Ok(ranges) => ranges
-                        .0
-                        .into_iter()
-                        .map(|range| range.start..=range.end)
-                        .collect_vec(),
-                    Err(error) => {
-                        self.senders
-                            .send_session_msg(SessionMessage::OperationUpdated {
-                                operation_id,
-                                phase: OperationPhase::Failed,
-                            })
-                            .await;
-                        return Err(error.into());
-                    }
+                let ranges = match target {
+                    RawExportTarget::Indexed => match self.session.get_indexed_ranges().await {
+                        Ok(ranges) => ranges
+                            .0
+                            .into_iter()
+                            .map(|range| range.start..=range.end)
+                            .collect_vec(),
+                        Err(error) => {
+                            self.senders
+                                .send_session_msg(SessionMessage::OperationUpdated {
+                                    operation_id,
+                                    phase: OperationPhase::Failed,
+                                })
+                                .await;
+                            return Err(error.into());
+                        }
+                    },
+                    RawExportTarget::Rows(rows) => rows_to_ranges(rows),
                 };
 
                 if ranges.is_empty() {
@@ -685,4 +697,69 @@ fn decode_image(path: &Path) -> Result<egui::ColorImage, ImageError> {
         size,
         pixels.as_slice(),
     ))
+}
+
+/// Converts selected stream row positions into compact inclusive ranges for raw export.
+///
+/// The UI snapshots selection from a hash set and does not own export range semantics, so
+/// the service normalizes row order, removes duplicates, and compacts adjacent rows here.
+fn rows_to_ranges(mut rows: Vec<u64>) -> Vec<RangeInclusive<u64>> {
+    rows.sort_unstable();
+    rows.dedup();
+
+    let mut ranges = Vec::new();
+    let mut rows = rows.into_iter();
+    let Some(mut start) = rows.next() else {
+        return ranges;
+    };
+    let mut end = start;
+
+    for row in rows {
+        if end.checked_add(1) == Some(row) {
+            end = row;
+        } else {
+            ranges.push(start..=end);
+            start = row;
+            end = row;
+        }
+    }
+
+    ranges.push(start..=end);
+    ranges
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::RangeInclusive;
+
+    use super::rows_to_ranges;
+
+    fn ranges(rows: Vec<u64>) -> Vec<RangeInclusive<u64>> {
+        rows_to_ranges(rows)
+    }
+
+    #[test]
+    fn empty_rows_make_no_ranges() {
+        assert!(ranges(Vec::new()).is_empty());
+    }
+
+    #[test]
+    fn single_row_makes_single_range() {
+        assert_eq!(ranges(vec![7]), vec![7..=7]);
+    }
+
+    #[test]
+    fn unsorted_rows_make_ordered_ranges() {
+        assert_eq!(ranges(vec![5, 3, 4, 10]), vec![3..=5, 10..=10]);
+    }
+
+    #[test]
+    fn duplicate_rows_are_deduped() {
+        assert_eq!(ranges(vec![2, 2, 3, 5, 5]), vec![2..=3, 5..=5]);
+    }
+
+    #[test]
+    fn gaps_make_multiple_ranges() {
+        assert_eq!(ranges(vec![1, 2, 4, 7, 8]), vec![1..=2, 4..=4, 7..=8]);
+    }
 }
