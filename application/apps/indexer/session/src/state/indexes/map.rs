@@ -184,7 +184,11 @@ impl Map {
         self.keys.get_positions_around(position)
     }
 
-    pub fn indexed_neighbor(&mut self, anchor: u64, direction: IndexedNavigation) -> Option<u64> {
+    pub fn indexed_neighbor(
+        &mut self,
+        anchor: Option<u64>,
+        direction: IndexedNavigation,
+    ) -> Option<u64> {
         self.keys.neighbor(anchor, direction)
     }
 

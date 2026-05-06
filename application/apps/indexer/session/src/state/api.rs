@@ -111,7 +111,8 @@ pub enum Api {
     /// Finds the neighboring indexed row around an anchor row.
     GetIndexedNeighbor {
         /// Main-log row used as the exclusive starting point for navigation.
-        anchor: u64,
+        /// When absent, navigation starts from the first indexed row.
+        anchor: Option<u64>,
         /// Direction to search from the anchor, with wraparound at map boundaries.
         direction: IndexedNavigation,
         /// Receives the matching indexed row, or `None` when the indexed map is empty.
@@ -339,7 +340,7 @@ impl SessionStateAPI {
 
     pub async fn get_indexed_neighbor(
         &self,
-        anchor: u64,
+        anchor: Option<u64>,
         direction: IndexedNavigation,
     ) -> Result<Option<u64>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();

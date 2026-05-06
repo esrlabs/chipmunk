@@ -41,7 +41,8 @@ pub enum SessionCommand {
     /// Request the adjacent indexed row in the main logs table.
     GetIndexedNeighbor {
         /// Main-log row used as the exclusive starting point for navigation.
-        anchor: u64,
+        /// When absent, navigation starts from the first indexed row.
+        anchor: Option<u64>,
         /// Direction to search from the anchor, with wraparound at indexed-map boundaries.
         direction: IndexedNavigation,
     },
