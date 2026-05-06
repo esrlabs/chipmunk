@@ -24,7 +24,7 @@
 ## Cross-Module Dependency Map
 
 - Consumed by both `application/client` and `application/holder`.
-- Some `application/platform/types/` entries are generated downstream from `application/apps/indexer/stypes`.
+- Some `application/platform/types/` entries are generated from `application/apps/indexer/stypes`.
 - IPC contracts here define holder <-> client communication boundaries.
 
 ## Landmarks and Hotspots

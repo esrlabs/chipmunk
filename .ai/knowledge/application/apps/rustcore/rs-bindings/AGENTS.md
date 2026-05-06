@@ -38,4 +38,4 @@
 
 - Target: `binding`
 - Build: `cargo chipmunk build binding -u print`
-- Lint: `cargo clippy`
+- Lint: `cargo chipmunk lint binding -u print`

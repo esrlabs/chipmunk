@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Angular client is the primary UI for viewing logs, managing filters, and visualizing data.
+The Angular client is the Electron-era UI for viewing logs, managing filters, and visualizing data.
 
 ## Start Here (First Files to Open)
 

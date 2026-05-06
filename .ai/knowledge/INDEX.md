@@ -2,58 +2,40 @@
 
 ## Overview
 
-This is the canonical mapping for repository module context.
-All module context files live under `.ai/knowledge/` with a layout mirroring repository paths.
+Repository AI context lives under `.ai/knowledge/`.
+Use this file only to choose the next context file to read.
 
 ## Start Here
 
-1. `.ai/knowledge/INDEX.md` (this file)
-2. `.ai/knowledge/cli/development-cli/AGENTS.md` (`cargo chipmunk` orchestration)
-3. `.ai/knowledge/application/apps/indexer/AGENTS.md` (Rust core)
-4. `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md` (native Rust GUI)
-5. `.ai/knowledge/application/platform/AGENTS.md` (shared TS contracts)
-6. `.ai/knowledge/application/holder/AGENTS.md` (desktop host flow)
-7. `.ai/knowledge/application/client/AGENTS.md` (desktop application client)
+1. `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md`
+2. `.ai/knowledge/application/apps/indexer/AGENTS.md`
+3. `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
 
-## Canonical Mapping
+## Primary Application Context
 
-| Repo Path | Context File | Primary Responsibility | Depends On |
-| :--- | :--- | :--- | :--- |
-| `application/apps/indexer` | `.ai/knowledge/application/apps/indexer/AGENTS.md` | Rust backend parsing/ingestion/search core | `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` |
-| `application/apps/indexer/stypes` | `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` | Rust/TS shared type source of truth | `.ai/knowledge/application/apps/protocol/AGENTS.md`, `.ai/knowledge/application/platform/AGENTS.md` |
-| `application/apps/indexer/gui/application` | `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md` | Native Rust GUI host/session UI for logs, filters, and search | `.ai/knowledge/application/apps/indexer/AGENTS.md`, `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` |
-| `application/apps/protocol` | `.ai/knowledge/application/apps/protocol/AGENTS.md` | WASM encode/decode bridge around `stypes` | `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` |
-| `application/apps/rustcore/rs-bindings` | `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md` | Native Node addon boundary over Rust `session` | `.ai/knowledge/application/apps/indexer/AGENTS.md` |
-| `application/apps/rustcore/ts-bindings` | `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md` | High-level TS API over native addon/protocol | `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md`, `.ai/knowledge/application/apps/protocol/AGENTS.md` |
-| `application/apps/rustcore/wasm-bindings` | `.ai/knowledge/application/apps/rustcore/wasm-bindings/AGENTS.md` | Browser-focused WASM utilities | `.ai/knowledge/application/client/AGENTS.md` |
-| `application/platform` | `.ai/knowledge/application/platform/AGENTS.md` | Shared IPC/types/env/logging for holder/client | `.ai/knowledge/application/client/AGENTS.md`, `.ai/knowledge/application/holder/AGENTS.md` |
-| `application/holder` | `.ai/knowledge/application/holder/AGENTS.md` | Electron host lifecycle/windowing/IPC bridge | `.ai/knowledge/application/platform/AGENTS.md`, `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md` |
-| `application/client` | `.ai/knowledge/application/client/AGENTS.md` | Angular UI and feature surfaces | `.ai/knowledge/application/platform/AGENTS.md`, `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md` |
-| `cli/chipmunk-cli` | `.ai/knowledge/cli/chipmunk-cli/AGENTS.md` | User-facing parser/export CLI | `.ai/knowledge/application/apps/indexer/AGENTS.md` |
-| `cli/development-cli` | `.ai/knowledge/cli/development-cli/AGENTS.md` | Build/test/lint task orchestrator for all targets | all major target contexts |
-| `plugins` | `.ai/knowledge/plugins/AGENTS.md` | WASM plugin contracts and artifacts | `.ai/knowledge/application/apps/indexer/AGENTS.md` |
+- Native GUI: `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md`
+  - Use for egui/eframe desktop UI, host/session UI, filters, charts, logs, and search.
+- Rust core: `.ai/knowledge/application/apps/indexer/AGENTS.md`
+  - Use for ingestion, parsing, indexing, search, plugins host, and backend session behavior.
+- Shared types: `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
+  - Use for shared Rust/TS type definitions and protocol-facing data models.
 
-## Cross-Module Dependency Paths
+## Legacy Reference Context
 
-- Data path: `application/apps/indexer` -> `application/apps/rustcore/rs-bindings` -> `application/apps/rustcore/ts-bindings` -> `application/holder` and `application/client`.
-- Native GUI path: `application/apps/indexer` + `application/apps/indexer/stypes` -> `application/apps/indexer/gui/application`.
-- Shared type path: `application/apps/indexer/stypes` -> `application/apps/protocol` -> `application/apps/rustcore/ts-bindings` and `application/platform/types`.
-- Plugin path: `plugins/` contracts/components -> `application/apps/indexer/plugins_host` runtime execution.
-- Orchestration path: `cli/development-cli` drives builds/tests/lints across all targets.
+Load only when explicitly needed for comparison, migration, or historical behavior.
 
-## Development Workflow
+- Electron host: `.ai/knowledge/application/holder/AGENTS.md`
+- Angular client: `.ai/knowledge/application/client/AGENTS.md`
+- Shared TS platform: `.ai/knowledge/application/platform/AGENTS.md`
+- Protocol bridge: `.ai/knowledge/application/apps/protocol/AGENTS.md`
+- Native Node binding: `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md`
+- TS wrapper: `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md`
+- WASM bindings: `.ai/knowledge/application/apps/rustcore/wasm-bindings/AGENTS.md`
+- Legacy repo orchestration: `.ai/knowledge/cli/development-cli/AGENTS.md`
 
-Primary entry point:
+## Peripheral Context
 
-- Build: `cargo chipmunk build [TARGET] -u print`
-- Test: `cargo chipmunk test [TARGET] -u print`
-- Lint: `cargo chipmunk lint [TARGET] -u print`
+Side code outside the desktop application path. Load only when the task explicitly targets that package.
 
-| Component | Target | Path |
-| :--- | :--- | :--- |
-| Rust Core | `core` | `application/apps/indexer` |
-| Angular UI | `client` | `application/client` |
-| Electron App | `app` | `application/holder` |
-| Shared TS | `shared` | `application/platform` |
-| Rust FFI | `binding` | `application/apps/rustcore/rs-bindings` |
-| TS Bridge | `wrapper` | `application/apps/rustcore/ts-bindings` |
+- CLI parser/export: `.ai/knowledge/cli/chipmunk-cli/AGENTS.md`
+- Plugins: `.ai/knowledge/plugins/AGENTS.md`
