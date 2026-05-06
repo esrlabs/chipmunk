@@ -7,4 +7,6 @@
 pub enum SessionSignal {
     /// Indicates that search has been dropped in last frame.
     SearchDropped,
+    /// Requests capturing the current session filters and charts as a preset.
+    CapturePreset,
 }

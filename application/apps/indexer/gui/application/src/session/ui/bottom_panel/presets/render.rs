@@ -1,8 +1,8 @@
 //! Preset card rendering for browse and edit modes.
 
 use egui::{
-    Align, Frame, Key, Layout, Margin, RichText, ScrollArea, Sense, Sides, StrokeKind, TextEdit,
-    Ui, UiBuilder, vec2,
+    Align, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense, Sides, StrokeKind,
+    TextEdit, Ui, UiBuilder, vec2,
 };
 
 use super::{
@@ -12,14 +12,14 @@ use super::{
 use crate::common::ui::buttons;
 
 impl PresetsUI {
-    /// Renders a single fixed-size preset card in browse or edit mode.
+    /// Renders a single fixed-size preset card and returns its container response.
     pub(super) fn render_preset_card(
         &mut self,
         preset: &Preset,
         registry: &HostRegistry,
         ui: &mut Ui,
         pending_action: &mut Option<PresetAction>,
-    ) {
+    ) -> Response {
         let is_editing = self.is_editing(preset.id);
         let is_export_selected = self.is_selected_for_export(preset.id);
         ui.allocate_ui_with_layout(
@@ -89,7 +89,8 @@ impl PresetsUI {
                         });
                 });
             },
-        );
+        )
+        .response
     }
 
     /// Renders the export-mode header with a single inclusion checkbox.

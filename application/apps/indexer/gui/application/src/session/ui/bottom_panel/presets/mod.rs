@@ -62,6 +62,8 @@ pub struct PresetsUI {
     query_visibility: VisibilityTracker,
     edit_state: Option<PresetEditState>,
     export_state: Option<ExportSelectionState>,
+    /// Newly captured preset card that should be brought into view once rendered.
+    scroll_to_preset: Option<Uuid>,
 }
 
 /// Cached name-filter state keyed by the preset catalog revision.
@@ -140,6 +142,7 @@ impl PresetsUI {
             query_visibility: VisibilityTracker::default(),
             edit_state: None,
             export_state: None,
+            scroll_to_preset: None,
         }
     }
 
@@ -176,7 +179,7 @@ impl PresetsUI {
                         .on_hover_text("Add preset from session")
                         .clicked()
                     {
-                        self.create_preset_from_session(shared, registry);
+                        self.capture_preset(shared, registry);
                     }
 
                     let can_export_presets = !registry.presets.presets().is_empty();
@@ -266,7 +269,15 @@ impl PresetsUI {
                         }
 
                         any_visible = true;
-                        self.render_preset_card(preset, registry, ui, &mut pending_action);
+                        let card_response =
+                            self.render_preset_card(preset, registry, ui, &mut pending_action);
+                        if self
+                            .scroll_to_preset
+                            .take_if(|target| *target == preset.id)
+                            .is_some()
+                        {
+                            ui.scroll_to_rect(card_response.rect, Some(Align::BOTTOM));
+                        }
                         ui.add_space(8.0);
                     }
                 });
@@ -694,14 +705,13 @@ impl PresetsUI {
         true
     }
 
-    fn create_preset_from_session(
-        &mut self,
-        shared: &SessionShared,
-        registry: &mut HostRegistry,
-    ) -> Uuid {
-        registry
+    /// Captures the current session filters and charts as a named preset.
+    pub fn capture_preset(&mut self, shared: &SessionShared, registry: &mut HostRegistry) -> Uuid {
+        let preset_id = registry
             .presets
-            .add_preset_from_session(shared, &registry.filters)
+            .add_preset_from_session(shared, &registry.filters);
+        self.scroll_to_preset = Some(preset_id);
+        preset_id
     }
 
     fn apply_preset(
@@ -923,9 +933,10 @@ mod tests {
         let shared = new_shared();
         let mut registry = HostRegistry::default();
 
-        let preset_id = presets.create_preset_from_session(&shared, &mut registry);
+        let preset_id = presets.capture_preset(&shared, &mut registry);
 
         assert!(presets.edit_state.is_none());
+        assert_eq!(presets.scroll_to_preset, Some(preset_id));
         assert!(registry.presets.get(&preset_id).is_some());
     }
 

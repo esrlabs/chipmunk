@@ -22,7 +22,7 @@ use crate::{
     },
     session::{
         command::SessionCommand,
-        ui::shared::{SearchSyncTarget, SessionShared},
+        ui::shared::{SearchSyncTarget, SessionShared, SessionSignal},
     },
 };
 
@@ -47,6 +47,8 @@ enum FilterPanelAction {
     ToggleSearchValue(Uuid, bool),
     RemoveSearchValue(Uuid),
     MoveValueToFilter(Uuid),
+    /// Requests the parent session to capture the current filters and charts.
+    CapturePreset,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -337,6 +339,13 @@ impl FiltersUi {
                     *side_action = Some(FilterPanelAction::MoveFilterToValue(row.id));
                     ui.close();
                 }
+
+                ui.separator();
+
+                if ui.button("Create Preset from Session").clicked() {
+                    *side_action = Some(FilterPanelAction::CapturePreset);
+                    ui.close();
+                }
             },
         ) {
             *side_action = Some(action);
@@ -402,6 +411,13 @@ impl FiltersUi {
 
                 if ui.button("Move to Filter").clicked() {
                     *side_action = Some(FilterPanelAction::MoveValueToFilter(row.id));
+                    ui.close();
+                }
+
+                ui.separator();
+
+                if ui.button("Create Preset from Session").clicked() {
+                    *side_action = Some(FilterPanelAction::CapturePreset);
                     ui.close();
                 }
             },
@@ -1068,6 +1084,9 @@ impl FiltersUi {
                         .into_iter()
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
+            }
+            FilterPanelAction::CapturePreset => {
+                shared.signals.push(SessionSignal::CapturePreset);
             }
         }
     }
