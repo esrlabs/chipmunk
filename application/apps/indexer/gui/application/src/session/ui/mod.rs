@@ -112,7 +112,7 @@ impl Session {
         &mut self,
         actions: &mut UiActions,
         registry: &mut HostRegistry,
-        panels_visibility: &PanelsVisibility,
+        panels_visibility: &mut PanelsVisibility,
         ui: &mut Ui,
     ) {
         let Self {
@@ -177,18 +177,40 @@ impl Session {
         self.attachment_modal
             .render_content(&mut shared.attachments, ui);
 
-        self.handle_signals();
+        self.handle_signals(registry, panels_visibility);
     }
 
-    fn handle_signals(&mut self) {
-        for event in self.shared.signals.drain(..) {
+    /// Processes frame-local signals queued by child session components.
+    fn handle_signals(
+        &mut self,
+        registry: &mut HostRegistry,
+        panels_visibility: &mut PanelsVisibility,
+    ) {
+        let signals = std::mem::take(&mut self.shared.signals);
+        for event in signals {
             match event {
-                SessionSignal::SearchDropped => {
-                    self.bottom_panel.search.table.clear();
-                    self.bottom_panel.chart.reset();
-                }
+                SessionSignal::SearchDropped => self.handle_search_dropped(),
+                SessionSignal::CapturePreset => self.capture_preset(registry, panels_visibility),
             }
         }
+    }
+
+    fn handle_search_dropped(&mut self) {
+        self.bottom_panel.search.table.clear();
+        self.bottom_panel.chart.reset();
+    }
+
+    /// Opens the presets panel and captures the current session filters and charts.
+    fn capture_preset(
+        &mut self,
+        registry: &mut HostRegistry,
+        panels_visibility: &mut PanelsVisibility,
+    ) {
+        panels_visibility.bottom = true;
+        self.shared.bottom_tab = BottomTabType::Presets;
+        self.bottom_panel
+            .presets
+            .capture_preset(&self.shared, registry);
     }
 
     /// Check incoming messages and handle them.
@@ -354,6 +376,7 @@ impl Session {
         restore_state: RecentSessionStateSnapshot,
         registry: &mut HostRegistry,
         actions: &mut UiActions,
+        panels_visibility: &mut PanelsVisibility,
     ) {
         self.recent_session.apply_restore(
             restore_state,
@@ -362,7 +385,7 @@ impl Session {
             &self.cmd_tx,
             &mut registry.filters,
         );
-        self.handle_signals();
+        self.handle_signals(registry, panels_visibility);
     }
 
     /// Captures the canonical recent-session state after restore and establishes the update baseline.

@@ -184,7 +184,12 @@ impl Host {
                 };
 
                 if let Some(restore_state) = restore_state {
-                    session.apply_recent_restore(restore_state, registry, &mut self.ui_actions);
+                    session.apply_recent_restore(
+                        restore_state,
+                        registry,
+                        &mut self.ui_actions,
+                        &mut self.state.panels_visibility,
+                    );
                 }
 
                 let filters = &registry.filters;
