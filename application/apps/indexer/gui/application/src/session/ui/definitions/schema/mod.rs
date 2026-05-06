@@ -60,18 +60,15 @@ pub fn from_parser(parser: ParserNames) -> Rc<dyn LogSchema> {
     }
 }
 
-/// Helper function to map columns based on a specific character separator.
-pub fn map_columns_with_separator(log: &str, ranges: &mut Vec<Range<usize>>, separtor: char) {
+/// Helper function to map columns based on a specific string separator.
+pub fn map_columns_with_separator(log: &str, ranges: &mut Vec<Range<usize>>, separator: &str) {
     let mut start_index = 0;
 
-    for (idx, text) in log.match_indices(separtor) {
+    for (idx, text) in log.match_indices(separator) {
         ranges.push(start_index..idx);
-
-        // Advance start past the separator
         start_index = idx + text.len();
     }
 
-    // Push the final column (everything after the last separator)
     ranges.push(start_index..log.len());
 }
 
@@ -86,7 +83,7 @@ mod tests {
     #[test]
     fn test_consecutive_separators_empty_columns() {
         let log = "VAL1||VAL2|||VAL3";
-        let sep = '|';
+        let sep = "|";
         let mut ranges = Vec::new();
 
         map_columns_with_separator(log, &mut ranges, sep);
@@ -106,7 +103,7 @@ mod tests {
     #[test]
     fn test_leading_and_trailing_separators() {
         let log = "|VAL1|VAL2|";
-        let sep = '|';
+        let sep = "|";
         let mut ranges = Vec::new();
 
         map_columns_with_separator(log, &mut ranges, sep);
@@ -119,7 +116,7 @@ mod tests {
     #[test]
     fn test_only_separators() {
         let log = "||";
-        let sep = '|';
+        let sep = "|";
         let mut ranges = Vec::new();
 
         map_columns_with_separator(log, &mut ranges, sep);
@@ -132,7 +129,7 @@ mod tests {
     #[test]
     fn test_empty_string() {
         let log = "";
-        let sep = '|';
+        let sep = "|";
         let mut ranges = Vec::new();
 
         map_columns_with_separator(log, &mut ranges, sep);
@@ -146,7 +143,7 @@ mod tests {
     #[test]
     fn test_no_separator_present() {
         let log = "WHOLE_LINE";
-        let sep = '|';
+        let sep = "|";
         let mut ranges = Vec::new();
 
         map_columns_with_separator(log, &mut ranges, sep);
@@ -158,21 +155,15 @@ mod tests {
 
     #[test]
     fn test_multibyte_separator() {
-        // Using a 4-byte character as separator: 🚀
-        let log = "A🚀B";
-        let sep = '🚀';
+        let log = "A€B";
+        let sep = "€";
         let mut ranges = Vec::new();
 
         map_columns_with_separator(log, &mut ranges, sep);
         let slices = get_slices(log, &ranges);
 
         assert_eq!(slices, vec!["A", "B"]);
-
-        // Check indices to ensure we skipped the 4 bytes of the character correctly
-        // "A" is byte 0.
-        // "🚀" is bytes 1,2,3,4.
-        // "B" starts at byte 5.
-        assert_eq!(ranges[0], 0..1); // "A"
-        assert_eq!(ranges[1], 5..6); // "B"
+        assert_eq!(ranges[0], 0..1);
+        assert_eq!(ranges[1], 4..5);
     }
 }

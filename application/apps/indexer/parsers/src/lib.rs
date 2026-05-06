@@ -2,6 +2,10 @@
 pub mod dlt;
 pub mod someip;
 pub mod text;
+
+/// Unified separator used by built-in parsers to delimit rendered table columns.
+pub const COLUMN_SEPARATOR: &str = "\u{0004}";
+
 use serde::Serialize;
 use std::{
     fmt::{Debug, Display},

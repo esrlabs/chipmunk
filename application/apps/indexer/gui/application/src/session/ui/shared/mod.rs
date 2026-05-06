@@ -16,7 +16,7 @@ use uuid::Uuid;
 use super::{bottom_panel::BottomTabType, side_panel::SideTabType};
 
 mod attachments;
-mod export;
+pub mod export;
 mod info;
 mod logs;
 mod observe;

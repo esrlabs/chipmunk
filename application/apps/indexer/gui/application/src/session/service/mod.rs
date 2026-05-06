@@ -9,12 +9,13 @@ use itertools::Itertools;
 use tokio::{select, sync::mpsc, task};
 use uuid::Uuid;
 
+use parsers::COLUMN_SEPARATOR;
 use processor::grabber::LineRange;
 use session_core::session::Session;
 use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
 
 use super::{
-    command::{RawExportTarget, SessionCommand},
+    command::{ExportTarget, SessionCommand, TextExportOptions},
     communication::ServiceHandle,
     error::SessionError,
 };
@@ -452,43 +453,59 @@ impl SessionService {
                 destination,
                 target,
             } => {
-                let ranges = match target {
-                    RawExportTarget::Indexed => match self.session.get_indexed_ranges().await {
-                        Ok(ranges) => ranges
-                            .0
-                            .into_iter()
-                            .map(|range| range.start..=range.end)
-                            .collect_vec(),
-                        Err(error) => {
-                            self.senders
-                                .send_session_msg(SessionMessage::OperationUpdated {
-                                    operation_id,
-                                    phase: OperationPhase::Failed,
-                                })
-                                .await;
-                            return Err(error.into());
-                        }
-                    },
-                    RawExportTarget::Rows(rows) => rows_to_ranges(rows),
+                let ranges = match self.export_ranges(target).await {
+                    Ok(ranges) => ranges,
+                    Err(error) => {
+                        self.send_operation_failed(operation_id).await;
+                        return Err(error);
+                    }
                 };
 
                 if ranges.is_empty() {
-                    self.senders
-                        .send_session_msg(SessionMessage::OperationUpdated {
-                            operation_id,
-                            phase: OperationPhase::Skipped,
-                        })
-                        .await;
+                    self.send_operation_skipped(operation_id).await;
                     return Ok(ControlFlow::Continue(()));
                 }
 
                 if let Err(error) = self.session.export_raw(operation_id, destination, ranges) {
-                    self.senders
-                        .send_session_msg(SessionMessage::OperationUpdated {
-                            operation_id,
-                            phase: OperationPhase::Failed,
-                        })
-                        .await;
+                    self.send_operation_failed(operation_id).await;
+                    return Err(error.into());
+                }
+            }
+            SessionCommand::ExportText {
+                operation_id,
+                destination,
+                target,
+                options,
+            } => {
+                let ranges = match self.export_ranges(target).await {
+                    Ok(ranges) => ranges,
+                    Err(error) => {
+                        self.send_operation_failed(operation_id).await;
+                        return Err(error);
+                    }
+                };
+
+                if ranges.is_empty() {
+                    self.send_operation_skipped(operation_id).await;
+                    return Ok(ControlFlow::Continue(()));
+                }
+
+                let (columns, splitter, delimiter) = match *options {
+                    TextExportOptions::FullRows => (Vec::new(), None, None),
+                    TextExportOptions::Table { columns, delimiter } => {
+                        (columns, Some(COLUMN_SEPARATOR.to_owned()), Some(delimiter))
+                    }
+                };
+
+                if let Err(error) = self.session.export(
+                    operation_id,
+                    destination,
+                    ranges,
+                    columns,
+                    splitter,
+                    delimiter,
+                ) {
+                    self.send_operation_failed(operation_id).await;
                     return Err(error.into());
                 }
             }
@@ -508,6 +525,52 @@ impl SessionService {
         }
 
         Ok(ControlFlow::Continue(()))
+    }
+
+    async fn export_ranges(
+        &self,
+        target: ExportTarget,
+    ) -> Result<Vec<RangeInclusive<u64>>, SessionError> {
+        match target {
+            ExportTarget::All => {
+                let len = self.session.get_stream_len().await?;
+                if len == 0 {
+                    Ok(Vec::new())
+                } else {
+                    Ok(vec![0..=(len as u64 - 1)])
+                }
+            }
+            ExportTarget::Indexed => {
+                let ranges = self
+                    .session
+                    .get_indexed_ranges()
+                    .await?
+                    .0
+                    .into_iter()
+                    .map(|range| range.start..=range.end)
+                    .collect_vec();
+                Ok(ranges)
+            }
+            ExportTarget::Rows(rows) => Ok(rows_to_ranges(rows)),
+        }
+    }
+
+    async fn send_operation_failed(&self, operation_id: Uuid) {
+        self.senders
+            .send_session_msg(SessionMessage::OperationUpdated {
+                operation_id,
+                phase: OperationPhase::Failed,
+            })
+            .await;
+    }
+
+    async fn send_operation_skipped(&self, operation_id: Uuid) {
+        self.senders
+            .send_session_msg(SessionMessage::OperationUpdated {
+                operation_id,
+                phase: OperationPhase::Skipped,
+            })
+            .await;
     }
 
     async fn preview_attachment(&self, request: PreviewRequest) {

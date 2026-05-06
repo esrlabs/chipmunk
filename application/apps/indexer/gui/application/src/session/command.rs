@@ -102,7 +102,15 @@ pub enum SessionCommand {
     ExportRaw {
         operation_id: Uuid,
         destination: PathBuf,
-        target: RawExportTarget,
+        target: ExportTarget,
+    },
+
+    /// Export rendered text logs for the selected target.
+    ExportText {
+        operation_id: Uuid,
+        destination: PathBuf,
+        target: ExportTarget,
+        options: Box<TextExportOptions>,
     },
 
     /// Cancel the running operation with the given id.
@@ -118,9 +126,23 @@ pub enum AttachSource {
 }
 
 #[derive(Debug)]
-pub enum RawExportTarget {
+pub enum ExportTarget {
+    /// All stream rows in the main table.
+    All,
     /// Current indexed lower-table rows.
     Indexed,
     /// Original stream row positions selected by the UI.
     Rows(Vec<u64>),
+}
+
+/// Options for rendered text export.
+#[derive(Debug, Clone)]
+pub enum TextExportOptions {
+    /// Export full rendered rows without column filtering.
+    FullRows,
+    /// Export selected table columns joined by the provided delimiter.
+    Table {
+        columns: Vec<usize>,
+        delimiter: String,
+    },
 }
