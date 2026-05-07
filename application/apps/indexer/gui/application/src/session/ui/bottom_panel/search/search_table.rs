@@ -151,6 +151,8 @@ impl SearchTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
+        common::log_table::table::render_unselect_action(shared, ui);
+
         let can_start_export = shared.exports.can_start();
         let selected_count = shared.logs.selected_count();
         let indexed_count = shared.search.indexed_result_count();

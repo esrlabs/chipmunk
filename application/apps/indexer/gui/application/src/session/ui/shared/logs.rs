@@ -87,6 +87,12 @@ impl LogsState {
         self.selected_rows.len()
     }
 
+    /// Clears all selected rows.
+    pub fn clear_selection(&mut self) {
+        self.selected_rows.clear();
+        self.last_selected_row = None;
+    }
+
     /// Returns selected stream positions without export-specific normalization.
     pub fn selected_rows(&self) -> Vec<u64> {
         // Export range preparation sorts and dedups in the session service.
@@ -323,6 +329,19 @@ mod tests {
         assert_eq!(change.details_row, None);
         assert_eq!(change.jump_to_row, None);
         assert!(state.selected_rows.is_empty());
+        assert_eq!(state.last_selected_row, None);
+    }
+
+    #[test]
+    fn clear_selection_removes_selection_anchor() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        state.select_from_click(5, EXTEND_RANGE);
+        state.clear_selection();
+
+        assert_eq!(state.selected_count(), 0);
+        assert_eq!(state.single_selected_row(), None);
         assert_eq!(state.last_selected_row, None);
     }
 

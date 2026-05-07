@@ -152,6 +152,8 @@ impl LogsTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
+        table::render_unselect_action(shared, ui);
+
         let selected_count = shared.logs.selected_count();
         let can_start_export = shared.exports.can_start();
 
