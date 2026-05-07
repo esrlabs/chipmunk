@@ -64,6 +64,26 @@ pub enum TableScroll {
     Bottom,
 }
 
+/// Renders the shared context-menu command for clearing log selection.
+pub fn render_unselect_action(shared: &mut SessionShared, ui: &mut Ui) {
+    let selected_count = shared.logs.selected_count();
+    let label = if selected_count == 0 {
+        String::from("Unselect All")
+    } else {
+        format!("Unselect {selected_count} row(s)")
+    };
+
+    if ui
+        .add_enabled(selected_count > 0, egui::Button::new(label))
+        .clicked()
+    {
+        shared.logs.clear_selection();
+        ui.close();
+    }
+
+    ui.separator();
+}
+
 /// Returns the row range to bring into view for a table scroll action.
 pub fn scroll_target(
     action: TableScroll,
