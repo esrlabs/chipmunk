@@ -11,9 +11,13 @@ use tokio::sync::mpsc::Sender;
 use stypes::{GrabbedElement, NearestPosition};
 
 use crate::{
-    host::{common::parsers::ParserNames, ui::UiActions},
+    host::{
+        common::parsers::ParserNames,
+        ui::{UiActions, registry::filters::FilterRegistry},
+    },
     session::{
         command::{ExportTarget, SessionCommand},
+        common::search_results_tab::SearchResultsTabMode,
         error::SessionError,
         types::attachment::{PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime},
         ui::{
@@ -32,6 +36,7 @@ use crate::{
             },
             definitions::{LogTableItem, schema::LogSchema},
             logs_table::LogAttachmentInfo,
+            recent::capture_state_snapshot,
             shared::{SearchTableSync, SessionShared, export},
         },
     },
@@ -73,6 +78,7 @@ impl SearchTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
         // Disable fade effects on tables to avoid highlighting clashing.
@@ -112,12 +118,15 @@ impl SearchTable {
             table = table.scroll_to_rows(rows, None);
         }
 
-        let mut delegate = LogsDelegate::new(self, shared, actions);
+        let mut delegate = LogsDelegate::new(self, shared, actions, registry);
         let response = table.show(ui, &mut delegate);
         response.context_menu(|ui| {
-            delegate
-                .table
-                .render_context_menu(delegate.shared, delegate.actions, ui);
+            delegate.table.render_context_menu(
+                delegate.shared,
+                delegate.actions,
+                delegate.registry,
+                ui,
+            );
         });
 
         if delegate.request_repaint {
@@ -149,6 +158,7 @@ impl SearchTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
+        registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
         common::log_table::table::render_unselect_action(shared, ui);
@@ -302,6 +312,30 @@ impl SearchTable {
             );
             ui.close();
         }
+
+        let origins = shared
+            .observe
+            .operations()
+            .iter()
+            .map(|operation| &operation.origin);
+        let mode = SearchResultsTabMode::resolve_from(shared.get_info().parser, origins);
+        if ui
+            .add_enabled(
+                indexed_count > 0,
+                egui::Button::new(mode.context_menu_label()),
+            )
+            .clicked()
+        {
+            let restore_state = capture_state_snapshot(shared, registry, false);
+            actions.try_send_command(
+                &self.cmd_tx,
+                SessionCommand::OpenSearchResultsAsNewTab {
+                    operation_id: uuid::Uuid::new_v4(),
+                    restore_state,
+                },
+            );
+            ui.close();
+        }
     }
 
     /// Queues a vertical table scroll for the next render pass.
@@ -321,6 +355,7 @@ struct LogsDelegate<'a> {
     table: &'a mut SearchTable,
     shared: &'a mut SessionShared,
     actions: &'a mut UiActions,
+    registry: &'a FilterRegistry,
     request_repaint: bool,
     has_multi_sources: bool,
     /// Dedupes row/background and child-widget clicks for the same row in one pass.
@@ -333,12 +368,14 @@ impl<'a> LogsDelegate<'a> {
         table: &'a mut SearchTable,
         shared: &'a mut SessionShared,
         actions: &'a mut UiActions,
+        registry: &'a FilterRegistry,
     ) -> Self {
         let has_multi_sources = shared.observe.sources_count() > 1;
         Self {
             table,
             shared,
             actions,
+            registry,
             request_repaint: false,
             has_multi_sources,
             handled_selection_click_row: None,
@@ -420,7 +457,7 @@ impl<'a> LogsDelegate<'a> {
 
         header.response.context_menu(|ui| {
             self.table
-                .render_context_menu(self.shared, self.actions, ui)
+                .render_context_menu(self.shared, self.actions, self.registry, ui)
         });
 
         if header.attachment_clicked {
@@ -477,7 +514,7 @@ impl<'a> LogsDelegate<'a> {
 
                     ui.label("Loading...").context_menu(|ui| {
                         self.table
-                            .render_context_menu(self.shared, self.actions, ui)
+                            .render_context_menu(self.shared, self.actions, self.registry, ui)
                     });
                     return;
                 }
@@ -499,7 +536,7 @@ impl<'a> LogsDelegate<'a> {
 
             response.context_menu(|ui| {
                 self.table
-                    .render_context_menu(self.shared, self.actions, ui)
+                    .render_context_menu(self.shared, self.actions, self.registry, ui)
             });
         });
 
@@ -603,7 +640,7 @@ impl TableDelegate for LogsDelegate<'_> {
         }
         response.context_menu(|ui| {
             self.table
-                .render_context_menu(self.shared, self.actions, ui)
+                .render_context_menu(self.shared, self.actions, self.registry, ui)
         });
     }
 

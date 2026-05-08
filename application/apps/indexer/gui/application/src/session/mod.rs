@@ -10,6 +10,7 @@ use crate::{
 };
 
 pub mod command;
+pub mod common;
 pub mod communication;
 pub mod error;
 pub mod message;
@@ -52,19 +53,26 @@ pub struct SessionUiInit {
 /// Recent-session runtime state needed by one live session.
 #[derive(Debug)]
 pub struct RecentSessionRuntimeInit {
+    /// Optional tracking data for sessions that participate in recent-session storage.
+    pub tracking: Option<RecentSessionTrackingInit>,
+    /// Additional startup observe operations attached before first render.
+    pub additional_observe_ops: Vec<ObserveOperation>,
+}
+
+/// Recent-session tracking data for one live session.
+#[derive(Debug)]
+pub struct RecentSessionTrackingInit {
     /// Stable identity of the recent-session entry owned by this live session.
     pub source_key: Arc<str>,
     /// Whether this source shape supports recent bookmark persistence.
     pub supports_bookmarks: bool,
-    /// Additional startup observe operations attached before first render.
-    pub additional_observe_ops: Vec<ObserveOperation>,
 }
 
 /// Host-owned recent-session data associated with a spawned session.
 #[derive(Debug)]
 pub struct SpawnedRecentSession {
     /// Static recent-session metadata owned by the host.
-    pub registration: RecentSessionRegistration,
+    pub registration: Option<RecentSessionRegistration>,
     /// Optional session state to restore on startup.
     pub restore_state: Option<RecentSessionStateSnapshot>,
 }

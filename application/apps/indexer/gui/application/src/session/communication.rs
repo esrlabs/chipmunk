@@ -104,6 +104,15 @@ impl ServiceSenders {
 
         evaluate_send_res(&self.egui_ctx, res)
     }
+
+    /// Create [`SharedSenders`] by cloning the channels shared with child sessions.
+    pub fn get_shared_senders(&self) -> SharedSenders {
+        SharedSenders::new(
+            self.host_message_tx.clone(),
+            self.notification_tx.clone(),
+            self.egui_ctx.clone(),
+        )
+    }
 }
 
 /// Initialize communication channels for session application.
