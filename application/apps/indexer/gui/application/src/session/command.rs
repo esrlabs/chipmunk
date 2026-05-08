@@ -7,7 +7,9 @@ use session_core::state::IndexedNavigation;
 use stypes::GrabbedElement;
 use uuid::Uuid;
 
-use crate::host::ui::session_setup::state::sources::StreamConfig;
+use crate::host::ui::{
+    session_setup::state::sources::StreamConfig, storage::RecentSessionStateSnapshot,
+};
 use crate::session::{error::SessionError, types::attachment};
 
 /// Represents session specific commands to be sent from UI to session service.
@@ -111,6 +113,12 @@ pub enum SessionCommand {
         destination: PathBuf,
         target: ExportTarget,
         options: Box<TextExportOptions>,
+    },
+
+    /// Export current search results to a generated source and open it in a new session tab.
+    OpenSearchResultsAsNewTab {
+        operation_id: Uuid,
+        restore_state: RecentSessionStateSnapshot,
     },
 
     /// Cancel the running operation with the given id.

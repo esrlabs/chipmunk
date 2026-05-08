@@ -40,6 +40,16 @@ impl RecentSessionRuntime {
         }
     }
 
+    /// Creates a live-only session that never writes recent-session storage.
+    pub fn untracked() -> Self {
+        Self {
+            source_key: None,
+            supports_bookmarks: false,
+            last_revision: 0,
+            pending_bookmark_restore: false,
+        }
+    }
+
     /// Applies restored recent-session state through the normal session and registry path.
     pub fn apply_restore(
         &mut self,
@@ -163,7 +173,7 @@ impl RecentSessionRuntime {
 }
 
 /// Captures the persisted recent-session state from the current live session state.
-fn capture_state_snapshot(
+pub fn capture_state_snapshot(
     shared: &SessionShared,
     registry: &FilterRegistry,
     supports_bookmarks: bool,
@@ -449,5 +459,23 @@ mod tests {
         let state = recent.capture_opened_state(&shared, &registry);
 
         assert!(state.bookmarks.is_empty());
+    }
+
+    #[test]
+    fn untracked_skips_state_updates() {
+        let mut shared = new_shared(ObserveOrigin::File(
+            String::from("source"),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        ));
+        let mut registry = FilterRegistry::default();
+        let mut recent = RecentSessionRuntime::untracked();
+
+        let filter_id = registry.add_filter(FilterDefinition::new(SearchFilter::plain("first")));
+        shared.apply_filter(&mut registry, filter_id);
+        shared.insert_bookmark(4);
+
+        assert!(recent.take_state_update(&shared, &registry).is_none());
+        assert!(recent.source_key().is_none());
     }
 }

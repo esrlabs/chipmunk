@@ -38,7 +38,7 @@ use side_panel::{SidePanelUi, SideTabType};
 mod attachment_modal;
 mod bottom_panel;
 mod common;
-mod definitions;
+pub mod definitions;
 mod export_modal;
 mod logs_table;
 mod recent;
@@ -73,8 +73,7 @@ impl Session {
             observe_op,
         } = init;
         let RecentSessionRuntimeInit {
-            source_key: recent_source_key,
-            supports_bookmarks,
+            tracking,
             additional_observe_ops,
         } = recent_runtime;
 
@@ -92,12 +91,16 @@ impl Session {
             host_cmd_tx,
             Rc::clone(&shared.schema),
         );
+        let recent_session = match tracking {
+            Some(init) => RecentSessionRuntime::new(init.source_key, init.supports_bookmarks),
+            None => RecentSessionRuntime::untracked(),
+        };
 
         Self {
             receivers,
             side_panel,
             shared,
-            recent_session: RecentSessionRuntime::new(recent_source_key, supports_bookmarks),
+            recent_session,
             logs_table,
             bottom_panel,
             attachment_modal: attachment_modal::AttachmentModalUi::new(),

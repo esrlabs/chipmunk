@@ -1,6 +1,7 @@
 use std::{
-    ops::{ControlFlow, RangeInclusive},
-    path::Path,
+    fs,
+    ops::ControlFlow,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -9,16 +10,14 @@ use itertools::Itertools;
 use tokio::{select, sync::mpsc, task};
 use uuid::Uuid;
 
-use parsers::COLUMN_SEPARATOR;
 use processor::grabber::LineRange;
 use session_core::session::Session;
 use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
 
-use super::{
-    command::{ExportTarget, SessionCommand, TextExportOptions},
-    communication::ServiceHandle,
-    error::SessionError,
-};
+mod export;
+mod tracker;
+
+use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
 use crate::{
     common::time::unix_timestamp_now,
     host::{
@@ -35,8 +34,8 @@ use crate::{
         },
     },
     session::{
-        InitSessionError, RecentSessionRuntimeInit, SessionUiInit, SpawnedRecentSession,
-        SpawnedSession,
+        InitSessionError, RecentSessionRuntimeInit, RecentSessionTrackingInit, SessionUiInit,
+        SpawnedRecentSession, SpawnedSession,
         command::AttachSource,
         communication::{self, ServiceSenders, SharedSenders},
         message::{BookmarkUpdate, SessionMessage},
@@ -48,12 +47,50 @@ use crate::{
     },
 };
 
+use self::tracker::OperationTracker;
+
+/// Async backend coordinator for one live session tab.
 #[derive(Debug)]
 pub struct SessionService {
+    /// Commands received from the session UI.
     cmd_rx: mpsc::Receiver<SessionCommand>,
+    /// Channels used to publish session, host, and notification messages.
     senders: ServiceSenders,
+    /// Core backend session API.
     session: Session,
+    /// Backend callback stream for this session.
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
+    /// Follow-up state for operations completed through backend callbacks.
+    tracker: OperationTracker,
+    /// Temp sources owned and cleaned up when this service closes.
+    owned_temp_sources: Vec<PathBuf>,
+}
+
+/// Inputs required to start one running session service.
+#[derive(Debug)]
+struct SessionStartup {
+    /// Channels shared with the host and UI layers.
+    shared_senders: SharedSenders,
+    /// Backend session instance to drive.
+    session: Session,
+    /// Backend callback stream paired with `session`.
+    callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
+    /// Initial observe options for the primary source.
+    options: ObserveOptions,
+    /// Extra sources observed during startup with the same parser.
+    additional_sources: Vec<ObserveOrigin>,
+    /// Optional UI state restored after session creation.
+    restore_state: Option<RecentSessionStateSnapshot>,
+    /// Temp sources owned and cleaned up by this service.
+    owned_temp_sources: Vec<PathBuf>,
+    /// Whether this session participates in recent-session storage.
+    recent_session_policy: RecentSessionPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RecentSessionPolicy {
+    Register,
+    Skip,
 }
 
 impl SessionService {
@@ -70,11 +107,34 @@ impl SessionService {
         restore_state: Option<RecentSessionStateSnapshot>,
     ) -> Result<SpawnedSession, InitSessionError> {
         let session_id = Uuid::new_v4();
+        let (session, callback_rx) = Session::new(session_id).await?;
 
+        let startup = SessionStartup::new(
+            shared_senders,
+            session,
+            callback_rx,
+            options,
+            additional_sources,
+        )
+        .with_restore_state(restore_state);
+
+        Self::start(startup)
+    }
+
+    fn start(startup: SessionStartup) -> Result<SpawnedSession, InitSessionError> {
+        let SessionStartup {
+            shared_senders,
+            session,
+            callback_rx,
+            options,
+            additional_sources,
+            restore_state,
+            owned_temp_sources,
+            recent_session_policy,
+        } = startup;
+
+        let session_id = session.get_uuid();
         let (ui_handle, service_handle) = communication::init(shared_senders);
-
-        // Initial session with the primary source.
-        let (session, callback_rx) = session_core::session::Session::new(session_id).await?;
 
         let session_info = SessionInfo::from_observe_options(session_id, &options);
         let mut recent_sources = RecentSessionSource::from_observe_origin(options.origin.clone());
@@ -101,11 +161,22 @@ impl SessionService {
             startup_observe_ops.push(observe_op);
         }
 
-        // Build register to track session changes in recent session storage.
-        let recent_registration =
-            RecentSessionRegistration::new(unix_timestamp_now(), recent_sources, parser);
-        let supports_bookmarks = recent_registration.supports_bookmarks();
-        let recent_source_key = Arc::clone(&recent_registration.source_key);
+        // Build registration to track normal sessions in recent-session storage.
+        let recent_registration = match recent_session_policy {
+            RecentSessionPolicy::Register => Some(RecentSessionRegistration::new(
+                unix_timestamp_now(),
+                recent_sources,
+                parser,
+            )),
+            RecentSessionPolicy::Skip => None,
+        };
+        let recent_tracking =
+            recent_registration
+                .as_ref()
+                .map(|registration| RecentSessionTrackingInit {
+                    source_key: Arc::clone(&registration.source_key),
+                    supports_bookmarks: registration.supports_bookmarks(),
+                });
 
         let ServiceHandle { cmd_rx, senders } = service_handle;
 
@@ -114,6 +185,8 @@ impl SessionService {
             senders,
             session,
             callback_rx,
+            tracker: OperationTracker::default(),
+            owned_temp_sources,
         };
 
         tokio::spawn(async move {
@@ -123,8 +196,7 @@ impl SessionService {
         let ui_init = SessionUiInit {
             session_info,
             recent_runtime: RecentSessionRuntimeInit {
-                source_key: recent_source_key,
-                supports_bookmarks,
+                tracking: recent_tracking,
                 additional_observe_ops: startup_observe_ops,
             },
             communication: ui_handle,
@@ -453,23 +525,8 @@ impl SessionService {
                 destination,
                 target,
             } => {
-                let ranges = match self.export_ranges(target).await {
-                    Ok(ranges) => ranges,
-                    Err(error) => {
-                        self.send_operation_failed(operation_id).await;
-                        return Err(error);
-                    }
-                };
-
-                if ranges.is_empty() {
-                    self.send_operation_skipped(operation_id).await;
-                    return Ok(ControlFlow::Continue(()));
-                }
-
-                if let Err(error) = self.session.export_raw(operation_id, destination, ranges) {
-                    self.send_operation_failed(operation_id).await;
-                    return Err(error.into());
-                }
+                self.handle_raw_export(operation_id, destination, target)
+                    .await?;
             }
             SessionCommand::ExportText {
                 operation_id,
@@ -477,37 +534,15 @@ impl SessionService {
                 target,
                 options,
             } => {
-                let ranges = match self.export_ranges(target).await {
-                    Ok(ranges) => ranges,
-                    Err(error) => {
-                        self.send_operation_failed(operation_id).await;
-                        return Err(error);
-                    }
-                };
-
-                if ranges.is_empty() {
-                    self.send_operation_skipped(operation_id).await;
-                    return Ok(ControlFlow::Continue(()));
-                }
-
-                let (columns, splitter, delimiter) = match *options {
-                    TextExportOptions::FullRows => (Vec::new(), None, None),
-                    TextExportOptions::Table { columns, delimiter } => {
-                        (columns, Some(COLUMN_SEPARATOR.to_owned()), Some(delimiter))
-                    }
-                };
-
-                if let Err(error) = self.session.export(
-                    operation_id,
-                    destination,
-                    ranges,
-                    columns,
-                    splitter,
-                    delimiter,
-                ) {
-                    self.send_operation_failed(operation_id).await;
-                    return Err(error.into());
-                }
+                self.handle_text_export(operation_id, destination, target, *options)
+                    .await?;
+            }
+            SessionCommand::OpenSearchResultsAsNewTab {
+                operation_id,
+                restore_state,
+            } => {
+                self.open_search_results_tab(operation_id, restore_state)
+                    .await?;
             }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;
@@ -525,34 +560,6 @@ impl SessionService {
         }
 
         Ok(ControlFlow::Continue(()))
-    }
-
-    async fn export_ranges(
-        &self,
-        target: ExportTarget,
-    ) -> Result<Vec<RangeInclusive<u64>>, SessionError> {
-        match target {
-            ExportTarget::All => {
-                let len = self.session.get_stream_len().await?;
-                if len == 0 {
-                    Ok(Vec::new())
-                } else {
-                    Ok(vec![0..=(len as u64 - 1)])
-                }
-            }
-            ExportTarget::Indexed => {
-                let ranges = self
-                    .session
-                    .get_indexed_ranges()
-                    .await?
-                    .0
-                    .into_iter()
-                    .map(|range| range.start..=range.end)
-                    .collect_vec();
-                Ok(ranges)
-            }
-            ExportTarget::Rows(rows) => Ok(rows_to_ranges(rows)),
-        }
     }
 
     async fn send_operation_failed(&self, operation_id: Uuid) {
@@ -697,6 +704,16 @@ impl SessionService {
                     .await;
             }
             CallbackEvent::OperationError { uuid, error } => {
+                if self
+                    .tracker
+                    .search_results_tab
+                    .as_ref()
+                    .is_some_and(|operation| operation.operation_id == uuid)
+                    && let Some(operation) = self.tracker.search_results_tab.take()
+                {
+                    cleanup_temp_source(&operation.destination);
+                }
+
                 // Stop running operation on errors besides sending the notification.
                 self.senders
                     .send_session_msg(SessionMessage::OperationUpdated {
@@ -729,6 +746,8 @@ impl SessionService {
                         phase: OperationPhase::Success,
                     })
                     .await;
+
+                self.finish_results_tab(done.uuid).await?;
             }
             CallbackEvent::FileRead => {
                 self.senders
@@ -750,6 +769,75 @@ impl SessionService {
     }
 }
 
+fn cleanup_temp_source(path: &Path) {
+    match fs::remove_file(path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => log::warn!(
+            "Failed to remove temp search-results source {}: {error}",
+            path.display()
+        ),
+    }
+}
+
+impl Drop for SessionService {
+    fn drop(&mut self) {
+        for path in self.owned_temp_sources.drain(..) {
+            cleanup_temp_source(&path);
+        }
+
+        if let Some(operation) = self.tracker.search_results_tab.take() {
+            cleanup_temp_source(&operation.destination);
+        }
+    }
+}
+
+impl SessionStartup {
+    /// Creates startup inputs with no restore state or owned temp sources.
+    fn new(
+        shared_senders: SharedSenders,
+        session: Session,
+        callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
+        options: ObserveOptions,
+        additional_sources: Vec<ObserveOrigin>,
+    ) -> Self {
+        Self {
+            shared_senders,
+            session,
+            callback_rx,
+            options,
+            additional_sources,
+            restore_state: None,
+            owned_temp_sources: Vec::new(),
+            recent_session_policy: RecentSessionPolicy::Register,
+        }
+    }
+
+    /// Adds optional restore state to apply after UI creation.
+    fn with_restore_state(mut self, restore_state: Option<RecentSessionStateSnapshot>) -> Self {
+        self.restore_state = restore_state;
+        self
+    }
+
+    /// Transfers ownership of one generated temp source to the service.
+    fn with_temp_source(mut self, path: PathBuf) -> Self {
+        self.owned_temp_sources.push(path);
+        self
+    }
+
+    /// Sets whether the session participates in recent-session storage.
+    ///
+    /// Recent-session registration is enabled by default.
+    fn with_recent_session(mut self, enabled: bool) -> Self {
+        self.recent_session_policy = if enabled {
+            RecentSessionPolicy::Register
+        } else {
+            RecentSessionPolicy::Skip
+        };
+        self
+    }
+}
+
 fn decode_image(path: &Path) -> Result<egui::ColorImage, ImageError> {
     let image = image::ImageReader::open(path)?.decode()?;
     let size = [image.width() as _, image.height() as _];
@@ -760,69 +848,4 @@ fn decode_image(path: &Path) -> Result<egui::ColorImage, ImageError> {
         size,
         pixels.as_slice(),
     ))
-}
-
-/// Converts selected stream row positions into compact inclusive ranges for raw export.
-///
-/// The UI snapshots selection from a hash set and does not own export range semantics, so
-/// the service normalizes row order, removes duplicates, and compacts adjacent rows here.
-fn rows_to_ranges(mut rows: Vec<u64>) -> Vec<RangeInclusive<u64>> {
-    rows.sort_unstable();
-    rows.dedup();
-
-    let mut ranges = Vec::new();
-    let mut rows = rows.into_iter();
-    let Some(mut start) = rows.next() else {
-        return ranges;
-    };
-    let mut end = start;
-
-    for row in rows {
-        if end.checked_add(1) == Some(row) {
-            end = row;
-        } else {
-            ranges.push(start..=end);
-            start = row;
-            end = row;
-        }
-    }
-
-    ranges.push(start..=end);
-    ranges
-}
-
-#[cfg(test)]
-mod tests {
-    use std::ops::RangeInclusive;
-
-    use super::rows_to_ranges;
-
-    fn ranges(rows: Vec<u64>) -> Vec<RangeInclusive<u64>> {
-        rows_to_ranges(rows)
-    }
-
-    #[test]
-    fn empty_rows_make_no_ranges() {
-        assert!(ranges(Vec::new()).is_empty());
-    }
-
-    #[test]
-    fn single_row_makes_single_range() {
-        assert_eq!(ranges(vec![7]), vec![7..=7]);
-    }
-
-    #[test]
-    fn unsorted_rows_make_ordered_ranges() {
-        assert_eq!(ranges(vec![5, 3, 4, 10]), vec![3..=5, 10..=10]);
-    }
-
-    #[test]
-    fn duplicate_rows_are_deduped() {
-        assert_eq!(ranges(vec![2, 2, 3, 5, 5]), vec![2..=3, 5..=5]);
-    }
-
-    #[test]
-    fn gaps_make_multiple_ranges() {
-        assert_eq!(ranges(vec![1, 2, 4, 7, 8]), vec![1..=2, 4..=4, 7..=8]);
-    }
 }

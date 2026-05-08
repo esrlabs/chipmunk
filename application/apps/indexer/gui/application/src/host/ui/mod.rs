@@ -192,11 +192,13 @@ impl Host {
                     );
                 }
 
-                let filters = &registry.filters;
-                let state = session.capture_opened_recent_state(filters);
-                let snapshot = recent_registration.into_snapshot(state);
+                if let Some(recent_registration) = recent_registration {
+                    let filters = &registry.filters;
+                    let state = session.capture_opened_recent_state(filters);
+                    let snapshot = recent_registration.into_snapshot(state);
 
-                self.storage.recent_sessions.register_session(snapshot);
+                    self.storage.recent_sessions.register_session(snapshot);
+                }
             }
             HostMessage::MultiFilesSetup(state) => self
                 .state
