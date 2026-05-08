@@ -95,6 +95,7 @@ impl HostService {
                     storage,
                 };
 
+                Self::spawn_startup_cleanup();
                 release_info::spawn_update_check(host.communication.senders.clone());
                 host.run().await;
             });
@@ -103,6 +104,16 @@ impl HostService {
         handle_rx
             .recv()
             .expect("Receiving startup state should never fail")
+    }
+
+    fn spawn_startup_cleanup() {
+        tokio::task::spawn_blocking(|| {
+            if let Err(errs) = session_core::unbound::cleanup_temp_files() {
+                for err in errs {
+                    log::error!("Error while cleaning up temporary files. Error: {err:?}");
+                }
+            }
+        });
     }
 
     async fn run(mut self) {

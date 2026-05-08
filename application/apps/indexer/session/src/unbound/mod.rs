@@ -16,7 +16,7 @@ use crate::{
         signal::Signal,
     },
 };
-use cleanup::cleanup_temp_files;
+pub use cleanup::cleanup_temp_files;
 use log::{debug, error, warn};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
