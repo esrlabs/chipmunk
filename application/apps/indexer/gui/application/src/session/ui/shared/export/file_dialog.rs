@@ -110,7 +110,7 @@ impl ExportState {
         };
 
         let operation_id = Uuid::new_v4();
-        self.pending_op.insert(operation_id, destination.clone());
+        self.track_file_export(operation_id, destination.clone());
 
         if !actions.try_send_command(
             cmd_tx,
@@ -120,7 +120,7 @@ impl ExportState {
                 target: pending.target,
             },
         ) {
-            self.pending_op.remove(&operation_id);
+            self.clear_operation(operation_id);
         }
     }
 
@@ -145,7 +145,7 @@ impl ExportState {
         };
 
         let operation_id = Uuid::new_v4();
-        self.pending_op.insert(operation_id, destination.clone());
+        self.track_file_export(operation_id, destination.clone());
 
         if !actions.try_send_command(
             cmd_tx,
@@ -156,7 +156,7 @@ impl ExportState {
                 options: Box::new(pending.options),
             },
         ) {
-            self.pending_op.remove(&operation_id);
+            self.clear_operation(operation_id);
         }
     }
 }

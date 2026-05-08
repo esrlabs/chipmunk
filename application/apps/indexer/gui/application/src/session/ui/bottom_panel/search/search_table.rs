@@ -321,19 +321,23 @@ impl SearchTable {
         let mode = SearchResultsTabMode::resolve_from(shared.get_info().parser, origins);
         if ui
             .add_enabled(
-                indexed_count > 0,
+                can_start_export && indexed_count > 0,
                 egui::Button::new(mode.context_menu_label()),
             )
             .clicked()
         {
+            let operation_id = uuid::Uuid::new_v4();
             let restore_state = capture_state_snapshot(shared, registry, false);
-            actions.try_send_command(
+            shared.exports.track_search_results_tab(operation_id);
+            if !actions.try_send_command(
                 &self.cmd_tx,
                 SessionCommand::OpenSearchResultsAsNewTab {
-                    operation_id: uuid::Uuid::new_v4(),
+                    operation_id,
                     restore_state,
                 },
-            );
+            ) {
+                shared.exports.clear_operation(operation_id);
+            }
             ui.close();
         }
     }

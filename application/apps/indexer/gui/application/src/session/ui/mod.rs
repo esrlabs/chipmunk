@@ -135,13 +135,7 @@ impl Session {
 
         shared.exports.handle_dialogs(actions, cmd_tx);
 
-        if shared.observe.show_startup_spinner(shared.logs.logs_count) {
-            show_busy_indicator(
-                ui,
-                Some("Initializing Session"),
-                Some(|| actions.add_host_action(HostAction::CloseSession(shared.get_id()))),
-            );
-        }
+        Self::render_busy_indicator(shared, actions, ui);
 
         Panel::bottom("status_bar")
             .resizable(false)
@@ -187,6 +181,22 @@ impl Session {
             .render_content(&mut shared.attachments, ui);
 
         self.handle_signals(registry, panels_visibility);
+    }
+
+    fn render_busy_indicator(shared: &SessionShared, actions: &mut UiActions, ui: &Ui) {
+        if shared.observe.show_startup_spinner(shared.logs.logs_count) {
+            show_busy_indicator(
+                ui,
+                Some("Initializing Session"),
+                Some(|| actions.add_host_action(HostAction::CloseSession(shared.get_id()))),
+            );
+
+            return;
+        }
+
+        if let Some(label) = shared.exports.busy_label() {
+            show_busy_indicator(ui, Some(label), Option::<fn()>::None);
+        }
     }
 
     /// Processes frame-local signals queued by child session components.
