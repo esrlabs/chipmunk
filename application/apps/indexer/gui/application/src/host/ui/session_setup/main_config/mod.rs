@@ -97,10 +97,11 @@ fn render_files(
     ui: &mut Ui,
 ) -> RenderOutcome {
     match parser {
-        ParserConfig::Dlt(dlt) => dlt::render_statistics(dlt, ui),
-        ParserConfig::SomeIP(..) | ParserConfig::Text | ParserConfig::Plugins => {
-            RenderOutcome::None
-        }
+        ParserConfig::Dlt(dlt) if dlt.with_storage_header => dlt::render_statistics(dlt, ui),
+        ParserConfig::Dlt(..)
+        | ParserConfig::SomeIP(..)
+        | ParserConfig::Text
+        | ParserConfig::Plugins => RenderOutcome::None,
     }
 }
 
