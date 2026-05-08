@@ -36,20 +36,14 @@ pub struct SearchResultsTabOperation {
 }
 
 impl SessionService {
-    /// Starts a raw export for the requested target and reports skipped/failed phases.
+    /// Starts a raw export for the requested target and reports skipped phases.
     pub async fn handle_raw_export(
         &self,
         operation_id: Uuid,
         destination: PathBuf,
         target: ExportTarget,
     ) -> Result<(), SessionError> {
-        let ranges = match self.export_ranges(target).await {
-            Ok(ranges) => ranges,
-            Err(error) => {
-                self.send_operation_failed(operation_id).await;
-                return Err(error);
-            }
-        };
+        let ranges = self.export_ranges(target).await?;
 
         if ranges.is_empty() {
             self.send_operation_skipped(operation_id).await;
@@ -57,14 +51,13 @@ impl SessionService {
         }
 
         if let Err(error) = self.session.export_raw(operation_id, destination, ranges) {
-            self.send_operation_failed(operation_id).await;
             return Err(error.into());
         }
 
         Ok(())
     }
 
-    /// Starts a rendered text export for the requested target and reports skipped/failed phases.
+    /// Starts a rendered text export for the requested target and reports skipped phases.
     pub async fn handle_text_export(
         &self,
         operation_id: Uuid,
@@ -72,13 +65,7 @@ impl SessionService {
         target: ExportTarget,
         options: TextExportOptions,
     ) -> Result<(), SessionError> {
-        let ranges = match self.export_ranges(target).await {
-            Ok(ranges) => ranges,
-            Err(error) => {
-                self.send_operation_failed(operation_id).await;
-                return Err(error);
-            }
-        };
+        let ranges = self.export_ranges(target).await?;
 
         if ranges.is_empty() {
             self.send_operation_skipped(operation_id).await;
@@ -100,7 +87,6 @@ impl SessionService {
             splitter,
             delimiter,
         ) {
-            self.send_operation_failed(operation_id).await;
             return Err(error.into());
         }
 
@@ -122,13 +108,7 @@ impl SessionService {
 
         // The new tab should contain exactly the rows currently available in the indexed
         // search-results map. Empty searches are reported as skipped instead of creating a file.
-        let ranges = match self.export_ranges(ExportTarget::Indexed).await {
-            Ok(ranges) => ranges,
-            Err(error) => {
-                self.send_operation_failed(operation_id).await;
-                return Err(error);
-            }
-        };
+        let ranges = self.export_ranges(ExportTarget::Indexed).await?;
 
         if ranges.is_empty() {
             self.send_operation_skipped(operation_id).await;
@@ -201,7 +181,6 @@ impl SessionService {
             if let Some(operation) = self.tracker.search_results_tab.take() {
                 cleanup_temp_source(&operation.destination);
             }
-            self.send_operation_failed(operation_id).await;
             return Err(error.into());
         }
 

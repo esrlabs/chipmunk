@@ -525,8 +525,13 @@ impl SessionService {
                 destination,
                 target,
             } => {
-                self.handle_raw_export(operation_id, destination, target)
-                    .await?;
+                if let Err(error) = self
+                    .handle_raw_export(operation_id, destination, target)
+                    .await
+                {
+                    self.send_operation_failed(operation_id).await;
+                    return Err(error);
+                }
             }
             SessionCommand::ExportText {
                 operation_id,
@@ -534,15 +539,25 @@ impl SessionService {
                 target,
                 options,
             } => {
-                self.handle_text_export(operation_id, destination, target, *options)
-                    .await?;
+                if let Err(error) = self
+                    .handle_text_export(operation_id, destination, target, *options)
+                    .await
+                {
+                    self.send_operation_failed(operation_id).await;
+                    return Err(error);
+                }
             }
             SessionCommand::OpenSearchResultsAsNewTab {
                 operation_id,
                 restore_state,
             } => {
-                self.open_search_results_tab(operation_id, restore_state)
-                    .await?;
+                if let Err(error) = self
+                    .open_search_results_tab(operation_id, restore_state)
+                    .await
+                {
+                    self.send_operation_failed(operation_id).await;
+                    return Err(error);
+                }
             }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;
@@ -740,14 +755,22 @@ impl SessionService {
                     .await;
             }
             CallbackEvent::OperationDone(done) => {
+                if let Err(error) = self.finish_results_tab(done.uuid).await {
+                    self.senders
+                        .send_session_msg(SessionMessage::OperationUpdated {
+                            operation_id: done.uuid,
+                            phase: OperationPhase::Failed,
+                        })
+                        .await;
+                    return Err(error);
+                }
+
                 self.senders
                     .send_session_msg(SessionMessage::OperationUpdated {
                         operation_id: done.uuid,
                         phase: OperationPhase::Success,
                     })
                     .await;
-
-                self.finish_results_tab(done.uuid).await?;
             }
             CallbackEvent::FileRead => {
                 self.senders
