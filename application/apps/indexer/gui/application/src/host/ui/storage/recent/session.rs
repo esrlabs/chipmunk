@@ -231,6 +231,26 @@ impl RecentSessionSnapshot {
         Some((options, additional_sources))
     }
 
+    /// Validates whether the stored snapshot can be reopened.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.sources.is_empty() {
+            return Err(String::from("Recent session has no sources."));
+        }
+
+        for source in &self.sources {
+            match source {
+                RecentSessionSource::File { path, .. } => {
+                    if !path.exists() {
+                        return Err(format!("File is no longer available:\n{}", path.display()));
+                    }
+                }
+                RecentSessionSource::Stream { .. } => {}
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns whether the snapshot can be reopened through the normal open/setup flow.
     pub fn supports_clean_open(&self) -> bool {
         supports_clean_open(&self.sources)
@@ -451,7 +471,7 @@ fn supports_bookmarks(sources: &[RecentSessionSource]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{fs, path::PathBuf};
 
     use stypes::{
         DltParserSettings, ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig,
@@ -688,6 +708,53 @@ mod tests {
         assert_eq!(items.len(), 2);
         assert_ne!(items[0].0, "first-id");
         assert_ne!(items[1].0, "second-id");
+    }
+
+    #[test]
+    fn validate_accepts_existing_file() {
+        let path = std::env::temp_dir().join(format!(
+            "chipmunk-recent-validation-{}.log",
+            uuid::Uuid::new_v4()
+        ));
+        fs::write(&path, "test").expect("test file should be written");
+        let snapshot = snapshot_from_observe_options(ObserveOptions::file(
+            path.clone(),
+            stypes::FileFormat::Text,
+            ParserType::Text(()),
+        ));
+
+        assert!(snapshot.validate().is_ok());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn validate_rejects_missing_file() {
+        let path = std::env::temp_dir().join(format!(
+            "chipmunk-missing-recent-validation-{}.log",
+            uuid::Uuid::new_v4()
+        ));
+        let snapshot = snapshot_from_observe_options(ObserveOptions::file(
+            path,
+            stypes::FileFormat::Text,
+            ParserType::Text(()),
+        ));
+
+        assert!(snapshot.validate().is_err());
+    }
+
+    #[test]
+    fn validate_accepts_stream() {
+        let snapshot = stream_snapshot("127.0.0.1:5556");
+
+        assert!(snapshot.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_empty_sources() {
+        let snapshot =
+            RecentSessionSnapshot::new(1, Vec::new(), ParserType::Text(()), Default::default());
+
+        assert!(snapshot.validate().is_err());
     }
 
     #[test]

@@ -3,12 +3,17 @@
 //! This module renders the recent-sessions panel and forwards reopen actions to
 //! the host service.
 
-use egui::{Ui, Widget, vec2};
+use std::sync::Arc;
+
+use egui::{Align, Layout, Ui, Widget, vec2};
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::ui::{substring_matcher::SubstringMatcher, visibility_tracker::VisibilityTracker},
+    common::{
+        modal::{ModalSize, show_modal},
+        ui::{buttons, substring_matcher::SubstringMatcher, visibility_tracker::VisibilityTracker},
+    },
     host::{
         command::{HostCommand, OpenRecentSessionParam},
         common::ui_utls::sized_singleline_text_edit,
@@ -31,6 +36,14 @@ pub struct RecentSessionsUi {
     visibility_tracker: VisibilityTracker,
     /// Arbitrary value to avoid persisting scroll state after app restart.
     scroll_salt: Uuid,
+    pending_invalid_session: Option<InvalidRecentPrompt>,
+}
+
+/// Pending validation failure shown before a recent session is removed.
+#[derive(Debug)]
+struct InvalidRecentPrompt {
+    source_key: Arc<str>,
+    message: String,
 }
 
 impl RecentSessionsUi {
@@ -42,6 +55,7 @@ impl RecentSessionsUi {
             cmd_tx,
             visibility_tracker: VisibilityTracker::default(),
             scroll_salt: Uuid::new_v4(),
+            pending_invalid_session: None,
         }
     }
 
@@ -112,14 +126,16 @@ impl RecentSessionsUi {
                     recent_sessions.remove_session(&source_key);
                 }
             });
+
+        self.render_invalid_session_modal(recent_sessions, ui);
     }
 
     fn apply_row_action(
-        &self,
+        &mut self,
         actions: &mut UiActions,
         session: &RecentSessionSnapshot,
         action: RecentSessionRowAction,
-        remove_session: &mut Option<std::sync::Arc<str>>,
+        remove_session: &mut Option<Arc<str>>,
     ) {
         match action {
             RecentSessionRowAction::RestoreSession => {
@@ -142,17 +158,76 @@ impl RecentSessionsUi {
     }
 
     fn open_recent_session(
-        &self,
+        &mut self,
         actions: &mut UiActions,
         snapshot: &RecentSessionSnapshot,
         mode: RecentSessionReopenMode,
     ) {
+        if let Err(message) = snapshot.validate() {
+            self.pending_invalid_session = Some(InvalidRecentPrompt {
+                source_key: snapshot.source_key.clone(),
+                message,
+            });
+            return;
+        }
+
         let cmd = HostCommand::OpenRecentSession(Box::new(OpenRecentSessionParam {
             snapshot: snapshot.clone(),
             mode,
             session_setup_id: None,
         }));
         actions.try_send_command(&self.cmd_tx, cmd);
+    }
+
+    fn render_invalid_session_modal(
+        &mut self,
+        recent_sessions: &mut RecentSessionsStorage,
+        ui: &mut Ui,
+    ) {
+        let Some(prompt) = &self.pending_invalid_session else {
+            return;
+        };
+
+        let source_key = prompt.source_key.clone();
+        let message = prompt.message.clone();
+        let mut remove_session = false;
+
+        let modal = show_modal(
+            ui,
+            "invalid_recent_session",
+            ModalSize::MaxWidth(530.0),
+            |ui, _size| {
+                ui.vertical_centered(|ui| {
+                    ui.heading("Unable to open recent session");
+                });
+
+                ui.add_space(8.0);
+                ui.label(message.as_str());
+                ui.add_space(12.0);
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.add(buttons::command("Cancel", None)).clicked() {
+                        ui.close();
+                    }
+
+                    if ui
+                        .add(buttons::command("Remove recent session", Some(150.0)))
+                        .clicked()
+                    {
+                        remove_session = true;
+                        ui.close();
+                    }
+                });
+            },
+        );
+
+        if remove_session {
+            recent_sessions.remove_session(&source_key);
+        }
+
+        if remove_session || modal.should_close() {
+            self.pending_invalid_session = None;
+        }
     }
 }
 
