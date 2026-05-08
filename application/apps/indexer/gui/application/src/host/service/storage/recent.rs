@@ -170,11 +170,11 @@ fn normalize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool 
 fn sanitize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
     let initial_len = sessions.len();
 
-    sessions.retain(|session| match validate_source_snapshot(session) {
+    sessions.retain(|session| match session.validate() {
         Ok(()) => true,
-        Err(err) => {
+        Err(message) => {
             warn!(
-                "Removed invalid recent session \"{}\" ({}): {err}",
+                "Removed invalid recent session \"{}\" ({}): {message}",
                 session.title(),
                 session.source_key
             );
@@ -205,31 +205,6 @@ fn trim_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
     }
 
     changed
-}
-
-fn validate_source_snapshot(session: &RecentSessionSnapshot) -> std::io::Result<()> {
-    if session.sources().is_empty() {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Recent session has no sources",
-        ));
-    }
-
-    for source in session.sources() {
-        match source {
-            RecentSessionSource::File { path, .. } => {
-                if !path.exists() {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::NotFound,
-                        format!("File not found: {}", path.display()),
-                    ));
-                }
-            }
-            RecentSessionSource::Stream { .. } => {}
-        }
-    }
-
-    Ok(())
 }
 
 /// Persists the current recent-sessions snapshot to its storage file.
@@ -345,39 +320,6 @@ mod tests {
         let mut session = stream_snapshot(bind_addr.into());
         session.last_opened = last_opened;
         session
-    }
-
-    #[test]
-    fn validate_accepts_existing_file() {
-        let dir = test_home_dir();
-        let path = dir.join("valid.log");
-        fs::write(&path, "test").expect("test file should be written");
-        let session = file_snapshot(path);
-
-        let result = validate_source_snapshot(&session);
-
-        assert!(result.is_ok());
-        let _ = fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn validate_rejects_missing_file() {
-        let dir = test_home_dir();
-        let session = file_snapshot(dir.join("missing.log"));
-
-        let result = validate_source_snapshot(&session);
-
-        assert!(matches!(result, Err(err) if err.kind() == std::io::ErrorKind::NotFound));
-        let _ = fs::remove_dir_all(dir);
-    }
-
-    #[test]
-    fn validate_accepts_stream_snapshot() {
-        let session = stream_snapshot("127.0.0.1:5555");
-
-        let result = validate_source_snapshot(&session);
-
-        assert!(result.is_ok());
     }
 
     #[test]

@@ -6,6 +6,7 @@ use tokio::sync::mpsc::Sender;
 use crate::host::{
     command::{HostCommand, OpenRecentSessionParam},
     common::{parsers::ParserNames, sources::StreamNames},
+    notification::AppNotification,
     ui::{
         UiActions,
         recent_session::{
@@ -91,6 +92,11 @@ fn open_recent_session(
     mode: RecentSessionReopenMode,
     session_setup_id: Option<uuid::Uuid>,
 ) {
+    if let Err(message) = snapshot.validate() {
+        actions.add_notification(AppNotification::Error(message));
+        return;
+    }
+
     let cmd = HostCommand::OpenRecentSession(Box::new(OpenRecentSessionParam {
         snapshot,
         mode,
