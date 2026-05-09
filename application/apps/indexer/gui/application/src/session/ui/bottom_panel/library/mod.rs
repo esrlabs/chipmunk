@@ -409,7 +409,7 @@ impl LibraryUI {
         target: SearchSyncTarget,
     ) {
         shared
-            .sync_search_pipelines(registry, target)
+            .sync_search(registry, target)
             .into_iter()
             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
     }

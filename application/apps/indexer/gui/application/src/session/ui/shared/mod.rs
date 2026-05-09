@@ -68,13 +68,20 @@ pub struct SessionShared {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Selects which backend search pipeline(s) should be synchronized for a UI action.
-pub(crate) enum SearchSyncTarget {
+pub enum SearchSyncTarget {
     /// Synchronize only the logs search pipeline (`ApplySearchFilter` / `DropSearch`).
     Filter,
     /// Synchronize only the chart search-values pipeline.
     SearchValue,
     /// Synchronize both pipelines in one pass.
     Both,
+}
+
+#[derive(Debug, Default)]
+/// Commands and local UI effects produced by synchronizing backend search pipelines.
+pub struct SearchSyncOutcome {
+    pub commands: Vec<SessionCommand>,
+    pub log_search_dropped: bool,
 }
 
 impl SessionShared {
@@ -107,11 +114,6 @@ impl SessionShared {
     #[inline]
     pub fn get_info(&self) -> &SessionInfo {
         &self.session_info
-    }
-
-    pub fn drop_search(&mut self) {
-        self.search.drop_search();
-        self.signals.push(SessionSignal::SearchDropped);
     }
 
     pub fn add_operation(&mut self, observe_op: ObserveOperation) {
@@ -162,24 +164,50 @@ impl SessionShared {
         exports.handle_phase(operation_id, phase, actions)
     }
 
-    /// Synchronizes UI state with backend search pipelines and returns the commands to dispatch.
+    /// Synchronizes search for render callers and queues frame-local signals.
+    ///
+    /// Returns backend commands to dispatch. Use `sync_search_outcome` outside render when the
+    /// caller must handle local effects directly instead of using `SessionSignal`.
     ///
     /// `target` selects which pipeline to sync:
     /// - `Filter`: logs search results pipeline (table/search results).
     /// - `SearchValue`: numeric search-values pipeline (charts only).
     /// - `Both`: use when one UI action affects both sets at once.
-    pub fn sync_search_pipelines(
+    pub fn sync_search(
         &mut self,
         registry: &FilterRegistry,
         target: SearchSyncTarget,
     ) -> Vec<SessionCommand> {
+        let outcome = self.sync_search_outcome(registry, target);
+
+        let SearchSyncOutcome {
+            commands,
+            log_search_dropped,
+        } = outcome;
+
+        if log_search_dropped {
+            self.signals.push(SessionSignal::SearchDropped);
+        }
+
+        commands
+    }
+
+    /// Synchronizes search and returns commands plus local effects.
+    ///
+    /// This path does not emit `SessionSignal`, so non-render callers can preserve the
+    /// frame-local signal invariant by applying the returned effects themselves.
+    pub fn sync_search_outcome(
+        &mut self,
+        registry: &FilterRegistry,
+        target: SearchSyncTarget,
+    ) -> SearchSyncOutcome {
         match target {
             SearchSyncTarget::Filter => self.sync_filter_search_pipeline(registry),
             SearchSyncTarget::SearchValue => self.sync_search_values_pipeline(registry),
             SearchSyncTarget::Both => {
-                let mut commands = self.sync_filter_search_pipeline(registry);
-                commands.extend(self.sync_search_values_pipeline(registry));
-                commands
+                let mut outcome = self.sync_filter_search_pipeline(registry);
+                outcome.extend(self.sync_search_values_pipeline(registry));
+                outcome
             }
         }
     }
@@ -188,13 +216,16 @@ impl SessionShared {
     ///
     /// When filters become empty we only drop the active search, otherwise we issue a
     /// drop-then-apply sequence so a running search does not keep the holder in use.
-    fn sync_filter_search_pipeline(&mut self, registry: &FilterRegistry) -> Vec<SessionCommand> {
+    fn sync_filter_search_pipeline(&mut self, registry: &FilterRegistry) -> SearchSyncOutcome {
         let filters = self.search.get_active_filters(&self.filters, registry);
         if filters.is_empty() {
             let operation_id = self.search.processing_search_operation();
             self.search.clear_compiled_filters();
-            self.drop_search();
-            vec![SessionCommand::DropSearch { operation_id }]
+            self.search.drop_search();
+            SearchSyncOutcome {
+                commands: vec![SessionCommand::DropSearch { operation_id }],
+                log_search_dropped: true,
+            }
         } else {
             let mut commands = Vec::with_capacity(2);
             if let Some(operation_id) = self.search.processing_search_operation() {
@@ -202,7 +233,7 @@ impl SessionShared {
                     operation_id: Some(operation_id),
                 });
             }
-            self.drop_search();
+            self.search.drop_search();
             self.search.refresh_compiled_filters(&filters);
             let operation_id = Uuid::new_v4();
             self.search.set_search_operation(operation_id);
@@ -210,7 +241,10 @@ impl SessionShared {
                 operation_id,
                 filters,
             });
-            commands
+            SearchSyncOutcome {
+                commands,
+                log_search_dropped: true,
+            }
         }
     }
 
@@ -218,7 +252,7 @@ impl SessionShared {
     ///
     /// Search values are independent from logs search results, so they are synchronized through
     /// their own drop/apply command pair and operation tracking.
-    fn sync_search_values_pipeline(&mut self, registry: &FilterRegistry) -> Vec<SessionCommand> {
+    fn sync_search_values_pipeline(&mut self, registry: &FilterRegistry) -> SearchSyncOutcome {
         let filters: Vec<_> = self
             .filters
             .enabled_search_value_ids()
@@ -229,7 +263,10 @@ impl SessionShared {
         if filters.is_empty() {
             let operation_id = self.search_values.processing_operation();
             self.search_values.drop_search_values();
-            vec![SessionCommand::DropSearchValues { operation_id }]
+            SearchSyncOutcome {
+                commands: vec![SessionCommand::DropSearchValues { operation_id }],
+                log_search_dropped: false,
+            }
         } else {
             let mut commands = Vec::with_capacity(2);
             if let Some(operation_id) = self.search_values.processing_operation() {
@@ -245,7 +282,10 @@ impl SessionShared {
                 operation_id,
                 filters,
             });
-            commands
+            SearchSyncOutcome {
+                commands,
+                log_search_dropped: false,
+            }
         }
     }
 
@@ -400,6 +440,13 @@ impl SessionShared {
     }
 }
 
+impl SearchSyncOutcome {
+    fn extend(&mut self, other: Self) {
+        self.commands.extend(other.commands);
+        self.log_search_dropped |= other.log_search_dropped;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
@@ -479,12 +526,14 @@ mod tests {
     #[test]
     fn drop_search_updates_counts() {
         let mut shared = new_shared();
+        let registry = FilterRegistry::default();
         shared.search.set_search_operation(Uuid::new_v4());
         shared.search.set_search_result_count(4);
         shared.search.set_indexed_result_count(9);
 
-        shared.drop_search();
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
+        assert!(matches!(commands[0], SessionCommand::DropSearch { .. }));
         assert_eq!(shared.search.search_result_count(), 0);
         assert_eq!(shared.search.indexed_result_count(), 5);
         assert!(shared.search.current_matches_map().is_none());
@@ -517,7 +566,7 @@ mod tests {
         let mut shared = new_shared();
         let mut registry = FilterRegistry::default();
         add_filter(&mut shared, &mut registry, "status=ok");
-        let _ = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let _ = shared.sync_search(&registry, SearchSyncTarget::Filter);
         assert_eq!(shared.search.compiled_filters().len(), 1);
         shared.filters.clear_temp_search();
         let filter_id = shared.filters.filter_entries[0].id;
@@ -526,7 +575,7 @@ mod tests {
         // An empty filter set should only tear down the active search operation.
         shared.search.set_search_operation(previous_operation_id);
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
         assert_eq!(commands.len(), 1);
         match &commands[0] {
@@ -549,7 +598,7 @@ mod tests {
         // Non-empty filter sync keeps the drop-before-apply contract.
         shared.search.set_search_operation(previous_operation_id);
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
         assert_eq!(commands.len(), 2);
         match &commands[0] {
@@ -587,7 +636,7 @@ mod tests {
             .filters
             .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
         assert_eq!(commands.len(), 1);
         match &commands[0] {
@@ -620,7 +669,7 @@ mod tests {
             .filters
             .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
         let payload_filters = match &commands[0] {
             SessionCommand::ApplySearchFilter { filters, .. } => filters,
@@ -651,7 +700,7 @@ mod tests {
         let filter_id =
             add_filter_def(&mut shared, &mut registry, SearchFilter::plain("status=ok"));
 
-        let initial_commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let initial_commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
         assert!(matches!(
             initial_commands[0],
             SessionCommand::ApplySearchFilter { .. }
@@ -667,7 +716,7 @@ mod tests {
             crate::host::ui::registry::filters::RegistryEditOutcome::EditedInPlace
         ));
 
-        let updated_commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let updated_commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
         let payload_filters = match &updated_commands[1] {
             SessionCommand::ApplySearchFilter { filters, .. } => filters,
             other => panic!("expected ApplySearchFilter, got {other:?}"),
@@ -688,7 +737,7 @@ mod tests {
         // Search values use the same drop-only behavior when nothing stays enabled.
         shared.search_values.set_operation(previous_operation_id);
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::SearchValue);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::SearchValue);
 
         assert_eq!(commands.len(), 1);
         match &commands[0] {
@@ -709,7 +758,7 @@ mod tests {
         // Search-value sync also reissues its backend operation after dropping the old one.
         shared.search_values.set_operation(previous_operation_id);
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::SearchValue);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::SearchValue);
 
         assert_eq!(commands.len(), 2);
         match &commands[0] {
@@ -742,12 +791,12 @@ mod tests {
         let mut registry = FilterRegistry::default();
         add_filter(&mut shared, &mut registry, "status=ok");
         let filter_id = shared.filters.filter_entries[0].id;
-        let _ = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let _ = shared.sync_search(&registry, SearchSyncTarget::Filter);
         assert_eq!(shared.search.compiled_filters().len(), 1);
         // Disabled filters stay in session state but should not reach backend sync.
         assert!(shared.filters.set_filter_enabled(&filter_id, false));
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Filter);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
         assert_eq!(commands.len(), 1);
         assert!(matches!(commands[0], SessionCommand::DropSearch { .. }));
@@ -763,7 +812,7 @@ mod tests {
         // Disabled search values should be treated as absent by the chart pipeline.
         assert!(shared.filters.set_search_value_enabled(&value_id, false));
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::SearchValue);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::SearchValue);
 
         assert_eq!(commands.len(), 1);
         assert!(matches!(
@@ -782,7 +831,7 @@ mod tests {
         shared.search.set_search_operation(Uuid::new_v4());
         shared.search_values.set_operation(Uuid::new_v4());
 
-        let commands = shared.sync_search_pipelines(&registry, SearchSyncTarget::Both);
+        let commands = shared.sync_search(&registry, SearchSyncTarget::Both);
 
         assert_eq!(commands.len(), 4);
         assert!(matches!(commands[0], SessionCommand::DropSearch { .. }));

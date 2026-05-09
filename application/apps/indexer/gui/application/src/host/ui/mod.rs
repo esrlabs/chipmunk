@@ -184,11 +184,7 @@ impl Host {
                 };
 
                 if let Some(restore_state) = restore_state {
-                    session.apply_recent_restore(
-                        restore_state,
-                        registry,
-                        &mut self.state.panels_visibility,
-                    );
+                    session.apply_recent_restore(restore_state, registry);
                 }
 
                 if let Some(recent_registration) = recent_registration {
@@ -486,10 +482,11 @@ impl eframe::App for Host {
 
         storage.poll_pending_save(ui_actions);
 
-        let registry = &mut self.state.registry;
-        let panels_visibility = &mut self.state.panels_visibility;
-        for session in self.state.sessions.values_mut() {
-            session.handle_messages(ui_actions, storage, registry, panels_visibility);
+        let HostState {
+            sessions, registry, ..
+        } = &mut self.state;
+        for session in sessions.values_mut() {
+            session.handle_messages(ui_actions, storage, registry);
         }
 
         self.handle_recent_sessions();

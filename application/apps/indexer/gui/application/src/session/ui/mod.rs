@@ -27,7 +27,7 @@ use crate::{
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
         types::{OperationPhase, attachment::PreviewTarget},
-        ui::shared::{SearchTableSync, SessionSignal},
+        ui::shared::{SearchSyncOutcome, SearchTableSync, SessionSignal},
     },
 };
 use bottom_panel::{BottomPanelUI, BottomTabType};
@@ -237,8 +237,7 @@ impl Session {
         &mut self,
         actions: &mut UiActions,
         storage: &mut HostStorage,
-        registry: &mut HostRegistry,
-        panels_visibility: &mut PanelsVisibility,
+        registry: &HostRegistry,
     ) {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             match msg {
@@ -350,12 +349,23 @@ impl Session {
                         .consumed()
                     {
                         if observe_started_processing {
-                            self.recent_session.on_session_file_ready(
-                                &mut self.shared,
-                                actions,
-                                &self.cmd_tx,
-                                &registry.filters,
-                            );
+                            let outcome = self
+                                .recent_session
+                                .on_session_file_ready(&mut self.shared, &registry.filters);
+                            if let Some(outcome) = outcome {
+                                let SearchSyncOutcome {
+                                    commands,
+                                    log_search_dropped,
+                                } = outcome;
+
+                                if log_search_dropped {
+                                    self.handle_search_dropped();
+                                }
+
+                                for cmd in commands {
+                                    actions.try_send_command(&self.cmd_tx, cmd);
+                                }
+                            }
                         }
                         continue;
                     }
@@ -407,22 +417,24 @@ impl Session {
             }
         }
 
-        self.handle_signals(registry, panels_visibility);
+        debug_assert!(
+            self.shared.signals.is_empty(),
+            "Session messages must not emit render-frame signals."
+        );
     }
 
     /// Applies the restored recent-session state through the normal session and registry path.
-    ///
-    /// Any UI signals emitted while rebuilding that state are handled immediately so the first
-    /// render starts from a clean signal queue.
     pub fn apply_recent_restore(
         &mut self,
         restore_state: RecentSessionStateSnapshot,
         registry: &mut HostRegistry,
-        panels_visibility: &mut PanelsVisibility,
     ) {
         self.recent_session
             .apply_restore(restore_state, &mut self.shared, &mut registry.filters);
-        self.handle_signals(registry, panels_visibility);
+        debug_assert!(
+            self.shared.signals.is_empty(),
+            "Recent-session restore must not emit render-frame signals."
+        );
     }
 
     /// Captures the canonical recent-session state after restore and establishes the update baseline.
