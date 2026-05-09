@@ -888,7 +888,7 @@ impl FiltersUi {
                         self.clear_filter_edit_for(filter_id);
                         shared.bump_recent_revision();
                         shared
-                            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                            .sync_search(registry, SearchSyncTarget::Filter)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
@@ -901,7 +901,7 @@ impl FiltersUi {
                         }
                         self.clear_filter_edit_for(filter_id);
                         shared
-                            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                            .sync_search(registry, SearchSyncTarget::Filter)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
@@ -940,7 +940,7 @@ impl FiltersUi {
                         self.clear_search_value_edit_for(value_id);
                         shared.bump_recent_revision();
                         shared
-                            .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
+                            .sync_search(registry, SearchSyncTarget::SearchValue)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
@@ -953,7 +953,7 @@ impl FiltersUi {
                         }
                         self.clear_search_value_edit_for(value_id);
                         shared
-                            .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
+                            .sync_search(registry, SearchSyncTarget::SearchValue)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
@@ -965,7 +965,7 @@ impl FiltersUi {
             FilterPanelAction::ToggleFilter(filter_id, enabled) => {
                 if shared.set_filter_enabled(&filter_id, enabled) {
                     shared
-                        .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                        .sync_search(registry, SearchSyncTarget::Filter)
                         .into_iter()
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
@@ -998,7 +998,7 @@ impl FiltersUi {
                     RegistryEditOutcome::EditedInPlace => {
                         shared.bump_recent_revision();
                         shared
-                            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                            .sync_search(registry, SearchSyncTarget::Filter)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
@@ -1011,7 +1011,7 @@ impl FiltersUi {
                         }
 
                         shared
-                            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                            .sync_search(registry, SearchSyncTarget::Filter)
                             .into_iter()
                             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                     }
@@ -1022,7 +1022,7 @@ impl FiltersUi {
                 self.clear_selection_for(SelectedSidebarItem::Filter(filter_id));
                 shared.unapply_filter(registry, &filter_id);
                 shared
-                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                    .sync_search(registry, SearchSyncTarget::Filter)
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
@@ -1042,7 +1042,7 @@ impl FiltersUi {
                         SelectedSidebarItem::SearchValue(value_id),
                     );
                     shared
-                        .sync_search_pipelines(registry, SearchSyncTarget::Both)
+                        .sync_search(registry, SearchSyncTarget::Both)
                         .into_iter()
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
@@ -1050,7 +1050,7 @@ impl FiltersUi {
             FilterPanelAction::ToggleSearchValue(value_id, enabled) => {
                 if shared.set_search_value_enabled(&value_id, enabled) {
                     shared
-                        .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
+                        .sync_search(registry, SearchSyncTarget::SearchValue)
                         .into_iter()
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }
@@ -1060,7 +1060,7 @@ impl FiltersUi {
                 self.clear_selection_for(SelectedSidebarItem::SearchValue(value_id));
                 shared.unapply_search_value(registry, &value_id);
                 shared
-                    .sync_search_pipelines(registry, SearchSyncTarget::SearchValue)
+                    .sync_search(registry, SearchSyncTarget::SearchValue)
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
@@ -1080,7 +1080,7 @@ impl FiltersUi {
                         SelectedSidebarItem::Filter(filter_id),
                     );
                     shared
-                        .sync_search_pipelines(registry, SearchSyncTarget::Both)
+                        .sync_search(registry, SearchSyncTarget::Both)
                         .into_iter()
                         .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
                 }

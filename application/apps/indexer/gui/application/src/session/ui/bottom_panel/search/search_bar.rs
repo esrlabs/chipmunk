@@ -99,7 +99,7 @@ impl SearchBar {
                 && shared.pin_temp_search(registry)
             {
                 shared
-                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                    .sync_search(registry, SearchSyncTarget::Filter)
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
@@ -189,7 +189,7 @@ impl SearchBar {
                 self.query.clear();
                 shared.filters.set_temp_search(filter);
                 shared
-                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                    .sync_search(registry, SearchSyncTarget::Filter)
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
@@ -258,7 +258,7 @@ impl SearchBar {
                             if add_btn.clicked() && shared.pin_temp_search(registry) {
                                 // Re-apply search which now includes new filter and NO active_search
                                 shared
-                                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                                    .sync_search(registry, SearchSyncTarget::Filter)
                                     .into_iter()
                                     .for_each(|cmd| {
                                         _ = actions.try_send_command(&self.cmd_tx, cmd)
@@ -300,7 +300,7 @@ impl SearchBar {
                                     // We need to consider both targets (filters and search values)
                                     // because we are removed the current temp filter here.
                                     shared
-                                        .sync_search_pipelines(registry, SearchSyncTarget::Both)
+                                        .sync_search(registry, SearchSyncTarget::Both)
                                         .into_iter()
                                         .for_each(|cmd| {
                                             _ = actions.try_send_command(&self.cmd_tx, cmd)
@@ -373,7 +373,7 @@ impl SearchBar {
     ) {
         shared.filters.clear_temp_search();
         shared
-            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+            .sync_search(registry, SearchSyncTarget::Filter)
             .into_iter()
             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
     }

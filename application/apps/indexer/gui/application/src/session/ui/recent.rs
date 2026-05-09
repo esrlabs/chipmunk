@@ -11,7 +11,7 @@ use crate::{
     session::command::SessionCommand,
 };
 
-use super::shared::{SearchSyncTarget, SessionShared};
+use super::shared::{SearchSyncOutcome, SearchSyncTarget, SessionShared};
 
 #[derive(Debug)]
 /// Runtime recent-session tracking for one live session.
@@ -93,22 +93,16 @@ impl RecentSessionRuntime {
         self.pending_search_restore = target;
     }
 
-    /// Replays restored searches once the backend has created the session file.
+    /// Returns restored search work once the backend has created the session file.
     pub fn on_session_file_ready(
         &mut self,
         shared: &mut SessionShared,
-        actions: &mut UiActions,
-        cmd_tx: &Sender<SessionCommand>,
         registry: &FilterRegistry,
-    ) {
-        let Some(target) = self.pending_search_restore.take() else {
-            return;
-        };
+    ) -> Option<SearchSyncOutcome> {
+        let target = self.pending_search_restore.take()?;
 
-        shared
-            .sync_search_pipelines(registry, target)
-            .into_iter()
-            .for_each(|cmd| _ = actions.try_send_command(cmd_tx, cmd));
+        let outcome = shared.sync_search_outcome(registry, target);
+        Some(outcome)
     }
 
     /// Replays restored bookmarks into the backend once file loading completed.
@@ -446,7 +440,20 @@ mod tests {
 
         assert!(cmd_rx.try_recv().is_err());
 
-        recent.on_session_file_ready(&mut shared, &mut actions, &cmd_tx, &registry);
+        let outcome = recent
+            .on_session_file_ready(&mut shared, &registry)
+            .expect("restored search should be ready");
+        let SearchSyncOutcome {
+            commands,
+            log_search_dropped,
+        } = outcome;
+
+        assert!(log_search_dropped);
+        assert!(shared.signals.is_empty());
+
+        for cmd in commands {
+            actions.try_send_command(&cmd_tx, cmd);
+        }
 
         match cmd_rx.try_recv() {
             Ok(SessionCommand::ApplySearchFilter { filters, .. }) => {
@@ -464,8 +471,10 @@ mod tests {
 
         assert!(cmd_rx.try_recv().is_err());
 
-        recent.on_session_file_ready(&mut shared, &mut actions, &cmd_tx, &registry);
+        let outcome = recent.on_session_file_ready(&mut shared, &registry);
 
+        assert!(outcome.is_none());
+        assert!(shared.signals.is_empty());
         assert!(cmd_rx.try_recv().is_err());
     }
 

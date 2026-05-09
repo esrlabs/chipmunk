@@ -780,7 +780,7 @@ impl PresetsUI {
         // Preset apply mutates session state first, then issues the same explicit
         // sync commands used by the rest of the search/filter UI.
         shared
-            .sync_search_pipelines(registry, target)
+            .sync_search(registry, target)
             .into_iter()
             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
     }
