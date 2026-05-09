@@ -187,7 +187,6 @@ impl Host {
                     session.apply_recent_restore(
                         restore_state,
                         registry,
-                        &mut self.ui_actions,
                         &mut self.state.panels_visibility,
                     );
                 }
@@ -487,11 +486,11 @@ impl eframe::App for Host {
 
         storage.poll_pending_save(ui_actions);
 
-        let filters = &self.state.registry.filters;
-        self.state
-            .sessions
-            .iter_mut()
-            .for_each(|(_id, session)| session.handle_messages(ui_actions, storage, filters));
+        let registry = &mut self.state.registry;
+        let panels_visibility = &mut self.state.panels_visibility;
+        for session in self.state.sessions.values_mut() {
+            session.handle_messages(ui_actions, storage, registry, panels_visibility);
+        }
 
         self.handle_recent_sessions();
     }

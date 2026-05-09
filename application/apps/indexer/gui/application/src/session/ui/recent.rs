@@ -27,6 +27,8 @@ pub struct RecentSessionRuntime {
     last_revision: u64,
     /// True while restored bookmarks still need backend replay after file read completes.
     pending_bookmark_restore: bool,
+    /// Restored searches waiting until the backend has created the session file.
+    pending_search_restore: Option<SearchSyncTarget>,
 }
 
 impl RecentSessionRuntime {
@@ -37,6 +39,7 @@ impl RecentSessionRuntime {
             supports_bookmarks,
             last_revision: 0,
             pending_bookmark_restore: false,
+            pending_search_restore: None,
         }
     }
 
@@ -47,16 +50,15 @@ impl RecentSessionRuntime {
             supports_bookmarks: false,
             last_revision: 0,
             pending_bookmark_restore: false,
+            pending_search_restore: None,
         }
     }
 
-    /// Applies restored recent-session state through the normal session and registry path.
+    /// Applies restored recent-session state and defers backend search until the session file exists.
     pub fn apply_restore(
         &mut self,
         restore_state: RecentSessionStateSnapshot,
         shared: &mut SessionShared,
-        actions: &mut UiActions,
-        cmd_tx: &Sender<SessionCommand>,
         registry: &mut FilterRegistry,
     ) {
         let mut changed_filters = false;
@@ -88,12 +90,25 @@ impl RecentSessionRuntime {
             (true, true) => Some(SearchSyncTarget::Both),
         };
 
-        if let Some(target) = target {
-            shared
-                .sync_search_pipelines(registry, target)
-                .into_iter()
-                .for_each(|cmd| _ = actions.try_send_command(cmd_tx, cmd));
-        }
+        self.pending_search_restore = target;
+    }
+
+    /// Replays restored searches once the backend has created the session file.
+    pub fn on_session_file_ready(
+        &mut self,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+        cmd_tx: &Sender<SessionCommand>,
+        registry: &FilterRegistry,
+    ) {
+        let Some(target) = self.pending_search_restore.take() else {
+            return;
+        };
+
+        shared
+            .sync_search_pipelines(registry, target)
+            .into_iter()
+            .for_each(|cmd| _ = actions.try_send_command(cmd_tx, cmd));
     }
 
     /// Replays restored bookmarks into the backend once file loading completed.
@@ -131,6 +146,7 @@ impl RecentSessionRuntime {
     pub fn clear_source_key(&mut self) {
         self.source_key = None;
         self.pending_bookmark_restore = false;
+        self.pending_search_restore = None;
     }
 
     /// Returns the stable recent-session identity for this live session.
@@ -401,6 +417,59 @@ mod tests {
     }
 
     #[test]
+    fn restore_search_waits_for_session_file_ready() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(8);
+        let mut shared = new_shared(ObserveOrigin::File(
+            String::from("source"),
+            FileFormat::PcapNG,
+            PathBuf::from("source.pcapng"),
+        ));
+        let mut registry = FilterRegistry::default();
+        let mut recent = file_runtime();
+        let filter = SearchFilter::plain("level=warn");
+        let search_value = SearchFilter::plain("cpu=(\\d+)");
+        let restore_state = RecentSessionStateSnapshot {
+            filters: vec![SearchFilterSnapshot {
+                filter: filter.clone(),
+                enabled: true,
+            }],
+            search_values: vec![SearchFilterSnapshot {
+                filter: search_value.clone(),
+                enabled: true,
+            }],
+            bookmarks: vec![],
+        };
+
+        recent.apply_restore(restore_state, &mut shared, &mut registry);
+
+        assert!(cmd_rx.try_recv().is_err());
+
+        recent.on_session_file_ready(&mut shared, &mut actions, &cmd_tx, &registry);
+
+        match cmd_rx.try_recv() {
+            Ok(SessionCommand::ApplySearchFilter { filters, .. }) => {
+                assert_eq!(filters, vec![filter]);
+            }
+            other => panic!("expected ApplySearchFilter command, got {other:?}"),
+        }
+
+        match cmd_rx.try_recv() {
+            Ok(SessionCommand::ApplySearchValuesFilter { filters, .. }) => {
+                assert_eq!(filters, vec![search_value.value]);
+            }
+            other => panic!("expected ApplySearchValuesFilter command, got {other:?}"),
+        }
+
+        assert!(cmd_rx.try_recv().is_err());
+
+        recent.on_session_file_ready(&mut shared, &mut actions, &cmd_tx, &registry);
+
+        assert!(cmd_rx.try_recv().is_err());
+    }
+
+    #[test]
     fn restore_waits_for_file_read() {
         let runtime = Runtime::new().expect("runtime should initialize");
         let mut actions = UiActions::new(runtime.handle().clone());
@@ -418,13 +487,7 @@ mod tests {
             bookmarks: vec![5, 2],
         };
 
-        recent.apply_restore(
-            restore_state,
-            &mut shared,
-            &mut actions,
-            &cmd_tx,
-            &mut registry,
-        );
+        recent.apply_restore(restore_state, &mut shared, &mut registry);
 
         assert!(cmd_rx.try_recv().is_err());
         assert!(shared.logs.is_bookmarked(2));

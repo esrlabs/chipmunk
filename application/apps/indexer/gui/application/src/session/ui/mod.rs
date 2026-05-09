@@ -26,7 +26,7 @@ use crate::{
         communication::{UiHandle, UiReceivers},
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
-        types::attachment::PreviewTarget,
+        types::{OperationPhase, attachment::PreviewTarget},
         ui::shared::{SearchTableSync, SessionSignal},
     },
 };
@@ -237,7 +237,8 @@ impl Session {
         &mut self,
         actions: &mut UiActions,
         storage: &mut HostStorage,
-        registry: &FilterRegistry,
+        registry: &mut HostRegistry,
+        panels_visibility: &mut PanelsVisibility,
     ) {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             match msg {
@@ -317,7 +318,7 @@ impl Session {
                     // Rebind this live session to the appended source-set snapshot.
                     let recent_state = self
                         .recent_session
-                        .capture_opened_state(&self.shared, registry);
+                        .capture_opened_state(&self.shared, &registry.filters);
 
                     let rebind_res = storage.recent_sessions.rebind_after_append(
                         current_source_key,
@@ -334,11 +335,28 @@ impl Session {
                     operation_id,
                     phase,
                 } => {
+                    // Observe processing starts after the backend creates or links the session file.
+                    let observe_started_processing = phase == OperationPhase::Processing
+                        && self
+                            .shared
+                            .observe
+                            .operations()
+                            .iter()
+                            .any(|operation| operation.id == operation_id);
+
                     if self
                         .shared
                         .update_operation(operation_id, phase, actions)
                         .consumed()
                     {
+                        if observe_started_processing {
+                            self.recent_session.on_session_file_ready(
+                                &mut self.shared,
+                                actions,
+                                &self.cmd_tx,
+                                &registry.filters,
+                            );
+                        }
                         continue;
                     }
                     // Potential components which keep track for operations can go here.
@@ -388,6 +406,8 @@ impl Session {
                 },
             }
         }
+
+        self.handle_signals(registry, panels_visibility);
     }
 
     /// Applies the restored recent-session state through the normal session and registry path.
@@ -398,16 +418,10 @@ impl Session {
         &mut self,
         restore_state: RecentSessionStateSnapshot,
         registry: &mut HostRegistry,
-        actions: &mut UiActions,
         panels_visibility: &mut PanelsVisibility,
     ) {
-        self.recent_session.apply_restore(
-            restore_state,
-            &mut self.shared,
-            actions,
-            &self.cmd_tx,
-            &mut registry.filters,
-        );
+        self.recent_session
+            .apply_restore(restore_state, &mut self.shared, &mut registry.filters);
         self.handle_signals(registry, panels_visibility);
     }
 
