@@ -8,7 +8,8 @@ use crate::{
         common::dlt_stats::DltStatistics,
         ui::{
             multi_setup::state::MultiFileState, registry::presets::Preset,
-            session_setup::state::SessionSetupState, storage::StorageEvent,
+            session_setup::state::SessionSetupState, state::plugin::PluginsState,
+            storage::StorageEvent,
         },
     },
     session::SpawnedSession,
@@ -45,6 +46,8 @@ pub enum HostMessage {
     AppVersionUpdate(Box<AppVersionUpdate>),
     /// Storage-related async events.
     Storage(StorageEvent),
+    /// Plugin manager state published by the host service.
+    PluginsStateChanged(Box<PluginsState>),
 }
 
 /// Backend import result for named presets.

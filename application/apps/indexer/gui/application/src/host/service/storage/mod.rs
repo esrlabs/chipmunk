@@ -11,26 +11,25 @@ use std::{
 use log::warn;
 use tokio::sync::mpsc;
 
-use crate::host::ui::storage::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
+use crate::host::{
+    service::HostAsyncEvent,
+    ui::storage::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
+};
 
 mod file_explorer;
 pub mod recent;
 
-const CHANNEL_CAPACITY: usize = 16;
 const STORAGE_DIR: &str = "storage_2";
 
 #[derive(Debug)]
 pub struct StorageService {
-    event_tx: mpsc::Sender<StorageEvent>,
-    /// Worker events consumed by the host service loop.
-    pub event_rx: mpsc::Receiver<StorageEvent>,
+    event_tx: mpsc::Sender<HostAsyncEvent>,
 }
 
 impl StorageService {
     /// Initializes storage and starts background domain loads.
-    pub fn init() -> Self {
-        let (event_tx, event_rx) = mpsc::channel(CHANNEL_CAPACITY);
-        let service = Self { event_tx, event_rx };
+    pub fn init(event_tx: mpsc::Sender<HostAsyncEvent>) -> Self {
+        let service = Self { event_tx };
 
         file_explorer::spawn_load(service.event_tx.clone());
 
@@ -63,7 +62,10 @@ impl StorageService {
                 result: Ok(favorite_folders),
             };
 
-            if event_tx.blocking_send(event).is_err() {
+            if event_tx
+                .blocking_send(HostAsyncEvent::Storage(event))
+                .is_err()
+            {
                 warn!("Failed to send favorite-folder scan result");
             }
         });

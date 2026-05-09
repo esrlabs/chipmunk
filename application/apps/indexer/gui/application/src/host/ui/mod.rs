@@ -214,6 +214,7 @@ impl Host {
                 self.state.app_info.set_update_info(*update);
             }
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
+            HostMessage::PluginsStateChanged(plugins) => self.state.plugins.set(*plugins),
         }
     }
 

@@ -8,7 +8,7 @@ use std::{
 use anyhow::Result;
 use itertools::Itertools;
 use log::trace;
-use tokio::{runtime::Handle, select};
+use tokio::{runtime::Handle, select, sync::mpsc};
 use uuid::Uuid;
 
 use parsers::dlt::DltFilterConfig;
@@ -39,24 +39,40 @@ use crate::{
                     TcpConfig, UdpConfig,
                 },
             },
+            state::plugin::PluginsState,
             storage::{RecentSessionsStorage, StorageEvent},
         },
     },
     session::{InitSessionError, service::SessionService},
 };
 
+use plugin::{PluginEvent, PluginService};
 use presets_io::{ImportFormat, import_named_presets, serialize_named_presets};
 use storage::StorageService;
 
 pub mod file;
+mod plugin;
 mod presets_io;
 mod release_info;
 mod storage;
 
+const ASYNC_EVENT_CHANNEL_CAPACITY: usize = 64;
+
 #[derive(Debug)]
 pub struct HostService {
     communication: ServiceHandle,
+    async_event_rx: mpsc::Receiver<HostAsyncEvent>,
     storage: StorageService,
+    plugins: PluginService,
+}
+
+/// Results from host-owned background work, grouped by service domain.
+#[derive(Debug)]
+enum HostAsyncEvent {
+    /// Storage worker result.
+    Storage(StorageEvent),
+    /// Plugin worker result.
+    Plugins(PluginEvent),
 }
 
 impl HostService {
@@ -88,11 +104,15 @@ impl HostService {
                     .send((tokio_handle, recent_sessions))
                     .expect("Sending startup state should never fail");
 
-                let storage = StorageService::init();
+                let (async_event_tx, async_event_rx) = mpsc::channel(ASYNC_EVENT_CHANNEL_CAPACITY);
+                let storage = StorageService::init(async_event_tx.clone());
+                let plugins = PluginService::init(async_event_tx);
 
                 let host = Self {
                     communication,
+                    async_event_rx,
                     storage,
+                    plugins,
                 };
 
                 Self::spawn_startup_cleanup();
@@ -124,8 +144,8 @@ impl HostService {
                         self.send_host_err(err).await;
                     }
                 }
-                Some(event) = self.storage.event_rx.recv() => {
-                    self.handle_storage_event(event).await;
+                Some(event) = self.async_event_rx.recv() => {
+                    self.handle_async_event(event).await;
                 }
                 else => break,
             }
@@ -218,15 +238,53 @@ impl HostService {
                 let _ = confirm_tx.send(());
             }
             HostCommand::CopyFiles { copy_file_infos } => file::copy_files(copy_file_infos).await?,
+            HostCommand::ReloadPlugins => {
+                self.send_plugins_state(PluginsState::Loading).await;
+                match self.plugins.reload().await {
+                    Ok(state) => self.send_plugins_state(state).await,
+                    Err(err) => {
+                        self.send_plugins_state(PluginsState::Unavailable).await;
+                        return Err(err.into());
+                    }
+                }
+            }
+            HostCommand::AddPlugin { path } => {
+                let state = self.plugins.add(path).await?;
+                self.send_plugins_state(state).await;
+            }
+            HostCommand::RemovePlugin { path } => {
+                let state = self.plugins.remove(&path).await?;
+                self.send_plugins_state(state).await;
+            }
         }
 
         Ok(())
+    }
+
+    async fn handle_async_event(&mut self, event: HostAsyncEvent) {
+        match event {
+            HostAsyncEvent::Storage(event) => self.handle_storage_event(event).await,
+            HostAsyncEvent::Plugins(event) => match self.plugins.handle_event(event) {
+                Ok(state) => self.send_plugins_state(state).await,
+                Err(err) => {
+                    self.send_plugins_state(PluginsState::Unavailable).await;
+                    self.send_host_err(err.into()).await;
+                }
+            },
+        }
     }
 
     async fn handle_storage_event(&self, event: StorageEvent) {
         self.communication
             .senders
             .send_message(HostMessage::Storage(event))
+            .await;
+    }
+
+    async fn send_plugins_state(&self, state: PluginsState) {
+        self.communication
+            .senders
+            .send_message(HostMessage::PluginsStateChanged(Box::new(state)))
             .await;
     }
 

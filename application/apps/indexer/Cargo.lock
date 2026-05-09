@@ -315,6 +315,7 @@ dependencies = [
  "merging",
  "nucleo-matcher",
  "parsers",
+ "plugins_host",
  "processor",
  "regex",
  "regex-syntax",

@@ -24,7 +24,7 @@ pub enum PluginsManagerError {
     #[error("IO Error. {0}")]
     IO(#[from] io::Error),
     /// Errors not included in the other error types.
-    #[error("Error during initialization. {0}")]
+    #[error("Plugins Error. {0}")]
     Other(String),
 }
 
