@@ -4,6 +4,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 pub mod info;
+pub mod plugin;
 pub mod preferences;
 mod presets;
 
@@ -22,7 +23,7 @@ use crate::{
     session::{SessionUiInit, ui::Session},
 };
 
-use self::info::AppInfoState;
+use self::{info::AppInfoState, plugin::PluginsState};
 pub use preferences::HostPreferences;
 
 pub const HOME_TAB_IDX: usize = 0;
@@ -38,6 +39,8 @@ pub struct HostState {
     /// Persisted host UI preferences.
     pub preferences: HostPreferences,
     pub registry: HostRegistry,
+    /// Plugin data published by the host service for native UI views.
+    pub plugins: PluginsState,
     pub app_info: AppInfoState,
     pub shortcuts: ShortcutState,
     /// Modal currently owned by the host UI.
@@ -64,6 +67,7 @@ impl HostState {
             multi_setups: FxHashMap::default(),
             preferences: HostPreferences::default(),
             registry: HostRegistry::default(),
+            plugins: PluginsState::default(),
             app_info: AppInfoState::default(),
             shortcuts: ShortcutState::default(),
             active_modal: None,

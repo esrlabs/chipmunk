@@ -1,3 +1,4 @@
+use plugins_host::plugins_manager::PluginsManagerError;
 use stypes::NativeError;
 use thiserror::Error;
 
@@ -10,4 +11,10 @@ pub enum HostError {
     InitSessionError(#[from] InitSessionError),
     #[error("Core Error: {0}")]
     NativeError(NativeError),
+}
+
+impl From<PluginsManagerError> for HostError {
+    fn from(err: PluginsManagerError) -> Self {
+        Self::NativeError(err.into())
+    }
 }

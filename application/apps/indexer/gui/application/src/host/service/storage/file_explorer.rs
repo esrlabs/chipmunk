@@ -11,9 +11,12 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use super::storage_path;
-use crate::host::ui::storage::{
-    FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
-    StorageErrorKind, StorageEvent,
+use crate::host::{
+    service::HostAsyncEvent,
+    ui::storage::{
+        FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
+        StorageErrorKind, StorageEvent,
+    },
 };
 
 const FILE_EXPLORER_FILE: &str = "file_explorer.json";
@@ -39,7 +42,7 @@ impl From<&FileExplorerData> for PersistedFileExplorerData {
 }
 
 /// Starts the background load for file-explorer storage and publishes the result.
-pub fn spawn_load(event_tx: mpsc::Sender<StorageEvent>) {
+pub fn spawn_load(event_tx: mpsc::Sender<HostAsyncEvent>) {
     tokio::task::spawn_blocking(move || {
         let result = get_path().and_then(|path| load(&path));
 
@@ -47,10 +50,14 @@ pub fn spawn_load(event_tx: mpsc::Sender<StorageEvent>) {
             Ok(data) => {
                 let favorite_folders = scan_favorite_folders(&data.favorite_folders, &event_tx);
                 let data = FileExplorerData { favorite_folders };
-                _ = event_tx.blocking_send(StorageEvent::FileExplorerLoaded(Ok(Box::new(data))));
+                _ = event_tx.blocking_send(HostAsyncEvent::Storage(
+                    StorageEvent::FileExplorerLoaded(Ok(Box::new(data))),
+                ));
             }
             Err(err) => {
-                _ = event_tx.blocking_send(StorageEvent::FileExplorerLoaded(Err(err)));
+                _ = event_tx.blocking_send(HostAsyncEvent::Storage(
+                    StorageEvent::FileExplorerLoaded(Err(err)),
+                ));
             }
         }
     });
@@ -96,7 +103,7 @@ fn load(path: &Path) -> Result<PersistedFileExplorerData, StorageError> {
 /// Scans the provided favorite folders and returns runtime tree snapshots.
 pub fn scan_favorite_folders(
     paths: &[PathBuf],
-    event_tx: &mpsc::Sender<StorageEvent>,
+    event_tx: &mpsc::Sender<HostAsyncEvent>,
 ) -> Vec<FavoriteFolder> {
     scan_favorite_folders_with_limit(paths, FAVORITE_SCAN_MAX_ENTRIES, event_tx)
 }
@@ -104,7 +111,7 @@ pub fn scan_favorite_folders(
 fn scan_favorite_folders_with_limit(
     paths: &[PathBuf],
     max_entries: usize,
-    event_tx: &mpsc::Sender<StorageEvent>,
+    event_tx: &mpsc::Sender<HostAsyncEvent>,
 ) -> Vec<FavoriteFolder> {
     let mut favorite_folders = Vec::with_capacity(paths.len());
     let mut limited_folder_names = Vec::new();
@@ -123,10 +130,12 @@ fn scan_favorite_folders_with_limit(
 
     if !limited_folder_names.is_empty()
         && event_tx
-            .blocking_send(StorageEvent::FavoriteFolderLimitReached {
-                folder_names: limited_folder_names,
-                max_entries_count: max_entries,
-            })
+            .blocking_send(HostAsyncEvent::Storage(
+                StorageEvent::FavoriteFolderLimitReached {
+                    folder_names: limited_folder_names,
+                    max_entries_count: max_entries,
+                },
+            ))
             .is_err()
     {
         warn!("Failed to send favorite-folder scan limit warning");
@@ -289,7 +298,7 @@ mod tests {
 
     use tokio::sync::mpsc;
 
-    use crate::host::service::storage::storage_path_from_home;
+    use crate::host::service::{HostAsyncEvent, storage::storage_path_from_home};
     use crate::host::ui::storage::{
         FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
         StorageErrorKind, StorageEvent,
@@ -504,10 +513,12 @@ mod tests {
         assert_eq!(child_names(&scanned[1].children), vec!["second.log"]);
         assert!(matches!(
             event_rx.try_recv(),
-            Ok(StorageEvent::FavoriteFolderLimitReached {
-                folder_names,
-                max_entries_count: 1,
-            }) if folder_names == vec![
+            Ok(HostAsyncEvent::Storage(
+                StorageEvent::FavoriteFolderLimitReached {
+                    folder_names,
+                    max_entries_count: 1,
+                }
+            )) if folder_names == vec![
                 first.file_name().unwrap().to_string_lossy().into_owned(),
                 second.file_name().unwrap().to_string_lossy().into_owned(),
             ]

@@ -61,6 +61,19 @@ pub enum HostCommand {
     CopyFiles {
         copy_file_infos: Vec<CopyFileInfo>,
     },
+    /// Reloads plugins from the configured plugin directories.
+    #[expect(dead_code, reason = "Plugin manager UI sends this in phase 2.")]
+    ReloadPlugins,
+    /// Adds a plugin directory to the configured plugin location.
+    #[expect(dead_code, reason = "Plugin manager UI sends this in phase 2.")]
+    AddPlugin {
+        path: PathBuf,
+    },
+    /// Removes a plugin by its configured plugin directory path.
+    #[expect(dead_code, reason = "Plugin manager UI sends this in phase 2.")]
+    RemovePlugin {
+        path: PathBuf,
+    },
 }
 
 #[derive(Debug, Clone)]

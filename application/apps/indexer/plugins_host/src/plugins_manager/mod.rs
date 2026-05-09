@@ -65,12 +65,17 @@ impl PluginsManager {
     }
 
     /// Provide full infos of all loaded and valid plugins.
-    pub fn installed_plugins(&self) -> impl Iterator<Item = &PluginEntity> {
+    pub fn installed_plugins(&self) -> impl ExactSizeIterator<Item = &PluginEntity> {
         self.installed_plugins.iter().map(|en| en.into())
     }
 
+    /// Provide backend-extended data for all loaded and valid plugins.
+    pub fn extended_installed_plugins(&self) -> &[ExtendedPluginEntity] {
+        &self.installed_plugins
+    }
+
     /// Provide directory paths (considered ID) of all loaded and valid plugins.
-    pub fn installed_plugins_paths(&self) -> impl Iterator<Item = &PathBuf> {
+    pub fn installed_plugins_paths(&self) -> impl ExactSizeIterator<Item = &PathBuf> {
         self.installed_plugins.iter().map(|p| &p.entity.dir_path)
     }
 
@@ -88,12 +93,17 @@ impl PluginsManager {
     }
 
     /// Provide all invalid plugins.
-    pub fn invalid_plugins(&self) -> impl Iterator<Item = &InvalidPluginEntity> {
+    pub fn invalid_plugins(&self) -> impl ExactSizeIterator<Item = &InvalidPluginEntity> {
         self.invalid_plugins.iter().map(|en| en.into())
     }
 
+    /// Provide backend-extended data for all invalid plugins.
+    pub fn extended_invalid_plugins(&self) -> &[ExtendedInvalidPluginEntity] {
+        &self.invalid_plugins
+    }
+
     /// Provide directory paths (considered ID) of all invalid plugins.
-    pub fn invalid_plugins_paths(&self) -> impl Iterator<Item = &PathBuf> {
+    pub fn invalid_plugins_paths(&self) -> impl ExactSizeIterator<Item = &PathBuf> {
         self.invalid_plugins.iter().map(|p| &p.entity.dir_path)
     }
 
