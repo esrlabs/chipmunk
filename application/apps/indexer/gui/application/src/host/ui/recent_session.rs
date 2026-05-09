@@ -21,29 +21,50 @@ pub enum RecentSessionRowAction {
     Remove,
 }
 
-/// Row-level feature flags for one recent-session entry.
+/// Render parameters for one recent-session entry.
 #[derive(Debug, Clone, Default)]
-pub struct RecentSessionRowOptions {
+pub struct RecentSessionRowParams {
     /// Enables the clean-open button and menu action for surfaces that support it.
     pub show_clean_open: bool,
+    /// Marks this row as the current keyboard selection.
+    pub selected: bool,
+    /// Uses the active selection highlight when keyboard control is focused here.
+    pub selection_active: bool,
+    /// Scrolls the selected row into view after keyboard navigation.
+    pub scroll_to_row: bool,
 }
 
 /// Renders one recent-session row and returns the user action triggered on it.
 pub fn render_recent_session_row(
     ui: &mut Ui,
     session: &RecentSessionSnapshot,
-    options: &RecentSessionRowOptions,
+    params: &RecentSessionRowParams,
 ) -> Option<RecentSessionRowAction> {
     let (rect, response) =
         ui.allocate_exact_size(vec2(ui.available_width(), ROW_HEIGHT), Sense::click());
     let mut action = None;
 
     let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
-    response.context_menu(|ui| render_row_menu(ui, session, options, &mut action));
+    response.context_menu(|ui| render_row_menu(ui, session, params, &mut action));
 
-    if response.hovered() {
-        ui.painter()
-            .rect_filled(rect, 0.0, ui.visuals().widgets.hovered.bg_fill);
+    let background = if params.selected {
+        Some(if params.selection_active {
+            ui.visuals().selection.bg_fill
+        } else {
+            ui.visuals().selection.bg_fill.gamma_multiply(0.45)
+        })
+    } else if response.hovered() {
+        Some(ui.visuals().widgets.hovered.bg_fill)
+    } else {
+        None
+    };
+
+    if let Some(background) = background {
+        ui.painter().rect_filled(rect, 0.0, background);
+    }
+
+    if params.scroll_to_row {
+        response.scroll_to_me(Some(Align::Center));
     }
 
     let content_rect = rect.shrink2(vec2(CONTENT_PADDING_X, CONTENT_PADDING_Y));
@@ -77,7 +98,7 @@ pub fn render_recent_session_row(
                         ui.label(session.tooltip());
                     });
                 },
-                |ui| render_row_actions(ui, session, options, &mut action),
+                |ui| render_row_actions(ui, session, params, &mut action),
             );
     });
 
@@ -91,7 +112,7 @@ pub fn render_recent_session_row(
 fn render_row_actions(
     ui: &mut Ui,
     session: &RecentSessionSnapshot,
-    options: &RecentSessionRowOptions,
+    params: &RecentSessionRowParams,
     action: &mut Option<RecentSessionRowAction>,
 ) {
     ui.horizontal_centered(|ui| {
@@ -113,7 +134,7 @@ fn render_row_actions(
             *action = Some(RecentSessionRowAction::RestoreParserConfiguration);
         }
 
-        if options.show_clean_open {
+        if params.show_clean_open {
             let clean_open = ui
                 .add_enabled(
                     session.supports_clean_open(),
@@ -134,7 +155,7 @@ fn render_row_actions(
 fn render_row_menu(
     ui: &mut Ui,
     session: &RecentSessionSnapshot,
-    options: &RecentSessionRowOptions,
+    params: &RecentSessionRowParams,
     action: &mut Option<RecentSessionRowAction>,
 ) {
     if ui.button("Restore session").clicked() {
@@ -145,7 +166,7 @@ fn render_row_menu(
         *action = Some(RecentSessionRowAction::RestoreParserConfiguration);
     }
 
-    if options.show_clean_open
+    if params.show_clean_open
         && session.supports_clean_open()
         && ui.button("Open without saved state").clicked()
     {
