@@ -10,7 +10,7 @@ use crate::host::{
     ui::{
         UiActions,
         recent_session::{
-            RecentSessionRowAction, RecentSessionRowOptions, render_recent_session_row,
+            RecentSessionRowAction, RecentSessionRowParams, render_recent_session_row,
         },
         storage::{RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionsStorage},
     },
@@ -37,11 +37,14 @@ pub fn render_matching_recent_sessions(
 
         has_matches = true;
 
-        const OPTIONS: RecentSessionRowOptions = RecentSessionRowOptions {
+        const PARAMS: RecentSessionRowParams = RecentSessionRowParams {
             show_clean_open: false,
+            selected: false,
+            selection_active: false,
+            scroll_to_row: false,
         };
 
-        let render_action = render_recent_session_row(ui, session, &OPTIONS);
+        let render_action = render_recent_session_row(ui, session, &PARAMS);
         if let Some(action) = render_action {
             match action {
                 RecentSessionRowAction::RestoreSession => {
