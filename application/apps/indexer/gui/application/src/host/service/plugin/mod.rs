@@ -5,6 +5,7 @@
 
 use std::{
     collections::HashMap,
+    io,
     path::{Path, PathBuf},
 };
 
@@ -13,9 +14,12 @@ use plugins_host::plugins_manager::{PluginsManager, PluginsManagerError};
 use tokio::sync::mpsc;
 
 use crate::host::{
+    message::PluginReadmeLoadResult,
     service::HostAsyncEvent,
     ui::state::plugin::{PluginsData, PluginsState},
 };
+
+const MAX_README_BYTES: u64 = 1024 * 1024;
 
 /// Host-service owner for plugin manager lifecycle and operations.
 #[derive(Debug)]
@@ -27,9 +31,9 @@ pub struct PluginService {
 /// Backend plugin manager lifecycle inside the host service.
 #[derive(Debug)]
 enum PluginManagerRuntime {
-    /// Initial or retry loading is in progress.
+    /// Initial loading is in progress.
     Loading,
-    /// No manager is currently available; reload may retry loading.
+    /// No manager is currently available.
     Unavailable,
     /// Plugin manager is loaded and can process plugin operations.
     Ready(Box<PluginsManager>),
@@ -65,13 +69,25 @@ impl PluginService {
         }
     }
 
+    /// Returns the current UI-facing plugin state.
+    pub fn state(&self) -> PluginsState {
+        match &self.runtime {
+            PluginManagerRuntime::Loading => PluginsState::Loading,
+            PluginManagerRuntime::Unavailable => PluginsState::Unavailable,
+            PluginManagerRuntime::Ready(manager) => PluginsState::Available(plugins_data(manager)),
+        }
+    }
+
     /// Reloads loaded plugins and returns updated UI plugin state.
     pub async fn reload(&mut self) -> Result<PluginsState, PluginsManagerError> {
         match std::mem::replace(&mut self.runtime, PluginManagerRuntime::Loading) {
-            PluginManagerRuntime::Loading => Err(manager_unavailable()),
+            PluginManagerRuntime::Loading => {
+                self.runtime = PluginManagerRuntime::Loading;
+                Err(manager_unavailable())
+            }
             PluginManagerRuntime::Unavailable => {
-                self.spawn_load();
-                Ok(PluginsState::Loading)
+                self.runtime = PluginManagerRuntime::Unavailable;
+                Err(manager_unavailable())
             }
             PluginManagerRuntime::Ready(mut manager) => {
                 if let Err(err) = manager.reload().await {
@@ -112,6 +128,60 @@ impl PluginService {
         let data = plugins_data(manager);
 
         Ok(PluginsState::Available(data))
+    }
+
+    /// Loads README markdown for an installed plugin.
+    pub async fn load_readme(&self, plugin_path: &Path) -> PluginReadmeLoadResult {
+        let readme_path = match &self.runtime {
+            PluginManagerRuntime::Ready(manager) => manager
+                .get_installed_plugin(plugin_path)
+                .and_then(|plugin| plugin.readme_path.clone()),
+            PluginManagerRuntime::Loading | PluginManagerRuntime::Unavailable => {
+                return PluginReadmeLoadResult::Error(
+                    "Plugins manager is not available.".to_owned(),
+                );
+            }
+        };
+
+        let Some(readme_path) = readme_path else {
+            return PluginReadmeLoadResult::Missing;
+        };
+
+        let metadata = match tokio::fs::metadata(&readme_path).await {
+            Ok(metadata) => metadata,
+            Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                return PluginReadmeLoadResult::Missing;
+            }
+            Err(err) => {
+                return PluginReadmeLoadResult::Error(format!(
+                    "Failed to inspect README '{}': {err}",
+                    readme_path.display()
+                ));
+            }
+        };
+
+        if !metadata.is_file() {
+            return PluginReadmeLoadResult::Error(format!(
+                "README path is not a file: {}",
+                readme_path.display()
+            ));
+        }
+
+        if metadata.len() > MAX_README_BYTES {
+            return PluginReadmeLoadResult::Error(format!(
+                "README file is larger than 1 MiB: {}",
+                readme_path.display()
+            ));
+        }
+
+        match tokio::fs::read_to_string(&readme_path).await {
+            Ok(content) => PluginReadmeLoadResult::Loaded(content),
+            Err(err) if err.kind() == io::ErrorKind::NotFound => PluginReadmeLoadResult::Missing,
+            Err(err) => PluginReadmeLoadResult::Error(format!(
+                "Failed to read README '{}': {err}",
+                readme_path.display()
+            )),
+        }
     }
 
     fn spawn_load(&self) {

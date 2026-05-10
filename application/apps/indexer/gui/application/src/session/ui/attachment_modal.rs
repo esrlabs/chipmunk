@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 use crate::{
     common::{
-        modal::{ModalSize, ResponsiveModalSize, show_modal},
         phosphor::icons,
+        ui::modal::{ModalSize, ResponsiveModalSize, show_modal},
     },
     session::{
         types::attachment::PreviewContent,

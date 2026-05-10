@@ -2,9 +2,9 @@
 
 use egui::{Align, Context, Grid, Label, Layout, RichText, ScrollArea, Ui, scroll_area, vec2};
 
-use crate::common::{
+use crate::common::ui::{
+    buttons,
     modal::{ModalSize, ResponsiveModalSize, show_modal},
-    ui::buttons,
 };
 
 use super::definitions::{Shortcut, ShortcutDisplay, app_shortcut_defs};

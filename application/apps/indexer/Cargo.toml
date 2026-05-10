@@ -99,7 +99,7 @@ egui_plot = "0.35"
 # features.
 winit = { version = "0.30"}
 egui-phosphor = "0.12"
-
+egui_commonmark = "0.23"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.

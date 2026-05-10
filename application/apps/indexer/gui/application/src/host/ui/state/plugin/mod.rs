@@ -22,9 +22,6 @@ pub enum PluginsState {
 impl PluginsState {
     /// Replaces the current plugin state and logs a compact transition summary.
     pub fn set(&mut self, state: Self) {
-        //TODO AAZ: Remove debug print.
-        dbg!(&state);
-
         match &state {
             Self::Loading => trace!("Plugin state changed: loading"),
             Self::Unavailable => trace!("Plugin state changed: unavailable"),

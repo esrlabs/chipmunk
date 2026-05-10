@@ -6,7 +6,7 @@ use crate::host::ui::{
     Host, HostAction, UiActions,
     actions::FileDialogOptions,
     menu,
-    state::{self, HostModal, HostState},
+    state::{self, HostState, modal::HostModal},
     tabs::TabType,
 };
 
@@ -168,7 +168,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     }
 
     if consume_binding(ctx, &OPEN_SHORTCUTS_F1) || consume_questionmark(ctx) {
-        state.active_modal = Some(HostModal::Shortcuts);
+        state.modals.open(HostModal::Shortcuts);
         return true;
     }
 
@@ -209,5 +209,6 @@ fn close_active_tab(state: &mut HostState, ui_actions: &mut UiActions) {
             .get(&id)
             .expect("Multiple files setup from active tab must exist")
             .close(ui_actions),
+        TabType::PluginManager => state.close_plugin_manager(),
     }
 }

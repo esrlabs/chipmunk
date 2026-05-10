@@ -4,7 +4,6 @@ pub mod comm_utls;
 pub mod fixed_queue;
 pub mod fonts;
 pub mod logging;
-pub mod modal;
 pub mod phosphor;
 pub mod time;
 pub mod ui;

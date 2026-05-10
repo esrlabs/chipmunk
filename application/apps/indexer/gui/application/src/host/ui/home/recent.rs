@@ -10,9 +10,11 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::{
+    common::ui::{
+        buttons,
         modal::{ModalSize, show_modal},
-        ui::{buttons, substring_matcher::SubstringMatcher, visibility_tracker::VisibilityTracker},
+        substring_matcher::SubstringMatcher,
+        visibility_tracker::VisibilityTracker,
     },
     host::{
         command::{HostCommand, OpenRecentSessionParam},

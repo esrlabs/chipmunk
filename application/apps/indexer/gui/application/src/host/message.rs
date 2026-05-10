@@ -48,6 +48,8 @@ pub enum HostMessage {
     Storage(StorageEvent),
     /// Plugin manager state published by the host service.
     PluginsStateChanged(Box<PluginsState>),
+    /// README loading result for a Plugin Manager request.
+    PluginReadmeLoaded(Box<PluginReadmeLoaded>),
 }
 
 /// Backend import result for named presets.
@@ -72,4 +74,26 @@ pub struct AppVersionUpdate {
     pub release_notes: Option<String>,
     /// Release page URL.
     pub release_url: String,
+}
+
+/// README loading result for a Plugin Manager request.
+#[derive(Debug)]
+pub struct PluginReadmeLoaded {
+    /// UI-owned request id used to reject stale responses.
+    pub request_id: u64,
+    /// Plugin directory path used for the request.
+    pub plugin_path: PathBuf,
+    /// Loaded README state.
+    pub result: PluginReadmeLoadResult,
+}
+
+/// Result of loading plugin README markdown.
+#[derive(Debug)]
+pub enum PluginReadmeLoadResult {
+    /// README markdown content.
+    Loaded(String),
+    /// README path is unavailable or no longer exists.
+    Missing,
+    /// README loading failed.
+    Error(String),
 }
