@@ -4,6 +4,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 pub mod info;
+pub mod modal;
 pub mod plugin;
 pub mod preferences;
 mod presets;
@@ -14,6 +15,7 @@ use crate::{
         ui::{
             HomeView, UiActions,
             multi_setup::{MultiFileSetup, state::MultiFileState},
+            plugin_manager::PluginManagerView,
             registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
             shortcuts::state::ShortcutState,
@@ -23,7 +25,7 @@ use crate::{
     session::{SessionUiInit, ui::Session},
 };
 
-use self::{info::AppInfoState, plugin::PluginsState};
+use self::{info::AppInfoState, modal::HostModalState, plugin::PluginsState};
 pub use preferences::HostPreferences;
 
 pub const HOME_TAB_IDX: usize = 0;
@@ -41,25 +43,17 @@ pub struct HostState {
     pub registry: HostRegistry,
     /// Plugin data published by the host service for native UI views.
     pub plugins: PluginsState,
+    pub plugin_manager: PluginManagerView,
     pub app_info: AppInfoState,
     pub shortcuts: ShortcutState,
-    /// Modal currently owned by the host UI.
-    pub active_modal: Option<HostModal>,
-}
-
-/// Host-level modal dialogs that should be exclusive.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HostModal {
-    /// Application metadata and links.
-    About,
-    /// Keyboard shortcuts overview.
-    Shortcuts,
+    /// Tracks the exclusive top-level dialog and pending confirmation answers.
+    pub modals: HostModalState,
 }
 
 impl HostState {
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
         Self {
-            home_view: HomeView::new(cmd_tx),
+            home_view: HomeView::new(cmd_tx.clone()),
             active_tab_idx: 0,
             tabs: vec![TabType::Home],
             sessions: FxHashMap::default(),
@@ -68,9 +62,10 @@ impl HostState {
             preferences: HostPreferences::default(),
             registry: HostRegistry::default(),
             plugins: PluginsState::default(),
+            plugin_manager: PluginManagerView::new(cmd_tx),
             app_info: AppInfoState::default(),
             shortcuts: ShortcutState::default(),
-            active_modal: None,
+            modals: HostModalState::default(),
         }
     }
 
@@ -80,7 +75,11 @@ impl HostState {
 
     /// Whether the tab bar should render a right-side panel visibility toggle.
     pub fn show_right_panel_toggle(&self) -> bool {
-        matches!(self.active_tab(), TabType::Home | TabType::Session(_))
+        match self.active_tab() {
+            TabType::Home | TabType::Session(..) | TabType::MultiFileSetup(..) => true,
+            TabType::SessionSetup(..) => false,
+            TabType::PluginManager => matches!(self.plugins, PluginsState::Available(_)),
+        }
     }
 
     /// Whether the tab bar should render the bottom panel visibility toggle.
@@ -112,6 +111,34 @@ impl HostState {
         } else {
             self.active_tab_idx - 1
         };
+    }
+
+    pub fn open_plugin_manager(&mut self) {
+        // Keep only one plugins manager tab open.
+        if let Some(tab_idx) = self
+            .tabs
+            .iter()
+            .position(|tab| matches!(tab, TabType::PluginManager))
+        {
+            self.active_tab_idx = tab_idx;
+            return;
+        }
+
+        self.tabs.push(TabType::PluginManager);
+        self.active_tab_idx = self.tabs.len() - 1;
+    }
+
+    pub fn close_plugin_manager(&mut self) {
+        let Some(tab_idx) = self
+            .tabs
+            .iter()
+            .position(|tab| matches!(tab, TabType::PluginManager))
+        else {
+            return;
+        };
+
+        self.update_current_tab_on_close(tab_idx);
+        self.tabs.remove(tab_idx);
     }
 
     /// Add session to state returning it's ID.

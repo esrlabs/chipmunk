@@ -1,3 +1,5 @@
+//! Shared egui modal primitives for host and session UI.
+
 use egui::{Button, Frame, Id, ModalResponse, NumExt as _, Spinner, Ui, Vec2, Widget as _, vec2};
 
 /// Modal sizing policy applied before rendering content.
@@ -75,8 +77,7 @@ fn apply_size(parent_ui: &Ui, modal_ui: &mut Ui, size: ModalSize) -> Vec2 {
     }
 }
 
-/// Show a busy indicator in modal dialog with an optional label and optional cancel action.
-/// A cancel button will be display if `cancel_action` is provided.
+/// Shows a busy indicator with an optional label and cancel action.
 pub fn show_busy_indicator<F>(ui: &Ui, label: Option<&str>, cancel_action: Option<F>)
 where
     F: FnOnce(),

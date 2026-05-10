@@ -12,8 +12,8 @@ use crate::{
     cli::CliCommand,
     common::{
         app_info, fonts,
-        modal::{ModalSize, show_modal},
         phosphor::{self, icons},
+        ui::modal::{ModalSize, show_modal},
     },
     host::{
         command::{HostCommand, StartSessionParam},
@@ -28,6 +28,7 @@ use crate::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, ProcessConfig, StreamConfig},
             },
+            state::modal::HostModal,
             storage::HostStorage,
             tabs::{HOST_TAB_CONTROL_HEIGHT, TabType, TabsUi, host_tab_bar_height},
         },
@@ -39,13 +40,15 @@ use state::HostState;
 pub use actions::{HostAction, UiActions};
 
 pub mod actions;
+mod banners;
 mod dnd_paths;
 pub mod home;
-mod info;
 mod menu;
+mod modals;
 pub mod multi_setup;
 mod notification;
 mod persist;
+mod plugin_manager;
 mod recent_session;
 pub mod registry;
 pub mod session_setup;
@@ -214,7 +217,15 @@ impl Host {
                 self.state.app_info.set_update_info(*update);
             }
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
-            HostMessage::PluginsStateChanged(plugins) => self.state.plugins.set(*plugins),
+            HostMessage::PluginsStateChanged(plugins) => {
+                self.state.plugins.set(*plugins);
+                self.state
+                    .plugin_manager
+                    .handle_plugins_changed(&self.state.plugins);
+            }
+            HostMessage::PluginReadmeLoaded(response) => {
+                self.state.plugin_manager.handle_readme_loaded(*response);
+            }
         }
     }
 
@@ -246,7 +257,7 @@ impl Host {
                 self.render_main(ui);
 
                 if self.state.app_info.show_update_banner {
-                    info::render_update_banner(&mut self.state.app_info, ui);
+                    banners::update::render(&mut self.state.app_info, ui);
                 }
             });
 
@@ -254,17 +265,26 @@ impl Host {
     }
 
     fn render_active_modal(&mut self, ui: &Ui) {
-        let Some(active_modal) = self.state.active_modal else {
+        let Some(active_modal) = self.state.modals.active().cloned() else {
             return;
         };
 
-        let should_close = match active_modal {
-            state::HostModal::About => info::render_about_modal(&mut self.state.app_info, ui),
-            state::HostModal::Shortcuts => shortcuts::modal::render_modal(ui),
-        };
-
-        if should_close {
-            self.state.active_modal = None;
+        match active_modal {
+            HostModal::About => {
+                if modals::about::render_modal(&mut self.state.app_info, ui) {
+                    self.state.modals.close();
+                }
+            }
+            HostModal::Shortcuts => {
+                if shortcuts::modal::render_modal(ui) {
+                    self.state.modals.close();
+                }
+            }
+            HostModal::Confirmation(dialog) => {
+                if let Some(answer) = modals::confirmation::render_modal(&dialog, ui) {
+                    self.state.modals.resolve_confirmation(answer);
+                }
+            }
         }
     }
 
@@ -275,7 +295,7 @@ impl Host {
             state,
             ..
         } = self;
-        menu.render(ui, ui_actions, &mut state.active_modal);
+        menu.render(ui, ui_actions, state);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
@@ -326,6 +346,9 @@ impl Host {
             multi_setups,
             preferences,
             registry,
+            plugins,
+            plugin_manager,
+            modals,
             ..
         } = state;
 
@@ -342,7 +365,10 @@ impl Host {
             TabType::MultiFileSetup(id) => multi_setups
                 .get_mut(&id)
                 .expect("Multiple files setups with provided ID from active tab must exist")
-                .render_content(ui_actions, ui),
+                .render_content(ui_actions, preferences, ui),
+            TabType::PluginManager => {
+                plugin_manager.render_content(ui, plugins, ui_actions, preferences, modals)
+            }
         }
     }
 

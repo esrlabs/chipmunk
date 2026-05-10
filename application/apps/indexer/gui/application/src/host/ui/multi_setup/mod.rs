@@ -8,7 +8,7 @@ use crate::{
     },
     host::{
         command::HostCommand,
-        ui::{UiActions, multi_setup::state::MultiFileState},
+        ui::{UiActions, multi_setup::state::MultiFileState, state::HostPreferences},
     },
 };
 
@@ -42,7 +42,12 @@ impl MultiFileSetup {
         actions.try_send_command(&self.cmd_tx, HostCommand::CloseMultiSetup(self.id()));
     }
 
-    pub fn render_content(&mut self, actions: &mut UiActions, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        actions: &mut UiActions,
+        preferences: &mut HostPreferences,
+        ui: &mut Ui,
+    ) {
         Panel::top("actions panel")
             .exact_size(40.)
             .show_inside(ui, |ui| {
@@ -56,7 +61,7 @@ impl MultiFileSetup {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
                 ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
                     self.side_panel.render_content(ui, &mut self.state);
                 });

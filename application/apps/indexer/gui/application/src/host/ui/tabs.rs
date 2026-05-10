@@ -34,6 +34,7 @@ pub enum TabType {
     Session(Uuid),
     SessionSetup(Uuid),
     MultiFileSetup(Uuid),
+    PluginManager,
 }
 
 fn host_tab_width(ui: &Ui, label: &str, max: Option<f32>) -> TabWidth {
@@ -96,6 +97,12 @@ impl TabsUi {
                 )
                 .closeable(true)
                 .tooltip("Multiple Files"),
+                TabType::PluginManager => TabSpec::new(
+                    strip_id.with(("host_tab", tab)),
+                    host_tab_width(ui, "Plugin Manager", Some(HOST_TAB_ITEM_WIDTH)),
+                )
+                .closeable(true)
+                .tooltip("Plugin Manager"),
             }
         }));
 
@@ -147,6 +154,14 @@ impl TabsUi {
                             .halign(Align::Center),
                     );
                 }
+                TabType::PluginManager => {
+                    ui.add(
+                        Label::new(RichText::new("Plugin Manager").text_style(HOST_TAB_TEXT_STYLE))
+                            .truncate()
+                            .show_tooltip_when_elided(false)
+                            .halign(Align::Center),
+                    );
+                }
             }
         });
 
@@ -182,6 +197,7 @@ impl TabsUi {
                             .expect("Multiple files setup from host tab must exist")
                             .close(actions);
                     }
+                    TabType::PluginManager => state.close_plugin_manager(),
                 }
             }
         }

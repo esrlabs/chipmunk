@@ -9,7 +9,7 @@ use crate::{
         common::{app_style, parsers::ParserNames, sources::StreamNames},
         ui::{
             actions::{FileDialogOptions, UiActions},
-            state::HostModal,
+            state::{HostState, modal::HostModal},
         },
     },
 };
@@ -30,12 +30,7 @@ impl MainMenuBar {
         Self { cmd_tx }
     }
 
-    pub fn render(
-        &mut self,
-        ui: &mut Ui,
-        actions: &mut UiActions,
-        active_modal: &mut Option<HostModal>,
-    ) {
+    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions, state: &mut HostState) {
         self.handle_file_dialog(actions);
 
         MenuBar::new().ui(ui, |ui| {
@@ -52,12 +47,12 @@ impl MainMenuBar {
                 }
 
                 if ui.button("Keyboard Shortcuts").clicked() {
-                    *active_modal = Some(HostModal::Shortcuts);
+                    state.modals.open(HostModal::Shortcuts);
                     ui.close();
                 }
 
                 if ui.button("About").clicked() {
-                    *active_modal = Some(HostModal::About);
+                    state.modals.open(HostModal::About);
                     ui.close();
                 }
 
@@ -122,6 +117,13 @@ impl MainMenuBar {
                             parser: ParserNames::Text,
                         },
                     );
+                }
+            });
+
+            ui.menu_button("Plugins", |ui| {
+                if ui.button("Plugin Manager").clicked() {
+                    state.open_plugin_manager();
+                    ui.close();
                 }
             });
 

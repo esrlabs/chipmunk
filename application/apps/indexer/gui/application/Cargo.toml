@@ -71,6 +71,7 @@ image = { workspace = true, features = ["png", "jpeg", "gif", "webp", "bmp"] }
 egui_table.workspace = true
 egui_plot.workspace = true
 egui-phosphor = { workspace = true, features = ["regular", "fill"] }
+egui_commonmark.workspace = true
 
 [lints]
 workspace = true

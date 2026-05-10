@@ -26,7 +26,7 @@ use crate::{
         common::{dlt_stats::dlt_statistics, parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
-        message::{HostMessage, PresetsImported},
+        message::{HostMessage, PluginReadmeLoaded, PresetsImported},
         notification::AppNotification,
         service::storage::recent::RecentSessionOpenRequest,
         ui::{
@@ -241,20 +241,65 @@ impl HostService {
             HostCommand::ReloadPlugins => {
                 self.send_plugins_state(PluginsState::Loading).await;
                 match self.plugins.reload().await {
-                    Ok(state) => self.send_plugins_state(state).await,
+                    Ok(state) => {
+                        self.send_plugins_state(state).await;
+                        self.communication
+                            .senders
+                            .send_notification(AppNotification::Info("Plugins reloaded.".into()))
+                            .await;
+                    }
                     Err(err) => {
-                        self.send_plugins_state(PluginsState::Unavailable).await;
+                        self.send_plugins_state(self.plugins.state()).await;
                         return Err(err.into());
                     }
                 }
             }
             HostCommand::AddPlugin { path } => {
-                let state = self.plugins.add(path).await?;
-                self.send_plugins_state(state).await;
+                self.send_plugins_state(PluginsState::Loading).await;
+                match self.plugins.add(path).await {
+                    Ok(state) => {
+                        self.send_plugins_state(state).await;
+                        self.communication
+                            .senders
+                            .send_notification(AppNotification::Info(
+                                "Plugin added successfully.".into(),
+                            ))
+                            .await;
+                    }
+                    Err(err) => {
+                        self.send_plugins_state(self.plugins.state()).await;
+                        return Err(err.into());
+                    }
+                }
             }
             HostCommand::RemovePlugin { path } => {
-                let state = self.plugins.remove(&path).await?;
-                self.send_plugins_state(state).await;
+                self.send_plugins_state(PluginsState::Loading).await;
+                match self.plugins.remove(&path).await {
+                    Ok(state) => self.send_plugins_state(state).await,
+                    Err(err) => {
+                        // We need to update state on the UI as it will be in loading state.
+                        let current_state = self.plugins.state();
+                        self.send_plugins_state(current_state).await;
+
+                        return Err(err.into());
+                    }
+                }
+            }
+            HostCommand::LoadPluginReadme {
+                request_id,
+                plugin_path,
+            } => {
+                let result = self.plugins.load_readme(&plugin_path).await;
+                self.communication
+                    .senders
+                    .send_message(HostMessage::PluginReadmeLoaded(Box::new(
+                        PluginReadmeLoaded {
+                            request_id,
+                            plugin_path,
+                            result,
+                        },
+                    )))
+                    .await;
             }
         }
 

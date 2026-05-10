@@ -5,9 +5,9 @@ use log::warn;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    common::{
+    common::ui::{
+        RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE,
         modal::show_busy_indicator,
-        ui::{RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE},
     },
     host::{
         command::HostCommand,

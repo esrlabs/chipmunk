@@ -3,7 +3,7 @@ use egui::{
 };
 
 use crate::{
-    common::modal::{ModalSize, ResponsiveModalSize, show_modal},
+    common::ui::modal::{ModalSize, ResponsiveModalSize, show_modal},
     host::ui::UiActions,
     session::ui::shared::export::{ExportState, TextExportModalState, TextExportValidationError},
 };
