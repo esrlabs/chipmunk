@@ -18,10 +18,15 @@ pub enum LoadState<T> {
 pub enum StorageEvent {
     /// File-explorer startup load results.
     FileExplorerLoaded(Result<Box<FileExplorerData>, StorageError>),
-    /// Favorite-folder scan results for a specific request.
+    /// Favorite-folder tree scan results for a specific request.
     FavoriteFoldersScanned {
         request_id: u64,
         result: Result<Vec<FavoriteFolder>, StorageError>,
+    },
+    /// Favorite-folder tree scan reached the per-root entry limit for one or more roots.
+    FavoriteFolderLimitReached {
+        folder_names: Vec<String>,
+        max_entries_count: usize,
     },
 }
 

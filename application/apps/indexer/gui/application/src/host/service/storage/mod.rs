@@ -56,11 +56,11 @@ impl StorageService {
         let event_tx = self.event_tx.clone();
 
         tokio::task::spawn_blocking(move || {
-            let result = file_explorer::scan_favorite_folders(&paths);
+            let favorite_folders = file_explorer::scan_favorite_folders(&paths, &event_tx);
 
             let event = StorageEvent::FavoriteFoldersScanned {
                 request_id,
-                result: Ok(result),
+                result: Ok(favorite_folders),
             };
 
             if event_tx.blocking_send(event).is_err() {

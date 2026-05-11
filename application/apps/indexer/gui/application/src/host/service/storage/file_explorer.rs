@@ -11,14 +11,14 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use super::storage_path;
-use crate::host::{
-    common::file_utls,
-    ui::storage::{
-        FavoriteFolder, FileExplorerData, FileUiInfo, StorageError, StorageErrorKind, StorageEvent,
-    },
+use crate::host::ui::storage::{
+    FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
+    StorageErrorKind, StorageEvent,
 };
 
 const FILE_EXPLORER_FILE: &str = "file_explorer.json";
+const FAVORITE_SCAN_MAX_DEPTH: usize = 5;
+pub const FAVORITE_SCAN_MAX_ENTRIES: usize = 20_000;
 
 /// Path-only file-explorer schema stored on disk.
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -45,9 +45,8 @@ pub fn spawn_load(event_tx: mpsc::Sender<StorageEvent>) {
 
         match result {
             Ok(data) => {
-                let data = FileExplorerData {
-                    favorite_folders: scan_favorite_folders(&data.favorite_folders),
-                };
+                let favorite_folders = scan_favorite_folders(&data.favorite_folders, &event_tx);
+                let data = FileExplorerData { favorite_folders };
                 _ = event_tx.blocking_send(StorageEvent::FileExplorerLoaded(Ok(Box::new(data))));
             }
             Err(err) => {
@@ -94,9 +93,46 @@ fn load(path: &Path) -> Result<PersistedFileExplorerData, StorageError> {
     })
 }
 
-/// Scans the provided favorite folders and returns runtime file snapshots.
-pub fn scan_favorite_folders(paths: &[PathBuf]) -> Vec<FavoriteFolder> {
-    paths.iter().map(|p| scan_folder(p)).collect()
+/// Scans the provided favorite folders and returns runtime tree snapshots.
+pub fn scan_favorite_folders(
+    paths: &[PathBuf],
+    event_tx: &mpsc::Sender<StorageEvent>,
+) -> Vec<FavoriteFolder> {
+    scan_favorite_folders_with_limit(paths, FAVORITE_SCAN_MAX_ENTRIES, event_tx)
+}
+
+fn scan_favorite_folders_with_limit(
+    paths: &[PathBuf],
+    max_entries: usize,
+    event_tx: &mpsc::Sender<StorageEvent>,
+) -> Vec<FavoriteFolder> {
+    let mut favorite_folders = Vec::with_capacity(paths.len());
+    let mut limited_folder_names = Vec::new();
+
+    for path in paths {
+        let mut remaining_entries = max_entries;
+        favorite_folders.push(scan_folder(path, &mut remaining_entries));
+        if remaining_entries == 0 {
+            limited_folder_names.push(
+                path.file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| path.to_string_lossy().into_owned()),
+            );
+        }
+    }
+
+    if !limited_folder_names.is_empty()
+        && event_tx
+            .blocking_send(StorageEvent::FavoriteFolderLimitReached {
+                folder_names: limited_folder_names,
+                max_entries_count: max_entries,
+            })
+            .is_err()
+    {
+        warn!("Failed to send favorite-folder scan limit warning");
+    }
+
+    favorite_folders
 }
 
 /// Persists the file-explorer domain to its storage file.
@@ -124,20 +160,53 @@ fn get_path() -> Result<PathBuf, StorageError> {
     storage_path().map(|storage_dir| storage_dir.join(FILE_EXPLORER_FILE))
 }
 
-/// Scans one favorite folder without recursing into subdirectories.
-fn scan_folder(path: &Path) -> FavoriteFolder {
+fn scan_folder(path: &Path, remaining_entries: &mut usize) -> FavoriteFolder {
     let mut folder = FavoriteFolder::new(path.to_owned());
+
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(err) => {
+            warn!(
+                "Failed to read metadata for favorite folder {}: {err}",
+                path.display()
+            );
+            return folder;
+        }
+    };
+
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return folder;
+    }
+
+    folder.children = scan_children(path, 0, remaining_entries);
+    folder
+}
+
+fn scan_children(
+    path: &Path,
+    parent_depth: usize,
+    remaining_entries: &mut usize,
+) -> Vec<FileTreeNode> {
+    if *remaining_entries == 0 {
+        return Vec::new();
+    }
 
     let entries = match std::fs::read_dir(path) {
         Ok(entries) => entries,
         Err(err) => {
             warn!("Failed to scan favorite folder {}: {err}", path.display());
-
-            return folder;
+            return Vec::new();
         }
     };
 
+    let child_depth = parent_depth + 1;
+    let mut children = Vec::new();
+
     for entry in entries {
+        if *remaining_entries == 0 {
+            break;
+        }
+
         let entry = match entry {
             Ok(entry) => entry,
             Err(err) => {
@@ -149,60 +218,97 @@ fn scan_folder(path: &Path) -> FavoriteFolder {
             }
         };
 
-        let metadata = match entry.metadata() {
+        let entry_path = entry.path();
+        let metadata = match std::fs::symlink_metadata(&entry_path) {
             Ok(metadata) => metadata,
             Err(err) => {
                 warn!(
                     "Failed to read metadata for {} while scanning favorite folder {}: {err}",
-                    entry.path().display(),
+                    entry_path.display(),
                     path.display()
                 );
                 continue;
             }
         };
 
-        if metadata.file_type().is_symlink() || !metadata.is_file() {
+        let file_type = metadata.file_type();
+        if file_type.is_symlink() {
             continue;
         }
 
-        let file_name = entry.file_name().display().to_string();
-        if file_name.starts_with('.') {
+        let kind = if file_type.is_dir() {
+            if child_depth >= FAVORITE_SCAN_MAX_DEPTH {
+                continue;
+            }
+            *remaining_entries -= 1;
+            FileTreeNodeKind::Folder(scan_children(&entry_path, child_depth, remaining_entries))
+        } else if file_type.is_file() {
+            if child_depth > FAVORITE_SCAN_MAX_DEPTH {
+                continue;
+            }
+            *remaining_entries -= 1;
+            FileTreeNodeKind::File
+        } else {
             continue;
-        }
+        };
 
-        folder.files.push(FileUiInfo::new(
-            file_name,
-            file_utls::format_file_size(metadata.len()),
-        ));
+        children.push(FileTreeNode {
+            path: entry_path,
+            name: entry.file_name().to_string_lossy().into_owned(),
+            kind,
+        });
     }
 
-    folder
+    sort_tree_nodes(&mut children);
+    children
+}
+
+fn sort_tree_nodes(nodes: &mut [FileTreeNode]) {
+    nodes.sort_unstable_by(|left, right| {
+        tree_node_kind_rank(&left.kind)
+            .cmp(&tree_node_kind_rank(&right.kind))
+            .then_with(|| left.name.cmp(&right.name))
+    });
+}
+
+fn tree_node_kind_rank(kind: &FileTreeNodeKind) -> u8 {
+    match kind {
+        FileTreeNodeKind::Folder(_) => 0,
+        FileTreeNodeKind::File => 1,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::{
         fs,
-        os::unix::fs::symlink,
         path::{Path, PathBuf},
+        sync::atomic::{AtomicU64, Ordering},
         time::{SystemTime, UNIX_EPOCH},
     };
 
+    use tokio::sync::mpsc;
+
     use crate::host::service::storage::storage_path_from_home;
     use crate::host::ui::storage::{
-        FavoriteFolder, FileExplorerData, StorageError, StorageErrorKind,
+        FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
+        StorageErrorKind, StorageEvent,
     };
 
     use super::{
-        FILE_EXPLORER_FILE, PersistedFileExplorerData, load, save_to_path, scan_favorite_folders,
+        FAVORITE_SCAN_MAX_ENTRIES, FILE_EXPLORER_FILE, PersistedFileExplorerData, load,
+        save_to_path, scan_favorite_folders_with_limit,
     };
+
+    static NEXT_TEST_DIR_ID: AtomicU64 = AtomicU64::new(0);
 
     fn test_home_dir() -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("system time must be after unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("chipmunk-file-explorer-test-{unique}"));
+        let id = NEXT_TEST_DIR_ID.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("chipmunk-file-explorer-test-{unique}-{id}"));
         fs::create_dir_all(&path).expect("temp test home dir should be created");
         path
     }
@@ -216,6 +322,41 @@ mod tests {
         PersistedFileExplorerData {
             favorite_folders: paths.to_vec(),
         }
+    }
+
+    fn file_node(path: PathBuf, name: &str) -> FileTreeNode {
+        FileTreeNode {
+            path,
+            name: name.into(),
+            kind: FileTreeNodeKind::File,
+        }
+    }
+
+    fn child_names(nodes: &[FileTreeNode]) -> Vec<&str> {
+        nodes.iter().map(|node| node.name.as_str()).collect()
+    }
+
+    fn folder_children<'a>(nodes: &'a [FileTreeNode], name: &str) -> &'a [FileTreeNode] {
+        let node = nodes
+            .iter()
+            .find(|node| node.name == name)
+            .unwrap_or_else(|| panic!("folder {name} should exist"));
+
+        let FileTreeNodeKind::Folder(children) = &node.kind else {
+            panic!("{name} should be a folder");
+        };
+
+        children
+    }
+
+    fn scan(paths: &[PathBuf]) -> Vec<FavoriteFolder> {
+        let (event_tx, _event_rx) = mpsc::channel(1);
+        scan_favorite_folders_with_limit(paths, FAVORITE_SCAN_MAX_ENTRIES, &event_tx)
+    }
+
+    fn scan_with_limit(paths: &[PathBuf], max_entries: usize) -> Vec<FavoriteFolder> {
+        let (event_tx, _event_rx) = mpsc::channel(1);
+        scan_favorite_folders_with_limit(paths, max_entries, &event_tx)
     }
 
     #[test]
@@ -242,18 +383,16 @@ mod tests {
     }
 
     #[test]
-    fn save_skips_scanned_files() {
+    fn save_skips_scanned_tree() {
         let home_dir = test_home_dir();
         let path = path_from_home(&home_dir).expect("path should resolve");
         let mut runtime = FileExplorerData {
             favorite_folders: vec![FavoriteFolder::new(PathBuf::from("/tmp/favorites"))],
         };
-        runtime.favorite_folders[0]
-            .files
-            .push(crate::host::ui::storage::FileUiInfo::new(
-                "visible.log".into(),
-                "1 B".into(),
-            ));
+        runtime.favorite_folders[0].children.push(file_node(
+            PathBuf::from("/tmp/favorites/visible.log"),
+            "visible.log",
+        ));
 
         save_to_path(&path, &PersistedFileExplorerData::from(&runtime))
             .expect("save should succeed");
@@ -287,35 +426,149 @@ mod tests {
     }
 
     #[test]
-    fn scan_filters_entries() {
+    fn scan_includes_nested_content_and_hidden_files() {
         let dir = test_home_dir();
-        let visible = dir.join("visible.log");
-        let hidden = dir.join(".hidden.log");
         let nested_dir = dir.join("nested");
-        let symlink_path = dir.join("linked.log");
-
-        fs::write(&visible, "hello").expect("visible file should be written");
-        fs::write(&hidden, "secret").expect("hidden file should be written");
         fs::create_dir(&nested_dir).expect("nested dir should be created");
-        symlink(&visible, &symlink_path).expect("symlink should be created");
+        fs::write(dir.join("visible.log"), "hello").expect("visible file should be written");
+        fs::write(dir.join(".hidden.log"), "secret").expect("hidden file should be written");
+        fs::write(nested_dir.join("nested.log"), "nested").expect("nested file should be written");
 
-        let scanned = scan_favorite_folders(std::slice::from_ref(&dir));
+        let scanned = scan(std::slice::from_ref(&dir));
 
         assert_eq!(scanned.len(), 1);
         assert_eq!(scanned[0].path, dir);
-        assert_eq!(scanned[0].files.len(), 1);
-        assert_eq!(scanned[0].files[0].name, "visible.log");
+        assert_eq!(
+            child_names(&scanned[0].children),
+            vec!["nested", ".hidden.log", "visible.log"]
+        );
+        assert_eq!(
+            child_names(folder_children(&scanned[0].children, "nested")),
+            vec!["nested.log"]
+        );
+
+        let _ = fs::remove_dir_all(scanned[0].path.clone());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scan_skips_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let dir = test_home_dir();
+        let visible = dir.join("visible.log");
+        let symlink_path = dir.join("linked.log");
+
+        fs::write(&visible, "hello").expect("visible file should be written");
+        symlink(&visible, &symlink_path).expect("symlink should be created");
+
+        let scanned = scan(std::slice::from_ref(&dir));
+
+        assert_eq!(child_names(&scanned[0].children), vec!["visible.log"]);
+
+        let _ = fs::remove_dir_all(scanned[0].path.clone());
+    }
+
+    #[test]
+    fn scan_applies_limit_per_root() {
+        let first = test_home_dir();
+        let second = test_home_dir();
+        let counted_folder = first.join("counted_folder");
+        fs::create_dir(&counted_folder).expect("folder should be created");
+        fs::write(counted_folder.join("nested.log"), "nested")
+            .expect("nested file should be written");
+        fs::write(second.join("second.log"), "second").expect("second file should be written");
+
+        let scanned = scan_with_limit(&[first.clone(), second.clone()], 1);
+
+        assert_eq!(child_names(&scanned[0].children), vec!["counted_folder"]);
+        assert!(folder_children(&scanned[0].children, "counted_folder").is_empty());
+        assert_eq!(child_names(&scanned[1].children), vec!["second.log"]);
+
+        let _ = fs::remove_dir_all(first);
+        let _ = fs::remove_dir_all(second);
+    }
+
+    #[test]
+    fn scan_limit_sends_one_warning_with_folder_names() {
+        let first = test_home_dir();
+        let second = test_home_dir();
+        fs::write(first.join("first.log"), "first").expect("first file should be written");
+        fs::write(second.join("second.log"), "second").expect("second file should be written");
+
+        let (event_tx, mut event_rx) = mpsc::channel(1);
+        let scanned =
+            scan_favorite_folders_with_limit(&[first.clone(), second.clone()], 1, &event_tx);
+
+        assert_eq!(child_names(&scanned[0].children), vec!["first.log"]);
+        assert_eq!(child_names(&scanned[1].children), vec!["second.log"]);
+        assert!(matches!(
+            event_rx.try_recv(),
+            Ok(StorageEvent::FavoriteFolderLimitReached {
+                folder_names,
+                max_entries_count: 1,
+            }) if folder_names == vec![
+                first.file_name().unwrap().to_string_lossy().into_owned(),
+                second.file_name().unwrap().to_string_lossy().into_owned(),
+            ]
+        ));
+        assert!(event_rx.try_recv().is_err());
+
+        let _ = fs::remove_dir_all(first);
+        let _ = fs::remove_dir_all(second);
+    }
+
+    #[test]
+    fn scan_sorts_folders_before_files_by_name() {
+        let dir = test_home_dir();
+        fs::create_dir(dir.join("b_folder")).expect("folder should be created");
+        fs::create_dir(dir.join("a_folder")).expect("folder should be created");
+        fs::write(dir.join("b.log"), "b").expect("file should be written");
+        fs::write(dir.join("a.log"), "a").expect("file should be written");
+
+        let scanned = scan(std::slice::from_ref(&dir));
+
+        assert_eq!(
+            child_names(&scanned[0].children),
+            vec!["a_folder", "b_folder", "a.log", "b.log"]
+        );
 
         let _ = fs::remove_dir_all(scanned[0].path.clone());
     }
 
     #[test]
     fn missing_folder_returns_empty_snapshot() {
-        let missing = std::env::temp_dir().join("chipmunk-missing-favorite-folder");
-        let scanned = scan_favorite_folders(std::slice::from_ref(&missing));
+        let home_dir = test_home_dir();
+        let missing = home_dir.join("missing");
+        let scanned = scan(std::slice::from_ref(&missing));
 
         assert_eq!(scanned.len(), 1);
         assert_eq!(scanned[0].path, missing);
-        assert!(scanned[0].files.is_empty());
+        assert!(scanned[0].children.is_empty());
+
+        let _ = fs::remove_dir_all(home_dir);
+    }
+
+    #[test]
+    fn folders_at_max_depth_are_not_shown_as_empty() {
+        let dir = test_home_dir();
+        let d1 = dir.join("d1");
+        let d2 = d1.join("d2");
+        let d3 = d2.join("d3");
+        let d4 = d3.join("d4");
+        let d5 = d4.join("d5");
+        fs::create_dir_all(&d5).expect("deep folders should be created");
+        fs::write(d4.join("depth5.log"), "depth 5").expect("depth 5 file should be written");
+        fs::write(d5.join("too-deep.log"), "too deep").expect("too deep file should be written");
+
+        let scanned = scan(std::slice::from_ref(&dir));
+        let d1_children = folder_children(&scanned[0].children, "d1");
+        let d2_children = folder_children(d1_children, "d2");
+        let d3_children = folder_children(d2_children, "d3");
+        let d4_children = folder_children(d3_children, "d4");
+
+        assert_eq!(child_names(d4_children), vec!["depth5.log"]);
+
+        let _ = fs::remove_dir_all(scanned[0].path.clone());
     }
 }
