@@ -9,6 +9,9 @@ use super::{LoadState, SaveOutcome, StorageError};
 pub struct FileExplorerStorage {
     /// Current loaded file-explorer snapshot.
     pub state: LoadState<FileExplorerData>,
+    /// Monotonic revision for runtime tree data changes.
+    /// This is used to keep file storage and their search cache in sync.
+    pub revision: u64,
     /// True when the favorite-folder path list still needs to be saved.
     dirty: bool,
     next_scan_request_id: u64,
@@ -24,22 +27,33 @@ pub struct FileExplorerData {
     pub favorite_folders: Vec<FavoriteFolder>,
 }
 
-/// One favorite folder and its currently scanned top-level files.
-#[derive(Debug, Clone)]
+/// One favorite folder and its currently scanned tree children.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FavoriteFolder {
     /// Directory path saved as a favorite.
     pub path: PathBuf,
-    /// Runtime-only file list rebuilt by scanning the directory.
-    pub files: Vec<FileUiInfo>,
+    /// Runtime-only tree rebuilt by scanning the directory.
+    pub children: Vec<FileTreeNode>,
 }
 
-/// File row data rendered under a favorite folder.
+/// Runtime file-tree node rendered under a favorite folder.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FileUiInfo {
-    /// File name shown in the UI.
+pub struct FileTreeNode {
+    /// Absolute path to the file-system entry.
+    pub path: PathBuf,
+    /// File or folder name shown in the UI.
     pub name: String,
-    /// Preformatted human-readable size text.
-    pub size_txt: String,
+    /// Entry kind and nested folder contents.
+    pub kind: FileTreeNodeKind,
+}
+
+/// Runtime file-tree node kind.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileTreeNodeKind {
+    /// Folder children from the latest scan snapshot.
+    Folder(Vec<FileTreeNode>),
+    /// Regular file.
+    File,
 }
 
 /// Prepared scan request for favorite folders.
@@ -56,6 +70,7 @@ impl FileExplorerStorage {
     pub fn new() -> Self {
         Self {
             state: LoadState::Loading,
+            revision: 0,
             dirty: false,
             next_scan_request_id: 1,
             active_scan_request_id: None,
@@ -74,7 +89,7 @@ impl FileExplorerStorage {
             .any(|folder| folder.path == path)
     }
 
-    /// Returns the current snapshot only when the domain is ready and dirty.
+    /// Returns the path-only save snapshot when the domain is ready and dirty.
     pub fn get_save_data(&self) -> Option<FileExplorerData> {
         if !self.dirty {
             return None;
@@ -84,7 +99,13 @@ impl FileExplorerStorage {
             return None;
         };
 
-        Some(data.clone())
+        Some(FileExplorerData {
+            favorite_folders: data
+                .favorite_folders
+                .iter()
+                .map(|folder| FavoriteFolder::new(folder.path.clone()))
+                .collect(),
+        })
     }
 
     /// Applies a load result, falling back to the default ready state on error.
@@ -105,6 +126,7 @@ impl FileExplorerStorage {
         self.dirty = false;
         self.active_scan_request_id = None;
         self.active_scan_marks_dirty = false;
+        self.bump_revision();
 
         err
     }
@@ -165,8 +187,11 @@ impl FileExplorerStorage {
                     return None;
                 };
 
-                upsert_favorite_folders(&mut data.favorite_folders, scanned_folders);
+                let changed = upsert_favorite_folders(&mut data.favorite_folders, scanned_folders);
                 sort_favorite_folders(&mut data.favorite_folders);
+                if changed {
+                    self.bump_revision();
+                }
                 self.dirty |= mark_dirty;
                 None
             }
@@ -182,7 +207,11 @@ impl FileExplorerStorage {
 
         let initial_len = data.favorite_folders.len();
         data.favorite_folders.retain(|folder| folder.path != path);
-        self.dirty |= data.favorite_folders.len() != initial_len;
+        let removed = data.favorite_folders.len() != initial_len;
+        if removed {
+            self.dirty = true;
+            self.bump_revision();
+        }
     }
 
     pub(super) fn apply_save_outcome(&mut self, outcome: SaveOutcome) {
@@ -191,6 +220,10 @@ impl FileExplorerStorage {
             SaveOutcome::Failed => true,
         };
     }
+
+    fn bump_revision(&mut self) {
+        self.revision = self.revision.wrapping_add(1);
+    }
 }
 
 impl FavoriteFolder {
@@ -198,32 +231,33 @@ impl FavoriteFolder {
     pub fn new(path: PathBuf) -> Self {
         Self {
             path,
-            files: Vec::new(),
+            children: Vec::new(),
         }
-    }
-}
-
-impl FileUiInfo {
-    /// Creates one rendered file entry.
-    pub fn new(name: String, size_txt: String) -> Self {
-        Self { name, size_txt }
     }
 }
 
 fn upsert_favorite_folders(
     favorite_folders: &mut Vec<FavoriteFolder>,
     scanned: Vec<FavoriteFolder>,
-) {
+) -> bool {
+    let mut changed = false;
+
     for folder in scanned {
         if let Some(existing) = favorite_folders
             .iter_mut()
             .find(|existing| existing.path == folder.path)
         {
-            *existing = folder;
+            if *existing != folder {
+                *existing = folder;
+                changed = true;
+            }
         } else {
             favorite_folders.push(folder);
+            changed = true;
         }
     }
+
+    changed
 }
 
 fn sort_favorite_folders(favorite_folders: &mut [FavoriteFolder]) {
@@ -235,7 +269,8 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{
-        FavoriteFolder, FileExplorerData, FileExplorerStorage, FileUiInfo, LoadState, StorageError,
+        FavoriteFolder, FileExplorerData, FileExplorerStorage, FileTreeNode, FileTreeNodeKind,
+        LoadState, StorageError,
     };
     use crate::host::ui::storage::StorageErrorKind;
 
@@ -244,12 +279,22 @@ mod tests {
     }
 
     fn folder(path: &str, file_names: &[&str]) -> FavoriteFolder {
+        let path = PathBuf::from(path);
+
         FavoriteFolder {
-            path: PathBuf::from(path),
-            files: file_names
+            path: path.clone(),
+            children: file_names
                 .iter()
-                .map(|name| FileUiInfo::new((*name).into(), "1 B".into()))
+                .map(|name| file_node(path.join(name), name))
                 .collect(),
+        }
+    }
+
+    fn file_node(path: PathBuf, name: &str) -> FileTreeNode {
+        FileTreeNode {
+            path,
+            name: name.into(),
+            kind: FileTreeNodeKind::File,
         }
     }
 
@@ -263,6 +308,7 @@ mod tests {
 
         assert!(error.is_none());
         assert!(!storage.dirty);
+        assert_eq!(storage.revision, 1);
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders })
@@ -287,6 +333,7 @@ mod tests {
                 ..
             })
         ));
+        assert_eq!(storage.revision, 1);
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders }) if favorite_folders.is_empty()
@@ -317,6 +364,7 @@ mod tests {
 
         assert!(error.is_none());
         assert_eq!(storage.active_scan_request_id, Some(1));
+        assert_eq!(storage.revision, 1);
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders }) if favorite_folders.is_empty()
@@ -336,15 +384,32 @@ mod tests {
         let error = storage.finish_scan(request.request_id, Ok(vec![folder("/tmp", &["new.log"])]));
 
         assert!(error.is_none());
+        assert_eq!(storage.revision, 2);
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders })
                 if favorite_folders.len() == 2
                     && favorite_folders[0].path.as_path() == Path::new("/other")
                     && favorite_folders[1].path.as_path() == Path::new("/tmp")
-                    && favorite_folders[1].files[0].name == "new.log"
+                    && favorite_folders[1].children[0].name == "new.log"
         ));
         assert!(storage.active_scan_request_id.is_none());
+    }
+
+    #[test]
+    fn finish_scan_keeps_revision_when_snapshot_is_same() {
+        let mut storage = test_storage();
+        storage.finish_load(Ok(Box::new(FileExplorerData {
+            favorite_folders: vec![folder("/tmp", &["old.log"])],
+        })));
+        let request = storage
+            .prepare_scan(vec![PathBuf::from("/tmp")])
+            .expect("scan request should be prepared");
+
+        let error = storage.finish_scan(request.request_id, Ok(vec![folder("/tmp", &["old.log"])]));
+
+        assert!(error.is_none());
+        assert_eq!(storage.revision, 1);
     }
 
     #[test]
@@ -360,6 +425,28 @@ mod tests {
 
         assert!(error.is_none());
         assert!(storage.dirty);
+        assert_eq!(storage.revision, 2);
+    }
+
+    #[test]
+    fn save_data_omits_scanned_tree() {
+        let mut storage = test_storage();
+        storage.finish_load(Ok(Box::new(FileExplorerData::default())));
+        let request = storage
+            .prepare_add_scan(vec![PathBuf::from("/tmp")])
+            .expect("add scan request should be prepared");
+        storage.finish_scan(
+            request.request_id,
+            Ok(vec![folder("/tmp", &["runtime.log"])]),
+        );
+
+        let save_data = storage
+            .get_save_data()
+            .expect("dirty file explorer data should be saved");
+
+        assert_eq!(save_data.favorite_folders.len(), 1);
+        assert_eq!(save_data.favorite_folders[0].path, PathBuf::from("/tmp"));
+        assert!(save_data.favorite_folders[0].children.is_empty());
     }
 
     #[test]
@@ -377,10 +464,11 @@ mod tests {
 
         assert!(error.is_none());
         assert!(!storage.dirty);
+        assert_eq!(storage.revision, 2);
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders })
-                if favorite_folders.len() == 1 && favorite_folders[0].files[0].name == "new.log"
+                if favorite_folders.len() == 1 && favorite_folders[0].children[0].name == "new.log"
         ));
     }
 
@@ -394,6 +482,7 @@ mod tests {
         storage.remove_favorite_folder(Path::new("/tmp"));
 
         assert!(storage.dirty);
+        assert_eq!(storage.revision, 2);
         assert!(matches!(
             storage.state,
             LoadState::Ready(FileExplorerData { favorite_folders })

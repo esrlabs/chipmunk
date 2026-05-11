@@ -48,7 +48,7 @@ pub enum HostCommand {
         data: Box<StorageSaveData>,
         confirm_tx: StdSender<Result<(), StorageError>>,
     },
-    /// Scans one or more favorite folders without blocking the UI thread.
+    /// Scans one or more favorite folder trees without blocking the UI thread.
     ScanFavoriteFolders(Box<ScanFavoriteFoldersParam>),
     CloseSessionSetup(Uuid),
     CloseMultiSetup(Uuid),
@@ -87,7 +87,7 @@ pub struct DltStatisticsParam {
 pub struct ScanFavoriteFoldersParam {
     /// Local request identifier echoed back with the scan result.
     pub request_id: u64,
-    /// Favorite-folder paths to scan without recursing into subdirectories.
+    /// Favorite-folder paths to scan recursively.
     pub paths: Vec<PathBuf>,
 }
 

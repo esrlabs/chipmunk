@@ -14,7 +14,8 @@ use tokio::sync::mpsc;
 use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
 pub use file_explorer::{
-    FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerData, FileExplorerStorage, FileUiInfo,
+    FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerData, FileExplorerStorage,
+    FileTreeNode, FileTreeNodeKind,
 };
 pub use recent::MAX_RECENT_SESSIONS;
 pub use recent::{
@@ -192,6 +193,16 @@ impl HostStorage {
             StorageEvent::FavoriteFoldersScanned { request_id, result } => {
                 let err = self.file_explorer.finish_scan(request_id, result);
                 self.notify_storage_error(err, ui_actions);
+            }
+            StorageEvent::FavoriteFolderLimitReached {
+                folder_names,
+                max_entries_count,
+            } => {
+                ui_actions.add_notification(AppNotification::Warning(format!(
+                    "Favorite folder scan reached the {max_entries_count} entry limit for: {}.\n\
+                    Some entries may be omitted.",
+                    folder_names.join(", ")
+                )));
             }
         }
     }
@@ -448,6 +459,25 @@ mod tests {
         assert!(matches!(
             storage.file_explorer.state,
             LoadState::Ready(FileExplorerData { favorite_folders }) if favorite_folders.len() == 1
+        ));
+    }
+
+    #[test]
+    fn file_explorer_scan_limit_events_notify_warning() {
+        let (mut storage, _) = test_storage();
+        let (_runtime, mut ui_actions) = test_ui_actions();
+
+        storage.handle_event(
+            StorageEvent::FavoriteFolderLimitReached {
+                folder_names: vec!["logs".into()],
+                max_entries_count: 20_000,
+            },
+            &mut ui_actions,
+        );
+
+        assert!(matches!(
+            ui_actions.drain_notifications().next(),
+            Some(AppNotification::Warning(_))
         ));
     }
 }
