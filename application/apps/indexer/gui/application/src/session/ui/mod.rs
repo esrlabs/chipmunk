@@ -16,7 +16,7 @@ use crate::{
             HostAction, UiActions,
             registry::{HostRegistry, filters::FilterRegistry},
             shortcuts::state::LastShortcutKey,
-            state::PanelsVisibility,
+            state::HostPreferences,
             storage::{HostStorage, RecentSessionSource, RecentSessionStateSnapshot},
         },
     },
@@ -116,7 +116,7 @@ impl Session {
         &mut self,
         actions: &mut UiActions,
         registry: &mut HostRegistry,
-        panels_visibility: &mut PanelsVisibility,
+        preferences: &mut HostPreferences,
         ui: &mut Ui,
     ) {
         let Self {
@@ -149,7 +149,7 @@ impl Session {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_animated_inside(ui, panels_visibility.right, |ui| {
+            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
                 ui.take_available_width();
                 side_panel.render_content(ui, shared, actions, registry);
             });
@@ -159,7 +159,7 @@ impl Session {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_animated_inside(ui, panels_visibility.bottom, |ui| {
+            .show_animated_inside(ui, preferences.panels_visibility.bottom, |ui| {
                 ui.take_available_height();
                 bottom_panel.render_content(shared, actions, registry, ui);
             });
@@ -171,7 +171,7 @@ impl Session {
                 // they will be used as identifiers for table state to avoid ID clashes between
                 // tables from different tabs (different sessions).
                 ui.push_id(shared.get_id(), |ui| {
-                    logs_table.render_content(shared, actions, panels_visibility, ui);
+                    logs_table.render_content(shared, actions, preferences, ui);
                 });
             });
 
@@ -180,7 +180,7 @@ impl Session {
         self.attachment_modal
             .render_content(&mut shared.attachments, ui);
 
-        self.handle_signals(registry, panels_visibility);
+        self.handle_signals(registry, preferences);
     }
 
     fn render_busy_indicator(shared: &SessionShared, actions: &mut UiActions, ui: &Ui) {
@@ -200,16 +200,12 @@ impl Session {
     }
 
     /// Processes frame-local signals queued by child session components.
-    fn handle_signals(
-        &mut self,
-        registry: &mut HostRegistry,
-        panels_visibility: &mut PanelsVisibility,
-    ) {
+    fn handle_signals(&mut self, registry: &mut HostRegistry, preferences: &mut HostPreferences) {
         let signals = std::mem::take(&mut self.shared.signals);
         for event in signals {
             match event {
                 SessionSignal::SearchDropped => self.handle_search_dropped(),
-                SessionSignal::CapturePreset => self.capture_preset(registry, panels_visibility),
+                SessionSignal::CapturePreset => self.capture_preset(registry, preferences),
             }
         }
     }
@@ -220,12 +216,8 @@ impl Session {
     }
 
     /// Opens the presets panel and captures the current session filters and charts.
-    fn capture_preset(
-        &mut self,
-        registry: &mut HostRegistry,
-        panels_visibility: &mut PanelsVisibility,
-    ) {
-        panels_visibility.bottom = true;
+    fn capture_preset(&mut self, registry: &mut HostRegistry, preferences: &mut HostPreferences) {
+        preferences.panels_visibility.bottom = true;
         self.shared.bottom_tab = BottomTabType::Presets;
         self.bottom_panel
             .presets
@@ -462,16 +454,16 @@ impl Session {
     pub fn handle_shortcuts(
         &mut self,
         actions: &mut UiActions,
-        panels_visibility: &mut PanelsVisibility,
+        preferences: &mut HostPreferences,
         ctx: &Context,
         last_key: Option<&LastShortcutKey>,
     ) -> bool {
-        shortcuts::handle(self, actions, panels_visibility, ctx, last_key)
+        shortcuts::handle(self, actions, preferences, ctx, last_key)
     }
 
-    fn activate_search_tab(&mut self, panels_visibility: &mut PanelsVisibility) {
+    fn activate_search_tab(&mut self, preferences: &mut HostPreferences) {
         self.bottom_panel.search.bar.request_focus();
-        self.activate_bottom_tab(BottomTabType::Search, panels_visibility);
+        self.activate_bottom_tab(BottomTabType::Search, preferences);
     }
 
     fn activate_main_logs_table(&mut self, ctx: &Context) {
@@ -479,27 +471,19 @@ impl Session {
         clear_text_edit_focus(ctx);
     }
 
-    fn activate_search_results_table(
-        &mut self,
-        panels_visibility: &mut PanelsVisibility,
-        ctx: &Context,
-    ) {
-        self.activate_bottom_tab(BottomTabType::Search, panels_visibility);
+    fn activate_search_results_table(&mut self, preferences: &mut HostPreferences, ctx: &Context) {
+        self.activate_bottom_tab(BottomTabType::Search, preferences);
         self.shared.view.active_log_table = LogTableKind::Search;
         clear_text_edit_focus(ctx);
     }
 
-    fn activate_bottom_tab(
-        &mut self,
-        tab: BottomTabType,
-        panels_visibility: &mut PanelsVisibility,
-    ) {
-        panels_visibility.bottom = true;
+    fn activate_bottom_tab(&mut self, tab: BottomTabType, preferences: &mut HostPreferences) {
+        preferences.panels_visibility.bottom = true;
         self.shared.bottom_tab = tab;
     }
 
-    fn activate_side_tab(&mut self, tab: SideTabType, panels_visibility: &mut PanelsVisibility) {
-        panels_visibility.right = true;
+    fn activate_side_tab(&mut self, tab: SideTabType, preferences: &mut HostPreferences) {
+        preferences.panels_visibility.right = true;
         self.shared.side_tab = tab;
     }
 
@@ -510,13 +494,13 @@ impl Session {
     fn scroll_active_table(
         &mut self,
         action: TableScroll,
-        panels_visibility: &PanelsVisibility,
+        preferences: &mut HostPreferences,
         ctx: &Context,
     ) {
         let active_target = match self.shared.view.log_table_target(ctx) {
             Some(LogTableKind::Search) => {
-                let search_table_visible =
-                    panels_visibility.bottom && self.shared.bottom_tab == BottomTabType::Search;
+                let search_table_visible = preferences.panels_visibility.bottom
+                    && self.shared.bottom_tab == BottomTabType::Search;
                 if search_table_visible {
                     LogTableKind::Search
                 } else {
@@ -529,13 +513,14 @@ impl Session {
 
         match active_target {
             LogTableKind::Main => self.scroll_main_table(action),
-            LogTableKind::Search => self.scroll_search_table(action, panels_visibility),
+            LogTableKind::Search => self.scroll_search_table(action, preferences),
         }
     }
 
-    fn scroll_search_table(&mut self, action: TableScroll, panels_visibility: &PanelsVisibility) {
+    fn scroll_search_table(&mut self, action: TableScroll, preferences: &mut HostPreferences) {
         // Don't scroll if search table isn't visible.
-        if !panels_visibility.bottom || self.shared.bottom_tab != BottomTabType::Search {
+        if !preferences.panels_visibility.bottom || self.shared.bottom_tab != BottomTabType::Search
+        {
             return;
         }
 

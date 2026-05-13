@@ -1,7 +1,12 @@
-//! Host-side storage coordination.
+//! Host-side storage coordination for app-domain state.
 //!
 //! `HostStorage` owns the UI-facing storage domains and coordinates load/save
 //! requests, while the host service storage worker remains responsible for disk I/O.
+//!
+//! Use this module for heavier application logic state that needs service-owned
+//! persistence, such as recent sessions and file explorer data. Lightweight UI
+//! preferences and presentation state should use `persist`, which is saved directly
+//! through eframe.
 
 use std::{
     sync::mpsc::{self as std_mpsc, Receiver as StdReceiver},
@@ -32,6 +37,7 @@ type SaveConfirmationRx = StdReceiver<Result<(), StorageError>>;
 
 const WAIT_PENDING_SAVE_TIMEOUT: Duration = Duration::from_millis(1000);
 
+/// Coordinates service-backed app-domain storage.
 #[derive(Debug)]
 pub struct HostStorage {
     cmd_tx: mpsc::Sender<HostCommand>,

@@ -45,6 +45,7 @@ mod info;
 mod menu;
 pub mod multi_setup;
 mod notification;
+mod persist;
 mod recent_session;
 pub mod registry;
 pub mod session_setup;
@@ -101,6 +102,8 @@ impl Host {
                 };
 
                 ctx.egui_ctx.all_styles_mut(app_style::global_styles);
+
+                persist::load(ctx.storage, &mut host);
 
                 host.handle_cli(cli_cmds)?;
 
@@ -320,17 +323,17 @@ impl Host {
             sessions,
             session_setups,
             multi_setups,
-            panels_visibility,
+            preferences,
             registry,
             ..
         } = state;
 
         match active_tab {
-            TabType::Home => home_view.render_content(storage, ui_actions, panels_visibility, ui),
+            TabType::Home => home_view.render_content(storage, ui_actions, preferences, ui),
             TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")
-                .render_content(ui_actions, registry, panels_visibility, ui),
+                .render_content(ui_actions, registry, preferences, ui),
             TabType::SessionSetup(id) => session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
@@ -418,7 +421,7 @@ fn render_tab_bar_utilities(
 
             render_panel_toggle(
                 ui,
-                &mut state.panels_visibility.right,
+                &mut state.preferences.panels_visibility.right,
                 icons::fill::SQUARE_HALF,
                 "Right panel",
             );
@@ -427,7 +430,7 @@ fn render_tab_bar_utilities(
         if state.show_bottom_panel_toggle() {
             render_panel_toggle(
                 ui,
-                &mut state.panels_visibility.bottom,
+                &mut state.preferences.panels_visibility.bottom,
                 icons::fill::SQUARE_HALF_BOTTOM,
                 "Bottom panel",
             );
@@ -502,7 +505,8 @@ impl eframe::App for Host {
         self.handle_ui_actions(ui.ctx());
     }
 
-    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        persist::save(storage, self);
         self.storage.schedule_save(&mut self.ui_actions);
     }
 

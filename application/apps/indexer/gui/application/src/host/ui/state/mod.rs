@@ -4,6 +4,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 pub mod info;
+pub mod preferences;
 mod presets;
 
 use crate::{
@@ -22,6 +23,7 @@ use crate::{
 };
 
 use self::info::AppInfoState;
+pub use preferences::HostPreferences;
 
 pub const HOME_TAB_IDX: usize = 0;
 
@@ -33,22 +35,13 @@ pub struct HostState {
     pub sessions: FxHashMap<Uuid, Session>,
     pub session_setups: FxHashMap<Uuid, SessionSetup>,
     pub multi_setups: FxHashMap<Uuid, MultiFileSetup>,
-    /// Shared visibility for the host right panel and session auxiliary panels.
-    pub panels_visibility: PanelsVisibility,
+    /// Persisted host UI preferences.
+    pub preferences: HostPreferences,
     pub registry: HostRegistry,
     pub app_info: AppInfoState,
     pub shortcuts: ShortcutState,
     /// Modal currently owned by the host UI.
     pub active_modal: Option<HostModal>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Shared visibility state for the host right panel and session auxiliary panels.
-pub struct PanelsVisibility {
-    /// Controls the right-side panel visibility in home and session views.
-    pub right: bool,
-    /// Controls the session bottom panel visibility.
-    pub bottom: bool,
 }
 
 /// Host-level modal dialogs that should be exclusive.
@@ -69,7 +62,7 @@ impl HostState {
             sessions: FxHashMap::default(),
             session_setups: FxHashMap::default(),
             multi_setups: FxHashMap::default(),
-            panels_visibility: PanelsVisibility::default(),
+            preferences: HostPreferences::default(),
             registry: HostRegistry::default(),
             app_info: AppInfoState::default(),
             shortcuts: ShortcutState::default(),
@@ -260,15 +253,6 @@ impl HostState {
         } else if self.active_tab_idx > removed_idx {
             // Tabs after the deleted one will be shifted one place to the left.
             self.active_tab_idx -= 1;
-        }
-    }
-}
-
-impl Default for PanelsVisibility {
-    fn default() -> Self {
-        Self {
-            right: true,
-            bottom: true,
         }
     }
 }

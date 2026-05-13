@@ -14,7 +14,7 @@ use stypes::GrabbedElement;
 use crate::{
     host::{
         common::parsers::ParserNames,
-        ui::{UiActions, state::PanelsVisibility},
+        ui::{UiActions, state::HostPreferences},
     },
     session::{
         command::{ExportTarget, SessionCommand},
@@ -78,7 +78,7 @@ impl LogsTable {
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
-        panels_visibility: &PanelsVisibility,
+        preferences: &mut HostPreferences,
         ui: &mut Ui,
     ) {
         // Disable fade effects on tables to avoid highlighting clashing.
@@ -99,7 +99,7 @@ impl LogsTable {
         }
 
         let search_table_visible =
-            panels_visibility.bottom && shared.bottom_tab == BottomTabType::Search;
+            preferences.panels_visibility.bottom && shared.bottom_tab == BottomTabType::Search;
 
         if let Some(focus) = shared.logs.take_main_row_focus() {
             const OFFSET: u64 = 3;
