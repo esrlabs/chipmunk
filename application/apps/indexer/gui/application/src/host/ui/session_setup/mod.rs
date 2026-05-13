@@ -15,7 +15,7 @@ use crate::{
     host::{
         command::HostCommand,
         common::{file_utls, parsers::ParserNames, sources::StreamNames},
-        ui::{UiActions, storage::RecentSessionsStorage},
+        ui::{UiActions, state::plugin::PluginsState, storage::RecentSessionsStorage},
     },
 };
 use state::{SessionSetupState, sources::ByteSourceConfig};
@@ -70,6 +70,7 @@ impl SessionSetup {
         &mut self,
         actions: &mut UiActions,
         recent_sessions: &mut RecentSessionsStorage,
+        plugins: &PluginsState,
         ui: &mut Ui,
     ) {
         Panel::top("selection_panel")
@@ -86,7 +87,7 @@ impl SessionSetup {
             .resizable(true)
             .show_inside(ui, |ui| {
                 ui.take_available_width();
-                side_config::render_content(&mut self.state, actions, ui);
+                side_config::render_content(&mut self.state, actions, plugins, ui);
             });
 
         CentralPanel::default().show_inside(ui, |ui| {

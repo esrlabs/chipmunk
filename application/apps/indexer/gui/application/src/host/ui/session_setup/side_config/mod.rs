@@ -1,8 +1,10 @@
+//! Parser side-panel rendering for session setup.
+
 use egui::{Color32, RichText, Ui};
 
 use crate::host::{
     common::{parsers::ParserNames, ui_utls::side_panel_group_frame},
-    ui::{UiActions, session_setup::state::parsers::ParserConfig},
+    ui::{UiActions, session_setup::state::parsers::ParserConfig, state::plugin::PluginsState},
 };
 
 use super::SessionSetupState;
@@ -13,7 +15,12 @@ mod shared;
 mod someip;
 mod text;
 
-pub fn render_content(state: &mut SessionSetupState, actions: &mut UiActions, ui: &mut Ui) {
+pub fn render_content(
+    state: &mut SessionSetupState,
+    actions: &mut UiActions,
+    plugin_state: &PluginsState,
+    ui: &mut Ui,
+) {
     if !state.is_valid() {
         validation_errors(state, ui);
     }
@@ -29,7 +36,12 @@ pub fn render_content(state: &mut SessionSetupState, actions: &mut UiActions, ui
             }
             ParserConfig::SomeIP(config) => someip::render_content(config, actions, ui),
             ParserConfig::Text => text::render_content(ui),
-            ParserConfig::Plugins => plugins::render_content(ui),
+            ParserConfig::Plugins(config) => {
+                // Scope plugin widget IDs to this setup tab; several setup tabs can edit identical schemas.
+                ui.push_id(state.id, |ui| {
+                    plugins::render_content(config, plugin_state, actions, ui)
+                });
+            }
         }
     });
 }

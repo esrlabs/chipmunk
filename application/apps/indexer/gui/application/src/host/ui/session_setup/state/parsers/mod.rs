@@ -1,9 +1,13 @@
+//! Parser-specific setup state used before starting a session.
+
 pub mod dlt;
+pub mod plugins;
 pub mod someip;
 use std::path::PathBuf;
 
 #[allow(unused)]
 pub use dlt::{DltLogLevel, DltParserConfig};
+pub use plugins::PluginParserConfig;
 use stypes::ObserveOptions;
 
 use crate::host::ui::session_setup::state::parsers::someip::SomeIpParserConfig;
@@ -14,7 +18,8 @@ pub enum ParserConfig {
     Dlt(Box<DltParserConfig>),
     SomeIP(SomeIpParserConfig),
     Text,
-    Plugins,
+    /// Parser plugin setup state.
+    Plugins(Box<PluginParserConfig>),
 }
 
 impl ParserConfig {
@@ -27,8 +32,10 @@ impl ParserConfig {
                 Self::SomeIP(SomeIpParserConfig::from_parser_settings(settings))
             }
             stypes::ParserType::Text(()) => Self::Text,
-            // Plugins are not fully supported yet.
-            stypes::ParserType::Plugin(..) => Self::Plugins,
+            stypes::ParserType::Plugin(settings) => {
+                let config = PluginParserConfig::from_settings(settings.clone());
+                Self::Plugins(Box::new(config))
+            }
         }
     }
     /// Checks if the parser with the configurations is valid
@@ -40,12 +47,16 @@ impl ParserConfig {
             ParserConfig::Dlt(..) => true,
             ParserConfig::SomeIP(..) => true,
             ParserConfig::Text => true,
-            ParserConfig::Plugins => false,
+            ParserConfig::Plugins(config) => config.is_valid(),
         }
     }
 
+    /// Returns cached parser validation errors suitable for UI display.
     pub fn validation_errors(&self) -> Vec<&str> {
-        Vec::new()
+        match self {
+            ParserConfig::Dlt(..) | ParserConfig::SomeIP(..) | ParserConfig::Text => Vec::new(),
+            ParserConfig::Plugins(config) => config.validation_errors().to_vec(),
+        }
     }
 }
 
@@ -63,5 +74,44 @@ impl FibexFileInfo {
             .unwrap_or_else(|| path.display().to_string());
 
         Self { name, path }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use stypes::{
+        FileFormat, ObserveOptions, ParserType, PluginConfigItem, PluginConfigValue,
+        PluginParserGeneralSettings, PluginParserSettings,
+    };
+
+    use super::*;
+
+    #[test]
+    fn from_observe_options_preserves_plugin_settings() {
+        let settings = PluginParserSettings {
+            plugin_path: PathBuf::from("/plugins/parser/parser.wasm"),
+            general_settings: PluginParserGeneralSettings {
+                placeholder: "kept".to_owned(),
+            },
+            plugin_configs: vec![PluginConfigItem {
+                id: "config".to_owned(),
+                value: PluginConfigValue::Text("value".to_owned()),
+            }],
+        };
+        let options = ObserveOptions::file(
+            PathBuf::from("input.log"),
+            FileFormat::Text,
+            ParserType::Plugin(settings.clone()),
+        );
+
+        let ParserConfig::Plugins(config) = ParserConfig::from_observe_options(&options) else {
+            panic!("expected plugin parser config");
+        };
+        let restored = config.selected_settings().unwrap();
+
+        assert_eq!(restored.plugin_path, settings.plugin_path);
+        assert_eq!(restored.general_settings.placeholder, "kept");
+        assert_eq!(restored.plugin_configs.len(), 1);
+        assert_eq!(restored.plugin_configs[0].id, "config");
     }
 }

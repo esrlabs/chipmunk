@@ -83,7 +83,7 @@ impl From<&ParserConfig> for ParserNames {
             ParserConfig::Dlt(..) => ParserNames::Dlt,
             ParserConfig::SomeIP(..) => ParserNames::SomeIP,
             ParserConfig::Text => ParserNames::Text,
-            ParserConfig::Plugins => ParserNames::Plugins,
+            ParserConfig::Plugins(..) => ParserNames::Plugins,
         }
     }
 }

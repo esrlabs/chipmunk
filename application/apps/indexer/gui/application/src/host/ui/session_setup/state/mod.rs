@@ -10,9 +10,10 @@ use crate::host::{
     ui::{
         UiActions,
         session_setup::state::{
-            parsers::someip::SomeIpParserConfig,
+            parsers::{PluginParserConfig, someip::SomeIpParserConfig},
             sources::{ProcessConfig, SerialConfig, StreamConfig, TcpConfig, UdpConfig},
         },
+        state::plugin::PluginsState,
     },
 };
 use parsers::{DltParserConfig, ParserConfig};
@@ -55,7 +56,7 @@ impl SessionSetupState {
             },
             ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::new()),
             ParserNames::Text => ParserConfig::Text,
-            ParserNames::Plugins => ParserConfig::Plugins,
+            ParserNames::Plugins => ParserConfig::Plugins(Box::new(PluginParserConfig::new())),
         };
     }
 
@@ -85,6 +86,15 @@ impl SessionSetupState {
                 .unwrap_or(ParserNames::Text);
             self.update_parser(new_parser);
         }
+    }
+
+    /// Clears plugin-backed setup state after installed plugin data changes.
+    pub fn sync_plugins(&mut self, _plugins: &PluginsState) {
+        let ParserConfig::Plugins(config) = &mut self.parser else {
+            return;
+        };
+
+        config.clear_selection();
     }
 
     pub fn validatio_errors(&self) -> Vec<&str> {
@@ -203,5 +213,32 @@ mod tests {
             panic!("expected dlt parser config");
         };
         assert!(!config.with_storage_header);
+    }
+
+    #[test]
+    fn update_stream_changes_parser() {
+        let mut state = SessionSetupState::new(
+            Uuid::new_v4(),
+            ByteSourceConfig::Stream(StreamConfig::Process(ProcessConfig::new())),
+            ParserConfig::Text,
+        );
+
+        state.update_stream(StreamNames::Tcp);
+
+        assert_ne!(ParserNames::from(&state.parser), ParserNames::Text);
+    }
+
+    #[test]
+    fn update_stream_keeps_parser() {
+        let plugin_config = PluginParserConfig::new();
+        let mut state = SessionSetupState::new(
+            Uuid::new_v4(),
+            ByteSourceConfig::Stream(StreamConfig::Tcp(TcpConfig::new())),
+            ParserConfig::Plugins(Box::new(plugin_config)),
+        );
+
+        state.update_stream(StreamNames::Udp);
+
+        assert_eq!(ParserNames::from(&state.parser), ParserNames::Plugins);
     }
 }

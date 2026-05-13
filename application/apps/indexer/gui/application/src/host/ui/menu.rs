@@ -247,6 +247,18 @@ pub fn render_connections_menu(ui: &mut Ui, actions: &mut UiActions, cmd_tx: &Se
             },
         );
     }
+
+    ui.separator();
+
+    if ui.button("Select Source for Plugins").clicked() {
+        actions.try_send_command(
+            cmd_tx,
+            HostCommand::ConnectionSessionSetup {
+                stream: StreamNames::Tcp,
+                parser: ParserNames::Plugins,
+            },
+        );
+    }
 }
 
 const fn id_from_file_format(format: FileFormat) -> &'static str {
