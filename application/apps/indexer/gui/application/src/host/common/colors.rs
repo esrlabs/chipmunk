@@ -5,13 +5,6 @@ const MAIN_ACCENT_BACKGROUND_LIGHT: Color32 = Color32::from_rgb(220, 228, 240);
 const MAIN_ACCENT_STROKE_DARK: Color32 = Color32::from_rgb(145, 193, 255);
 const MAIN_ACCENT_STROKE_LIGHT: Color32 = Color32::from_rgb(52, 95, 168);
 
-/// Notification indicator color for informational state.
-pub const NOTIFICATION_INFO_COLOR: Color32 = Color32::CYAN;
-/// Notification indicator color for warning state.
-pub const NOTIFICATION_WARNING_COLOR: Color32 = Color32::YELLOW;
-/// Notification indicator color for error state.
-pub const NOTIFICATION_ERROR_COLOR: Color32 = Color32::RED;
-
 /// Offset used when reusing the source palette for charts so neighboring filter
 /// and chart defaults do not start with visually similar colors.
 const SEARCH_VALUE_COLOR_OFFSET: usize = 3;
@@ -135,6 +128,33 @@ pub fn main_accent_stroke(dark_mode: bool) -> Color32 {
         MAIN_ACCENT_STROKE_DARK
     } else {
         MAIN_ACCENT_STROKE_LIGHT
+    }
+}
+
+/// Notification indicator color for informational state.
+pub fn notification_info_color(dark_mode: bool) -> Color32 {
+    if dark_mode {
+        Color32::from_rgb(90, 170, 255)
+    } else {
+        Color32::from_rgb(0, 95, 184)
+    }
+}
+
+/// Notification indicator color for warning state.
+pub fn notification_warning_color(dark_mode: bool) -> Color32 {
+    if dark_mode {
+        Color32::from_rgb(255, 220, 64)
+    } else {
+        Color32::from_rgb(176, 96, 0)
+    }
+}
+
+/// Notification indicator color for error state.
+pub fn notification_error_color(dark_mode: bool) -> Color32 {
+    if dark_mode {
+        Color32::from_rgb(255, 85, 85)
+    } else {
+        Color32::from_rgb(198, 40, 40)
     }
 }
 

@@ -13,7 +13,7 @@ use crate::{
         fixed_queue::FixedQueue,
         phosphor::{self, icons},
     },
-    host::{error::HostError, notification::AppNotification},
+    host::{common::colors, error::HostError, notification::AppNotification},
     session::error::SessionError,
 };
 
@@ -140,7 +140,7 @@ impl NotificationUi {
         if let Some(unseen) = self.unseen_top_level {
             let pos = button_res.rect.right_top() + vec2(-2.0, 2.0);
             let radius = 3.;
-            let color = unseen.get_color();
+            let color = unseen.color(ui.visuals().dark_mode);
 
             ui.painter().circle_filled(pos, radius, color);
         }
@@ -196,7 +196,7 @@ impl NotificationUi {
             .show(ui.ctx(), |ui| {
                 ui.set_width(banner_width);
 
-                let level_color = apply_alpha(entry.level.get_color());
+                let level_color = apply_alpha(entry.level.color(ui.visuals().dark_mode));
                 let stroke = Stroke::new(1.0, level_color);
                 let margin = Margin::same(10);
                 let content_width = (banner_width - 20.0).at_least(0.0);
@@ -314,7 +314,7 @@ impl NotificationUi {
                         let (respond, painter) = ui.allocate_painter(symbol_size, Sense::empty());
                         let center = respond.rect.center();
                         let radius = respond.rect.width() / 2.0;
-                        let color = entry.level.get_color();
+                        let color = entry.level.color(ui.visuals().dark_mode);
 
                         painter.circle_filled(center, radius, color);
 
@@ -355,11 +355,11 @@ impl NotificationUi {
 
 impl NotificationLevel {
     /// Returns the accent color used for this notification level.
-    pub const fn get_color(self) -> Color32 {
+    pub fn color(self, dark_mode: bool) -> Color32 {
         match self {
-            NotificationLevel::Info => Color32::CYAN,
-            NotificationLevel::Warning => Color32::YELLOW,
-            NotificationLevel::Error => Color32::RED,
+            NotificationLevel::Info => colors::notification_info_color(dark_mode),
+            NotificationLevel::Warning => colors::notification_warning_color(dark_mode),
+            NotificationLevel::Error => colors::notification_error_color(dark_mode),
         }
     }
 }
