@@ -83,10 +83,11 @@ impl PluginManagerView {
     fn render_tabs(&mut self, ui: &mut Ui, run_data: Option<&PluginRunData>) {
         let (warnings, errors) = run_data.map(warning_error_counts).unwrap_or_default();
         let issue_count = warnings + errors;
+        let dark_mode = ui.visuals().dark_mode;
         let issue_color = if errors > 0 {
-            Some(colors::NOTIFICATION_ERROR_COLOR)
+            Some(colors::notification_error_color(dark_mode))
         } else if warnings > 0 {
-            Some(colors::NOTIFICATION_WARNING_COLOR)
+            Some(colors::notification_warning_color(dark_mode))
         } else {
             None
         };
@@ -318,6 +319,7 @@ fn render_inspect(ui: &mut Ui, run_data: Option<&PluginRunData>) {
         return;
     }
 
+    let dark_mode = ui.visuals().dark_mode;
     let grid_spacing = vec2(12.0, 4.0);
     Grid::new("plugin_manager_inspect_logs")
         .num_columns(3)
@@ -329,7 +331,7 @@ fn render_inspect(ui: &mut Ui, run_data: Option<&PluginRunData>) {
                     .single()
                     .map(|time| time.format("%Y-%m-%d %H:%M:%S").to_string())
                     .unwrap_or_else(|| log.timestamp.to_string());
-                let (level, color) = log_level_display(&log.level);
+                let (level, color) = log_level_display(&log.level, dark_mode);
 
                 let timestamp_text = RichText::new(timestamp).monospace().color(color);
                 ui.label(timestamp_text);
@@ -346,10 +348,10 @@ fn render_inspect(ui: &mut Ui, run_data: Option<&PluginRunData>) {
         });
 }
 
-fn log_level_display(level: &PluginLogLevel) -> (&'static str, Color32) {
+fn log_level_display(level: &PluginLogLevel, dark_mode: bool) -> (&'static str, Color32) {
     match level {
-        PluginLogLevel::Err => ("Error", colors::NOTIFICATION_ERROR_COLOR),
-        PluginLogLevel::Warn => ("Warning", colors::NOTIFICATION_WARNING_COLOR),
+        PluginLogLevel::Err => ("Error", colors::notification_error_color(dark_mode)),
+        PluginLogLevel::Warn => ("Warning", colors::notification_warning_color(dark_mode)),
         PluginLogLevel::Debug => ("Debug", Color32::PLACEHOLDER),
         PluginLogLevel::Info => ("Info", Color32::PLACEHOLDER),
     }
