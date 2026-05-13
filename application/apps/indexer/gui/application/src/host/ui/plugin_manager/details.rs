@@ -31,16 +31,19 @@ impl PluginManagerView {
         plugin: &PluginEntity,
         run_data: Option<&PluginRunData>,
     ) {
-        ui.heading(plugin_label(&plugin.metadata.title, &plugin.dir_path));
+        let display_name = plugin_label(&plugin.metadata.title, &plugin.dir_path);
+        ui.heading(display_name);
         if let Some(description) = plugin
             .metadata
             .description
             .as_deref()
             .filter(|desc| !desc.is_empty())
         {
-            Label::new(description).wrap_mode(TextWrapMode::Wrap).ui(ui);
+            let description_label = Label::new(description).wrap_mode(TextWrapMode::Wrap);
+            description_label.ui(ui);
         } else {
-            selectable_wrapped_label(ui, plugin.dir_path.display().to_string());
+            let directory = plugin.dir_path.display().to_string();
+            selectable_wrapped_label(ui, directory);
         }
         ui.add_space(8.0);
 
@@ -59,9 +62,14 @@ impl PluginManagerView {
         plugin: &InvalidPluginEntity,
         run_data: Option<&PluginRunData>,
     ) {
-        ui.heading(path_label(&plugin.dir_path));
-        ui.label(plugin.plugin_type.to_string());
-        ui.label(RichText::new("Invalid plugin").weak());
+        let display_name = path_label(&plugin.dir_path);
+        ui.heading(display_name);
+
+        let plugin_type = plugin.plugin_type.to_string();
+        ui.label(plugin_type);
+
+        let invalid_status = RichText::new("Invalid plugin").weak();
+        ui.label(invalid_status);
         ui.add_space(8.0);
 
         self.render_tabs(ui, run_data);
@@ -92,7 +100,8 @@ impl PluginManagerView {
 
         let current_tab = self.details_tab;
         ui.horizontal(|ui| {
-            ui.add_space((ui.available_width() - tabs_width - TAB_RIGHT_PADDING).max(0.0));
+            let leading_space = (ui.available_width() - tabs_width - TAB_RIGHT_PADDING).max(0.0);
+            ui.add_space(leading_space);
 
             let about_response = render_detail_tab(
                 ui,
@@ -141,7 +150,8 @@ impl PluginManagerView {
     fn render_readme(&mut self, ui: &mut Ui) {
         match &self.readme.status {
             ReadmeStatus::Idle | ReadmeStatus::Loading { .. } => {
-                ui.label(RichText::new("Loading README...").weak());
+                let loading_text = RichText::new("Loading README...").weak();
+                ui.label(loading_text);
             }
             ReadmeStatus::Loaded { content } => {
                 if content.is_empty() {
@@ -154,11 +164,13 @@ impl PluginManagerView {
                 render_empty_readme(ui);
             }
             ReadmeStatus::Error { message } => {
-                ui.label(RichText::new("Failed to load README.").strong());
-                Label::new(message)
+                let error_text = RichText::new("Failed to load README.").strong();
+                ui.label(error_text);
+
+                let message_label = Label::new(message)
                     .selectable(true)
-                    .wrap_mode(TextWrapMode::Wrap)
-                    .ui(ui);
+                    .wrap_mode(TextWrapMode::Wrap);
+                message_label.ui(ui);
             }
         }
     }
@@ -170,15 +182,18 @@ fn render_invalid_about(ui: &mut Ui, plugin: &InvalidPluginEntity) {
         .spacing(vec2(12.0, 6.0))
         .show(ui, |ui| {
             ui.strong("Name");
-            ui.label(path_label(&plugin.dir_path));
+            let display_name = path_label(&plugin.dir_path);
+            ui.label(display_name);
             ui.end_row();
 
             ui.strong("Type");
-            ui.label(plugin.plugin_type.to_string());
+            let plugin_type = plugin.plugin_type.to_string();
+            ui.label(plugin_type);
             ui.end_row();
 
             ui.strong("Directory");
-            selectable_wrapped_label(ui, plugin.dir_path.display().to_string());
+            let directory = plugin.dir_path.display().to_string();
+            selectable_wrapped_label(ui, directory);
             ui.end_row();
         });
 }
@@ -191,7 +206,8 @@ fn render_detail_tab(
     issue_color: Option<Color32>,
     size: Vec2,
 ) -> Response {
-    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let click_sense = Sense::click();
+    let (rect, response) = ui.allocate_exact_size(size, click_sense);
 
     if ui.is_rect_visible(rect) {
         let text_color = if selected || response.hovered() {
@@ -201,7 +217,8 @@ fn render_detail_tab(
         };
         let tab_label = detail_tab_label(ui, label, issue_count, issue_color, text_color);
         let layout = ui.painter().layout_job(tab_label);
-        let text_pos = pos2(rect.center().x - layout.size().x / 2.0, rect.min.y);
+        let text_x = rect.center().x - layout.size().x / 2.0;
+        let text_pos = pos2(text_x, rect.min.y);
         ui.painter().galley(text_pos, layout, text_color);
     }
 
@@ -215,14 +232,10 @@ fn detail_tab_size(
     issue_color: Option<Color32>,
     min_width: f32,
 ) -> Vec2 {
-    let tab_label = detail_tab_label(
-        ui,
-        label,
-        issue_count,
-        issue_color,
-        ui.visuals().text_color(),
-    );
-    let mut size = ui.painter().layout_job(tab_label).size();
+    let text_color = ui.visuals().text_color();
+    let tab_label = detail_tab_label(ui, label, issue_count, issue_color, text_color);
+    let layout = ui.painter().layout_job(tab_label);
+    let mut size = layout.size();
     size.x = size.x.max(min_width);
     size
 }
@@ -235,11 +248,12 @@ fn detail_tab_label(
     text_color: Color32,
 ) -> LayoutJob {
     let mut text = LayoutJob::default();
+    let body_font_id = TextStyle::Body.resolve(ui.style());
     text.append(
         label,
         0.0,
         TextFormat {
-            font_id: TextStyle::Body.resolve(ui.style()),
+            font_id: body_font_id,
             color: text_color,
             ..Default::default()
         },
@@ -248,11 +262,13 @@ fn detail_tab_label(
     if issue_count > 0
         && let Some(color) = issue_color
     {
+        let issue_text = format!("({issue_count})");
+        let small_font_id = TextStyle::Small.resolve(ui.style());
         text.append(
-            &format!("({issue_count})"),
+            &issue_text,
             3.0,
             TextFormat {
-                font_id: TextStyle::Small.resolve(ui.style()),
+                font_id: small_font_id,
                 color,
                 valign: Align::TOP,
                 ..Default::default()
@@ -265,64 +281,85 @@ fn detail_tab_label(
 
 fn paint_selected_tab(ui: &Ui, rect: Rect) {
     let y = rect.bottom() + 2.0;
-    let underline = Rect::from_min_max(pos2(rect.left(), y), pos2(rect.right(), y + 2.0));
-    ui.painter().rect_filled(
-        underline,
-        1.0,
-        colors::main_accent_stroke(ui.visuals().dark_mode),
-    );
+    let underline_min = pos2(rect.left(), y);
+    let underline_max = pos2(rect.right(), y + 2.0);
+    let underline = Rect::from_min_max(underline_min, underline_max);
+    let underline_color = colors::main_accent_stroke(ui.visuals().dark_mode);
+    ui.painter().rect_filled(underline, 1.0, underline_color);
 }
 
 fn render_empty_readme(ui: &mut Ui) {
-    ui.label(RichText::new("This plugin does not include README content.").weak());
+    let empty_text = RichText::new("This plugin does not include README content.").weak();
+    ui.label(empty_text);
 }
 
 fn render_inspect(ui: &mut Ui, run_data: Option<&PluginRunData>) {
     let Some(run_data) = run_data else {
-        ui.label(RichText::new("No run logs.").weak());
+        let empty_text = RichText::new("No run logs.").weak();
+        ui.label(empty_text);
+
         return;
     };
 
     let (warnings, errors) = warning_error_counts(run_data);
     ui.horizontal(|ui| {
-        ui.label(format!("Errors: {errors}"));
-        ui.label(format!("Warnings: {warnings}"));
+        let errors_label = format!("Errors: {errors}");
+        ui.label(errors_label);
+
+        let warnings_label = format!("Warnings: {warnings}");
+        ui.label(warnings_label);
     });
     ui.add_space(6.0);
 
     if run_data.logs.is_empty() {
-        ui.label(RichText::new("No run logs.").weak());
+        let empty_text = RichText::new("No run logs.").weak();
+        ui.label(empty_text);
+
         return;
     }
 
-    for log in &run_data.logs {
-        ui.horizontal_wrapped(|ui| {
-            let timestamp = Local
-                .timestamp_opt(log.timestamp as i64, 0)
-                .single()
-                .map(|time| time.format("%Y-%m-%d %H:%M:%S").to_string())
-                .unwrap_or_else(|| log.timestamp.to_string());
+    let grid_spacing = vec2(12.0, 4.0);
+    Grid::new("plugin_manager_inspect_logs")
+        .num_columns(3)
+        .spacing(grid_spacing)
+        .show(ui, |ui| {
+            for log in &run_data.logs {
+                let timestamp = Local
+                    .timestamp_opt(log.timestamp as i64, 0)
+                    .single()
+                    .map(|time| time.format("%Y-%m-%d %H:%M:%S").to_string())
+                    .unwrap_or_else(|| log.timestamp.to_string());
+                let (level, color) = log_level_display(&log.level);
 
-            ui.monospace(timestamp);
+                let timestamp_text = RichText::new(timestamp).monospace().color(color);
+                ui.label(timestamp_text);
 
-            let level = match log.level {
-                PluginLogLevel::Err => "Error",
-                PluginLogLevel::Warn => "Warning",
-                PluginLogLevel::Debug => "Debug",
-                PluginLogLevel::Info => "Info",
-            };
-            ui.label(level);
-            Label::new(&log.msg).selectable(true).truncate().ui(ui);
+                let level_text = RichText::new(level).color(color);
+                ui.label(level_text);
+
+                let message_text = RichText::new(log.msg.as_str()).color(color);
+                let message_label = Label::new(message_text).selectable(true).wrap();
+                message_label.ui(ui);
+
+                ui.end_row();
+            }
         });
-        ui.add_space(2.0);
+}
+
+fn log_level_display(level: &PluginLogLevel) -> (&'static str, Color32) {
+    match level {
+        PluginLogLevel::Err => ("Error", colors::NOTIFICATION_ERROR_COLOR),
+        PluginLogLevel::Warn => ("Warning", colors::NOTIFICATION_WARNING_COLOR),
+        PluginLogLevel::Debug => ("Debug", Color32::PLACEHOLDER),
+        PluginLogLevel::Info => ("Info", Color32::PLACEHOLDER),
     }
 }
 
 fn selectable_wrapped_label(ui: &mut Ui, text: String) {
-    Label::new(text)
+    let label = Label::new(text)
         .selectable(true)
-        .wrap_mode(TextWrapMode::Wrap)
-        .ui(ui);
+        .wrap_mode(TextWrapMode::Wrap);
+    label.ui(ui);
 }
 
 fn warning_error_counts(run_data: &PluginRunData) -> (usize, usize) {
