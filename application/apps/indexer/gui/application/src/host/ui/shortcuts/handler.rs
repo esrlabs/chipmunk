@@ -3,10 +3,10 @@
 use egui::{Context, Event};
 
 use crate::host::ui::{
-    Host, HostAction,
+    Host, HostAction, UiActions,
     actions::FileDialogOptions,
     menu,
-    state::{self, HostModal},
+    state::{self, HostModal, HostState},
     tabs::TabType,
 };
 
@@ -78,13 +78,17 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
         open_shortcuts: _,
     } = app_shortcuts();
 
+    let Host {
+        state, ui_actions, ..
+    } = host;
+
     if consume_shortcut(ctx, home_tab) {
-        host.state.activate_tab(state::HOME_TAB_IDX);
+        state.activate_tab(state::HOME_TAB_IDX);
         return true;
     }
 
     if consume_shortcut(ctx, open_files) {
-        host.ui_actions.file_dialog.pick_files(
+        ui_actions.file_dialog.pick_files(
             menu::OPEN_FILES_ID,
             FileDialogOptions::new().title("Open Files"),
         );
@@ -92,77 +96,79 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     }
 
     if consume_shortcut(ctx, close_tab) {
-        close_active_tab(host);
+        close_active_tab(state, ui_actions);
         return true;
     }
 
     if consume_shortcut(ctx, previous_tab) {
-        host.state.activate_previous_tab();
+        state.activate_previous_tab();
         return true;
     }
 
     if consume_shortcut(ctx, next_tab) {
-        host.state.activate_next_tab();
+        state.activate_next_tab();
         return true;
     }
 
     if consume_shortcut(ctx, tab_1) {
-        host.state.activate_tab(0);
+        state.activate_tab(0);
         return true;
     }
 
     if consume_shortcut(ctx, tab_2) {
-        host.state.activate_tab(1);
+        state.activate_tab(1);
         return true;
     }
 
     if consume_shortcut(ctx, tab_3) {
-        host.state.activate_tab(2);
+        state.activate_tab(2);
         return true;
     }
 
     if consume_shortcut(ctx, tab_4) {
-        host.state.activate_tab(3);
+        state.activate_tab(3);
         return true;
     }
 
     if consume_shortcut(ctx, tab_5) {
-        host.state.activate_tab(4);
+        state.activate_tab(4);
         return true;
     }
 
     if consume_shortcut(ctx, tab_6) {
-        host.state.activate_tab(5);
+        state.activate_tab(5);
         return true;
     }
 
     if consume_shortcut(ctx, tab_7) {
-        host.state.activate_tab(6);
+        state.activate_tab(6);
         return true;
     }
 
     if consume_shortcut(ctx, tab_8) {
-        host.state.activate_tab(7);
+        state.activate_tab(7);
         return true;
     }
 
     if consume_shortcut(ctx, tab_9) {
-        host.state.activate_tab(8);
+        state.activate_tab(8);
         return true;
     }
 
-    if host.state.show_right_panel_toggle() && consume_shortcut(ctx, toggle_right_panel) {
-        host.state.panels_visibility.right = !host.state.panels_visibility.right;
+    if state.show_right_panel_toggle() && consume_shortcut(ctx, toggle_right_panel) {
+        let visible = &mut state.preferences.panels_visibility.right;
+        *visible = !*visible;
         return true;
     }
 
-    if host.state.show_bottom_panel_toggle() && consume_shortcut(ctx, toggle_bottom_panel) {
-        host.state.panels_visibility.bottom = !host.state.panels_visibility.bottom;
+    if state.show_bottom_panel_toggle() && consume_shortcut(ctx, toggle_bottom_panel) {
+        let visible = &mut state.preferences.panels_visibility.bottom;
+        *visible = !*visible;
         return true;
     }
 
     if consume_binding(ctx, &OPEN_SHORTCUTS_F1) || consume_questionmark(ctx) {
-        host.state.active_modal = Some(HostModal::Shortcuts);
+        state.active_modal = Some(HostModal::Shortcuts);
         return true;
     }
 
@@ -186,26 +192,22 @@ fn handle_active_tab_shortcuts(
         return false;
     };
 
-    session.handle_shortcuts(ui_actions, &mut state.panels_visibility, ctx, last_key)
+    session.handle_shortcuts(ui_actions, &mut state.preferences, ctx, last_key)
 }
 
-fn close_active_tab(host: &mut Host) {
-    match host.state.active_tab().clone() {
+fn close_active_tab(state: &mut HostState, ui_actions: &mut UiActions) {
+    match state.active_tab().clone() {
         TabType::Home => {}
-        TabType::Session(id) => host
-            .ui_actions
-            .add_host_action(HostAction::CloseSession(id)),
-        TabType::SessionSetup(id) => host
-            .state
+        TabType::Session(id) => ui_actions.add_host_action(HostAction::CloseSession(id)),
+        TabType::SessionSetup(id) => state
             .session_setups
             .get(&id)
             .expect("Session setup from active tab must exist")
-            .close(&mut host.ui_actions),
-        TabType::MultiFileSetup(id) => host
-            .state
+            .close(ui_actions),
+        TabType::MultiFileSetup(id) => state
             .multi_setups
             .get(&id)
             .expect("Multiple files setup from active tab must exist")
-            .close(&mut host.ui_actions),
+            .close(ui_actions),
     }
 }

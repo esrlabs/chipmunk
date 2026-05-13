@@ -15,7 +15,7 @@ use crate::host::{
     ui::{
         UiActions,
         actions::FileDialogOptions,
-        state::PanelsVisibility,
+        state::HostPreferences,
         storage::{HostStorage, RecentSessionsStorage},
     },
 };
@@ -57,7 +57,7 @@ impl HomeView {
         &mut self,
         storage: &mut HostStorage,
         actions: &mut UiActions,
-        panels_visibility: &PanelsVisibility,
+        preferences: &mut HostPreferences,
         ui: &mut Ui,
     ) {
         self.handle_pending_file_dialog(actions);
@@ -66,7 +66,7 @@ impl HomeView {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_animated_inside(ui, panels_visibility.right, |ui| {
+            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
                 self.file_explorer
                     .render_content(actions, &mut storage.file_explorer, ui);
             });

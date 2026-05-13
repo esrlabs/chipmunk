@@ -10,7 +10,7 @@ use crate::{
             matching::{consume_outside_text, consume_shortcut},
             state::LastShortcutKey,
         },
-        state::PanelsVisibility,
+        state::HostPreferences,
     },
     session::command::SessionCommand,
 };
@@ -244,7 +244,7 @@ pub fn shortcut_defs() -> [&'static Shortcut; 21] {
 pub fn handle(
     session: &mut Session,
     actions: &mut UiActions,
-    panels_visibility: &mut PanelsVisibility,
+    preferences: &mut HostPreferences,
     ctx: &Context,
     last_key: Option<&LastShortcutKey>,
 ) -> bool {
@@ -279,17 +279,17 @@ pub fn handle(
     }
 
     if consume_shortcut(ctx, activate_search_output) {
-        session.activate_search_results_table(panels_visibility, ctx);
+        session.activate_search_results_table(preferences, ctx);
         return true;
     }
 
     if consume_shortcut(ctx, active_page_up) {
-        session.scroll_active_table(TableScroll::PageUp, panels_visibility, ctx);
+        session.scroll_active_table(TableScroll::PageUp, preferences, ctx);
         return true;
     }
 
     if consume_shortcut(ctx, active_page_down) {
-        session.scroll_active_table(TableScroll::PageDown, panels_visibility, ctx);
+        session.scroll_active_table(TableScroll::PageDown, preferences, ctx);
         return true;
     }
 
@@ -297,64 +297,64 @@ pub fn handle(
     if last_key.is_some_and(|last_key| last_key.matches_key(Modifiers::NONE, Key::G))
         && consume_outside_text(ctx, active_top)
     {
-        session.scroll_active_table(TableScroll::Top, panels_visibility, ctx);
+        session.scroll_active_table(TableScroll::Top, preferences, ctx);
         return true;
     }
 
     if consume_shortcut(ctx, active_top_direct) {
-        session.scroll_active_table(TableScroll::Top, panels_visibility, ctx);
+        session.scroll_active_table(TableScroll::Top, preferences, ctx);
         return true;
     }
 
     if consume_outside_text(ctx, active_bottom) || consume_shortcut(ctx, active_bottom_direct) {
-        session.scroll_active_table(TableScroll::Bottom, panels_visibility, ctx);
+        session.scroll_active_table(TableScroll::Bottom, preferences, ctx);
         return true;
     }
 
     if consume_shortcut(ctx, activate_search_tab)
         || consume_outside_text(ctx, activate_search_tab_outside_text)
     {
-        session.activate_search_tab(panels_visibility);
+        session.activate_search_tab(preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_filters_tab) {
-        session.activate_side_tab(SideTabType::Filters, panels_visibility);
+        session.activate_side_tab(SideTabType::Filters, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_observing_tab) {
-        session.activate_side_tab(SideTabType::Observing, panels_visibility);
+        session.activate_side_tab(SideTabType::Observing, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_attachments_tab) {
-        session.activate_side_tab(SideTabType::Attachments, panels_visibility);
+        session.activate_side_tab(SideTabType::Attachments, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_bottom_search_tab) {
-        session.activate_bottom_tab(BottomTabType::Search, panels_visibility);
+        session.activate_bottom_tab(BottomTabType::Search, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_details_tab) {
-        session.activate_bottom_tab(BottomTabType::Details, panels_visibility);
+        session.activate_bottom_tab(BottomTabType::Details, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_library_tab) {
-        session.activate_bottom_tab(BottomTabType::Library, panels_visibility);
+        session.activate_bottom_tab(BottomTabType::Library, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_presets_tab) {
-        session.activate_bottom_tab(BottomTabType::Presets, panels_visibility);
+        session.activate_bottom_tab(BottomTabType::Presets, preferences);
         return true;
     }
 
     if consume_shortcut(ctx, activate_chart_tab) {
-        session.activate_bottom_tab(BottomTabType::Chart, panels_visibility);
+        session.activate_bottom_tab(BottomTabType::Chart, preferences);
         return true;
     }
 
