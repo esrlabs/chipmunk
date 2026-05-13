@@ -33,7 +33,9 @@ use crate::{
             multi_setup::state::MultiFileState,
             session_setup::state::{
                 SessionSetupState,
-                parsers::{DltParserConfig, ParserConfig, someip::SomeIpParserConfig},
+                parsers::{
+                    DltParserConfig, ParserConfig, PluginParserConfig, someip::SomeIpParserConfig,
+                },
                 sources::{
                     ByteSourceConfig, ProcessConfig, SerialConfig, SourceFileInfo, StreamConfig,
                     TcpConfig, UdpConfig,
@@ -623,7 +625,12 @@ impl HostService {
                         })
                         .await;
                 }
-                ParserConfig::Plugins => todo!(),
+                ParserConfig::Plugins(..) => {
+                    let message =
+                        "Plugin parser is not supported for direct multi-file open.".into();
+                    let init_error = InitSessionError::Other(message);
+                    return Err(HostError::InitSessionError(init_error));
+                }
             }
         }
 
@@ -646,7 +653,7 @@ impl HostService {
             ParserNames::Dlt => ParserConfig::Dlt(Box::new(DltParserConfig::new(false, None))),
             ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::default()),
             ParserNames::Text => ParserConfig::Text,
-            ParserNames::Plugins => todo!(),
+            ParserNames::Plugins => ParserConfig::Plugins(Box::new(PluginParserConfig::new())),
         };
 
         let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
@@ -905,11 +912,16 @@ impl HostService {
                 ParserType::SomeIp(someip_settings)
             }
             ParserConfig::Text => ParserType::Text(()),
-            ParserConfig::Plugins => {
-                let parser_name = ParserNames::from(&parser);
-                return Err(HostError::InitSessionError(InitSessionError::Other(
-                    format!("Parser {parser_name:} isn't supported yet"),
-                )));
+            ParserConfig::Plugins(config) => {
+                let settings = config.parser_settings().map_err(|_| {
+                    let errors = config.validation_errors().join(", ");
+                    let message =
+                        format!("Plugin parser configuration is invalid. Errors: {errors}");
+                    let init_error = InitSessionError::Other(message);
+                    HostError::InitSessionError(init_error)
+                })?;
+
+                ParserType::Plugin(settings)
             }
         };
 

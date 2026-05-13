@@ -182,6 +182,16 @@ impl HostState {
         self.active_tab_idx = self.tabs.len() - 1;
     }
 
+    /// Updates host plugin state and refreshes plugin-backed UI state.
+    pub fn set_plugins_state(&mut self, plugins: PluginsState) {
+        self.plugins.set(plugins);
+
+        self.plugin_manager.handle_plugins_changed(&self.plugins);
+        for setup in self.session_setups.values_mut() {
+            setup.state.sync_plugins(&self.plugins);
+        }
+    }
+
     pub fn add_multi_files(&mut self, state: MultiFileState, cmd_tx: Sender<HostCommand>) {
         let id = state.id();
         let setup = MultiFileSetup::new(state, cmd_tx);

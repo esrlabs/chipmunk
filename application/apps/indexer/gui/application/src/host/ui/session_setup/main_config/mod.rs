@@ -101,7 +101,7 @@ fn render_files(
         ParserConfig::Dlt(..)
         | ParserConfig::SomeIP(..)
         | ParserConfig::Text
-        | ParserConfig::Plugins => RenderOutcome::None,
+        | ParserConfig::Plugins(..) => RenderOutcome::None,
     }
 }
 

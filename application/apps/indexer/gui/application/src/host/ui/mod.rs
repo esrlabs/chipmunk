@@ -217,12 +217,7 @@ impl Host {
                 self.state.app_info.set_update_info(*update);
             }
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
-            HostMessage::PluginsStateChanged(plugins) => {
-                self.state.plugins.set(*plugins);
-                self.state
-                    .plugin_manager
-                    .handle_plugins_changed(&self.state.plugins);
-            }
+            HostMessage::PluginsStateChanged(plugins) => self.state.set_plugins_state(*plugins),
             HostMessage::PluginReadmeLoaded(response) => {
                 self.state.plugin_manager.handle_readme_loaded(*response);
             }
@@ -361,7 +356,7 @@ impl Host {
             TabType::SessionSetup(id) => session_setups
                 .get_mut(&id)
                 .expect("Session Setup with provided ID form active tab must exist")
-                .render_content(ui_actions, &mut storage.recent_sessions, ui),
+                .render_content(ui_actions, &mut storage.recent_sessions, plugins, ui),
             TabType::MultiFileSetup(id) => multi_setups
                 .get_mut(&id)
                 .expect("Multiple files setups with provided ID from active tab must exist")
