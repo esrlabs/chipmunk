@@ -27,9 +27,10 @@ use crate::{
                 log_table::{
                     LogTableKind,
                     table::{
-                        self, TableScroll, activate_table_on_click, columns_filling_last,
-                        grab_cmd_consts, render_active_table_indicator, render_row_header,
-                        should_stick_to_bottom, sync_column_widths,
+                        self, TableScroll, activate_table_on_click, apply_columns_to_table_state,
+                        columns_filling_last, grab_cmd_consts, render_active_table_indicator,
+                        render_row_header, row_header_column_width, should_stick_to_bottom,
+                        sync_column_widths,
                     },
                     text::render_log_cell_text,
                 },
@@ -84,12 +85,14 @@ impl LogsTable {
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
+        self.update_row_header_width(shared, ui);
+
         // Ensure the border of last column isn't visible.
         let columns = columns_filling_last(ui, TABLE_ID_SALT, &shared.view.log_columns);
 
         let mut table = egui_table::Table::new()
             .id_salt(TABLE_ID_SALT)
-            .num_rows(shared.logs.logs_count)
+            .num_rows(shared.logs.logs_count())
             .columns(columns)
             .num_sticky_cols(1)
             .stick_to_bottom(should_stick_to_bottom(shared));
@@ -242,7 +245,7 @@ impl LogsTable {
             ParserNames::Text | ParserNames::Plugins => {
                 if ui
                     .add_enabled(
-                        can_start_export && shared.logs.logs_count > 0,
+                        can_start_export && shared.logs.logs_count() > 0,
                         egui::Button::new("Export All Logs"),
                     )
                     .clicked()
@@ -262,7 +265,7 @@ impl LogsTable {
             ParserNames::Dlt | ParserNames::SomeIP => {
                 if ui
                     .add_enabled(
-                        can_start_export && shared.logs.logs_count > 0,
+                        can_start_export && shared.logs.logs_count() > 0,
                         egui::Button::new("Export All as Table"),
                     )
                     .clicked()
@@ -279,6 +282,26 @@ impl LogsTable {
                     ui.close();
                 }
             }
+        }
+    }
+
+    /// Grows the row-header column when the largest row number gains another digit.
+    ///
+    /// # Note:
+    ///
+    /// egui_table can grow the visible main table column on its own, but the search
+    /// table follows this table's columns and may show larger row numbers.
+    fn update_row_header_width(&mut self, shared: &mut SessionShared, ui: &Ui) {
+        let largest_row_nr = shared.logs.logs_count().saturating_sub(1);
+        let width = row_header_column_width(ui, largest_row_nr);
+
+        let Some(column) = shared.view.log_columns.first_mut() else {
+            return;
+        };
+
+        if column.current < width {
+            column.current = width;
+            apply_columns_to_table_state(ui, TABLE_ID_SALT, &shared.view.log_columns);
         }
     }
 
@@ -399,9 +422,11 @@ impl<'a> LogsDelegate<'a> {
                 }
             });
 
+        let row_number_digits = self.shared.logs.row_number_digits();
         let header = render_row_header(
             ui,
-            cell.row_nr.to_string(),
+            cell.row_nr,
+            row_number_digits,
             source_color_idx,
             is_bookmarked,
             attachment_info,
@@ -503,7 +528,7 @@ impl<'a> LogsDelegate<'a> {
 
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
-        if self.shared.logs.logs_count == 0 {
+        if self.shared.logs.logs_count() == 0 {
             return;
         }
 

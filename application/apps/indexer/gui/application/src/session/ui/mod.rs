@@ -184,7 +184,10 @@ impl Session {
     }
 
     fn render_busy_indicator(shared: &SessionShared, actions: &mut UiActions, ui: &Ui) {
-        if shared.observe.show_startup_spinner(shared.logs.logs_count) {
+        if shared
+            .observe
+            .show_startup_spinner(shared.logs.logs_count())
+        {
             show_busy_indicator(
                 ui,
                 Some("Initializing Session"),
@@ -234,7 +237,7 @@ impl Session {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             match msg {
                 SessionMessage::LogsCount(count) => {
-                    self.shared.logs.logs_count = count;
+                    self.shared.logs.set_logs_count(count);
                     // Keep live-follow charts attached to the growing session span.
                     self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
@@ -488,7 +491,8 @@ impl Session {
     }
 
     fn scroll_main_table(&mut self, action: TableScroll) {
-        self.logs_table.scroll(action, self.shared.logs.logs_count);
+        self.logs_table
+            .scroll(action, self.shared.logs.logs_count());
     }
 
     fn scroll_active_table(

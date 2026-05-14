@@ -336,7 +336,7 @@ impl SearchBar {
     }
 
     fn render_filter_status(&mut self, shared: &SessionShared, ui: &mut Ui) {
-        let logs_count = shared.logs.logs_count;
+        let logs_count = shared.logs.logs_count();
         if !shared.search.is_search_active() || logs_count == 0 {
             return;
         }
