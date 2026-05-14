@@ -394,6 +394,7 @@ mod tests {
         readable_text_color,
     };
     use crate::session::ui::common::ansi_text::parse_ansi_text;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn new_shared() -> SessionShared {
         let session_id = Uuid::new_v4();
@@ -410,7 +411,7 @@ mod tests {
             raw_export_supported: false,
         };
 
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     fn apply_filter(

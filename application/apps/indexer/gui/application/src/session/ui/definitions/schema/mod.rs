@@ -1,8 +1,6 @@
 use std::{fmt::Debug, ops::Range, rc::Rc};
 
-use stypes::GrabbedElement;
-
-use crate::host::common::parsers::ParserNames;
+use stypes::{GrabbedElement, ParserRenderOptions};
 
 pub mod dlt;
 pub mod plugins;
@@ -50,13 +48,28 @@ impl ColumnInfo {
     }
 }
 
-/// Creates the UI log schema for a parser kind.
-pub fn from_parser(parser: ParserNames) -> Rc<dyn LogSchema> {
-    match parser {
-        ParserNames::Dlt => Rc::new(dlt::DltLogSchema::default()),
-        ParserNames::SomeIP => Rc::new(someip::SomeIpLogSchema::default()),
-        ParserNames::Text => Rc::new(text::TextLogSchema::default()),
-        ParserNames::Plugins => Rc::new(plugins::PluginsLogSchema),
+/// Owned schema construction input for built-in and plugin parsers.
+#[derive(Debug, Clone)]
+pub enum LogSchemaSpec {
+    /// DLT parser schema.
+    Dlt,
+    /// SOME/IP parser schema.
+    SomeIp,
+    /// Plain text parser schema.
+    Text,
+    /// Plugin parser schema with render options provided by plugin metadata.
+    Plugin(ParserRenderOptions),
+}
+
+/// Creates the UI log schema for a parser schema spec.
+pub fn from_spec(spec: LogSchemaSpec) -> Rc<dyn LogSchema> {
+    match spec {
+        LogSchemaSpec::Dlt => Rc::new(dlt::DltLogSchema::default()),
+        LogSchemaSpec::SomeIp => Rc::new(someip::SomeIpLogSchema::default()),
+        LogSchemaSpec::Text => Rc::new(text::TextLogSchema::default()),
+        LogSchemaSpec::Plugin(render_options) => {
+            Rc::new(plugins::PluginsLogSchema::new(render_options))
+        }
     }
 }
 

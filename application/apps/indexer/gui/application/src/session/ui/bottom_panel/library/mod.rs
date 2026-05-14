@@ -634,6 +634,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::*;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     use crate::{
         host::{
@@ -665,7 +666,7 @@ mod tests {
             raw_export_supported: false,
         };
 
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     fn new_actions(runtime: &Runtime) -> UiActions {

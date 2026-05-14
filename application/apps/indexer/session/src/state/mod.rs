@@ -401,7 +401,8 @@ impl SessionState {
                     Some(|s: String| {
                         s.split(spliter.as_str())
                             .enumerate()
-                            .filter(|(n, _)| columns.contains(n))
+                            // Empty columns mean re-delimit every emitted column.
+                            .filter(|(n, _)| columns.is_empty() || columns.contains(n))
                             .map(|(_, s)| s)
                             .collect::<Vec<&str>>()
                             .join(delimiter.as_str())

@@ -530,6 +530,7 @@ mod tests {
     };
 
     use super::{ChartBar, ChartUI, ChartViewportMode};
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn new_shared(logs_count: u64) -> SessionShared {
         let session_id = Uuid::new_v4();
@@ -549,7 +550,7 @@ mod tests {
             raw_export_supported: false,
         };
 
-        let mut shared = SessionShared::new(session_info, observe_op);
+        let mut shared = SessionShared::new(session_info, observe_op, LogSchemaSpec::Text);
         shared.logs.set_logs_count(logs_count);
         shared
     }

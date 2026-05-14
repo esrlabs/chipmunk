@@ -6,7 +6,11 @@ use stypes::ComputationError;
 
 use crate::{
     host::ui::storage::{RecentSessionRegistration, RecentSessionStateSnapshot},
-    session::{communication::UiHandle, types::ObserveOperation, ui::SessionInfo},
+    session::{
+        communication::UiHandle,
+        types::ObserveOperation,
+        ui::{SessionInfo, definitions::schema::LogSchemaSpec},
+    },
 };
 
 pub mod command;
@@ -42,6 +46,8 @@ pub struct SpawnedSession {
 pub struct SessionUiInit {
     /// Static session metadata used by the UI shell.
     pub session_info: SessionInfo,
+    /// Schema data used to render log rows.
+    pub schema_spec: LogSchemaSpec,
     /// Recent-session runtime state owned by the live session.
     pub recent_runtime: RecentSessionRuntimeInit,
     /// UI-side communication handles for this session.

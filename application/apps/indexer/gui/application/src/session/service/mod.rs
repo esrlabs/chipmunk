@@ -43,7 +43,7 @@ use crate::{
             ObserveOperation, OperationPhase,
             attachment::{PreviewContent, PreviewKind, PreviewRequest},
         },
-        ui::{SessionInfo, chart::ChartBar},
+        ui::{SessionInfo, chart::ChartBar, definitions::schema::LogSchemaSpec},
     },
 };
 
@@ -77,6 +77,8 @@ struct SessionStartup {
     callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
     /// Initial observe options for the primary source.
     options: ObserveOptions,
+    /// Schema data used to render log rows.
+    schema_spec: LogSchemaSpec,
     /// Extra sources observed during startup with the same parser.
     additional_sources: Vec<ObserveOrigin>,
     /// Optional UI state restored after session creation.
@@ -97,12 +99,14 @@ impl SessionService {
     /// Spawns the session service and returns the UI/session startup payload.
     ///
     /// * `shared_senders`: Senders to communicate with host UI.
-    /// * `options`: defines the primary source
+    /// * `options`: defines the primary source.
+    /// * `schema_spec`: Schema data used to render log rows.
     /// * `additional_sources`: Additional sources to be attached to session during startup.
     /// * `restore_state`: State to be restored once session is loaded.
     pub async fn spawn(
         shared_senders: SharedSenders,
         options: ObserveOptions,
+        schema_spec: LogSchemaSpec,
         additional_sources: Vec<ObserveOrigin>,
         restore_state: Option<RecentSessionStateSnapshot>,
     ) -> Result<SpawnedSession, InitSessionError> {
@@ -114,6 +118,7 @@ impl SessionService {
             session,
             callback_rx,
             options,
+            schema_spec,
             additional_sources,
         )
         .with_restore_state(restore_state);
@@ -127,6 +132,7 @@ impl SessionService {
             session,
             callback_rx,
             options,
+            schema_spec,
             additional_sources,
             restore_state,
             owned_temp_sources,
@@ -195,6 +201,7 @@ impl SessionService {
 
         let ui_init = SessionUiInit {
             session_info,
+            schema_spec,
             recent_runtime: RecentSessionRuntimeInit {
                 tracking: recent_tracking,
                 additional_observe_ops: startup_observe_ops,
@@ -822,6 +829,7 @@ impl SessionStartup {
         session: Session,
         callback_rx: mpsc::UnboundedReceiver<CallbackEvent>,
         options: ObserveOptions,
+        schema_spec: LogSchemaSpec,
         additional_sources: Vec<ObserveOrigin>,
     ) -> Self {
         Self {
@@ -829,6 +837,7 @@ impl SessionStartup {
             session,
             callback_rx,
             options,
+            schema_spec,
             additional_sources,
             restore_state: None,
             owned_temp_sources: Vec::new(),

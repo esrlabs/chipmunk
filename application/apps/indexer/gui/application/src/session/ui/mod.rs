@@ -68,6 +68,7 @@ impl Session {
     pub fn new(init: SessionUiInit, host_cmd_tx: Sender<HostCommand>) -> Self {
         let SessionUiInit {
             session_info,
+            schema_spec,
             recent_runtime,
             communication,
             observe_op,
@@ -80,7 +81,7 @@ impl Session {
         let UiHandle { senders, receivers } = communication;
 
         let side_panel = SidePanelUi::new(&observe_op, host_cmd_tx.clone(), senders.cmd_tx.clone());
-        let mut shared = SessionShared::new(session_info, observe_op);
+        let mut shared = SessionShared::new(session_info, observe_op, schema_spec);
         for observe_op in additional_observe_ops {
             shared.add_operation(observe_op);
         }

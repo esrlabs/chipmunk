@@ -7,7 +7,7 @@ use crate::{
         types::{ObserveOperation, OperationPhase},
         ui::definitions::{
             UpdateOperationOutcome,
-            schema::{self, LogSchema},
+            schema::{self, LogSchema, LogSchemaSpec},
         },
     },
 };
@@ -85,9 +85,13 @@ pub struct SearchSyncOutcome {
 }
 
 impl SessionShared {
-    pub fn new(session_info: SessionInfo, observe_op: ObserveOperation) -> Self {
+    pub fn new(
+        session_info: SessionInfo,
+        observe_op: ObserveOperation,
+        schema_spec: LogSchemaSpec,
+    ) -> Self {
         let session_id = session_info.id;
-        let schema = schema::from_parser(session_info.parser);
+        let schema = schema::from_spec(schema_spec);
         Self {
             session_info,
             signals: Vec::new(),
@@ -463,6 +467,7 @@ mod tests {
     };
 
     use super::*;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn new_shared() -> SessionShared {
         let session_id = Uuid::new_v4();
@@ -479,7 +484,7 @@ mod tests {
             raw_export_supported: false,
         };
 
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     fn new_shared_with_info_from_origin(origin: ObserveOrigin) -> SessionShared {
@@ -493,7 +498,7 @@ mod tests {
             },
         );
 
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     fn add_filter(shared: &mut SessionShared, registry: &mut FilterRegistry, value: &str) {

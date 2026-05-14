@@ -250,6 +250,7 @@ mod tests {
     };
 
     use super::*;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn new_shared(origin: ObserveOrigin) -> SessionShared {
         let session_info = SessionInfo {
@@ -259,7 +260,7 @@ mod tests {
             raw_export_supported: false,
         };
         let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     fn file_runtime() -> RecentSessionRuntime {

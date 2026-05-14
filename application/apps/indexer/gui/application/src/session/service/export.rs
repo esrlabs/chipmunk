@@ -18,7 +18,7 @@ use crate::{
         command::{ExportTarget, TextExportOptions},
         common::search_results_tab::SearchResultsTabMode,
         error::SessionError,
-        ui::definitions::schema,
+        ui::definitions::schema::{self, LogSchemaSpec},
     },
 };
 
@@ -138,42 +138,69 @@ impl SessionService {
 
         // Preserve raw bytes only when the export is a valid source for the target parser.
         // Other modes export rendered text, with DLT/SomeIP fallback formatted as table text.
-        let result =
-            match mode {
-                SearchResultsTabMode::PreserveDltBinary => {
-                    self.session.export_raw(operation_id, destination, ranges)
-                }
-                SearchResultsTabMode::PreserveText => {
-                    self.session
-                        .export(operation_id, destination, ranges, Vec::new(), None, None)
-                }
-                SearchResultsTabMode::Text => {
-                    let parser = executed
-                        .first()
-                        .map(|options| ParserNames::from(&options.parser));
-                    match parser {
-                        Some(parser @ (ParserNames::Dlt | ParserNames::SomeIP)) => {
-                            // In case of falling back to export DLT/SomeIP as text then use best effort
-                            // separator to show them similar to columns as possible.
-                            const FALLBACK_TEXT_DELIMITER: &str = " | ";
-                            let schema = schema::from_parser(parser);
-                            let columns = (0..schema.columns().len()).collect();
+        let result = match mode {
+            SearchResultsTabMode::PreserveDltBinary => {
+                self.session.export_raw(operation_id, destination, ranges)
+            }
+            SearchResultsTabMode::PreserveText => {
+                self.session
+                    .export(operation_id, destination, ranges, Vec::new(), None, None)
+            }
+            SearchResultsTabMode::Text => {
+                // In case of falling back to export table parsers as text then use best effort
+                // separator to show them similar to columns as possible.
+                const FALLBACK_TEXT_DELIMITER: &str = " | ";
 
-                            self.session.export(
-                                operation_id,
-                                destination,
-                                ranges,
-                                columns,
-                                Some(COLUMN_SEPARATOR.to_owned()),
-                                Some(FALLBACK_TEXT_DELIMITER.to_owned()),
-                            )
-                        }
-                        Some(ParserNames::Text | ParserNames::Plugins) | None => self
-                            .session
-                            .export(operation_id, destination, ranges, Vec::new(), None, None),
+                let parser = executed
+                    .first()
+                    .map(|options| ParserNames::from(&options.parser));
+                match parser {
+                    Some(ParserNames::Dlt) => {
+                        let schema = schema::from_spec(LogSchemaSpec::Dlt);
+                        let columns = (0..schema.columns().len()).collect();
+
+                        self.session.export(
+                            operation_id,
+                            destination,
+                            ranges,
+                            columns,
+                            Some(COLUMN_SEPARATOR.to_owned()),
+                            Some(FALLBACK_TEXT_DELIMITER.to_owned()),
+                        )
                     }
+                    Some(ParserNames::SomeIP) => {
+                        let schema = schema::from_spec(LogSchemaSpec::SomeIp);
+                        let columns = (0..schema.columns().len()).collect();
+
+                        self.session.export(
+                            operation_id,
+                            destination,
+                            ranges,
+                            columns,
+                            Some(COLUMN_SEPARATOR.to_owned()),
+                            Some(FALLBACK_TEXT_DELIMITER.to_owned()),
+                        )
+                    }
+                    Some(ParserNames::Plugins) => self.session.export(
+                        operation_id,
+                        destination,
+                        ranges,
+                        // Plugin columns are dynamic, so ask export to re-delimit all columns.
+                        Vec::new(),
+                        Some(COLUMN_SEPARATOR.to_owned()),
+                        Some(FALLBACK_TEXT_DELIMITER.to_owned()),
+                    ),
+                    Some(ParserNames::Text) | None => self.session.export(
+                        operation_id,
+                        destination,
+                        ranges,
+                        Vec::new(),
+                        None,
+                        None,
+                    ),
                 }
-            };
+            }
+        };
 
         // Export start failures happen before OperationError callbacks, so cleanup the
         // generated path and clear tracking here.
@@ -258,6 +285,10 @@ impl SessionService {
                     return Err(init_session_error_to_session_error(error.into()));
                 }
             };
+        let schema_spec = match operation.mode {
+            SearchResultsTabMode::PreserveDltBinary => LogSchemaSpec::Dlt,
+            SearchResultsTabMode::PreserveText | SearchResultsTabMode::Text => LogSchemaSpec::Text,
+        };
         let shared_senders = self.senders.get_shared_senders();
         let additional_sources = Vec::new();
         let restore_state = operation.restore_state;
@@ -267,6 +298,7 @@ impl SessionService {
             child_session,
             child_callback_rx,
             options,
+            schema_spec,
             additional_sources,
         )
         .with_restore_state(Some(restore_state))
