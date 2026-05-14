@@ -4,7 +4,7 @@ use egui::{Align, Button, Label, Layout, RichText, Sense, Sides, Ui, UiBuilder, 
 
 use crate::{
     common::phosphor::icons,
-    host::ui::storage::{RecentSessionSnapshot, RecentSessionSource},
+    host::ui::storage::recent::session::{RecentSessionSnapshot, RecentSessionSource},
 };
 
 const ROW_HEIGHT: f32 = 50.0;

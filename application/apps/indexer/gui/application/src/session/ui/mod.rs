@@ -17,7 +17,10 @@ use crate::{
             registry::{HostRegistry, filters::FilterRegistry},
             shortcuts::state::LastShortcutKey,
             state::HostPreferences,
-            storage::{HostStorage, RecentSessionSource, RecentSessionStateSnapshot},
+            storage::{
+                HostStorage,
+                recent::session::{RecentSessionSource, RecentSessionStateSnapshot},
+            },
         },
     },
     session::{

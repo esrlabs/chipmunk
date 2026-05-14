@@ -7,7 +7,10 @@ use crate::host::{
     ui::{
         registry::presets::Preset,
         session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
-        storage::{RecentSessionReopenMode, RecentSessionSnapshot, StorageError, StorageSaveData},
+        storage::{
+            recent::session::{RecentSessionReopenMode, RecentSessionSnapshot},
+            types::{StorageError, StorageSaveData},
+        },
     },
 };
 
@@ -17,6 +20,8 @@ pub enum HostCommand {
     /// Opens the files, prompting the user with the setup UI
     /// if multiple files are provided.
     OpenFiles(Vec<PathBuf>),
+    /// Opens the files through session setup with a plugin parser preselected.
+    OpenFilesWithPlugin(Vec<PathBuf>),
     /// Bypasses the setup UI and opens each file in a separate
     /// session immediately.
     OpenAsSessions(Vec<PathBuf>),

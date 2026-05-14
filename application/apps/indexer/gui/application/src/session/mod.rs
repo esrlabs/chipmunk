@@ -5,7 +5,7 @@ use std::sync::Arc;
 use stypes::ComputationError;
 
 use crate::{
-    host::ui::storage::{RecentSessionRegistration, RecentSessionStateSnapshot},
+    host::ui::storage::recent::session::{RecentSessionRegistration, RecentSessionStateSnapshot},
     session::{
         communication::UiHandle,
         types::ObserveOperation,

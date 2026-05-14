@@ -11,7 +11,7 @@ use stypes::{
     ShellType, TCPTransportConfig, Transport, UDPTransportConfig,
 };
 
-use super::RecentSessionSource;
+use super::session::RecentSessionSource;
 
 /// Builds the persisted source key for one ordered source collection.
 pub fn from_sources(sources: &[RecentSessionSource]) -> Arc<str> {
@@ -154,7 +154,9 @@ mod tests {
     use stypes::{TCPTransportConfig, Transport};
 
     use super::*;
-    use crate::host::ui::storage::{RecentSessionRegistration, RecentSessionSnapshot};
+    use crate::host::ui::storage::recent::session::{
+        RecentSessionRegistration, RecentSessionSnapshot,
+    };
 
     #[test]
     fn source_key_respects_order() {

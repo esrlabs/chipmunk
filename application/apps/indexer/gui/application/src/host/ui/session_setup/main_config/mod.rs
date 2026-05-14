@@ -1,12 +1,10 @@
 use core::slice;
 
 use egui::{Align, Layout, Margin, ScrollArea, TextEdit, Ui};
-use tokio::sync::mpsc::Sender;
 
 use crate::{
     common::ui::visibility_tracker::VisibilityTracker,
     host::{
-        command::HostCommand,
         common::{
             parsers::ParserNames,
             sources::StreamNames,
@@ -15,14 +13,15 @@ use crate::{
         ui::{
             UiActions,
             session_setup::{
-                RenderOutcome, start_session_on_enter,
+                RenderOutcome, SessionSetup, start_session_on_enter,
                 state::{
                     SessionSetupState,
                     parsers::ParserConfig,
                     sources::{ByteSourceConfig, SourceFileInfo, StreamConfig},
                 },
             },
-            storage::RecentSessionsStorage,
+            state::plugin::PluginsState,
+            storage::recent::storage::RecentSessionsStorage,
         },
     },
 };
@@ -34,58 +33,64 @@ mod serial;
 mod tcp;
 pub mod udp;
 
-pub fn render_content(
-    state: &mut SessionSetupState,
-    input_visibility: &mut VisibilityTracker,
-    recent_sessions: &mut RecentSessionsStorage,
-    cmd_tx: &Sender<HostCommand>,
-    actions: &mut UiActions,
-    ui: &mut Ui,
-) -> RenderOutcome {
-    let SessionSetupState { id, source, parser } = state;
+impl SessionSetup {
+    pub(super) fn render_main_config(
+        &mut self,
+        recent_sessions: &mut RecentSessionsStorage,
+        plugins: &PluginsState,
+        actions: &mut UiActions,
+        ui: &mut Ui,
+    ) -> RenderOutcome {
+        let SessionSetupState { id, source, parser } = &mut self.state;
 
-    match source {
-        ByteSourceConfig::File(file) => render_files(slice::from_ref(file), parser, ui),
-        ByteSourceConfig::Concat(files) => render_files(files, parser, ui),
-        ByteSourceConfig::Stream(stream) => {
-            let session_setup_id = *id;
-            let current_stream = StreamNames::from(&*stream);
-            let current_parser = ParserNames::from(&*parser);
-            let get_frame = |ui: &mut Ui| {
-                general_group_frame(ui)
-                    .inner_margin(Margin::symmetric(10, 4))
-                    .outer_margin(Margin::symmetric(10, 4))
-            };
-            let mut output = RenderOutcome::None;
+        match source {
+            ByteSourceConfig::File(file) => render_files(slice::from_ref(file), parser, ui),
+            ByteSourceConfig::Concat(files) => render_files(files, parser, ui),
+            ByteSourceConfig::Stream(stream) => {
+                let input_visibility = &mut self.input_visibility;
+                let cmd_tx = &self.cmd_tx;
+                let session_setup_id = *id;
+                let current_stream = StreamNames::from(&*stream);
+                let current_parser = ParserNames::from(&*parser);
+                let get_frame = |ui: &mut Ui| {
+                    general_group_frame(ui)
+                        .inner_margin(Margin::symmetric(10, 4))
+                        .outer_margin(Margin::symmetric(10, 4))
+                };
+                let mut output = RenderOutcome::None;
 
-            ui.with_layout(Layout::top_down_justified(Align::Min), |ui| {
-                get_frame(ui).show(ui, |ui| {
-                    ui.heading("Connection");
-                    ui.add_space(10.);
-                    output = render_stream_connection(stream, input_visibility, actions, ui);
+                ui.with_layout(Layout::top_down_justified(Align::Min), |ui| {
+                    get_frame(ui).show(ui, |ui| {
+                        ui.heading("Connection");
+                        ui.add_space(10.);
+                        output = render_stream_connection(stream, input_visibility, actions, ui);
+                    });
+
+                    get_frame(ui).show(ui, |ui| {
+                        ui.heading("Recent");
+                        ui.add_space(10.);
+
+                        ScrollArea::vertical()
+                            .id_salt(("stream_setup_recent", session_setup_id))
+                            .show(ui, |ui| {
+                                let mut matching_sessions = recent::MatchingRecentSessions::new(
+                                    session_setup_id,
+                                    cmd_tx,
+                                    actions,
+                                    plugins,
+                                );
+                                matching_sessions.render(
+                                    current_stream,
+                                    current_parser,
+                                    recent_sessions,
+                                    ui,
+                                )
+                            });
+                    });
                 });
 
-                get_frame(ui).show(ui, |ui| {
-                    ui.heading("Recent");
-                    ui.add_space(10.);
-
-                    ScrollArea::vertical()
-                        .id_salt(("stream_setup_recent", session_setup_id))
-                        .show(ui, |ui| {
-                            recent::render_matching_recent_sessions(
-                                session_setup_id,
-                                current_stream,
-                                current_parser,
-                                recent_sessions,
-                                cmd_tx,
-                                actions,
-                                ui,
-                            )
-                        });
-                });
-            });
-
-            output
+                output
+            }
         }
     }
 }

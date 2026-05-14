@@ -10,11 +10,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     common::time::unix_timestamp_now,
-    host::ui::storage::{StorageError, StorageErrorKind},
+    host::ui::storage::types::{StorageError, StorageErrorKind},
 };
 
-use super::super::SaveOutcome;
-use super::{RecentSessionSnapshot, RecentSessionSource, RecentSessionStateSnapshot};
+use super::{
+    super::SaveOutcome,
+    session::{RecentSessionSnapshot, RecentSessionSource, RecentSessionStateSnapshot},
+};
 
 pub const MAX_RECENT_SESSIONS: usize = 100;
 
@@ -175,12 +177,16 @@ mod tests {
 
     use stypes::{ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig, Transport};
 
-    use super::{
-        MAX_RECENT_SESSIONS, RecentSessionSnapshot, RecentSessionSource, RecentSessionsStorage,
-    };
+    use super::{MAX_RECENT_SESSIONS, RecentSessionsStorage};
     use crate::{
         common::time::unix_timestamp_now,
-        host::ui::storage::{RecentSessionRegistration, RecentSessionStateSnapshot, SaveOutcome},
+        host::ui::storage::{
+            SaveOutcome,
+            recent::session::{
+                RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource,
+                RecentSessionStateSnapshot,
+            },
+        },
     };
 
     fn test_storage() -> RecentSessionsStorage {

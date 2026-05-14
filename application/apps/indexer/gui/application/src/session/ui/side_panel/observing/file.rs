@@ -124,10 +124,9 @@ impl FilesObserveUi {
                                         vec![String::from("dlt")],
                                     )],
                                 ),
-                                ParserNames::SomeIP | ParserNames::Text => {
+                                ParserNames::SomeIP | ParserNames::Text | ParserNames::Plugins => {
                                     ("Attach Files", Vec::new())
                                 }
-                                ParserNames::Plugins => todo!("Plugins not supported yet"),
                             },
                         };
 

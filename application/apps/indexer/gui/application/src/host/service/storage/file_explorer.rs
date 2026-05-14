@@ -14,8 +14,8 @@ use super::storage_path;
 use crate::host::{
     service::HostAsyncEvent,
     ui::storage::{
-        FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
-        StorageErrorKind, StorageEvent,
+        file_explorer::{FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind},
+        types::{StorageError, StorageErrorKind, StorageEvent},
     },
 };
 
@@ -300,8 +300,8 @@ mod tests {
 
     use crate::host::service::{HostAsyncEvent, storage::storage_path_from_home};
     use crate::host::ui::storage::{
-        FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind, StorageError,
-        StorageErrorKind, StorageEvent,
+        file_explorer::{FavoriteFolder, FileExplorerData, FileTreeNode, FileTreeNodeKind},
+        types::{StorageError, StorageErrorKind, StorageEvent},
     };
 
     use super::{

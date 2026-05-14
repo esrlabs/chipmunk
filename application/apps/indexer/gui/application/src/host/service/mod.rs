@@ -42,7 +42,7 @@ use crate::{
                 },
             },
             state::plugin::PluginsState,
-            storage::{RecentSessionsStorage, StorageEvent},
+            storage::{recent::storage::RecentSessionsStorage, types::StorageEvent},
         },
     },
     session::{InitSessionError, service::SessionService, ui::definitions::schema::LogSchemaSpec},
@@ -165,6 +165,11 @@ impl HostService {
                 } else {
                     self.open_multi_files(files).await?;
                 }
+            }
+            HostCommand::OpenFilesWithPlugin(files) => {
+                log::trace!("Got open files with plugin request. Files: {files:?}");
+
+                self.open_files_with_plugin(files).await?;
             }
             HostCommand::OpenAsSessions(files) => {
                 for file in files {
@@ -372,6 +377,9 @@ impl HostService {
                     self.open_multi_files(paths).await?;
                 }
             }
+            RecentSessionOpenRequest::OpenFilesWithPlugin(paths) => {
+                self.open_files_with_plugin(paths).await?;
+            }
             RecentSessionOpenRequest::OpenStreamSetup { stream, parser } => {
                 self.connection_session_setup(stream, parser).await;
             }
@@ -439,6 +447,41 @@ impl HostService {
                 })
                 .await;
         }
+
+        Ok(())
+    }
+
+    async fn open_files_with_plugin(&self, paths: Vec<PathBuf>) -> Result<(), HostError> {
+        let files = tokio::task::spawn_blocking(move || {
+            paths
+                .into_iter()
+                .map(|path| {
+                    file::get_file_format(&path).map(|format| SourceFileInfo::new(path, format))
+                })
+                .collect::<std::io::Result<Vec<_>>>()
+        })
+        .await
+        .map_err(|_| {
+            HostError::InitSessionError(InitSessionError::Other(
+                "Determining file types failed.".into(),
+            ))
+        })?
+        .map_err(|err| HostError::InitSessionError(InitSessionError::IO(err)))?;
+
+        let source_type = if files.is_empty() {
+            return Ok(());
+        } else if files.len() == 1 {
+            ByteSourceConfig::File(files.into_iter().next().unwrap())
+        } else {
+            ByteSourceConfig::Concat(files)
+        };
+        let parser = ParserConfig::Plugins(Box::new(PluginParserConfig::new()));
+        let session_setup = SessionSetupState::new(Uuid::new_v4(), source_type, parser);
+
+        self.communication
+            .senders
+            .send_message(HostMessage::SessionSetupOpened(Box::new(session_setup)))
+            .await;
 
         Ok(())
     }

@@ -17,9 +17,15 @@ use crate::{
         common::{parsers::ParserNames, sources::StreamNames},
         error::HostError,
         ui::storage::{
-            MAX_RECENT_SESSIONS, RecentSessionReopenMode, RecentSessionSnapshot,
-            RecentSessionSource, RecentSessionStateSnapshot, RecentSessionsStorage, StorageError,
-            StorageErrorKind,
+            recent::{
+                session::{
+                    RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource,
+                    RecentSessionStateSnapshot,
+                },
+                storage::{MAX_RECENT_SESSIONS, RecentSessionsStorage},
+                validation::validate_sources,
+            },
+            types::{StorageError, StorageErrorKind},
         },
     },
     session::InitSessionError,
@@ -38,6 +44,12 @@ pub enum RecentSessionOpenRequest {
     },
     /// Reopen one or more files through the normal host open flow.
     OpenFiles(Vec<PathBuf>),
+    /// Reopen one or more files through plugin-parser setup.
+    ///
+    /// # Note:
+    /// Plugins need to open text files without defaulting to text parser,
+    /// therefore they need special command for them.
+    OpenFilesWithPlugin(Vec<PathBuf>),
     /// Reopen a stream source by opening the setup flow with preselected types.
     OpenStreamSetup {
         stream: StreamNames,
@@ -116,7 +128,13 @@ fn open_recent_session_clean(
                     ))
                 })?;
 
-            Ok(RecentSessionOpenRequest::OpenFiles(paths))
+            match parser {
+                ParserNames::Dlt | ParserNames::SomeIP | ParserNames::Text => {
+                    Ok(RecentSessionOpenRequest::OpenFiles(paths))
+                }
+                // Plugins supports opening text file without defaulting to text parser
+                ParserNames::Plugins => Ok(RecentSessionOpenRequest::OpenFilesWithPlugin(paths)),
+            }
         }
         RecentSessionSource::Stream { transport } if source_count == 1 => {
             let stream = match transport {
@@ -170,7 +188,7 @@ fn normalize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool 
 fn sanitize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
     let initial_len = sessions.len();
 
-    sessions.retain(|session| match session.validate() {
+    sessions.retain(|session| match validate_sources(session) {
         Ok(()) => true,
         Err(message) => {
             warn!(
@@ -246,9 +264,14 @@ mod tests {
             command::OpenRecentSessionParam,
             service::storage::{STORAGE_DIR, storage_path_from_home},
             ui::storage::{
-                MAX_RECENT_SESSIONS, RecentSessionRegistration, RecentSessionReopenMode,
-                RecentSessionSnapshot, RecentSessionSource, RecentSessionsStorage,
-                SearchFilterSnapshot, StorageError, StorageErrorKind,
+                recent::{
+                    session::{
+                        RecentSessionRegistration, RecentSessionReopenMode, RecentSessionSnapshot,
+                        RecentSessionSource, SearchFilterSnapshot,
+                    },
+                    storage::{MAX_RECENT_SESSIONS, RecentSessionsStorage},
+                },
+                types::{StorageError, StorageErrorKind},
             },
         },
     };
@@ -316,6 +339,16 @@ mod tests {
         })
     }
 
+    fn plugin_settings() -> stypes::PluginParserSettings {
+        stypes::PluginParserSettings {
+            plugin_path: PathBuf::from("/plugins/string_parser.wasm"),
+            general_settings: stypes::PluginParserGeneralSettings {
+                placeholder: String::new(),
+            },
+            plugin_configs: Vec::new(),
+        }
+    }
+
     fn recent_session(bind_addr: impl Into<String>, last_opened: u64) -> RecentSessionSnapshot {
         let mut session = stream_snapshot(bind_addr.into());
         session.last_opened = last_opened;
@@ -365,6 +398,30 @@ mod tests {
 
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].source_key, valid_snapshot.source_key);
+        let _ = fs::remove_dir_all(home_dir);
+    }
+
+    #[test]
+    fn keeps_plugin_session_without_plugin() {
+        let home_dir = test_home_dir();
+        let source_path = home_dir.join("plugin.log");
+        fs::write(&source_path, "test").expect("source file should be written");
+        let snapshot = snapshot_from_observe_options(ObserveOptions::file(
+            source_path,
+            stypes::FileFormat::Text,
+            ParserType::Plugin(plugin_settings()),
+        ));
+        let mut storage = RecentSessionsStorage::default();
+        storage.register_session(snapshot.clone());
+        let data = storage.get_save_data().expect("dirty storage should save");
+
+        save_to_home(&home_dir, &data).expect("save should succeed");
+
+        let path = path_from_home(&home_dir).expect("path should resolve");
+        let loaded = load_and_normalize(&path).expect("load should succeed");
+
+        assert_eq!(loaded.sessions.len(), 1);
+        assert_eq!(loaded.sessions[0].source_key, snapshot.source_key);
         let _ = fs::remove_dir_all(home_dir);
     }
 
@@ -593,6 +650,30 @@ mod tests {
                 assert_eq!(files.len(), 2);
             }
             other => panic!("expected restore request, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn clean_open_plugin_file_uses_plugin_flow() {
+        let path = PathBuf::from("plugin.log");
+        let snapshot = snapshot_from_observe_options(ObserveOptions::file(
+            path.clone(),
+            stypes::FileFormat::Text,
+            ParserType::Plugin(plugin_settings()),
+        ));
+
+        let request = resolve_open_request(OpenRecentSessionParam {
+            snapshot,
+            mode: RecentSessionReopenMode::OpenClean,
+            session_setup_id: None,
+        })
+        .expect("plugin clean open should resolve");
+
+        match request {
+            RecentSessionOpenRequest::OpenFilesWithPlugin(paths) => {
+                assert_eq!(paths, vec![path]);
+            }
+            other => panic!("expected plugin file open request, got {other:?}"),
         }
     }
 }

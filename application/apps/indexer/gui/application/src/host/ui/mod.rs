@@ -348,7 +348,9 @@ impl Host {
         } = state;
 
         match active_tab {
-            TabType::Home => home_view.render_content(storage, ui_actions, preferences, ui),
+            TabType::Home => {
+                home_view.render_content(storage, ui_actions, preferences, plugins, ui)
+            }
             TabType::Session(id) => sessions
                 .get_mut(&id)
                 .expect("Session with provieded ID from active tab must exist")

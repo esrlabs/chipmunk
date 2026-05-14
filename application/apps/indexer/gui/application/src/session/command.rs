@@ -8,7 +8,8 @@ use stypes::GrabbedElement;
 use uuid::Uuid;
 
 use crate::host::ui::{
-    session_setup::state::sources::StreamConfig, storage::RecentSessionStateSnapshot,
+    session_setup::state::sources::StreamConfig,
+    storage::recent::session::RecentSessionStateSnapshot,
 };
 use crate::session::{error::SessionError, types::attachment};
 

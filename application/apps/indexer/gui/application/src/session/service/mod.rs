@@ -30,7 +30,9 @@ use crate::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, StreamConfig},
             },
-            storage::{RecentSessionRegistration, RecentSessionSource, RecentSessionStateSnapshot},
+            storage::recent::session::{
+                RecentSessionRegistration, RecentSessionSource, RecentSessionStateSnapshot,
+            },
         },
     },
     session::{

@@ -20,8 +20,11 @@ use crate::host::{
         UiActions,
         actions::FileDialogOptions,
         storage::{
-            FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerStorage, FileTreeNode,
-            FileTreeNodeKind, LoadState,
+            file_explorer::{
+                FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerStorage, FileTreeNode,
+                FileTreeNodeKind,
+            },
+            types::LoadState,
         },
     },
 };
@@ -548,12 +551,14 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{
-        FavoriteFolder, FileExplorerUi, FileTreeNode, FileTreeNodeKind, LoadState,
-        filter_favorite_folders,
+        FavoriteFolder, FileExplorerUi, FileTreeNode, FileTreeNodeKind, filter_favorite_folders,
     };
     use crate::{
         common::ui::substring_matcher::SubstringMatcher,
-        host::ui::storage::{FileExplorerData, FileExplorerStorage},
+        host::ui::storage::{
+            file_explorer::{FileExplorerData, FileExplorerStorage},
+            types::LoadState,
+        },
     };
 
     fn build_matcher(query: &str) -> SubstringMatcher {
