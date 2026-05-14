@@ -12,7 +12,7 @@ use crate::{
     session::{
         command::{ExportTarget, TextExportOptions},
         types::OperationPhase,
-        ui::definitions::UpdateOperationOutcome,
+        ui::definitions::{UpdateOperationOutcome, schema::LogSchema},
     },
 };
 use file_dialog::{PendingRawExport, PendingTextExport};
@@ -105,12 +105,36 @@ impl ExportState {
         );
     }
 
+    /// Opens rendered text export using either table columns or full-row text.
+    pub fn open_rendered_text_export(
+        &mut self,
+        actions: &mut UiActions,
+        target: ExportTarget,
+        schema: &dyn LogSchema,
+        dialog_id: &'static str,
+        file_name: String,
+    ) {
+        let title = rendered_text_export_title(schema, &target);
+        if schema.has_headers() {
+            self.open_text_modal(target, title, schema, dialog_id, file_name);
+        } else {
+            self.open_text_dialog(
+                actions,
+                target,
+                full_row_text_options(),
+                dialog_id,
+                title,
+                file_name,
+            );
+        }
+    }
+
     /// Opens the DLT/SomeIP text export modal.
     pub fn open_text_modal(
         &mut self,
         target: ExportTarget,
         title: &'static str,
-        schema: &dyn crate::session::ui::definitions::schema::LogSchema,
+        schema: &dyn LogSchema,
         dialog_id: &'static str,
         file_name: String,
     ) {
@@ -181,6 +205,43 @@ enum PendingExportKind {
     File { destination: PathBuf },
     /// Generated export used only to create a new search-results session tab.
     SearchResultsTab,
+}
+
+/// Returns the context-menu label for a rendered text export action.
+pub fn rendered_text_export_label(schema: &dyn LogSchema, target: &ExportTarget) -> String {
+    let has_headers = schema.has_headers();
+    match (has_headers, target) {
+        (true, ExportTarget::Rows(rows)) => {
+            if rows.is_empty() {
+                String::from("Export Selected as Table")
+            } else {
+                format!("Export {} row(s) as Table", rows.len())
+            }
+        }
+        (false, ExportTarget::Rows(rows)) => {
+            if rows.is_empty() {
+                String::from("Export Selected")
+            } else {
+                format!("Export {} row(s)", rows.len())
+            }
+        }
+        (true, ExportTarget::All) => String::from("Export All as Table"),
+        (false, ExportTarget::All) => String::from("Export All Logs"),
+        (true, ExportTarget::Indexed) => String::from("Export Search Results as Table"),
+        (false, ExportTarget::Indexed) => String::from("Export Search Results"),
+    }
+}
+
+fn rendered_text_export_title(schema: &dyn LogSchema, target: &ExportTarget) -> &'static str {
+    let has_headers = schema.has_headers();
+    match (has_headers, target) {
+        (true, ExportTarget::Rows(_)) => "Export Selected as Table",
+        (false, ExportTarget::Rows(_)) => "Export Selected",
+        (true, ExportTarget::All) => "Export All as Table",
+        (false, ExportTarget::All) => "Export All Logs",
+        (true, ExportTarget::Indexed) => "Export Search Results as Table",
+        (false, ExportTarget::Indexed) => "Export Search Results",
+    }
 }
 
 /// Creates options that export full rendered rows without column filtering.

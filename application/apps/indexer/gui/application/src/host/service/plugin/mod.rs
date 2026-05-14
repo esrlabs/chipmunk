@@ -11,6 +11,7 @@ use std::{
 
 use log::warn;
 use plugins_host::plugins_manager::{PluginsManager, PluginsManagerError};
+use stypes::{ParserRenderOptions, PluginType, RenderOptions};
 use tokio::sync::mpsc;
 
 use crate::host::{
@@ -128,6 +129,46 @@ impl PluginService {
         let data = plugins_data(manager);
 
         Ok(PluginsState::Available(data))
+    }
+
+    /// Returns parser render options for the plugin containing the given WASM file.
+    pub fn parser_render_options(
+        &self,
+        plugin_wasm_path: &Path,
+    ) -> Result<ParserRenderOptions, PluginsManagerError> {
+        let PluginManagerRuntime::Ready(manager) = &self.runtime else {
+            return Err(manager_unavailable());
+        };
+
+        let plugin_dir = plugin_wasm_path
+            .parent()
+            .filter(|path| !path.as_os_str().is_empty())
+            .ok_or_else(|| {
+                PluginsManagerError::Other(format!(
+                    "Plugin WASM path has no parent directory: {}",
+                    plugin_wasm_path.display()
+                ))
+            })?;
+
+        let plugin = manager.get_installed_plugin(plugin_dir).ok_or_else(|| {
+            PluginsManagerError::Other(format!("Plugin is not installed: {}", plugin_dir.display()))
+        })?;
+
+        if plugin.plugin_type != PluginType::Parser {
+            return Err(PluginsManagerError::Other(format!(
+                "Plugin is not a parser: {}",
+                plugin_dir.display()
+            )));
+        }
+
+        let RenderOptions::Parser(render_options) = plugin.info.render_options.to_owned() else {
+            return Err(PluginsManagerError::Other(format!(
+                "Plugin render options are not parser options: {}",
+                plugin_dir.display()
+            )));
+        };
+
+        Ok(*render_options)
     }
 
     /// Loads README markdown for an installed plugin.

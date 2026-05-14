@@ -11,10 +11,7 @@ use tokio::sync::mpsc::Sender;
 use stypes::{GrabbedElement, NearestPosition};
 
 use crate::{
-    host::{
-        common::parsers::ParserNames,
-        ui::{UiActions, registry::filters::FilterRegistry},
-    },
+    host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{
         command::{ExportTarget, SessionCommand},
         common::search_results_tab::SearchResultsTabMode,
@@ -167,61 +164,25 @@ impl SearchTable {
         let selected_count = shared.logs.selected_count();
         let indexed_count = shared.search.indexed_result_count();
 
-        match shared.get_info().parser {
-            ParserNames::Text | ParserNames::Plugins => {
-                let selected_label = if selected_count == 0 {
-                    String::from("Export Selected")
-                } else {
-                    format!("Export {selected_count} row(s)")
-                };
-
-                if ui
-                    .add_enabled(
-                        can_start_export && selected_count > 0,
-                        egui::Button::new(selected_label),
-                    )
-                    .clicked()
-                {
-                    let target = ExportTarget::Rows(shared.logs.selected_rows());
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_dialog(
-                        actions,
-                        target,
-                        export::full_row_text_options(),
-                        EXPORT_DIALOG_ID,
-                        "Export Selected",
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
-            ParserNames::Dlt | ParserNames::SomeIP => {
-                let selected_label = if selected_count == 0 {
-                    String::from("Export Selected as Table")
-                } else {
-                    format!("Export {selected_count} row(s) as Table")
-                };
-
-                if ui
-                    .add_enabled(
-                        can_start_export && selected_count > 0,
-                        egui::Button::new(selected_label),
-                    )
-                    .clicked()
-                {
-                    let schema = Rc::clone(&shared.schema);
-                    let target = ExportTarget::Rows(shared.logs.selected_rows());
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_modal(
-                        target,
-                        "Export Selected as Table",
-                        schema.as_ref(),
-                        EXPORT_DIALOG_ID,
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
+        let selected_target = ExportTarget::Rows(shared.logs.selected_rows());
+        let selected_label =
+            export::rendered_text_export_label(shared.schema.as_ref(), &selected_target);
+        if ui
+            .add_enabled(
+                can_start_export && selected_count > 0,
+                egui::Button::new(selected_label),
+            )
+            .clicked()
+        {
+            let file_name = export::default_text_file_name(shared);
+            shared.exports.open_rendered_text_export(
+                actions,
+                selected_target,
+                shared.schema.as_ref(),
+                EXPORT_DIALOG_ID,
+                file_name,
+            );
+            ui.close();
         }
 
         let can_start_raw = shared.get_info().raw_export_supported() && can_start_export;
@@ -252,47 +213,25 @@ impl SearchTable {
 
         ui.separator();
 
-        match shared.get_info().parser {
-            ParserNames::Text | ParserNames::Plugins => {
-                if ui
-                    .add_enabled(
-                        can_start_export && indexed_count > 0,
-                        egui::Button::new("Export Search Results"),
-                    )
-                    .clicked()
-                {
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_dialog(
-                        actions,
-                        ExportTarget::Indexed,
-                        export::full_row_text_options(),
-                        EXPORT_DIALOG_ID,
-                        "Export Search Results",
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
-            ParserNames::Dlt | ParserNames::SomeIP => {
-                if ui
-                    .add_enabled(
-                        can_start_export && indexed_count > 0,
-                        egui::Button::new("Export Search Results as Table"),
-                    )
-                    .clicked()
-                {
-                    let schema = Rc::clone(&shared.schema);
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_modal(
-                        ExportTarget::Indexed,
-                        "Export Search Results as Table",
-                        schema.as_ref(),
-                        EXPORT_DIALOG_ID,
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
+        let search_results_target = ExportTarget::Indexed;
+        let search_results_label =
+            export::rendered_text_export_label(shared.schema.as_ref(), &search_results_target);
+        if ui
+            .add_enabled(
+                can_start_export && indexed_count > 0,
+                egui::Button::new(search_results_label),
+            )
+            .clicked()
+        {
+            let file_name = export::default_text_file_name(shared);
+            shared.exports.open_rendered_text_export(
+                actions,
+                search_results_target,
+                shared.schema.as_ref(),
+                EXPORT_DIALOG_ID,
+                file_name,
+            );
+            ui.close();
         }
 
         if ui

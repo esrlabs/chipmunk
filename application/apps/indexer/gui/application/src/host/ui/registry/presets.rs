@@ -201,6 +201,7 @@ mod tests {
     };
 
     use super::*;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn plain(value: &str) -> SearchFilter {
         SearchFilter::plain(value).ignore_case(true)
@@ -225,7 +226,7 @@ mod tests {
             raw_export_supported: false,
         };
 
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     fn add_filter_definition(registry: &mut FilterRegistry, value: &str) -> Uuid {

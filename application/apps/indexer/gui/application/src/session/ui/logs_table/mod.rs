@@ -12,10 +12,7 @@ use processor::grabber::LineRange;
 use stypes::GrabbedElement;
 
 use crate::{
-    host::{
-        common::parsers::ParserNames,
-        ui::{UiActions, state::HostPreferences},
-    },
+    host::ui::{UiActions, state::HostPreferences},
     session::{
         command::{ExportTarget, SessionCommand},
         error::SessionError,
@@ -160,61 +157,25 @@ impl LogsTable {
         let selected_count = shared.logs.selected_count();
         let can_start_export = shared.exports.can_start();
 
-        match shared.get_info().parser {
-            ParserNames::Text | ParserNames::Plugins => {
-                let selected_label = if selected_count == 0 {
-                    String::from("Export Selected")
-                } else {
-                    format!("Export {selected_count} row(s)")
-                };
-
-                if ui
-                    .add_enabled(
-                        can_start_export && selected_count > 0,
-                        egui::Button::new(selected_label),
-                    )
-                    .clicked()
-                {
-                    let target = ExportTarget::Rows(shared.logs.selected_rows());
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_dialog(
-                        actions,
-                        target,
-                        export::full_row_text_options(),
-                        EXPORT_DIALOG_ID,
-                        "Export Selected",
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
-            ParserNames::Dlt | ParserNames::SomeIP => {
-                let selected_label = if selected_count == 0 {
-                    String::from("Export Selected as Table")
-                } else {
-                    format!("Export {selected_count} row(s) as Table")
-                };
-
-                if ui
-                    .add_enabled(
-                        can_start_export && selected_count > 0,
-                        egui::Button::new(selected_label),
-                    )
-                    .clicked()
-                {
-                    let schema = Rc::clone(&self.schema);
-                    let target = ExportTarget::Rows(shared.logs.selected_rows());
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_modal(
-                        target,
-                        "Export Selected as Table",
-                        schema.as_ref(),
-                        EXPORT_DIALOG_ID,
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
+        let selected_target = ExportTarget::Rows(shared.logs.selected_rows());
+        let selected_label =
+            export::rendered_text_export_label(shared.schema.as_ref(), &selected_target);
+        if ui
+            .add_enabled(
+                can_start_export && selected_count > 0,
+                egui::Button::new(selected_label),
+            )
+            .clicked()
+        {
+            let file_name = export::default_text_file_name(shared);
+            shared.exports.open_rendered_text_export(
+                actions,
+                selected_target,
+                shared.schema.as_ref(),
+                EXPORT_DIALOG_ID,
+                file_name,
+            );
+            ui.close();
         }
 
         let can_export_raw =
@@ -241,47 +202,25 @@ impl LogsTable {
             ui.close();
         }
 
-        match shared.get_info().parser {
-            ParserNames::Text | ParserNames::Plugins => {
-                if ui
-                    .add_enabled(
-                        can_start_export && shared.logs.logs_count() > 0,
-                        egui::Button::new("Export All Logs"),
-                    )
-                    .clicked()
-                {
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_dialog(
-                        actions,
-                        ExportTarget::All,
-                        export::full_row_text_options(),
-                        EXPORT_DIALOG_ID,
-                        "Export All Logs",
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
-            ParserNames::Dlt | ParserNames::SomeIP => {
-                if ui
-                    .add_enabled(
-                        can_start_export && shared.logs.logs_count() > 0,
-                        egui::Button::new("Export All as Table"),
-                    )
-                    .clicked()
-                {
-                    let schema = Rc::clone(&self.schema);
-                    let file_name = export::default_text_file_name(shared);
-                    shared.exports.open_text_modal(
-                        ExportTarget::All,
-                        "Export All as Table",
-                        schema.as_ref(),
-                        EXPORT_DIALOG_ID,
-                        file_name,
-                    );
-                    ui.close();
-                }
-            }
+        let all_logs_target = ExportTarget::All;
+        let all_logs_label =
+            export::rendered_text_export_label(shared.schema.as_ref(), &all_logs_target);
+        if ui
+            .add_enabled(
+                can_start_export && shared.logs.logs_count() > 0,
+                egui::Button::new(all_logs_label),
+            )
+            .clicked()
+        {
+            let file_name = export::default_text_file_name(shared);
+            shared.exports.open_rendered_text_export(
+                actions,
+                all_logs_target,
+                shared.schema.as_ref(),
+                EXPORT_DIALOG_ID,
+                file_name,
+            );
+            ui.close();
         }
     }
 

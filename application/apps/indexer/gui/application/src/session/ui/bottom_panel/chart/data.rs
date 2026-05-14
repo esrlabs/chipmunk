@@ -181,6 +181,7 @@ mod tests {
     };
 
     use super::*;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn new_shared() -> SessionShared {
         let session_id = Uuid::new_v4();
@@ -200,7 +201,7 @@ mod tests {
             raw_export_supported: false,
         };
 
-        SessionShared::new(session_info, observe_op)
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
     }
 
     #[test]

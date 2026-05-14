@@ -45,7 +45,7 @@ use crate::{
             storage::{RecentSessionsStorage, StorageEvent},
         },
     },
-    session::{InitSessionError, service::SessionService},
+    session::{InitSessionError, service::SessionService, ui::definitions::schema::LogSchemaSpec},
 };
 
 use plugin::{PluginEvent, PluginService};
@@ -346,9 +346,11 @@ impl HostService {
                 additional_sources,
                 restore_state,
             } => {
+                let schema_spec = self.schema_spec_for_parser(&options.parser)?;
                 let session = SessionService::spawn(
                     self.communication.senders.get_shared_senders(),
                     *options,
+                    schema_spec,
                     additional_sources,
                     restore_state,
                 )
@@ -423,6 +425,7 @@ impl HostService {
             let session = SessionService::spawn(
                 self.communication.senders.get_shared_senders(),
                 origin,
+                LogSchemaSpec::Text,
                 Vec::new(),
                 None,
             )
@@ -605,6 +608,7 @@ impl HostService {
                     let session = match SessionService::spawn(
                         self.communication.senders.get_shared_senders(),
                         origin,
+                        LogSchemaSpec::Text,
                         Vec::new(),
                         None,
                     )
@@ -925,11 +929,13 @@ impl HostService {
             }
         };
 
+        let schema_spec = self.schema_spec_for_parser(&parser)?;
         let origin = ObserveOptions { origin, parser };
 
         let session = SessionService::spawn(
             self.communication.senders.get_shared_senders(),
             origin,
+            schema_spec,
             Vec::new(),
             None,
         )
@@ -944,6 +950,19 @@ impl HostService {
             .await;
 
         Ok(())
+    }
+
+    fn schema_spec_for_parser(&self, parser: &ParserType) -> Result<LogSchemaSpec, HostError> {
+        match parser {
+            ParserType::Dlt(..) => Ok(LogSchemaSpec::Dlt),
+            ParserType::SomeIp(..) => Ok(LogSchemaSpec::SomeIp),
+            ParserType::Text(..) => Ok(LogSchemaSpec::Text),
+            ParserType::Plugin(settings) => self
+                .plugins
+                .parser_render_options(&settings.plugin_path)
+                .map(LogSchemaSpec::Plugin)
+                .map_err(HostError::from),
+        }
     }
 
     async fn send_host_err(&self, err: HostError) -> bool {
