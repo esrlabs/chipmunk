@@ -8,7 +8,9 @@ use std::ops::{Range, RangeInclusive};
 
 use egui::{
     Align, Color32, CursorIcon, Frame, Label, Layout, Margin, Rect, Response, RichText, Sense,
-    Shape, Stroke, Ui, Widget as _, vec2,
+    Shape, Stroke, TextStyle, Ui, Widget as _,
+    text::{LayoutJob, TextFormat},
+    vec2,
 };
 use egui_table::{Column, TableState};
 use stypes::ObserveOrigin;
@@ -50,6 +52,8 @@ pub mod grab_cmd_consts {
 const ROW_HEADER_SOURCE_COLOR_WIDTH: f32 = 5.0;
 const ROW_HEADER_BOOKMARK_WIDTH: f32 = 8.0;
 const COLUMN_WIDTH_EPSILON: f32 = 0.25;
+
+const BOOKMARK_EXTRA_SPACING: f32 = 3.0;
 
 /// Vertical scroll command for log-like tables.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -278,16 +282,36 @@ pub struct RowHeaderResponse {
     pub bookmark_clicked: bool,
 }
 
+/// Calculates the minimum width for the first log-table column.
+///
+/// Keep this in sync with [`render_row_header`].
+pub fn row_header_column_width(ui: &Ui, largest_row_nr: u64) -> f32 {
+    let font_id = TextStyle::Monospace.resolve(ui.style());
+    let row_number_width = ui
+        .painter()
+        .layout_no_wrap(largest_row_nr.to_string(), font_id, Color32::TRANSPARENT)
+        .size()
+        .x;
+    let bookmark_width = BOOKMARK_EXTRA_SPACING + ROW_HEADER_BOOKMARK_WIDTH;
+
+    let spacing = ui.spacing().item_spacing.x;
+    // This is a baseline width for row numbers; optional row affordances can still
+    // use egui_table's normal growth because the column is not locked.
+    row_number_width + spacing + bookmark_width + spacing
+}
+
 /// Render the row header for log tables.
 ///
-/// The header contains three parts:
+/// The header contains:
 /// - an optional left-side source-color strip for multi-source sessions,
 /// - the row text,
+/// - an optional attachment affordance,
 /// - a right-side bookmark affordance that owns its own hover/click behavior.
 ///
 pub fn render_row_header(
     ui: &mut Ui,
-    text: String,
+    row_number: u64,
+    row_number_digits: usize,
     source_color_idx: Option<usize>,
     is_bookmarked: bool,
     attachment_info: LogAttachmentInfo,
@@ -308,7 +332,7 @@ pub fn render_row_header(
             }
 
             // Header text
-            let text_res = ui.monospace(text);
+            let text_res = render_row_number(ui, row_number, row_number_digits);
 
             // Attachments
             if let LogAttachmentInfo::WithAttachment { color } = attachment_info {
@@ -325,7 +349,7 @@ pub fn render_row_header(
 
             // Bookmarks
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                ui.add_space(3.0);
+                ui.add_space(BOOKMARK_EXTRA_SPACING);
                 let (mut bookmark_res, painter) = ui.allocate_painter(
                     vec2(ROW_HEADER_BOOKMARK_WIDTH, ui.available_height()),
                     Sense::click(),
@@ -366,6 +390,32 @@ pub fn render_row_header(
         attachment_clicked,
         bookmark_clicked,
     }
+}
+
+fn render_row_number(ui: &mut Ui, row_number: u64, row_number_digits: usize) -> Response {
+    let row_number = row_number.to_string();
+    let leading_zero_count = row_number_digits.saturating_sub(row_number.len());
+
+    let font_id = TextStyle::Monospace.resolve(ui.style());
+    let normal_format = TextFormat {
+        font_id: font_id.clone(),
+        color: ui.visuals().text_color(),
+        ..Default::default()
+    };
+    let weak_format = TextFormat {
+        font_id,
+        color: ui.visuals().weak_text_color(),
+        ..Default::default()
+    };
+
+    let mut job = LayoutJob::default();
+    if leading_zero_count > 0 {
+        let leading_zeros = "0".repeat(leading_zero_count);
+        job.append(&leading_zeros, 0.0, weak_format);
+    }
+    job.append(&row_number, 0.0, normal_format);
+
+    Label::new(job).ui(ui)
 }
 
 /// Frame for table content cells.

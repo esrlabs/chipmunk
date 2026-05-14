@@ -1,8 +1,11 @@
 use rustc_hash::FxHashSet;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct LogsState {
-    pub logs_count: u64,
+    /// Number of logs currently known for this session.
+    logs_count: u64,
+    /// Digits needed to display the largest zero-based row number.
+    row_number_digits: usize,
     /// Pending request for the main logs table to bring a row into view.
     main_row_focus: Option<MainRowFocus>,
     /// Selected rows keyed by original stream position.
@@ -76,7 +79,39 @@ pub enum SelectionIntent {
     ExtendRange,
 }
 
+impl Default for LogsState {
+    fn default() -> Self {
+        Self {
+            logs_count: 0,
+            row_number_digits: 1,
+            main_row_focus: None,
+            selected_rows: FxHashSet::default(),
+            last_selected_row: None,
+            bookmarked_rows: FxHashSet::default(),
+        }
+    }
+}
+
 impl LogsState {
+    /// Returns the number of known logs in the session.
+    pub fn logs_count(&self) -> u64 {
+        self.logs_count
+    }
+
+    /// Updates the number of known logs and its derived row-number width metadata.
+    pub fn set_logs_count(&mut self, logs_count: u64) {
+        self.logs_count = logs_count;
+        let largest_row = logs_count.saturating_sub(1);
+        self.row_number_digits = largest_row
+            .checked_ilog10()
+            .map_or(1, |digits| digits as usize + 1);
+    }
+
+    /// Returns the digit count needed to display any known zero-based row number.
+    pub fn row_number_digits(&self) -> usize {
+        self.row_number_digits
+    }
+
     /// Returns whether `row` is part of the current selection.
     pub fn is_selected(&self, row: u64) -> bool {
         self.selected_rows.contains(&row)

@@ -10,7 +10,7 @@ pub fn render_content(shared: &SessionShared, ui: &mut Ui) {
     let selected_count = shared.logs.selected_count();
     let single_selected_row = shared.logs.single_selected_row();
     let search_count = shared.search.search_result_count();
-    let total_count = shared.logs.logs_count;
+    let total_count = shared.logs.logs_count();
 
     ui.horizontal_centered(|ui| {
         Label::new(status_summary_text(

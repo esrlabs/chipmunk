@@ -179,12 +179,12 @@ impl ChartUI {
             let offset = *logs_rng.start() as f64;
             (ratio, offset)
         } else {
-            let ratio = shared.logs.logs_count as f64 / self.data.bars.len() as f64;
+            let ratio = shared.logs.logs_count() as f64 / self.data.bars.len() as f64;
             (ratio, 0.)
         };
 
         // Function to convert value from x axis while ensuring it's in logs valid bound.
-        let convert_bounded = |x: f64| (x as u64).min(shared.logs.logs_count.saturating_sub(1));
+        let convert_bounded = |x: f64| (x as u64).min(shared.logs.logs_count().saturating_sub(1));
 
         let plot = Plot::new(shared.get_id())
             .legend(Legend::default())
@@ -227,7 +227,7 @@ impl ChartUI {
                 // We need to reset X axis manually to show all logs span.
                 // Y axis can be reset manually since we are not modifying it manually.
 
-                let logs_count = shared.logs.logs_count as f64;
+                let logs_count = shared.logs.logs_count() as f64;
                 let offset = logs_count * CHART_OFFSET;
                 plot_ui.set_plot_bounds_x(-offset..=logs_count + offset);
                 plot_ui.set_auto_bounds([false, true]);
@@ -349,7 +349,7 @@ impl ChartUI {
                 shared.logs.focus_main_row(log_nr, SearchTableSync::Sync);
             }
             PlotResponse::RequestForRange(bound_x) => {
-                self.update_throttle_config(shared.logs.logs_count);
+                self.update_throttle_config(shared.logs.logs_count());
                 self.pending_request_range = None;
                 let retry_range = bound_x.clone();
 
@@ -412,12 +412,12 @@ impl ChartUI {
 
     /// Returns the full chartable log span for the current session.
     fn get_full_range(shared: &SessionShared) -> RangeInclusive<u64> {
-        0..=shared.logs.logs_count.saturating_sub(1)
+        0..=shared.logs.logs_count().saturating_sub(1)
     }
 
     /// Returns the default full-range X bounds applied when the chart follows the live span.
     fn default_bounds(shared: &SessionShared) -> PlotBounds {
-        let logs_count = shared.logs.logs_count as f64;
+        let logs_count = shared.logs.logs_count() as f64;
         let offset = logs_count * CHART_OFFSET;
         PlotBounds::from_min_max([-offset, 0.0], [logs_count + offset, 1.0])
     }
@@ -458,7 +458,7 @@ impl ChartUI {
     fn bounds_request_range(bounds: &PlotBounds, shared: &SessionShared) -> RangeInclusive<u64> {
         let min_x = bounds.min()[0].max(0.0) as u64;
         let max_x = bounds.max()[0].max(0.0) as u64;
-        let max_x = max_x.min(shared.logs.logs_count.saturating_sub(1));
+        let max_x = max_x.min(shared.logs.logs_count().saturating_sub(1));
         min_x..=max_x
     }
 
@@ -550,7 +550,7 @@ mod tests {
         };
 
         let mut shared = SessionShared::new(session_info, observe_op);
-        shared.logs.logs_count = logs_count;
+        shared.logs.set_logs_count(logs_count);
         shared
     }
 
@@ -626,7 +626,7 @@ mod tests {
         let mut chart = new_chart();
         chart.current_request_range = Some(0..=9);
 
-        shared.logs.logs_count = 12;
+        shared.logs.set_logs_count(12);
         chart.on_chart_data_changes(&shared);
 
         assert_eq!(chart.viewport_mode, ChartViewportMode::FollowFullRange);

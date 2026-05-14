@@ -451,9 +451,11 @@ impl<'a> LogsDelegate<'a> {
                 }
             });
 
+        let row_number_digits = self.shared.logs.row_number_digits();
         let header = render_row_header(
             ui,
-            log_position.to_string(),
+            log_position as u64,
+            row_number_digits,
             source_color_idx,
             is_bookmarked,
             attachment_info,
@@ -552,7 +554,7 @@ impl<'a> LogsDelegate<'a> {
 
 impl TableDelegate for LogsDelegate<'_> {
     fn prepare(&mut self, info: &PrefetchInfo) {
-        if self.shared.logs.logs_count == 0 {
+        if self.shared.logs.logs_count() == 0 {
             return;
         }
 
