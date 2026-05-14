@@ -70,6 +70,25 @@ pub async fn observe_file(
             listening
         }
         stypes::FileFormat::Text => {
+            // We need to count for cases where parsers other than text parser
+            // (like plugins) are expected to have text files sources.
+            if !matches!(parser, stypes::ParserType::Text(())) {
+                let source = BinaryByteSource::new(input_file(filename)?);
+                let (_, listening) = join!(
+                    tail::track(filename, tx_tail, operation_api.cancellation_token()),
+                    super::run_source(
+                        operation_api,
+                        state,
+                        source,
+                        source_id,
+                        parser,
+                        None,
+                        Some(rx_tail)
+                    )
+                );
+                return listening;
+            }
+
             state.set_session_file(Some(filename.to_path_buf())).await?;
             // Grab main file content
             state.update_session(source_id).await?;

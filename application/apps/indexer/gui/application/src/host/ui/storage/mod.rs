@@ -18,20 +18,15 @@ use tokio::sync::mpsc;
 
 use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
-pub use file_explorer::{
-    FavoriteFolder, FavoriteFoldersScanRequest, FileExplorerData, FileExplorerStorage,
-    FileTreeNode, FileTreeNodeKind,
+use self::{
+    file_explorer::FileExplorerStorage,
+    recent::storage::RecentSessionsStorage,
+    types::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
 };
-pub use recent::MAX_RECENT_SESSIONS;
-pub use recent::{
-    RecentSessionRegistration, RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource,
-    RecentSessionStateSnapshot, RecentSessionsStorage, SearchFilterSnapshot,
-};
-pub use types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData};
 
-mod file_explorer;
-mod recent;
-mod types;
+pub mod file_explorer;
+pub mod recent;
+pub mod types;
 
 type SaveConfirmationRx = StdReceiver<Result<(), StorageError>>;
 
@@ -224,12 +219,24 @@ impl HostStorage {
 mod tests {
     use std::{thread, time::Duration};
 
-    use super::{
-        FavoriteFolder, FileExplorerData, HostStorage, LoadState, RecentSessionRegistration,
-        RecentSessionSnapshot, RecentSessionSource, RecentSessionsStorage, SaveOutcome,
-        StorageError, StorageErrorKind, StorageEvent,
+    use super::{HostStorage, SaveOutcome};
+    use crate::host::{
+        command::HostCommand,
+        notification::AppNotification,
+        ui::{
+            UiActions,
+            storage::{
+                file_explorer::{FavoriteFolder, FileExplorerData},
+                recent::{
+                    session::{
+                        RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource,
+                    },
+                    storage::RecentSessionsStorage,
+                },
+                types::{LoadState, StorageError, StorageErrorKind, StorageEvent},
+            },
+        },
     };
-    use crate::host::{command::HostCommand, notification::AppNotification, ui::UiActions};
 
     fn test_storage() -> (HostStorage, tokio::sync::mpsc::Receiver<HostCommand>) {
         let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(1);

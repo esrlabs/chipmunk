@@ -15,8 +15,8 @@ use crate::host::{
     ui::{
         UiActions,
         actions::FileDialogOptions,
-        state::HostPreferences,
-        storage::{HostStorage, RecentSessionsStorage},
+        state::{HostPreferences, plugin::PluginsState},
+        storage::{HostStorage, recent::storage::RecentSessionsStorage},
     },
 };
 
@@ -58,6 +58,7 @@ impl HomeView {
         storage: &mut HostStorage,
         actions: &mut UiActions,
         preferences: &mut HostPreferences,
+        plugins: &PluginsState,
         ui: &mut Ui,
     ) {
         self.handle_pending_file_dialog(actions);
@@ -104,6 +105,7 @@ impl HomeView {
                             ui,
                             &mut storage.recent_sessions,
                             actions,
+                            plugins,
                             recent_sessions_width,
                             available_height,
                         );
@@ -127,6 +129,7 @@ impl HomeView {
         ui: &mut Ui,
         recent_sessions: &mut RecentSessionsStorage,
         actions: &mut UiActions,
+        plugins: &PluginsState,
         width: f32,
         height: f32,
     ) {
@@ -134,7 +137,7 @@ impl HomeView {
             general_group_frame(ui).show(ui, |ui| {
                 ui.take_available_width();
                 self.recent_sessions
-                    .render_content(actions, recent_sessions, ui);
+                    .render_content(actions, recent_sessions, plugins, ui);
             });
         });
     }

@@ -6,7 +6,7 @@ use crate::{
     host::ui::{
         UiActions,
         registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
-        storage::{RecentSessionStateSnapshot, SearchFilterSnapshot},
+        storage::recent::session::{RecentSessionStateSnapshot, SearchFilterSnapshot},
     },
     session::command::SessionCommand,
 };

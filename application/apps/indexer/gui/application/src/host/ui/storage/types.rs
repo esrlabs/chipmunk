@@ -2,7 +2,10 @@
 
 use thiserror::Error;
 
-use super::{FavoriteFolder, FileExplorerData, RecentSessionsStorage};
+use super::{
+    file_explorer::{FavoriteFolder, FileExplorerData},
+    recent::storage::RecentSessionsStorage,
+};
 
 /// Represents the loading state of storage domain.
 #[derive(Debug)]

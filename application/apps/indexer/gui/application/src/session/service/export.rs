@@ -11,7 +11,8 @@ use stypes::{ComputationError, FileFormat, ObserveOptions, ObserveOrigin, Parser
 use super::{SessionService, SessionStartup, cleanup_temp_source};
 use crate::{
     host::{
-        common::parsers::ParserNames, message::HostMessage, ui::storage::RecentSessionStateSnapshot,
+        common::parsers::ParserNames, message::HostMessage,
+        ui::storage::recent::session::RecentSessionStateSnapshot,
     },
     session::{
         InitSessionError,

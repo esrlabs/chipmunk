@@ -15,7 +15,9 @@ use crate::{
     host::{
         command::HostCommand,
         common::{file_utls, parsers::ParserNames, sources::StreamNames},
-        ui::{UiActions, state::plugin::PluginsState, storage::RecentSessionsStorage},
+        ui::{
+            UiActions, state::plugin::PluginsState, storage::recent::storage::RecentSessionsStorage,
+        },
     },
 };
 use state::{SessionSetupState, sources::ByteSourceConfig};
@@ -92,14 +94,7 @@ impl SessionSetup {
 
         CentralPanel::default().show_inside(ui, |ui| {
             ui.centered_and_justified(|ui| {
-                let outcome = main_config::render_content(
-                    &mut self.state,
-                    &mut self.input_visibility,
-                    recent_sessions,
-                    &self.cmd_tx,
-                    actions,
-                    ui,
-                );
+                let outcome = self.render_main_config(recent_sessions, plugins, actions, ui);
                 match outcome {
                     RenderOutcome::CollectStatistics => {
                         if self.state.is_valid() {

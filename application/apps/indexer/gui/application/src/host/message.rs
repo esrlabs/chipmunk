@@ -9,7 +9,7 @@ use crate::{
         ui::{
             multi_setup::state::MultiFileState, registry::presets::Preset,
             session_setup::state::SessionSetupState, state::plugin::PluginsState,
-            storage::StorageEvent,
+            storage::types::StorageEvent,
         },
     },
     session::SpawnedSession,

@@ -20,6 +20,7 @@ pub struct MainMenuBar {
 }
 
 pub const OPEN_FILES_ID: &str = "menu_open_files";
+const OPEN_FILES_WITH_PLUGIN_ID: &str = "menu_open_files_with_plugin";
 const TEXT_FILES_FROM_DIR: &str = "menu_text_files";
 const BINARY_DLT_FILES_FROM_DIR: &str = "menu_binary_dlt_files";
 const PCAPNG_FILES_FROM_DIR: &str = "menu_pacpng_files";
@@ -102,6 +103,15 @@ impl MainMenuBar {
                         );
                     }
                 });
+
+                ui.separator();
+
+                if ui.button("Open File(s) with Plugin...").clicked() {
+                    actions.file_dialog.pick_files(
+                        OPEN_FILES_WITH_PLUGIN_ID,
+                        FileDialogOptions::new().title("Open Files with Plugin"),
+                    );
+                }
             });
 
             ui.menu_button("Connections", |ui| {
@@ -148,6 +158,11 @@ impl MainMenuBar {
                 return;
             }
 
+            if id == OPEN_FILES_WITH_PLUGIN_ID {
+                actions.try_send_command(&self.cmd_tx, HostCommand::OpenFilesWithPlugin(paths));
+                return;
+            }
+
             if let Some(target_format) = file_format_from_id(id) {
                 let dir_path = paths
                     .into_iter()
@@ -177,6 +192,7 @@ const fn all_file_dialog_ids() -> &'static [&'static str] {
 
     &[
         OPEN_FILES_ID,
+        OPEN_FILES_WITH_PLUGIN_ID,
         TEXT_FILES_FROM_DIR,
         BINARY_DLT_FILES_FROM_DIR,
         PCAPNG_FILES_FROM_DIR,

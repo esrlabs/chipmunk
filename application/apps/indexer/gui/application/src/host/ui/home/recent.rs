@@ -24,7 +24,12 @@ use crate::{
             recent_session::{
                 RecentSessionRowAction, RecentSessionRowParams, render_recent_session_row,
             },
-            storage::{RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionsStorage},
+            state::plugin::PluginsState,
+            storage::recent::{
+                session::{RecentSessionReopenMode, RecentSessionSnapshot},
+                storage::RecentSessionsStorage,
+                validation::validate_reopen_request,
+            },
         },
     },
 };
@@ -80,6 +85,7 @@ impl RecentSessionsUi {
         &mut self,
         actions: &mut UiActions,
         recent_sessions: &mut RecentSessionsStorage,
+        plugins: &PluginsState,
         ui: &mut Ui,
     ) {
         ui.heading("Recently opened");
@@ -110,6 +116,7 @@ impl RecentSessionsUi {
         self.handle_filter_keys(
             actions,
             recent_sessions,
+            plugins,
             ui,
             &query_response,
             filter_has_focus,
@@ -146,7 +153,13 @@ impl RecentSessionsUi {
                         };
 
                         if let Some(action) = render_recent_session_row(ui, session, &params) {
-                            self.apply_row_action(actions, session, action, &mut remove_session);
+                            self.apply_row_action(
+                                actions,
+                                session,
+                                action,
+                                plugins,
+                                &mut remove_session,
+                            );
                         }
                         ui.add_space(4.0);
                     }
@@ -198,6 +211,7 @@ impl RecentSessionsUi {
         &mut self,
         actions: &mut UiActions,
         recent_sessions: &RecentSessionsStorage,
+        plugins: &PluginsState,
         ui: &mut Ui,
         query_response: &Response,
         filter_has_focus: bool,
@@ -230,7 +244,7 @@ impl RecentSessionsUi {
             || (filter_has_focus
                 && ui.input_mut(|input| input.consume_key(Modifiers::NONE, Key::Enter)));
         if should_restore {
-            self.open_selected_session(actions, recent_sessions);
+            self.open_selected_session(actions, recent_sessions, plugins);
         }
     }
 
@@ -273,6 +287,7 @@ impl RecentSessionsUi {
         &mut self,
         actions: &mut UiActions,
         recent_sessions: &RecentSessionsStorage,
+        plugins: &PluginsState,
     ) {
         let Some(selected_source_key) = self.selected_source_key.clone() else {
             return;
@@ -285,7 +300,12 @@ impl RecentSessionsUi {
             return;
         };
 
-        self.open_recent_session(actions, session, RecentSessionReopenMode::RestoreSession);
+        self.open_recent_session(
+            actions,
+            session,
+            RecentSessionReopenMode::RestoreSession,
+            plugins,
+        );
     }
 
     fn session_is_selected(&self, session: &RecentSessionSnapshot) -> bool {
@@ -299,21 +319,33 @@ impl RecentSessionsUi {
         actions: &mut UiActions,
         session: &RecentSessionSnapshot,
         action: RecentSessionRowAction,
+        plugins: &PluginsState,
         remove_session: &mut Option<Arc<str>>,
     ) {
         match action {
             RecentSessionRowAction::RestoreSession => {
-                self.open_recent_session(actions, session, RecentSessionReopenMode::RestoreSession);
+                self.open_recent_session(
+                    actions,
+                    session,
+                    RecentSessionReopenMode::RestoreSession,
+                    plugins,
+                );
             }
             RecentSessionRowAction::RestoreParserConfiguration => {
                 self.open_recent_session(
                     actions,
                     session,
                     RecentSessionReopenMode::RestoreParserConfiguration,
+                    plugins,
                 );
             }
             RecentSessionRowAction::OpenClean => {
-                self.open_recent_session(actions, session, RecentSessionReopenMode::OpenClean);
+                self.open_recent_session(
+                    actions,
+                    session,
+                    RecentSessionReopenMode::OpenClean,
+                    plugins,
+                );
             }
             RecentSessionRowAction::Remove => {
                 *remove_session = Some(session.source_key.clone());
@@ -326,11 +358,12 @@ impl RecentSessionsUi {
         actions: &mut UiActions,
         snapshot: &RecentSessionSnapshot,
         mode: RecentSessionReopenMode,
+        plugins: &PluginsState,
     ) {
-        if let Err(message) = snapshot.validate() {
+        if let Err(message) = validate_reopen_request(snapshot, mode, plugins) {
             self.pending_invalid_session = Some(InvalidRecentPrompt {
                 source_key: snapshot.source_key.clone(),
-                message,
+                message: message.to_string(),
             });
             return;
         }
@@ -412,7 +445,10 @@ mod tests {
     use super::{RecentSessionsUi, SelectionDirection, matches_recent_session_query};
     use crate::{
         common::ui::substring_matcher::SubstringMatcher,
-        host::ui::storage::{RecentSessionSnapshot, RecentSessionSource, RecentSessionsStorage},
+        host::ui::storage::recent::{
+            session::{RecentSessionSnapshot, RecentSessionSource},
+            storage::RecentSessionsStorage,
+        },
     };
 
     fn file_session(path: &str, parser: ParserType) -> RecentSessionSnapshot {

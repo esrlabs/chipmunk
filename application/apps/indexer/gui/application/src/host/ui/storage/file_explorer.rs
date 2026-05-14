@@ -2,7 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{LoadState, SaveOutcome, StorageError};
+use super::{SaveOutcome, types::LoadState};
+use crate::host::ui::storage::types::StorageError;
 
 /// UI-side storage state for file-explorer favorite folders.
 #[derive(Debug)]
@@ -270,9 +271,8 @@ mod tests {
 
     use super::{
         FavoriteFolder, FileExplorerData, FileExplorerStorage, FileTreeNode, FileTreeNodeKind,
-        LoadState, StorageError,
     };
-    use crate::host::ui::storage::StorageErrorKind;
+    use crate::host::ui::storage::types::{LoadState, StorageError, StorageErrorKind};
 
     fn test_storage() -> FileExplorerStorage {
         FileExplorerStorage::new()

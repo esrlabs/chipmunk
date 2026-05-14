@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 
 use crate::host::{
     service::HostAsyncEvent,
-    ui::storage::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
+    ui::storage::types::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
 };
 
 mod file_explorer;
