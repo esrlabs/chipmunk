@@ -2,13 +2,14 @@
 
 use std::{ops::Range, path::PathBuf, sync::Arc, time::Duration};
 
-use egui::{Align, Align2, Context, Key, Modifiers, ScrollArea, TextEdit, Ui, Window, vec2};
+use egui::{Align, Align2, Context, Key, Modifiers, Rect, ScrollArea, Ui, Window, vec2};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
     common::{action_throttle::ActionThrottle, ui::substring_matcher::SubstringMatcher},
     host::{
         command::{HostCommand, OpenRecentSessionParam},
+        common::ui_utls::sized_singleline_text_edit,
         ui::storage::{HostStorage, recent::session::RecentSessionReopenMode},
     },
 };
@@ -162,7 +163,7 @@ impl QuickOpen {
         let panel_pos = screen_rect.center() + vec2(0.0, -80.0 - PANEL_ANCHOR_HEIGHT * 0.5);
 
         let window_id = parent_ui.make_persistent_id("quick_open_window");
-        Window::new("quick_open")
+        let window_response = Window::new("quick_open")
             .id(window_id)
             .title_bar(false)
             .collapsible(false)
@@ -179,13 +180,17 @@ impl QuickOpen {
                     self.refresh_results(storage, ui.ctx());
 
                     let search_id = ui.make_persistent_id("quick_open_search");
-                    let query_response = TextEdit::singleline(&mut self.query)
-                        .id(search_id)
-                        .hint_text("Search recent sessions and favorite files")
-                        .desired_width(f32::INFINITY)
-                        .lock_focus(true)
-                        .show(ui)
-                        .response;
+                    let query_response = sized_singleline_text_edit(
+                        ui,
+                        &mut self.query,
+                        vec2(ui.available_width(), 25.0),
+                        7,
+                    )
+                    .id(search_id)
+                    .hint_text("Search recent sessions and favorite files")
+                    .lock_focus(true)
+                    .show(ui)
+                    .response;
 
                     if self.first_open_frame {
                         query_response.request_focus();
@@ -197,6 +202,11 @@ impl QuickOpen {
                         self.needs_recompute = true;
                         self.selected_index = 0;
                         self.scroll_selected_into_view = true;
+                        if self.query.is_empty() {
+                            self.throttle.reset();
+                        } else {
+                            self.throttle.delay_next();
+                        }
                     }
 
                     self.refresh_results(storage, ui.ctx());
@@ -208,6 +218,11 @@ impl QuickOpen {
 
         if let Some(index) = open_index {
             self.open_result(index, storage, actions);
+        } else if window_response
+            .as_ref()
+            .is_some_and(|response| clicked_outside_window(parent_ui, response.response.rect))
+        {
+            self.close();
         }
     }
 
@@ -366,4 +381,14 @@ impl QuickOpen {
             }
         }
     }
+}
+
+fn clicked_outside_window(ui: &Ui, window_rect: Rect) -> bool {
+    ui.input(|input| {
+        input.pointer.any_click()
+            && input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pos| !window_rect.contains(pos))
+    })
 }

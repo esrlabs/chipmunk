@@ -57,6 +57,11 @@ impl ActionThrottle {
         false
     }
 
+    /// Delays the next action until the full interval has elapsed.
+    pub fn delay_next(&mut self) {
+        self.last_action = Instant::now();
+    }
+
     /// Resets the throttle, allowing the very next call to `ready()` to return true.
     pub fn reset(&mut self) {
         // Set last_action to the past to ensure immediate trigger.
@@ -95,6 +100,18 @@ mod tests {
         assert!(!throttle.ready(None));
 
         // Wait for interval to pass
+        thread::sleep(interval + Duration::from_millis(10));
+        assert!(throttle.ready(None));
+    }
+
+    #[test]
+    fn test_throttle_delay_next() {
+        let interval = Duration::from_millis(20);
+        let mut throttle = ActionThrottle::new(interval);
+
+        throttle.delay_next();
+        assert!(!throttle.ready(None));
+
         thread::sleep(interval + Duration::from_millis(10));
         assert!(throttle.ready(None));
     }

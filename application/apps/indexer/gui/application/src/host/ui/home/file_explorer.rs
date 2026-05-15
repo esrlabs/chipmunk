@@ -3,7 +3,7 @@
 //! This module renders the home-screen file explorer, manages its transient UI
 //! state, and bridges user actions to the host/storage layers.
 
-use std::{hash::Hash, ops::Not, path::PathBuf};
+use std::{hash::Hash, ops::Not, path::PathBuf, time::Duration};
 
 use egui::{Align, Layout, TextStyle};
 use egui::{
@@ -12,7 +12,9 @@ use egui::{
 };
 use tokio::sync::mpsc::Sender;
 
-use crate::common::{phosphor::icons, ui::substring_matcher::SubstringMatcher};
+use crate::common::{
+    action_throttle::ActionThrottle, phosphor::icons, ui::substring_matcher::SubstringMatcher,
+};
 use crate::host::common::ui_utls::{sized_singleline_text_edit, truncate_path_to_width};
 use crate::host::{
     command::{HostCommand, ScanFavoriteFoldersParam},
@@ -43,6 +45,8 @@ pub struct FileExplorerUi {
     search_matcher: SubstringMatcher,
     /// Filtered favorite-tree snapshot derived from the latest storage revision.
     search_cache: FavoriteSearchCache,
+    /// Limits favorite-tree filtering while the user is typing.
+    search_throttle: ActionThrottle,
 }
 
 /// Cached favorite-file search results and their invalidation keys.
@@ -64,6 +68,7 @@ impl FileExplorerUi {
             search_query: String::new(),
             search_matcher: SubstringMatcher::default(),
             search_cache: FavoriteSearchCache::default(),
+            search_throttle: ActionThrottle::new(Duration::from_millis(100)),
         }
     }
 
@@ -171,8 +176,11 @@ impl FileExplorerUi {
                 .ui(ui);
 
                 if search_response.changed() {
-                    self.search_matcher.build_query(&self.search_query);
-                    self.search_cache.roots = None;
+                    if self.search_query.is_empty() {
+                        self.clear_search_cache(file_explorer.revision);
+                    } else {
+                        self.search_throttle.delay_next();
+                    }
                 }
             },
         );
@@ -189,7 +197,7 @@ impl FileExplorerUi {
             ui.add_space(6.0);
         }
 
-        self.refresh_search_cache(file_explorer);
+        self.refresh_search_cache(file_explorer, Some(ui.ctx()));
 
         egui::ScrollArea::vertical()
             .id_salt("favorite_folders_scroll")
@@ -205,6 +213,9 @@ impl FileExplorerUi {
                 };
 
                 let search_active = !self.search_query.is_empty();
+                let search_cache_current = self.search_cache.roots.is_some()
+                    && self.search_cache.query == self.search_query
+                    && self.search_cache.revision == file_explorer.revision;
 
                 let mut remove_path = None;
 
@@ -214,7 +225,7 @@ impl FileExplorerUi {
                     data.favorite_folders.as_slice()
                 };
 
-                if search_active && favorite_folders.is_empty() {
+                if search_active && search_cache_current && favorite_folders.is_empty() {
                     ui.label("No favorite files match the current search.");
                 }
 
@@ -413,18 +424,30 @@ impl FileExplorerUi {
 
     /// Refreshes the cached favorite-file search result when its invalidation keys change.
     ///
-    /// Empty search text clears the cache. Non-empty searches rebuild only when the query or
-    /// `FileExplorerStorage::revision` differs from the cached values.
-    fn refresh_search_cache(&mut self, file_explorer: &FileExplorerStorage) {
+    /// Empty search text clears the cache. Non-empty query changes are throttled, while
+    /// storage-only changes rebuild immediately.
+    fn refresh_search_cache(
+        &mut self,
+        file_explorer: &FileExplorerStorage,
+        ctx: Option<&egui::Context>,
+    ) {
         if self.search_query.is_empty() {
-            self.search_cache.roots = None;
+            if self.search_cache.roots.is_some() || !self.search_cache.query.is_empty() {
+                self.clear_search_cache(file_explorer.revision);
+            } else {
+                self.search_cache.revision = file_explorer.revision;
+            }
             return;
         }
 
-        if self.search_cache.roots.is_some()
-            && self.search_cache.query == self.search_query
-            && self.search_cache.revision == file_explorer.revision
-        {
+        let query_changed = self.search_cache.query != self.search_query;
+        let revision_changed = self.search_cache.revision != file_explorer.revision;
+        let missing_cache = self.search_cache.roots.is_none();
+        if !query_changed && !revision_changed && !missing_cache {
+            return;
+        }
+
+        if query_changed && !self.search_throttle.ready(ctx) {
             return;
         }
 
@@ -439,6 +462,27 @@ impl FileExplorerUi {
         self.search_cache.query.clone_from(&self.search_query);
         self.search_cache.revision = file_explorer.revision;
         self.search_cache.roots = Some(roots);
+    }
+
+    fn clear_search_cache(&mut self, revision: u64) {
+        let Self {
+            cmd_tx: _,
+            search_query: _,
+            search_matcher,
+            search_cache,
+            search_throttle,
+        } = self;
+        let FavoriteSearchCache {
+            query,
+            revision: cache_revision,
+            roots,
+        } = search_cache;
+
+        search_matcher.build_query("");
+        query.clear();
+        *cache_revision = revision;
+        *roots = None;
+        search_throttle.reset();
     }
 }
 
@@ -531,7 +575,9 @@ fn filter_tree_nodes(nodes: &[FileTreeNode], matcher: &mut SubstringMatcher) -> 
                     kind: FileTreeNodeKind::Folder(children),
                 })
             }
-            FileTreeNodeKind::File => matcher.matches(node.name.as_str()).then(|| node.clone()),
+            FileTreeNodeKind::File => matcher
+                .matches(&node.path.to_string_lossy())
+                .then(|| node.clone()),
         })
         .collect()
 }
@@ -636,9 +682,9 @@ mod tests {
                     ],
                 ),
                 folder_node(
-                    "/root/target-folder",
-                    "target-folder",
-                    vec![file_node("/root/target-folder/other.log", "other.log")],
+                    "/root/archive",
+                    "archive",
+                    vec![file_node("/root/archive/other.log", "other.log")],
                 ),
                 file_node("/root/top.log", "top.log"),
             ],
@@ -655,13 +701,37 @@ mod tests {
     }
 
     #[test]
+    fn search_matches_file_path_segments() {
+        let root = favorite_folder(
+            "/root",
+            vec![
+                folder_node(
+                    "/root/target-folder",
+                    "target-folder",
+                    vec![file_node("/root/target-folder/other.log", "other.log")],
+                ),
+                file_node("/root/top.log", "top.log"),
+            ],
+        );
+
+        let filtered = filter_favorite_folders(&[root], &mut build_matcher("target-folder"));
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(child_names(&filtered[0].children), vec!["target-folder"]);
+        assert_eq!(
+            child_names(folder_children(&filtered[0].children, "target-folder")),
+            vec!["other.log"]
+        );
+    }
+
+    #[test]
     fn search_omits_roots_without_matching_files() {
         let root = favorite_folder(
             "/root",
             vec![folder_node(
-                "/root/target-folder",
-                "target-folder",
-                vec![file_node("/root/target-folder/other.log", "other.log")],
+                "/root/archive",
+                "archive",
+                vec![file_node("/root/archive/other.log", "other.log")],
             )],
         );
 
@@ -681,7 +751,7 @@ mod tests {
             1,
         );
 
-        ui.refresh_search_cache(&storage);
+        ui.refresh_search_cache(&storage, None);
         assert!(ui.search_cache.roots.as_ref().is_some_and(Vec::is_empty));
 
         storage.state = LoadState::Ready(FileExplorerData {
@@ -692,7 +762,7 @@ mod tests {
         });
         storage.revision = 2;
 
-        ui.refresh_search_cache(&storage);
+        ui.refresh_search_cache(&storage, None);
 
         let roots = ui
             .search_cache
