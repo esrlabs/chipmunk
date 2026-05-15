@@ -14,6 +14,7 @@ Chipmunk 4 Alpha is the next generation of Chipmunk: a native Rust rewrite for h
     - [Charts](#charts)
     - [Sessions and analysis](#sessions-and-analysis)
     - [Presets](#presets)
+    - [Plugins](#plugins)
 - [Installation](#installation)
     - [Install nightly from source](#install-nightly-from-source)
 - [CLI usage](#cli-usage)
@@ -64,6 +65,7 @@ Chipmunk 4 is designed to stay compatible with current Chipmunk workflows.
 - Plain Text
 - DLT
 - SomeIP
+- Plugin parsers through WebAssembly components
 
 ### Search and filters
 
@@ -94,6 +96,12 @@ Chipmunk 4 is designed to stay compatible with current Chipmunk workflows.
 - Edit and apply presets
 - Import and export presets
 - Import legacy Chipmunk preset exports
+
+### Plugins
+
+- Chipmunk supports parser plugins through WebAssembly components.
+- The Plugins Manager lets you add, remove, and inspect plugins.
+- Parser plugins can be used with all supported sources.
 
 ## Installation
 
@@ -142,5 +150,5 @@ chipmunk --help
 - [x] Recent session restore
 - [x] Attachment support and preview
 - [ ] Log import/export
-- [ ] Plugin support
+- [x] Plugin support
 - [ ] Command palette and keyboard shortcuts
