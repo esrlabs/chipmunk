@@ -218,15 +218,11 @@ impl RecentSessionsUi {
     ) {
         if filter_has_focus {
             let select_direction = ui.input_mut(|input| {
-                if input.consume_key(Modifiers::NONE, Key::ArrowDown)
-                    || input.consume_key(Modifiers::CTRL, Key::N)
-                {
+                if input.consume_key(Modifiers::NONE, Key::ArrowDown) {
                     return Some(SelectionDirection::Next);
                 }
 
-                if input.consume_key(Modifiers::NONE, Key::ArrowUp)
-                    || input.consume_key(Modifiers::CTRL, Key::P)
-                {
+                if input.consume_key(Modifiers::NONE, Key::ArrowUp) {
                     return Some(SelectionDirection::Previous);
                 }
 

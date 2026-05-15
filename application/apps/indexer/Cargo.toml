@@ -84,6 +84,7 @@ rustc-hash = "2.1"
 enum-iterator = "2"
 nucleo-matcher = "0.3"
 anstyle-parse = "1.0"
+unicode-segmentation = "1.13"
 
 clap = { version = "4", features = ["derive"] }
 

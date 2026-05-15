@@ -22,6 +22,10 @@ static SHORTCUTS: AppShortcuts = AppShortcuts {
         &[KeyboardShortcut::new(Modifiers::COMMAND, Key::O)],
         "Open file(s)",
     ),
+    quick_open: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::COMMAND, Key::P)],
+        "Quick Open",
+    ),
     close_tab: Shortcut::new(CLOSE_TAB_BINDINGS, "Close active tab"),
     previous_tab: Shortcut::new(
         &[KeyboardShortcut::new(
@@ -90,6 +94,8 @@ static SHORTCUTS: AppShortcuts = AppShortcuts {
 pub struct AppShortcuts {
     pub home_tab: Shortcut,
     pub open_files: Shortcut,
+    /// Opens the Quick Open launcher.
+    pub quick_open: Shortcut,
     pub close_tab: Shortcut,
     pub previous_tab: Shortcut,
     pub next_tab: Shortcut,
@@ -146,10 +152,11 @@ pub fn app_shortcuts() -> &'static AppShortcuts {
     &SHORTCUTS
 }
 
-pub fn app_shortcut_defs() -> [&'static Shortcut; 9] {
+pub fn app_shortcut_defs() -> [&'static Shortcut; 10] {
     let AppShortcuts {
         home_tab,
         open_files,
+        quick_open,
         close_tab,
         previous_tab,
         next_tab,
@@ -170,6 +177,7 @@ pub fn app_shortcut_defs() -> [&'static Shortcut; 9] {
     [
         home_tab,
         open_files,
+        quick_open,
         close_tab,
         toggle_right_panel,
         toggle_bottom_panel,
