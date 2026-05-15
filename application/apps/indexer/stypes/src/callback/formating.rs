@@ -15,8 +15,8 @@ impl std::fmt::Display for CallbackEvent {
     /// - `SearchValuesUpdated` - Indicates that search values have been updated.
     /// - `AttachmentsUpdated: {len}` - Displays the size of the updated attachment.
     /// - `Progress` - Indicates progress for an operation.
-    /// - `SessionError: {err:?}` - Displays details of a session error.
-    /// - `OperationError: {uuid}: {error:?}` - Displays the UUID of the operation and the error details.
+    /// - `SessionError: {err}` - Displays details of a session error.
+    /// - `OperationError: {uuid}: {error}` - Displays the UUID of the operation and the error details.
     /// - `OperationStarted: {uuid}` - Displays the UUID of a started operation.
     /// - `OperationProcessing: {uuid}` - Displays the UUID of an operation in progress.
     /// - `OperationDone: {info.uuid}` - Displays the UUID of a completed operation.
@@ -36,9 +36,9 @@ impl std::fmt::Display for CallbackEvent {
                 uuid: _,
                 progress: _,
             } => write!(f, "Progress"),
-            Self::SessionError(err) => write!(f, "SessionError: {err:?}"),
+            Self::SessionError(err) => write!(f, "SessionError: {err}"),
             Self::OperationError { uuid, error } => {
-                write!(f, "OperationError: {uuid}: {error:?}")
+                write!(f, "OperationError: {uuid}: {error}")
             }
             Self::OperationStarted(uuid) => write!(f, "OperationStarted: {uuid}"),
             Self::OperationProcessing(uuid) => write!(f, "OperationProcessing: {uuid}"),
