@@ -250,10 +250,6 @@ impl HostService {
                 match self.plugins.reload().await {
                     Ok(state) => {
                         self.send_plugins_state(state).await;
-                        self.communication
-                            .senders
-                            .send_notification(AppNotification::Info("Plugins reloaded.".into()))
-                            .await;
                     }
                     Err(err) => {
                         self.send_plugins_state(self.plugins.state()).await;
@@ -266,12 +262,6 @@ impl HostService {
                 match self.plugins.add(path).await {
                     Ok(state) => {
                         self.send_plugins_state(state).await;
-                        self.communication
-                            .senders
-                            .send_notification(AppNotification::Info(
-                                "Plugin added successfully.".into(),
-                            ))
-                            .await;
                     }
                     Err(err) => {
                         self.send_plugins_state(self.plugins.state()).await;

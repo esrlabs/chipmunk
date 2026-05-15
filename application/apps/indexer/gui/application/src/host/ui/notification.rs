@@ -209,7 +209,7 @@ impl NotificationUi {
                 frame
                     .show(ui, |ui| {
                         ui.set_min_width(content_width);
-                        ui.horizontal_top(|ui| {
+                        ui.horizontal_centered(|ui| {
                             let dot_size = Vec2::splat(8.0);
                             let (respond, painter) = ui.allocate_painter(dot_size, Sense::empty());
                             let dot_radius = respond.rect.width() / 2.0;
