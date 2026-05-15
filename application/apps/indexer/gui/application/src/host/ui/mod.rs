@@ -24,6 +24,7 @@ use crate::{
         ui::{
             home::HomeView,
             notification::NotificationUi,
+            quick_open::QuickOpen,
             session_setup::state::{
                 parsers::ParserConfig,
                 sources::{ByteSourceConfig, ProcessConfig, StreamConfig},
@@ -49,6 +50,7 @@ pub mod multi_setup;
 mod notification;
 mod persist;
 mod plugin_manager;
+mod quick_open;
 mod recent_session;
 pub mod registry;
 pub mod session_setup;
@@ -64,6 +66,7 @@ pub struct Host {
     menu: MainMenuBar,
     tabs: TabsUi,
     notifications: NotificationUi,
+    quick_open: QuickOpen,
     state: HostState,
     storage: HostStorage,
     ui_actions: UiActions,
@@ -98,6 +101,7 @@ impl Host {
                     receivers: ui_comm.receivers,
                     senders: ui_comm.senders,
                     notifications: NotificationUi::default(),
+                    quick_open: QuickOpen::new(cmd_tx.clone()),
                     tabs: TabsUi::default(),
                     state,
                     storage: HostStorage::new(cmd_tx, recent_sessions),
@@ -245,6 +249,9 @@ impl Host {
             .show_inside(ui, |ui| {
                 self.render_tabs(ui);
             });
+
+        self.quick_open
+            .render(ui, &self.storage, &mut self.ui_actions);
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(0))
@@ -520,7 +527,11 @@ impl eframe::App for Host {
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
-        shortcuts::handler::handle(self, ui.ctx());
+        self.quick_open
+            .handle_input(ui, &self.storage, &mut self.ui_actions);
+        if !self.quick_open.is_open() {
+            shortcuts::handler::handle(self, ui.ctx());
+        }
 
         self.render_ui(ui, frame);
 

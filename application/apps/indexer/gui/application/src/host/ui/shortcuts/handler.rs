@@ -61,6 +61,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     let AppShortcuts {
         home_tab,
         open_files,
+        quick_open: quick_open_shortcut,
         close_tab,
         previous_tab,
         next_tab,
@@ -79,11 +80,19 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     } = app_shortcuts();
 
     let Host {
-        state, ui_actions, ..
+        state,
+        ui_actions,
+        quick_open,
+        ..
     } = host;
 
     if consume_shortcut(ctx, home_tab) {
         state.activate_tab(state::HOME_TAB_IDX);
+        return true;
+    }
+
+    if consume_shortcut(ctx, quick_open_shortcut) {
+        quick_open.open();
         return true;
     }
 
