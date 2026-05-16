@@ -1,61 +1,41 @@
-//! Host-level Quick Open overlay for recent sessions and favorite files.
+//! Host-level Command Palette overlay for application commands.
 
-use std::{path::PathBuf, sync::Arc, time::Duration};
-
-use egui::{Align, Align2, Context, Key, Modifiers, ScrollArea, Ui, Window, vec2};
+use egui::{Align, Align2, Key, Modifiers, ScrollArea, Ui, Window, vec2};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    common::{
-        action_throttle::ActionThrottle, matcher::substring_matcher::SubstringMatcher,
-        ui::search_picker::SearchPickerText,
-    },
+    common::{matcher::fuzzy_matcher::FuzzyMatcher, ui::search_picker::SearchPickerText},
     host::{
-        command::{HostCommand, OpenRecentSessionParam},
+        command::HostCommand,
         common::ui_utls::{clicked_outside_rect, sized_singleline_text_edit},
-        ui::storage::{HostStorage, recent::session::RecentSessionReopenMode},
+        ui::{UiActions, state::HostState},
     },
 };
 
-use super::UiActions;
+use commands::CommandAction;
 
+mod commands;
 mod row;
-mod search;
 
-const RESULT_LIMIT: usize = 100;
-
-/// Searchable launcher for recent sessions and favorite-folder files.
+/// Searchable launcher for global application commands.
 #[derive(Debug)]
-pub struct QuickOpen {
+pub struct CommandPalette {
     cmd_tx: Sender<HostCommand>,
     open: bool,
     query: String,
-    matcher: SubstringMatcher,
-    results: Vec<QuickOpenItem>,
-    /// Cached results need to be rebuilt from current storage.
-    needs_recompute: bool,
-    throttle: ActionThrottle,
+    matcher: FuzzyMatcher,
+    results: Vec<CommandPaletteItem>,
     selected_index: usize,
     /// True until the search field receives focus after opening.
     first_open_frame: bool,
     scroll_selected_into_view: bool,
 }
 
-/// Cached result item containing only display text and the data needed to open it.
-#[derive(Debug)]
-enum QuickOpenItem {
-    /// Recent-session match. The snapshot is looked up by key only when opened.
-    RecentSession {
-        source_key: Arc<str>,
-        title: SearchPickerText,
-        summary: SearchPickerText,
-    },
-    /// Favorite-file match from the current favorite-folder tree.
-    FavoriteFile {
-        path: PathBuf,
-        name: SearchPickerText,
-        path_text: SearchPickerText,
-    },
+/// Cached result item containing display text and the action to execute.
+#[derive(Debug, Clone)]
+struct CommandPaletteItem {
+    title: SearchPickerText,
+    action: CommandAction,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -64,17 +44,19 @@ enum SelectionDirection {
     Next,
 }
 
-impl QuickOpen {
-    /// Creates a closed Quick Open overlay that sends selected items to the host service.
+impl CommandPalette {
+    /// Creates a closed Command Palette overlay.
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
+        let mut matcher = FuzzyMatcher::default();
+        matcher.build_query("");
+        let results = commands::recompute_results(&mut matcher);
+
         Self {
             cmd_tx,
             open: false,
             query: String::new(),
-            matcher: SubstringMatcher::default(),
-            results: Vec::new(),
-            needs_recompute: true,
-            throttle: ActionThrottle::new(Duration::from_millis(75)),
+            matcher,
+            results,
             selected_index: 0,
             first_open_frame: false,
             scroll_selected_into_view: false,
@@ -86,7 +68,7 @@ impl QuickOpen {
         self.open
     }
 
-    /// Opens the overlay and starts a fresh search session.
+    /// Opens the overlay and starts a fresh command search session.
     pub fn open(&mut self) {
         let Self {
             cmd_tx: _,
@@ -94,8 +76,6 @@ impl QuickOpen {
             query,
             matcher,
             results,
-            needs_recompute,
-            throttle,
             selected_index,
             first_open_frame,
             scroll_selected_into_view,
@@ -108,37 +88,31 @@ impl QuickOpen {
         *open = true;
         query.clear();
         matcher.build_query("");
-        results.clear();
-        *needs_recompute = true;
+        *results = commands::recompute_results(matcher);
         *selected_index = 0;
         *first_open_frame = true;
         *scroll_selected_into_view = false;
-        throttle.reset();
     }
 
-    /// Consumes Quick Open shortcuts before the active tab or search field can handle them.
-    pub fn handle_input(&mut self, ui: &Ui, storage: &HostStorage, actions: &mut UiActions) {
+    /// Consumes Command Palette keyboard input while the overlay is open.
+    pub fn handle_input(&mut self, ui: &Ui, state: &mut HostState, actions: &mut UiActions) {
         if !self.open {
             return;
         }
 
-        self.refresh_results(storage, ui.ctx());
-
         let mut should_close = false;
-        let mut open_index = None;
-        self.handle_keys(ui, &mut open_index, &mut should_close);
+        let mut execute_index = None;
+        self.handle_keys(ui, &mut execute_index, &mut should_close);
 
-        if let Some(index) = open_index {
-            self.open_result(index, storage, actions);
-        }
-
-        if should_close {
+        if let Some(index) = execute_index {
+            self.execute_result(index, state, actions, ui);
+        } else if should_close {
             self.close();
         }
     }
 
-    /// Renders the Quick Open overlay when it is open.
-    pub fn render(&mut self, parent_ui: &Ui, storage: &HostStorage, actions: &mut UiActions) {
+    /// Renders the Command Palette overlay when it is open.
+    pub fn render(&mut self, parent_ui: &Ui, state: &mut HostState, actions: &mut UiActions) {
         if !self.open {
             return;
         }
@@ -146,12 +120,12 @@ impl QuickOpen {
         const PANEL_WIDTH: f32 = 520.0;
         const PANEL_ANCHOR_HEIGHT: f32 = 440.0;
 
-        let mut open_index = None;
+        let mut execute_index = None;
         let screen_rect = parent_ui.ctx().content_rect();
         let panel_pos = screen_rect.center() + vec2(0.0, -80.0 - PANEL_ANCHOR_HEIGHT * 0.5);
 
-        let window_id = parent_ui.make_persistent_id("quick_open_window");
-        let window_response = Window::new("quick_open")
+        let window_id = parent_ui.make_persistent_id("command_palette_window");
+        let window_response = Window::new("command_palette")
             .id(window_id)
             .title_bar(false)
             .collapsible(false)
@@ -162,12 +136,10 @@ impl QuickOpen {
             .show(parent_ui.ctx(), |ui| {
                 ui.set_width(PANEL_WIDTH);
                 ui.vertical(|ui| {
-                    ui.heading("Quick Open");
+                    ui.heading("Command Palette");
                     ui.add_space(6.0);
 
-                    self.refresh_results(storage, ui.ctx());
-
-                    let search_id = ui.make_persistent_id("quick_open_search");
+                    let search_id = ui.make_persistent_id("command_palette_search");
                     let query_response = sized_singleline_text_edit(
                         ui,
                         &mut self.query,
@@ -175,7 +147,7 @@ impl QuickOpen {
                         7,
                     )
                     .id(search_id)
-                    .hint_text("Search recent sessions and favorite files")
+                    .hint_text("Search commands")
                     .lock_focus(true)
                     .show(ui)
                     .response;
@@ -187,25 +159,18 @@ impl QuickOpen {
 
                     if query_response.changed() {
                         self.matcher.build_query(&self.query);
-                        self.needs_recompute = true;
+                        self.results = commands::recompute_results(&mut self.matcher);
                         self.selected_index = 0;
                         self.scroll_selected_into_view = true;
-                        if self.query.is_empty() {
-                            self.throttle.reset();
-                        } else {
-                            self.throttle.delay_next();
-                        }
                     }
 
-                    self.refresh_results(storage, ui.ctx());
-
                     ui.add_space(8.0);
-                    self.render_results(ui, &mut open_index);
+                    self.render_results(ui, &mut execute_index);
                 });
             });
 
-        if let Some(index) = open_index {
-            self.open_result(index, storage, actions);
+        if let Some(index) = execute_index {
+            self.execute_result(index, state, actions, parent_ui);
         } else if window_response
             .as_ref()
             .is_some_and(|response| clicked_outside_rect(parent_ui, response.response.rect))
@@ -221,8 +186,6 @@ impl QuickOpen {
             query,
             matcher,
             results,
-            needs_recompute,
-            throttle: _,
             selected_index,
             first_open_frame,
             scroll_selected_into_view,
@@ -231,14 +194,13 @@ impl QuickOpen {
         *open = false;
         query.clear();
         matcher.build_query("");
-        results.clear();
-        *needs_recompute = true;
+        *results = commands::recompute_results(matcher);
         *selected_index = 0;
         *first_open_frame = false;
         *scroll_selected_into_view = false;
     }
 
-    fn handle_keys(&mut self, ui: &Ui, open_index: &mut Option<usize>, should_close: &mut bool) {
+    fn handle_keys(&mut self, ui: &Ui, execute_index: &mut Option<usize>, should_close: &mut bool) {
         if ui.input_mut(|input| input.consume_key(Modifiers::NONE, Key::Escape)) {
             *should_close = true;
             return;
@@ -269,7 +231,7 @@ impl QuickOpen {
                 || input.consume_key(Modifiers::CTRL, Key::M)
         }) && !self.results.is_empty()
         {
-            *open_index = Some(self.selected_index.min(self.results.len() - 1));
+            *execute_index = Some(self.selected_index.min(self.results.len() - 1));
         }
     }
 
@@ -289,31 +251,13 @@ impl QuickOpen {
         self.scroll_selected_into_view = true;
     }
 
-    fn refresh_results(&mut self, storage: &HostStorage, ctx: &Context) {
-        if !self.needs_recompute || !self.throttle.ready(Some(ctx)) {
-            return;
-        }
-
-        self.results = search::recompute_results(storage, &mut self.matcher);
-        self.needs_recompute = false;
-        self.clamp_selection();
-    }
-
-    fn clamp_selection(&mut self) {
-        if self.results.is_empty() {
-            self.selected_index = 0;
-        } else if self.selected_index >= self.results.len() {
-            self.selected_index = self.results.len() - 1;
-        }
-    }
-
-    fn render_results(&mut self, ui: &mut Ui, open_index: &mut Option<usize>) {
+    fn render_results(&mut self, ui: &mut Ui, execute_index: &mut Option<usize>) {
         ScrollArea::vertical()
-            .id_salt("quick_open_results")
+            .id_salt("command_palette_results")
             .max_height(360.0)
             .show(ui, |ui| {
                 if self.results.is_empty() {
-                    ui.weak("No matching recent sessions or favorite files.");
+                    ui.weak("No matching commands.");
                     return;
                 }
 
@@ -324,49 +268,47 @@ impl QuickOpen {
                         response.scroll_to_me(Some(Align::Center));
                     }
                     if response.clicked() {
-                        *open_index = Some(index);
+                        *execute_index = Some(index);
                     }
                 }
             });
         self.scroll_selected_into_view = false;
     }
 
-    fn open_result(&mut self, index: usize, storage: &HostStorage, actions: &mut UiActions) {
-        let Some(command) = self.open_command(index, storage) else {
+    fn execute_result(
+        &mut self,
+        index: usize,
+        state: &mut HostState,
+        actions: &mut UiActions,
+        ui: &Ui,
+    ) {
+        let Some(item) = self.results.get(index) else {
             return;
         };
 
-        if actions.try_send_command(&self.cmd_tx, command) {
+        if commands::execute_action(item.action, &self.cmd_tx, state, actions, ui) {
             self.close();
         }
     }
+}
 
-    fn open_command(&mut self, index: usize, storage: &HostStorage) -> Option<HostCommand> {
-        match self.results.get(index)? {
-            QuickOpenItem::RecentSession { source_key, .. } => {
-                let Some(snapshot) = storage
-                    .recent_sessions
-                    .sessions
-                    .iter()
-                    .find(|session| session.source_key.as_ref() == source_key.as_ref())
-                    .cloned()
-                else {
-                    self.close();
-                    return None;
-                };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-                let params = OpenRecentSessionParam {
-                    snapshot,
-                    mode: RecentSessionReopenMode::RestoreSession,
-                    session_setup_id: None,
-                };
-                let command = HostCommand::OpenRecentSession(Box::new(params));
-                Some(command)
-            }
-            QuickOpenItem::FavoriteFile { path, .. } => {
-                let command = HostCommand::OpenFiles(vec![path.clone()]);
-                Some(command)
-            }
-        }
+    #[test]
+    fn open_resets_query_and_results() {
+        let (cmd_tx, _cmd_rx) = tokio::sync::mpsc::channel(1);
+        let mut palette = CommandPalette::new(cmd_tx);
+        palette.query = "plugin".to_owned();
+        palette.matcher.build_query(&palette.query);
+        palette.results = commands::recompute_results(&mut palette.matcher);
+
+        palette.open();
+
+        assert!(palette.is_open());
+        assert!(palette.query.is_empty());
+        assert!(palette.results.len() > 20);
+        assert_eq!(palette.selected_index, 0);
     }
 }

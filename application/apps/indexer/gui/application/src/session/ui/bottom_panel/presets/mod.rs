@@ -6,8 +6,9 @@ use uuid::Uuid;
 
 use crate::{
     common::{
+        matcher::substring_matcher::SubstringMatcher,
         phosphor::icons,
-        ui::{buttons, substring_matcher::SubstringMatcher, visibility_tracker::VisibilityTracker},
+        ui::{buttons, visibility_tracker::VisibilityTracker},
     },
     host::{
         command::{ExportPresetsParam, HostCommand},

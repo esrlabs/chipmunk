@@ -10,7 +10,7 @@ use itertools::Itertools;
 
 use super::FibexFileInfo;
 use crate::{
-    common::ui::substring_matcher::SubstringMatcher,
+    common::matcher::substring_matcher::SubstringMatcher,
     host::common::dlt_stats::{DltStatistics, LevelDistribution},
 };
 

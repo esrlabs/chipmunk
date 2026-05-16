@@ -3,7 +3,7 @@
 use rustc_hash::FxHashSet;
 use uuid::Uuid;
 
-use crate::common::ui::substring_matcher::SubstringMatcher;
+use crate::common::matcher::substring_matcher::SubstringMatcher;
 
 use super::{HostRegistry, Preset, PresetQueryState};
 

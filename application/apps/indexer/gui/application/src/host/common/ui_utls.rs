@@ -1,8 +1,8 @@
 use std::path::{Component, Path};
 
 use egui::{
-    Align, Color32, Frame, Label, Margin, RichText, TextBuffer, TextEdit, TextStyle, Ui, Vec2,
-    Widget as _,
+    Align, Color32, Frame, Label, Margin, Rect, RichText, TextBuffer, TextEdit, TextStyle, Ui,
+    Vec2, Widget as _,
 };
 
 /// Frame used for neutral grouped content blocks across application UI.
@@ -30,6 +30,17 @@ pub fn main_panel_group_frame(ui: &mut Ui) -> Frame {
         .fill(ui.style().visuals.faint_bg_color)
         .inner_margin(Margin::symmetric(12, 12))
         .outer_margin(Margin::symmetric(0, 4))
+}
+
+/// Returns whether the latest pointer click happened outside the provided rectangle.
+pub fn clicked_outside_rect(ui: &Ui, rect: Rect) -> bool {
+    ui.input(|input| {
+        input.pointer.any_click()
+            && input
+                .pointer
+                .interact_pos()
+                .is_some_and(|pos| !rect.contains(pos))
+    })
 }
 
 /// Show a validation message while preserving the vertical layout slot.

@@ -22,6 +22,7 @@ use crate::{
         message::HostMessage,
         service::HostService,
         ui::{
+            command_palette::CommandPalette,
             home::HomeView,
             notification::NotificationUi,
             quick_open::QuickOpen,
@@ -42,7 +43,9 @@ pub use actions::{HostAction, UiActions};
 
 pub mod actions;
 mod banners;
+mod command_palette;
 mod dnd_paths;
+mod file_dialog_commands;
 pub mod home;
 mod menu;
 mod modals;
@@ -67,6 +70,7 @@ pub struct Host {
     tabs: TabsUi,
     notifications: NotificationUi,
     quick_open: QuickOpen,
+    command_palette: CommandPalette,
     state: HostState,
     storage: HostStorage,
     ui_actions: UiActions,
@@ -102,6 +106,7 @@ impl Host {
                     senders: ui_comm.senders,
                     notifications: NotificationUi::default(),
                     quick_open: QuickOpen::new(cmd_tx.clone()),
+                    command_palette: CommandPalette::new(cmd_tx.clone()),
                     tabs: TabsUi::default(),
                     state,
                     storage: HostStorage::new(cmd_tx, recent_sessions),
@@ -252,6 +257,8 @@ impl Host {
 
         self.quick_open
             .render(ui, &self.storage, &mut self.ui_actions);
+        self.command_palette
+            .render(ui, &mut self.state, &mut self.ui_actions);
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(0))
@@ -527,9 +534,12 @@ impl eframe::App for Host {
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        let overlay_was_open = self.quick_open.is_open() || self.command_palette.is_open();
         self.quick_open
             .handle_input(ui, &self.storage, &mut self.ui_actions);
-        if !self.quick_open.is_open() {
+        self.command_palette
+            .handle_input(ui, &mut self.state, &mut self.ui_actions);
+        if !overlay_was_open && !self.quick_open.is_open() && !self.command_palette.is_open() {
             shortcuts::handler::handle(self, ui.ctx());
         }
 

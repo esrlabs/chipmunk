@@ -171,7 +171,9 @@ mod tests {
         }
 
         fn prepare_log(&self, element: &mut GrabbedElement) -> Vec<Range<usize>> {
-            vec![0..element.content.len()]
+            let rng = 0..element.content.len();
+
+            vec![rng]
         }
     }
 

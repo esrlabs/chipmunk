@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 use crate::{
     common::{
-        phosphor::icons, ui::substring_matcher::SubstringMatcher, validation::ValidationEligibility,
+        matcher::substring_matcher::SubstringMatcher, phosphor::icons,
+        validation::ValidationEligibility,
     },
     host::ui::{UiActions, registry::filters::FilterRegistry},
     session::{

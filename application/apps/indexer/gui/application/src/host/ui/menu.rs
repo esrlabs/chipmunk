@@ -8,7 +8,8 @@ use crate::{
         command::HostCommand,
         common::{app_style, parsers::ParserNames, sources::StreamNames},
         ui::{
-            actions::{FileDialogOptions, UiActions},
+            actions::UiActions,
+            file_dialog_commands,
             state::{HostState, modal::HostModal},
         },
     },
@@ -18,13 +19,6 @@ use crate::{
 pub struct MainMenuBar {
     cmd_tx: Sender<HostCommand>,
 }
-
-pub const OPEN_FILES_ID: &str = "menu_open_files";
-const OPEN_FILES_WITH_PLUGIN_ID: &str = "menu_open_files_with_plugin";
-const TEXT_FILES_FROM_DIR: &str = "menu_text_files";
-const BINARY_DLT_FILES_FROM_DIR: &str = "menu_binary_dlt_files";
-const PCAPNG_FILES_FROM_DIR: &str = "menu_pacpng_files";
-const PCAP_FILES_FROM_DIR: &str = "menu_pcap_files";
 
 impl MainMenuBar {
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
@@ -66,51 +60,30 @@ impl MainMenuBar {
 
             ui.menu_button("File", |ui| {
                 if ui.button("Open File(s)").clicked() {
-                    actions
-                        .file_dialog
-                        .pick_files(OPEN_FILES_ID, FileDialogOptions::new().title("Open Files"));
+                    file_dialog_commands::open_files_dialog(actions);
                 }
 
                 ui.separator();
 
                 ui.menu_button("Select Files from Folder", |ui| {
                     if ui.button("Text").clicked() {
-                        actions.file_dialog.pick_folder(
-                            id_from_file_format(FileFormat::Text),
-                            FileDialogOptions::new().title("Select Folder with Text Files"),
-                        );
+                        file_dialog_commands::open_folder_dialog(actions, FileFormat::Text);
                     }
                     if ui.button("DLT Binary").clicked() {
-                        actions
-                            .file_dialog
-                            // NOTE: Binary is used here actually for DLT files to match the
-                            // behavior in the master branch.
-                            .pick_folder(
-                                id_from_file_format(FileFormat::Binary),
-                                FileDialogOptions::new().title("Select Folder with DLT Files"),
-                            );
+                        file_dialog_commands::open_folder_dialog(actions, FileFormat::Binary);
                     }
                     if ui.button("PcapNG").clicked() {
-                        actions.file_dialog.pick_folder(
-                            id_from_file_format(FileFormat::PcapNG),
-                            FileDialogOptions::new().title("Select Folder with PcapNG Files"),
-                        );
+                        file_dialog_commands::open_folder_dialog(actions, FileFormat::PcapNG);
                     }
                     if ui.button("Pcap").clicked() {
-                        actions.file_dialog.pick_folder(
-                            id_from_file_format(FileFormat::PcapLegacy),
-                            FileDialogOptions::new().title("Select Folder with Pcap Files"),
-                        );
+                        file_dialog_commands::open_folder_dialog(actions, FileFormat::PcapLegacy);
                     }
                 });
 
                 ui.separator();
 
                 if ui.button("Open File(s) with Plugin...").clicked() {
-                    actions.file_dialog.pick_files(
-                        OPEN_FILES_WITH_PLUGIN_ID,
-                        FileDialogOptions::new().title("Open Files with Plugin"),
-                    );
+                    file_dialog_commands::open_files_with_plugin_dialog(actions);
                 }
             });
 
@@ -150,54 +123,8 @@ impl MainMenuBar {
     }
 
     fn handle_file_dialog(&mut self, actions: &mut UiActions) {
-        if let Some((id, paths)) = actions.file_dialog.take_output_many(all_file_dialog_ids())
-            && !paths.is_empty()
-        {
-            if id == OPEN_FILES_ID {
-                actions.try_send_command(&self.cmd_tx, HostCommand::OpenFiles(paths));
-                return;
-            }
-
-            if id == OPEN_FILES_WITH_PLUGIN_ID {
-                actions.try_send_command(&self.cmd_tx, HostCommand::OpenFilesWithPlugin(paths));
-                return;
-            }
-
-            if let Some(target_format) = file_format_from_id(id) {
-                let dir_path = paths
-                    .into_iter()
-                    .next()
-                    .expect("paths length is checked in parent if");
-                let cmd = HostCommand::OpenFromDirectory {
-                    dir_path,
-                    target_format,
-                };
-                actions.try_send_command(&self.cmd_tx, cmd);
-                return;
-            }
-
-            panic!("Menu: Not implemented dialog id {id}");
-        }
+        file_dialog_commands::handle_dialog_output(actions, &self.cmd_tx);
     }
-}
-
-const fn all_file_dialog_ids() -> &'static [&'static str] {
-    // Reminder on adding new file formats.
-    match FileFormat::Text {
-        FileFormat::PcapNG => {}
-        FileFormat::PcapLegacy => {}
-        FileFormat::Text => {}
-        FileFormat::Binary => {}
-    }
-
-    &[
-        OPEN_FILES_ID,
-        OPEN_FILES_WITH_PLUGIN_ID,
-        TEXT_FILES_FROM_DIR,
-        BINARY_DLT_FILES_FROM_DIR,
-        PCAPNG_FILES_FROM_DIR,
-        PCAP_FILES_FROM_DIR,
-    ]
 }
 pub fn render_connections_menu(ui: &mut Ui, actions: &mut UiActions, cmd_tx: &Sender<HostCommand>) {
     if ui.button("DLT on UDP").clicked() {
@@ -275,33 +202,4 @@ pub fn render_connections_menu(ui: &mut Ui, actions: &mut UiActions, cmd_tx: &Se
             },
         );
     }
-}
-
-const fn id_from_file_format(format: FileFormat) -> &'static str {
-    match format {
-        FileFormat::PcapNG => PCAPNG_FILES_FROM_DIR,
-        FileFormat::PcapLegacy => PCAP_FILES_FROM_DIR,
-        FileFormat::Text => TEXT_FILES_FROM_DIR,
-        FileFormat::Binary => BINARY_DLT_FILES_FROM_DIR,
-    }
-}
-
-fn file_format_from_id(id: &str) -> Option<FileFormat> {
-    // Reminder on adding new file formats.
-    match FileFormat::Text {
-        FileFormat::PcapNG => {}
-        FileFormat::PcapLegacy => {}
-        FileFormat::Text => {}
-        FileFormat::Binary => {}
-    }
-
-    let format = match id {
-        TEXT_FILES_FROM_DIR => FileFormat::Text,
-        BINARY_DLT_FILES_FROM_DIR => FileFormat::Binary,
-        PCAPNG_FILES_FROM_DIR => FileFormat::PcapNG,
-        PCAP_FILES_FROM_DIR => FileFormat::PcapLegacy,
-        _ => return None,
-    };
-
-    Some(format)
 }
