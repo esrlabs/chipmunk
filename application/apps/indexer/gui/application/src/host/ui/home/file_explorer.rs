@@ -13,7 +13,7 @@ use egui::{
 use tokio::sync::mpsc::Sender;
 
 use crate::common::{
-    action_throttle::ActionThrottle, phosphor::icons, ui::substring_matcher::SubstringMatcher,
+    action_throttle::ActionThrottle, matcher::substring_matcher::SubstringMatcher, phosphor::icons,
 };
 use crate::host::common::ui_utls::{sized_singleline_text_edit, truncate_path_to_width};
 use crate::host::{
@@ -600,7 +600,7 @@ mod tests {
         FavoriteFolder, FileExplorerUi, FileTreeNode, FileTreeNodeKind, filter_favorite_folders,
     };
     use crate::{
-        common::ui::substring_matcher::SubstringMatcher,
+        common::matcher::substring_matcher::SubstringMatcher,
         host::ui::storage::{
             file_explorer::{FileExplorerData, FileExplorerStorage},
             types::LoadState,

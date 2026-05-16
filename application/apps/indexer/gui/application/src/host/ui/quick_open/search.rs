@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::{
-    common::ui::substring_matcher::SubstringMatcher,
+    common::{matcher::substring_matcher::SubstringMatcher, ui::search_picker::SearchPickerText},
     host::ui::storage::{
         HostStorage,
         file_explorer::{FileTreeNode, FileTreeNodeKind},
@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-use super::{HighlightedText, QuickOpenItem, RESULT_LIMIT};
+use super::{QuickOpenItem, RESULT_LIMIT};
 
 /// Rebuilds the capped Quick Open result list from current host storage.
 pub fn recompute_results(
@@ -45,10 +45,15 @@ fn append_recent_results(
 
         results.push(QuickOpenItem::RecentSession {
             source_key: Arc::clone(&session.source_key),
-            title: HighlightedText::new(session.title().to_owned(), matcher),
-            summary: HighlightedText::new(session.summary().to_owned(), matcher),
+            title: matched_text(session.title().to_owned(), matcher),
+            summary: matched_text(session.summary().to_owned(), matcher),
         });
     }
+}
+
+fn matched_text(text: String, matcher: &mut SubstringMatcher) -> SearchPickerText {
+    let highlights = matcher.highlight_ranges(&text);
+    SearchPickerText::new(text, highlights)
 }
 
 fn append_favorite_results(
@@ -88,8 +93,8 @@ fn append_favorite_nodes(
                 if matcher.matches(node.name.as_str()) || matcher.matches(&path_text) {
                     results.push(QuickOpenItem::FavoriteFile {
                         path: node.path.clone(),
-                        name: HighlightedText::new(node.name.clone(), matcher),
-                        path_text: HighlightedText::new(path_text, matcher),
+                        name: matched_text(node.name.clone(), matcher),
+                        path_text: matched_text(path_text, matcher),
                     });
 
                     if results.len() >= RESULT_LIMIT {
@@ -111,7 +116,7 @@ mod tests {
 
     use super::recompute_results;
     use crate::{
-        common::ui::substring_matcher::SubstringMatcher,
+        common::matcher::substring_matcher::SubstringMatcher,
         host::ui::{
             quick_open::{QuickOpenItem, RESULT_LIMIT},
             storage::{

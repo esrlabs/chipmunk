@@ -1,6 +1,6 @@
 pub mod buttons;
 pub mod modal;
-pub mod substring_matcher;
+pub mod search_picker;
 pub mod tab_strip;
 pub mod visibility_tracker;
 

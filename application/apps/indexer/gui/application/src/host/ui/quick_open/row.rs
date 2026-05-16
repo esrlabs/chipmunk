@@ -2,14 +2,12 @@
 
 use egui::{
     Align, CursorIcon, Direction, Label, Layout, Rect, Response, RichText, Sense, Stroke,
-    TextStyle, Ui, UiBuilder, Widget,
-    text::{LayoutJob, TextFormat},
-    vec2,
+    TextStyle, Ui, UiBuilder, Widget, text::LayoutJob, text::TextFormat, vec2,
 };
 
-use crate::common::phosphor::icons;
+use crate::common::{phosphor::icons, ui::search_picker::SearchPickerText};
 
-use super::{HighlightedText, QuickOpenItem};
+use super::QuickOpenItem;
 
 /// Renders one selectable Quick Open result row.
 pub fn render_result_row(ui: &mut Ui, item: &QuickOpenItem, selected: bool) -> Response {
@@ -72,7 +70,7 @@ pub fn render_result_row(ui: &mut Ui, item: &QuickOpenItem, selected: bool) -> R
     response
 }
 
-fn render_text_line(ui: &mut Ui, text: &HighlightedText, primary: bool) {
+fn render_text_line(ui: &mut Ui, text: &SearchPickerText, primary: bool) {
     if text.highlights.is_empty() {
         let content = if primary {
             RichText::new(text.text.as_str()).strong()
@@ -87,7 +85,7 @@ fn render_text_line(ui: &mut Ui, text: &HighlightedText, primary: bool) {
     Label::new(job).truncate().ui(ui);
 }
 
-fn highlighted_layout(ui: &Ui, text: &HighlightedText, primary: bool) -> LayoutJob {
+fn highlighted_layout(ui: &Ui, text: &SearchPickerText, primary: bool) -> LayoutJob {
     let mut font_id = TextStyle::Body.resolve(ui.style());
     if !primary {
         font_id.size = 13.0;

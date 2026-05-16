@@ -13,7 +13,7 @@ use crate::{
     host::{
         command::HostCommand,
         ui::{
-            HomeView, UiActions,
+            HomeView, HostAction, UiActions,
             multi_setup::{MultiFileSetup, state::MultiFileState},
             plugin_manager::PluginManagerView,
             registry::HostRegistry,
@@ -139,6 +139,25 @@ impl HostState {
 
         self.update_current_tab_on_close(tab_idx);
         self.tabs.remove(tab_idx);
+    }
+
+    /// Closes the active tab when it can be closed.
+    pub fn close_active_tab(&mut self, actions: &mut UiActions) {
+        match self.active_tab().clone() {
+            TabType::Home => {}
+            TabType::Session(id) => actions.add_host_action(HostAction::CloseSession(id)),
+            TabType::SessionSetup(id) => self
+                .session_setups
+                .get(&id)
+                .expect("Session setup from active tab must exist")
+                .close(actions),
+            TabType::MultiFileSetup(id) => self
+                .multi_setups
+                .get(&id)
+                .expect("Multiple files setup from active tab must exist")
+                .close(actions),
+            TabType::PluginManager => self.close_plugin_manager(),
+        }
     }
 
     /// Add session to state returning it's ID.

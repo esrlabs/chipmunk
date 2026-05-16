@@ -10,11 +10,13 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
-    common::ui::{
-        buttons,
-        modal::{ModalSize, show_modal},
-        substring_matcher::SubstringMatcher,
-        visibility_tracker::VisibilityTracker,
+    common::{
+        matcher::substring_matcher::SubstringMatcher,
+        ui::{
+            buttons,
+            modal::{ModalSize, show_modal},
+            visibility_tracker::VisibilityTracker,
+        },
     },
     host::{
         command::{HostCommand, OpenRecentSessionParam},
@@ -440,7 +442,7 @@ mod tests {
 
     use super::{RecentSessionsUi, SelectionDirection, matches_recent_session_query};
     use crate::{
-        common::ui::substring_matcher::SubstringMatcher,
+        common::matcher::substring_matcher::SubstringMatcher,
         host::ui::storage::recent::{
             session::{RecentSessionSnapshot, RecentSessionSource},
             storage::RecentSessionsStorage,

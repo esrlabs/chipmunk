@@ -3,10 +3,8 @@
 use egui::{Context, Event};
 
 use crate::host::ui::{
-    Host, HostAction, UiActions,
-    actions::FileDialogOptions,
-    menu,
-    state::{self, HostState, modal::HostModal},
+    Host, file_dialog_commands,
+    state::{self, modal::HostModal},
     tabs::TabType,
 };
 
@@ -62,6 +60,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
         home_tab,
         open_files,
         quick_open: quick_open_shortcut,
+        command_palette: command_palette_shortcut,
         close_tab,
         previous_tab,
         next_tab,
@@ -83,6 +82,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
         state,
         ui_actions,
         quick_open,
+        command_palette,
         ..
     } = host;
 
@@ -96,16 +96,18 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
         return true;
     }
 
+    if consume_shortcut(ctx, command_palette_shortcut) {
+        command_palette.open();
+        return true;
+    }
+
     if consume_shortcut(ctx, open_files) {
-        ui_actions.file_dialog.pick_files(
-            menu::OPEN_FILES_ID,
-            FileDialogOptions::new().title("Open Files"),
-        );
+        file_dialog_commands::open_files_dialog(ui_actions);
         return true;
     }
 
     if consume_shortcut(ctx, close_tab) {
-        close_active_tab(state, ui_actions);
+        state.close_active_tab(ui_actions);
         return true;
     }
 
@@ -202,22 +204,4 @@ fn handle_active_tab_shortcuts(
     };
 
     session.handle_shortcuts(ui_actions, &mut state.preferences, ctx, last_key)
-}
-
-fn close_active_tab(state: &mut HostState, ui_actions: &mut UiActions) {
-    match state.active_tab().clone() {
-        TabType::Home => {}
-        TabType::Session(id) => ui_actions.add_host_action(HostAction::CloseSession(id)),
-        TabType::SessionSetup(id) => state
-            .session_setups
-            .get(&id)
-            .expect("Session setup from active tab must exist")
-            .close(ui_actions),
-        TabType::MultiFileSetup(id) => state
-            .multi_setups
-            .get(&id)
-            .expect("Multiple files setup from active tab must exist")
-            .close(ui_actions),
-        TabType::PluginManager => state.close_plugin_manager(),
-    }
 }

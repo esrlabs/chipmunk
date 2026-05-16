@@ -151,4 +151,4 @@ chipmunk --help
 - [x] Attachment support and preview
 - [ ] Log import/export
 - [x] Plugin support
-- [ ] Command palette and keyboard shortcuts
+- [x] Command palette and keyboard shortcuts
