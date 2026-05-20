@@ -12,6 +12,7 @@ use crate::{
             file_dialog_commands,
             state::{HostState, modal::HostModal},
             storage::HostStorage,
+            tabs::HostTabs,
         },
     },
 };
@@ -31,6 +32,7 @@ impl MainMenuBar {
         ui: &mut Ui,
         actions: &mut UiActions,
         state: &mut HostState,
+        tabs: &mut HostTabs,
         storage: &HostStorage,
     ) {
         self.handle_file_dialog(actions);
@@ -49,7 +51,7 @@ impl MainMenuBar {
                 }
 
                 if ui.button("Settings").clicked() {
-                    state.open_app_settings(storage.settings.current().clone());
+                    tabs.open_app_settings(storage.settings.current().clone());
                     ui.close();
                 }
 
@@ -117,7 +119,7 @@ impl MainMenuBar {
 
             ui.menu_button("Plugins", |ui| {
                 if ui.button("Plugin Manager").clicked() {
-                    state.open_plugin_manager();
+                    tabs.open_plugin_manager();
                     ui.close();
                 }
             });

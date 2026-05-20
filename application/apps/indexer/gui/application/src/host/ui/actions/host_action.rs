@@ -6,6 +6,4 @@ use uuid::Uuid;
 pub enum HostAction {
     /// Request the host to close a specific session.
     CloseSession(Uuid),
-    /// Request the host to close the app settings tab.
-    CloseAppSettings,
 }

@@ -8,7 +8,7 @@ use crate::{
     host::{
         command::HostCommand,
         common::ui_utls::{clicked_outside_rect, sized_singleline_text_edit},
-        ui::{UiActions, state::HostState, storage::HostStorage},
+        ui::{UiActions, state::HostState, storage::HostStorage, tabs::HostTabs},
     },
 };
 
@@ -99,6 +99,7 @@ impl CommandPalette {
         &mut self,
         ui: &Ui,
         state: &mut HostState,
+        tabs: &mut HostTabs,
         storage: &HostStorage,
         actions: &mut UiActions,
     ) {
@@ -111,7 +112,7 @@ impl CommandPalette {
         self.handle_keys(ui, &mut execute_index, &mut should_close);
 
         if let Some(index) = execute_index {
-            self.execute_result(index, state, storage, actions, ui);
+            self.execute_result(index, state, tabs, storage, actions, ui);
         } else if should_close {
             self.close();
         }
@@ -122,6 +123,7 @@ impl CommandPalette {
         &mut self,
         parent_ui: &Ui,
         state: &mut HostState,
+        tabs: &mut HostTabs,
         storage: &HostStorage,
         actions: &mut UiActions,
     ) {
@@ -182,7 +184,7 @@ impl CommandPalette {
             });
 
         if let Some(index) = execute_index {
-            self.execute_result(index, state, storage, actions, parent_ui);
+            self.execute_result(index, state, tabs, storage, actions, parent_ui);
         } else if window_response
             .as_ref()
             .is_some_and(|response| clicked_outside_rect(parent_ui, response.response.rect))
@@ -291,6 +293,7 @@ impl CommandPalette {
         &mut self,
         index: usize,
         state: &mut HostState,
+        tabs: &mut HostTabs,
         storage: &HostStorage,
         actions: &mut UiActions,
         ui: &Ui,
@@ -299,7 +302,7 @@ impl CommandPalette {
             return;
         };
 
-        if commands::execute_action(item.action, &self.cmd_tx, state, storage, actions, ui) {
+        if commands::execute_action(item.action, &self.cmd_tx, state, tabs, storage, actions, ui) {
             self.close();
         }
     }

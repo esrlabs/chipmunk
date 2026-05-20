@@ -11,8 +11,9 @@ use crate::{
         common::{parsers::ParserNames, sources::StreamNames},
         ui::{
             UiActions, file_dialog_commands,
-            state::{self, HostState, modal::HostModal},
+            state::{HostState, modal::HostModal},
             storage::HostStorage,
+            tabs::HostTabs,
         },
     },
 };
@@ -249,13 +250,14 @@ pub fn execute_action(
     action: CommandAction,
     cmd_tx: &Sender<HostCommand>,
     state: &mut HostState,
+    tabs: &mut HostTabs,
     storage: &HostStorage,
     actions: &mut UiActions,
     ui: &Ui,
 ) -> bool {
     match action {
         CommandAction::GoHome => {
-            state.activate_tab(state::HOME_TAB_IDX);
+            tabs.activate_home();
             true
         }
         CommandAction::OpenFiles => {
@@ -271,23 +273,23 @@ pub fn execute_action(
             true
         }
         CommandAction::CloseCurrentTab => {
-            state.close_active_tab(actions);
+            tabs.close_active_tab(&mut state.registry, &mut state.modals, actions);
             true
         }
         CommandAction::NextTab => {
-            state.activate_next_tab();
+            tabs.activate_next_tab();
             true
         }
         CommandAction::PreviousTab => {
-            state.activate_previous_tab();
+            tabs.activate_previous_tab();
             true
         }
         CommandAction::OpenPluginManager => {
-            state.open_plugin_manager();
+            tabs.open_plugin_manager();
             true
         }
         CommandAction::OpenSettings => {
-            state.open_app_settings(storage.settings.current().clone());
+            tabs.open_app_settings(storage.settings.current().clone());
             true
         }
         CommandAction::ReloadPlugins => {
