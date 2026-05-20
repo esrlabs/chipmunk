@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{SaveOutcome, types::LoadState};
+use super::types::LoadState;
 use crate::host::ui::storage::types::StorageError;
 
 /// UI-side storage state for file-explorer favorite folders.
@@ -91,7 +91,7 @@ impl FileExplorerStorage {
     }
 
     /// Returns the path-only save snapshot when the domain is ready and dirty.
-    pub fn get_save_data(&self) -> Option<FileExplorerData> {
+    pub fn get_save_data(&mut self) -> Option<FileExplorerData> {
         if !self.dirty {
             return None;
         }
@@ -100,13 +100,16 @@ impl FileExplorerStorage {
             return None;
         };
 
-        Some(FileExplorerData {
+        let save_data = FileExplorerData {
             favorite_folders: data
                 .favorite_folders
                 .iter()
                 .map(|folder| FavoriteFolder::new(folder.path.clone()))
                 .collect(),
-        })
+        };
+        self.dirty = false;
+
+        Some(save_data)
     }
 
     /// Applies a load result, falling back to the default ready state on error.
@@ -215,11 +218,9 @@ impl FileExplorerStorage {
         }
     }
 
-    pub(super) fn apply_save_outcome(&mut self, outcome: SaveOutcome) {
-        self.dirty = match outcome {
-            SaveOutcome::Succeeded => false,
-            SaveOutcome::Failed => true,
-        };
+    /// Marks the current snapshot for retry after a failed aggregate save.
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
     }
 
     fn bump_revision(&mut self) {

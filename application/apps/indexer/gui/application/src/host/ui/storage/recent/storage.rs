@@ -13,10 +13,7 @@ use crate::{
     host::ui::storage::types::{StorageError, StorageErrorKind},
 };
 
-use super::{
-    super::SaveOutcome,
-    session::{RecentSessionSnapshot, RecentSessionSource, RecentSessionStateSnapshot},
-};
+use super::session::{RecentSessionSnapshot, RecentSessionSource, RecentSessionStateSnapshot};
 
 pub const MAX_RECENT_SESSIONS: usize = 100;
 
@@ -69,8 +66,13 @@ impl RecentSessionsStorage {
     }
 
     /// Returns the current snapshot only when the domain is dirty.
-    pub fn get_save_data(&self) -> Option<Self> {
-        self.dirty.then(|| self.clone())
+    pub fn get_save_data(&mut self) -> Option<Self> {
+        if !self.dirty {
+            return None;
+        }
+
+        self.dirty = false;
+        Some(self.clone())
     }
 
     /// Registers a freshly opened session at the top of the recent list.
@@ -152,11 +154,9 @@ impl RecentSessionsStorage {
         self.dirty |= self.sessions.len() != initial_len;
     }
 
-    pub(in crate::host::ui::storage) fn apply_save_outcome(&mut self, outcome: SaveOutcome) {
-        self.dirty = match outcome {
-            SaveOutcome::Succeeded => false,
-            SaveOutcome::Failed => true,
-        };
+    /// Marks the current snapshot for retry after a failed aggregate save.
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
     }
 
     fn refresh_cached_fields(&mut self) {
@@ -180,12 +180,9 @@ mod tests {
     use super::{MAX_RECENT_SESSIONS, RecentSessionsStorage};
     use crate::{
         common::time::unix_timestamp_now,
-        host::ui::storage::{
-            SaveOutcome,
-            recent::session::{
-                RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource,
-                RecentSessionStateSnapshot,
-            },
+        host::ui::storage::recent::session::{
+            RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource,
+            RecentSessionStateSnapshot,
         },
     };
 
@@ -289,7 +286,7 @@ mod tests {
 
     #[test]
     fn save_data_requires_dirty() {
-        let storage = test_storage();
+        let mut storage = test_storage();
 
         assert!(storage.get_save_data().is_none());
         assert!(!storage.dirty);
@@ -457,17 +454,5 @@ mod tests {
 
         assert!(storage.dirty);
         assert!(storage.sessions.is_empty());
-    }
-
-    #[test]
-    fn save_outcome_updates_dirty() {
-        let mut storage = test_storage();
-        storage.register_session(named_snapshot("dirty"));
-
-        storage.apply_save_outcome(SaveOutcome::Succeeded);
-        assert!(!storage.dirty);
-
-        storage.apply_save_outcome(SaveOutcome::Failed);
-        assert!(storage.dirty);
     }
 }

@@ -87,7 +87,6 @@ impl PluginManagerView {
         modals: &mut HostModalState,
     ) {
         self.handle_pending_dialog(plugins, actions);
-        self.handle_remove_confirmation(actions, modals);
 
         match plugins {
             PluginsState::Loading => render_loading(ui),
@@ -114,7 +113,11 @@ impl PluginManagerView {
         actions.try_send_command(&self.cmd_tx, HostCommand::AddPlugin { path });
     }
 
-    fn handle_remove_confirmation(&mut self, actions: &mut UiActions, modals: &mut HostModalState) {
+    pub fn handle_confirmation_result(
+        &mut self,
+        actions: &mut UiActions,
+        modals: &mut HostModalState,
+    ) {
         let Some(answer) = modals.take_confirmation_result(REMOVE_PLUGIN_CONFIRMATION_ID) else {
             return;
         };

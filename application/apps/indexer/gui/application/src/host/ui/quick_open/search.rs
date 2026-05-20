@@ -126,6 +126,7 @@ mod tests {
                     session::{RecentSessionSnapshot, RecentSessionSource},
                     storage::RecentSessionsStorage,
                 },
+                settings::AppSettings,
                 types::LoadState,
             },
         },
@@ -138,7 +139,7 @@ mod tests {
         let (cmd_tx, _cmd_rx) = tokio::sync::mpsc::channel(1);
         let mut recent_sessions = RecentSessionsStorage::default();
         recent_sessions.sessions = sessions;
-        let mut storage = HostStorage::new(cmd_tx, recent_sessions);
+        let mut storage = HostStorage::new(cmd_tx, recent_sessions, AppSettings::default());
         storage.file_explorer.state = LoadState::Ready(FileExplorerData { favorite_folders });
         storage
     }

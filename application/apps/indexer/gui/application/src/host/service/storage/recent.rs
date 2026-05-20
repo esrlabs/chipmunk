@@ -58,7 +58,7 @@ pub enum RecentSessionOpenRequest {
 }
 
 /// Loads and normalizes recent sessions.
-pub fn load_sessions() -> Result<Box<RecentSessionsStorage>, StorageError> {
+pub fn load_sessions() -> Result<RecentSessionsStorage, StorageError> {
     let path = get_path()?;
     load_and_normalize(&path)
 }
@@ -153,8 +153,8 @@ fn open_recent_session_clean(
     }
 }
 
-fn load_and_normalize(path: &Path) -> Result<Box<RecentSessionsStorage>, StorageError> {
-    let mut storage = load(path)?;
+fn load_and_normalize(path: &Path) -> Result<RecentSessionsStorage, StorageError> {
+    let mut storage = RecentSessionsStorage::load(path)?;
 
     if normalize_recent_sessions(&mut storage.sessions)
         && let Err(err) = save_to_path(path, &storage)
@@ -166,12 +166,6 @@ fn load_and_normalize(path: &Path) -> Result<Box<RecentSessionsStorage>, Storage
     }
 
     Ok(storage)
-}
-
-fn load(path: &Path) -> Result<Box<RecentSessionsStorage>, StorageError> {
-    let storage = RecentSessionsStorage::load(path)?;
-
-    Ok(Box::new(storage))
 }
 
 fn normalize_recent_sessions(sessions: &mut Vec<RecentSessionSnapshot>) -> bool {
@@ -360,7 +354,7 @@ mod tests {
         let home_dir = test_home_dir();
         let path = path_from_home(&home_dir).expect("path should resolve");
 
-        let data = load(&path).expect("missing file should default");
+        let data = RecentSessionsStorage::load(&path).expect("missing file should default");
 
         assert!(data.sessions.is_empty());
         let _ = fs::remove_dir_all(home_dir);
@@ -372,7 +366,7 @@ mod tests {
         let path = path_from_home(&home_dir).expect("path should resolve");
         fs::write(&path, "{not-json").expect("invalid json should be written");
 
-        let err = load(&path).expect_err("invalid json should fail");
+        let err = RecentSessionsStorage::load(&path).expect_err("invalid json should fail");
 
         assert_eq!(err.kind, StorageErrorKind::Parse);
         let _ = fs::remove_dir_all(home_dir);
@@ -515,7 +509,7 @@ mod tests {
         assert!(!saved_json.contains("\"title\""));
 
         let path = path_from_home(&home_dir).expect("path should resolve");
-        let loaded = load(&path).expect("load should succeed");
+        let loaded = RecentSessionsStorage::load(&path).expect("load should succeed");
 
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].title(), data.sessions[0].title());

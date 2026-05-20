@@ -6,7 +6,7 @@ use crate::{
         phosphor::{self, icons},
         ui::tab_strip::{TabEvent, TabSpec, TabStrip, TabWidth},
     },
-    host::ui::HostAction,
+    host::ui::{HostAction, app_settings::AppSettingsView},
 };
 
 use super::{HostState, UiActions};
@@ -28,13 +28,14 @@ pub(super) fn host_tab_bar_height() -> f32 {
     HOST_TAB_TOP_GAP + HOST_TAB_CONTROL_HEIGHT
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub enum TabType {
     Home,
     Session(Uuid),
     SessionSetup(Uuid),
     MultiFileSetup(Uuid),
     PluginManager,
+    AppSettings(Box<AppSettingsView>),
 }
 
 fn host_tab_width(ui: &Ui, label: &str, max: Option<f32>) -> TabWidth {
@@ -59,7 +60,7 @@ impl TabsUi {
         self.tab_specs.extend(state.tabs.iter().map(|tab| {
             match tab {
                 TabType::Home => TabSpec::new(
-                    strip_id.with(("host_tab", tab)),
+                    strip_id.with(("host_tab", "home")),
                     TabWidth::Exact(HOST_TAB_HOME_WIDTH),
                 )
                 .tooltip("Home"),
@@ -72,7 +73,7 @@ impl TabsUi {
                         .title
                         .as_str();
                     TabSpec::new(
-                        strip_id.with(("host_tab", tab)),
+                        strip_id.with(("host_tab", id)),
                         host_tab_width(ui, title, Some(HOST_TAB_ITEM_WIDTH)),
                     )
                     .closeable(true)
@@ -85,24 +86,30 @@ impl TabsUi {
                         .expect("Session setup from host tab must exist")
                         .title();
                     TabSpec::new(
-                        strip_id.with(("host_tab", tab)),
+                        strip_id.with(("host_tab", id)),
                         host_tab_width(ui, title.as_ref(), Some(HOST_TAB_ITEM_WIDTH)),
                     )
                     .closeable(true)
                     .tooltip(title.to_string())
                 }
-                TabType::MultiFileSetup(_) => TabSpec::new(
-                    strip_id.with(("host_tab", tab)),
+                TabType::MultiFileSetup(id) => TabSpec::new(
+                    strip_id.with(("host_tab", id)),
                     host_tab_width(ui, "Multiple Files", Some(HOST_TAB_ITEM_WIDTH)),
                 )
                 .closeable(true)
                 .tooltip("Multiple Files"),
                 TabType::PluginManager => TabSpec::new(
-                    strip_id.with(("host_tab", tab)),
+                    strip_id.with(("host_tab", "plugins")),
                     host_tab_width(ui, "Plugin Manager", Some(HOST_TAB_ITEM_WIDTH)),
                 )
                 .closeable(true)
                 .tooltip("Plugin Manager"),
+                TabType::AppSettings(..) => TabSpec::new(
+                    strip_id.with(("host_tab", "settings")),
+                    host_tab_width(ui, "App Settings", Some(HOST_TAB_ITEM_WIDTH)),
+                )
+                .closeable(true)
+                .tooltip("App Settings"),
             }
         }));
 
@@ -162,6 +169,14 @@ impl TabsUi {
                             .halign(Align::Center),
                     );
                 }
+                TabType::AppSettings(..) => {
+                    ui.add(
+                        Label::new(RichText::new("App Settings").text_style(HOST_TAB_TEXT_STYLE))
+                            .truncate()
+                            .show_tooltip_when_elided(false)
+                            .halign(Align::Center),
+                    );
+                }
             }
         });
 
@@ -174,7 +189,7 @@ impl TabsUi {
         match event {
             TabEvent::Select(idx) => state.active_tab_idx = idx,
             TabEvent::Close(idx) => {
-                let Some(tab) = state.tabs.get(idx).cloned() else {
+                let Some(tab) = state.tabs.get(idx) else {
                     return;
                 };
 
@@ -182,22 +197,25 @@ impl TabsUi {
                     TabType::Home => {
                         debug_assert!(false, "Home tab is not closeable");
                     }
-                    TabType::Session(id) => actions.add_host_action(HostAction::CloseSession(id)),
+                    TabType::Session(id) => actions.add_host_action(HostAction::CloseSession(*id)),
                     TabType::SessionSetup(id) => {
                         state
                             .session_setups
-                            .get(&id)
+                            .get(id)
                             .expect("Session setup from host tab must exist")
                             .close(actions);
                     }
                     TabType::MultiFileSetup(id) => {
                         state
                             .multi_setups
-                            .get(&id)
+                            .get(id)
                             .expect("Multiple files setup from host tab must exist")
                             .close(actions);
                     }
                     TabType::PluginManager => state.close_plugin_manager(),
+                    TabType::AppSettings(settings) => {
+                        state.close_app_settings(settings.on_close_tab())
+                    }
                 }
             }
         }

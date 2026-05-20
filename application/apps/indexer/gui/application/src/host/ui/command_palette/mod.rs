@@ -8,7 +8,7 @@ use crate::{
     host::{
         command::HostCommand,
         common::ui_utls::{clicked_outside_rect, sized_singleline_text_edit},
-        ui::{UiActions, state::HostState},
+        ui::{UiActions, state::HostState, storage::HostStorage},
     },
 };
 
@@ -95,7 +95,13 @@ impl CommandPalette {
     }
 
     /// Consumes Command Palette keyboard input while the overlay is open.
-    pub fn handle_input(&mut self, ui: &Ui, state: &mut HostState, actions: &mut UiActions) {
+    pub fn handle_input(
+        &mut self,
+        ui: &Ui,
+        state: &mut HostState,
+        storage: &HostStorage,
+        actions: &mut UiActions,
+    ) {
         if !self.open {
             return;
         }
@@ -105,14 +111,20 @@ impl CommandPalette {
         self.handle_keys(ui, &mut execute_index, &mut should_close);
 
         if let Some(index) = execute_index {
-            self.execute_result(index, state, actions, ui);
+            self.execute_result(index, state, storage, actions, ui);
         } else if should_close {
             self.close();
         }
     }
 
     /// Renders the Command Palette overlay when it is open.
-    pub fn render(&mut self, parent_ui: &Ui, state: &mut HostState, actions: &mut UiActions) {
+    pub fn render(
+        &mut self,
+        parent_ui: &Ui,
+        state: &mut HostState,
+        storage: &HostStorage,
+        actions: &mut UiActions,
+    ) {
         if !self.open {
             return;
         }
@@ -170,7 +182,7 @@ impl CommandPalette {
             });
 
         if let Some(index) = execute_index {
-            self.execute_result(index, state, actions, parent_ui);
+            self.execute_result(index, state, storage, actions, parent_ui);
         } else if window_response
             .as_ref()
             .is_some_and(|response| clicked_outside_rect(parent_ui, response.response.rect))
@@ -279,6 +291,7 @@ impl CommandPalette {
         &mut self,
         index: usize,
         state: &mut HostState,
+        storage: &HostStorage,
         actions: &mut UiActions,
         ui: &Ui,
     ) {
@@ -286,7 +299,7 @@ impl CommandPalette {
             return;
         };
 
-        if commands::execute_action(item.action, &self.cmd_tx, state, actions, ui) {
+        if commands::execute_action(item.action, &self.cmd_tx, state, storage, actions, ui) {
             self.close();
         }
     }

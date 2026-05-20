@@ -120,6 +120,7 @@ fn action_icon(action: CommandAction) -> &'static str {
             parser: ParserNames::Plugins,
             ..
         } => icons::regular::PLUG,
+        CommandAction::OpenSettings => icons::regular::GEAR,
         CommandAction::ShowShortcuts => icons::regular::KEYBOARD,
         CommandAction::ShowAbout => icons::regular::INFO,
         CommandAction::SetTheme(Theme::Dark) => icons::regular::MOON,

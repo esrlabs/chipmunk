@@ -42,6 +42,7 @@ use state::HostState;
 pub use actions::{HostAction, UiActions};
 
 pub mod actions;
+mod app_settings;
 mod banners;
 mod command_palette;
 mod dnd_paths;
@@ -93,7 +94,7 @@ impl Host {
             Box::new(|ctx| {
                 let (ui_comm, service_comm) = super::communication::init(ctx.egui_ctx.clone());
 
-                let (tokio_handle, recent_sessions) = HostService::spawn(service_comm);
+                let service_init = HostService::spawn(service_comm);
                 let cmd_tx = ui_comm.senders.cmd_tx.clone();
 
                 fonts::setup(&ctx.egui_ctx);
@@ -109,8 +110,12 @@ impl Host {
                     command_palette: CommandPalette::new(cmd_tx.clone()),
                     tabs: TabsUi::default(),
                     state,
-                    storage: HostStorage::new(cmd_tx, recent_sessions),
-                    ui_actions: UiActions::new(tokio_handle),
+                    storage: HostStorage::new(
+                        cmd_tx,
+                        service_init.recent_sessions,
+                        service_init.app_settings,
+                    ),
+                    ui_actions: UiActions::new(service_init.tokio_handle),
                 };
 
                 ctx.egui_ctx.all_styles_mut(app_style::global_styles);
@@ -260,10 +265,15 @@ impl Host {
                 self.render_tabs(ui);
             });
 
-        self.quick_open
-            .render(ui, &self.storage, &mut self.ui_actions);
-        self.command_palette
-            .render(ui, &mut self.state, &mut self.ui_actions);
+        let Self {
+            storage,
+            ui_actions,
+            state,
+            ..
+        } = self;
+
+        self.quick_open.render(ui, storage, ui_actions);
+        self.command_palette.render(ui, state, storage, ui_actions);
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(0))
@@ -313,9 +323,10 @@ impl Host {
             menu,
             ui_actions,
             state,
+            storage,
             ..
         } = self;
-        menu.render(ui, ui_actions, state);
+        menu.render(ui, ui_actions, state, storage);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
@@ -323,6 +334,7 @@ impl Host {
             state,
             notifications,
             ui_actions,
+            tabs,
             ..
         } = self;
 
@@ -342,7 +354,7 @@ impl Host {
                     vec2(ui.available_width(), host_tab_bar_height()),
                     Layout::left_to_right(Align::Max),
                     |ui| {
-                        self.tabs.render_all_tabs(state, ui_actions, ui);
+                        tabs.render_all_tabs(state, ui_actions, ui);
                     },
                 );
             },
@@ -357,8 +369,6 @@ impl Host {
             ..
         } = self;
 
-        let active_tab = state.active_tab().clone();
-
         let HostState {
             home_view,
             sessions,
@@ -369,27 +379,66 @@ impl Host {
             plugins,
             plugin_manager,
             modals,
+            tabs,
+            active_tab_idx,
             ..
         } = state;
+
+        let active_tab = &mut tabs[*active_tab_idx];
 
         match active_tab {
             TabType::Home => {
                 home_view.render_content(storage, ui_actions, preferences, plugins, ui)
             }
             TabType::Session(id) => sessions
-                .get_mut(&id)
+                .get_mut(id)
                 .expect("Session with provieded ID from active tab must exist")
                 .render_content(ui_actions, registry, preferences, ui),
             TabType::SessionSetup(id) => session_setups
-                .get_mut(&id)
+                .get_mut(id)
                 .expect("Session Setup with provided ID form active tab must exist")
                 .render_content(ui_actions, &mut storage.recent_sessions, plugins, ui),
             TabType::MultiFileSetup(id) => multi_setups
-                .get_mut(&id)
+                .get_mut(id)
                 .expect("Multiple files setups with provided ID from active tab must exist")
                 .render_content(ui_actions, preferences, ui),
             TabType::PluginManager => {
                 plugin_manager.render_content(ui, plugins, ui_actions, preferences, modals)
+            }
+            TabType::AppSettings(settings) => {
+                settings.render_content(storage, ui);
+            }
+        }
+    }
+
+    fn handle_confirmation_results(&mut self) {
+        if !self.state.modals.has_confirmation_results() {
+            return;
+        }
+
+        let HostState {
+            tabs,
+            plugin_manager,
+            modals,
+            ..
+        } = &mut self.state;
+
+        for tab in tabs {
+            match tab {
+                TabType::AppSettings(settings) => {
+                    settings.handle_confirmation_result(modals, &mut self.ui_actions);
+                }
+                TabType::PluginManager => {
+                    plugin_manager.handle_confirmation_result(&mut self.ui_actions, modals);
+                }
+                TabType::Home
+                | TabType::Session(_)
+                | TabType::SessionSetup(_)
+                | TabType::MultiFileSetup(_) => {}
+            }
+
+            if !modals.has_confirmation_results() {
+                break;
             }
         }
     }
@@ -406,6 +455,9 @@ impl Host {
             match action {
                 HostAction::CloseSession(session_id) => {
                     self.state.close_session(session_id, &mut self.ui_actions);
+                }
+                HostAction::CloseAppSettings => {
+                    self.state.remove_app_settings_tab();
                 }
             }
         }
@@ -520,41 +572,41 @@ impl eframe::App for Host {
             self.handle_message(msg);
         }
 
-        let Self {
-            receivers,
-            notifications,
-            storage,
-            ui_actions,
-            ..
-        } = self;
-
-        while let Ok(notification) = receivers.notification_rx.try_recv() {
-            notifications.add(notification);
+        while let Ok(notification) = self.receivers.notification_rx.try_recv() {
+            self.notifications.add(notification);
         }
 
-        storage.poll_pending_save(ui_actions);
+        self.storage.poll_pending_save(&mut self.ui_actions);
 
         let HostState {
             sessions, registry, ..
         } = &mut self.state;
         for session in sessions.values_mut() {
-            session.handle_messages(ui_actions, storage, registry);
+            session.handle_messages(&mut self.ui_actions, &mut self.storage, registry);
         }
 
         self.handle_recent_sessions();
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
-        let overlay_was_open = self.quick_open.is_open() || self.command_palette.is_open();
-        self.quick_open
-            .handle_input(ui, &self.storage, &mut self.ui_actions);
-        self.command_palette
-            .handle_input(ui, &mut self.state, &mut self.ui_actions);
-        if !overlay_was_open && !self.quick_open.is_open() && !self.command_palette.is_open() {
+        let Self {
+            quick_open,
+            command_palette,
+            storage,
+            state,
+            ui_actions,
+            ..
+        } = self;
+
+        let overlay_was_open = quick_open.is_open() || command_palette.is_open();
+        quick_open.handle_input(ui, storage, ui_actions);
+        command_palette.handle_input(ui, state, storage, ui_actions);
+        if !overlay_was_open && !quick_open.is_open() && !command_palette.is_open() {
             shortcuts::handler::handle(self, ui.ctx());
         }
 
         self.render_ui(ui, frame);
+        self.handle_confirmation_results();
 
         dnd_paths::handle_path_drops(ui, &mut self.ui_actions, &self.senders.cmd_tx);
 

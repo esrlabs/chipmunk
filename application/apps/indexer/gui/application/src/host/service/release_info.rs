@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{info, warn};
+use log::{trace, warn};
 use semver::Version;
 use serde::Deserialize;
 
@@ -8,6 +8,7 @@ use crate::{
     host::{
         communication::ServiceSenders,
         message::{AppChangelog, AppVersionUpdate, HostMessage},
+        ui::storage::settings::UpdateSettings,
     },
 };
 
@@ -25,11 +26,29 @@ struct ReleaseInfo {
 }
 
 /// Spawns a background check for release metadata in the current major series.
-pub fn spawn_update_check(senders: ServiceSenders, previous_version: Option<Version>) {
-    tokio::spawn(check_for_updates(senders, previous_version));
+pub fn spawn_update_check(
+    senders: ServiceSenders,
+    previous_version: Option<Version>,
+    settings: UpdateSettings,
+) {
+    tokio::spawn(check_for_updates(senders, previous_version, settings));
 }
 
-async fn check_for_updates(senders: ServiceSenders, previous_version: Option<Version>) {
+async fn check_for_updates(
+    senders: ServiceSenders,
+    previous_version: Option<Version>,
+    settings: UpdateSettings,
+) {
+    let current_version = app_info::current_version();
+    let should_show_changelog = previous_version
+        .as_ref()
+        .is_some_and(|previous_version| previous_version < current_version);
+
+    if !settings.check_for_updates && !should_show_changelog {
+        trace!("Skipping release check because it is disabled in application settings.");
+        return;
+    }
+
     let releases = match fetch_release_info().await {
         Ok(releases) => releases,
         Err(err) => {
@@ -38,16 +57,19 @@ async fn check_for_updates(senders: ServiceSenders, previous_version: Option<Ver
         }
     };
 
-    let current_version = app_info::current_version();
-
-    if previous_version.is_some_and(|previous_version| previous_version < *current_version) {
+    if should_show_changelog {
         send_current_changelog(&senders, &releases, current_version).await;
     }
 
+    if !settings.check_for_updates {
+        return;
+    }
+
+    //TODO: Honor check_pre_releases when pre-release filtering is added.
     let Some((latest_version, release)) =
         latest_current_major_release(&releases, current_version.major)
     else {
-        info!(
+        trace!(
             "No release found for the current major version in the latest \
             {RELEASES_LIMIT} GitHub releases."
         );
@@ -55,7 +77,7 @@ async fn check_for_updates(senders: ServiceSenders, previous_version: Option<Ver
     };
 
     if latest_version <= *current_version {
-        info!(
+        trace!(
             "Application is up to date for the current major version. \
             current_version={current_version}, latest_version={latest_version}"
         );

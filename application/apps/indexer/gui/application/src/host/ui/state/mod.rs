@@ -14,18 +14,25 @@ use crate::{
         command::HostCommand,
         ui::{
             HomeView, HostAction, UiActions,
+            app_settings::AppSettingsView,
             multi_setup::{MultiFileSetup, state::MultiFileState},
             plugin_manager::PluginManagerView,
             registry::HostRegistry,
             session_setup::{SessionSetup, state::SessionSetupState},
             shortcuts::state::ShortcutState,
+            state::modal::ConfirmationDialog,
+            storage::settings::AppSettings,
             tabs::TabType,
         },
     },
     session::{SessionUiInit, ui::Session},
 };
 
-use self::{info::AppInfoState, modal::HostModalState, plugin::PluginsState};
+use self::{
+    info::AppInfoState,
+    modal::{HostModal, HostModalState},
+    plugin::PluginsState,
+};
 pub use preferences::HostPreferences;
 
 pub const HOME_TAB_IDX: usize = 0;
@@ -77,7 +84,7 @@ impl HostState {
     pub fn show_right_panel_toggle(&self) -> bool {
         match self.active_tab() {
             TabType::Home | TabType::Session(..) | TabType::MultiFileSetup(..) => true,
-            TabType::SessionSetup(..) => false,
+            TabType::SessionSetup(..) | TabType::AppSettings(..) => false,
             TabType::PluginManager => matches!(self.plugins, PluginsState::Available(_)),
         }
     }
@@ -141,23 +148,63 @@ impl HostState {
         self.tabs.remove(tab_idx);
     }
 
+    /// Opens or focuses the singleton application settings tab.
+    pub fn open_app_settings(&mut self, settings: AppSettings) {
+        if let Some(tab_idx) = self
+            .tabs
+            .iter()
+            .position(|tab| matches!(tab, TabType::AppSettings(..)))
+        {
+            self.active_tab_idx = tab_idx;
+            return;
+        }
+
+        let settings_ui = AppSettingsView::new(settings);
+        self.tabs.push(TabType::AppSettings(Box::new(settings_ui)));
+        self.active_tab_idx = self.tabs.len() - 1;
+    }
+
+    pub fn remove_app_settings_tab(&mut self) {
+        let Some(tab_idx) = self
+            .tabs
+            .iter()
+            .position(|tab| matches!(tab, TabType::AppSettings(..)))
+        else {
+            return;
+        };
+
+        self.update_current_tab_on_close(tab_idx);
+        self.tabs.remove(tab_idx);
+    }
+
     /// Closes the active tab when it can be closed.
     pub fn close_active_tab(&mut self, actions: &mut UiActions) {
-        match self.active_tab().clone() {
+        match self.active_tab() {
             TabType::Home => {}
-            TabType::Session(id) => actions.add_host_action(HostAction::CloseSession(id)),
+            TabType::Session(id) => actions.add_host_action(HostAction::CloseSession(*id)),
             TabType::SessionSetup(id) => self
                 .session_setups
-                .get(&id)
+                .get(id)
                 .expect("Session setup from active tab must exist")
                 .close(actions),
             TabType::MultiFileSetup(id) => self
                 .multi_setups
-                .get(&id)
+                .get(id)
                 .expect("Multiple files setup from active tab must exist")
                 .close(actions),
             TabType::PluginManager => self.close_plugin_manager(),
+            TabType::AppSettings(settings) => self.close_app_settings(settings.on_close_tab()),
         }
+    }
+
+    //TODO AAZ: This should be handled in much better way after the bigger upcoming refactoring
+    pub fn close_app_settings(&mut self, confirm_dialog: Option<ConfirmationDialog>) {
+        if let Some(dialog) = confirm_dialog {
+            self.modals.open(HostModal::Confirmation(dialog));
+            return;
+        }
+
+        self.remove_app_settings_tab();
     }
 
     /// Add session to state returning it's ID.

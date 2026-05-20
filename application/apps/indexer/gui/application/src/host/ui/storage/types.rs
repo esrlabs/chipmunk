@@ -5,6 +5,7 @@ use thiserror::Error;
 use super::{
     file_explorer::{FavoriteFolder, FileExplorerData},
     recent::storage::RecentSessionsStorage,
+    settings::AppSettings,
 };
 
 /// Represents the loading state of storage domain.
@@ -36,8 +37,12 @@ pub enum StorageEvent {
 /// Data sent from the UI to the storage service.
 #[derive(Debug, Clone, Default)]
 pub struct StorageSaveData {
+    /// Dirty recent-sessions snapshot to persist.
     pub recent_sessions: Option<RecentSessionsStorage>,
+    /// Dirty file-explorer snapshot to persist.
     pub file_explorer: Option<FileExplorerData>,
+    /// Dirty application settings snapshot to persist.
+    pub app_settings: Option<AppSettings>,
 }
 
 /// Typed storage failure used across storage.

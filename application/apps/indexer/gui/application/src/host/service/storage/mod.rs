@@ -19,6 +19,7 @@ use crate::host::{
 pub mod app_version;
 mod file_explorer;
 pub mod recent;
+pub mod settings;
 
 const STORAGE_DIR: &str = "storage_2";
 
@@ -75,12 +76,22 @@ impl StorageService {
 
 /// Saves all storage domains present in the aggregate payload.
 fn save_storage(data: &StorageSaveData) -> Result<(), StorageError> {
-    if let Some(file_explorer) = &data.file_explorer {
+    let StorageSaveData {
+        recent_sessions,
+        file_explorer,
+        app_settings,
+    } = data;
+
+    if let Some(file_explorer) = file_explorer {
         file_explorer::save(file_explorer)?;
     }
 
-    if let Some(recent_sessions) = &data.recent_sessions {
+    if let Some(recent_sessions) = recent_sessions {
         recent::save(recent_sessions)?;
+    }
+
+    if let Some(app_settings) = app_settings {
+        settings::save_settings(app_settings)?;
     }
 
     Ok(())
