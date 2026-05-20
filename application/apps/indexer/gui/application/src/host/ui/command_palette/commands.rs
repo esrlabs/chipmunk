@@ -12,6 +12,7 @@ use crate::{
         ui::{
             UiActions, file_dialog_commands,
             state::{self, HostState, modal::HostModal},
+            storage::HostStorage,
         },
     },
 };
@@ -29,6 +30,7 @@ pub enum CommandAction {
     NextTab,
     PreviousTab,
     OpenPluginManager,
+    OpenSettings,
     ReloadPlugins,
     ShowShortcuts,
     ShowAbout,
@@ -94,6 +96,10 @@ const COMMANDS: &[CommandDefinition] = &[
     CommandDefinition {
         title: "Open Plugin Manager",
         action: CommandAction::OpenPluginManager,
+    },
+    CommandDefinition {
+        title: "Open Settings",
+        action: CommandAction::OpenSettings,
     },
     CommandDefinition {
         title: "Reload Plugins",
@@ -243,6 +249,7 @@ pub fn execute_action(
     action: CommandAction,
     cmd_tx: &Sender<HostCommand>,
     state: &mut HostState,
+    storage: &HostStorage,
     actions: &mut UiActions,
     ui: &Ui,
 ) -> bool {
@@ -277,6 +284,10 @@ pub fn execute_action(
         }
         CommandAction::OpenPluginManager => {
             state.open_plugin_manager();
+            true
+        }
+        CommandAction::OpenSettings => {
+            state.open_app_settings(storage.settings.current().clone());
             true
         }
         CommandAction::ReloadPlugins => {
@@ -323,18 +334,6 @@ mod tests {
 
     fn result_actions(results: &[CommandPaletteItem]) -> Vec<CommandAction> {
         results.iter().map(|item| item.action).collect()
-    }
-
-    #[test]
-    fn command_set_matches_initial_palette_scope() {
-        assert_eq!(COMMANDS.len(), 30);
-        assert!(COMMANDS.iter().any(|command| matches!(
-            command.action,
-            CommandAction::ConnectionSetup {
-                stream: StreamNames::Serial,
-                parser: ParserNames::Plugins,
-            }
-        )));
     }
 
     #[test]

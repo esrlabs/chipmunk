@@ -42,7 +42,9 @@ use crate::{
                 },
             },
             state::plugin::PluginsState,
-            storage::{recent::storage::RecentSessionsStorage, types::StorageEvent},
+            storage::{
+                recent::storage::RecentSessionsStorage, settings::AppSettings, types::StorageEvent,
+            },
         },
     },
     session::{InitSessionError, service::SessionService, ui::definitions::schema::LogSchemaSpec},
@@ -68,6 +70,17 @@ pub struct HostService {
     plugins: PluginService,
 }
 
+/// Startup data returned after the host service runtime has initialized.
+#[derive(Debug)]
+pub struct HostServiceInit {
+    /// Tokio runtime handle used by UI actions that spawn async work.
+    pub tokio_handle: Handle,
+    /// Recent sessions loaded synchronously for initial UI state.
+    pub recent_sessions: RecentSessionsStorage,
+    /// Application settings loaded synchronously before startup tasks run.
+    pub app_settings: AppSettings,
+}
+
 /// Results from host-owned background work, grouped by service domain.
 #[derive(Debug)]
 enum HostAsyncEvent {
@@ -78,9 +91,9 @@ enum HostAsyncEvent {
 }
 
 impl HostService {
-    /// Spawns tokio runtime to run host services and loads recent sessions for startup.
+    /// Spawns tokio runtime to run host services and loads startup storage domains.
     #[must_use]
-    pub fn spawn(communication: ServiceHandle) -> (Handle, RecentSessionsStorage) {
+    pub fn spawn(communication: ServiceHandle) -> HostServiceInit {
         let (handle_tx, handle_rx) = std::sync::mpsc::channel();
 
         thread::spawn(move || {
@@ -92,7 +105,7 @@ impl HostService {
 
             rt.block_on(async move {
                 let recent_sessions = match storage::recent::load_sessions() {
-                    Ok(data) => *data,
+                    Ok(data) => data,
                     Err(err) => {
                         communication
                             .senders
@@ -102,8 +115,24 @@ impl HostService {
                     }
                 };
 
+                let app_settings = match storage::settings::load_settings() {
+                    Ok(settings) => settings,
+                    Err(err) => {
+                        communication
+                            .senders
+                            .send_notification(AppNotification::Error(err.to_string()))
+                            .await;
+                        AppSettings::default()
+                    }
+                };
+                let update_settings = app_settings.updates.clone();
+
                 handle_tx
-                    .send((tokio_handle, recent_sessions))
+                    .send(HostServiceInit {
+                        tokio_handle,
+                        recent_sessions,
+                        app_settings,
+                    })
                     .expect("Sending startup state should never fail");
 
                 let (async_event_tx, async_event_rx) = mpsc::channel(ASYNC_EVENT_CHANNEL_CAPACITY);
@@ -122,6 +151,7 @@ impl HostService {
                 release_info::spawn_update_check(
                     host.communication.senders.clone(),
                     previous_version,
+                    update_settings,
                 );
                 host.run().await;
             });

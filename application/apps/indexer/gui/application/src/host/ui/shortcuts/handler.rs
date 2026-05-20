@@ -195,9 +195,11 @@ fn handle_active_tab_shortcuts(
         state, ui_actions, ..
     } = host;
 
-    let TabType::Session(session_id) = state.active_tab().clone() else {
+    let TabType::Session(session_id) = state.active_tab() else {
         return false;
     };
+
+    let session_id = *session_id;
 
     let Some(session) = state.sessions.get_mut(&session_id) else {
         return false;

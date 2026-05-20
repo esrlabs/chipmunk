@@ -122,6 +122,11 @@ impl HostModalState {
         }
     }
 
+    /// Returns whether any confirmation answer is waiting to be collected.
+    pub fn has_confirmation_results(&self) -> bool {
+        !self.confirmation_results.is_empty()
+    }
+
     /// Removes and returns the first stored confirmation answer for the dialog id.
     pub fn take_confirmation_result(&mut self, id: &str) -> Option<ConfirmationAnswer> {
         let result_idx = self
@@ -204,6 +209,22 @@ mod tests {
             Some(ConfirmationAnswer::Confirmed)
         );
         assert_eq!(state.take_confirmation_result(CONFIRMATION_ID), None);
+    }
+
+    #[test]
+    fn tracks_pending_results() {
+        let mut state = HostModalState::default();
+
+        assert!(!state.has_confirmation_results());
+
+        state.open(confirmation_modal());
+        state.resolve_confirmation(ConfirmationAnswer::Confirmed);
+
+        assert!(state.has_confirmation_results());
+
+        state.take_confirmation_result(CONFIRMATION_ID);
+
+        assert!(!state.has_confirmation_results());
     }
 
     #[test]

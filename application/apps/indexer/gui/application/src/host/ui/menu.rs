@@ -11,6 +11,7 @@ use crate::{
             actions::UiActions,
             file_dialog_commands,
             state::{HostState, modal::HostModal},
+            storage::HostStorage,
         },
     },
 };
@@ -25,7 +26,13 @@ impl MainMenuBar {
         Self { cmd_tx }
     }
 
-    pub fn render(&mut self, ui: &mut Ui, actions: &mut UiActions, state: &mut HostState) {
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        actions: &mut UiActions,
+        state: &mut HostState,
+        storage: &HostStorage,
+    ) {
         self.handle_file_dialog(actions);
 
         MenuBar::new().ui(ui, |ui| {
@@ -39,6 +46,11 @@ impl MainMenuBar {
                     });
 
                     ui.separator();
+                }
+
+                if ui.button("Settings").clicked() {
+                    state.open_app_settings(storage.settings.current().clone());
+                    ui.close();
                 }
 
                 if ui.button("Keyboard Shortcuts").clicked() {
