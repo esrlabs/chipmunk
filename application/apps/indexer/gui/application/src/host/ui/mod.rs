@@ -5,7 +5,6 @@ use eframe::NativeOptions;
 use egui::{
     Align, Button, CentralPanel, Context, Frame, Layout, Panel, RichText, Ui, Widget, vec2,
 };
-use itertools::Itertools;
 use log::{info, trace, warn};
 
 use crate::{
@@ -23,7 +22,6 @@ use crate::{
         service::HostService,
         ui::{
             command_palette::CommandPalette,
-            home::HomeView,
             notification::NotificationUi,
             quick_open::QuickOpen,
             session_setup::state::{
@@ -32,9 +30,10 @@ use crate::{
             },
             state::modal::HostModal,
             storage::HostStorage,
-            tabs::{HOST_TAB_CONTROL_HEIGHT, TabType, TabsUi, host_tab_bar_height},
+            tabs::{HOST_TAB_CONTROL_HEIGHT, HostTab, HostTabs, host_tab_bar_height},
         },
     },
+    session::{SpawnedRecentSession, SpawnedSession, ui::Session},
 };
 use menu::MainMenuBar;
 use state::HostState;
@@ -68,7 +67,7 @@ pub struct Host {
     receivers: UiReceivers,
     senders: UiSenders,
     menu: MainMenuBar,
-    tabs: TabsUi,
+    tabs: HostTabs,
     notifications: NotificationUi,
     quick_open: QuickOpen,
     command_palette: CommandPalette,
@@ -100,7 +99,7 @@ impl Host {
                 fonts::setup(&ctx.egui_ctx);
 
                 let menu = MainMenuBar::new(cmd_tx.clone());
-                let state = HostState::new(cmd_tx.clone());
+                let state = HostState::default();
                 let mut host = Self {
                     menu,
                     receivers: ui_comm.receivers,
@@ -108,7 +107,7 @@ impl Host {
                     notifications: NotificationUi::default(),
                     quick_open: QuickOpen::new(cmd_tx.clone()),
                     command_palette: CommandPalette::new(cmd_tx.clone()),
-                    tabs: TabsUi::default(),
+                    tabs: HostTabs::new(cmd_tx.clone()),
                     state,
                     storage: HostStorage::new(
                         cmd_tx,
@@ -169,14 +168,22 @@ impl Host {
 
     fn handle_message(&mut self, message: HostMessage) {
         match message {
-            HostMessage::SessionSetupOpened(setup_state) => self
-                .state
-                .add_session_setup(*setup_state, self.senders.cmd_tx.clone()),
+            HostMessage::SessionSetupOpened(setup_state) => {
+                self.tabs.add_session_setup(*setup_state);
+            }
             HostMessage::DltStatistics {
                 setup_session_id,
                 statistics,
             } => {
-                if let Some(setup) = self.state.session_setups.get_mut(&setup_session_id)
+                if let Some(setup) = self
+                    .tabs
+                    .tabs_mut()
+                    .iter_mut()
+                    .filter_map(|tab| match tab {
+                        HostTab::SessionSetup(setup) => Some(setup),
+                        _ => None,
+                    })
+                    .find(|setup| setup.id() == setup_session_id)
                     && let ParserConfig::Dlt(config) = &mut setup.state.parser
                 {
                     config.dlt_statistics = Some(Box::new(*statistics.unwrap_or_default()));
@@ -187,39 +194,29 @@ impl Host {
                 session,
                 session_setup_id,
             } => {
-                let crate::session::SpawnedSession { ui_init, recent } = *session;
-                let crate::session::SpawnedRecentSession {
+                let SpawnedSession { ui_init, recent } = *session;
+                let SpawnedRecentSession {
                     registration: recent_registration,
                     restore_state,
                 } = recent;
 
-                let session_id =
-                    self.state
-                        .add_session(ui_init, session_setup_id, self.senders.cmd_tx.clone());
-
-                let registry = &mut self.state.registry;
-
-                let Some(session) = self.state.sessions.get_mut(&session_id) else {
-                    return;
-                };
+                let mut session = Session::new(ui_init, self.senders.cmd_tx.clone());
 
                 if let Some(restore_state) = restore_state {
-                    session.apply_recent_restore(restore_state, registry);
+                    session.apply_recent_restore(restore_state, &mut self.state.registry);
                 }
 
                 if let Some(recent_registration) = recent_registration {
-                    let filters = &registry.filters;
-                    let state = session.capture_opened_recent_state(filters);
+                    let state = session.capture_opened_recent_state(&self.state.registry.filters);
                     let snapshot = recent_registration.into_snapshot(state);
-
                     self.storage.recent_sessions.register_session(snapshot);
                 }
+
+                self.tabs.add_session(session, session_setup_id);
             }
-            HostMessage::MultiFilesSetup(state) => self
-                .state
-                .add_multi_files(*state, self.senders.cmd_tx.clone()),
-            HostMessage::SessionSetupClosed { id } => self.state.close_session_setup(id),
-            HostMessage::MultiSetupClose { id } => self.state.close_multi_setup(id),
+            HostMessage::MultiFilesSetup(state) => self.tabs.add_multi_files(*state),
+            HostMessage::SessionSetupClosed { id } => self.tabs.close_session_setup(id),
+            HostMessage::MultiSetupClose { id } => self.tabs.close_multi_setup(id),
             HostMessage::PresetsImported(imported) => self
                 .state
                 .handle_presets_imported(*imported, &mut self.ui_actions),
@@ -236,9 +233,12 @@ impl Host {
                 }
             }
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
-            HostMessage::PluginsStateChanged(plugins) => self.state.set_plugins_state(*plugins),
+            HostMessage::PluginsStateChanged(plugins) => {
+                self.state.plugins.set(*plugins);
+                self.tabs.handle_plugins_changed(&self.state.plugins);
+            }
             HostMessage::PluginReadmeLoaded(response) => {
-                self.state.plugin_manager.handle_readme_loaded(*response);
+                self.tabs.handle_plugin_readme_loaded(*response);
             }
         }
     }
@@ -269,11 +269,13 @@ impl Host {
             storage,
             ui_actions,
             state,
+            tabs,
             ..
         } = self;
 
         self.quick_open.render(ui, storage, ui_actions);
-        self.command_palette.render(ui, state, storage, ui_actions);
+        self.command_palette
+            .render(ui, state, tabs, storage, ui_actions);
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(0))
@@ -323,10 +325,11 @@ impl Host {
             menu,
             ui_actions,
             state,
+            tabs,
             storage,
             ..
         } = self;
-        menu.render(ui, ui_actions, state, storage);
+        menu.render(ui, ui_actions, state, tabs, storage);
     }
 
     fn render_tabs(&mut self, ui: &mut Ui) {
@@ -347,14 +350,14 @@ impl Host {
                 ui.spacing_mut().item_spacing.x = 0.0;
 
                 ui.add_space(4.0);
-                render_tab_bar_utilities(state, notifications, ui);
+                render_tab_bar_utilities(state, tabs, notifications, ui);
                 ui.add_space(8.0);
 
                 ui.allocate_ui_with_layout(
                     vec2(ui.available_width(), host_tab_bar_height()),
                     Layout::left_to_right(Align::Max),
                     |ui| {
-                        tabs.render_all_tabs(state, ui_actions, ui);
+                        tabs.render_tab_bar(state, ui_actions, ui);
                     },
                 );
             },
@@ -366,49 +369,11 @@ impl Host {
             ui_actions,
             state,
             storage,
+            tabs,
             ..
         } = self;
 
-        let HostState {
-            home_view,
-            sessions,
-            session_setups,
-            multi_setups,
-            preferences,
-            registry,
-            plugins,
-            plugin_manager,
-            modals,
-            tabs,
-            active_tab_idx,
-            ..
-        } = state;
-
-        let active_tab = &mut tabs[*active_tab_idx];
-
-        match active_tab {
-            TabType::Home => {
-                home_view.render_content(storage, ui_actions, preferences, plugins, ui)
-            }
-            TabType::Session(id) => sessions
-                .get_mut(id)
-                .expect("Session with provieded ID from active tab must exist")
-                .render_content(ui_actions, registry, preferences, ui),
-            TabType::SessionSetup(id) => session_setups
-                .get_mut(id)
-                .expect("Session Setup with provided ID form active tab must exist")
-                .render_content(ui_actions, &mut storage.recent_sessions, plugins, ui),
-            TabType::MultiFileSetup(id) => multi_setups
-                .get_mut(id)
-                .expect("Multiple files setups with provided ID from active tab must exist")
-                .render_content(ui_actions, preferences, ui),
-            TabType::PluginManager => {
-                plugin_manager.render_content(ui, plugins, ui_actions, preferences, modals)
-            }
-            TabType::AppSettings(settings) => {
-                settings.render_content(storage, ui);
-            }
-        }
+        tabs.render_active_content(state, storage, ui_actions, ui);
     }
 
     fn handle_confirmation_results(&mut self) {
@@ -416,31 +381,8 @@ impl Host {
             return;
         }
 
-        let HostState {
-            tabs,
-            plugin_manager,
-            modals,
-            ..
-        } = &mut self.state;
-
-        for tab in tabs {
-            match tab {
-                TabType::AppSettings(settings) => {
-                    settings.handle_confirmation_result(modals, &mut self.ui_actions);
-                }
-                TabType::PluginManager => {
-                    plugin_manager.handle_confirmation_result(&mut self.ui_actions, modals);
-                }
-                TabType::Home
-                | TabType::Session(_)
-                | TabType::SessionSetup(_)
-                | TabType::MultiFileSetup(_) => {}
-            }
-
-            if !modals.has_confirmation_results() {
-                break;
-            }
-        }
+        self.tabs
+            .handle_confirmation_results(&mut self.state.modals, &mut self.ui_actions);
     }
 
     fn handle_ui_actions(&mut self, ctx: &Context) {
@@ -450,14 +392,16 @@ impl Host {
             self.notifications.add(notifi);
         }
 
-        for action in self.ui_actions.drain_host_actions().collect_vec() {
+        let host_actions: Vec<_> = self.ui_actions.drain_host_actions().collect();
+        for action in host_actions {
             changed = true;
             match action {
                 HostAction::CloseSession(session_id) => {
-                    self.state.close_session(session_id, &mut self.ui_actions);
-                }
-                HostAction::CloseAppSettings => {
-                    self.state.remove_app_settings_tab();
+                    self.tabs.close_session(
+                        session_id,
+                        &mut self.state.registry,
+                        &mut self.ui_actions,
+                    );
                 }
             }
         }
@@ -469,17 +413,20 @@ impl Host {
 
     /// Check for changes in session and update recent session storage.
     fn handle_recent_sessions(&mut self) {
-        let Self { state, storage, .. } = self;
+        let filters = &self.state.registry.filters;
+        for tab in self.tabs.tabs_mut() {
+            let HostTab::Session(session) = tab else {
+                continue;
+            };
 
-        for session in state.sessions.values_mut() {
-            let Some(state) = session.take_recent_state_update(&state.registry.filters) else {
+            let Some(state) = session.take_recent_state_update(filters) else {
                 continue;
             };
             let Some(source_key) = session.recent_session.source_key() else {
                 continue;
             };
 
-            storage
+            self.storage
                 .recent_sessions
                 .update_session_state(source_key, state);
         }
@@ -508,6 +455,7 @@ impl Host {
 
 fn render_tab_bar_utilities(
     state: &mut HostState,
+    tabs: &HostTabs,
     notifications: &mut NotificationUi,
     ui: &mut Ui,
 ) {
@@ -517,7 +465,7 @@ fn render_tab_bar_utilities(
 
         notifications.render_content(ui);
 
-        if state.show_right_panel_toggle() {
+        if tabs.show_right_panel_toggle(&state.plugins) {
             ui.add_space(6.0);
 
             render_panel_toggle(
@@ -528,7 +476,7 @@ fn render_tab_bar_utilities(
             );
         }
 
-        if state.show_bottom_panel_toggle() {
+        if tabs.show_bottom_panel_toggle() {
             render_panel_toggle(
                 ui,
                 &mut state.preferences.panels_visibility.bottom,
@@ -578,10 +526,12 @@ impl eframe::App for Host {
 
         self.storage.poll_pending_save(&mut self.ui_actions);
 
-        let HostState {
-            sessions, registry, ..
-        } = &mut self.state;
-        for session in sessions.values_mut() {
+        let registry = &self.state.registry;
+        for tab in self.tabs.tabs_mut() {
+            let HostTab::Session(session) = tab else {
+                continue;
+            };
+
             session.handle_messages(&mut self.ui_actions, &mut self.storage, registry);
         }
 
@@ -594,13 +544,14 @@ impl eframe::App for Host {
             command_palette,
             storage,
             state,
+            tabs,
             ui_actions,
             ..
         } = self;
 
         let overlay_was_open = quick_open.is_open() || command_palette.is_open();
         quick_open.handle_input(ui, storage, ui_actions);
-        command_palette.handle_input(ui, state, storage, ui_actions);
+        command_palette.handle_input(ui, state, tabs, storage, ui_actions);
         if !overlay_was_open && !quick_open.is_open() && !command_palette.is_open() {
             shortcuts::handler::handle(self, ui.ctx());
         }

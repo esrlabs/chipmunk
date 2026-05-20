@@ -2,11 +2,7 @@
 
 use egui::{Context, Event};
 
-use crate::host::ui::{
-    Host, file_dialog_commands,
-    state::{self, modal::HostModal},
-    tabs::TabType,
-};
+use crate::host::ui::{Host, file_dialog_commands, state::modal::HostModal, tabs::HostTab};
 
 use super::{
     definitions::{AppShortcuts, OPEN_SHORTCUTS_F1, app_shortcuts},
@@ -80,6 +76,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
 
     let Host {
         state,
+        tabs,
         ui_actions,
         quick_open,
         command_palette,
@@ -87,7 +84,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     } = host;
 
     if consume_shortcut(ctx, home_tab) {
-        state.activate_tab(state::HOME_TAB_IDX);
+        tabs.activate_home();
         return true;
     }
 
@@ -107,72 +104,72 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     }
 
     if consume_shortcut(ctx, close_tab) {
-        state.close_active_tab(ui_actions);
+        tabs.close_active_tab(&mut state.registry, &mut state.modals, ui_actions);
         return true;
     }
 
     if consume_shortcut(ctx, previous_tab) {
-        state.activate_previous_tab();
+        tabs.activate_previous_tab();
         return true;
     }
 
     if consume_shortcut(ctx, next_tab) {
-        state.activate_next_tab();
+        tabs.activate_next_tab();
         return true;
     }
 
     if consume_shortcut(ctx, tab_1) {
-        state.activate_tab(0);
+        tabs.activate_tab(0);
         return true;
     }
 
     if consume_shortcut(ctx, tab_2) {
-        state.activate_tab(1);
+        tabs.activate_tab(1);
         return true;
     }
 
     if consume_shortcut(ctx, tab_3) {
-        state.activate_tab(2);
+        tabs.activate_tab(2);
         return true;
     }
 
     if consume_shortcut(ctx, tab_4) {
-        state.activate_tab(3);
+        tabs.activate_tab(3);
         return true;
     }
 
     if consume_shortcut(ctx, tab_5) {
-        state.activate_tab(4);
+        tabs.activate_tab(4);
         return true;
     }
 
     if consume_shortcut(ctx, tab_6) {
-        state.activate_tab(5);
+        tabs.activate_tab(5);
         return true;
     }
 
     if consume_shortcut(ctx, tab_7) {
-        state.activate_tab(6);
+        tabs.activate_tab(6);
         return true;
     }
 
     if consume_shortcut(ctx, tab_8) {
-        state.activate_tab(7);
+        tabs.activate_tab(7);
         return true;
     }
 
     if consume_shortcut(ctx, tab_9) {
-        state.activate_tab(8);
+        tabs.activate_tab(8);
         return true;
     }
 
-    if state.show_right_panel_toggle() && consume_shortcut(ctx, toggle_right_panel) {
+    if tabs.show_right_panel_toggle(&state.plugins) && consume_shortcut(ctx, toggle_right_panel) {
         let visible = &mut state.preferences.panels_visibility.right;
         *visible = !*visible;
         return true;
     }
 
-    if state.show_bottom_panel_toggle() && consume_shortcut(ctx, toggle_bottom_panel) {
+    if tabs.show_bottom_panel_toggle() && consume_shortcut(ctx, toggle_bottom_panel) {
         let visible = &mut state.preferences.panels_visibility.bottom;
         *visible = !*visible;
         return true;
@@ -192,16 +189,13 @@ fn handle_active_tab_shortcuts(
     last_key: Option<&LastShortcutKey>,
 ) -> bool {
     let Host {
-        state, ui_actions, ..
+        state,
+        tabs,
+        ui_actions,
+        ..
     } = host;
 
-    let TabType::Session(session_id) = state.active_tab() else {
-        return false;
-    };
-
-    let session_id = *session_id;
-
-    let Some(session) = state.sessions.get_mut(&session_id) else {
+    let HostTab::Session(session) = tabs.active_mut() else {
         return false;
     };
 

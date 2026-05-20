@@ -1,6 +1,9 @@
 //! README loading state for the Plugin Manager.
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use egui_commonmark::CommonMarkCache;
 
@@ -9,13 +12,18 @@ use crate::host::{
     ui::state::plugin::PluginsData,
 };
 
+static NEXT_README_REQUEST_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_readme_request_id() -> u64 {
+    NEXT_README_REQUEST_ID.fetch_add(1, Ordering::Relaxed)
+}
+
 /// README loading state for the selected plugin.
 #[derive(Debug)]
 pub struct ReadmeState {
     plugin_path: Option<PathBuf>,
     /// Current load status shown by the details view.
     pub status: ReadmeStatus,
-    next_request_id: u64,
     /// Markdown renderer cache for the current README content.
     pub markdown_cache: CommonMarkCache,
 }
@@ -40,7 +48,6 @@ impl Default for ReadmeState {
         Self {
             plugin_path: None,
             status: ReadmeStatus::Idle,
-            next_request_id: 1,
             markdown_cache: CommonMarkCache::default(),
         }
     }
@@ -52,7 +59,6 @@ impl ReadmeState {
         let Self {
             plugin_path,
             status,
-            next_request_id: _,
             markdown_cache,
         } = self;
 
@@ -66,7 +72,6 @@ impl ReadmeState {
         let Self {
             plugin_path,
             status,
-            next_request_id: _,
             markdown_cache,
         } = self;
 
@@ -100,8 +105,7 @@ impl ReadmeState {
 
     /// Marks the README as loading and returns the request id assigned to that load.
     pub fn start_loading(&mut self) -> u64 {
-        let request_id = self.next_request_id;
-        self.next_request_id = self.next_request_id.saturating_add(1).max(1);
+        let request_id = next_readme_request_id();
         self.status = ReadmeStatus::Loading { request_id };
         request_id
     }

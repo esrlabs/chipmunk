@@ -7,7 +7,6 @@ use crate::{
     host::{
         common::ui_utls::main_panel_group_frame,
         ui::{
-            HostAction, UiActions,
             state::modal::{ConfirmationAnswer, ConfirmationDialog, HostModalState},
             storage::{HostStorage, settings::AppSettings},
         },
@@ -138,17 +137,11 @@ impl AppSettingsView {
         }
     }
 
-    pub fn handle_confirmation_result(
-        &mut self,
-        modals: &mut HostModalState,
-        actions: &mut UiActions,
-    ) {
-        if modals
+    /// Returns whether a pending close confirmation accepted closing this settings tab.
+    pub fn should_close_after_confirmation(&mut self, modals: &mut HostModalState) -> bool {
+        modals
             .take_confirmation_result(CLOSE_CONFIRMATION_ID)
             .is_some_and(|answer| answer == ConfirmationAnswer::Confirmed)
-        {
-            actions.add_host_action(HostAction::CloseAppSettings);
-        }
     }
 
     pub fn on_close_tab(&self) -> Option<ConfirmationDialog> {
