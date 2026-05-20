@@ -7,7 +7,7 @@ use crate::{
     common::app_info,
     host::{
         communication::ServiceSenders,
-        message::{AppVersionUpdate, HostMessage},
+        message::{AppChangelog, AppVersionUpdate, HostMessage},
     },
 };
 
@@ -24,12 +24,12 @@ struct ReleaseInfo {
     draft: bool,
 }
 
-/// Spawns a background check for a newer GitHub release in the current major series.
-pub fn spawn_update_check(senders: ServiceSenders) {
-    tokio::spawn(check_for_updates(senders));
+/// Spawns a background check for release metadata in the current major series.
+pub fn spawn_update_check(senders: ServiceSenders, previous_version: Option<Version>) {
+    tokio::spawn(check_for_updates(senders, previous_version));
 }
 
-async fn check_for_updates(senders: ServiceSenders) {
+async fn check_for_updates(senders: ServiceSenders, previous_version: Option<Version>) {
     let releases = match fetch_release_info().await {
         Ok(releases) => releases,
         Err(err) => {
@@ -40,8 +40,12 @@ async fn check_for_updates(senders: ServiceSenders) {
 
     let current_version = app_info::current_version();
 
+    if previous_version.is_some_and(|previous_version| previous_version < *current_version) {
+        send_current_changelog(&senders, &releases, current_version).await;
+    }
+
     let Some((latest_version, release)) =
-        latest_current_major_release(releases, current_version.major)
+        latest_current_major_release(&releases, current_version.major)
     else {
         info!(
             "No release found for the current major version in the latest \
@@ -60,8 +64,7 @@ async fn check_for_updates(senders: ServiceSenders) {
 
     let update = AppVersionUpdate {
         latest_version,
-        release_notes: release.body,
-        release_url: release.html_url,
+        release_url: release.html_url.clone(),
     };
 
     senders
@@ -73,13 +76,50 @@ fn parse_version(version: &str) -> Result<Version, semver::Error> {
     Version::parse(version.trim_start_matches('v'))
 }
 
+/// Sends release notes for the currently running version after an app update.
+async fn send_current_changelog(
+    senders: &ServiceSenders,
+    releases: &[ReleaseInfo],
+    current_version: &Version,
+) {
+    let Some(release) = current_release(releases, current_version) else {
+        return;
+    };
+
+    let Some(release_notes) = release.body.as_ref().filter(|body| !body.trim().is_empty()) else {
+        return;
+    };
+
+    let changelog = AppChangelog {
+        version: current_version.clone(),
+        release_notes: release_notes.clone(),
+        release_url: release.html_url.clone(),
+    };
+
+    senders
+        .send_message(HostMessage::AppChangelog(Box::new(changelog)))
+        .await;
+}
+
+fn current_release<'a>(
+    releases: &'a [ReleaseInfo],
+    current_version: &Version,
+) -> Option<&'a ReleaseInfo> {
+    releases.iter().find(|release| {
+        !release.draft
+            && parse_version(&release.tag_name)
+                .ok()
+                .is_some_and(|version| version == *current_version)
+    })
+}
+
 /// Returns the newest non-draft release that parses as the current major version.
 fn latest_current_major_release(
-    releases: Vec<ReleaseInfo>,
+    releases: &[ReleaseInfo],
     current_major: u64,
-) -> Option<(Version, ReleaseInfo)> {
+) -> Option<(Version, &ReleaseInfo)> {
     let mut matching_releases = releases
-        .into_iter()
+        .iter()
         .filter_map(|release| {
             if release.draft {
                 return None;
@@ -156,18 +196,27 @@ mod tests {
 
     #[test]
     fn latest_current_major_release_sorts_versions() {
-        let latest = latest_current_major_release(
-            vec![
-                release("4.0.0-alpha.1"),
-                release("5.0.0-alpha.1"),
-                release("4.0.0-beta.1"),
-                release("4.0.0-beta.2"),
-            ],
-            4,
-        )
-        .expect("current major release should be found");
+        let releases = vec![
+            release("4.0.0-alpha.1"),
+            release("5.0.0-alpha.1"),
+            release("4.0.0-beta.1"),
+            release("4.0.0-beta.2"),
+        ];
+        let latest = latest_current_major_release(&releases, 4)
+            .expect("current major release should be found");
 
         assert_eq!(latest.0, parse_version("4.0.0-beta.2").unwrap());
         assert_eq!(latest.1.tag_name, "4.0.0-beta.2");
+    }
+
+    #[test]
+    fn current_release_matches_exact_version() {
+        let releases = vec![release("4.0.0-alpha.1"), release("4.0.0-beta.1")];
+        let current_version = parse_version("4.0.0-beta.1").unwrap();
+
+        let current = current_release(&releases, &current_version)
+            .expect("exact current version release should be found");
+
+        assert_eq!(current.tag_name, "4.0.0-beta.1");
     }
 }

@@ -225,6 +225,11 @@ impl Host {
             HostMessage::AppVersionUpdate(update) => {
                 self.state.app_info.set_update_info(*update);
             }
+            HostMessage::AppChangelog(changelog) => {
+                if self.state.modals.open(HostModal::Changelog) {
+                    self.state.app_info.set_changelog(*changelog);
+                }
+            }
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
             HostMessage::PluginsStateChanged(plugins) => self.state.set_plugins_state(*plugins),
             HostMessage::PluginReadmeLoaded(response) => {
@@ -287,6 +292,12 @@ impl Host {
             HostModal::Shortcuts => {
                 if shortcuts::modal::render_modal(ui) {
                     self.state.modals.close();
+                }
+            }
+            HostModal::Changelog => {
+                if modals::changelog::render_modal(&mut self.state.app_info, ui) {
+                    self.state.modals.close();
+                    self.state.app_info.clear_changelog();
                 }
             }
             HostModal::Confirmation(dialog) => {

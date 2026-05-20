@@ -118,7 +118,11 @@ impl HostService {
                 };
 
                 Self::spawn_startup_cleanup();
-                release_info::spawn_update_check(host.communication.senders.clone());
+                let previous_version = storage::app_version::sync_current_version();
+                release_info::spawn_update_check(
+                    host.communication.senders.clone(),
+                    previous_version,
+                );
                 host.run().await;
             });
         });

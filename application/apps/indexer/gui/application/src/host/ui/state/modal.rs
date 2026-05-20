@@ -14,6 +14,8 @@ pub enum HostModal {
     About,
     /// Keyboard shortcuts overview.
     Shortcuts,
+    /// Release notes for the first launch after an application update.
+    Changelog,
     /// Caller-owned confirmation dialog with a pollable answer.
     Confirmation(ConfirmationDialog),
 }
