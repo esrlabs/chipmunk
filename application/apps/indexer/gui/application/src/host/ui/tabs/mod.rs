@@ -395,7 +395,12 @@ impl HostTabs {
 
     fn update_active_on_close(&mut self, removed_idx: usize) {
         if self.active_idx == removed_idx {
-            self.active_idx = HOME_TAB_IDX;
+            let remaining_tabs = self.tabs.len().saturating_sub(1);
+            self.active_idx = if removed_idx < remaining_tabs {
+                removed_idx
+            } else {
+                removed_idx.saturating_sub(1)
+            };
         } else if self.active_idx > removed_idx {
             self.active_idx -= 1;
         }
