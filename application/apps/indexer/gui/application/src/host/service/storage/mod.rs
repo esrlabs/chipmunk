@@ -16,6 +16,7 @@ use crate::host::{
     ui::storage::types::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
 };
 
+pub mod app_version;
 mod file_explorer;
 pub mod recent;
 

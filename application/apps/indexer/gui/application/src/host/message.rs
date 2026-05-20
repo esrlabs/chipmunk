@@ -44,6 +44,8 @@ pub enum HostMessage {
     PresetsExported { path: PathBuf, count: usize },
     /// A newer application version is available.
     AppVersionUpdate(Box<AppVersionUpdate>),
+    /// Release notes for the first launch after an application update.
+    AppChangelog(Box<AppChangelog>),
     /// Storage-related async events.
     Storage(StorageEvent),
     /// Plugin manager state published by the host service.
@@ -68,10 +70,17 @@ pub struct PresetsImported {
 pub struct AppVersionUpdate {
     /// Newer version returned by the release source.
     pub latest_version: Version,
-    /// Release notes associated with the newer version.
-    //TODO AAZ:
-    #[allow(unused)]
-    pub release_notes: Option<String>,
+    /// Release page URL.
+    pub release_url: String,
+}
+
+/// Message payload for release notes shown after an application update.
+#[derive(Debug)]
+pub struct AppChangelog {
+    /// Version whose release notes are being shown.
+    pub version: Version,
+    /// Markdown release notes.
+    pub release_notes: String,
     /// Release page URL.
     pub release_url: String,
 }
