@@ -4,10 +4,9 @@ Chipmunk is a native Rust desktop application for high-volume logs, traces, and 
 
 The UI is built with egui and integrates directly with Chipmunk's Rust indexing, parsing, streaming, and search engine. The application is designed for responsive workflows on large files and continuously updating sources.
 
-<!-- Replace these placeholder URLs with the GitHub asset URLs after uploading. -->
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_LIGHT_THEME_SNAPSHOT" alt="Chipmunk light theme" width="49%">
-  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_DARK_THEME_SNAPSHOT" alt="Chipmunk dark theme" width="49%">
+  <img width="49%" alt="light-theme" src="https://github.com/user-attachments/assets/b830cb50-68c2-4289-933d-2d2d5710babf" />
+  <img width="49%" alt="dark-theme" src="https://github.com/user-attachments/assets/b2ef0735-76e9-4085-8182-fdce8a4f9250" />
 </p>
 
 ## Table of Contents
