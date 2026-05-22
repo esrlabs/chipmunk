@@ -1,23 +1,17 @@
+
 [![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)
 
 `chipmunk` is a native desktop application, written in Rust, for viewing log files with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space - nothing more. With no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.
 
-<!-- Replace these placeholder URLs with the GitHub asset URLs after uploading. -->
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_LIGHT_THEME_SNAPSHOT" alt="Chipmunk light theme" width="49%">
-  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_DARK_THEME_SNAPSHOT" alt="Chipmunk dark theme" width="49%">
+  <img width="49%" alt="light-theme" src="https://github.com/user-attachments/assets/b830cb50-68c2-4289-933d-2d2d5710babf" />
+  <img width="49%" alt="dark-theme" src="https://github.com/user-attachments/assets/b2ef0735-76e9-4085-8182-fdce8a4f9250" />
 </p>
 
-<details>
-  <summary>Demo</summary>
 
-  <!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
-  <p align="center">
-    <video src="https://github.com/user-attachments/assets/REPLACE_WITH_OVERVIEW_DEMO_VIDEO" controls muted loop playsinline width="100%"></video>
-  </p>
-</details>
+https://github.com/user-attachments/assets/5bd26a36-9740-4af8-8dbd-7523fa5014f1
 
 ## Automotive and Network Traces
 
@@ -42,28 +36,13 @@ Another key feature is the ability to launch any command or program and collect 
 
 At its core, `chipmunk` is a log analysis tool. It goes beyond simple search queries: you can create filter sets, save them, and reuse them across sessions. An intuitive interface allows you to label filters with different colors for more effective analysis.
 
-<!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/REPLACE_WITH_FILTER_CREATE_VIDEO" controls muted loop playsinline width="100%"></video>
-</p>
-
 The search engine works dynamically - results are updated in real time as new data is added. If you're connected to a live data source, your active filters will continuously update the search results as new logs arrive.
 
 ## Metrics, Measurements, and Graphs
 
 `chipmunk` includes a graphical tool for log analysis. You can define regular expressions to capture specific metrics and generate real-time charts to visualize their changes over time.
 
-<!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/REPLACE_WITH_CHARTS_FILTERS_VIDEO" controls muted loop playsinline width="100%"></video>
-</p>
-
 As with search, the graphical tool updates live as new content is streamed into the application.
-
-<!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/REPLACE_WITH_CHARTS_DYNAMIC_VIDEO" controls muted loop playsinline width="100%"></video>
-</p>
 
 ## Documentation / User Manual / Developer Manual
 
