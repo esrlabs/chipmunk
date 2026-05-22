@@ -1,5 +1,0 @@
-<span class="title">{{title}}</span>
-<span *ngIf="subtitle !== undefined" class="subtitle">({{subtitle}})</span>
-<span *ngIf="buttons.length > 0" class="filler"></span>
-<span *ngFor="let button of buttons" [attr.class]="'small-icon-button codicon ' + button.icon" (click)="click(button)"></span>
-<span *ngIf="buttons.length > 0 && !hideToggle" [attr.class]="'small-icon-button codicon ' + (opened ? 'codicon-chevron-up' : 'codicon-chevron-down')" (click)="toggle()"></span>

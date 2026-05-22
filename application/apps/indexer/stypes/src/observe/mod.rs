@@ -1,11 +1,5 @@
-#[cfg(feature = "rustcore")]
 mod extending;
-#[cfg(feature = "nodejs")]
-mod nodejs;
-#[cfg(test)]
-mod proptest;
 
-#[cfg(feature = "rustcore")]
 pub use extending::*;
 
 use crate::*;
@@ -16,12 +10,6 @@ use dlt_core::filtering::DltFilterConfig;
 /// - `interface`: The address of the local interface used to join the multicast group.
 ///   If set to `INADDR_ANY`, the system selects an appropriate interface.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct MulticastInfo {
     pub multiaddr: String,
     pub interface: Option<String>,
@@ -29,12 +17,6 @@ pub struct MulticastInfo {
 
 /// Configuration for UDP connections.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct UdpConnectionInfo {
     /// A list of multicast addresses to listen on.
     pub multicast_addr: Vec<MulticastInfo>,
@@ -43,12 +25,6 @@ pub struct UdpConnectionInfo {
 /// Specifies the parser to be used for processing session data.
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub enum ParserType {
     /// DLT parser for files (including PCAP files) or streams (TCP/UDP).
     Dlt(DltParserSettings),
@@ -62,15 +38,8 @@ pub enum ParserType {
 
 /// Settings for the DLT parser.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct DltParserSettings {
     /// Configuration for filtering DLT messages.
-    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "DltFilterConfig"))]
     pub filter_config: Option<DltFilterConfig>,
     /// Paths to FIBEX files for additional interpretation of `payload` content.
     pub fibex_file_paths: Option<Vec<String>>,
@@ -85,12 +54,6 @@ pub struct DltParserSettings {
 
 /// Settings for the SomeIp parser.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct SomeIpParserSettings {
     /// Paths to FIBEX files for additional interpretation of `payload` content.
     pub fibex_file_paths: Option<Vec<String>>,
@@ -98,12 +61,6 @@ pub struct SomeIpParserSettings {
 
 /// Describes the transport source for a session.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub enum Transport {
     /// Terminal command execution.
     Process(ProcessTransportConfig),
@@ -117,12 +74,6 @@ pub enum Transport {
 
 /// Configuration for executing terminal commands.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct ProcessTransportConfig {
     /// The working directory for the command.
     pub cwd: PathBuf,
@@ -134,12 +85,6 @@ pub struct ProcessTransportConfig {
 
 /// Configuration for serial port connections.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct SerialTransportConfig {
     /// The path to the serial port.
     pub path: String,
@@ -161,12 +106,6 @@ pub struct SerialTransportConfig {
 
 /// Configuration for TCP connections.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct TCPTransportConfig {
     /// The address to bind the TCP connection to.
     pub bind_addr: String,
@@ -174,12 +113,6 @@ pub struct TCPTransportConfig {
 
 /// Configuration for UDP connections.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct UDPTransportConfig {
     /// The address to bind the UDP connection to.
     pub bind_addr: String,
@@ -189,12 +122,6 @@ pub struct UDPTransportConfig {
 
 /// Supported file formats for observation.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq, PartialEq, Hash)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub enum FileFormat {
     PcapNG,
     PcapLegacy,
@@ -207,12 +134,6 @@ pub enum FileFormat {
 
 /// Describes the source of data for observation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub enum ObserveOrigin {
     /// The source is a single file.
     File(String, FileFormat, PathBuf),
@@ -224,12 +145,6 @@ pub enum ObserveOrigin {
 
 /// Options for observing data within a session.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "observe.ts")
-)]
 pub struct ObserveOptions {
     /// The description of the data source.
     pub origin: ObserveOrigin,

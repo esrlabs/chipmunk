@@ -1,7 +1,0 @@
-<mat-icon [attr.data-type]="locker.type" *ngIf="locker.type === Level.error">highlight_off</mat-icon>
-<mat-icon [attr.data-type]="locker.type" *ngIf="locker.type === Level.warning">report_problem</mat-icon>
-<div>
-    <p class="time">{{locker.getTime()}}</p>
-    <p class="message" *ngIf="locker.message !== undefined">{{locker.message}}</p>
-</div>
-

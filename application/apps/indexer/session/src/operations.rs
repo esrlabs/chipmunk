@@ -227,7 +227,7 @@ impl OperationAPI {
         let event = match result {
             Ok(result) => {
                 if let Some(result) = result.as_ref() {
-                    match stypes::serialize(result) {
+                    match bincode::serialize(result) {
                         Ok(bytes) => stypes::CallbackEvent::OperationDone(stypes::OperationDone {
                             uuid: self.operation_id,
                             result: Some(bytes),

@@ -21,7 +21,7 @@ tokio-stream.workspace = true
 tokio-util = { workspace = true , features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
-stypes = { workspace = true, features=["rustcore"] }
+stypes.workspace = true
 socket2 = "0.5.8"
 
 [target.'cfg(windows)'.dependencies]

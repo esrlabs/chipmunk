@@ -313,18 +313,11 @@ def repo_readme_path():
 
 
 def icon_path():
-    return repo_root() / "application" / "holder" / "resources" / "mac" / "chipmunk.icns"
+    return app_root() / "data" / "mac" / "chipmunk.icns"
 
 
 def entitlements_path():
-    return (
-        repo_root()
-        / "application"
-        / "holder"
-        / "resources"
-        / "mac"
-        / "entitlements.mac.plist"
-    )
+    return app_root() / "data" / "mac" / "entitlements.mac.plist"
 
 
 def platform_name():
