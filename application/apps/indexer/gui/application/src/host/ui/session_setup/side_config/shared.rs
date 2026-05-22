@@ -1,4 +1,4 @@
-use egui::{Button, RichText, Widget};
+use egui::{Button, RichText, TextFormat, Widget};
 
 use crate::{
     common::{
@@ -24,20 +24,27 @@ pub fn fibex_file_selector(
     }
 
     ui.label("Fibex Files");
-    ui.label(RichText::new("Attach fibex files (optional)").small());
-    ui.add_space(5.0);
 
+    let button_text_color = ui.visuals().text_color();
     let mut add_txt = egui::text::LayoutJob::default();
     add_txt.append(
         icons::fill::FILE_PLUS,
         0.0,
-        egui::text::TextFormat {
+        TextFormat {
             font_id: egui::FontId::new(15.0, phosphor::fill_font_family()),
+            color: button_text_color,
             ..Default::default()
         },
     );
 
-    add_txt.append("Add", 3.0, egui::text::TextFormat::default());
+    add_txt.append(
+        "Add",
+        3.0,
+        TextFormat {
+            color: button_text_color,
+            ..Default::default()
+        },
+    );
 
     if ui
         .add(buttons::session_setup(add_txt, Some(60.0)))
@@ -76,4 +83,6 @@ pub fn fibex_file_selector(
     if let Some(remove_idx) = to_remove.take() {
         fibex_files.remove(remove_idx);
     }
+
+    ui.label(RichText::new("Attach fibex files (optional)").small());
 }
