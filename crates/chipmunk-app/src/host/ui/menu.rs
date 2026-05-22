@@ -17,6 +17,8 @@ use crate::{
     },
 };
 
+const MENU_MIN_SIZE: egui::Vec2 = egui::vec2(140.0, 0.0);
+
 #[derive(Debug)]
 pub struct MainMenuBar {
     cmd_tx: Sender<HostCommand>,
@@ -39,8 +41,12 @@ impl MainMenuBar {
 
         MenuBar::new().ui(ui, |ui| {
             ui.menu_button(app_info::TITLE, |ui| {
+                ui.set_min_size(MENU_MIN_SIZE);
+
                 if cfg!(debug_assertions) {
                     ui.menu_button("Development", |ui| {
+                        ui.set_min_size(MENU_MIN_SIZE);
+
                         if ui.button("Reset egui memory").clicked() {
                             ui.memory_mut(|mem| *mem = Default::default());
                             ui.global_style_mut(app_style::global_styles);
@@ -73,6 +79,8 @@ impl MainMenuBar {
             });
 
             ui.menu_button("File", |ui| {
+                ui.set_min_size(MENU_MIN_SIZE);
+
                 if ui.button("Open File(s)").clicked() {
                     file_dialog_commands::open_files_dialog(actions);
                 }
@@ -80,6 +88,8 @@ impl MainMenuBar {
                 ui.separator();
 
                 ui.menu_button("Select Files from Folder", |ui| {
+                    ui.set_min_size(MENU_MIN_SIZE);
+
                     if ui.button("Text").clicked() {
                         file_dialog_commands::open_folder_dialog(actions, FileFormat::Text);
                     }
@@ -106,6 +116,8 @@ impl MainMenuBar {
             });
 
             ui.menu_button("Terminal", |ui| {
+                ui.set_min_size(MENU_MIN_SIZE);
+
                 if ui.button("Execute Command").clicked() {
                     actions.try_send_command(
                         &self.cmd_tx,
@@ -118,6 +130,8 @@ impl MainMenuBar {
             });
 
             ui.menu_button("Plugins", |ui| {
+                ui.set_min_size(MENU_MIN_SIZE);
+
                 if ui.button("Plugin Manager").clicked() {
                     tabs.open_plugin_manager();
                     ui.close();
@@ -125,6 +139,8 @@ impl MainMenuBar {
             });
 
             ui.menu_button("View", |ui| {
+                ui.set_min_size(MENU_MIN_SIZE);
+
                 if ui.button("Dark Theme").clicked() {
                     ui.set_theme(Theme::Dark);
                 }
@@ -140,7 +156,10 @@ impl MainMenuBar {
         file_dialog_commands::handle_dialog_output(actions, &self.cmd_tx);
     }
 }
+
 pub fn render_connections_menu(ui: &mut Ui, actions: &mut UiActions, cmd_tx: &Sender<HostCommand>) {
+    ui.set_min_size(MENU_MIN_SIZE);
+
     if ui.button("DLT on UDP").clicked() {
         actions.try_send_command(
             cmd_tx,
